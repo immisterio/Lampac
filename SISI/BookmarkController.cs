@@ -79,10 +79,10 @@ namespace SISI
 
             string getvideLink(PlaylistItem pl)
             {
-                if (pl.bookmark.site is "phub" or "phubprem")
-                    return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
+                if (pl.bookmark.Value.site is "phub" or "phubprem")
+                    return $"{host}/{pl.bookmark.Value.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.Value.href)}";
 
-                return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
+                return $"{host}/{pl.bookmark.Value.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.Value.href)}";
             }
 
             string localhost = $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}";
@@ -94,14 +94,14 @@ namespace SISI
                 {
                     pl.name,
                     video = getvideLink(pl),
-                    picture = HostImgProxy(pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image, plugin: pl.bookmark.site),
+                    picture = HostImgProxy(pl.bookmark.Value.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.Value.image}" : pl.bookmark.Value.image, plugin: pl.bookmark.Value.site),
                     pl.time,
                     pl.json,
-                    related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
+                    related = pl.related || Regex.IsMatch(pl.bookmark.Value.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
                     pl.quality,
                     preview = pl.preview != null && pl.preview.StartsWith("bookmarks/") ? $"{host}/{pl.preview}" : null,
                     pl.model,
-                    bookmark = new Bookmark() { uid = pl.bookmark.uid }
+                    bookmark = new Bookmark() { uid = pl.bookmark.Value.uid }
                 })
             });
         }
@@ -118,10 +118,12 @@ namespace SISI
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
 
             var bookmarks = bookmarkCache.Read();
-            string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
+            string uid = CrypTo.md5($"{data.bookmark.Value.site}:{data.bookmark.Value.href}");
 
-            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
+            if (bookmarks.FirstOrDefault(i => i.bookmark.Value.uid == uid) == null)
             {
+                string newimage = null;
+
                 #region download image
                 if (AppInit.conf.sisi.bookmarks.saveimage)
                 {
@@ -129,16 +131,16 @@ namespace SISI
 
                     if (System.IO.File.Exists($"wwwroot/{pimg}"))
                     {
-                        data.bookmark.image = pimg;
+                        newimage = pimg;
                     }
                     else
                     {
-                        var image = await HttpClient.Download(data.bookmark.image, timeoutSeconds: 7);
+                        var image = await HttpClient.Download(data.bookmark.Value.image, timeoutSeconds: 7);
                         if (image != null)
                         {
                             Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
                             await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
-                            data.bookmark.image = pimg;
+                            newimage = pimg;
                         }
                     }
                 }
@@ -169,7 +171,15 @@ namespace SISI
                 }
                 #endregion
 
-                data.bookmark.uid = uid;
+                var b = data.bookmark;
+                data.bookmark = new Bookmark()
+                {
+                    href = b.Value.href,
+                    image = newimage ?? b.Value.image,
+                    site = b.Value.site,
+                    uid = uid
+                };
+
                 bookmarks.Insert(0, data);
                 bookmarkCache.Write(bookmarks);
             }
@@ -192,7 +202,7 @@ namespace SISI
 
             var bookmarks = bookmarkCache.Read();
 
-            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == id) is PlaylistItem item)
+            if (bookmarks.FirstOrDefault(i => i.bookmark.Value.uid == id) is PlaylistItem item)
             {
                 bookmarks.Remove(item);
                 bookmarkCache.Write(bookmarks);

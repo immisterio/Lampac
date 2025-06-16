@@ -1,6 +1,6 @@
 ﻿namespace Shared.Model.SISI
 {
-    public class Bookmark
+    public struct Bookmark
     {
         public string uid { get; set; }
 

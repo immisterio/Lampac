@@ -131,7 +131,7 @@ namespace Lampac.Engine.Middlewares
                 bypass_reset: var handler = CORE.HttpClient.Handler(href, proxy);
                 handler.AllowAutoRedirect = true;
 
-                var client = FrendlyHttp.CreateClient("proxyimg", handler, href.StartsWith("https") ? "http2" : "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
+                var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
                 {
                     CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, decryptLink?.headers);
                 });
@@ -227,7 +227,7 @@ namespace Lampac.Engine.Middlewares
                 var handler = CORE.HttpClient.Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
-                var client = FrendlyHttp.CreateClient("proxyimg", handler, url.StartsWith("https") ? "http2" : "base", headers?.ToDictionary(), updateClient: uclient => 
+                var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", headers?.ToDictionary(), updateClient: uclient => 
                 {
                     CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, headers);
                 });

@@ -91,7 +91,7 @@ namespace Lampac.Engine.Middlewares
             #region handler
             HttpClientHandler handler = new HttpClientHandler()
             {
-                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                AutomaticDecompression = DecompressionMethods.All,
                 AllowAutoRedirect = false
             };
 
@@ -109,7 +109,7 @@ namespace Lampac.Engine.Middlewares
                 #region DASH
                 servUri += Regex.Replace(httpContext.Request.Path.Value, "/[^/]+/[^/]+/", "") + httpContext.Request.QueryString.Value;
 
-                var client = FrendlyHttp.CreateClient("ProxyAPI:DASH", handler, servUri.StartsWith("https") ? "proxyhttp2" : "proxy");
+                var client = FrendlyHttp.CreateClient("ProxyAPI:DASH", handler, "proxy");
 
                 var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
@@ -187,7 +187,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                var client = FrendlyHttp.CreateClient("ProxyAPI", handler, servUri.StartsWith("https") ? "proxyhttp2" : "proxy");
+                var client = FrendlyHttp.CreateClient("ProxyAPI", handler, "proxy");
 
                 var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
 
@@ -509,7 +509,7 @@ namespace Lampac.Engine.Middlewares
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);
-            requestMessage.Version = new Version(2, 0);
+            //requestMessage.Version = new Version(2, 0);
 
             return requestMessage;
         }
