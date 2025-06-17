@@ -836,7 +836,7 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0 || !string.IsNullOrEmpty(conf.FanCDN.token) || !string.IsNullOrEmpty(conf.FanCDN.overridehost) || conf.FanCDN.overridehosts?.Length > 0)
             {
-                if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless)
+                if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost) || conf.FanCDN.overridehosts?.Length > 0)
                     send(conf.FanCDN, rch_access: "apk");
             }
 

@@ -66,13 +66,19 @@ namespace Shared.Engine.SISI
 
             if (related)
             {
-                string? relatedVideosListing = StringConvert.FindLastText(html, "id=\"relatedVideosListing\"", "</ul>");
+                string? relatedVideosListing = StringConvert.FindLastText(html, html.Contains("id=\"relatedVideosListing\"") ? "id=\"relatedVideosListing\"" : "id=\"relatedVideos\"", "</ul>");
                 if (relatedVideosListing != null)
                     videoCategory = relatedVideosListing;
             }
             else if (html.Contains("id=\"videoCategory\""))
             {
                 var ids = html.Split("id=\"videoCategory\"");
+                if (ids.Length > 1)
+                    videoCategory = ids[1];
+            }
+            else if (html.Contains("videoList clearfix browseVideo-tabSplit"))
+            {
+                var ids = html.Split("videoList clearfix browseVideo-tabSplit");
                 if (ids.Length > 1)
                     videoCategory = ids[1];
             }
@@ -102,9 +108,9 @@ namespace Shared.Engine.SISI
                 }
             }
 
-            string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : "<li data-id=";
+            string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : videoCategory.Contains("<li data-id=") ? "<li data-id=" : "<li id=";
 
-            var rows = videoCategory.Split("<h2>Languages</h2>")[0].Split(splitkey);
+            var rows = videoCategory.Split("<h2>Languages</h2>")[0].Split("pageHeader")[0].Split(splitkey);
             var playlists = new List<PlaylistItem>(rows.Length);
 
             foreach (string row in rows.Skip(1))
@@ -156,8 +162,8 @@ namespace Shared.Engine.SISI
                     video = $"{video_uri}?vkey={vkey}",
                     model = model,
                     picture = img,
-                    preview = m("data-mediabook=\"(https?://[^\"]+)\""),
-                    time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<"),
+                    preview = m("data-mediabook=\"(https?://[^\"]+)\"") ?? m("data-webm=\"(https?://[^\"]+)\""),
+                    time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<") ?? m("time\">([^<]+)<"),
                     json = true,
                     related = true,
                     bookmark = new Bookmark()
