@@ -13,7 +13,7 @@ namespace Lampac.Models.AppConf
 
         public TrackerSettings Rutor = new TrackerSettings("https://rutor.info", priority: "torrent");
 
-        public TrackerSettings Megapeer = new TrackerSettings("https://megapeer.vip");
+        public TrackerSettings Megapeer = new TrackerSettings("https://megapeer.vip", enable: false);
 
         public TrackerSettings TorrentBy = new TrackerSettings("https://torrent.by", priority: "torrent");
 

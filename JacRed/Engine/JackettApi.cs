@@ -103,9 +103,9 @@ namespace JacRed.Engine
                     RutorController.search(host, torrents, search, "12"), // documovie
                     RutorController.search(host, torrents, search, "17", true, "1"), // UKR
 
-                    MegapeerController.search(host, torrents, search, "79"),  // movie
-                    MegapeerController.search(host, torrents, search, "174"), // movie
-                    MegapeerController.search(host, torrents, search, "76"),  // multfilm
+                    MegapeerController.search(host, torrents, search, "79"),  // Наши фильмы
+                    MegapeerController.search(host, torrents, search, "80"),  // Зарубежные фильмы
+                    MegapeerController.search(host, torrents, search, "76"),  // Мультипликация
 
                     TorrentByController.search(host, torrents, search, "1"), // movie
                     TorrentByController.search(host, torrents, search, "2"), // movie
