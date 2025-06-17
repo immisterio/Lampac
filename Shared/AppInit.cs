@@ -306,7 +306,9 @@ namespace Lampac
             enable = true, encrypt = true, verifyip = true,
             buffering = new ServerproxyBufferingConf()
             {
-                enable = true, rent = 8192, length = 3906, millisecondsTimeout = 5
+                enable = true, 
+                rent = 81920, // 80KB
+                length = 390  // 30MB
             },
             image = new ServerproxyImageConf()
             {
