@@ -10,10 +10,7 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Models;
 using Shared.Models.Module;
-using System;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Online
 {
@@ -98,10 +95,10 @@ namespace Online
         #region MaybeInHls
         public bool MaybeInHls(bool hls, BaseSettings init)
         {
-            if (!string.IsNullOrEmpty(init.apn?.host) && Shared.Model.AppInit.IsDefaultApnOrCors(init.apn?.host))
+            if (!string.IsNullOrEmpty(init.apn?.host) && AppInit.IsDefaultApnOrCors(init.apn?.host))
                 return false;
 
-            if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.conf.apn?.host))
+            if (init.apnstream && AppInit.IsDefaultApnOrCors(AppInit.conf.apn?.host))
                 return false;
 
             return hls;
