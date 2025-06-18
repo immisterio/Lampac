@@ -263,7 +263,7 @@ namespace Lampac.Controllers
             UpdateHeaders(responseMessage.Headers);
             UpdateHeaders(responseMessage.Content.Headers);
 
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
+            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
                 if (response.Body == null)
                     throw new ArgumentNullException("destination");
@@ -277,13 +277,15 @@ namespace Lampac.Controllers
                 if (!responseStream.CanRead || !response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnreadableStream");
 
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(response.ContentLength > 0 ? (int)Math.Min((long)response.ContentLength, 512000) : 4096);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
                 try
                 {
                     int bytesRead;
-                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
-                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                    Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                    while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), context.RequestAborted).ConfigureAwait(false);
                 }
                 finally
                 {

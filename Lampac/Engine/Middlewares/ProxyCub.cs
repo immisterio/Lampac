@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
@@ -6,11 +7,9 @@ using Shared.Models;
 using System;
 using System.Buffers;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -18,14 +17,7 @@ namespace Lampac.Engine.Middlewares
 {
     public class ProxyCub
     {
-        #region ProxyCub
-        private readonly RequestDelegate _next;
-
-        public ProxyCub(RequestDelegate next)
-        {
-            _next = next;
-        }
-        #endregion
+        public ProxyCub(RequestDelegate next) { }
 
         async public Task InvokeAsync(HttpContext httpContext, IMemoryCache memoryCache)
         {
@@ -69,102 +61,28 @@ namespace Lampac.Engine.Middlewares
             var proxyManager = new ProxyManager("cub_api", init);
             var proxy = proxyManager.Get();
 
-            if (HttpMethods.IsGet(httpContext.Request.Method))
-            {
-                string memkey = $"cubproxy:{domain}:{uri}";
-                if (!hybridCache.TryGetValue(memkey, out (byte[] array, int statusCode, string contentType) cache))
-                {
-                    bool isMedia = Regex.IsMatch(uri, "\\.(jpe?g|png|ico|svg)$");
-                    bool setCache = path.Split(".")[0] is "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad";
-                    if (!setCache && isMedia)
-                        setCache = true;
+            bool isMedia = Regex.IsMatch(uri, "\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)");
 
-                    if (uri.StartsWith("api/reactions/get/") || uri.StartsWith("api/discuss/get/") ||
-                        uri.StartsWith("api/collections/") || uri.StartsWith("api/trailers/") || uri.StartsWith("api/feed/all"))
-                        setCache = true;
-
-                    var headers = HeadersModel.Init();
-                    foreach (var header in httpContext.Request.Headers)
-                    {
-                        if (header.Key.ToLower() is "cookie" or "user-agent")
-                            headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
-
-                        if (header.Key.ToLower() is "token" or "profile")
-                        {
-                            setCache = false;
-                            headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
-                        }
-                    }
-
-                    var result = await CORE.HttpClient.BaseDownload($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
-                    if (result.array == null || result.array.Length == 0)
-                    {
-                        proxyManager.Refresh();
-                        httpContext.Response.StatusCode = (int)result.response.StatusCode;
-                        return;
-                    }
-
-                    if (result.response.Headers.TryGetValues("Set-Cookie", out var cookies))
-                    {
-                        foreach (var cookie in cookies)
-                        {
-                            setCache = false;
-                            httpContext.Response.Headers.Append("Set-Cookie", cookie);
-                        }
-                    }
-
-                    cache.array = result.array;
-                    cache.statusCode = (int)result.response.StatusCode;
-                    cache.contentType = result.response.Content.Headers.ContentType.ToString();
-
-                    httpContext.Response.Headers.Add("X-Cache-Status", setCache ? "MISS" : "bypass");
-
-                    if (setCache && cache.statusCode == 200)
-                    {
-                        if (isMedia)
-                        {
-                            if (AppInit.conf.mikrotik == false)
-                                hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_img));
-                        }
-                        else
-                        {
-                            hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_api));
-                        }
-                    }
-                }
-                else
-                {
-                    httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
-                }
-
-                if ((domain.StartsWith("tmdb") || domain.StartsWith("tmapi") || domain.StartsWith("apitmdb")) && cache.array.Length == 16)
-                {
-                    if (Encoding.UTF8.GetString(cache.array) == "{\"blocked\":true}")
-                    {
-                        var header = HeadersModel.Init(("localrequest", System.IO.File.ReadAllText("passwd")));
-                        string json = await Engine.CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
-                        if (!string.IsNullOrEmpty(json))
-                        {
-                            httpContext.Response.ContentType = "application/json; charset=utf-8";
-                            await httpContext.Response.WriteAsync(json, httpContext.RequestAborted).ConfigureAwait(false);
-                            return;
-                        }
-                    }
-                }
-
-                proxyManager.Success();
-                httpContext.Response.StatusCode = cache.statusCode;
-                httpContext.Response.ContentType = cache.contentType;
-                await httpContext.Response.BodyWriter.WriteAsync(cache.array, httpContext.RequestAborted).ConfigureAwait(false);
-            }
-            else
+            if (0 >= init.cache_api || !HttpMethods.IsGet(httpContext.Request.Method) || isMedia || 
+                (path.Split(".")[0] is "imagetmdb" or "cdn" or "ad") ||
+                httpContext.Request.Headers.ContainsKey("token") || httpContext.Request.Headers.ContainsKey("profile"))
             {
                 #region bypass
-                httpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+                string md5key = CrypTo.md5($"{domain}:{uri}");
+                string outFile = $"cache/cub/{md5key.Substring(0, 1)}/{md5key.Substring(1)}";
+                bool isCacheRequest = init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false;
+
+                if (isCacheRequest && File.Exists(outFile))
+                {
+                    httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+                    httpContext.Response.ContentType = getContentType(uri);
+                    await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
+                    return;
+                }
 
                 HttpClientHandler handler = new HttpClientHandler()
                 {
-                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    AutomaticDecompression = DecompressionMethods.All,
                     AllowAutoRedirect = false
                 };
 
@@ -181,12 +99,149 @@ namespace Lampac.Engine.Middlewares
 
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                 {
-                    await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                    if (isCacheRequest && response.StatusCode == HttpStatusCode.OK)
+                    {
+                        #region cache
+                        httpContext.Response.ContentType = getContentType(uri);
+                        httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+
+                        int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                            (int)response.Content.Headers.ContentLength.Value :
+                            20_000; // 20kB
+
+                        using (var memoryStream = new MemoryStream(initialCapacity))
+                        {
+                            bool saveCache = true;
+
+                            using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                            {
+                                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                                try
+                                {
+                                    int bytesRead;
+                                    Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                    while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                    {
+                                        memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                        await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                    }
+                                }
+                                catch
+                                {
+                                    saveCache = false;
+                                }
+                                finally
+                                {
+                                    ArrayPool<byte>.Shared.Return(buffer);
+                                }
+                            }
+
+                            if (saveCache && memoryStream.Length > 1000)
+                            {
+                                try
+                                {
+                                    if (!File.Exists(outFile))
+                                    {
+                                        Directory.CreateDirectory($"cache/cub/{md5key.Substring(0, 1)}");
+                                        File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                    }
+                                }
+                                catch { try { File.Delete(outFile); } catch { } }
+                            }
+                        }
+                        #endregion
+                    }
+                    else
+                    {
+                        httpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                    }
                 }
+                #endregion
+            }
+            else
+            {
+                #region cache
+                string memkey = $"cubproxy:{domain}:{uri}";
+                if (!hybridCache.TryGetValue(memkey, out (string content, int statusCode, string contentType) cache))
+                {
+                    var headers = HeadersModel.Init();
+                    foreach (var header in httpContext.Request.Headers)
+                    {
+                        if (header.Key.ToLower() is "cookie" or "user-agent")
+                            headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
+                    }
+
+                    var result = await CORE.HttpClient.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
+                    if (string.IsNullOrEmpty(result.content))
+                    {
+                        proxyManager.Refresh();
+                        httpContext.Response.StatusCode = (int)result.response.StatusCode;
+                        return;
+                    }
+
+                    cache.content = result.content;
+                    cache.statusCode = (int)result.response.StatusCode;
+                    cache.contentType = result.response.Content.Headers.ContentType.ToString();
+
+                    if (domain.StartsWith("tmdb") || domain.StartsWith("tmapi") || domain.StartsWith("apitmdb"))
+                    {
+                        if (cache.content == "{\"blocked\":true}")
+                        {
+                            var header = HeadersModel.Init(("localrequest", File.ReadAllText("passwd")));
+                            string json = await CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
+                            if (!string.IsNullOrEmpty(json))
+                            {
+                                cache.statusCode = 200;
+                                cache.contentType = "application/json; charset=utf-8";
+                                cache.content = json;
+                            }
+                        }
+                    }
+
+                    httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+
+                    if (cache.statusCode == 200)
+                    {
+                        proxyManager.Success();
+                        hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_api));
+                    }
+                }
+                else
+                {
+                    httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+                }
+
+                httpContext.Response.StatusCode = cache.statusCode;
+                httpContext.Response.ContentType = cache.contentType;
+                await httpContext.Response.WriteAsync(cache.content, httpContext.RequestAborted).ConfigureAwait(false);
                 #endregion
             }
         }
 
+
+        #region getContentType
+        static string getContentType(in string uri)
+        {
+            string ext = Path.GetExtension(uri).ToLowerInvariant();
+
+            return ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                ".ico" => "image/x-icon",
+                ".svg" => "image/svg+xml",
+                ".mp4" => "video/mp4",
+                ".js" => "application/javascript",
+                ".css" => "text/css",
+                _ => "application/octet-stream"
+            };
+        }
+        #endregion
 
         #region CreateProxyHttpRequest
         HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri)
@@ -258,7 +313,7 @@ namespace Lampac.Engine.Middlewares
             UpdateHeaders(responseMessage.Headers);
             UpdateHeaders(responseMessage.Content.Headers);
 
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
+            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
                 if (response.Body == null)
                     throw new ArgumentNullException("destination");
@@ -280,8 +335,10 @@ namespace Lampac.Engine.Middlewares
                 try
                 {
                     int bytesRead;
-                    while ((bytesRead = await responseStream.ReadAsync(new Memory<byte>(buffer), context.RequestAborted).ConfigureAwait(false)) != 0)
-                        await response.Body.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                    Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                    while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), context.RequestAborted).ConfigureAwait(false);
                 }
                 finally
                 {

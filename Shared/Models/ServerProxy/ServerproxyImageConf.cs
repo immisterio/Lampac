@@ -8,6 +8,8 @@ namespace Shared.Models.ServerProxy
 
         public bool cache_rsize { get; set; }
 
+        public int cache_time { get; set; }
+
 
         public bool useproxy { get; set; }
 

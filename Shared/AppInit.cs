@@ -290,14 +290,14 @@ namespace Lampac
             enable = false, 
             domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "https",
             mirror = "mirror-kurwa.men",
-            cache_api = 20, cache_img = 60,
+            cache_api = 20, cache_img = 120,
         };
 
         public TmdbConf tmdb { get; set; } = new TmdbConf()
         {
             enable = true,
             DNS = "9.9.9.9", DNS_TTL = 20,
-            cache_api = 20, cache_img = 15, check_img = false,
+            cache_api = 20, cache_img = 60, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 
@@ -312,16 +312,17 @@ namespace Lampac
             },
             image = new ServerproxyImageConf()
             {
-                cache = true, cache_rsize = true
+                cache = true, 
+                cache_rsize = true,
+                cache_time = 60 // minute
             },
-            maxlength_m3u = 1900000,
-            maxlength_ts = 10000000
+            maxlength_m3u = 5000000, // 5mb
+            maxlength_ts = 40000000  // 40mb
         };
 
         public FileCacheConf fileCacheInactive = new FileCacheConf() 
         { 
-            maxcachesize = 10_000, // 10GB на папку
-            img = 20, hls = 90, html = 5, torrent = 2880 // minute
+            hls = 90, html = 5, torrent = 2880 // minute
         };
 
         public DLNASettings dlna = new DLNASettings() 

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
 using Shared.Models;
@@ -21,18 +20,7 @@ namespace Lampac.Engine.Middlewares
     public class ProxyAPI
     {
         #region ProxyAPI
-        private readonly RequestDelegate _next;
-
-        private readonly IHttpClientFactory _httpClientFactory;
-
-        IMemoryCache memoryCache;
-
-        public ProxyAPI(RequestDelegate next, IMemoryCache memoryCache, IHttpClientFactory httpClientFactory)
-        {
-            _next = next;
-            _httpClientFactory = httpClientFactory;
-            this.memoryCache = memoryCache;
-        }
+        public ProxyAPI(RequestDelegate next) { }
 
         static ProxyAPI()
         {
@@ -134,14 +122,9 @@ namespace Lampac.Engine.Middlewares
 
                 if (cache_stream && File.Exists(cachefile))
                 {
-                    using (var fileStream = new FileStream(cachefile, FileMode.Open, FileAccess.Read))
-                    {
-                        httpContext.Response.Headers.Add("PX-Cache", "HIT");
-                        httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
-                        //httpContext.Response.ContentLength = fileStream.Length;
-                        await fileStream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
-                    }
-
+                    httpContext.Response.Headers.Add("PX-Cache", "HIT");
+                    httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
+                    await httpContext.Response.SendFileAsync(cachefile).ConfigureAwait(false);
                     return;
                 }
                 #endregion
@@ -571,7 +554,7 @@ namespace Lampac.Engine.Middlewares
 
                 if (bunit?.enable == true && 
                    ((!string.IsNullOrEmpty(bunit.pattern) && Regex.IsMatch(context.Request.Path.Value, bunit.pattern, RegexOptions.IgnoreCase)) || 
-                   context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || responseMessage.Content.Headers.ContentLength > 10_000000))
+                   context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || responseMessage.Content.Headers.ContentLength > 40_000000))
                 {
                     #region buffering
                     var channel = Channel.CreateBounded<(byte[] Buffer, int Length)>(new BoundedChannelOptions(capacity: bunit.length)
@@ -588,7 +571,7 @@ namespace Lampac.Engine.Middlewares
                                 while (!context.RequestAborted.IsCancellationRequested)
                                 {
                                     byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(bunit.rent, 4096));
-                                    int bytesRead = await responseStream.ReadAsync(chunkBuffer, context.RequestAborted);
+                                    int bytesRead = await responseStream.ReadAsync(chunkBuffer, 0, chunkBuffer.Length, context.RequestAborted);
 
                                     if (bytesRead == 0) 
                                         break;

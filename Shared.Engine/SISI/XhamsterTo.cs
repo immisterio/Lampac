@@ -80,9 +80,13 @@ namespace Shared.Engine.SISI
                     if (string.IsNullOrEmpty(duration))
                         duration = Regex.Match(row, "datetime=\"([^\"]+)\"").Groups[1].Value;
 
-                    string img = Regex.Match(row, "thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
+                    string img = Regex.Match(row, " srcset=\"([^\"]+)\"").Groups[1].Value;
                     if (!img.StartsWith("http"))
-                        img = Regex.Match(row, "<noscript><img src=\"([^\"]+)\"").Groups[1].Value.Trim();
+                    {
+                        img = Regex.Match(row, "thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
+                        if (!img.StartsWith("http"))
+                            img = Regex.Match(row, "<noscript><img src=\"([^\"]+)\"").Groups[1].Value.Trim();
+                    }
 
                     if (!img.StartsWith("http"))
                         continue;
