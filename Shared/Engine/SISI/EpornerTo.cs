@@ -1,4 +1,5 @@
-﻿using Lampac.Models.SISI;
+﻿using HtmlAgilityPack;
+using Lampac.Models.SISI;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -48,11 +49,20 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
 
-            if (html.Contains("class=\"toptopbelinset\""))
-                html = html.Split("class=\"toptopbelinset\"")[1];
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
 
-            if (html.Contains("class=\"relatedtext\""))
-                html = html.Split("class=\"relatedtext\"")[1];
+            string single = doc.DocumentNode.SelectSingleNode("//*[@id='relateddiv' or @id='vidresults']")?.InnerHtml;
+            if (single != null)
+                html = single;
+            else
+            {
+                if (html.Contains("class=\"toptopbelinset\""))
+                    html = html.Split("class=\"toptopbelinset\"")[1];
+
+                if (html.Contains("class=\"relatedtext\""))
+                    html = html.Split("class=\"relatedtext\"")[1];
+            }
 
             var rows = Regex.Split(html, "<div class=\"mb( hdy)?\"");
             var playlists = new List<PlaylistItem>(rows.Length);

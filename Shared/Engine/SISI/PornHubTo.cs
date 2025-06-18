@@ -1,4 +1,5 @@
-﻿using Lampac.Engine.CORE;
+﻿using HtmlAgilityPack;
+using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
@@ -8,7 +9,7 @@ namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string plugin, string? search, string? model, string? sort, int c, string? hd, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string plugin, string? search, string? model, string? sort, int c, string? hd, int pg, Func<string, ValueTask<string?>> onresult)
         {
             string url = $"{host}/";
 
@@ -62,31 +63,29 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
 
-            string? videoCategory = null;
+            string videoCategory = null;
+
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+            var node = doc.DocumentNode;
 
             if (related)
             {
-                string? relatedVideosListing = StringConvert.FindLastText(html, html.Contains("id=\"relatedVideosListing\"") ? "id=\"relatedVideosListing\"" : "id=\"relatedVideos\"", "</ul>");
-                if (relatedVideosListing != null)
-                    videoCategory = relatedVideosListing;
+                videoCategory = node.SelectSingleNode("//*[@id='relatedVideosListing' or @id='relatedVideos']")?.InnerHtml;
             }
             else if (html.Contains("id=\"videoCategory\""))
             {
-                var ids = html.Split("id=\"videoCategory\"");
-                if (ids.Length > 1)
-                    videoCategory = ids[1];
+                videoCategory = node.SelectSingleNode("//*[@id='videoCategory']")?.InnerHtml;
             }
             else if (html.Contains("videoList clearfix browseVideo-tabSplit"))
             {
                 var ids = html.Split("videoList clearfix browseVideo-tabSplit");
                 if (ids.Length > 1)
-                    videoCategory = ids[1];
+                    videoCategory = ids[1].Split("<h2>Languages</h2>")[0].Split("pageHeader")[0];
             }
             else
             {
-                var videorows = Regex.Split(html, "id=\"(mostRecentVideosSection|moreData|content-tv-container|lazyVids|videoSearchResult)\"");
-                if (videorows.Length > 2)
-                    videoCategory = videorows[2];
+                videoCategory = node.SelectSingleNode("//*[@id='videoSearchResult' or @id='mostRecentVideosSection' or @id='moreData' or @id='content-tv-container' or @id='lazyVids']")?.InnerHtml;
             }
 
             if (videoCategory == null)
@@ -95,7 +94,7 @@ namespace Shared.Engine.SISI
             ModelItem? model = null;
             if (IsModel_page) 
             {
-                string name = Regex.Match(html, "<h1 itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>").Groups[2].Value.Trim();
+                string name = Regex.Match(html, "itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>").Groups[2].Value.Trim();
                 string href = Regex.Match(html, "rel=\"canonical\" href=\"(https?://[^/]+)?/model/([^/]+)/").Groups[2].Value;
 
                 if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(href))
@@ -110,12 +109,12 @@ namespace Shared.Engine.SISI
 
             string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : videoCategory.Contains("<li data-id=") ? "<li data-id=" : "<li id=";
 
-            var rows = videoCategory.Split("<h2>Languages</h2>")[0].Split("pageHeader")[0].Split(splitkey);
+            var rows = videoCategory.Split(splitkey);
             var playlists = new List<PlaylistItem>(rows.Length);
 
             foreach (string row in rows.Skip(1))
             {
-                if (row.Contains("brand__badge"))
+                if (row.Contains("brand__badge") || row.Contains("private-vid-title"))
                     continue;
 
                 string? m(string pattern, int index = 1)
@@ -127,15 +126,15 @@ namespace Shared.Engine.SISI
                     return res;
                 }
 
-                string? vkey = m("(-|_)vkey=\"([^\"]+)\"", 2) ?? m("viewkey=([^\"]+)\"");
+                string vkey = m("(-|_)vkey=\"([^\"]+)\"", 2) ?? m("viewkey=([^\"]+)\"");
                 if (vkey == null)
                     continue;
 
-                string? title = m("href=\"/[^\"]+\" title=\"([^\"]+)\"") ?? m("class=\"videoTitle\">([^<]+)<") ?? m("href=\"/view_[^\"]+\" onclick=[^>]+>([^<]+)<");
+                string title = m("href=\"/[^\"]+\" title=\"([^\"]+)\"") ?? m("class=\"videoTitle\">([^<]+)<") ?? m("href=\"/view_[^\"]+\" onclick=[^>]+>([^<]+)<");
                 if (title == null)
                     continue;
 
-                string? img = m("data-mediumthumb=\"(https?://[^\"]+)\"") ?? m("data-path=\"(https?://[^\"]+)\"")?.Replace("{index}", "3") ?? m("<img src=\"([^\"]+)\"");
+                string img = m("data-mediumthumb=\"(https?://[^\"]+)\"") ?? m("data-path=\"(https?://[^\"]+)\"")?.Replace("{index}", "3") ?? m("<img src=\"([^\"]+)\"");
                 if (img == null)
                     continue;
 

@@ -1,4 +1,5 @@
-﻿using Lampac.Models.SISI;
+﻿using HtmlAgilityPack;
+using Lampac.Models.SISI;
 using Shared.Model.SISI;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -60,7 +61,16 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
 
-            string section = html.Contains("mixed-section") ? html.Split("mixed-section")[1] : html;
+            string section = html;
+
+            if (html.Contains("mixed-section"))
+            {
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
+                string single = doc.DocumentNode.SelectSingleNode("//div[contains(@class, 'mixed-section')]")?.InnerHtml;
+                if (single != null)
+                    section = single;
+            }
 
             var rows = Regex.Split(section, "(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)");
             var playlists = new List<PlaylistItem>(rows.Length);
