@@ -207,8 +207,7 @@ namespace Lampac.Engine.Middlewares
                                     return;
                                 }
 
-                                string m3u8 = Encoding.UTF8.GetString(array);
-                                string hls = editm3u(m3u8, httpContext, decryptLink);
+                                string hls = editm3u(Encoding.UTF8.GetString(array), httpContext, decryptLink);
 
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
                                 httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
@@ -321,7 +320,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region validArgs
-        string validArgs(string uri, HttpContext httpContext)
+        string validArgs(in string uri, HttpContext httpContext)
         {
             if (!AppInit.conf.accsdb.enable)
                 return uri;
@@ -331,7 +330,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region editm3u
-        string editm3u(string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
+        string editm3u(in string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
         {
             string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
             string m3u8 = Regex.Replace(_m3u8, "(https?://[^\n\r\"\\# ]+)", m =>

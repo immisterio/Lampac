@@ -1,6 +1,4 @@
 ﻿using Lampac.Engine.CORE;
-using System;
-using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -31,7 +29,7 @@ namespace Shared.Engine.CORE
         }
 
 
-        public static string Encrypt(string plainText)
+        public static string Encrypt(in string plainText)
         {
             try
             {
@@ -57,7 +55,7 @@ namespace Shared.Engine.CORE
             catch { return null; }
         }
 
-        public static string Decrypt(string cipherText)
+        public static string Decrypt(in string cipherText)
         {
             try
             {

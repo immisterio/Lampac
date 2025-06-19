@@ -7,17 +7,17 @@ namespace Shared.Model.Templates
 {
     public struct SimilarTpl
     {
-        public List<(string title, string year, string details, string link, string? img)> data;
+        public List<(string title, string year, string details, string link, string img)> data;
 
         public SimilarTpl() : this(20) { }
 
-        public SimilarTpl(int capacity) { data = new List<(string, string, string, string, string?)>(capacity); }
+        public SimilarTpl(in int capacity) { data = new List<(string, string, string, string, string)>(capacity); }
 
 
         public string OnlineSplit => "{prestige-split}";
 
 
-        public void Append(string? title, string year, string details, string link, string? img = null)
+        public void Append(in string title, in string year, in string details, in string link, in string img = null)
         {
             if (!string.IsNullOrEmpty(title))
                 data.Add((title, year, details, link, img));

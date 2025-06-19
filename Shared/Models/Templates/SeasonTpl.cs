@@ -9,31 +9,31 @@ namespace Shared.Model.Templates
     {
         List<(string name, string link, int? id)> data;
 
-        public string? quality = null;
+        public string quality = null;
 
         public SeasonTpl() : this(10) { }
 
-        public SeasonTpl(int capacity) { data = new List<(string, string, int?)>(capacity); }
+        public SeasonTpl(in int capacity) { data = new List<(string, string, int?)>(capacity); }
 
-        public SeasonTpl(string? quality, int capacity = 10) 
+        public SeasonTpl(in string quality, in int capacity = 10) 
         {
             data = new List<(string, string, int?)>(capacity);
             this.quality = quality; 
         }
 
-        public void Append(string? name, string link, string? id)
+        public void Append(in string name, in string link, string id)
         {
             int.TryParse(id, out int sid);
             Append(name, link, sid);
         }
 
-        public void Append(string? name, string link, int? id)
+        public void Append(in string name, in string link, in int id)
         {
             if (!string.IsNullOrEmpty(name))
                 data.Add((name, link, id));
         }
 
-        public string ToHtml(VoiceTpl? vtpl = null)
+        public string ToHtml(in VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return string.Empty;
@@ -58,7 +58,7 @@ namespace Shared.Model.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson(VoiceTpl? vtpl = null)
+        public string ToJson(in VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return "[]";

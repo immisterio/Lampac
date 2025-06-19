@@ -172,7 +172,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, long content_id, string content_type, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
+        public string Html(EmbedModel? result, string args, in long content_id, in string content_type, in string? imdb_id, in long kinopoisk_id, in string? title, in string? original_title, in int clarification, string t, int s, in bool rjson = false, in bool bwa = false)
         {
             if (result?.media == null || result.media.Count == 0)
                 return string.Empty;

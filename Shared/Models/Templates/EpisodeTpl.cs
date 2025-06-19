@@ -14,12 +14,12 @@ namespace Shared.Model.Templates
 
         public EpisodeTpl() : this(20) { }
 
-        public EpisodeTpl(int capacity) 
+        public EpisodeTpl(in int capacity) 
         {
             data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?, int?)>(capacity);
         }
 
-        public void Append(string name, string? title, string s, string e, string link, string method = "play", StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string? streamlink = null, string? voice_name = null, VastConf? vast = null, List<HeadersModel>? headers = null, int? hls_manifest_timeout = null)
+        public void Append(in string name, in string title, in string s, in string e, in string link, in string method = "play", in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, in string streamlink = null, in string voice_name = null, in VastConf vast = null, List<HeadersModel> headers = null, in int? hls_manifest_timeout = null)
         {
             if (!string.IsNullOrEmpty(name))
                 data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers, hls_manifest_timeout));
@@ -59,7 +59,7 @@ namespace Shared.Model.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson(VoiceTpl? vtpl = null)
+        public string ToJson(in VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return "[]";

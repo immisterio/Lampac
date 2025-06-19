@@ -1,6 +1,5 @@
 ﻿using BencodeNET.Parsing;
 using BencodeNET.Torrents;
-using System;
 using System.Text.RegularExpressions;
 
 namespace Lampac.Engine.Parse
@@ -8,7 +7,7 @@ namespace Lampac.Engine.Parse
     public static class BencodeTo
     {
         #region Magnet
-        public static string Magnet(byte[] torrent)
+        public static string Magnet(in byte[] torrent)
         {
             try
             {
@@ -32,7 +31,7 @@ namespace Lampac.Engine.Parse
         #endregion
 
         #region SizeName
-        public static string SizeName(byte[] torrent)
+        public static string SizeName(in byte[] torrent)
         {
             try
             {

@@ -7,7 +7,7 @@ namespace Shared.Engine
     {
         static ConcurrentDictionary<string, (DateTime lastWriteTime, string value)> db = new ConcurrentDictionary<string, (DateTime, string)>();
 
-        public static string ReadAllText(string path)
+        public static string ReadAllText(in string path)
         {
             return ReadAllText(path, out _);
         }

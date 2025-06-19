@@ -1,15 +1,13 @@
 ﻿using System.IO.Compression;
-using System.IO;
 using System.Text;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 using Shared;
 
 namespace Lampac.Engine.CORE
 {
     public static class BrotliTo
     {
-        static object GetLockObjectForPath(string path)
+        static object GetLockObjectForPath(in string path)
         {
             lock (Startup.memoryCache)
             {
@@ -25,12 +23,12 @@ namespace Lampac.Engine.CORE
         }
 
 
-        public static byte[] Compress(string value)
+        public static byte[] Compress(in string value)
         {
             return Compress(Encoding.UTF8.GetBytes(value));
         }
 
-        public static byte[] Compress(byte[] value)
+        public static byte[] Compress(in byte[] value)
         {
             try
             {
@@ -48,7 +46,7 @@ namespace Lampac.Engine.CORE
             catch { return null; }
         }
 
-        public static void Compress(string outfile, string value)
+        public static void Compress(in string outfile, in string value)
         {
             try
             {
@@ -57,7 +55,7 @@ namespace Lampac.Engine.CORE
             catch { }
         }
 
-        public static void Compress(string outfile, byte[] value)
+        public static void Compress(in string outfile, in byte[] value)
         {
             try
             {
@@ -77,7 +75,7 @@ namespace Lampac.Engine.CORE
         }
 
 
-        public static string Decompress(byte[] value)
+        public static string Decompress(in byte[] value)
         {
             try
             {
@@ -95,7 +93,7 @@ namespace Lampac.Engine.CORE
             catch { return null; }
         }
 
-        public static string Decompress(string infile)
+        public static string Decompress(in string infile)
         {
             try
             {
@@ -108,7 +106,7 @@ namespace Lampac.Engine.CORE
             catch { return null; }
         }
 
-        public static byte[] DecompressArray(string infile)
+        public static byte[] DecompressArray(in string infile)
         {
             try
             {

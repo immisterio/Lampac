@@ -225,9 +225,7 @@ namespace Lampac.Engine.Middlewares
         #region getContentType
         static string getContentType(in string uri)
         {
-            string ext = Path.GetExtension(uri).ToLowerInvariant();
-
-            return ext switch
+            return Path.GetExtension(uri).ToLowerInvariant() switch
             {
                 ".jpg" or ".jpeg" => "image/jpeg",
                 ".png" => "image/png",

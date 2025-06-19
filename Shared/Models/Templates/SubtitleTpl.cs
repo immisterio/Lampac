@@ -8,11 +8,11 @@ namespace Shared.Model.Templates
 
         public SubtitleTpl() : this(10) { }
 
-        public SubtitleTpl(int capacity) { data = new List<(string, string)>(capacity); }
+        public SubtitleTpl(in int capacity) { data = new List<(string, string)>(capacity); }
 
         public bool IsEmpty() => data.Count == 0;
 
-        public void Append(string? label, string? url)
+        public void Append(in string label, in string url)
         {
             if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url))
                 data.Add((label, url));

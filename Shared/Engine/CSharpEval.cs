@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Playwright;
 using System.Collections.Concurrent;
-using System.Threading.Tasks;
 
 namespace Shared.Engine
 {
@@ -11,7 +10,7 @@ namespace Shared.Engine
     {
         static ConcurrentDictionary<string, dynamic> scripts = new ConcurrentDictionary<string, dynamic>();
 
-        public static T Execute<T>(string cs, object model)
+        public static T Execute<T>(in string cs, object model)
         {
             return ExecuteAsync<T>(cs, model).GetAwaiter().GetResult();
         }

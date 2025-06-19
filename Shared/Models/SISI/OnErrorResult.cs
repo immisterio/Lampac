@@ -1,9 +1,14 @@
 ﻿namespace Shared.Model.SISI
 {
-    public class OnErrorResult
+    public struct OnErrorResult
     {
+        public OnErrorResult(in string msg)
+        {
+            this.msg = msg;
+        }
+
         public bool error { get; set; } = true;
 
-        public string? msg { get; set; }
+        public string msg { get; set; }
     }
 }

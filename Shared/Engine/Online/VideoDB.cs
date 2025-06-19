@@ -18,7 +18,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
 
-        public VideoDBInvoke(string? host, string? apihost, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VideoDBInvoke(in string? host, in string? apihost, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
@@ -42,16 +42,16 @@ namespace Shared.Engine.Online
             return Embed(html);
         }
 
-        public EmbedModel? Embed(string html)
+        public EmbedModel? Embed(in string html)
         {
             if (string.IsNullOrEmpty(html))
                 return null;
 
-            string? decodePlayer()
+            string? decodePlayer(in string _html)
             {
                 try
                 {
-                    string base64 = Regex.Match(html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 73);
+                    string base64 = Regex.Match(_html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 73);
                     base64 = Regex.Replace(base64, "//[^=]+=", "");
                     string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
                     //json = json.Split("\"player\",\"file\":")[1].Split(",\"hls\":")[0];
@@ -64,7 +64,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            string? file = decodePlayer();
+            string? file = decodePlayer(html);
             if (file == null)
             {
                 onlog?.Invoke("VideoDB: file null");
@@ -88,7 +88,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string args, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson, bool bwa = false, bool rhub = false)
+        public string Html(EmbedModel? root, string args, in long kinopoisk_id, in string? title, in string? original_title, string? t, int s, int sid, in bool rjson, in bool bwa = false, in bool rhub = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;

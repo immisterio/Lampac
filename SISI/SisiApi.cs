@@ -174,7 +174,7 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null)
+            void send(in string name, BaseSettings _init, in string plugin = null, in string rch_access = null)
             {
                 var init = loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;

@@ -9,7 +9,7 @@
         public T Value { get; set; }
 
 
-        public CacheResult<T> Fail(string msg)
+        public CacheResult<T> Fail(in string msg)
         {
             return new CacheResult<T>() { IsSuccess = false, ErrorMsg = msg };
         }

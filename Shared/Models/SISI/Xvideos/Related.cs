@@ -1,6 +1,6 @@
 ﻿namespace Shared.Model.SISI.Xvideos
 {
-    public class Related
+    public struct Related
     {
         public string? u { get; set; }
 

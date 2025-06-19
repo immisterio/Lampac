@@ -1,5 +1,4 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Lampac.Engine.Parse
@@ -7,7 +6,7 @@ namespace Lampac.Engine.Parse
     public static class tParse
     {
         #region BytesToString
-        public static string BytesToString(long byteCount)
+        public static string BytesToString(in long byteCount)
         {
             string[] suf = { "Byt", "KB", "MB", "GB", "TB", "PB", "EB" };
             if (byteCount == 0)
@@ -20,7 +19,7 @@ namespace Lampac.Engine.Parse
         #endregion
 
         #region ParseCreateTime
-        public static DateTime ParseCreateTime(string line, string format)
+        public static DateTime ParseCreateTime(string line, in string format)
         {
             line = Regex.Replace(line, " янв\\.? ", ".01.", RegexOptions.IgnoreCase);
             line = Regex.Replace(line, " февр?\\.? ", ".02.", RegexOptions.IgnoreCase);

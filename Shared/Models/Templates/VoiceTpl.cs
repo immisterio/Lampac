@@ -10,9 +10,9 @@ namespace Shared.Model.Templates
 
         public VoiceTpl() : this(15) { }
 
-        public VoiceTpl(int capacity) { data = new List<(string, bool, string)>(capacity); }
+        public VoiceTpl(in int capacity) { data = new List<(string, bool, string)>(capacity); }
 
-        public void Append(string? name, bool active, string link)
+        public void Append(in string name, in bool active, in string link)
         {
             if (!string.IsNullOrEmpty(name))
                 data.Add((name, active, link));

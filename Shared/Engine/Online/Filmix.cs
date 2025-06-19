@@ -25,7 +25,7 @@ namespace Shared.Engine.Online
         Action? requesterror;
         bool rjson;
 
-        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
+        public FilmixInvoke(in string? host, in string apihost, in string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -42,7 +42,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int clarification, int year, bool similar)
+        async public Task<SearchResult?> Search(string? title, string? original_title, int clarification, int year, bool similar)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -101,9 +101,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search2
-        async ValueTask<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
+        async Task<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
         {
-            async ValueTask<List<SearchModel>?> gosearch(string? story)
+            async Task<List<SearchModel>> gosearch(string? story)
             {
                 if (string.IsNullOrEmpty(story))
                     return null;
@@ -172,7 +172,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search3
-        async ValueTask<SearchResult?> Search3(string? title, string? original_title, int clarification, int year)
+        async Task<SearchResult?> Search3(string? title, string? original_title, int clarification, int year)
         {
             if (disableSphinxSearch)
             {
@@ -241,7 +241,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Post
-        async public ValueTask<RootObject?> Post(int postid)
+        async public Task<RootObject?> Post(int postid)
         {
             string uri = $"{apihost}/api/v2/post/{postid}?{args}";
             onlog?.Invoke(uri);
@@ -267,7 +267,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf? vast = null)
+        public string Html(RootObject? root, in bool pro, in int postid, in string? title, in string? original_title, in int t, in int? s, VastConf vast = null)
         {
             var player_links = root?.player_links;
             if (player_links == null)

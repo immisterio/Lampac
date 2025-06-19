@@ -196,7 +196,7 @@ namespace Lampac.Controllers.NextHUB
                         if (init.view.nodeFile != null)
                         {
                             #region nodeFile
-                            string goFile(string _content)
+                            string goFile(in string _content)
                             {
                                 if (!string.IsNullOrEmpty(_content))
                                 {

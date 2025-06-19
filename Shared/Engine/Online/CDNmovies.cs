@@ -16,7 +16,7 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Action? requesterror;
 
-        public CDNmoviesInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
+        public CDNmoviesInvoke(in string? host, in string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -56,7 +56,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Voice>? voices, long kinopoisk_id, string? title, string? original_title, int t, int s, int sid, VastConf? vast = null, bool rjson = false)
+        public string Html(List<Voice>? voices, in long kinopoisk_id, in string? title, in string? original_title, in int t, in int s, in int sid, VastConf? vast = null, in bool rjson = false)
         {
             if (voices == null || voices.Count == 0)
                 return string.Empty;

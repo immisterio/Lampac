@@ -8,17 +8,17 @@ namespace Shared.Model.Templates
 
         public StreamQualityTpl() { }
 
-        public StreamQualityTpl(IEnumerable<(string link, string quality)>? streams) { if (streams != null) data = streams.ToList(); }
+        public StreamQualityTpl(IEnumerable<(string link, string quality)> streams) { if (streams != null) data = streams.ToList(); }
 
         public bool Any() => data.Any();
 
-        public void Append(string? link, string? quality)
+        public void Append(in string link, in string quality)
         {
             if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
                 data.Add((link, quality));
         }
 
-        public void Insert(string? link, string? quality)
+        public void Insert(in string link, in string quality)
         {
             if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
                 data.Insert(0, (link, quality));

@@ -16,7 +16,7 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public VDBmoviesInvoke(string? host, bool hls, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VDBmoviesInvoke(in string? host, in bool hls, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.onstreamfile = onstreamfile;
@@ -26,7 +26,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EvalCode
-        public string EvalCode(string file)
+        public string EvalCode(in string file)
         {
             return @"(function () {
                     var enc = function enc(str) {
@@ -60,7 +60,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region DecodeEval
-        public string DecodeEval(string file)
+        public string DecodeEval(in string file)
         {
             Func<string, string> enc = str =>
             {
@@ -102,7 +102,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public EmbedModel? Embed(string? json)
+        public EmbedModel? Embed(in string? json)
         {
             if (string.IsNullOrEmpty(json))
                 return null;
@@ -133,7 +133,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string orid, string imdb_id, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, VastConf? vast = null, bool rjson = false)
+        public string Html(EmbedModel? root, in string orid, in string imdb_id, in long kinopoisk_id, in string? title, in string? original_title, string? t, in int s, in int sid, VastConf? vast = null, in bool rjson = false)
         {
             if (root == null)
                 return string.Empty;

@@ -27,6 +27,7 @@ namespace Lampac.Engine.Middlewares
         public Task Invoke(HttpContext httpContext)
         {
             #region stats
+            if (AppInit.conf.openstat.enable)
             {
                 string skey = $"stats:request:{DateTime.Now.Minute}";
                 if (!memoryCache.TryGetValue(skey, out long _req))
@@ -106,17 +107,33 @@ namespace Lampac.Engine.Middlewares
                 #region getuid
                 string getuid()
                 {
-                    if (!string.IsNullOrEmpty(httpContext.Request.Query["token"].ToString()))
-                        return httpContext.Request.Query["token"].ToString();
+                    if (httpContext.Request.Query.ContainsKey("token"))
+                    {
+                        string val = httpContext.Request.Query["token"].ToString();
+                        if (!string.IsNullOrEmpty(val))
+                            return val;
+                    }
 
-                    if (!string.IsNullOrEmpty(httpContext.Request.Query["account_email"].ToString()))
-                        return httpContext.Request.Query["account_email"].ToString();
+                    if (httpContext.Request.Query.ContainsKey("account_email"))
+                    {
+                        string val = httpContext.Request.Query["account_email"].ToString();
+                        if (!string.IsNullOrEmpty(val))
+                            return val;
+                    }
 
-                    if (!string.IsNullOrEmpty(httpContext.Request.Query["uid"].ToString()))
-                        return httpContext.Request.Query["uid"].ToString();
+                    if (httpContext.Request.Query.ContainsKey("uid"))
+                    {
+                        string val = httpContext.Request.Query["uid"].ToString();
+                        if (!string.IsNullOrEmpty(val))
+                            return val;
+                    }
 
-                    if (!string.IsNullOrEmpty(httpContext.Request.Query["box_mac"].ToString()))
-                        return httpContext.Request.Query["box_mac"].ToString();
+                    if (httpContext.Request.Query.ContainsKey("box_mac"))
+                    {
+                        string val = httpContext.Request.Query["box_mac"].ToString();
+                        if (!string.IsNullOrEmpty(val))
+                            return val;
+                    }
 
                     return null;
                 }
@@ -151,7 +168,7 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        string unknownFrontend = @"<!DOCTYPE html>
+        static string unknownFrontend = @"<!DOCTYPE html>
 <html lang='ru'>
 <head>
     <meta charset='UTF-8'>

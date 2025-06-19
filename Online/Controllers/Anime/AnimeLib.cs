@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
-                    async ValueTask<JObject> goSearch(string q)
+                    async Task<JObject> goSearch(string q)
                     {
                         if (string.IsNullOrEmpty(q))
                             return null;

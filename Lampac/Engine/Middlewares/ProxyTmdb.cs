@@ -21,7 +21,7 @@ namespace Lampac.Engine.Middlewares
 {
     public class ProxyTmdb
     {
-        #region ProxyImg
+        #region ProxyTmdb
         public ProxyTmdb(RequestDelegate next) { }
 
         static ProxyTmdb()

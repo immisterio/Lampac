@@ -5,7 +5,7 @@ namespace Lampac.Engine.CORE
     public static class StringConvert
     {
         #region FindStartText
-        public static string? FindStartText(string data, string end, string? start = null)
+        public static string FindStartText(in string data, in string end, in string start = null)
         {
             try
             {
@@ -23,7 +23,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region FindLastText
-        public static string? FindLastText(string data, string start, string? end = null)
+        public static string FindLastText(in string data, in string start, in string end = null)
         {
             try
             {
@@ -47,7 +47,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Remove
-        public static string Remove(string data, string start, string end)
+        public static string Remove(string data, in string start, in string end)
         {
             try
             {
@@ -78,13 +78,13 @@ namespace Lampac.Engine.CORE
 
 
         #region SearchName
-        public static string? SearchName(string? val, string? empty = null)
+        public static string SearchName(in string val, in string empty = null)
         {
             if (string.IsNullOrWhiteSpace(val))
                 return empty;
 
-            val = Regex.Replace(val.ToLower(), "[^a-zA-Zа-яА-Я0-9Ёё]+", "").Replace("ё", "е").Replace("щ", "ш");
-            if (string.IsNullOrWhiteSpace(val))
+            string result = Regex.Replace(val.ToLower(), "[^a-zA-Zа-яА-Я0-9Ёё]+", "").Replace("ё", "е").Replace("щ", "ш");
+            if (string.IsNullOrWhiteSpace(result))
                 return empty;
 
             return val;

@@ -18,7 +18,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public iRemuxInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public iRemuxInvoke(in string? host, in string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -103,7 +103,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? title, string? original_title, int year, bool rjson = false)
+        public string Html(EmbedModel? result, in string? title, in string? original_title, in int year, in bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -179,7 +179,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        public string Movie(string weblink, string quality, string title, string original_title, VastConf? vast = null)
+        public string Movie(in string weblink, in string quality, in string title, in string original_title, VastConf vast = null)
         {
             return VideoTpl.ToJson("play", onstreamfile?.Invoke(weblink), (title ?? original_title), quality: quality, vast: vast);
         }

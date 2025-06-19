@@ -28,11 +28,12 @@ namespace Shared.Engine.Online
 
         void log(string msg)
         {
+            return;
             requestlog += $"{msg}\n\n===========================================\n\n\n";
             onlog?.Invoke($"rezka: {msg}\n");
         }
 
-        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool reserve, bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RezkaInvoke(in string? host, in string apihost, in string? scheme, in bool hls, in bool reserve, in bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -61,7 +62,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<SearchModel?> Search(string title, string original_title, int clarification, int year)
+        async public Task<SearchModel> Search(string title, string original_title, int clarification, int year)
         {
             var result = new SearchModel();
             string? reservedlink = null;
@@ -199,7 +200,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedID
-        async public ValueTask<EmbedModel?> EmbedID(long kinopoisk_id, string? imdb_id)
+        async public Task<EmbedModel?> EmbedID(long kinopoisk_id, string? imdb_id)
         {
             string? search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()), null);
             if (search == null)
@@ -253,7 +254,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, string? title, string? original_title, int s, string? href, bool showstream, bool rjson = false)
+        public string Html(EmbedModel? result, string args, in string? title, in string? original_title, in int s, in string? href, in bool showstream, in bool rjson = false)
         {
             if (result == null || result.IsEmpty || result.content == null)
                 return string.Empty;
@@ -477,7 +478,7 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, string args, string? title, string? original_title, string? href, long id, int t, int s, bool showstream, bool rjson = false)
+        public string Serial(Episodes? root, EmbedModel? result, string args, in string? title, in string? original_title, in string? href, in long id, in int t, in int s, in bool showstream, in bool rjson = false)
         {
             if (root == null || result == null)
                 return string.Empty;
@@ -652,7 +653,7 @@ namespace Shared.Engine.Online
             return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
         }
 
-        public string Movie(MovieModel md, string? title, string? original_title, bool play, VastConf? vast = null)
+        public string Movie(MovieModel md, in string? title, in string? original_title, in bool play, VastConf vast = null)
         {
             if (play)
                 return onstreamfile(md.links[0].stream_url!);
@@ -692,19 +693,21 @@ namespace Shared.Engine.Online
 
 
         #region decodeBase64
-        static string decodeBase64(string _data)
+        static string decodeBase64(in string data)
         {
-            if (_data.Contains("#"))
+            if (data.Contains("#"))
             {
                 string[] trashList = new string[] { "QEA=", "QCM=", "QCE=", "QF4=", "QCQ=", "I0A=", "IyM=", "IyE=", "I14=", "IyQ=", "IUA=", "ISM=", "ISE=", "IV4=", "ISQ=", "XkA=", "XiM=", "XiE=", "Xl4=", "XiQ=", "JEA=", "JCM=", "JCE=", "JF4=", "JCQ=", "QEBA", "QEAj", "QEAh", "QEBe", "QEAk", "QCNA", "QCMj", "QCMh", "QCNe", "QCMk", "QCFA", "QCEj", "QCEh", "QCFe", "QCEk", "QF5A", "QF4j", "QF4h", "QF5e", "QF4k", "QCRA", "QCQj", "QCQh", "QCRe", "QCQk", "I0BA", "I0Aj", "I0Ah", "I0Be", "I0Ak", "IyNA", "IyMj", "IyMh", "IyNe", "IyMk", "IyFA", "IyEj", "IyEh", "IyFe", "IyEk", "I15A", "I14j", "I14h", "I15e", "I14k", "IyRA", "IyQj", "IyQh", "IyRe", "IyQk", "IUBA", "IUAj", "IUAh", "IUBe", "IUAk", "ISNA", "ISMj", "ISMh", "ISNe", "ISMk", "ISFA", "ISEj", "ISEh", "ISFe", "ISEk", "IV5A", "IV4j", "IV4h", "IV5e", "IV4k", "ISRA", "ISQj", "ISQh", "ISRe", "ISQk", "XkBA", "XkAj", "XkAh", "XkBe", "XkAk", "XiNA", "XiMj", "XiMh", "XiNe", "XiMk", "XiFA", "XiEj", "XiEh", "XiFe", "XiEk", "Xl5A", "Xl4j", "Xl4h", "Xl5e", "Xl4k", "XiRA", "XiQj", "XiQh", "XiRe", "XiQk", "JEBA", "JEAj", "JEAh", "JEBe", "JEAk", "JCNA", "JCMj", "JCMh", "JCNe", "JCMk", "JCFA", "JCEj", "JCEh", "JCFe", "JCEk", "JF5A", "JF4j", "JF4h", "JF5e", "JF4k", "JCRA", "JCQj", "JCQh", "JCRe", "JCQk" };
 
-                _data = _data.Remove(0, 2).Replace("//_//", "");
+                string _data = data.Remove(0, 2).Replace("//_//", "");
 
                 foreach (string trash in trashList)
                     _data = _data.Replace(trash, "");
 
                 _data = Regex.Replace(_data, "//[^/]+_//", "").Replace("//_//", "");
                 _data = Encoding.UTF8.GetString(Convert.FromBase64String(_data));
+
+                return _data;
 
 
                 //_data = Regex.Replace(_data, "/[^/=]+=([^\n\r\t= ])", "/$1");
@@ -722,20 +725,20 @@ namespace Shared.Engine.Online
                 //_data = Encoding.UTF8.GetString(Convert.FromBase64String(_data.Remove(0, 2)));
             }
 
-            return _data;
+            return data;
         }
         #endregion
 
         #region getStreamLink
-        List<ApiModel> getStreamLink(string _data)
+        List<ApiModel> getStreamLink(in string _data)
         {
-            _data = decodeBase64(_data);
+            string data = decodeBase64(_data);
             var links = new List<ApiModel>() { Capacity = 6 };
 
             #region getLink
-            string? getLink(string _q)
+            string? getLink(in string _q)
             {
-                string qline = Regex.Match(_data, $"\\[{_q}\\]([^,\\[]+)").Groups[1].Value;
+                string qline = Regex.Match(data, $"\\[{_q}\\]([^,\\[]+)").Groups[1].Value;
                 if (!qline.Contains(".mp4") && !qline.Contains(".m3u8"))
                     return null;
 
@@ -823,7 +826,7 @@ namespace Shared.Engine.Online
 
 
         #region fixcdn
-        public static string fixcdn(string? country, string? uacdn, string link)
+        public static string fixcdn(in string? country, in string? uacdn, in string link)
         {
             if (uacdn != null && country == "UA" && !link.Contains(".vtt"))
                 return Regex.Replace(link, "https?://[^/]+", uacdn);
@@ -833,7 +836,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region StreamProxyHeaders
-        public static List<HeadersModel> StreamProxyHeaders(string host) => HeadersModel.Init(
+        public static List<HeadersModel> StreamProxyHeaders(in string host) => HeadersModel.Init(
             ("accept", "*/*"),
             ("cache-control", "no-cache"),
             ("dnt", "1"),

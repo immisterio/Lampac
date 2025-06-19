@@ -20,7 +20,7 @@ namespace Shared.Engine.Online
         Action? requesterror;
         bool rjson;
 
-        public FilmixTVInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
+        public FilmixTVInvoke(in string? host, in string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, in bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -95,7 +95,7 @@ namespace Shared.Engine.Online
         #region Search2
         async ValueTask<SearchResult?> Search2(string? title, string? original_title, int year, int clarification)
         {
-            async ValueTask<List<SearchModel>?> gosearch(string? story)
+            async Task<List<SearchModel>> gosearch(string? story)
             {
                 if (string.IsNullOrEmpty(story))
                     return null;
@@ -164,7 +164,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Post
-        public RootObject? Post(string json)
+        public RootObject? Post(in string json)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -192,7 +192,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf? vast = null)
+        public string Html(RootObject? root, bool pro, in int postid, in string? title, in string? original_title, int t, int? s, VastConf vast = null)
         {
             if (root == null)
                 return string.Empty;

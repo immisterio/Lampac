@@ -1,6 +1,4 @@
 ﻿using System.Net;
-using System;
-using System.Collections.Generic;
 using Shared.Model.Online;
 
 namespace Shared.Models

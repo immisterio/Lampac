@@ -304,7 +304,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region NetVipsImage
-        private byte[] NetVipsImage(string href, in byte[] array, int width, int height)
+        private byte[] NetVipsImage(in string href, in byte[] array, in int width, in int height)
         {
             try
             {
@@ -333,7 +333,7 @@ namespace Lampac.Engine.Middlewares
         /// <summary>
         /// apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
         /// </summary>
-        private byte[] ImageMagick(in byte[] array, int width, int height, string myoutputFilePath)
+        private byte[] ImageMagick(in byte[] array, in int width, in int height, in string myoutputFilePath)
         {
             string inputFilePath = null;
             string outputFilePath = null;

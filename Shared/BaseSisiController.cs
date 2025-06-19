@@ -10,12 +10,8 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
 using Shared.Models.Module;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace SISI
 {
@@ -81,7 +77,7 @@ namespace SISI
         #endregion
 
         #region OnError
-        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true)
+        public JsonResult OnError(in string msg, ProxyManager proxyManager, in bool refresh_proxy = true, in bool rcache = true)
         {
             if (refresh_proxy && !init.rhub)
                 proxyManager?.Refresh();
@@ -89,15 +85,12 @@ namespace SISI
             return OnError(msg, rcache: rcache);
         }
 
-        public JsonResult OnError(string msg, bool rcache = true)
+        public JsonResult OnError(in string msg, in bool rcache = true)
         {
-            var model = new OnErrorResult() { msg = msg };
+            var model = new OnErrorResult(msg);
 
             if (AppInit.conf.multiaccess && rcache && !init.rhub)
-            {
-                var gbc = new ResponseCache();
-                memoryCache.Set(gbc.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(20));
-            }
+                memoryCache.Set(ResponseCache.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(15));
 
             return Json(model);
         }

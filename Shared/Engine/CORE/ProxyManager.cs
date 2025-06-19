@@ -31,11 +31,14 @@ namespace Shared.Engine.CORE
         bool refresh;
         Iproxy conf;
 
+        public string[] proxyKeys;
+
         public ProxyManager(string plugin, Iproxy conf, bool refresh = true)
         {
             this.plugin = plugin;
             this.conf = conf;
             this.refresh = refresh;
+            proxyKeys = new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" };
         }
 
         public ProxyManager(BaseSettings conf, bool refresh = true)
@@ -43,6 +46,7 @@ namespace Shared.Engine.CORE
             plugin = !string.IsNullOrEmpty(conf.plugin) ? conf.plugin : (conf.host ?? conf.apihost);
             this.conf = conf;
             this.refresh = refresh;
+            proxyKeys = new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" };
         }
         #endregion
 
@@ -105,7 +109,7 @@ namespace Shared.Engine.CORE
             if (!refresh)
                 return;
 
-            void update(ProxySettings p, string key)
+            void update(ProxySettings p, in string key)
             {
                 if (database.TryGetValue(key, out ProxyManagerModel val))
                 {
@@ -149,7 +153,7 @@ namespace Shared.Engine.CORE
         #region Success
         public void Success()
         {
-            foreach (string key in new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" })
+            foreach (string key in proxyKeys)
             {
                 if (database.TryGetValue(key, out var val) && val.errors > 0)
                     val.errors = 0;
@@ -162,7 +166,7 @@ namespace Shared.Engine.CORE
         {
             get
             {
-                foreach (string key in new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" })
+                foreach (string key in proxyKeys)
                 {
                     if (database.TryGetValue(key, out var val))
                         return val.proxyip;
