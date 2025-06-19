@@ -928,7 +928,7 @@ namespace Lampac.Controllers
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
                     send(conf.Videasy, "videasy", "Videasy (ENG)");
 
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)

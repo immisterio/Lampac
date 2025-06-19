@@ -1,12 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
 using Shared.Engine;
-using Lampac.Models.LITE;
-using Shared.PlaywrightCore;
+using Shared.Engine.CORE;
 using Shared.Model.Online;
-using System.Collections.Generic;
 using Shared.Model.Templates;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,7 +15,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videasy")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Videasy, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, chromium: true, method: "call");
+            return ViewTmdb(AppInit.conf.Videasy, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
 
 
@@ -33,7 +32,7 @@ namespace Lampac.Controllers.LITE
             if (id == 0)
                 return OnError();
 
-            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -71,7 +70,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"videasy:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new PlaywrightBrowser())
+                    using (var browser = new Firefox())
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
@@ -91,7 +90,7 @@ namespace Lampac.Controllers.LITE
                                 if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true))
                                     return;
 
-                                if (route.Request.Url.Contains(".m3u8") || route.Request.Url.Contains(".mp4"))
+                                if (route.Request.Url.Contains(".m3u8") || route.Request.Url.Contains(".mp4") || route.Request.Url.Contains("/mp4/") || route.Request.Url.Contains("mp4."))
                                 {
                                     cache.headers = new List<HeadersModel>();
                                     foreach (var item in route.Request.Headers)
@@ -103,7 +102,7 @@ namespace Lampac.Controllers.LITE
                                     }
 
                                     PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.SetPageResult(route.Request.Url);
+                                    browser.completionSource.SetResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;
                                 }

@@ -1,7 +1,9 @@
 ﻿using Lampac.Engine.CORE;
+using Lampac.Models.SISI;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Playwright;
+using Shared.Model.SISI;
 using System.Collections.Concurrent;
 
 namespace Shared.Engine
@@ -28,7 +30,13 @@ namespace Shared.Engine
                         .AddImports("System.Text.RegularExpressions")
 
                         .AddReferences(typeof(Playwright).Assembly)
-                        .AddImports(typeof(RouteContinueOptions).Namespace);
+                        .AddImports(typeof(RouteContinueOptions).Namespace)
+
+                        .AddReferences(typeof(Bookmark).Assembly)
+                        .AddImports(typeof(Bookmark).Namespace)
+
+                        .AddReferences(typeof(MenuItem).Assembly)
+                        .AddImports(typeof(MenuItem).Namespace);
 
 
                     return CSharpScript.Create<T>(

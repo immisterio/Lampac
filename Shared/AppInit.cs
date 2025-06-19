@@ -835,7 +835,7 @@ namespace Lampac
         /// <summary>
         /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
         /// </summary>
-        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", token: "i9i;<49537i;;539f<d7g37;93gd<5d9", streamproxy: true)
+        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", streamproxy: true, enable: false)
         {
             priorityBrowser = "http",
             headers = HeadersModel.Init(
@@ -983,7 +983,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "kwwsv=22sod|51456hpehg1qhw", streamproxy: true, enable: false);
+        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su");
         #endregion
 
         #region Anime
