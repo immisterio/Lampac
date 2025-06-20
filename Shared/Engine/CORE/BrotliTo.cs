@@ -1,26 +1,11 @@
 ﻿using System.IO.Compression;
 using System.Text;
-using Microsoft.Extensions.Caching.Memory;
-using Shared;
 
 namespace Lampac.Engine.CORE
 {
     public static class BrotliTo
     {
-        static object GetLockObjectForPath(in string path)
-        {
-            lock (Startup.memoryCache)
-            {
-                string cacheKey = "BrotliTo:Lock_" + path;
-                if (!Startup.memoryCache.TryGetValue(cacheKey, out object lockObj))
-                {
-                    lockObj = new object();
-                    Startup.memoryCache.Set(cacheKey, lockObj, TimeSpan.FromSeconds(5));
-                }
-
-                return lockObj;
-            }
-        }
+        static object lockObj = new object();
 
 
         public static byte[] Compress(in string value)
@@ -46,7 +31,7 @@ namespace Lampac.Engine.CORE
             catch { return null; }
         }
 
-        public static void Compress(in string outfile, in string value)
+        public static void Compress(string outfile, in string value)
         {
             try
             {
@@ -55,11 +40,11 @@ namespace Lampac.Engine.CORE
             catch { }
         }
 
-        public static void Compress(in string outfile, in byte[] value)
+        public static void Compress(string outfile, in byte[] value)
         {
             try
             {
-                lock (GetLockObjectForPath(outfile))
+                lock (lockObj)
                 {
                     using (var input = new MemoryStream(value))
                     {
@@ -93,7 +78,7 @@ namespace Lampac.Engine.CORE
             catch { return null; }
         }
 
-        public static string Decompress(in string infile)
+        public static string Decompress(string infile)
         {
             try
             {
@@ -106,21 +91,18 @@ namespace Lampac.Engine.CORE
             catch { return null; }
         }
 
-        public static byte[] DecompressArray(in string infile)
+        public static byte[] DecompressArray(string infile)
         {
             try
             {
-                lock (GetLockObjectForPath(infile))
+                using (var input = new FileStream(infile, FileMode.Open, FileAccess.Read))
                 {
-                    using (var input = new FileStream(infile, FileMode.Open, FileAccess.Read))
+                    using (var output = new MemoryStream())
                     {
-                        using (var output = new MemoryStream())
-                        {
-                            using (var stream = new BrotliStream(input, CompressionMode.Decompress))
-                                stream.CopyTo(output);
+                        using (var stream = new BrotliStream(input, CompressionMode.Decompress))
+                            stream.CopyTo(output);
 
-                            return output.ToArray();
-                        }
+                        return output.ToArray();
                     }
                 }
             }

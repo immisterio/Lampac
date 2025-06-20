@@ -213,6 +213,7 @@ namespace JacRed.Engine
                     KinozalController.search(host, torrents, animesearch, new string[] { "anime" }),
                     NNMClubController.search(host, torrents, animesearch, new string[] { "anime" }),
                     RutrackerController.search(host, torrents, animesearch, new string[] { "anime" }),
+                    TolokaController.search(host, torrents, search, new string[] { "anime" }),
                     AniLibriaController.search(host, torrents, animesearch),
                     AnimeLayerController.search(host, torrents, animesearch),
                     AnifilmController.search(host, torrents, animesearch)

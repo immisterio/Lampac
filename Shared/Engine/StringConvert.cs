@@ -87,7 +87,7 @@ namespace Lampac.Engine.CORE
             if (string.IsNullOrWhiteSpace(result))
                 return empty;
 
-            return val;
+            return result;
         }
         #endregion
     }

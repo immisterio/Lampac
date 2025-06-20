@@ -85,7 +85,8 @@ namespace Lampac
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.All,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                MaxConnectionsPerServer = 100,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
                 EnableMultipleHttp2Connections = true
             });
 

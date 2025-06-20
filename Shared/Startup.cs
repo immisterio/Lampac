@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 
 namespace Shared
 {
