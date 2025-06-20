@@ -105,7 +105,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|admin|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|admin|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|([^/]+/)?css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
                 {
                     bool limitip = false;
 
@@ -161,7 +161,7 @@ namespace Lampac.Engine.Middlewares
         #region IsLock
         static string logsLock = string.Empty;
 
-        bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock)
+        bool IsLockHostOrUser(string account_email, in string userip, in string uri, out bool islock)
         {
             if (string.IsNullOrEmpty(account_email))
             {
@@ -248,7 +248,7 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        bool IsLockIpHour(string account_email, string userip, out bool islock, out HashSet<string> ips)
+        bool IsLockIpHour(in string account_email, in string userip, out bool islock, out HashSet<string> ips)
         {
             string memKeyLocIP = $"Accsdb:IsLockIpHour:{account_email}:{DateTime.Now.Hour}";
 
@@ -273,7 +273,7 @@ namespace Lampac.Engine.Middlewares
             return islock;
         }
 
-        bool IsLockReqHour(string account_email, string uri, out bool islock, out HashSet<string> urls)
+        bool IsLockReqHour(in string account_email, in string uri, out bool islock, out HashSet<string> urls)
         {
             if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|ts/|dlna/|storage/|tmdb/|timecode)"))
             {

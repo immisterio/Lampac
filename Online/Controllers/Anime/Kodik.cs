@@ -96,7 +96,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (string.IsNullOrEmpty(pick))
-                    return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.ToJson() : res.stpl.ToHtml()));
+                    return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.Value.ToJson() : res.stpl.Value.ToHtml()));
 
                 content = oninvk.Embed(res.result, pick);
             }
@@ -210,7 +210,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region HMAC
-        static string HMAC(string key, string message)
+        static string HMAC(in string key, in string message)
         {
             using (var hash = new HMACSHA256(Encoding.UTF8.GetBytes(key)))
             {

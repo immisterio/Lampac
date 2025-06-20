@@ -49,6 +49,8 @@ namespace Lampac.Controllers.LITE
             if (frame.all == null)
                 return OnError();
 
+            //return ContentTo(JsonConvert.SerializeObject(frame.all));
+
             if (result.category_id is 1 or 3)
             {
                 #region Фильм
@@ -93,7 +95,12 @@ namespace Lampac.Controllers.LITE
                     }
                     catch { }
 
-                    var seasons = frame.all["seasons"].ToObject<Dictionary<string, JToken>>();
+                    // Проверяем наличие ключа "seasons" в frame.all
+                    Dictionary<string, JToken> seasons;
+                    if (frame.all["seasons"] != null)
+                        seasons = frame.all["seasons"].ToObject<Dictionary<string, JToken>>();
+                    else
+                        seasons = frame.all.ToObject<Dictionary<string, JToken>>();
 
                     var tpl = new SeasonTpl(q, seasons.Count);
 

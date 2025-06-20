@@ -10,12 +10,8 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
 using Shared.Models.Module;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace SISI
 {
@@ -81,7 +77,7 @@ namespace SISI
         #endregion
 
         #region OnError
-        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true)
+        public JsonResult OnError(in string msg, ProxyManager proxyManager, in bool refresh_proxy = true, in bool rcache = true)
         {
             if (refresh_proxy && !init.rhub)
                 proxyManager?.Refresh();
@@ -89,32 +85,29 @@ namespace SISI
             return OnError(msg, rcache: rcache);
         }
 
-        public JsonResult OnError(string msg, bool rcache = true)
+        public JsonResult OnError(in string msg, in bool rcache = true)
         {
-            var model = new OnErrorResult() { msg = msg };
+            var model = new OnErrorResult(msg);
 
             if (AppInit.conf.multiaccess && rcache && !init.rhub)
-            {
-                var gbc = new ResponseCache();
-                memoryCache.Set(gbc.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(20));
-            }
+                memoryCache.Set(ResponseCache.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(15));
 
             return Json(model);
         }
         #endregion
 
         #region OnResult
-        public JsonResult OnResult(IList<PlaylistItem> playlists, BaseSettings conf, IList<MenuItem> menu, WebProxy proxy = null, int total_pages = 0)
+        public JsonResult OnResult(IList<PlaylistItem> playlists, BaseSettings conf, in IList<MenuItem> menu, WebProxy proxy = null, in int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
 
-            var resultArray = new PlaylistItem[playlists.Count];
+            var resultArray = new OnResultPlaylistItem[playlists.Count];
 
             for (int i = 0; i < playlists.Count; i++)
             {
                 var pl = playlists[i];
-                resultArray[i] = new PlaylistItem
+                resultArray[i] = new OnResultPlaylistItem
                 {
                     name = pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy),
@@ -126,29 +119,26 @@ namespace SISI
                     related = pl.related,
                     quality = pl.quality,
                     qualitys = pl.qualitys,
-                    bookmark = pl.bookmark
+                    bookmark = pl.bookmark,
+                    hide = pl.hide,
+                    myarg = pl.myarg
                 };
             }
 
-            return new JsonResult(new OnListResult()
-            {
-                menu = menu,
-                total_pages = total_pages,
-                list = resultArray
-            });
+            return new JsonResult(new OnListResult(resultArray, total_pages, menu));
         }
 
-        public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, List<HeadersModel> headers = null, int total_pages = 0, string plugin = null)
+        public JsonResult OnResult(IList<PlaylistItem> playlists, in IList<MenuItem> menu, List<HeadersModel> headers = null, in int total_pages = 0, in string plugin = null)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
 
-            var resultArray = new PlaylistItem[playlists.Count];
+            var resultArray = new OnResultPlaylistItem[playlists.Count];
 
             for (int i = 0; i < playlists.Count; i++)
             {
                 var pl = playlists[i];
-                resultArray[i] = new PlaylistItem
+                resultArray[i] = new OnResultPlaylistItem
                 {
                     name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
@@ -160,16 +150,13 @@ namespace SISI
                     related = pl.related,
                     quality = pl.quality,
                     qualitys = pl.qualitys,
-                    bookmark = pl.bookmark
+                    bookmark = pl.bookmark,
+                    hide = pl.hide,
+                    myarg = pl.myarg
                 };
             }
 
-            return new JsonResult(new OnListResult()
-            {
-                menu = menu,
-                total_pages = total_pages,
-                list = resultArray
-            });
+            return new JsonResult(new OnListResult(resultArray, total_pages, menu));
         }
 
         public JsonResult OnResult(Dictionary<string, string> stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers_stream = null)
@@ -190,13 +177,13 @@ namespace SISI
                 }
             }
 
-            var recomendsArray = new PlaylistItem[stream_links?.recomends?.Count ?? 0];
+            var recomendsArray = new OnResultPlaylistItem[stream_links?.recomends?.Count ?? 0];
             if (recomendsArray.Length > 0)
             {
                 for (int i = 0; i < stream_links.recomends.Count; i++)
                 {
                     var pl = stream_links.recomends[i];
-                    recomendsArray[i] = new PlaylistItem
+                    recomendsArray[i] = new OnResultPlaylistItem
                     {
                         name = pl.name,
                         video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
@@ -206,13 +193,13 @@ namespace SISI
                 }
             }
 
-            return new JsonResult(new OnStreamResult()
-            {
-                qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream)),
-                qualitys_proxy = qualitys_proxy,
-                recomends = recomendsArray,
-                headers_stream = init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream)
-            });
+            return new JsonResult(new OnStreamResult
+            (
+                stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream)),
+                qualitys_proxy,
+                init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream),
+                recomendsArray
+            ));
         }
         #endregion
 

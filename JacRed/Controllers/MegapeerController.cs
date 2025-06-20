@@ -64,7 +64,7 @@ namespace Lampac.Controllers.JAC
                 ("upgrade-insecure-requests", "1")
             ));
 
-            if (html == null || !html.Contains("id=\"logo\""))
+            if (html == null || !html.Contains("id=\"logo\"") || html.Contains("<H1>Раздачи за последние"))
             {
                 consoleErrorLog("megapeer");
                 proxyManager.Refresh();

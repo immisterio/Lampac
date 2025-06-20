@@ -1,19 +1,13 @@
 ﻿using Lampac;
 using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
-using NetVips;
 using Newtonsoft.Json;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.IO.Compression;
-using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
 
 namespace Shared.Engine
@@ -201,74 +195,80 @@ namespace Shared.Engine
         #endregion
 
         #region WebLog
-        public static void WebLog(IRequest request, IResponse response, string result, (string ip, string username, string password) proxy = default)
+        public static void WebLog(IRequest request, IResponse response, in string result, (string ip, string username, string password) proxy = default)
         {
             try
             {
-                if (request.Url.Contains("127.0.0.1"))
+                if (request.Url.Contains("127.0.0.1") || !AppInit.conf.weblog.enable)
                     return;
 
-                string log = $"{DateTime.Now}\n";
-                if (proxy != default)
-                    log += $"proxy: {proxy}\n";
+                var log = new StringBuilder();
 
-                log += $"{request.Method}: {request.Url}\n";
+                log.Append($"{DateTime.Now}\n");
+
+                if (proxy != default)
+                    log.Append($"proxy: {proxy}\n");
+
+                log.Append($"{request.Method}: {request.Url}\n");
 
                 foreach (var item in request.Headers)
-                    log += $"{item.Key}: {item.Value}\n";
+                    log.Append($"{item.Key}: {item.Value}\n");
 
                 if (response == null)
                 {
-                    log += "\nresponse null";
-                    HttpClient.onlog?.Invoke(null, log);
+                    log.Append("\nresponse null");
+                    HttpClient.onlog?.Invoke(null, log.ToString());
                     return;
                 }
 
-                log += $"\n\nCurrentUrl: {response.Url}\nStatusCode: {response.Status}\n";
+                log.Append($"\n\nCurrentUrl: {response.Url}\nStatusCode: {response.Status}\n");
                 foreach (var item in response.Headers)
-                    log += $"{item.Key}: {item.Value}\n";
+                    log.Append($"{item.Key}: {item.Value}\n");
 
-                HttpClient.onlog?.Invoke(null, $"{log}\n{result}");
+                HttpClient.onlog?.Invoke(null, $"{log.ToString()}\n{result}");
             }
             catch { }
         }
 
-        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
+        public static void WebLog(in string method, in string url, in string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
         {
             try
             {
-                if (url.Contains("127.0.0.1"))
+                if (url.Contains("127.0.0.1") || !AppInit.conf.weblog.enable)
                     return;
 
-                string log = $"{DateTime.Now}\n";
-                if (proxy != default)
-                    log += $"proxy: {proxy}\n";
+                var log = new StringBuilder();
 
-                log += $"{method}: {url}\n";
+                log.Append($"{DateTime.Now}\n");
+
+                if (proxy != default)
+                    log.Append($"proxy: {proxy}\n");
+
+                log.Append($"{method}: {url}\n");
 
                 if (request?.Headers != null)
                 {
                     foreach (var item in request.Headers)
-                        log += $"{item.Key}: {item.Value}\n";
+                        log.Append($"{item.Key}: {item.Value}\n");
                 }
 
                 if (response?.Headers != null)
                 {
-                    log += $"\n\nCurrentUrl: {response.Url}\nStatusCode: {response.Status}\n";
+                    log.Append($"\n\nCurrentUrl: {response.Url}\nStatusCode: {response.Status}\n");
                     foreach (var item in response.Headers)
-                        log += $"{item.Key}: {item.Value}\n";
+                        log.Append($"{item.Key}: {item.Value}\n");
                 }
 
-                HttpClient.onlog?.Invoke(null, $"{log}\n{result}");
+                HttpClient.onlog?.Invoke(null, $"{log.ToString()}\n{result}");
             }
             catch { }
         }
         #endregion
 
         #region IframeUrl
-        public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
+        public static string IframeUrl(in string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
 
-        public static string IframeHtml(string link) => $@"<html lang=""ru"">
+        public static string IframeHtml(in string link) => $@"<html lang=""ru"">
                 <head>
                     <meta charset=""UTF-8"">
                     <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
@@ -385,13 +385,13 @@ namespace Shared.Engine
         #endregion
 
 
-        public static void GotoAsync(IPage page, string uri)
+        public static void GotoAsync(IPage page, in string uri)
         {
             _ = page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
         }
 
 
-        public static void ConsoleLog(string value, List<HeadersModel> headers = null)
+        public static void ConsoleLog(in string value, List<HeadersModel> headers = null)
         {
             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
             {

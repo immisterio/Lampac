@@ -6,7 +6,7 @@ namespace Shared.Engine.CORE
 {
     public static class AccsDbInvk
     {
-        public static string Args(string uri, HttpContext httpContext)
+        public static string Args(in string uri, HttpContext httpContext)
         {
             var args = new StringBuilder();
 

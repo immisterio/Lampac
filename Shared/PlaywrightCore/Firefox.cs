@@ -1,12 +1,7 @@
 ﻿using Lampac;
 using Microsoft.Playwright;
 using Shared.Models.Browser;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace Shared.Engine
 {

@@ -1,9 +1,10 @@
 ﻿using Lampac.Engine.CORE;
+using Lampac.Models.SISI;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Playwright;
+using Shared.Model.SISI;
 using System.Collections.Concurrent;
-using System.Threading.Tasks;
 
 namespace Shared.Engine
 {
@@ -11,7 +12,7 @@ namespace Shared.Engine
     {
         static ConcurrentDictionary<string, dynamic> scripts = new ConcurrentDictionary<string, dynamic>();
 
-        public static T Execute<T>(string cs, object model)
+        public static T Execute<T>(in string cs, object model)
         {
             return ExecuteAsync<T>(cs, model).GetAwaiter().GetResult();
         }
@@ -29,7 +30,13 @@ namespace Shared.Engine
                         .AddImports("System.Text.RegularExpressions")
 
                         .AddReferences(typeof(Playwright).Assembly)
-                        .AddImports(typeof(RouteContinueOptions).Namespace);
+                        .AddImports(typeof(RouteContinueOptions).Namespace)
+
+                        .AddReferences(typeof(Bookmark).Assembly)
+                        .AddImports(typeof(Bookmark).Namespace)
+
+                        .AddReferences(typeof(MenuItem).Assembly)
+                        .AddImports(typeof(MenuItem).Namespace);
 
 
                     return CSharpScript.Create<T>(

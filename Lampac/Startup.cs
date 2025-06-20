@@ -55,7 +55,7 @@ namespace Lampac
             {
                 var handler = new HttpClientHandler()
                 {
-                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    AutomaticDecompression = DecompressionMethods.All,
                     AllowAutoRedirect = false
                 };
 
@@ -63,26 +63,11 @@ namespace Lampac
                 return handler;
             });
 
-            services.AddHttpClient("proxyhttp2", client =>
-            {
-                client.DefaultRequestVersion = new Version(2, 0);
-                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-            })
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-            {
-                AllowAutoRedirect = false,
-                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-                EnableMultipleHttp2Connections = true
-            });
-
-
             services.AddHttpClient("base").ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var handler = new HttpClientHandler()
                 {
-                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    AutomaticDecompression = DecompressionMethods.All,
                     AllowAutoRedirect = true
                 };
 
@@ -98,9 +83,10 @@ namespace Lampac
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 AllowAutoRedirect = true,
-                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                AutomaticDecompression = DecompressionMethods.All,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                MaxConnectionsPerServer = 100,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
                 EnableMultipleHttp2Connections = true
             });
 
@@ -398,6 +384,11 @@ namespace Lampac
             app.MapWhen(context => context.Request.Path.Value.StartsWith("/cub/"), proxyApp =>
             {
                 proxyApp.UseProxyCub();
+            });
+
+            app.MapWhen(context => context.Request.Path.Value.StartsWith("/tmdb/"), proxyApp =>
+            {
+                proxyApp.UseProxyTmdb();
             });
 
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.middlewares != null) != null)

@@ -41,7 +41,7 @@ namespace Lampac.Controllers.LITE
                 string memkey = $"moonanime:search:{imdb_id}:{title}:{original_title}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, long id, string poster)> catalog))
                 {
-                    async ValueTask<JObject> goSearch(string arg)
+                    async Task<JObject> goSearch(string arg)
                     {
                         if (string.IsNullOrEmpty(arg.Split("=")?[1]))
                             return null;

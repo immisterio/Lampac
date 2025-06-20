@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Lampac.Models.LITE;
 using Shared.Engine;
-using System;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using Shared.Model.Online;
@@ -25,14 +24,11 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/playembed/video")]
         [Route("lite/playembed/video.m3u8")]
-        async public ValueTask<ActionResult> Video(string imdb_id, int s = -1, int e = -1, bool play = false)
+        async public ValueTask<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
             var init = await loadKit(AppInit.conf.Playembed);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-
-            if (string.IsNullOrEmpty(imdb_id))
-                return OnError();
 
             if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
@@ -40,9 +36,9 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            string embed = $"{init.host}/movie/{imdb_id}";
+            string embed = $"{init.host}/movie/{id}?colour=e1216d&autoplay=true&autonextepisode=false&pausescreen=true";
             if (s > 0)
-                embed = $"{init.host}/tv/{imdb_id}/{s}/{e}";
+                embed = $"{init.host}/tv/{id}/{s}/{e}?colour=e1216d&autoplay=true&autonextepisode=false&pausescreen=true";
 
             var cache = await black_magic(embed, init, proxyManager, proxy.data);
             if (cache.m3u8 == null)

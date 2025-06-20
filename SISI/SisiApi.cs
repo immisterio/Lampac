@@ -40,7 +40,7 @@ namespace SISI
             string memKey = $"sisi.js:{init.appReplace?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                cache.file = System.IO.File.ReadAllText("plugins/sisi.js");
+                cache.file = FileCache.ReadAllText("plugins/sisi.js");
 
                 if (init.appReplace != null)
                 {
@@ -55,6 +55,9 @@ namespace SISI
                 }
 
                 var bulder = new StringBuilder(cache.file);
+
+                if (!init.spider)
+                    bulder = bulder.Replace("Lampa.Search.addSource(Search);", "");
 
                 if (init.component != "sisi")
                     bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
@@ -117,7 +120,7 @@ namespace SISI
 
 
         [Route("sisi")]
-        async public ValueTask<ActionResult> Index(string rchtype, string account_email, string uid, string token)
+        async public ValueTask<ActionResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
         {
             var conf = AppInit.conf;
             JObject kitconf = await loadKitConf();
@@ -171,11 +174,14 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null)
+            void send(in string name, BaseSettings _init, in string plugin = null, in string rch_access = null)
             {
                 var init = loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
                 if (!enable)
+                    return;
+
+                if (spder == true && init.spider != true)
                     return;
 
                 if (init.rhub && !init.rhub_fallback)
@@ -267,7 +273,7 @@ namespace SISI
             send("ebalovo.porn", conf.Ebalovo, "elo", "apk");
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
-            if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost))
+            if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost) || conf.Spankbang.overridehosts?.Length > 0)
                 send("spankbang.com", conf.Spankbang, "sbg");
 
             send("eporner.com", conf.Eporner, "epr", "apk,cors");
@@ -276,10 +282,10 @@ namespace SISI
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
             send("tizam.pw", conf.Tizam, "tizam", "apk,cors");
 
-            if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost))
+            if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost) || conf.BongaCams.overridehosts?.Length > 0)
                 send("bongacams.com", conf.BongaCams, "bgs", "apk");
 
-            if (conf.Runetki.priorityBrowser == "http" || conf.Runetki.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Runetki.overridehost))
+            if (conf.Runetki.priorityBrowser == "http" || conf.Runetki.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Runetki.overridehost) || conf.Runetki.overridehosts?.Length > 0)
                 send("runetki.com", conf.Runetki, "runetki", "apk");
 
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
@@ -299,7 +305,7 @@ namespace SISI
                         if (playlist_url.Contains("/bookmarks"))
                             continue;
 
-                        if (channels.FirstOrDefault(i => i.title == title) != null)
+                        if (channels.FirstOrDefault(i => i.title == title).title != null)
                             continue;
 
                         channels.Add(new ChannelItem(title, playlist_url, 20 + channels.Count));

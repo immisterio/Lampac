@@ -79,6 +79,9 @@ namespace Lampac.Controllers.LITE
             if (data == null)
                 return OnError();
 
+            if (data.Value<string>("message") != null)
+                return ShowError(data.Value<string>("message"));
+
             #region media
             string id = data.Value<string>("id");
             var cache = await InvokeCache<JToken>($"IptvOnline:{id}:{init.token}", cacheTime(20, init: init), proxyManager, async res =>
@@ -194,6 +197,9 @@ namespace Lampac.Controllers.LITE
                         proxyManager.Refresh();
                         return null;
                     }
+
+                    if (video.ContainsKey("message") && video.Value<string>("message") == "No Subscribed By Media API")
+                        return video;
 
                     if (!video.ContainsKey("data"))
                         return null;

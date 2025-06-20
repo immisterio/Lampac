@@ -369,8 +369,9 @@ namespace Lampac.Controllers.LITE
                 {
                     var ts = init.auth_torrs.First();
                     string login = ts.login.Replace("{account_email}", account_email);
+                    var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}");
 
-                    return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}"), ts.host);
+                    return (httpHeaders(ts.host, HeadersModel.Join(auth, ts.headers)), ts.host);
                 }
                 else
                 {
@@ -378,8 +379,9 @@ namespace Lampac.Controllers.LITE
                     {
                         var ts = init.auth_torrs.First();
                         string login = init.base_auth.login.Replace("{account_email}", account_email);
+                        var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}");
 
-                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}"), ts.host);
+                        return (httpHeaders(ts.host, HeadersModel.Join(auth, init.base_auth.headers)), ts.host);
                     }
 
                     return (null, init.torrs.First());
@@ -450,11 +452,13 @@ namespace Lampac.Controllers.LITE
             string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|tsid)=[^&]+", "");
 
             #region auth_stream
-            async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd, string uhost = null)
+            async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd, string uhost = null, Dictionary<string, string> addheaders = null)
             {
                 login = login.Replace("{account_email}", account_email ?? string.Empty);
 
                 var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
+                    headers = HeadersModel.Join(headers, addheaders);
+
                 await HttpClient.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
 
                 return Redirect($"{uhost ?? host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index={index}&play");
@@ -488,7 +492,7 @@ namespace Lampac.Controllers.LITE
                     hybridCache.Set(tskey, ts, DateTime.Now.AddHours(4));
                 }
 
-                return await auth_stream(ts.host, ts.login, ts.passwd);
+                return await auth_stream(ts.host, ts.login, ts.passwd, addheaders: ts.headers);
             }
             else 
             {
@@ -501,7 +505,7 @@ namespace Lampac.Controllers.LITE
                         hybridCache.Set(tskey, ts, DateTime.Now.AddHours(4));
                     }
 
-                    return await auth_stream(ts, init.base_auth.login, init.base_auth.passwd);
+                    return await auth_stream(ts, init.base_auth.login, init.base_auth.passwd, addheaders: init.base_auth.headers);
                 }
 
                 string key = $"pidtor:ts4:{id}:{requestInfo.IP}";

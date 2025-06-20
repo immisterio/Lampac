@@ -5,15 +5,11 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Models;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
-    public class RchClientInfo
+    public struct RchClientInfo
     {
         public int version { get; set; }
         public string host { get; set; }
@@ -36,11 +32,11 @@ namespace Lampac.Engine.CORE
 
         public static void Registry(string ip, string connectionId, string json = null)
         {
-            clients.AddOrUpdate(connectionId, (ip, json, null), (i,j) => (ip, json, null));
+            clients.AddOrUpdate(connectionId, (ip, json, default), (i,j) => (ip, json, default));
         }
 
 
-        public static void OnDisconnected(string connectionId)
+        public static void OnDisconnected(in string connectionId)
         {
             clients.TryRemove(connectionId, out _);
         }
@@ -58,9 +54,9 @@ namespace Lampac.Engine.CORE
 
         public string connectionMsg { get; private set; }
 
-        public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
+        public string ipkey(in string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
 
-        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo, int? keepalive = null)
+        public RchClient(HttpContext context, in string host, BaseSettings init, RequestModel requestInfo, in int? keepalive = null)
         {
             this.init = init;
             httpContext = context;
@@ -100,7 +96,7 @@ namespace Lampac.Engine.CORE
 
 
         #region Eval
-        public async Task<string> Eval(string data)
+        async public Task<string> Eval(string data)
         {
             return await SendHub("eval", data).ConfigureAwait(false);
         }
@@ -148,7 +144,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Get
-        public async ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
+        async public ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
         {
             return await SendHub(url, null, headers, useDefaultHeaders).ConfigureAwait(false);
         }
@@ -174,7 +170,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post
-        public async ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) 
+        async public ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) 
         {
             return await SendHub(url, data, headers, useDefaultHeaders).ConfigureAwait(false);
         }
@@ -254,7 +250,7 @@ namespace Lampac.Engine.CORE
         #region IsNotConnected
         public bool IsNotConnected() => IsNotConnected(ip);
 
-        public bool IsNotConnected(string ip)
+        public bool IsNotConnected(in string ip)
         {
             if (!enableRhub)
                 return false; // rch не используется
@@ -267,7 +263,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region IsNotSupport
-        public bool IsNotSupport(string rch_deny, out string rch_msg)
+        public bool IsNotSupport(in string rch_deny, out string rch_msg)
         {
             rch_msg = null;
 
@@ -278,7 +274,7 @@ namespace Lampac.Engine.CORE
                 return false; // заглушка для checksearch
 
             var info = InfoConnected();
-            if (string.IsNullOrEmpty(info?.rchtype))
+            if (string.IsNullOrEmpty(info.rchtype))
                 return false; // клиент не в сети
 
             // разрешен возврат на сервер
@@ -306,12 +302,12 @@ namespace Lampac.Engine.CORE
         public RchClientInfo InfoConnected()
         {
             var client = clients.FirstOrDefault(i => i.Value.ip == ip);
-            if (client.Value.json == null && client.Value.info == null)
+            if (client.Value.json == null && client.Value.info.rchtype == null)
                 return default;
 
             var info = client.Value.info;
 
-            if (info == null)
+            if (info.rchtype == null)
             {
                 try
                 {

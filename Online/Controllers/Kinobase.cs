@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
-                    return OnResult(search, () => rjson ? search.Value.similar.ToJson() : search.Value.similar.ToHtml());
+                    return OnResult(search, () => rjson ? search.Value.similar.Value.ToJson() : search.Value.similar.Value.ToHtml());
 
                 if (string.IsNullOrEmpty(search.Value?.link))
                     return OnError();

@@ -1,14 +1,15 @@
-﻿using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Lampac;
+﻿using Lampac;
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.CORE;
 using Shared.Model.SISI;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace SISI
 {
@@ -21,39 +22,86 @@ namespace SISI
         }
 
         [Route("sisi/bookmarks")]
-        public ActionResult List(int pg = 1, int pageSize = 36)
+        public ActionResult List(string search, string model, int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
             if (md5user == null)
                 return OnError("access denied");
 
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
-            var bookmarks = bookmarkCache.Read();
+            var bookmarks = bookmarkCache.Read().AsEnumerable();
+
+            #region menu
+            var menu = new List<MenuItem>()
+            {
+                new MenuItem()
+                {
+                    title = "Поиск",
+                    search_on = "search_on",
+                    playlist_url = $"{host}/sisi/bookmarks",
+                }
+            };
+
+            var menu_models = new MenuItem()
+            {
+                title = $"Модель: {model ?? "выбрать"}",
+                playlist_url = "submenu",
+                submenu = new List<MenuItem>(20)
+            };
+
+            var temp_models = new HashSet<string>();
+            foreach (var b in bookmarks)
+            {
+                if (string.IsNullOrEmpty(b.model?.name) || temp_models.Contains(b.model.Value.name))
+                    continue;
+
+                temp_models.Add(b.model.Value.name);
+
+                menu_models.submenu.Add(new MenuItem() 
+                {
+                    title = b.model.Value.name,
+                    playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(b.model.Value.name)}"
+                });
+            }
+
+            if (menu_models.submenu.Count > 0)
+                menu.Add(menu_models);
+            #endregion
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                string _s = search.ToLower();
+                bookmarks = bookmarks.Where(i => i.name.ToLower().Contains(_s));
+            }
+
+            if (!string.IsNullOrEmpty(model))
+                bookmarks = bookmarks.Where(i => i.model?.name == model);
 
             string getvideLink(PlaylistItem pl)
             {
-                if (pl.bookmark.site is "phub" or "phubprem")
-                    return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
+                if (pl.bookmark.Value.site is "phub" or "phubprem")
+                    return $"{host}/{pl.bookmark.Value.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.Value.href)}";
 
-                return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
+                return $"{host}/{pl.bookmark.Value.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.Value.href)}";
             }
 
             string localhost = $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}";
 
             return new JsonResult(new
             {
+                menu,
                 list = bookmarks.Skip((pg * pageSize) - pageSize).Take(pageSize).Select(pl => new
                 {
                     pl.name,
                     video = getvideLink(pl),
-                    picture = HostImgProxy(pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image, plugin: pl.bookmark.site),
+                    picture = HostImgProxy(pl.bookmark.Value.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.Value.image}" : pl.bookmark.Value.image, plugin: pl.bookmark.Value.site),
                     pl.time,
                     pl.json,
-                    related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
+                    related = pl.related || Regex.IsMatch(pl.bookmark.Value.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
                     pl.quality,
                     preview = pl.preview != null && pl.preview.StartsWith("bookmarks/") ? $"{host}/{pl.preview}" : null,
                     pl.model,
-                    bookmark = new Bookmark() { uid = pl.bookmark.uid }
+                    bookmark = new Bookmark() { uid = pl.bookmark.Value.uid }
                 })
             });
         }
@@ -70,10 +118,12 @@ namespace SISI
             var bookmarkCache = new BookmarkCache<PlaylistItem>("sisi", md5user);
 
             var bookmarks = bookmarkCache.Read();
-            string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
+            string uid = CrypTo.md5($"{data.bookmark.Value.site}:{data.bookmark.Value.href}");
 
-            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
+            if (bookmarks.FirstOrDefault(i => i.bookmark.Value.uid == uid) == null)
             {
+                string newimage = null;
+
                 #region download image
                 if (AppInit.conf.sisi.bookmarks.saveimage)
                 {
@@ -81,16 +131,16 @@ namespace SISI
 
                     if (System.IO.File.Exists($"wwwroot/{pimg}"))
                     {
-                        data.bookmark.image = pimg;
+                        newimage = pimg;
                     }
                     else
                     {
-                        var image = await HttpClient.Download(data.bookmark.image, timeoutSeconds: 7);
+                        var image = await HttpClient.Download(data.bookmark.Value.image, timeoutSeconds: 7);
                         if (image != null)
                         {
                             Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
                             await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
-                            data.bookmark.image = pimg;
+                            newimage = pimg;
                         }
                     }
                 }
@@ -121,7 +171,15 @@ namespace SISI
                 }
                 #endregion
 
-                data.bookmark.uid = uid;
+                var b = data.bookmark;
+                data.bookmark = new Bookmark()
+                {
+                    href = b.Value.href,
+                    image = newimage ?? b.Value.image,
+                    site = b.Value.site,
+                    uid = uid
+                };
+
                 bookmarks.Insert(0, data);
                 bookmarkCache.Write(bookmarks);
             }
@@ -144,7 +202,7 @@ namespace SISI
 
             var bookmarks = bookmarkCache.Read();
 
-            if (bookmarks.FirstOrDefault(i => i.bookmark.uid == id) is PlaylistItem item)
+            if (bookmarks.FirstOrDefault(i => i.bookmark.Value.uid == id) is PlaylistItem item)
             {
                 bookmarks.Remove(item);
                 bookmarkCache.Write(bookmarks);

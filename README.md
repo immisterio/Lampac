@@ -1,12 +1,8 @@
 # Telegram группа
 https://t.me/+TIXtgvGBBOc3ZTUy
 
-# Запуск в Docker
-```
-docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
-```
-__tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
-
+# AI Документация
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/immisterio/Lampac)
 
 # Установка на linux
 спасибо @nikk, @Denis

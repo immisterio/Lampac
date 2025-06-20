@@ -18,9 +18,13 @@ namespace Lampac.Engine.CRON
                 {
                     await Task.Delay(TimeSpan.FromMinutes(4)).ConfigureAwait(false);
 
+                    var files = new Dictionary<string, FileInfo>();
+                    long freeDiskSpace = getFreeDiskSpace();
+
                     foreach (var conf in new List<(string path, int minute)> {
-                        ("tmdb", Math.Max(AppInit.conf.tmdb.cache_img, 5)),
-                        ("img", AppInit.conf.fileCacheInactive.img),
+                        ("tmdb", AppInit.conf.tmdb.cache_img),
+                        ("cub", AppInit.conf.cub.cache_img),
+                        ("img", AppInit.conf.serverproxy.image.cache_time),
                         ("torrent", AppInit.conf.fileCacheInactive.torrent),
                         ("html", AppInit.conf.fileCacheInactive.html),
                         ("hls", AppInit.conf.fileCacheInactive.hls),
@@ -29,50 +33,69 @@ namespace Lampac.Engine.CRON
                     {
                         try
                         {
-                            if (conf.minute == -1)
+                            if (conf.minute == -1 || !Directory.Exists(Path.Combine("cache", conf.path)))
                                 continue;
 
-                            long folderSize = 0;
-                            var files = new Dictionary<string, FileInfo>();
-
-                            foreach (string infile in Directory.EnumerateFiles($"cache{(AppInit.Win32NT ? "\\" : "/")}{conf.path}", "*", SearchOption.AllDirectories))
+                            foreach (string infile in Directory.EnumerateFiles(Path.Combine("cache", conf.path), "*", SearchOption.AllDirectories))
                             {
                                 try
                                 {
-                                    var fileinfo = new FileInfo(infile);
-                                    if (conf.minute == 0 || DateTime.Now > fileinfo.LastWriteTime.AddMinutes(conf.minute))
-                                        fileinfo.Delete();
+                                    if (conf.minute == 0)
+                                        File.Delete(infile);
                                     else
                                     {
-                                        files.TryAdd(infile, fileinfo);
-                                        folderSize += fileinfo.Length;
+                                        var fileinfo = new FileInfo(infile);
+                                        if (DateTime.Now > fileinfo.LastWriteTime.AddMinutes(conf.minute))
+                                            fileinfo.Delete();
+                                        else if (1073741824 > freeDiskSpace) // 1Gb
+                                            files.TryAdd(infile, fileinfo);
                                     }
                                 }
                                 catch { }
                             }
-
-                            long maxcachesize = AppInit.conf.fileCacheInactive.maxcachesize * 1024 * 1024;
-
-                            if (folderSize > maxcachesize)
-                            {
-                                foreach (var item in files.OrderBy(i => i.Value.LastWriteTime))
-                                {
-                                    try
-                                    {
-                                        File.Delete(item.Key);
-                                        folderSize += item.Value.Length;
-
-                                        if (maxcachesize > folderSize)
-                                            break;
-                                    }
-                                    catch { }
-                                }
-                            }
                         }
                         catch { }
                     }
+
+                    if (files.Count > 0)
+                    {
+                        long removeGb = 0;
+
+                        foreach (var item in files.OrderBy(i => i.Value.LastWriteTime))
+                        {
+                            try
+                            {
+                                if (File.Exists(item.Key))
+                                {
+                                    File.Delete(item.Key);
+                                    removeGb += item.Value.Length;
+
+                                    // 2Gb
+                                    if (removeGb > 2147483648)
+                                        break;
+                                }
+                            }
+                            catch { }
+                        }
+                    }
                 }
                 catch { }
+            }
+        }
+
+
+        static long getFreeDiskSpace()
+        {
+            try
+            {
+                var directory = new DirectoryInfo("cache");
+                var drive = DriveInfo.GetDrives()
+                    .FirstOrDefault(d => d.IsReady && directory.FullName.StartsWith(d.RootDirectory.FullName, StringComparison.OrdinalIgnoreCase));
+                return drive?.AvailableFreeSpace ?? -1;
+            }
+            catch
+            {
+                return -1;
             }
         }
     }

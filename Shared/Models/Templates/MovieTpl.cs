@@ -1,0 +1,116 @@
+﻿using System.Text;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using System.Web;
+using Shared.Model.Online;
+using Shared.Model.Base;
+using Lampac;
+
+namespace Shared.Model.Templates
+{
+    public struct MovieTpl
+    {
+        string? title, original_title;
+
+        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data;
+
+        public MovieTpl(in string title, in string original_title = null, in int capacity = 15) 
+        {
+            this.title = title;
+            this.original_title = original_title;
+            data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?, int?)>(capacity); 
+        }
+
+        public bool IsEmpty() => data.Count == 0;
+
+        public void Append(in string voiceOrQuality, in string link, in string method = "play", in string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, in string voice_name = null, in string year = null, in string details = null, in string quality = null, VastConf vast = null, List<HeadersModel> headers = null, in int? hls_manifest_timeout = null)
+        {
+            if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
+                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout));
+        }
+
+        public string ToHtml(in string voiceOrQuality, in string link, in string method = "play", in string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, in string voice_name = null, in string year = null, in string details = null, in string quality = null, VastConf vast = null, List<HeadersModel> headers = null, in int? hls_manifest_timeout = null)
+        {
+            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout);
+            return ToHtml();
+        }
+
+        public string ToHtml(in bool reverse = false)
+        {
+            if (data.Count == 0)
+                return string.Empty;
+
+            bool firstjson = true;
+            var html = new StringBuilder();
+            html.Append("<div class=\"videos__line\">");
+
+            if (reverse)
+                data.Reverse();
+
+            foreach (var i in data) 
+            {
+                string datajson = JsonSerializer.Serialize(new
+                {
+                    i.method,
+                    url = i.link,
+                    i.stream,
+                    headers = i.headers != null ? i.headers.ToDictionary(k => k.name, v => v.val) : null,
+                    quality = i.streamquality?.ToObject(),
+                    subtitles = i.subtitles?.ToObject(),
+                    translate = i.voiceOrQuality,
+                    maxquality = i.streamquality?.MaxQuality() ?? i.quality,
+                    i.voice_name,
+                    i.details,
+                    vast_url = (i.vast?.url ?? AppInit.conf.vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
+                    vast_msg = i.vast?.msg ?? AppInit.conf.vast?.msg,
+                    year = int.TryParse(i.year, out int _year) ? _year : 0,
+                    title = $"{title ?? original_title} ({i.voiceOrQuality})",
+                    i.hls_manifest_timeout
+
+                }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+
+                html.Append($"<div class=\"videos__item videos__movie selector {(firstjson ? "focused" : "")}\" media=\"\" data-json='{datajson}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">{HttpUtility.HtmlEncode(i.voiceOrQuality)}</div></div>");
+                firstjson = false;
+
+                if (!string.IsNullOrEmpty(i.quality))
+                    html.Append($"<!--{i.quality}p-->");
+            }
+
+            return html.ToString() + "</div>";
+        }
+
+        public string ToJson(in bool reverse = false, in VoiceTpl? vtpl = null)
+        {
+            if (data.Count == 0)
+                return "[]";
+
+            if (reverse)
+                data.Reverse();
+
+            string name = title ?? original_title;
+
+            return JsonSerializer.Serialize(new
+            {
+                type = "movie",
+                voice = vtpl?.ToObject(),
+                data = data.Select(i => new
+                {
+                    i.method,
+                    url = i.link,
+                    i.stream,
+                    headers = i.headers != null ? i.headers.ToDictionary(k => k.name, v => v.val) : null,
+                    quality = i.streamquality?.ToObject(),
+                    subtitles = i.subtitles?.ToObject(),
+                    translate = i.voiceOrQuality,
+                    maxquality = i.streamquality?.MaxQuality() ?? i.quality,
+                    details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
+                    vast_url = (i.vast?.url ?? AppInit.conf.vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
+                    vast_msg = i.vast?.msg ?? AppInit.conf.vast?.msg,
+                    year = int.TryParse(i.year, out int _year) ? _year : 0,
+                    title = $"{name} ({i.voiceOrQuality})",
+                    i.hls_manifest_timeout
+                })
+            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+        }
+    }
+}

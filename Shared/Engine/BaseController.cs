@@ -13,15 +13,10 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.SISI;
 using Shared.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
 
@@ -31,9 +26,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "142";
+        public static string appversion => "144";
 
-        public static string minorversion => "15";
+        public static string minorversion => "7";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -82,12 +77,12 @@ namespace Lampac.Engine
             return httpHeaders(init.host, HeadersModel.Join(HeadersModel.Init(init.headers), headers));
         }
 
-        public List<HeadersModel> httpHeaders(string site, Dictionary<string, string> headers)
+        public List<HeadersModel> httpHeaders(in string site, Dictionary<string, string> headers)
         {
             return httpHeaders(site, HeadersModel.Init(headers));
         }
 
-        public List<HeadersModel> httpHeaders(string site, List<HeadersModel> _headers)
+        public List<HeadersModel> httpHeaders(in string site, List<HeadersModel> _headers)
         {
             if (_headers == null)
                 return _headers;
@@ -151,7 +146,7 @@ namespace Lampac.Engine
         #endregion
 
         #region HostImgProxy
-        public string HostImgProxy(string uri, int height = 0, List<HeadersModel> headers = null, string plugin = null)
+        public string HostImgProxy(in string uri, int height = 0, List<HeadersModel> headers = null, in string plugin = null)
         {
             if (!AppInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri)) 
                 return uri;
@@ -160,9 +155,9 @@ namespace Lampac.Engine
             int width = init.widthPicture;
             height = height > 0 ? height : init.heightPicture;
 
-            string goEncryptUri()
+            string goEncryptUri(in string _uri)
             {
-                string encrypt_uri = ProxyLink.Encrypt(uri, requestInfo.IP, headers, verifyip: false, ex: DateTime.Now.AddMinutes(5));
+                string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, headers, verifyip: false, ex: DateTime.Now.AddMinutes(5));
                 if (AppInit.conf.accsdb.enable)
                     encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
 
@@ -180,12 +175,12 @@ namespace Lampac.Engine
                     string bypass_host = init.bypass_host.Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
 
                     if (bypass_host.Contains("{encrypt_uri}"))
-                        bypass_host = bypass_host.Replace("{encrypt_uri}", goEncryptUri());
+                        bypass_host = bypass_host.Replace("{encrypt_uri}", goEncryptUri(uri));
 
                     return bypass_host;
                 }
 
-                return $"{host}/proxyimg/{goEncryptUri()}";
+                return $"{host}/proxyimg/{goEncryptUri(uri)}";
             }
 
             if (!string.IsNullOrEmpty(init.rsize_host))
@@ -195,12 +190,12 @@ namespace Lampac.Engine
                                                    .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
 
                 if (rsize_host.Contains("{encrypt_uri}"))
-                    rsize_host = rsize_host.Replace("{encrypt_uri}", goEncryptUri());
+                    rsize_host = rsize_host.Replace("{encrypt_uri}", goEncryptUri(uri));
 
                 return rsize_host;
             }
 
-            return $"{host}/proxyimg:{width}:{height}/{goEncryptUri()}";
+            return $"{host}/proxyimg:{width}:{height}/{goEncryptUri(uri)}";
         }
         #endregion
 
@@ -353,7 +348,7 @@ namespace Lampac.Engine
             return val;
         }
 
-        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null, int rhub = -1)
+        public TimeSpan cacheTime(in int multiaccess, in int home = 5, in int mikrotik = 2, BaseSettings init = null, in int rhub = -1)
         {
             if (init != null && init.rhub && rhub != -1)
                 return TimeSpan.FromMinutes(rhub);
@@ -372,8 +367,7 @@ namespace Lampac.Engine
             if (!AppInit.conf.multiaccess || init.rhub)
                 return false;
 
-            var gbc = new ResponseCache();
-            if (memoryCache.TryGetValue(gbc.ErrorKey(HttpContext), out object errorCache))
+            if (memoryCache.TryGetValue(ResponseCache.ErrorKey(HttpContext), out object errorCache))
             {
                 HttpContext.Response.Headers.TryAdd("X-RCache", "true");
 
@@ -466,7 +460,7 @@ namespace Lampac.Engine
         #endregion
 
         #region accsArgs
-        public string accsArgs(string uri)
+        public string accsArgs(in string uri)
         {
             return AccsDbInvk.Args(uri, HttpContext);
         }
@@ -483,10 +477,7 @@ namespace Lampac.Engine
 
             if (init.IsAllUsersPath)
             {
-                if (init.allUsers == null)
-                    return null;
-
-                if (init.allUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
+                if (init.allUsers != null && init.allUsers.TryGetValue(requestInfo.user_uid, out JObject userInit))
                     return userInit;
 
                 return null;
@@ -620,7 +611,7 @@ namespace Lampac.Engine
 
 
         #region ContentTo / Dispose
-        public ActionResult ContentTo(string html)
+        public ActionResult ContentTo(in string html)
         {
             return Content(html, ((html.StartsWith("{") || html.StartsWith("[")) ? "application/json; charset=utf-8" : "text/html; charset=utf-8"));
         }

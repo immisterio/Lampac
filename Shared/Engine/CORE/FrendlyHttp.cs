@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
-using System.Net.NetworkInformation;
 using System.Threading;
-using System.Threading.Tasks;
 using httpcore = Lampac.Engine.CORE.HttpClient;
 
 namespace Shared.Engine.CORE
@@ -42,15 +37,15 @@ namespace Shared.Engine.CORE
 
         public static HttpClient CreateClient
         (
-            string name, 
+            in string name, 
             HttpClientHandler handler, 
-            string factoryClient, 
+            in string factoryClient, 
             Dictionary<string, string> headers = null, 
-            int timeoutSeconds = 8, 
-            long MaxResponseContentBufferSize = 0, 
-            string cookie = null, 
-            string referer = null, 
-            bool useDefaultHeaders = true, 
+            in int timeoutSeconds = 8,
+            in long MaxResponseContentBufferSize = 0,
+            in string cookie = null,
+            in string referer = null,
+            in bool useDefaultHeaders = true, 
             Action<HttpClient> updateClient = null
         )
         {

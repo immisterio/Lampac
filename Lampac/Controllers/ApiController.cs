@@ -170,7 +170,7 @@ namespace Lampac.Controllers
                     }
                 }
 
-                string playerinner = IO.File.ReadAllText("plugins/player-inner.js");
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
                 var bulder = new StringBuilder(file);
@@ -230,7 +230,7 @@ namespace Lampac.Controllers
                 }
             }
 
-            string memKey = "ApiController:css/app.css";
+            string memKey = $"ApiController:css/app.css:{type}:{host}";
             if (!memoryCache.TryGetValue(memKey, out string css))
             {
                 css = IO.File.ReadAllText($"wwwroot/{type}/css/app.css");

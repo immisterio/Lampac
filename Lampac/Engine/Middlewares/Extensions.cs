@@ -39,6 +39,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<ProxyCub>();
         }
 
+        public static IApplicationBuilder UseProxyTmdb(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<ProxyTmdb>();
+        }
+
         public static IApplicationBuilder UseModule(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<Module>();

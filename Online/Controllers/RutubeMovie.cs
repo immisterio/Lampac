@@ -59,7 +59,7 @@ namespace Lampac.Controllers.LITE
                     foreach (var movie in cache.Value)
                     {
                         string name = StringConvert.SearchName(movie.Value<string>("title"));
-                        if (name != null && name.StartsWith(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
+                        if (name != null && name.Contains(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         {
                             long duration = movie.Value<long>("duration");
                             if (duration > 1800) // 30 minutes

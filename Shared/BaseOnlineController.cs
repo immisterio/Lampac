@@ -10,10 +10,7 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Models;
 using Shared.Models.Module;
-using System;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Online
 {
@@ -96,12 +93,12 @@ namespace Online
 
 
         #region MaybeInHls
-        public bool MaybeInHls(bool hls, BaseSettings init)
+        public bool MaybeInHls(in bool hls, BaseSettings init)
         {
-            if (!string.IsNullOrEmpty(init.apn?.host) && Shared.Model.AppInit.IsDefaultApnOrCors(init.apn?.host))
+            if (!string.IsNullOrEmpty(init.apn?.host) && AppInit.IsDefaultApnOrCors(init.apn?.host))
                 return false;
 
-            if (init.apnstream && Shared.Model.AppInit.IsDefaultApnOrCors(AppInit.conf.apn?.host))
+            if (init.apnstream && AppInit.IsDefaultApnOrCors(AppInit.conf.apn?.host))
                 return false;
 
             return hls;
@@ -109,16 +106,17 @@ namespace Online
         #endregion
 
         #region OnLog
-        public void OnLog(string msg)
+        public void OnLog(in string msg)
         {
-            HttpClient.onlog?.Invoke(null, msg + "\n");
+            if (AppInit.conf.weblog.enable)
+                HttpClient.onlog?.Invoke(null, msg + "\n");
         }
         #endregion
 
         #region OnError
-        public ActionResult OnError(ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null) => OnError(string.Empty, proxyManager, refresh_proxy, weblog: weblog);
+        public ActionResult OnError(ProxyManager proxyManager, in bool refresh_proxy = true, in string weblog = null) => OnError(string.Empty, proxyManager, refresh_proxy, weblog: weblog);
 
-        public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null)
+        public ActionResult OnError(in string msg, ProxyManager proxyManager, in bool refresh_proxy = true, in string weblog = null)
         {
             if (string.IsNullOrEmpty(msg) || !msg.StartsWith("{\"rch\""))
             {
@@ -131,7 +129,7 @@ namespace Online
 
         public ActionResult OnError() => OnError(string.Empty);
 
-        public ActionResult OnError(string msg, bool gbcache = true, string weblog = null)
+        public ActionResult OnError(in string msg, in bool gbcache = true, in string weblog = null)
         {
             if (!string.IsNullOrEmpty(msg))
             {
@@ -146,17 +144,14 @@ namespace Online
             }
 
             if (AppInit.conf.multiaccess && gbcache)
-            {
-                var gbc = new ResponseCache();
-                memoryCache.Set(gbc.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddMinutes(1));
-            }
+                memoryCache.Set(ResponseCache.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddSeconds(20));
 
             return Content(string.Empty, "text/html; charset=utf-8");
         }
         #endregion
 
         #region OnResult
-        public ActionResult OnResult(CacheResult<string> cache, bool gbcache = true)
+        public ActionResult OnResult(CacheResult<string> cache, in bool gbcache = true)
         {
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg, gbcache: gbcache);
@@ -164,7 +159,7 @@ namespace Online
             return Content(cache.Value, "text/html; charset=utf-8");
         }
 
-        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, bool origsource = false, bool gbcache = true)
+        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, in bool origsource = false, in bool gbcache = true)
         {
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg, gbcache: gbcache);
@@ -176,7 +171,7 @@ namespace Online
         }
         #endregion
 
-        public ActionResult ShowError(string msg) => Json(new { accsdb = true, msg });
+        public ActionResult ShowError(in string msg) => Json(new { accsdb = true, msg });
 
         #region IsRhubFallback
         public bool IsRhubFallback<T>(CacheResult<T> cache, BaseSettings init)

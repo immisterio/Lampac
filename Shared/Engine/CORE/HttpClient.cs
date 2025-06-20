@@ -1,15 +1,10 @@
 ﻿using Newtonsoft.Json;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Lampac.Engine.CORE
 {
@@ -20,13 +15,13 @@ namespace Lampac.Engine.CORE
         public static IHttpClientFactory httpClientFactory;
 
         #region Handler
-        public static HttpClientHandler Handler(string url, WebProxy proxy, CookieContainer cookieContainer = null)
+        public static HttpClientHandler Handler(in string url, WebProxy proxy, CookieContainer cookieContainer = null)
         {
             string log = string.Empty;
             return Handler(url, proxy, ref log, cookieContainer);
         }
 
-        public static HttpClientHandler Handler(string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
+        public static HttpClientHandler Handler(in string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
         {
             var handler = new HttpClientHandler()
             {
@@ -84,13 +79,13 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region DefaultRequestHeaders
-        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, in int timeoutSeconds, in long MaxResponseContentBufferSize, in string cookie, in string referer, List<HeadersModel> headers, in bool useDefaultHeaders = true)
         {
             string loglines = string.Empty;
             DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
         }
 
-        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, in int timeoutSeconds, in long MaxResponseContentBufferSize, in string cookie, in string referer, List<HeadersModel> headers, ref string loglines, in bool useDefaultHeaders = true)
         {
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
@@ -344,14 +339,14 @@ namespace Lampac.Engine.CORE
             finally
             {
                 if (weblog)
-                    await WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
+                    WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
             }
         }
         #endregion
 
 
         #region Post
-        public static ValueTask<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false)
+        public static ValueTask<string> Post(in string url, in string data, in string cookie = null, in int MaxResponseContentBufferSize = 0, in int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, in int httpversion = 1, CookieContainer cookieContainer = null, in bool useDefaultHeaders = true, in bool removeContentType = false)
         {
             return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, removeContentType: removeContentType);
         }
@@ -363,7 +358,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post<T>
-        public static Task<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1)
+        public static Task<T> Post<T>(in string url, in string data, in string cookie = null, in int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, in bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, in bool useDefaultHeaders = true, in int httpversion = 1)
         {
             return Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion);
         }
@@ -475,7 +470,7 @@ namespace Lampac.Engine.CORE
             }
             finally
             {
-                await WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
+                WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
             }
         }
         #endregion
@@ -562,19 +557,24 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<string> onlog = null;
 
-        async static Task WriteLog(string url, string method, string postdata, string result)
+        static void WriteLog(in string url, in string method, in string postdata, in string result)
         {
             if (url.Contains("127.0.0.1"))
                 return;
 
-            string log = $"{DateTime.Now}\n{method}: {url}\n";
+            if (!AppInit.conf.filelog && !AppInit.conf.weblog.enable)
+                return;
+
+            var log = new StringBuilder();
+
+            log.Append($"{DateTime.Now}\n{method}: {url}\n");
 
             if (!string.IsNullOrEmpty(postdata))
-                log += $"{postdata}\n\n";
+                log.Append($"{postdata}\n\n");
 
-            log += result;
+            log.Append(result);
 
-            onlog?.Invoke(null, log);
+            onlog?.Invoke(null, log.ToString());
 
             if (!AppInit.conf.filelog || log.Length > 700_000)
                 return;
@@ -585,9 +585,9 @@ namespace Lampac.Engine.CORE
             if (logFileStream == null || !File.Exists(patchlog))
                 logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write, FileShare.Read);
 
-            var buffer = Encoding.UTF8.GetBytes($"\n\n\n################################################################\n\n{log}");
-            await logFileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-            await logFileStream.FlushAsync().ConfigureAwait(false);
+            var buffer = Encoding.UTF8.GetBytes($"\n\n\n################################################################\n\n{log.ToString()}");
+            logFileStream.Write(buffer, 0, buffer.Length);
+            logFileStream.Flush();
         }
         #endregion
     }

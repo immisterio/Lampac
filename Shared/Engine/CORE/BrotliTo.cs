@@ -1,36 +1,19 @@
 ﻿using System.IO.Compression;
-using System.IO;
 using System.Text;
-using Microsoft.Extensions.Caching.Memory;
-using System;
-using Shared;
 
 namespace Lampac.Engine.CORE
 {
     public static class BrotliTo
     {
-        static object GetLockObjectForPath(string path)
-        {
-            lock (Startup.memoryCache)
-            {
-                string cacheKey = "BrotliTo:Lock_" + path;
-                if (!Startup.memoryCache.TryGetValue(cacheKey, out object lockObj))
-                {
-                    lockObj = new object();
-                    Startup.memoryCache.Set(cacheKey, lockObj, TimeSpan.FromSeconds(5));
-                }
-
-                return lockObj;
-            }
-        }
+        static object lockObj = new object();
 
 
-        public static byte[] Compress(string value)
+        public static byte[] Compress(in string value)
         {
             return Compress(Encoding.UTF8.GetBytes(value));
         }
 
-        public static byte[] Compress(byte[] value)
+        public static byte[] Compress(in byte[] value)
         {
             try
             {
@@ -48,7 +31,7 @@ namespace Lampac.Engine.CORE
             catch { return null; }
         }
 
-        public static void Compress(string outfile, string value)
+        public static void Compress(string outfile, in string value)
         {
             try
             {
@@ -57,11 +40,11 @@ namespace Lampac.Engine.CORE
             catch { }
         }
 
-        public static void Compress(string outfile, byte[] value)
+        public static void Compress(string outfile, in byte[] value)
         {
             try
             {
-                lock (GetLockObjectForPath(outfile))
+                lock (lockObj)
                 {
                     using (var input = new MemoryStream(value))
                     {
@@ -77,7 +60,7 @@ namespace Lampac.Engine.CORE
         }
 
 
-        public static string Decompress(byte[] value)
+        public static string Decompress(in byte[] value)
         {
             try
             {
@@ -112,17 +95,14 @@ namespace Lampac.Engine.CORE
         {
             try
             {
-                lock (GetLockObjectForPath(infile))
+                using (var input = new FileStream(infile, FileMode.Open, FileAccess.Read))
                 {
-                    using (var input = new FileStream(infile, FileMode.Open, FileAccess.Read))
+                    using (var output = new MemoryStream())
                     {
-                        using (var output = new MemoryStream())
-                        {
-                            using (var stream = new BrotliStream(input, CompressionMode.Decompress))
-                                stream.CopyTo(output);
+                        using (var stream = new BrotliStream(input, CompressionMode.Decompress))
+                            stream.CopyTo(output);
 
-                            return output.ToArray();
-                        }
+                        return output.ToArray();
                     }
                 }
             }

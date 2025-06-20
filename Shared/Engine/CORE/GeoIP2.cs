@@ -1,5 +1,4 @@
 ﻿using MaxMind.GeoIP2;
-using System.IO;
 
 namespace Shared.Engine.CORE
 {
@@ -15,7 +14,7 @@ namespace Shared.Engine.CORE
 
         /// <param name="IP">IP пользователя</param>
         /// <returns>Страна UA,RU,BY,KZ</returns>
-        public static string Country(string IP)
+        public static string Country(in string IP)
         {
             if (string.IsNullOrWhiteSpace(IP) || cityReader == null)
                 return null;

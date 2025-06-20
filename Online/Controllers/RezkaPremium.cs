@@ -278,20 +278,16 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             var cache_root = await InvokeCache<Episodes>($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.SerialEmbed(id, t);
             });
 
             var cache_content = await InvokeCache<EmbedModel>($"rhsprem:{href}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed(href, null);
             });
 
@@ -317,12 +313,11 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
 
             var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{onrezka.cookie}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Movie(id, t, director, s, e, favs);
             });
 

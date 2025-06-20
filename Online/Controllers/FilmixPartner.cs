@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
             {
                 var res = await InvokeCache($"fxapi:search:{title}:{original_title}:{similar}", cacheTime(40, init: init), () => Search(title, original_title, year, similar));
                 if (similar)
-                    return ContentTo(rjson ? res.similars.ToJson() : res.similars.ToHtml());
+                    return ContentTo(rjson ? res.similars.Value.ToJson() : res.similars.Value.ToHtml());
 
                 if (res != null)
                     postid = res.id;
@@ -43,7 +43,7 @@ namespace Lampac.Controllers.LITE
                     postid = await searchKp(kinopoisk_id);
 
                 if (postid == 0 && res?.similars != null)
-                    return ContentTo(rjson ? res.similars.ToJson() : res.similars.ToHtml());
+                    return ContentTo(rjson ? res.similars.Value.ToJson() : res.similars.Value.ToHtml());
             }
 
             if (postid == 0)
