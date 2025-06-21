@@ -58,7 +58,9 @@ namespace Shared.Engine
                         lastWriteTime = File.GetLastWriteTime(mypath);
 
                         cache = (lastWriteTime, DateTime.Now.AddSeconds(5), mypath, File.ReadAllText(mypath));
-                        db.TryAdd(path, cache);
+                        
+                        if (saveCache)
+                            db.TryAdd(path, cache);
 
                         return cache.value;
                     }
