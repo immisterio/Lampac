@@ -10,6 +10,7 @@ using Shared.Model.Online;
 using Shared.Models;
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,12 +23,29 @@ namespace Lampac.Engine.Middlewares
     public class ProxyTmdb
     {
         #region ProxyTmdb
-        public ProxyTmdb(RequestDelegate next) { }
+        static FileSystemWatcher fileWatcher;
+
+        static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
 
         static ProxyTmdb()
         {
             Directory.CreateDirectory("cache/tmdb");
+
+            foreach (var item in Directory.GetFiles("cache/tmdb", "*"))
+                cacheFiles.TryAdd(Path.GetFileName(item), 0);
+
+            fileWatcher = new FileSystemWatcher
+            {
+                Path = "cache/tmdb",
+                NotifyFilter = NotifyFilters.FileName,
+                EnableRaisingEvents = true
+            };
+
+            fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
+            fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
         }
+
+        public ProxyTmdb(RequestDelegate next) { }
         #endregion
 
         public Task Invoke(HttpContext httpContext)
@@ -178,11 +196,11 @@ namespace Lampac.Engine.Middlewares
             string uri = "https://image.tmdb.org" + path + query;
 
             string md5key = CrypTo.md5($"{path}:{query}");
-            string outFile = $"cache/tmdb/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+            string outFile = Path.Combine("cache", "tmdb", md5key);
 
             httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
-            if (File.Exists(outFile))
+            if (cacheFiles.ContainsKey(md5key))
             {
                 httpContex.Response.Headers.Add("X-Cache-Status", "HIT");
                 await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
@@ -284,7 +302,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 try
                                 {
-                                    if (!File.Exists(outFile))
+                                    if (!cacheFiles.ContainsKey(md5key))
                                     {
                                         #region check_img
                                         if (init.check_img && !path.Contains(".svg"))
@@ -306,7 +324,6 @@ namespace Lampac.Engine.Middlewares
                                         }
                                         #endregion
 
-                                        Directory.CreateDirectory($"cache/tmdb/{md5key.Substring(0, 2)}");
                                         File.WriteAllBytes(outFile, memoryStream.ToArray());
                                     }
                                 }

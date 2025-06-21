@@ -26,7 +26,7 @@ namespace Lampac.Controllers
         [Route("/")]
         public ActionResult Index()
         {
-            if (string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index) || !IO.File.Exists($"wwwroot/{AppInit.conf.LampaWeb.index}"))
+            if (string.IsNullOrWhiteSpace(AppInit.conf.LampaWeb.index))
                 return Content("api work", contentType: "text/plain; charset=utf-8");
 
             if (AppInit.conf.LampaWeb.basetag && Regex.IsMatch(AppInit.conf.LampaWeb.index, "/[^\\./]+\\.html$"))

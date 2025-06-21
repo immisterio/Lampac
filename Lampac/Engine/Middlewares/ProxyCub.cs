@@ -6,6 +6,7 @@ using Shared.Model.Online;
 using Shared.Models;
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -17,7 +18,31 @@ namespace Lampac.Engine.Middlewares
 {
     public class ProxyCub
     {
+        #region ProxyCub
+        static FileSystemWatcher fileWatcher;
+
+        static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
+
+        static ProxyCub() 
+        {
+            Directory.CreateDirectory("cache/cub");
+
+            foreach (var item in Directory.GetFiles("cache/cub", "*"))
+                cacheFiles.TryAdd(Path.GetFileName(item), 0);
+
+            fileWatcher = new FileSystemWatcher
+            {
+                Path = "cache/cub",
+                NotifyFilter = NotifyFilters.FileName,
+                EnableRaisingEvents = true
+            };
+
+            fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
+            fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
+        }
+
         public ProxyCub(RequestDelegate next) { }
+        #endregion
 
         async public Task InvokeAsync(HttpContext httpContext, IMemoryCache memoryCache)
         {
@@ -69,10 +94,10 @@ namespace Lampac.Engine.Middlewares
             {
                 #region bypass
                 string md5key = CrypTo.md5($"{domain}:{uri}");
-                string outFile = $"cache/cub/{md5key.Substring(0, 1)}/{md5key.Substring(1)}";
+                string outFile = Path.Combine("cache", "cub", md5key);
                 bool isCacheRequest = init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false;
 
-                if (isCacheRequest && File.Exists(outFile))
+                if (isCacheRequest && cacheFiles.ContainsKey(md5key))
                 {
                     httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
                     httpContext.Response.ContentType = getContentType(uri);
@@ -142,11 +167,8 @@ namespace Lampac.Engine.Middlewares
                             {
                                 try
                                 {
-                                    if (!File.Exists(outFile))
-                                    {
-                                        Directory.CreateDirectory($"cache/cub/{md5key.Substring(0, 1)}");
+                                    if (!cacheFiles.ContainsKey(md5key))
                                         File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                    }
                                 }
                                 catch { try { File.Delete(outFile); } catch { } }
                             }

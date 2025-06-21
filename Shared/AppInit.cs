@@ -5,7 +5,6 @@ using System.Reflection;
 using Lampac.Models.AppConf;
 using Lampac.Models.DLNA;
 using Lampac.Models.Merchant;
-using System.Collections.Concurrent;
 using Shared.Model.Base;
 using System.Text.RegularExpressions;
 using Shared.Models.AppConf;
