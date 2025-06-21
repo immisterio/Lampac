@@ -49,11 +49,14 @@ namespace Shared.Engine
                     {
                         string extension = Path.GetExtension(path);
                         string mypath = Regex.Replace(path, $"{extension}$", $".my{extension}");
-                        if (!File.Exists(mypath))
-                            mypath = path;
 
-                        if (!File.Exists(path))
-                            return string.Empty;
+                        if (!File.Exists(mypath))
+                        {
+                            if (!File.Exists(path))
+                                return string.Empty;
+
+                            mypath = path;
+                        }
 
                         lastWriteTime = File.GetLastWriteTime(mypath);
 
