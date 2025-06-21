@@ -170,7 +170,7 @@ namespace Lampac.Controllers
                     }
                 }
 
-                string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false);
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
                 var bulder = new StringBuilder(file);
@@ -200,7 +200,9 @@ namespace Lampac.Controllers
                 bulder = bulder.Replace("{localhost}", host);
 
                 file = bulder.ToString();
-                memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
+
+                if (AppInit.conf.mikrotik == false)
+                    memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(1));
             }
 
             if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))

@@ -49,7 +49,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             #region decryptLink
-            var decryptLink = CORE.ProxyLink.Decrypt(servUri.Contains("aes:") ? servUri : Regex.Replace(servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
+            var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri.Contains("aes:") ? servUri : servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
 
             if (init.encrypt || decryptLink?.uri != null || httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
@@ -320,17 +320,17 @@ namespace Lampac.Engine.Middlewares
 
 
         #region validArgs
-        string validArgs(in string uri, HttpContext httpContext)
+        static string validArgs(in string uri, HttpContext httpContext)
         {
-            if (!AppInit.conf.accsdb.enable)
-                return uri;
+            if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
+                return AccsDbInvk.Args(uri, httpContext);
 
-            return AccsDbInvk.Args(uri, httpContext);
+            return uri;
         }
         #endregion
 
         #region editm3u
-        string editm3u(in string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
+        static string editm3u(in string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
         {
             string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
             string m3u8 = Regex.Replace(_m3u8, "(https?://[^\n\r\"\\# ]+)", m =>
@@ -402,7 +402,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region fixuri
-        string fixuri(ProxyLinkModel decryptLink)
+        static string fixuri(ProxyLinkModel decryptLink)
         {
             string uri = decryptLink.uri;
             var confs = AppInit.conf.serverproxy?.cache_hls;
@@ -436,7 +436,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CreateProxyHttpRequest
-        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<HeadersModel> headers, Uri uri, bool ismedia)
+        static HttpRequestMessage CreateProxyHttpRequest(HttpContext context, List<HeadersModel> headers, Uri uri, bool ismedia)
         {
             var request = context.Request;
 

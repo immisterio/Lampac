@@ -44,7 +44,7 @@ namespace Lampac.Engine.Middlewares
 
             if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd))
             {
-                if (_localpasswd.ToString() != FileCache.ReadAllText("passwd"))
+                if (_localpasswd.ToString() != AppInit.rootPasswd)
                     return httpContext.Response.WriteAsync("error passwd", httpContext.RequestAborted);
 
                 IsLocalRequest = true;

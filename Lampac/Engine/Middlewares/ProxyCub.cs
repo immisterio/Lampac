@@ -190,7 +190,7 @@ namespace Lampac.Engine.Middlewares
                     {
                         if (cache.content == "{\"blocked\":true}")
                         {
-                            var header = HeadersModel.Init(("localrequest", File.ReadAllText("passwd")));
+                            var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
                             string json = await CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
                             if (!string.IsNullOrEmpty(json))
                             {

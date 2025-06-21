@@ -187,7 +187,7 @@ namespace Shared.Engine.CORE
             ProxySettings p = (ProxySettings)orig.Clone();
 
             if (!string.IsNullOrEmpty(p.file) && File.Exists(p.file))
-                p.list = new ConcurrentBag<string>(File.ReadAllLines(p.file));
+                p.list = new List<string>(File.ReadAllLines(p.file));
 
             if (!string.IsNullOrEmpty(p.url))
             {
@@ -209,7 +209,7 @@ namespace Shared.Engine.CORE
                     memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(list.Count == 0 ? 4 : 15));
                 }
 
-                p.list = new ConcurrentBag<string>(list);
+                p.list = new List<string>(list);
             }
 
             return p;

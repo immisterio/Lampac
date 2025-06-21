@@ -47,8 +47,8 @@ namespace Lampac.Controllers
             string memKey = $"online.js:{init.appReplace?.Count ?? 0}:{init.version}:{init.description}:{init.apn}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                cache.file = FileCache.ReadAllText("plugins/online.js");
-                string playerinner = FileCache.ReadAllText("plugins/player-inner.js");
+                cache.file = FileCache.ReadAllText("plugins/online.js", saveCache: false);
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false);
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
                 if (init.appReplace != null)
@@ -105,8 +105,8 @@ namespace Lampac.Controllers
                 cache.file = bulder.ToString();
                 cache.filecleaer = cache.file.Replace("{token}", string.Empty);
 
-                if (AppInit.conf.multiaccess)
-                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(5));
+                if (AppInit.conf.mikrotik == false)
+                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(1));
             }
 
             if (!string.IsNullOrEmpty(token))
@@ -298,7 +298,7 @@ namespace Lampac.Controllers
                             hybridCache.Set(mkey, 0, DateTime.Now.AddHours(1));
 
                             string cat = serial == 1 ? "tv" : "movie";
-                            var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
+                            var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
                             string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
                             if (!string.IsNullOrWhiteSpace(json))
                             {
@@ -540,7 +540,7 @@ namespace Lampac.Controllers
 
                 if (chineseRegex.IsMatch(title) || japaneseRegex.IsMatch(title) || koreanRegex.IsMatch(title))
                 {
-                    var header = HeadersModel.Init(("localrequest", IO.File.ReadAllText("passwd")));
+                    var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
                     var result = await HttpClient.Get<JObject>($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{(serial == 1 ? "tv" : "movie")}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=en", timeoutSeconds: 4, headers: header);
                     if (result != null)
                     {
@@ -970,7 +970,7 @@ namespace Lampac.Controllers
 
             if (chos && IO.File.Exists("isdocker"))
             {
-                string version = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4, headers: HeadersModel.Init("localrequest", IO.File.ReadAllText("passwd")));
+                string version = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4, headers: HeadersModel.Init("localrequest", AppInit.rootPasswd));
                 if (version == null || !version.StartsWith(appversion))
                     chos = false;
             }
@@ -1019,7 +1019,7 @@ namespace Lampac.Controllers
             try
             {
                 string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
-                var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", IO.File.ReadAllText("passwd"))) : null;
+                var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", AppInit.rootPasswd)) : null;
 
                 string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
                 string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header).ConfigureAwait(false);

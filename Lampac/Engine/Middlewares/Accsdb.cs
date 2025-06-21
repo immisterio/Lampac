@@ -21,6 +21,8 @@ namespace Lampac.Engine.Middlewares
         private readonly RequestDelegate _next;
         IMemoryCache memoryCache;
 
+        static bool manifestInitial = false;
+
         public Accsdb(RequestDelegate next, IMemoryCache mem)
         {
             _next = next;
@@ -34,20 +36,24 @@ namespace Lampac.Engine.Middlewares
                 return _next(httpContext);
 
             #region manifest / admin
-            if (!File.Exists("module/manifest.json"))
+            if (!manifestInitial)
             {
-                if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
-                    return _next(httpContext);
+                if (!File.Exists("module/manifest.json"))
+                {
+                    if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
+                        return _next(httpContext);
 
-                httpContext.Response.Redirect("/admin/manifest/install");
-                return Task.CompletedTask;
+                    httpContext.Response.Redirect("/admin/manifest/install");
+                    return Task.CompletedTask;
+                }
+                else { manifestInitial = true; }
             }
 
             if (httpContext.Request.Path.Value.StartsWith("/admin/") || httpContext.Request.Path.Value == "/admin")
             {
                 if (httpContext.Request.Cookies.TryGetValue("passwd", out string passwd))
                 {
-                    if (passwd == FileCache.ReadAllText("passwd"))
+                    if (passwd == AppInit.rootPasswd)
                     {
                         if (httpContext.Request.Path.Value.StartsWith("/admin/auth"))
                             return _next(httpContext);

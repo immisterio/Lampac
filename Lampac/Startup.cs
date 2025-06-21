@@ -340,7 +340,9 @@ namespace Lampac
             if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
                 _ = Bash.Run($"sleep 10 && chmod 666 /var/run/{AppInit.conf.listen_sock}.sock");
 
-            app.UseDeveloperExceptionPage();
+            if (!AppInit.conf.multiaccess)
+                app.UseDeveloperExceptionPage();
+
             applicationLifetime.ApplicationStopping.Register(OnShutdown);
 
             #region UseForwardedHeaders

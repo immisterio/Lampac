@@ -1,45 +1,73 @@
-﻿using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace Shared.Engine
 {
     public static class FileCache
     {
-        static ConcurrentDictionary<string, (DateTime lastWriteTime, string value)> db = new ConcurrentDictionary<string, (DateTime, string)>();
+        private static readonly object _lock = new object();
 
-        public static string ReadAllText(in string path)
+        static Dictionary<string, (DateTime lastWriteTime, DateTime lockTime, string mypath, string value)> db = new Dictionary<string, (DateTime, DateTime, string, string)>();
+
+        public static string ReadAllText(string path)
         {
-            return ReadAllText(path, out _);
+            return ReadAllText(path, true, out _);
         }
 
-        public static string ReadAllText(string path, out DateTime lastWriteTime)
+        public static string ReadAllText(string path, bool saveCache)
+        {
+            return ReadAllText(path, saveCache, out _);
+        }
+
+        public static string ReadAllText(string path, bool saveCache, out DateTime lastWriteTime)
         {
             lastWriteTime = default;
 
             try
             {
-                string extension = Path.GetExtension(path);
-                string mypath = Regex.Replace(path, $"{extension}$", $".my{extension}");
-                if (File.Exists(mypath))
-                    path = mypath;
-
-                if (!File.Exists(path))
-                    return string.Empty;
-
-                lastWriteTime = File.GetLastWriteTime(path);
-
-                if (!db.TryGetValue(path, out var cache) || lastWriteTime > cache.lastWriteTime)
+                lock (_lock)
                 {
-                    cache = (lastWriteTime, File.ReadAllText(path));
-                    db.AddOrUpdate(path, cache, (k, v) => cache);
+                    if (db.TryGetValue(path, out var cache))
+                    {
+                        if (cache.lockTime > DateTime.Now)
+                            return cache.value;
+
+                        lastWriteTime = File.GetLastWriteTime(cache.mypath);
+                        if (lastWriteTime > cache.lastWriteTime)
+                        {
+                            cache = (lastWriteTime, DateTime.Now.AddSeconds(5), cache.mypath, File.ReadAllText(cache.mypath));
+                            db[path] = cache;
+                        }
+                        else
+                        {
+                            cache = (lastWriteTime, DateTime.Now.AddSeconds(5), cache.mypath, cache.value);
+                            db[path] = cache;
+                        }
+
+                        return cache.value;
+                    }
+                    else
+                    {
+                        string extension = Path.GetExtension(path);
+                        string mypath = Regex.Replace(path, $"{extension}$", $".my{extension}");
+                        if (!File.Exists(mypath))
+                            mypath = path;
+
+                        if (!File.Exists(path))
+                            return string.Empty;
+
+                        lastWriteTime = File.GetLastWriteTime(mypath);
+
+                        cache = (lastWriteTime, DateTime.Now.AddSeconds(5), mypath, File.ReadAllText(mypath));
+                        db.TryAdd(path, cache);
+
+                        return cache.value;
+                    }
                 }
-
-                return cache.value;
-
             }
-            catch { }
-
-            return string.Empty;
+            catch 
+            {
+                return string.Empty;
+            }
         }
     }
 }

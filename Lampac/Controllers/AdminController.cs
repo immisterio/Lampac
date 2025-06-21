@@ -21,7 +21,7 @@ namespace Lampac.Controllers
         [Route("admin/auth")]
         public ActionResult Authorization([FromForm]string parol)
         {
-			if (IO.File.ReadAllText("passwd") == "termux")
+			if (AppInit.rootPasswd == "termux")
 			{
                 HttpContext.Response.Cookies.Append("passwd", "termux");
                 return renderAdmin();
@@ -39,14 +39,14 @@ namespace Lampac.Controllers
                 if (passwds.Count > 5)
                     return Content("Too many attempts, try again tomorrow.");
 
-                if (IO.File.ReadAllText("passwd") == parol.Trim())
+                if (AppInit.rootPasswd == parol.Trim())
 				{
 					HttpContext.Response.Cookies.Append("passwd", parol.Trim());
 					return Redirect("/admin");
 				}
             }
 
-			if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd"))
+			if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == AppInit.rootPasswd)
 				return renderAdmin();
 
             string html = @"
@@ -305,14 +305,14 @@ namespace Lampac.Controllers
         [Route("admin/manifest/install")]
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
-			if (IO.File.ReadAllText("passwd") == "termux")
+			if (AppInit.rootPasswd == "termux")
                 return Content("На termux операция недоступна", contentType: "text/html; charset=utf-8");
 
             bool isEditManifest = false;
 
 			if (IO.File.Exists("module/manifest.json"))
 			{
-				if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == FileCache.ReadAllText("passwd")) 
+				if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == AppInit.rootPasswd) 
 				{
                     isEditManifest = true;
                 }
