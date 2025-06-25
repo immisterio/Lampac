@@ -28,7 +28,7 @@ namespace Lampac.Engine
 
         public static string appversion => "144";
 
-        public static string minorversion => "11";
+        public static string minorversion => "12";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -580,7 +580,7 @@ namespace Lampac.Engine
             if (conf.ContainsKey("proxy"))
             {
                 init.proxy = conf["proxy"].ToObject<ProxySettings>();
-                if (init?.proxy?.list != null && init.proxy.list.Count > 0)
+                if (init?.proxy?.list != null && init.proxy.list.Length > 0)
                     update<bool>("useproxy", v => init.useproxy = v);
             }
 

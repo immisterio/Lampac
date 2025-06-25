@@ -1,21 +1,22 @@
-﻿using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
-using Lampac.Models.Module;
-using System.Reflection;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.AppConf;
 using Lampac.Models.DLNA;
-using Lampac.Models.Merchant;
-using Shared.Model.Base;
-using System.Text.RegularExpressions;
-using Shared.Models.AppConf;
-using Shared.Models.ServerProxy;
-using Lampac.Engine.CORE;
-using Shared.Models.Browser;
 using Lampac.Models.LITE;
+using Lampac.Models.Merchant;
+using Lampac.Models.Module;
+using Lampac.Models.SISI;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Settings;
-using Lampac.Models.SISI;
 using Shared.Model.SISI;
+using Shared.Models.AppConf;
+using Shared.Models.Browser;
+using Shared.Models.Online.Kinobase;
+using Shared.Models.ServerProxy;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace Lampac
 {
@@ -418,12 +419,12 @@ namespace Lampac
 
         public ProxySettings proxy = new ProxySettings();
 
-        public List<ProxySettings> globalproxy = new List<ProxySettings>()
+        public ProxySettings[] globalproxy = new ProxySettings[]
         {
             new ProxySettings()
             {
                 pattern = "\\.onion",
-                list = new List<string>() { "socks5://127.0.0.1:9050" }
+                list = new string[] { "socks5://127.0.0.1:9050" }
             }
         };
 
@@ -809,7 +810,10 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("Kinobase", "kwwsv=22nlqredvh1ruj") { geostreamproxy = new string[] { "ALL" } };
+        public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, true) 
+        { 
+            geostreamproxy = new string[] { "ALL" } 
+        };
 
         /// <summary>
         /// Получение учетной записи

@@ -25,7 +25,7 @@
 
         public string? url;
 
-        public List<string>? list;
+        public string[] list;
 
 
         public string? refresh_uri;
