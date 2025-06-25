@@ -219,12 +219,15 @@ namespace Lampac.Controllers.LITE
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+            
+            string acceptsId = "7ece5f32f2db86bdba74f85bf871002140fa863f461ab4e33786b666a0934484";
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
                 var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
-                    ("accepts-controls", $"{acceptsControls}"),
+                    ("accept", "*/*"),
+                    ("accepts-controls", $"{acceptsControls}|{acceptsId}"),
                     ("origin", init.linkhost),
                     ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
                     ("sec-fetch-dest", "empty"),
@@ -252,7 +255,7 @@ namespace Lampac.Controllers.LITE
             }
 
             var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                ("accepts-controls", $"{acceptsControls}"),
+                ("accepts-controls", $"{acceptsControls}|{acceptsId}"),
                 ("origin", init.linkhost),
                 ("referer", $"{init.linkhost}/"),
                 ("sec-fetch-dest", "empty"),
@@ -292,7 +295,7 @@ namespace Lampac.Controllers.LITE
             {
                 string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                    ("referer", $"https://kino-2024.org/" + reffers[Random.Shared.Next(0, reffers.Length)]),
+                    ("referer", $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)]),
                     ("sec-fetch-dest", "iframe"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "cross-site"),

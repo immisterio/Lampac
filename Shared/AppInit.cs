@@ -920,7 +920,7 @@ namespace Lampac
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
-        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true)
+        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22txdguloolrq0dv1doodunqrz1rqolqh", "6892d506bbdd5790e0ca047ff39462", "", true, true)
         {
             enable = true,
             streamproxy = true,
@@ -930,11 +930,11 @@ namespace Lampac
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-storage-access", "active"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
         #endregion
