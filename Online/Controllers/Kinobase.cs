@@ -8,9 +8,9 @@ using Shared.Model.Online.Kinobase;
 using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.PlaywrightCore;
-using Lampac.Models.LITE;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Shared.Models.Online.Kinobase;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/kinobase")]
-        async public ValueTask<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, string t = null, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Kinobase);
             if (await IsBadInitialization(init, rch: false))
@@ -33,7 +33,7 @@ namespace Lampac.Controllers.LITE
             var oninvk = new KinobaseInvoke
             (
                host,
-               init.corsHost(),
+               init,
                ongettourl => 
                {
                    if (ongettourl.Contains("/search?query="))
@@ -77,13 +77,13 @@ namespace Lampac.Controllers.LITE
                 return content;
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, href, s, rjson));
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, href, s, t, rjson));
         }
 
 
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<string> black_magic(string uri, KinobaseSettings init, (string ip, string username, string password) proxy)
         {
             try
             {
@@ -98,7 +98,7 @@ namespace Lampac.Controllers.LITE
                         new Cookie()
                         {
                             Name = "player_settings",
-                            Value = "old|hls|0",
+                            Value = $"{(init.playerjs ? "new" : "old")}|{(init.hls ? "hls" : "mp4")}|{(init.hdr ? 1 : 0)}",
                             Domain = Regex.Match(init.host, "^https?://([^/]+)").Groups[1].Value,
                             Path = "/",
                             Expires = 2220002226
@@ -109,7 +109,16 @@ namespace Lampac.Controllers.LITE
                     {
                         try
                         {
-                            if (route.Request.Url.Contains("/uppod.js"))
+                            if (route.Request.Url.Contains("/playerjs.js"))
+                            {
+                                await route.FulfillAsync(new RouteFulfillOptions
+                                {
+                                    Body = System.IO.File.ReadAllText("data/kinobase_playerjs.js")
+                                });
+
+                                return;
+                            }
+                            else if (route.Request.Url.Contains("/uppod.js"))
                             {
                                 await route.FulfillAsync(new RouteFulfillOptions
                                 {
@@ -134,7 +143,16 @@ namespace Lampac.Controllers.LITE
                     });
 
                     PlaywrightBase.GotoAsync(page, uri);
-                    await page.WaitForSelectorAsync(".uppod-media").ConfigureAwait(false);
+
+                    if (init.playerjs)
+                    {
+                        await page.WaitForSelectorAsync("#playerjsfile").ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await page.WaitForSelectorAsync(".uppod-media").ConfigureAwait(false);
+                    }
+
                     string content = await page.ContentAsync().ConfigureAwait(false);
 
                     PlaywrightBase.WebLog("GET", uri, content, proxy);

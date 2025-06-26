@@ -28,7 +28,7 @@ namespace Lampac.Engine
 
         public static string appversion => "144";
 
-        public static string minorversion => "7";
+        public static string minorversion => "15";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -158,7 +158,7 @@ namespace Lampac.Engine
             string goEncryptUri(in string _uri)
             {
                 string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, headers, verifyip: false, ex: DateTime.Now.AddMinutes(5));
-                if (AppInit.conf.accsdb.enable)
+                if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
                     encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
 
                 return encrypt_uri;
@@ -281,7 +281,7 @@ namespace Lampac.Engine
 
                 uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
-                if (AppInit.conf.accsdb.enable)
+                if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
                     uri = AccsDbInvk.Args(uri, HttpContext);
 
                 return $"{host}/proxy/{uri}";
@@ -292,7 +292,7 @@ namespace Lampac.Engine
             {
                 string url_reserve = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
-                if (AppInit.conf.accsdb.enable)
+                if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
                     url_reserve = AccsDbInvk.Args(uri, HttpContext);
 
                 uri += $" or {host}/proxy/{url_reserve}";
@@ -580,7 +580,7 @@ namespace Lampac.Engine
             if (conf.ContainsKey("proxy"))
             {
                 init.proxy = conf["proxy"].ToObject<ProxySettings>();
-                if (init?.proxy?.list != null && init.proxy.list.Count > 0)
+                if (init?.proxy?.list != null && init.proxy.list.Length > 0)
                     update<bool>("useproxy", v => init.useproxy = v);
             }
 

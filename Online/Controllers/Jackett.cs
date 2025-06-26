@@ -26,7 +26,7 @@ namespace Lampac.Controllers.LITE
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
             if (!hybridCache.TryGetValue(memkey, out JArray results) || quality == -1)
             {
-                var root = await HttpClient.Get<JObject>($"{localhost}/api/v2.0/indexers/all/results?apikey={AppInit.conf.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11, headers: HeadersModel.Init("localrequest", System.IO.File.ReadAllText("passwd")));
+                var root = await HttpClient.Get<JObject>($"{localhost}/api/v2.0/indexers/all/results?apikey={AppInit.conf.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11, headers: HeadersModel.Init("localrequest", AppInit.rootPasswd));
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 

@@ -77,8 +77,17 @@ namespace Lampac
             }
             #endregion
 
+            #region passwd
             if (!File.Exists("passwd"))
-                File.WriteAllText("passwd", Guid.NewGuid().ToString());
+            {
+                AppInit.rootPasswd = Guid.NewGuid().ToString();
+                File.WriteAllText("passwd", AppInit.rootPasswd);
+            }
+            else
+            {
+                AppInit.rootPasswd = File.ReadAllText("passwd");
+            }
+            #endregion
 
             if (!File.Exists("vers.txt"))
                 File.WriteAllText("vers.txt", BaseController.appversion);

@@ -42,7 +42,7 @@ namespace Lampac.Engine.CORE
             bool IsMd5 = false;
             string uri_clear = uri.Contains("#") ? uri.Split("#")[0].Trim() : uri.Trim();
 
-            if (!forceMd5 && AppInit.conf.serverproxy.encrypt_aes && headers == null && proxy == null)
+            if (!forceMd5 && AppInit.conf.serverproxy.encrypt_aes && (headers == null || headers.Count == 0) && proxy == null)
             {
                 if (verifyip && AppInit.conf.serverproxy.verifyip)
                 {

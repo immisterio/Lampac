@@ -358,7 +358,7 @@ namespace JacRed.Controllers
                 if (string.IsNullOrEmpty(i.url) || !i.url.StartsWith("http"))
                     continue;
 
-                void add(string url) { torrents.TryAdd(Regex.Replace(url, "^https?://[^/]+/", ""), i); }
+                void add(string url) { torrents.TryAdd(Regex.Replace(url, "^https?://[^/]+/", ""), (TorrentDetails)i.Clone()); }
 
                 if (i.urls != null && i.urls.Count > 0)
                 {

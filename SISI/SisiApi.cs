@@ -40,7 +40,7 @@ namespace SISI
             string memKey = $"sisi.js:{init.appReplace?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                cache.file = FileCache.ReadAllText("plugins/sisi.js");
+                cache.file = FileCache.ReadAllText("plugins/sisi.js", saveCache: false);
 
                 if (init.appReplace != null)
                 {
@@ -78,8 +78,8 @@ namespace SISI
                 cache.file = bulder.ToString();
                 cache.filecleaer = cache.file.Replace("{token}", string.Empty);
 
-                if (AppInit.conf.multiaccess)
-                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(5));
+                if (AppInit.conf.mikrotik == false)
+                    memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(1));
             }
 
             if (!string.IsNullOrEmpty(token))

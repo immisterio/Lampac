@@ -1,155 +1,176 @@
-﻿using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
-using Lampac.Models.Module;
-using System.Reflection;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.AppConf;
 using Lampac.Models.DLNA;
-using Lampac.Models.Merchant;
-using System.Collections.Concurrent;
-using Shared.Model.Base;
-using System.Text.RegularExpressions;
-using Shared.Models.AppConf;
-using Shared.Models.ServerProxy;
-using Lampac.Engine.CORE;
-using Shared.Models.Browser;
 using Lampac.Models.LITE;
+using Lampac.Models.Merchant;
+using Lampac.Models.Module;
+using Lampac.Models.SISI;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Settings;
-using Lampac.Models.SISI;
 using Shared.Model.SISI;
+using Shared.Models.AppConf;
+using Shared.Models.Browser;
+using Shared.Models.Online.Kinobase;
+using Shared.Models.ServerProxy;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace Lampac
 {
     public class AppInit
     {
         #region static
-        static AppInit() { LoadModules(); }
+        public static string rootPasswd;
 
         public static bool Win32NT => Environment.OSVersion.Platform == PlatformID.Win32NT;
 
         public static bool IsDefaultApnOrCors(string apn) => apn != null && Regex.IsMatch(apn, "(apn.monster|apn.watch|cfhttp.top|lampac.workers.dev)");
+
+        static FileSystemWatcher fileWatcher;
+
+        static AppInit() 
+        {
+            updateConf();
+            LoadModules();
+
+            fileWatcher = new FileSystemWatcher
+            {
+                Path = Directory.GetCurrentDirectory(),
+                Filter = "init.conf",
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                EnableRaisingEvents = true
+            };
+
+            fileWatcher.Changed += async (s, e) => 
+            {
+                fileWatcher.EnableRaisingEvents = false;
+
+                try
+                {
+                    await Task.Delay(100);
+                    updateConf();
+                }
+                finally
+                {
+                    fileWatcher.EnableRaisingEvents = true;
+                }
+            };
+        }
         #endregion
 
 
         #region conf
-        public static(AppInit, DateTime) cacheconf = default;
+        public static AppInit conf = null;
 
-        public static AppInit conf
+        static void updateConf()
         {
-            get
+            if (!File.Exists("init.conf"))
             {
-                if (!File.Exists("init.conf"))
-                    return new AppInit();
+                conf = new AppInit();
+                return;
+            }
 
-                var lastWriteTime = File.GetLastWriteTime("init.conf");
+            string initfile = File.ReadAllText("init.conf").Trim();
+            initfile = Regex.Replace(initfile, "\"weblog\":([ \t]+)?(true|false)([ \t]+)?,", "", RegexOptions.IgnoreCase);
 
-                if (cacheconf.Item2 != lastWriteTime)
+            if (!initfile.StartsWith("{"))
+                initfile = "{" + initfile + "}";
+
+            try
+            {
+                conf = JsonConvert.DeserializeObject<AppInit>(initfile, new JsonSerializerSettings
                 {
-                    var jss = new JsonSerializerSettings { Error = (se, ev) => 
-                    { 
+                    Error = (se, ev) =>
+                    {
                         ev.ErrorContext.Handled = true;
-                        Console.WriteLine($"DeserializeObject Exception init.conf:\n{ev.ErrorContext.Error}\n\n"); 
-                    }};
-
-                    string initfile = File.ReadAllText("init.conf").Trim();
-                    initfile = Regex.Replace(initfile, "\"weblog\":([ \t]+)?(true|false)([ \t]+)?,", "", RegexOptions.IgnoreCase);
-
-                    if (!initfile.StartsWith("{"))
-                        initfile = "{" + initfile + "}";
-
-                    try
-                    {
-                        cacheconf.Item2 = lastWriteTime;
-                        cacheconf.Item1 = JsonConvert.DeserializeObject<AppInit>(initfile, jss);
+                        Console.WriteLine($"DeserializeObject Exception init.conf:\n{ev.ErrorContext.Error}\n\n");
                     }
-                    catch
+                });
+            }
+            catch { }
+
+            if (conf == null)
+                conf = new AppInit();
+
+            PosterApi.Initialization(conf.omdbapi_key, conf.posterApi, new ProxyLink());
+
+            #region accounts
+            if (conf.accsdb.accounts != null)
+            {
+                foreach (var u in conf.accsdb.accounts)
+                {
+                    if (conf.accsdb.findUser(u.Key) is AccsUser user)
                     {
-                        if (cacheconf != default)
-                            return cacheconf.Item1;
+                        if (u.Value > user.expires)
+                            user.expires = u.Value;
                     }
-
-                    if (cacheconf.Item1 == null)
-                        cacheconf.Item1 = new AppInit();
-
-                    if (cacheconf.Item1 != null)
-                        PosterApi.Initialization(cacheconf.Item1.omdbapi_key, cacheconf.Item1.posterApi, new ProxyLink());
-
-                    #region accounts
-                    if (cacheconf.Item1.accsdb.accounts != null)
+                    else
                     {
-                        foreach (var u in cacheconf.Item1.accsdb.accounts)
+                        conf.accsdb.users.Add(new AccsUser()
                         {
-                            if (cacheconf.Item1.accsdb.findUser(u.Key) is AccsUser user)
-                            {
-                                if (u.Value > user.expires)
-                                    user.expires = u.Value;
-                            }
-                            else
-                            {
-                                cacheconf.Item1.accsdb.users.Add(new AccsUser()
-                                {
-                                    id = u.Key.ToLower().Trim(),
-                                    expires = u.Value
-                                });
-                            }
-                        }
+                            id = u.Key.ToLower().Trim(),
+                            expires = u.Value
+                        });
                     }
-                    #endregion
+                }
+            }
+            #endregion
 
-                    #region users.txt
-                    if (File.Exists("merchant/users.txt"))
+            #region users.txt
+            if (File.Exists("merchant/users.txt"))
+            {
+                long utc = DateTime.UtcNow.ToFileTimeUtc();
+                foreach (string line in File.ReadAllLines("merchant/users.txt"))
+                {
+                    if (string.IsNullOrWhiteSpace(line) && !line.Contains("@"))
+                        continue;
+
+                    var data = line.Split(',');
+                    if (data.Length > 1)
                     {
-                        long utc = DateTime.UtcNow.ToFileTimeUtc();
-                        foreach (string line in File.ReadAllLines("merchant/users.txt"))
+                        if (long.TryParse(data[1], out long ex) && ex > utc)
                         {
-                            if (string.IsNullOrWhiteSpace(line) && !line.Contains("@"))
-                                continue;
-
-                            var data = line.Split(',');
-                            if (data.Length > 1)
+                            try
                             {
-                                if (long.TryParse(data[1], out long ex) && ex > utc)
+                                DateTime e = DateTime.FromFileTimeUtc(ex);
+                                string email = data[0].ToLower().Trim();
+
+                                if (conf.accsdb.findUser(email) is AccsUser user)
                                 {
-                                    try
+                                    if (e > user.expires)
+                                        user.expires = e;
+
+                                    user.group = conf.Merchant.defaultGroup;
+                                }
+                                else
+                                {
+                                    conf.accsdb.users.Add(new AccsUser()
                                     {
-                                        DateTime e = DateTime.FromFileTimeUtc(ex);
-                                        string email = data[0].ToLower().Trim();
-
-                                        if (cacheconf.Item1.accsdb.findUser(email) is AccsUser user)
-                                        {
-                                            if (e > user.expires)
-                                                user.expires = e;
-
-                                            user.group = conf.Merchant.defaultGroup;
-                                        }
-                                        else
-                                        {
-                                            cacheconf.Item1.accsdb.users.Add(new AccsUser()
-                                            {
-                                                id = email,
-                                                expires = e,
-                                                group = conf.Merchant.defaultGroup
-                                            });
-                                        }
-                                    }
-                                    catch { }
+                                        id = email,
+                                        expires = e,
+                                        group = conf.Merchant.defaultGroup
+                                    });
                                 }
                             }
+                            catch { }
                         }
                     }
-                    #endregion
-
-                    try
-                    {
-                        File.WriteAllText("current.conf", JsonConvert.SerializeObject(cacheconf.Item1, Formatting.Indented));
-                    }
-                    catch { }
                 }
-
-                return cacheconf.Item1;
             }
-        }
+            #endregion
 
+            try
+            {
+                File.WriteAllText("current.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
+            }
+            catch { }
+        }
+        #endregion
+
+        #region Host
         public static string Host(HttpContext httpContext)
         {
             string scheme = string.IsNullOrEmpty(conf.listenscheme) ? httpContext.Request.Scheme : conf.listenscheme;
@@ -353,9 +374,9 @@ namespace Lampac
         public WebConf LampaWeb = new WebConf()
         {
             autoupdate = true,
-            intervalupdate = 90,
+            intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "4e38e260b4757e69ddd922169dbac6dd7a27904a"
+            tree = "b7762fa503462f9dfe5b5a2b2b1e8b627890813c"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -398,16 +419,16 @@ namespace Lampac
 
         public ProxySettings proxy = new ProxySettings();
 
-        public ConcurrentBag<ProxySettings> globalproxy = new ConcurrentBag<ProxySettings>()
+        public ProxySettings[] globalproxy = new ProxySettings[]
         {
             new ProxySettings()
             {
                 pattern = "\\.onion",
-                list = new ConcurrentBag<string>() { "socks5://127.0.0.1:9050" }
+                list = new string[] { "socks5://127.0.0.1:9050" }
             }
         };
 
-        public ConcurrentBag<OverrideResponse> overrideResponse = new ConcurrentBag<OverrideResponse>()
+        public IReadOnlyCollection<OverrideResponse> overrideResponse = new List<OverrideResponse>()
         {
             new OverrideResponse()
             {
@@ -789,7 +810,10 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Kinobase { get; set; } = new OnlinesSettings("Kinobase", "kwwsv=22nlqredvh1ruj") { geostreamproxy = new string[] { "ALL" } };
+        public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, true) 
+        { 
+            geostreamproxy = new string[] { "ALL" } 
+        };
 
         /// <summary>
         /// Получение учетной записи
@@ -906,11 +930,11 @@ namespace Lampac
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-storage-access", "active"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
         #endregion
@@ -987,7 +1011,7 @@ namespace Lampac
         #endregion
 
         #region Anime
-        public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwws=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true)
+        public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwwsv=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true)
         {
             cdn_is_working = true,
             geostreamproxy = new string[] { "UA" },

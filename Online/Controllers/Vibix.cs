@@ -49,11 +49,14 @@ namespace Lampac.Controllers.LITE
                 string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) :
                                            await HttpClient.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
+                if (html == null)
+                    return res.Fail("html");
+
                 string file = null;
 
                 if (data.Value<string>("type") == "movie")
                 {
-                    file = html.Split(",file:")[1].Split("function")[0];
+                    file = html.Split(",file:")?[1]?.Split("function")?[0];
                     if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
                         res.Fail("file");
 

@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-namespace Shared.Model.Base
+﻿namespace Shared.Model.Base
 {
     public class ProxySettings : ICloneable
     {
@@ -27,7 +25,7 @@ namespace Shared.Model.Base
 
         public string? url;
 
-        public ConcurrentBag<string>? list;
+        public string[] list;
 
 
         public string? refresh_uri;

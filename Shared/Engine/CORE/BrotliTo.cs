@@ -5,7 +5,7 @@ namespace Lampac.Engine.CORE
 {
     public static class BrotliTo
     {
-        static object lockObj = new object();
+        static readonly object lockObj = new object();
 
 
         public static byte[] Compress(in string value)

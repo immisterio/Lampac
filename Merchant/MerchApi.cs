@@ -32,7 +32,7 @@ namespace Lampac.Controllers.LITE
         [Route("merchant/payconfirm")]
         public ActionResult ConfirmPay(string passwd, string account_email, string merch, string order, int days = 0)
         {
-            if (passwd != System.IO.File.ReadAllText("passwd"))
+            if (passwd != AppInit.rootPasswd)
                 return Content("incorrect passwd");
 
             string email = decodeEmail(account_email);

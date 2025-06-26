@@ -1,19 +1,19 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Web;
-using Newtonsoft.Json.Linq;
-using System.Linq;
-using Lampac.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using Shared.Model.Online;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Online;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
+using Shared.Model.Online;
+using Shared.Model.Templates;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -45,7 +45,8 @@ namespace Lampac.Controllers.LITE
                 return OnError();
 
             JToken data = result.data;
-            var frame = await iframe(data.Value<string>("token_movie"));
+            string tokenMovie = data["token_movie"] != null ? data.Value<string>("token_movie") : null;
+            var frame = await iframe(tokenMovie);
             if (frame.all == null)
                 return OnError();
 
@@ -88,26 +89,34 @@ namespace Lampac.Controllers.LITE
                     try
                     {
                         if (init.m4s)
-                        {
-                            var voice = frame.all.ToObject<Dictionary<string, Dictionary<string, Dictionary<string, JObject>>>>().First().Value.First().Value.Values.First();
-                            q = voice.Value<bool>("uhd") == true ? "2160p" : null;
-                        }
+                            q = frame.active.Value<bool>("uhd") == true ? "2160p" : null;
                     }
                     catch { }
 
-                    // Проверяем наличие ключа "seasons" в frame.all
                     Dictionary<string, JToken> seasons;
                     if (frame.all["seasons"] != null)
                         seasons = frame.all["seasons"].ToObject<Dictionary<string, JToken>>();
                     else
                         seasons = frame.all.ToObject<Dictionary<string, JToken>>();
 
-                    var tpl = new SeasonTpl(q, seasons.Count);
+                    if (seasons.First().Key.StartsWith("t"))
+                    {
+                        var tpl = new SeasonTpl(q);
 
-                    foreach (var season in seasons)
-                        tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
+                        for (int i = 1; i <= frame.active.Value<int>("seasons"); i++)
+                            tpl.Append($"{i} сезон", $"{host}/lite/mirage?rjson={rjson}&s={i}{defaultargs}", i.ToString());
 
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                    }
+                    else
+                    {
+                        var tpl = new SeasonTpl(q, seasons.Count);
+
+                        foreach (var season in seasons)
+                            tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
+
+                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                    }
                     #endregion
                 }
                 else
@@ -118,10 +127,10 @@ namespace Lampac.Controllers.LITE
 
                     string sArhc = s.ToString();
 
-                    if (frame.all[s.ToString()] is JArray)
+                    if (frame.all[sArhc] is JArray)
                     {
                         #region Перевод
-                        foreach (var episode in frame.all[s.ToString()])
+                        foreach (var episode in frame.all[sArhc])
                         {
                             foreach (var voice in episode.ToObject<Dictionary<string, JObject>>().Select(i => i.Value))
                             {
@@ -142,7 +151,7 @@ namespace Lampac.Controllers.LITE
                         }
                         #endregion
 
-                        foreach (var episode in frame.all[s.ToString()])
+                        foreach (var episode in frame.all[sArhc])
                         {
                             foreach (var voice in episode.ToObject<Dictionary<string, JObject>>().Select(i => i.Value))
                             {
@@ -160,10 +169,66 @@ namespace Lampac.Controllers.LITE
                             }
                         }
                     }
+                    else if (frame.all.ToObject<Dictionary<string, object>>().First().Key.StartsWith("t"))
+                    {
+                        #region Перевод
+                        foreach (var node in frame.all)
+                        {
+                            if (!node.First["file"].ToObject<Dictionary<string, object>>().ContainsKey(sArhc))
+                                continue;
+
+                            var voice = node.First["file"].First.First.First.First;
+                            int id_translation = voice.Value<int>("id_translation");
+                            if (voices.Contains(id_translation))
+                                continue;
+
+                            voices.Add(id_translation);
+
+                            if (t == -1)
+                                t = id_translation;
+
+                            string link = $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
+                            bool active = t == id_translation;
+
+                            vtpl.Append(voice.Value<string>("translation"), active, link);
+                        }
+                        #endregion
+
+                        foreach (var node in frame.all)
+                        {
+                            foreach (var season in node.First["file"].ToObject<Dictionary<string, object>>())
+                            {
+                                if (season.Key != sArhc)
+                                    continue;
+
+                                if (season.Value is JArray sjar)
+                                {
+
+                                }
+                                else if (season.Value is JObject sjob)
+                                {
+                                    foreach (var episode in sjob.ToObject<Dictionary<string, JObject>>())
+                                    {
+                                        if (episode.Value.Value<int>("id_translation") != t)
+                                            continue;
+
+                                        string translation = episode.Value.Value<string>("translation");
+                                        int e = episode.Value.Value<int>("episode");
+
+                                        string link = $"{host}/lite/mirage/video?id_file={episode.Value.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}";
+                                        string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+
+                                        if (e > 0)
+                                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     else
                     {
                         #region Перевод
-                        foreach (var episode in frame.all[s.ToString()].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
+                        foreach (var episode in frame.all[sArhc].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
                         {
                             foreach (var voice in episode.Value.Select(i => i.Value))
                             {
@@ -184,7 +249,7 @@ namespace Lampac.Controllers.LITE
                         }
                         #endregion
 
-                        foreach (var episode in frame.all[s.ToString()].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
+                        foreach (var episode in frame.all[sArhc].ToObject<Dictionary<string, Dictionary<string, JObject>>>())
                         {
                             foreach (var voice in episode.Value.Select(i => i.Value))
                             {
@@ -219,12 +284,15 @@ namespace Lampac.Controllers.LITE
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+            
+            string acceptsId = "7ece5f32f2db86bdba74f85bf871002140fa863f461ab4e33786b666a0934484";
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
                 var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
-                    ("accepts-controls", $"{acceptsControls}"),
+                    ("accept", "*/*"),
+                    ("accepts-controls", $"{acceptsControls}|{acceptsId}"),
                     ("origin", init.linkhost),
                     ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
                     ("sec-fetch-dest", "empty"),
@@ -252,7 +320,7 @@ namespace Lampac.Controllers.LITE
             }
 
             var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                ("accepts-controls", $"{acceptsControls}"),
+                ("accepts-controls", $"{acceptsControls}|{acceptsId}"),
                 ("origin", init.linkhost),
                 ("referer", $"{init.linkhost}/"),
                 ("sec-fetch-dest", "empty"),
@@ -284,15 +352,18 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region iframe
-        async ValueTask<(JToken all, string acceptsControls)> iframe(string token_movie)
+        async ValueTask<(JToken all, JToken active, string acceptsControls)> iframe(string token_movie)
         {
+            if (string.IsNullOrEmpty(token_movie))
+                return default;
+
             var init = await Initialization();
             string memKey = $"mirage:iframe:{token_movie}";
-            if (!hybridCache.TryGetValue(memKey, out (JToken all, string acceptsControls) cache))
+            if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active, string acceptsControls) cache))
             {
                 string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                    ("referer", $"https://kino-2024.org/" + reffers[Random.Shared.Next(0, reffers.Length)]),
+                    ("referer", $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)]),
                     ("sec-fetch-dest", "iframe"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "cross-site"),
@@ -313,7 +384,7 @@ namespace Lampac.Controllers.LITE
                     if (root == null || !root.ContainsKey("all"))
                         return default;
 
-                    cache = (root["all"], acceptsControls);
+                    cache = (root["all"], root["active"], acceptsControls);
 
                     hybridCache.Set(memKey, cache, cacheTime(40));
                 }

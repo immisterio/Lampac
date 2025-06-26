@@ -55,6 +55,11 @@ namespace Shared.Engine.SISI
             {
                 // <a href="/video.ucmdacd450a/_" title="Горничная приходит на работу в коротком платье (лесбуха любит член)">
                 var g = Regex.Match(row, "<a href=\"/(video[^\"]+|search-video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
+                if (string.IsNullOrEmpty(g[1].Value) || string.IsNullOrEmpty(g[2].Value))
+                {
+                    // <a href="/video.ohpbioo5118/_." target="_blank">Я думал, что не переживу его наказания.</a>
+                    g = Regex.Match(row, "<a href=\"\\/(video[^\"]+)\"[^>]+>([^<]+)").Groups;
+                }
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {

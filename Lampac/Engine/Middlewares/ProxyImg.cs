@@ -6,6 +6,7 @@ using Shared.Model.Online;
 using Shared.Models;
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -21,12 +22,29 @@ namespace Lampac.Engine.Middlewares
     public class ProxyImg
     {
         #region ProxyImg
-        public ProxyImg(RequestDelegate next) { }
+        static FileSystemWatcher fileWatcher;
+
+        static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
 
         static ProxyImg()
         {
             Directory.CreateDirectory("cache/img");
+
+            foreach (var item in Directory.GetFiles("cache/img", "*"))
+                cacheFiles.TryAdd(Path.GetFileName(item), 0);
+
+            fileWatcher = new FileSystemWatcher
+            {
+                Path = "cache/img",
+                NotifyFilter = NotifyFilters.FileName,
+                EnableRaisingEvents = true
+            };
+
+            fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
+            fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
         }
+
+        public ProxyImg(RequestDelegate next) { }
         #endregion
 
         async public Task InvokeAsync(HttpContext httpContext, IMemoryCache memoryCache)
@@ -86,7 +104,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             string md5key = CrypTo.md5($"{href}:{width}:{height}");
-            string outFile = $"cache/img/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+            string outFile = Path.Combine("cache", "img", md5key);
 
             string url_reserve = null;
             if (href.Contains(" or "))
@@ -100,7 +118,7 @@ namespace Lampac.Engine.Middlewares
             if (width > 0 || height > 0)
                 contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
 
-            if (cacheimg && File.Exists(outFile))
+            if (cacheimg && cacheFiles.ContainsKey(md5key))
             {
                 httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
                 httpContext.Response.ContentType = contentType;
@@ -194,11 +212,8 @@ namespace Lampac.Engine.Middlewares
                             {
                                 try
                                 {
-                                    if (!File.Exists(outFile))
-                                    {
-                                        Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+                                    if (!cacheFiles.ContainsKey(md5key))
                                         File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                    }
                                 }
                                 catch { try { File.Delete(outFile); } catch { } }
                             }
@@ -240,9 +255,6 @@ namespace Lampac.Engine.Middlewares
                     }
                     else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
-                        if (cacheimg)
-                            Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
-
                         array = ImageMagick(array, width, height, cacheimg ? outFile : null);
                     }
                 }
@@ -255,11 +267,8 @@ namespace Lampac.Engine.Middlewares
                 {
                     try
                     {
-                        if (!File.Exists(outFile))
-                        {
-                            Directory.CreateDirectory($"cache/img/{md5key.Substring(0, 2)}");
+                        if (!cacheFiles.ContainsKey(md5key))
                             File.WriteAllBytes(outFile, array);
-                        }
                     }
                     catch { try { File.Delete(outFile); } catch { } }
                 }
@@ -333,7 +342,7 @@ namespace Lampac.Engine.Middlewares
         /// <summary>
         /// apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
         /// </summary>
-        private byte[] ImageMagick(in byte[] array, in int width, in int height, in string myoutputFilePath)
+        static byte[] ImageMagick(in byte[] array, in int width, in int height, in string myoutputFilePath)
         {
             string inputFilePath = null;
             string outputFilePath = null;

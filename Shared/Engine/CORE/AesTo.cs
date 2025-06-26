@@ -6,11 +6,14 @@ namespace Shared.Engine.CORE
 {
     public static class AesTo
     {
-        static byte[] key;
-        static byte[] iv;
+        static readonly object lockObj = new object();
+        static ICryptoTransform encryptor, decryptor;
 
         static AesTo()
         {
+            byte[] key;
+            byte[] iv;
+
             if (File.Exists("cache/aeskey"))
             {
                 var i = File.ReadAllText("cache/aeskey").Split("/");
@@ -26,20 +29,21 @@ namespace Shared.Engine.CORE
                 key = Encoding.UTF8.GetBytes(k);
                 iv = Encoding.UTF8.GetBytes(v);
             }
-        }
 
+            Aes aes = Aes.Create();
+            aes.Key = key;
+            aes.IV = iv;
+
+            encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+            decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+        }
 
         public static string Encrypt(in string plainText)
         {
             try
             {
-                using (Aes aes = Aes.Create())
+                lock (lockObj)
                 {
-                    aes.Key = key;
-                    aes.IV = iv;
-
-                    ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-
                     using (MemoryStream ms = new MemoryStream())
                     {
                         using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
@@ -59,13 +63,8 @@ namespace Shared.Engine.CORE
         {
             try
             {
-                using (Aes aes = Aes.Create())
+                lock (lockObj)
                 {
-                    aes.Key = key;
-                    aes.IV = iv;
-
-                    ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-
                     using (MemoryStream ms = new MemoryStream(Convert.FromBase64String(cipherText)))
                     {
                         using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))

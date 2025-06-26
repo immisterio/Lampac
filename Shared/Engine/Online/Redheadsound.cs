@@ -1,4 +1,5 @@
-﻿using Shared.Model.Base;
+﻿using Lampac.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online.Redheadsound;
 using Shared.Model.Templates;
 using System.Text.RegularExpressions;
@@ -30,7 +31,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string? title, int year)
+        async public Task<EmbedModel?> Embed(string? title, int year)
         {
             if (string.IsNullOrEmpty(title))
                 return null;
@@ -45,7 +46,7 @@ namespace Shared.Engine.Online
             string? link = null, reservedlink = null;
             foreach (string row in search.Split("card d-flex").Skip(1))
             {
-                if (row.ToLower().Contains($">{title.ToLower()}<"))
+                if (StringConvert.SearchName(row).Contains(StringConvert.SearchName(title)))
                 {
                     string rlnk = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(rlnk))

@@ -1,8 +1,10 @@
 ﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Kinobase;
+using Microsoft.AspNetCore.SignalR;
 using Shared.Model.Base;
 using Shared.Model.Online.Kinobase;
 using Shared.Model.Templates;
+using Shared.Models.Online.Kinobase;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -12,6 +14,7 @@ namespace Shared.Engine.Online
     public class KinobaseInvoke
     {
         #region KinobaseInvoke
+        KinobaseSettings init;
         string? host;
         string apihost;
         Func<string, ValueTask<string?>> onget;
@@ -20,10 +23,11 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public KinobaseInvoke(in string? host, in string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KinobaseInvoke(in string? host, KinobaseSettings init, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
+            this.init = init;
             this.host = host != null ? $"{host}/" : null;
-            this.apihost = apihost;
+            apihost = init.host;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
@@ -33,7 +37,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<SearchModel?> Search(string? title, int year)
+        async public Task<SearchModel> Search(string title, int year)
         {
             if (string.IsNullOrEmpty(title))
                 return null;
@@ -99,47 +103,92 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string? link)
+        async public Task<EmbedModel> Embed(string link)
         {
             if (string.IsNullOrEmpty(link))
                 return null;
 
-            string? news = await onget($"{apihost}/{link}");
+            string news = await onget($"{apihost}/{link}");
             if (string.IsNullOrEmpty(news))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            if (news.Contains("id=\"playlists\""))
+            if (news.Contains("id=\"playerjsfile\""))
             {
                 try
                 {
-                    string video = Regex.Match(news, "id=\"playlists\">([^<]+)<").Groups[1].Value;
-                    var res = JsonSerializer.Deserialize<List<Season>>(video);
-                    if (res == null || res.Count == 0)
+                    string video = Regex.Match(news, "id=\"playerjsfile\">([^<]+)<").Groups[1].Value;
+                    if (string.IsNullOrEmpty(video))
+                    {
+                        requesterror?.Invoke();
                         return null;
+                    }
 
-                    return new EmbedModel() { serial = res, quality = video.Contains("1080.") ? "1080p" : video.Contains("720.") ? "720p" : video.Contains("480.") ? "480p" : "360p" };
+                    if (video.EndsWith("]"))
+                    {
+                        var res = JsonSerializer.Deserialize<List<Season>>(video);
+                        if (res == null || res.Count == 0)
+                            return null;
+
+                        return new EmbedModel()
+                        {
+                            serial = res,
+                            quality = video.Contains("2160.") ? "2160p" : video.Contains("1440.") ? "1440p" : video.Contains("1080.") ? "1080p" : video.Contains("720.") ? "720p" : video.Contains("480.") ? "480p" : "360p"
+                        };
+                    }
+                    else
+                    {
+                        return new EmbedModel() { content = video };
+                    }
                 }
                 catch { return null; }
             }
             else
             {
-                string? video = StringConvert.FindLastText(news, "id=\"videoplayer\"", "</div>");
-                if (string.IsNullOrEmpty(video))
+                #region uppod.js
+                if (news.Contains("id=\"playlists\""))
                 {
-                    requesterror?.Invoke();
-                    return null;
-                }
+                    try
+                    {
+                        string video = Regex.Match(news, "id=\"playlists\">([^<]+)<").Groups[1].Value;
+                        if (string.IsNullOrEmpty(video))
+                        {
+                            requesterror?.Invoke();
+                            return null;
+                        }
 
-                return new EmbedModel() { content = video };
+                        var res = JsonSerializer.Deserialize<List<Season>>(video);
+                        if (res == null || res.Count == 0)
+                            return null;
+
+                        return new EmbedModel()
+                        {
+                            serial = res,
+                            quality = video.Contains("1080.") ? "1080p" : video.Contains("720.") ? "720p" : video.Contains("480.") ? "480p" : "360p"
+                        };
+                    }
+                    catch { return null; }
+                }
+                else
+                {
+                    string video = StringConvert.FindLastText(news, "id=\"videoplayer\"", "</div>");
+                    if (string.IsNullOrEmpty(video))
+                    {
+                        requesterror?.Invoke();
+                        return null;
+                    }
+
+                    return new EmbedModel() { content = video };
+                }
+                #endregion
             }
         }
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, string? title, in string href, int s, bool rjson = false)
+        public string Html(EmbedModel md, string title, string href, int s, string t, bool rjson = false)
         {
             if (md == null || md.IsEmpty)
                 return string.Empty;
@@ -149,21 +198,58 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title);
 
-                var streams = new List<(string link, string quality)>(4);
-
-                foreach (string q in new string[] { "1080", "720", "480", "360" })
+                if (init.playerjs)
                 {
-                    string link = Regex.Match(md.content, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{q}.(mp4|m3u8))").Groups[1].Value;
-                    if (string.IsNullOrEmpty(link))
-                        continue;
+                    var voices = md.content.Split("{");
+                    var hash = new HashSet<string>();
 
-                    streams.Add((onstreamfile.Invoke(link), $"{q}p"));
+                    foreach (string line in voices)
+                    {
+                        string voice = Regex.Match(line, "([^\\}]+)\\}").Groups[1].Value.Trim();
+                        if (!string.IsNullOrEmpty(voice) && !hash.Contains(voice))
+                        {
+                            hash.Add(voice);
+
+                            var streams = new List<(string link, string quality)>(6);
+
+                            foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
+                            {
+                                foreach (var line2 in voices)
+                                {
+                                    if (line2.Contains(voice) && (line2.Contains($"_{q}.mp4") || line2.Contains($"_{q}.m3u8")))
+                                    {
+                                        string links = Regex.Match(line2, "\\}([^\\[,;]+)").Groups[1].Value;
+                                        if (string.IsNullOrEmpty(links))
+                                            continue;
+
+                                        streams.Add((onstreamfile.Invoke(links), $"{q}p"));
+                                    }
+                                }
+                            }
+
+                            if (streams.Count > 0)
+                                mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                        }
+                    }
                 }
+                else
+                {
+                    var streams = new List<(string link, string quality)>(4);
 
-                if (streams.Count == 0)
-                    return string.Empty;
+                    foreach (string q in new string[] { "1080", "720", "480", "360" })
+                    {
+                        string link = Regex.Match(md.content, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{q}.(mp4|m3u8))").Groups[1].Value;
+                        if (string.IsNullOrEmpty(link))
+                            continue;
 
-                mtpl.Append(streams[0].quality, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                        streams.Add((onstreamfile.Invoke(link), $"{q}p"));
+                    }
+
+                    if (streams.Count == 0)
+                        return string.Empty;
+
+                    mtpl.Append(streams[0].quality, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                 #endregion
@@ -171,72 +257,205 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
+                string enc_title = HttpUtility.UrlEncode(title);
                 string sArhc = s.ToString();
 
-                string finEpisode(List<Season> data)
+                if (init.playerjs)
                 {
-                    var etpl = new EpisodeTpl(data.Count);
-
-                    foreach (var episode in data)
+                    if (md.serial.First().folder == null)
                     {
-                        if (string.IsNullOrEmpty(episode.file))
-                            continue;
-
-                        var streams = new List<(string link, string quality)>(4);
-
-                        foreach (string quality in new List<string> { "1080", "720", "480", "360" })
+                        if (s == -1)
                         {
-                            string link = Regex.Match(episode.file, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{quality}.(mp4|m3u8))").Groups[1].Value;
-                            if (string.IsNullOrEmpty(link))
-                                continue;
+                            var tpl = new SeasonTpl(md.quality);
+                            string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(t)}&s=1";
+                            tpl.Append("1 сезон", link, 1);
 
-                            streams.Add((onstreamfile.Invoke(link), $"{quality}p"));
+                            return rjson ? tpl.ToJson() : tpl.ToHtml();
                         }
-
-                        if (streams.Count == 0)
-                            continue;
-
-                        etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
-                    }
-
-                    return rjson ? etpl.ToJson() : etpl.ToHtml();
-                }
-
-                if (md.serial.First().folder == null)
-                {
-                    if (s == -1)
-                    {
-                        var tpl = new SeasonTpl(md.quality);
-                        string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s=1";
-                        tpl.Append("1 сезон", link, 1);
-
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        else
+                        {
+                            return renderSeason(md.serial);
+                        }
                     }
                     else
                     {
-                        return finEpisode(md.serial);
+                        if (s == -1)
+                        {
+                            var tpl = new SeasonTpl(md.quality);
+
+                            foreach (var item in md.serial)
+                            {
+                                string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
+                                string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(t)}&s={season}";
+                                tpl.Append($"{season} сезон", link, season);
+                            }
+
+                            return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        }
+                        else
+                        {
+                            return renderSeason(md.serial.First(i => i.title.StartsWith($"{s} ")).folder);
+                        }
+                    }
+
+                    string renderSeason(List<Season> episodes)
+                    {
+                        #region Перевод
+                        var vtpl = new VoiceTpl();
+
+                        {
+                            var hash_voices = new HashSet<string>();
+                            var m = Regex.Match(episodes.First().file, "\\{([^\\}]+)");
+                            while (m.Success)
+                            {
+                                string voice = m.Groups[1].Value.Trim();
+                                if (!hash_voices.Contains(voice))
+                                {
+                                    hash_voices.Add(voice);
+
+                                    if (string.IsNullOrEmpty(t))
+                                        t = voice;
+
+                                    string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(voice)}&s={s}";
+                                    bool active = t == voice;
+
+                                    vtpl.Append(voice, active, link);
+                                }
+
+                                m = m.NextMatch();
+                            }
+                        }
+                        #endregion
+
+                        var etpl = new EpisodeTpl(episodes.Count);
+
+                        foreach (var episode in episodes)
+                        {
+                            if (string.IsNullOrEmpty(episode.file) || (t != null && !episode.file.Contains(t)))
+                                continue;
+
+                            var streams = new List<(string link, string quality)>(6);
+
+                            foreach (string quality in new List<string> { "2160", "1440", "1080", "720", "480", "360" })
+                            {
+                                string qline = Regex.Match(episode.file, $"\\[{quality}p\\]([^\\[]+)").Groups[1].Value;
+                                if (string.IsNullOrEmpty(qline))
+                                    continue;
+
+                                if (string.IsNullOrEmpty(t))
+                                {
+                                    string links = Regex.Match(qline, "({[^\\}]+})?([^\\}\\{\\[,;]+)").Groups[2].Value;
+                                    if (string.IsNullOrEmpty(links))
+                                        continue;
+
+                                    streams.Add((onstreamfile.Invoke(links), $"{quality}p"));
+                                }
+                                else
+                                {
+                                    string links = Regex.Match(qline, "{" + Regex.Escape(t) + "}" + "([^,;]+)").Groups[1].Value;
+                                    if (string.IsNullOrEmpty(links))
+                                        continue;
+
+                                    streams.Add((onstreamfile.Invoke(links), $"{quality}p"));
+                                }
+                            }
+
+                            if (streams.Count == 0)
+                                continue;
+
+                            #region subtitle
+                            var subtitles = new SubtitleTpl();
+
+                            if (!string.IsNullOrEmpty(episode.subtitle))
+                            {
+                                var m = Regex.Match(episode.subtitle, "\\[([^\\]]+)\\]([^\t ]+)");
+                                while (m.Success)
+                                {
+                                    subtitles.Append(m.Groups[1].Value, onstreamfile.Invoke(m.Groups[2].Value));
+
+                                    m = m.NextMatch();
+                                }
+                            }
+                            #endregion
+
+
+                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                        }
+
+                        if (rjson)
+                            return etpl.ToJson(vtpl);
+
+                        return vtpl.ToHtml() + etpl.ToHtml();
                     }
                 }
                 else
                 {
-                    if (s == -1)
+                    #region uppod.js
+                    string finEpisode(List<Season> data)
                     {
-                        var tpl = new SeasonTpl(md.quality);
+                        var etpl = new EpisodeTpl(data.Count);
 
-                        foreach (var item in md.serial)
+                        foreach (var episode in data)
                         {
-                            string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
-                            string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s={season}";
-                            tpl.Append($"{season} сезон", link, season);
+                            if (string.IsNullOrEmpty(episode.file))
+                                continue;
+
+                            var streams = new List<(string link, string quality)>(4);
+
+                            foreach (string quality in new List<string> { "1080", "720", "480", "360" })
+                            {
+                                string link = Regex.Match(episode.file, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{quality}.(mp4|m3u8))").Groups[1].Value;
+                                if (string.IsNullOrEmpty(link))
+                                    continue;
+
+                                streams.Add((onstreamfile.Invoke(link), $"{quality}p"));
+                            }
+
+                            if (streams.Count == 0)
+                                continue;
+
+                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return rjson ? etpl.ToJson() : etpl.ToHtml();
+                    }
+
+                    if (md.serial.First().folder == null)
+                    {
+                        if (s == -1)
+                        {
+                            var tpl = new SeasonTpl(md.quality);
+                            string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s=1";
+                            tpl.Append("1 сезон", link, 1);
+
+                            return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        }
+                        else
+                        {
+                            return finEpisode(md.serial);
+                        }
                     }
                     else
                     {
-                        return finEpisode(md.serial.First(i => i.title.StartsWith($"{s} ")).folder);
+                        if (s == -1)
+                        {
+                            var tpl = new SeasonTpl(md.quality);
+
+                            foreach (var item in md.serial)
+                            {
+                                string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
+                                string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s={season}";
+                                tpl.Append($"{season} сезон", link, season);
+                            }
+
+                            return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        }
+                        else
+                        {
+                            return finEpisode(md.serial.First(i => i.title.StartsWith($"{s} ")).folder);
+                        }
                     }
+                    #endregion
                 }
                 #endregion
             }

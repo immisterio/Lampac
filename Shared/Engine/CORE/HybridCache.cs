@@ -129,13 +129,9 @@ namespace Shared.Engine.CORE
             if (!isText && !isConstructor && !isValueType)
                 return false;
 
-            string path = $"{folderCache}/{CrypTo.md5(key)}";
-            if (!File.Exists(path))
-                return false;
-
             try
             {
-                string content = BrotliTo.Decompress(path);
+                string content = BrotliTo.Decompress($"{folderCache}/{CrypTo.md5(key)}");
 
                 if (isConstructor || isValueType)
                     value = JsonConvert.DeserializeObject<TItem>(content);

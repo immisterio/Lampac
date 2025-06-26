@@ -31,7 +31,7 @@ namespace Lampac.Engine.CRON
                         if (sync.sync_full)
                         {
                             init.sync = sync;
-                            AppInit.cacheconf.Item1 = init;
+                            AppInit.conf = init;
                         }
                         else
                         {

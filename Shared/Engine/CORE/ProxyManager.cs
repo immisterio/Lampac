@@ -62,7 +62,7 @@ namespace Shared.Engine.CORE
             {
                 ProxySettings p = ConfigureProxy(p_orig);
 
-                if (p?.list == null || p.list.Count == 0)
+                if (p?.list == null || p.list.Length == 0)
                     return default;
 
                 if (!database.TryGetValue(key, out ProxyManagerModel val) || val.proxyip == null || !p.list.Contains(val.proxyip))
@@ -85,7 +85,7 @@ namespace Shared.Engine.CORE
             }
 
 
-            if ((conf.proxy?.list != null && conf.proxy.list.Count > 0) || !string.IsNullOrEmpty(conf.proxy?.file) || !string.IsNullOrEmpty(conf.proxy?.url))
+            if ((conf.proxy?.list != null && conf.proxy.list.Length > 0) || !string.IsNullOrEmpty(conf.proxy?.file) || !string.IsNullOrEmpty(conf.proxy?.url))
             {
                 return proxy(conf.proxy, $"{plugin}:conf");
             }
@@ -187,7 +187,7 @@ namespace Shared.Engine.CORE
             ProxySettings p = (ProxySettings)orig.Clone();
 
             if (!string.IsNullOrEmpty(p.file) && File.Exists(p.file))
-                p.list = new ConcurrentBag<string>(File.ReadAllLines(p.file));
+                p.list = File.ReadAllLines(p.file);
 
             if (!string.IsNullOrEmpty(p.url))
             {
@@ -209,7 +209,7 @@ namespace Shared.Engine.CORE
                     memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(list.Count == 0 ? 4 : 15));
                 }
 
-                p.list = new ConcurrentBag<string>(list);
+                p.list = list.ToArray();
             }
 
             return p;

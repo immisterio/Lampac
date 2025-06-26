@@ -44,11 +44,11 @@ namespace Lampac.Engine.CORE
                 handler.UseCookies = true; //<-- Enable the use of cookies.
             }
 
-            if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Count > 0)
+            if (AppInit.conf.globalproxy != null && AppInit.conf.globalproxy.Length > 0)
             {
                 foreach (var p in AppInit.conf.globalproxy)
                 {
-                    if (p.list == null || p.list.Count == 0 || p.pattern == null)
+                    if (p.list == null || p.list.Length == 0 || p.pattern == null)
                         continue;
 
                     if (Regex.IsMatch(url, p.pattern, RegexOptions.IgnoreCase))
