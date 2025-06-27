@@ -70,11 +70,31 @@ namespace Lampac.Engine.Middlewares
                 return;
             }
 
+            #region checker
             if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
             {
+                if (HttpMethods.IsPost(httpContext.Request.Method))
+                {
+                    if (httpContext.Request.ContentType != null &&
+                        httpContext.Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using var reader = new StreamReader(httpContext.Request.Body, leaveOpen: true);
+                        string form = await reader.ReadToEndAsync().ConfigureAwait(false);
+
+                        var match = Regex.Match(form, @"(?:^|&)data=([^&]+)");
+                        if (match.Success)
+                        {
+                            string dataValue = Uri.UnescapeDataString(match.Groups[1].Value);
+                            await httpContext.Response.WriteAsync(dataValue, httpContext.RequestAborted).ConfigureAwait(false);
+                            return;
+                        }
+                    }
+                }
+
                 await httpContext.Response.WriteAsync("ok", httpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
+            #endregion
 
             if (uri.StartsWith("api/plugins/blacklist"))
             {

@@ -152,6 +152,16 @@ namespace Lampac.Controllers.NextHUB
                                 }
                                 #endregion
 
+                                #region patternAbortEnd
+                                if (init.view.patternAbortEnd != null && Regex.IsMatch(route.Request.Url, init.view.patternAbortEnd, RegexOptions.IgnoreCase))
+                                {
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
+                                #endregion
+
+                                #region abortMedia
                                 if (init.view.abortMedia || init.view.fullCacheJS)
                                 {
                                     if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: init.view.abortMedia, fullCacheJS: init.view.fullCacheJS))
@@ -161,6 +171,7 @@ namespace Lampac.Controllers.NextHUB
                                 {
                                     PlaywrightBase.ConsoleLog($"Playwright: {route.Request.Method} {route.Request.Url}");
                                 }
+                                #endregion
 
                                 await route.ContinueAsync();
                             }
@@ -169,7 +180,7 @@ namespace Lampac.Controllers.NextHUB
                         #endregion
 
                         #region GotoAsync
-                        string html = null;
+                        resetGotoAsync: string html = null;
                         var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
                         if (responce != null)
                             html = await responce.TextAsync().ConfigureAwait(false);
@@ -281,29 +292,32 @@ namespace Lampac.Controllers.NextHUB
                             cache.file = await browser.WaitPageResult().ConfigureAwait(false);
                         }
 
-                        #region related
-                        if (!string.IsNullOrEmpty(cache.file))
+                        if (string.IsNullOrEmpty(cache.file))
                         {
-                            if (init.view.related)
+                            proxyManager.Refresh();
+                            return default;
+                        }
+
+                        #region related
+                        if (init.view.related && cache.recomends == null)
+                        {
+                            if (init.view.NetworkIdle)
                             {
-                                if (init.view.NetworkIdle)
-                                {
-                                    string contetnt = await page.ContentAsync().ConfigureAwait(false);
-                                    cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, contetnt, plugin);
-                                }
-                                else
-                                {
-                                    cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, html, plugin);
-                                }
+                                string contetnt = await page.ContentAsync().ConfigureAwait(false);
+                                cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, contetnt, plugin);
+                            }
+                            else
+                            {
+                                cache.recomends = ListController.goPlaylist(host, init.view.contentParse ?? init.contentParse, init, html, plugin);
                             }
                         }
                         #endregion
-                    }
 
-                    if (string.IsNullOrEmpty(cache.file))
-                    {
-                        proxyManager.Refresh();
-                        return default;
+                        if (cache.file.StartsWith("GotoAsync:"))
+                        {
+                            url = cache.file.Replace("GotoAsync:", "").Trim();
+                            goto resetGotoAsync;
+                        }
                     }
 
                     cache.file = cache.file.Replace("\\", "").Replace("&amp;", "&");
