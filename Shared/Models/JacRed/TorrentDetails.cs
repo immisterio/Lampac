@@ -1,6 +1,4 @@
 ﻿using JacRed.Models.Tracks;
-using System;
-using System.Collections.Generic;
 
 namespace JacRed.Models
 {

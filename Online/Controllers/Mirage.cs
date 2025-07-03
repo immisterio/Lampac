@@ -290,9 +290,9 @@ namespace Lampac.Controllers.LITE
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
-                var root = await HttpClient.Post<JObject>($"{init.linkhost}/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                var root = await HttpClient.Post<JObject>($"{init.linkhost}/api/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "*/*"),
-                    ("accepts-controls", $"{acceptsControls}|{acceptsId}"),
+                    ("acepts-controls", $"{acceptsControls}|{acceptsId}"),
                     ("origin", init.linkhost),
                     ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
                     ("sec-fetch-dest", "empty"),
@@ -302,7 +302,7 @@ namespace Lampac.Controllers.LITE
                 )));
 
                 if (root == null || !root.ContainsKey("hlsSource"))
-                    return null;
+                    return OnError();
 
                 foreach (var item in root["hlsSource"])
                 {
@@ -320,7 +320,7 @@ namespace Lampac.Controllers.LITE
             }
 
             var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                ("accepts-controls", $"{acceptsControls}|{acceptsId}"),
+                ("acepts-controls", $"{acceptsControls}|{acceptsId}"),
                 ("origin", init.linkhost),
                 ("referer", $"{init.linkhost}/"),
                 ("sec-fetch-dest", "empty"),

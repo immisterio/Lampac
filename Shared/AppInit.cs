@@ -376,7 +376,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "43e2769697bb4dd9e327d6cebae58719f8d4ae02"
+            tree = "16ac21a6dd7eab0334133695446f3fc5be62780b"
         };
 
         public OnlineConf online = new OnlineConf()

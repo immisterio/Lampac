@@ -136,7 +136,7 @@ namespace Lampac.Controllers.LITE
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"kodik:view:stream:{link}:{init.secret_token}";
+            string memKey = $"kodik:view:stream:{link}:{init.secret_token}:{userIp}";
             if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
             {
                 string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
