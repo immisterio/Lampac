@@ -343,7 +343,11 @@ namespace Lampac.Engine.Middlewares
             catch
             {
                 proxyManager.Refresh();
-                httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
+
+                if (!string.IsNullOrEmpty(tmdb_ip))
+                    httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
+                else
+                    httpContex.Response.Redirect(uri);
             }
         }
         #endregion

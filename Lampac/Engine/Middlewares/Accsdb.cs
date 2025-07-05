@@ -167,7 +167,7 @@ namespace Lampac.Engine.Middlewares
         #region IsLock
         static string logsLock = string.Empty;
 
-        bool IsLockHostOrUser(string account_email, in string userip, in string uri, out bool islock)
+        bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock)
         {
             if (string.IsNullOrEmpty(account_email))
             {
@@ -254,7 +254,7 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        bool IsLockIpHour(in string account_email, in string userip, out bool islock, out HashSet<string> ips)
+        bool IsLockIpHour(string account_email, string userip, out bool islock, out HashSet<string> ips)
         {
             string memKeyLocIP = $"Accsdb:IsLockIpHour:{account_email}:{DateTime.Now.Hour}";
 
@@ -279,7 +279,7 @@ namespace Lampac.Engine.Middlewares
             return islock;
         }
 
-        bool IsLockReqHour(in string account_email, in string uri, out bool islock, out HashSet<string> urls)
+        bool IsLockReqHour(string account_email, string uri, out bool islock, out HashSet<string> urls)
         {
             if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|ts/|dlna/|storage/|tmdb/|timecode)"))
             {

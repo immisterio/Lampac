@@ -265,7 +265,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region getContentType
-        static string getContentType(in string uri)
+        static string getContentType(string uri)
         {
             return Path.GetExtension(uri).ToLowerInvariant() switch
             {

@@ -37,19 +37,19 @@ namespace Shared.Engine.CORE
 
         public static HttpClient CreateClient
         (
-            in string name, 
+            string name, 
             HttpClientHandler handler, 
-            in string factoryClient, 
+            string factoryClient, 
             Dictionary<string, string> headers = null, 
-            in int timeoutSeconds = 8,
-            in long MaxResponseContentBufferSize = 0,
-            in string cookie = null,
-            in string referer = null,
-            in bool useDefaultHeaders = true, 
+            int timeoutSeconds = 8,
+            long MaxResponseContentBufferSize = 0,
+            string cookie = null,
+            string referer = null,
+            bool useDefaultHeaders = true, 
             Action<HttpClient> updateClient = null
         )
         {
-            if (handler != null && handler.CookieContainer.Count > 0 || httpcore.httpClientFactory == null)
+            if ((handler != null && handler.CookieContainer.Count > 0) || httpcore.httpClientFactory == null)
             {
                 var client = new HttpClient(handler);
                 client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);

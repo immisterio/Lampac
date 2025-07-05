@@ -109,7 +109,7 @@ namespace Shared.Engine.CORE
             if (!refresh)
                 return;
 
-            void update(ProxySettings p, in string key)
+            void update(ProxySettings p, string key)
             {
                 if (database.TryGetValue(key, out ProxyManagerModel val))
                 {

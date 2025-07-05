@@ -101,7 +101,7 @@ namespace Shared.PlaywrightCore
         }
 
 
-        public Task<IPage> NewPageAsync(in string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, in bool keepopen = true, in bool imitationHuman = false)
+        public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {
             try
             {
@@ -135,7 +135,7 @@ namespace Shared.PlaywrightCore
             catch { }
         }
 
-        public Task<string> WaitPageResult(in int seconds = 10)
+        public Task<string> WaitPageResult(int seconds = 10)
         {
             try
             {

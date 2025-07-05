@@ -28,17 +28,20 @@ namespace Lampac.Engine.CORE
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
 
                     try
                     {
-                        foreach (var client in clients)
+                        await Parallel.ForEachAsync(clients.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = 10 }, async (client, cancellationToken) =>
                         {
-                            var rch = new RchClient(client.Key);
-                            string result = await rch.Get($"{client.Value.host}/ping");
-                            if (result != "pong")
-                                OnDisconnected(client.Key);
-                        }
+                            if (clients.ContainsKey(client.Key))
+                            {
+                                var rch = new RchClient(client.Key);
+                                string result = await rch.SendHub($"{client.Value.host}/ping");
+                                if (result != "pong")
+                                    OnDisconnected(client.Key);
+                            }
+                        }).ConfigureAwait(false);
                     }
                     catch { }
                 }
