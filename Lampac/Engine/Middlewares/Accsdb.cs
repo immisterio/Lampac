@@ -111,7 +111,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|admin|rch/result|merchant/payconfirm|bind|cub)(/|$)|(extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|([^/]+/)?css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|headers|myip|geo|version|weblog|stats|admin|rch|merchant/payconfirm|bind|cub)(/|$)|(ping|extensions|kit)$|on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind)|([^/]+/)?app\\.min\\.js|([^/]+/)?css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
                 {
                     bool limitip = false;
 

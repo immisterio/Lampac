@@ -6,6 +6,7 @@ using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Models;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Lampac.Engine.CORE
 {
@@ -21,22 +22,46 @@ namespace Lampac.Engine.CORE
     public class RchClient
     {
         #region static
+        static RchClient()
+        {
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+
+                    try
+                    {
+                        foreach (var client in clients)
+                        {
+                            var rch = new RchClient(client.Key);
+                            string result = await rch.Get($"{client.Value.host}/ping");
+                            if (result != "pong")
+                                OnDisconnected(client.Key);
+                        }
+                    }
+                    catch { }
+                }
+            });
+        }
+
+
         public static string ErrorMsg => AppInit.conf.rch.enable ? "rhub не работает с данным балансером" : "Включите rch в init.conf";
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        public static ConcurrentDictionary<string, (string ip, string json, RchClientInfo info)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo)>();
+        public static ConcurrentDictionary<string, (string ip, string host, string json, RchClientInfo info)> clients = new ConcurrentDictionary<string, (string, string, string, RchClientInfo)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
-        public static void Registry(string ip, string connectionId, string json = null)
+        public static void Registry(string ip, string connectionId, string host = null, string json = null)
         {
-            clients.AddOrUpdate(connectionId, (ip, json, default), (i,j) => (ip, json, default));
+            clients.AddOrUpdate(connectionId, (ip, host, json, default), (i,j) => (ip, host, json, default));
         }
 
 
-        public static void OnDisconnected(in string connectionId)
+        public static void OnDisconnected(string connectionId)
         {
             clients.TryRemove(connectionId, out _);
         }
@@ -54,9 +79,14 @@ namespace Lampac.Engine.CORE
 
         public string connectionMsg { get; private set; }
 
-        public string ipkey(in string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
+        public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
 
-        public RchClient(HttpContext context, in string host, BaseSettings init, RequestModel requestInfo, in int? keepalive = null)
+        public RchClient(string connectionId) 
+        {
+            this.connectionId = connectionId;
+        }
+
+        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo, int? keepalive = null)
         {
             this.init = init;
             httpContext = context;
@@ -250,7 +280,7 @@ namespace Lampac.Engine.CORE
         #region IsNotConnected
         public bool IsNotConnected() => IsNotConnected(ip);
 
-        public bool IsNotConnected(in string ip)
+        public bool IsNotConnected(string ip)
         {
             if (!enableRhub)
                 return false; // rch не используется
@@ -263,7 +293,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region IsNotSupport
-        public bool IsNotSupport(in string rch_deny, out string rch_msg)
+        public bool IsNotSupport(string rch_deny, out string rch_msg)
         {
             rch_msg = null;
 
@@ -312,7 +342,7 @@ namespace Lampac.Engine.CORE
                 try
                 {
                     info = JsonConvert.DeserializeObject<RchClientInfo>(client.Value.json);
-                    clients[client.Key] = (client.Value.ip, null, info);
+                    clients[client.Key] = (client.Value.ip, client.Value.host, null, info);
                 }
                 catch { return default; }
             }

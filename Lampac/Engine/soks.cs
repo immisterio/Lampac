@@ -26,8 +26,9 @@ namespace Lampac.Engine
             if (!AppInit.conf.rch.enable)
                 return;
 
-            var requestInfo = Context.GetHttpContext().Features.Get<RequestModel>();
-            RchClient.Registry(requestInfo.IP, Context.ConnectionId, json);
+            var httpContext = Context.GetHttpContext();
+            var requestInfo = httpContext.Features.Get<RequestModel>();
+            RchClient.Registry(requestInfo.IP, Context.ConnectionId, AppInit.Host(httpContext), json);
         }
 
         /// <summary>

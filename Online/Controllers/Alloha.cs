@@ -1,18 +1,20 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Web;
-using Newtonsoft.Json.Linq;
-using System.Linq;
-using Lampac.Engine.CORE;
-using Lampac.Models.LITE.Alloha;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Templates;
-using Newtonsoft.Json;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
+using Lampac.Models.LITE.Alloha;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Online;
+using Shared.Engine;
+using Shared.Engine.CORE;
 using Shared.Model.Base;
+using Shared.Model.Online;
+using Shared.Model.Templates;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -158,90 +160,182 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            var proxy = proxyManager.Get();
+            var proxy = proxyManager.BaseGet();
 
-            string userIp = requestInfo.IP;
-            if (init.localip || init.streamproxy)
+            if (!string.IsNullOrEmpty(init.secret_token))
             {
-                userIp = await mylocalip();
-                if (userIp == null)
-                    return OnError("userIp");
-            }
+                #region Прямые ссылки
+                string userIp = requestInfo.IP;
+                if (init.localip || init.streamproxy)
+                {
+                    userIp = await mylocalip();
+                    if (userIp == null)
+                        return OnError("userIp");
+                }
 
-            string memKey = $"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
-            if (!hybridCache.TryGetValue(memKey, out JToken data))
-            {
-                #region url запроса
-                string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&token_movie={token_movie}";
+                string memKey = $"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
+                if (!hybridCache.TryGetValue(memKey, out JToken data))
+                {
+                    #region url запроса
+                    string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&token_movie={token_movie}";
 
-                uri += $"&ip={userIp}&translation={t}";
+                    uri += $"&ip={userIp}&translation={t}";
 
-                if (s > 0)
-                    uri += $"&season={s}";
+                    if (s > 0)
+                        uri += $"&season={s}";
 
-                if (e > 0)
-                    uri += $"&episode={e}";
+                    if (e > 0)
+                        uri += $"&episode={e}";
 
-                if (init.m4s)
-                    uri += "&av1=true";
+                    if (init.m4s)
+                        uri += "&av1=true";
 
-                if (directors_cut)
-                    uri += "&directors_cut";
+                    if (directors_cut)
+                        uri += "&directors_cut";
+                    #endregion
+
+                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                    if (root == null)
+                        return OnError("json", proxyManager);
+
+                    if (!root.ContainsKey("data"))
+                        return OnError("data");
+
+                    proxyManager.Success();
+
+                    data = root["data"];
+                    hybridCache.Set(memKey, data, cacheTime(10, init: init));
+                }
+
+                #region subtitle
+                var subtitles = new SubtitleTpl();
+
+                try
+                {
+                    foreach (var sub in data["file"]["tracks"])
+                        subtitles.Append(sub.Value<string>("label"), sub.Value<string>("src"));
+                }
+                catch { }
                 #endregion
 
-                var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
-                if (root == null)
-                    return OnError("json", proxyManager);
+                List<(string link, string quality)> streams = null;
 
-                if (!root.ContainsKey("data"))
-                    return OnError("data");
-
-                proxyManager.Success();
-
-                data = root["data"];
-                hybridCache.Set(memKey, data, cacheTime(10, init: init));
-            }
-
-            #region subtitle
-            var subtitles = new SubtitleTpl();
-
-            try
-            {
-                foreach (var sub in data["file"]["tracks"])
-                    subtitles.Append(sub.Value<string>("label"), sub.Value<string>("src"));
-            }
-            catch { }
-            #endregion
-
-            List<(string link, string quality)> streams = null;
-
-            foreach (var hlsSource in data["file"]["hlsSource"])
-            {
-                // first or default
-                if (streams == null || hlsSource.Value<bool>("default"))
+                foreach (var hlsSource in data["file"]["hlsSource"])
                 {
-                    streams = new List<(string link, string quality)>(6);
-
-                    foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
+                    // first or default
+                    if (streams == null || hlsSource.Value<bool>("default"))
                     {
-                        string file = q.Value;
-                        if (init.reserve)
-                            file += " or " + hlsSource["reserve"][q.Key].ToString();
+                        streams = new List<(string link, string quality)>(6);
 
-                        streams.Add((HostStreamProxy(init, file, proxy: proxy), $"{q.Key}p"));
+                        foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
+                        {
+                            string file = q.Value;
+                            if (init.reserve)
+                                file += " or " + hlsSource["reserve"][q.Key].ToString();
+
+                            streams.Add((HostStreamProxy(init, file, proxy: proxy.proxy), $"{q.Key}p"));
+                        }
                     }
                 }
+
+                if (play)
+                    return Redirect(streams[0].link);
+
+                return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title),
+                    streamquality: new StreamQualityTpl(streams),
+                    vast: init.vast,
+                    subtitles: subtitles,
+                    hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+                ));
+                #endregion
             }
+            else
+            {
+                #region Playwright
+                if (Firefox.Status == PlaywrightStatus.disabled)
+                    return OnError();
 
-            if (play)
-                return Redirect(streams[0].link);
+                string memKey = $"alloha:black_magic:{proxy.data.ip}:{token_movie}:{t}:{s}:{e}";
+                if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
+                {
+                    using (var browser = new Firefox())
+                    {
+                        var headers = httpHeaders(init, HeadersModel.Init(
+                            ("sec-fetch-dest", "iframe"),
+                            ("sec-fetch-mode", "navigate"),
+                            ("sec-fetch-site", "cross-site"),
+                            ("referer", $"https://alloha.tv/")
+                        ));
 
-            return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title),
-                streamquality: new StreamQualityTpl(streams),
-                vast: init.vast,
-                subtitles: subtitles,
-                hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
-            ));
+                        cache.headers = new List<HeadersModel>();
+
+                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers.ToDictionary()).ConfigureAwait(false);
+                        if (page == null)
+                            return null;
+
+                        await page.AddInitScriptAsync("localStorage.setItem('allplay', '{\"captionParam\":{\"fontSize\":\"100%\",\"colorText\":\"Белый\",\"colorBackground\":\"Черный\",\"opacityText\":\"100%\",\"opacityBackground\":\"75%\",\"styleText\":\"Без контура\",\"weightText\":\"Обычный текст\"},\"quality\":" + (init.m4s ? "2160" : "1080") + ",\"volume\":0.5,\"muted\":false,\"label\":\"(Russian) Forced\",\"captions\":true}');").ConfigureAwait(false);
+
+                        await page.RouteAsync("**/*", async route =>
+                        {
+                            try
+                            {
+                                if (browser.IsCompleted || route.Request.Url.Contains("blank.mp4") || route.Request.Url.Contains("googleapis.com"))
+                                {
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                if (route.Request.Url.Contains("/master.m3u8"))
+                                {
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                            continue;
+
+                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                    }
+
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
+                                    browser.IsCompleted = true;
+                                    browser.completionSource.SetResult(route.Request.Url);
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
+
+                                await route.ContinueAsync();
+                            }
+                            catch { }
+                        });
+
+                        string uri = $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}";
+                        if (s > 0)
+                            uri += $"&season={s}&episode={e}";
+
+                        PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(uri));
+                        cache.m3u8 = await browser.WaitPageResult(30);
+
+                        if (string.IsNullOrEmpty(cache.m3u8))
+                            return OnError();
+
+                        hybridCache.Set(memKey, cache, cacheTime(20, init: init));
+                    }
+                }
+
+                init.streamproxy = true; // force streamproxy
+                string m3u8 = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
+
+                if (play)
+                    return Redirect(m3u8);
+
+                return ContentTo(VideoTpl.ToJson("play", m3u8, title ?? original_title,
+                    vast: init.vast
+                ));
+                #endregion
+            }
         }
         #endregion
 
