@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/eneyida")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.Eneyida);
             if (await IsBadInitialization(init, rch: true))
@@ -21,9 +21,12 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return ShowError(rch_error);
 
             var oninvk = new EneyidaInvoke
             (
@@ -43,7 +46,10 @@ namespace Lampac.Controllers.LITE
                 return await oninvk.Embed(clarification == 1 ? title : original_title, year, href);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href));
+            if (IsRhubFallback(cache, init))
+                goto reset;
+
+            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson), gbcache: !rch.enable);
         }
     }
 }

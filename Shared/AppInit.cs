@@ -324,6 +324,7 @@ namespace Lampac
         public TmdbConf tmdb { get; set; } = new TmdbConf()
         {
             enable = true,
+            httpversion = 2,
             DNS = "9.9.9.9", DNS_TTL = 20,
             cache_api = 20, cache_img = 60, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
@@ -376,7 +377,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "00e58aff62232a606b470a492da6b4cb1629f3e5"
+            tree = "39e8a5e63049751791c643f93b2eb9efe5a46e6d"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -633,6 +634,8 @@ namespace Lampac
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
+
+        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy");
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1fr", streamproxy: true);
 
@@ -1078,18 +1081,6 @@ namespace Lampac
                 ("referer", "https://aniboom.one/")
             ).ToDictionary()
         };
-        #endregion
-
-
-
-        #region RIP
-        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("Voidboost", "kwwsv=22yrlgerrvw1qhw", streamproxy: true) { enable = false, rip = true };
-
-        public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("Seasonvar", "kwws=22dsl1vhdvrqydu1ux", enable: false, rip: true);
-
-        public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("Lostfilmhd", "kwws=22zzz1glvqh|oryh1ux", streamproxy: true, rip: true);
-
-        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rip: true);
         #endregion
     }
 }

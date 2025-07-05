@@ -848,10 +848,10 @@ namespace Lampac.Controllers
             if (kinopoisk_id > 0)
                 send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
 
-            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)");
-
             if (!isanime)
                 send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
+
+            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)", rch_access: "apk,cors");
 
             #region Collaps
             {
