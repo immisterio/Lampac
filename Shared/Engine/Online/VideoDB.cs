@@ -18,7 +18,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
 
-        public VideoDBInvoke(in string? host, in string? apihost, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VideoDBInvoke(string? host, string? apihost, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
@@ -88,7 +88,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string args, in long kinopoisk_id, in string? title, in string? original_title, string? t, int s, int sid, in bool rjson, in bool bwa = false, in bool rhub = false)
+        public string Html(EmbedModel? root, string args, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson, bool bwa = false, bool rhub = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;

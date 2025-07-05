@@ -19,7 +19,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public KinoPubInvoke(in string? host, in string apihost, in string? token, Func<string, ValueTask<string?>> onget, Func<string, string?, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KinoPubInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string?, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -127,7 +127,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, in string? filetype, in string? title, in string? original_title, in int postid, int s = -1, int t = -1, string? codec = null, VastConf vast = null, in bool rjson = false)
+        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, int t = -1, string? codec = null, VastConf vast = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;

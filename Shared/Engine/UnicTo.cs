@@ -7,7 +7,7 @@ namespace Shared.Engine
         static string ArrayList => "qwertyuioplkjhgfdsazxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM1234567890";
         static string ArrayListToNumber => "1234567890";
 
-        public static string Code(in int size = 8, in bool IsNumberCode = false)
+        public static string Code(int size = 8, bool IsNumberCode = false)
         {
             StringBuilder array = new StringBuilder();
             for (int i = 0; i < size; i++)
@@ -18,7 +18,7 @@ namespace Shared.Engine
             return array.ToString();
         }
 
-        public static string Number(in int size = 8)
+        public static string Number(int size = 8)
         {
             StringBuilder array = new StringBuilder();
             for (int i = 0; i < size; i++)

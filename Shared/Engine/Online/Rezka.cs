@@ -33,7 +33,7 @@ namespace Shared.Engine.Online
             onlog?.Invoke($"rezka: {msg}\n");
         }
 
-        public RezkaInvoke(in string? host, in string apihost, in string? scheme, in bool hls, in bool reserve, in bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool reserve, bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -254,7 +254,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, in string? title, in string? original_title, in int s, in string? href, in bool showstream, in bool rjson = false)
+        public string Html(EmbedModel? result, string args, string? title, string? original_title, int s, string? href, bool showstream, bool rjson = false)
         {
             if (result == null || result.IsEmpty || result.content == null)
                 return string.Empty;
@@ -478,7 +478,7 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, string args, in string? title, in string? original_title, in string? href, in long id, in int t, in int s, in bool showstream, in bool rjson = false)
+        public string Serial(Episodes? root, EmbedModel? result, string args, string? title, string? original_title, string? href, long id, int t, int s, bool showstream, bool rjson = false)
         {
             if (root == null || result == null)
                 return string.Empty;
@@ -653,7 +653,7 @@ namespace Shared.Engine.Online
             return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
         }
 
-        public string Movie(MovieModel md, in string? title, in string? original_title, in bool play, VastConf vast = null)
+        public string Movie(MovieModel md, string? title, string? original_title, bool play, VastConf vast = null)
         {
             if (play)
                 return onstreamfile(md.links[0].stream_url!);
@@ -736,7 +736,7 @@ namespace Shared.Engine.Online
             var links = new List<ApiModel>() { Capacity = 6 };
 
             #region getLink
-            string? getLink(in string _q)
+            string? getLink(string _q)
             {
                 string qline = Regex.Match(data, $"\\[{_q}\\]([^,\\[]+)").Groups[1].Value;
                 if (!qline.Contains(".mp4") && !qline.Contains(".m3u8"))
@@ -826,7 +826,7 @@ namespace Shared.Engine.Online
 
 
         #region fixcdn
-        public static string fixcdn(in string? country, in string? uacdn, in string link)
+        public static string fixcdn(string? country, string? uacdn, string link)
         {
             if (uacdn != null && country == "UA" && !link.Contains(".vtt"))
                 return Regex.Replace(link, "https?://[^/]+", uacdn);
@@ -836,7 +836,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region StreamProxyHeaders
-        public static List<HeadersModel> StreamProxyHeaders(in string host) => HeadersModel.Init(
+        public static List<HeadersModel> StreamProxyHeaders(string host) => HeadersModel.Init(
             ("accept", "*/*"),
             ("cache-control", "no-cache"),
             ("dnt", "1"),

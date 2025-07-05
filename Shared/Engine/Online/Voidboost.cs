@@ -57,7 +57,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(string? content, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string? t)
+        public string Html(in string? content, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string? t)
         {
             if (string.IsNullOrEmpty(content))
                 return string.Empty;

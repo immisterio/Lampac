@@ -78,7 +78,7 @@ namespace Shared.Engine.Online
             if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
                 return string.Empty;
 
-            string fixStream(in string _l) => _l.Replace("0yql3tj", "oyql3tj");
+            string fixStream(string _l) => _l.Replace("0yql3tj", "oyql3tj");
 
             if (md.content != null)
             {

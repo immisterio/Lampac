@@ -5,14 +5,14 @@ namespace Shared.Engine.SISI
 {
     public static class RunetkiTo
     {
-        public static ValueTask<string?> InvokeHtml(in string host, in string? sort, in int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string?> InvokeHtml(string host, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
         {
             string url = host + $"/tools/listing_v3.php?livetab={sort ?? "all"}&offset={(pg > 1 ? ((pg-1) * 72) : 0)}&limit=72";
 
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(in string? html, out int total_pages, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(in string html, out int total_pages, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             total_pages = 0;
 
@@ -66,7 +66,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, in string? sort)
+        public static List<MenuItem> Menu(string? host, string? sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
 

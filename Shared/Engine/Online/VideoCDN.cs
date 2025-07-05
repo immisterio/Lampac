@@ -135,7 +135,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            string? Decode(in string pass, in string src)
+            string? Decode(string pass, string src)
             {
                 try
                 {
@@ -236,7 +236,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, in string? imdb_id, in long kinopoisk_id, in string? title, in string? original_title, string t, int s, in bool rjson = false)
+        public string Html(EmbedModel? result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false)
         {
             if (result == null)
                 return string.Empty;

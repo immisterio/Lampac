@@ -399,7 +399,7 @@ namespace Lampac.Controllers
             var piders = new List<(string name, string uri, int index)>();
 
             #region send
-            void send(BaseSettings init, in string plugin = null)
+            void send(BaseSettings init, string plugin = null)
             {
                 if (!init.spider || !init.enable || init.rip)
                     return;
@@ -609,7 +609,7 @@ namespace Lampac.Controllers
             #endregion
 
             #region send
-            void send(BaseSettings _init, in string plugin = null, in string name = null, in string arg_title = null, in string arg_url = null, in string rch_access = null, BaseSettings myinit = null)
+            void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, string rch_access = null, BaseSettings myinit = null)
             {
                 var init = myinit != null ? _init : loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;

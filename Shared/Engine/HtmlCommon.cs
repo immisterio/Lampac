@@ -13,7 +13,7 @@ namespace Shared.Engine
         }
 
 
-        public string NodeValue(in string node, in string attribute = null, in string removeChild = null)
+        public string NodeValue(in string node, string attribute = null, string removeChild = null)
         {
             if (string.IsNullOrEmpty(node) && !string.IsNullOrEmpty(attribute))
             {
@@ -35,13 +35,13 @@ namespace Shared.Engine
         }
 
 
-        public string Match(in string pattern, int index = 1)
+        public string Match(string pattern, int index = 1)
         {
             return new Regex(pattern, RegexOptions.IgnoreCase).Match(row.InnerHtml).Groups[index].Value.Trim();
         }
 
 
-        public static int Integer(in string value)
+        public static int Integer(string value)
         {
             if (string.IsNullOrEmpty(value))
                 return 0;

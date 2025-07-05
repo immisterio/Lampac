@@ -197,7 +197,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region HMAC
-        static string HMAC(in string key, in string message)
+        static string HMAC(string key, string message)
         {
             using (var hash = new HMACSHA256(Encoding.UTF8.GetBytes(key)))
             {

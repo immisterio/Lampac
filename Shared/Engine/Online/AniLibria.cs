@@ -15,7 +15,7 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Action? requesterror;
 
-        public AniLibriaInvoke(in string? host, in string apihost, Func<string, ValueTask<List<RootObject>?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
+        public AniLibriaInvoke(string? host, string apihost, Func<string, ValueTask<List<RootObject>?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -55,7 +55,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<RootObject>? result, in string title, string code, in int year, in bool rjson = false, VastConf vast = null, in bool similar = false)
+        public string Html(List<RootObject>? result, string title, string code, int year, bool rjson = false, VastConf vast = null, bool similar = false)
         {
             if (result == null || result.Count == 0)
                 return string.Empty;

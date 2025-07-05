@@ -19,7 +19,7 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Action? requesterror;
 
-        public CollapsInvoke(in string? host, in string apihost, in bool dash, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
+        public CollapsInvoke(string? host, string apihost, bool dash, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -64,7 +64,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, in string? imdb_id, in long kinopoisk_id, in long orid, in string? title, in string? original_title, int s, in bool rjson = false, List<HeadersModel>? headers = null, VastConf? vast = null)
+        public string Html(EmbedModel? md, string? imdb_id, long kinopoisk_id, long orid, string? title, string? original_title, int s, bool rjson = false, List<HeadersModel>? headers = null, VastConf? vast = null)
         {
             if (md == null)
                 return string.Empty;

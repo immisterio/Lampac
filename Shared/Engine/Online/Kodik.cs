@@ -130,7 +130,7 @@ namespace Shared.Engine.Online
             catch { return null; }
         }
 
-        public List<Result> Embed(List<Result> results, in string pick)
+        public List<Result> Embed(List<Result> results, string pick)
         {
             var content = new List<Result>(results.Count);
 
@@ -147,7 +147,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Result> results, string args, in string? imdb_id, in long kinopoisk_id, in string? title, in string? original_title, in int clarification, in string? pick, string? kid, in int s, in bool showstream, in bool rjson)
+        public string Html(List<Result> results, string args, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string? pick, string? kid, int s, bool showstream, bool rjson)
         {
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -350,7 +350,7 @@ namespace Shared.Engine.Online
             return streams;
         }
 
-        public string VideoParse(List<StreamModel>? streams, in string? title, in string? original_title, in int episode, in bool play, VastConf? vast = null)
+        public string VideoParse(List<StreamModel>? streams, string? title, string? original_title, int episode, bool play, VastConf? vast = null)
         {
             if (streams == null || streams.Count == 0)
                 return string.Empty;
@@ -372,7 +372,7 @@ namespace Shared.Engine.Online
 
 
         #region DecodeUrlBase64
-        static string DecodeUrlBase64(in string s)
+        static string DecodeUrlBase64(string s)
         {
             return Encoding.UTF8.GetString(Convert.FromBase64String(s.Replace('-', '+').Replace('_', '/').PadRight(4 * ((s.Length + 3) / 4), '=')));
         }

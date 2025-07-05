@@ -4,7 +4,7 @@ namespace Shared.Model.SISI
 {
     public struct OnStreamResult
     {
-        public OnStreamResult(Dictionary<string, string> qualitys, Dictionary<string, string>? qualitys_proxy, Dictionary<string, string>? headers_stream, in IList<OnResultPlaylistItem>? recomends)
+        public OnStreamResult(Dictionary<string, string> qualitys, Dictionary<string, string>? qualitys_proxy, Dictionary<string, string>? headers_stream, IList<OnResultPlaylistItem>? recomends)
         {
             this.qualitys = qualitys;
             this.qualitys_proxy = qualitys_proxy;

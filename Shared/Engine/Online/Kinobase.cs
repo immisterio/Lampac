@@ -23,7 +23,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public KinobaseInvoke(in string? host, KinobaseSettings init, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KinobaseInvoke(string? host, KinobaseSettings init, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.init = init;
             this.host = host != null ? $"{host}/" : null;

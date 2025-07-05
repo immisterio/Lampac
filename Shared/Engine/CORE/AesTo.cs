@@ -38,7 +38,7 @@ namespace Shared.Engine.CORE
             decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
         }
 
-        public static string Encrypt(in string plainText)
+        public static string Encrypt(string plainText)
         {
             try
             {
@@ -59,7 +59,7 @@ namespace Shared.Engine.CORE
             catch { return null; }
         }
 
-        public static string Decrypt(in string cipherText)
+        public static string Decrypt(string cipherText)
         {
             try
             {

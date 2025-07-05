@@ -25,7 +25,7 @@ namespace Shared.Engine.Online
         Action? requesterror;
         bool rjson;
 
-        public FilmixInvoke(in string? host, in string apihost, in string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
+        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -267,7 +267,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, in bool pro, in int postid, in string? title, in string? original_title, in int t, in int? s, VastConf vast = null)
+        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf vast = null)
         {
             var player_links = root?.player_links;
             if (player_links == null)

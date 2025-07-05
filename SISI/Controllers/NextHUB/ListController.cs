@@ -147,7 +147,7 @@ namespace Lampac.Controllers.NextHUB
 
 
         #region goPlaylist
-        public static List<PlaylistItem> goPlaylist(in string host, ContentParseSettings parse, NxtSettings init, in string html, in string plugin)
+        public static List<PlaylistItem> goPlaylist(string host, ContentParseSettings parse, NxtSettings init, in string html, string plugin)
         {
             if (parse == null || string.IsNullOrEmpty(parse.nodes) || string.IsNullOrEmpty(html))
                 return null;
