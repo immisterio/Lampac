@@ -17,7 +17,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public AshdiInvoke(in string? host, in string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public AshdiInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -73,7 +73,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, in long kinopoisk_id, in string? title, in string? original_title, int t, int s, VastConf? vast = null, in bool rjson = false)
+        public string Html(EmbedModel? md, long kinopoisk_id, string? title, string? original_title, int t, int s, VastConf? vast = null, bool rjson = false)
         {
             if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
                 return string.Empty;

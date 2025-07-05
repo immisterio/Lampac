@@ -27,7 +27,7 @@ namespace Lampac.Engine.Middlewares
         public Task Invoke(HttpContext httpContext)
         {
             #region stats
-            if (AppInit.conf.openstat.enable)
+            if (AppInit.conf.openstat.enable && !httpContext.Request.Path.Value.StartsWith("/rch/") && !httpContext.Request.Path.Value.StartsWith("/ping"))
             {
                 string skey = $"stats:request:{DateTime.Now.Minute}";
                 if (!memoryCache.TryGetValue(skey, out long _req))

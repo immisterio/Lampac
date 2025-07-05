@@ -92,6 +92,7 @@ namespace Lampac.Engine.Middlewares
             }
 
             string path = httpContex.Request.Path.Value.Replace("/tmdb/api", "");
+            path = Regex.Replace(path, "^/https?://api.themoviedb.org", "");
             path = Regex.Replace(path, "/$", "");
 
             string query = Regex.Replace(httpContex.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
@@ -145,7 +146,7 @@ namespace Lampac.Engine.Middlewares
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
 
-            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: headers, statusCodeOK: false).ConfigureAwait(false);
+            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
             if (result.content == null)
             {
                 proxyManager.Refresh();
@@ -192,6 +193,8 @@ namespace Lampac.Engine.Middlewares
             }
 
             string path = httpContex.Request.Path.Value.Replace("/tmdb/img", "");
+            path = Regex.Replace(path, "^/https?://image.tmdb.org", "");
+
             string query = Regex.Replace(httpContex.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
             string uri = "https://image.tmdb.org" + path + query;
 
@@ -248,7 +251,7 @@ namespace Lampac.Engine.Middlewares
                 var handler = HttpClient.Handler(uri, proxyManager.Get());
                 handler.AllowAutoRedirect = true;
 
-                var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, "http2", headers?.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
+                var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
                 {
                     HttpClient.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
                 });
