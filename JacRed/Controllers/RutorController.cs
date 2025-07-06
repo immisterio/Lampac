@@ -14,7 +14,6 @@ using Shared.Engine;
 
 namespace Lampac.Controllers.JAC
 {
-    [Route("rutor/[action]")]
     public class RutorController : JacBaseController
     {
         #region search
@@ -29,7 +28,8 @@ namespace Lampac.Controllers.JAC
 
 
         #region parseMagnet
-        async public Task<ActionResult> parseMagnet(int id, string magnet)
+        [Route("rutor/parse.torrent")]
+        async public Task<ActionResult> parseMagnet(int id)
         {
             if (!jackett.Rutor.enable || jackett.Rutor.priority != "torrent")
                 return Content("disable");
@@ -41,11 +41,7 @@ namespace Lampac.Controllers.JAC
                 return File(_t, "application/x-bittorrent");
 
             proxyManager.Refresh();
-
-            if (string.IsNullOrEmpty(magnet))
-                return Content("empty");
-
-            return Redirect(magnet);
+            return Content("empty");
         }
         #endregion
 
@@ -103,7 +99,7 @@ namespace Lampac.Controllers.JAC
                     pir = HtmlCommon.Integer(pir),
                     sizeName = sizeName,
                     magnet = jackett.Rutor.priority == "torrent" ? null : magnet,
-                    parselink = jackett.Rutor.priority == "torrent" ? $"{host}/rutor/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
+                    parselink = jackett.Rutor.priority == "torrent" ? $"{host}/rutor/parse.torrent?id={viewtopic}" : null,
                     createTime = tParse.ParseCreateTime(createTime, "dd.MM.yy")
                 });
             }
