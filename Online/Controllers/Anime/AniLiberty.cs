@@ -48,16 +48,16 @@ namespace Lampac.Controllers.LITE
                     if (search == null || search.Count == 0)
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
+                    bool checkName = true;
                     catalog = new List<(string title, string year, int releases, string cover)>(search.Count);
 
-                    foreach (var anime in search)
+                    retry: foreach (var anime in search)
                     {
                         var name = anime["name"];
                         string name_main = StringConvert.SearchName(name.Value<string>("main"));
                         string name_english = StringConvert.SearchName(name.Value<string>("english"));
-                        string name_alternative = StringConvert.SearchName(name.Value<string>("alternative"));
 
-                        if ((name_main != null && name_main.StartsWith(stitle)) || (name_english != null && name_english.StartsWith(stitle)) || (name_alternative != null && name_alternative.StartsWith(stitle)))
+                        if (!checkName || (name_main != null && name_main.StartsWith(stitle)) || (name_english != null && name_english.StartsWith(stitle)))
                         {
                             int id = anime.Value<int>("id");
                             int releaseDate = anime.Value<int>("year");
@@ -72,7 +72,15 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (catalog.Count == 0)
+                    {
+                        if (checkName)
+                        {
+                            checkName = false;
+                            goto retry;
+                        }
+
                         return OnError();
+                    }
 
                     if (!rch.enable)
                         proxyManager.Success();
