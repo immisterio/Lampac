@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(stitle))
                     return OnError();
 
-                string memkey = $"aniliberty:search:{title}";
+                string memkey = $"aniliberty:search:{title}:{similar}";
                 if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, int releases, string cover)> catalog))
                 {
                     if (rch.IsNotConnected())
@@ -57,7 +57,7 @@ namespace Lampac.Controllers.LITE
                         string name_main = StringConvert.SearchName(name.Value<string>("main"));
                         string name_english = StringConvert.SearchName(name.Value<string>("english"));
 
-                        if (!checkName || (name_main != null && name_main.StartsWith(stitle)) || (name_english != null && name_english.StartsWith(stitle)))
+                        if (!checkName || similar || (name_main != null && name_main.StartsWith(stitle)) || (name_english != null && name_english.StartsWith(stitle)))
                         {
                             int id = anime.Value<int>("id");
                             int releaseDate = anime.Value<int>("year");
@@ -73,7 +73,7 @@ namespace Lampac.Controllers.LITE
 
                     if (catalog.Count == 0)
                     {
-                        if (checkName)
+                        if (checkName && similar == false)
                         {
                             checkName = false;
                             goto retry;
