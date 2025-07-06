@@ -82,23 +82,27 @@ namespace JacRed.Controllers
             {
                 #region red
                 string memoryKey = $"{ModInit.conf.typesearch}:{query}:{rqnum}:{title}:{title_original}:{year}:{is_serial}";
-                if (!hybridCache.TryGetValue(memoryKey, out torrents))
+                if (!hybridCache.TryGetValue(memoryKey, out List<TorrentDetails> _redCache))
                 {
                     var res = RedApi.Indexers(rqnum, apikey, query, title, title_original, year, is_serial, category);
 
-                    torrents = res.torrents;
+                    _redCache = res.torrents.ToList();
 
                     if (res.setcache && !red.evercache.enable)
-                        hybridCache.Set(memoryKey, torrents, DateTime.Now.AddMinutes(5));
+                        hybridCache.Set(memoryKey, _redCache, DateTime.Now.AddMinutes(5));
                 }
 
                 if (ModInit.conf.merge == "jackett")
                 {
                     torrents = mergeTorrents
                     (
-                        torrents,
+                        _redCache,
                         await JackettApi.Indexers(host, query, title, title_original, year, is_serial, category)
                     );
+                }
+                else
+                { 
+                    torrents = _redCache;
                 }
                 #endregion
             }

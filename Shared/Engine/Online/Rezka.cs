@@ -1,4 +1,5 @@
-﻿using Lampac.Models.LITE;
+﻿using Lampac.Engine.CORE;
+using Lampac.Models.LITE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.Rezka;
@@ -107,8 +108,8 @@ namespace Shared.Engine.Online
 
             log("search OK");
 
-            string? stitle = title?.ToLower();
-            string? sorigtitle = original_title?.ToLower();
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
 
             var rows = search.Split("\"b-content__inline_item\"");
             foreach (string row in rows.Skip(1))
@@ -118,15 +119,18 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(g[1].Value))
                     continue;
 
-                string name = g[2].Value.ToLower().Trim();
+                string name = g[2].Value.Trim();
+                if (string.IsNullOrEmpty(name))
+                    continue;
+
                 if (result.similar == null)
                     result.similar = new List<SimilarModel>(rows.Length);
 
-                string? img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                string img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
                 result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
 
-                if ((stitle != null && (name.Contains(" / ") && name.Contains(stitle) || name == stitle)) || 
-                    (sorigtitle != null && (name.Contains(" / ") && name.Contains(sorigtitle.ToLower()) || name == sorigtitle.ToLower())))
+                if ((stitle != null && (name.Contains(" / ") && StringConvert.SearchName(name).Contains(stitle) || StringConvert.SearchName(name) == stitle)) || 
+                    (sorigtitle != null && (name.Contains(" / ") && StringConvert.SearchName(name).Contains(sorigtitle) || StringConvert.SearchName(name) == sorigtitle)))
                 {
                     reservedlink = g[1].Value;
 

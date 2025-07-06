@@ -14,6 +14,7 @@ using Shared.Engine;
 
 namespace Lampac.Controllers.JAC
 {
+    [Route("rutor/[action]")]
     public class RutorController : JacBaseController
     {
         #region search
@@ -28,20 +29,23 @@ namespace Lampac.Controllers.JAC
 
 
         #region parseMagnet
-        [Route("rutor/parse.torrent")]
-        async public Task<ActionResult> parseMagnet(int id)
+        async public Task<ActionResult> parseMagnet(int id, string magnet)
         {
             if (!jackett.Rutor.enable || jackett.Rutor.priority != "torrent")
                 return Content("disable");
 
             var proxyManager = new ProxyManager("rutor", jackett.Rutor);
 
-            byte[]  _t = await HttpClient.Download($"{Regex.Replace(jackett.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: jackett.Rutor.host, proxy: proxyManager.Get());
+            byte[] _t = await HttpClient.Download($"{Regex.Replace(jackett.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: jackett.Rutor.host, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
             proxyManager.Refresh();
-            return Content("empty");
+
+            if (string.IsNullOrEmpty(magnet))
+                return Content("empty");
+
+            return Redirect(magnet);
         }
         #endregion
 
@@ -99,7 +103,7 @@ namespace Lampac.Controllers.JAC
                     pir = HtmlCommon.Integer(pir),
                     sizeName = sizeName,
                     magnet = jackett.Rutor.priority == "torrent" ? null : magnet,
-                    parselink = jackett.Rutor.priority == "torrent" ? $"{host}/rutor/parse.torrent?id={viewtopic}" : null,
+                    parselink = jackett.Rutor.priority == "torrent" ? $"{host}/rutor/parsemagnet?id={viewtopic}&magnet={HttpUtility.UrlEncode(magnet)}" : null,
                     createTime = tParse.ParseCreateTime(createTime, "dd.MM.yy")
                 });
             }

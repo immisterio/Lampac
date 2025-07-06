@@ -43,13 +43,13 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string? link = null, reservedlink = null;
+            string link = null, reservedlink = null;
             foreach (string row in search.Split("card d-flex").Skip(1))
             {
                 if (StringConvert.SearchName(row).Contains(StringConvert.SearchName(title)))
                 {
                     string rlnk = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(rlnk))
+                    if (string.IsNullOrEmpty(rlnk))
                         continue;
 
                     reservedlink = rlnk;
@@ -62,9 +62,9 @@ namespace Shared.Engine.Online
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(link))
+            if (string.IsNullOrEmpty(link))
             {
-                if (string.IsNullOrWhiteSpace(reservedlink))
+                if (string.IsNullOrEmpty(reservedlink))
                 {
                     if (search.Contains(">Поиск по сайту<"))
                         return new EmbedModel() { IsEmpty = true };
@@ -75,7 +75,7 @@ namespace Shared.Engine.Online
                 link = reservedlink;
             }
 
-            string? news = await onget(link);
+            string news = await onget(link);
             if (news == null)
             {
                 requesterror?.Invoke();

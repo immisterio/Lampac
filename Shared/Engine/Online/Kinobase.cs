@@ -1,6 +1,5 @@
 ﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE.Kinobase;
-using Microsoft.AspNetCore.SignalR;
 using Shared.Model.Base;
 using Shared.Model.Online.Kinobase;
 using Shared.Model.Templates;
@@ -50,7 +49,7 @@ namespace Shared.Engine.Online
             }
 
             var rows = content.Split("<li class=\"item\">");
-            string? link = null, reservedlink = null;
+            string link = null;
 
             var similar = new SimilarTpl(rows.Length);
 
@@ -72,26 +71,20 @@ namespace Shared.Engine.Online
                 string uri = host + $"lite/kinobase?href={HttpUtility.UrlEncode(rlnk)}";
                 similar.Append(name, _year, string.Empty, uri, PosterApi.Size(img));
 
-                if (name.ToLower().Trim() == title.ToLower())
+                if (StringConvert.SearchName(name) == StringConvert.SearchName(title) && _year == year.ToString())
                 {
-                    reservedlink = rlnk;
-                    if (string.IsNullOrEmpty(link) && _year == year.ToString())
-                        link = reservedlink;
+                    if (string.IsNullOrEmpty(link))
+                        link = rlnk;
                 }
             }
 
             if (string.IsNullOrEmpty(link))
             {
-                if (string.IsNullOrEmpty(reservedlink))
+                if (!content.Contains(">По запросу") && similar.data.Count == 0)
                 {
-                    if (!content.Contains(">По запросу") && similar.data.Count == 0)
-                    {
-                        requesterror?.Invoke();
-                        return null;
-                    }
+                    requesterror?.Invoke();
+                    return null;
                 }
-
-                link = reservedlink;
             }
 
             return new SearchModel() 

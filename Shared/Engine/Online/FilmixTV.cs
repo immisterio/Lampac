@@ -1,4 +1,5 @@
-﻿using Shared.Model.Base;
+﻿using Lampac.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online.Filmix;
 using Shared.Model.Online.FilmixTV;
 using Shared.Model.Templates;
@@ -63,8 +64,8 @@ namespace Shared.Engine.Online
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            string? stitle = title?.ToLower();
-            string? sorigtitle = original_title?.ToLower();
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
 
             foreach (var item in root)
             {
@@ -75,8 +76,8 @@ namespace Shared.Engine.Online
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
-                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
-                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
+                if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -134,8 +135,8 @@ namespace Shared.Engine.Online
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            string? stitle = title?.ToLower();
-            string? sorigtitle = original_title?.ToLower();
+            string? stitle = StringConvert.SearchName(title);
+            string? sorigtitle = StringConvert.SearchName(original_title);
 
             foreach (var item in result)
             {
@@ -146,8 +147,8 @@ namespace Shared.Engine.Online
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
-                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
-                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
+                if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
