@@ -25,8 +25,8 @@ namespace Lampac.Controllers.LITE
 
             var proxyManager = new ProxyManager(AppInit.conf.AniLiberty);
             var proxy = proxyManager.Get();
-            
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             if (releases == 0)
             {
@@ -35,21 +35,20 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(stitle))
                     return OnError();
 
-                string memkey = $"aniliberty:search:{title}:{similar}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, int releases, string cover)> catalog))
+                var cache = await InvokeCache<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
-                        return ContentTo(rch.connectionMsg);
+                        return res.Fail(rch.connectionMsg);
 
                     string req_uri = $"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}";
                     var search = rch.enable ? await rch.Get<JArray>(req_uri, httpHeaders(init)) :
                                               await HttpClient.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                     if (search == null || search.Count == 0)
-                        return OnError(proxyManager, refresh_proxy: !rch.enable);
+                        return res.Fail("search");
 
                     bool checkName = true;
-                    catalog = new List<(string title, string year, int releases, string cover)>(search.Count);
+                    var catalog = new List<(string title, string year, int releases, string cover)>(search.Count);
 
                     retry: foreach (var anime in search)
                     {
@@ -79,86 +78,93 @@ namespace Lampac.Controllers.LITE
                             goto retry;
                         }
 
-                        return OnError();
+                        return res.Fail("catalog");
                     }
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    return catalog;
+                });
 
-                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
-                }
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                if (!similar && catalog.Count == 1)
-                    return LocalRedirect(accsArgs($"/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={catalog.First().releases}"));
+                if (!similar && cache.Value != null && cache.Value.Count == 1)
+                    return LocalRedirect(accsArgs($"/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={cache.Value.First().releases}"));
 
-                var stpl = new SimilarTpl(catalog.Count);
+                return OnResult(cache, () =>
+                {
+                    var stpl = new SimilarTpl(cache.Value.Count);
 
-                foreach (var res in catalog)
-                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={res.releases}", PosterApi.Size(res.cover));
+                    foreach (var res in cache.Value)
+                        stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={res.releases}", PosterApi.Size(res.cover));
 
-                return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return rjson ? stpl.ToJson() : stpl.ToHtml();
+
+                }, gbcache: !rch.enable);
                 #endregion
             }
             else 
             {
                 #region Серии
-                string memKey = $"aniliberty:releases:{releases}";
-                if (!hybridCache.TryGetValue(memKey, out JObject root))
+                var cache = await InvokeCache<JObject>($"aniliberty:releases:{releases}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
-                        return ContentTo(rch.connectionMsg);
+                        return res.Fail(rch.connectionMsg);
 
                     string req_uri = $"{init.corsHost()}/api/v1/anime/releases/{releases}";
 
-                    root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) : 
-                                        await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :
+                                            await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
 
                     if (root == null || !root.ContainsKey("episodes"))
-                        return OnError(proxyManager, refresh_proxy: !rch.enable);
+                        return res.Fail("episodes");
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    return root;
+                });
 
-                    hybridCache.Set(memKey, root, cacheTime(20, init: init));
-                }
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                var episodes = root["episodes"] as JArray;
-                var etpl = new EpisodeTpl(episodes.Count);
-
-                foreach (var episode in episodes)
+                return OnResult(cache, () =>
                 {
-                    string alias = root.Value<string>("alias") ?? "";
-                    string season = Regex.Match(alias, "-([0-9]+)(nd|th)").Groups[1].Value;
-                    if (string.IsNullOrEmpty(season))
+                    var episodes = cache.Value["episodes"] as JArray;
+                    var etpl = new EpisodeTpl(episodes.Count);
+
+                    foreach (var episode in episodes)
                     {
-                        season = Regex.Match(alias, "season-([0-9]+)").Groups[1].Value;
+                        string alias = cache.Value.Value<string>("alias") ?? "";
+                        string season = Regex.Match(alias, "-([0-9]+)(nd|th)").Groups[1].Value;
                         if (string.IsNullOrEmpty(season))
-                            season = "1";
+                        {
+                            season = Regex.Match(alias, "season-([0-9]+)").Groups[1].Value;
+                            if (string.IsNullOrEmpty(season))
+                                season = "1";
+                        }
+
+                        string number = episode.Value<string>("ordinal");
+
+                        string name = episode.Value<string>("name");
+                        name = string.IsNullOrEmpty(name) ? $"{number} серия" : name;
+
+                        var streams = new StreamQualityTpl();
+                        foreach (var f in new List<(string quality, string url)>
+                        {
+                            ("1080p", episode.Value<string>("hls_1080")),
+                            ("720p", episode.Value<string>("hls_720")),
+                            ("480p", episode.Value<string>("hls_480"))
+                        })
+                        {
+                            if (string.IsNullOrEmpty(f.url))
+                                continue;
+
+                            streams.Append(HostStreamProxy(init, f.url, proxy: proxy), f.quality);
+                        }
+
+                        etpl.Append(name, title, season, number, streams.Firts().link, streamquality: streams);
                     }
 
-                    string number = episode.Value<string>("ordinal");
+                    return rjson ? etpl.ToJson() : etpl.ToHtml();
 
-                    string name = episode.Value<string>("name");
-                    name = string.IsNullOrEmpty(name) ? $"{number} серия" : name;
-
-                    var streams = new StreamQualityTpl();
-                    foreach (var f in new List<(string quality, string url)> 
-                    { 
-                        ("1080p", episode.Value<string>("hls_1080")), 
-                        ("720p", episode.Value<string>("hls_720")), 
-                        ("480p", episode.Value<string>("hls_480")) 
-                    })
-                    {
-                        if (string.IsNullOrEmpty(f.url))
-                            continue;
-
-                        streams.Append(HostStreamProxy(init, f.url, proxy: proxy), f.quality);
-                    }
-
-                    etpl.Append(name, title, season, number, streams.Firts().link, streamquality: streams);
-                }
-                
-                return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                }, gbcache: !rch.enable);
                 #endregion
             }
         }

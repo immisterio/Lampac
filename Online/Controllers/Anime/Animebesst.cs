@@ -24,30 +24,29 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (string.IsNullOrWhiteSpace(title))
-                return OnError();
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
-            if (string.IsNullOrWhiteSpace(uri))
+            if (string.IsNullOrEmpty(uri))
             {
+                if (string.IsNullOrWhiteSpace(title))
+                    return OnError();
+
                 #region Поиск
-                string memkey = $"animebesst:search:{title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string uri, string s, string img)> catalog))
+                var cache = await InvokeCache<List<(string title, string year, string uri, string s, string img)>>($"animebesst:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
-                        return ContentTo(rch.connectionMsg);
+                        return res.Fail(rch.connectionMsg);
 
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
                     string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
-                        return OnError(proxyManager, refresh_proxy: !rch.enable);
+                        return res.Fail("search");
 
                     var rows = search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"");
 
-                    catalog = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
+                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
 
                     foreach (string row in rows.Skip(1))
                     {
@@ -70,55 +69,57 @@ namespace Lampac.Controllers.LITE
                             if (string.IsNullOrEmpty(img))
                                 img = null;
 
-                            //if (g[2].Value.ToLower().Contains(title.ToLower()))
-                                catalog.Add((g[2].Value, Regex.Match(row, "\">([0-9]{4})</a>").Groups[1].Value, g[1].Value, season, img));
+                            catalog.Add((g[2].Value, Regex.Match(row, "\">([0-9]{4})</a>").Groups[1].Value, g[1].Value, season, img));
                         }
                     }
 
                     if (catalog.Count == 0 && !search.Contains(">Поиск по сайту<"))
-                        return OnError();
+                        return res.Fail("catalog");
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    return catalog;
+                });
 
-                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
-                }
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                if (catalog.Count == 0)
+                if (cache.Value != null && cache.Value.Count == 0)
                     return OnError();
 
-                if (!similar && catalog.Count == 1)
-                    return LocalRedirect(accsArgs($"/lite/animebesst?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(catalog[0].uri)}&s={catalog[0].s}"));
+                if (!similar && cache.Value != null && cache.Value.Count == 1)
+                    return LocalRedirect(accsArgs($"/lite/animebesst?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
 
-                var stpl = new SimilarTpl(catalog.Count);
-
-                foreach (var res in catalog)
+                return OnResult(cache, () =>
                 {
-                    string _u = $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
-                    stpl.Append(res.title, res.year, string.Empty, _u, PosterApi.Size(res.img));
-                }
+                    var stpl = new SimilarTpl(cache.Value.Count);
 
-                return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    foreach (var res in cache.Value)
+                    {
+                        string _u = $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
+                        stpl.Append(res.title, res.year, string.Empty, _u, PosterApi.Size(res.img));
+                    }
+
+                    return rjson ? stpl.ToJson() : stpl.ToHtml();
+
+                }, gbcache: !rch.enable);
                 #endregion
             }
             else 
             {
                 #region Серии
-                string memKey = $"animebesst:playlist:{uri}";
-                if (!hybridCache.TryGetValue(memKey, out List<(string episode, string name, string uri)> links))
+                var cache = await InvokeCache<List<(string episode, string name, string uri)>>($"animebesst:playlist:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
-                        return ContentTo(rch.connectionMsg);
+                        return res.Fail(rch.connectionMsg);
 
                     string news = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (news == null)
-                        return OnError(proxyManager, refresh_proxy: !rch.enable);
+                        return res.Fail("news");
 
                     string videoList = Regex.Match(news, "var videoList ?=([^\n\r]+)").Groups[1].Value.Trim();
                     if (string.IsNullOrEmpty(videoList))
-                        return OnError();
+                        return res.Fail("videoList");
 
-                    links = new List<(string episode, string name, string uri)>(5);
+                    var links = new List<(string episode, string name, string uri)>(5);
                     var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?\\\\/\\\\/([^\"]+)\"");
                     while (match.Success)
                     {
@@ -129,28 +130,32 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (links.Count == 0)
-                        return OnError();
+                        return res.Fail("links");
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    return links;
+                });
 
-                    hybridCache.Set(memKey, links, cacheTime(30, init: init));
-                }
+                if (IsRhubFallback(cache, init))
+                    goto reset;
 
-                var etpl = new EpisodeTpl(links.Count);
-                string sArhc = s.ToString();
-
-                foreach (var l in links)
+                return OnResult(cache, () =>
                 {
-                    string name = string.IsNullOrEmpty(l.name) ? $"{l.episode} серия" : $"{l.episode} {l.name}";
-                    string voice_name = !string.IsNullOrEmpty(l.name) ? Regex.Replace(l.name, "(^\\(|\\)$)", "") : "";
+                    var etpl = new EpisodeTpl(cache.Value.Count);
+                    string sArhc = s.ToString();
 
-                    string link = accsArgs($"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}");
+                    foreach (var l in cache.Value)
+                    {
+                        string name = string.IsNullOrEmpty(l.name) ? $"{l.episode} серия" : $"{l.episode} {l.name}";
+                        string voice_name = !string.IsNullOrEmpty(l.name) ? Regex.Replace(l.name, "(^\\(|\\)$)", "") : "";
 
-                    etpl.Append(name, $"{title} / {name}", sArhc, l.episode, link, "call", streamlink: $"{link}&play=true", voice_name: Regex.Unescape(voice_name));
-                }
+                        string link = accsArgs($"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}");
 
-                return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                        etpl.Append(name, $"{title} / {name}", sArhc, l.episode, link, "call", streamlink: $"{link}&play=true", voice_name: Regex.Unescape(voice_name));
+                    }
+
+                    return rjson ? etpl.ToJson() : etpl.ToHtml();
+
+                }, gbcache: !rch.enable);
                 #endregion
             }
         }

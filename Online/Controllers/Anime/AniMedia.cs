@@ -1,15 +1,14 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using System.Web;
+using Online;
+using Shared.Engine.CORE;
+using Shared.Model.Base;
+using Shared.Model.Templates;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json.Linq;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using Shared.Model.Base;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -19,38 +18,45 @@ namespace Lampac.Controllers.LITE
 
         [HttpGet]
         [Route("lite/animedia")]
-        async public ValueTask<ActionResult> Index(string title, string code, int entry_id, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string news, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.AniMedia);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (string.IsNullOrWhiteSpace(title))
-                return OnError();
-
-            if (string.IsNullOrWhiteSpace(code))
+            if (string.IsNullOrEmpty(news))
             {
+                if (string.IsNullOrEmpty(title))
+                    return OnError();
+
                 #region Поиск
-                string memkey = $"animedia:search:{title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string code, string img)> catalog))
+                string memkey = $"animedia:search:{title}:{similar}";
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string url, string img)> catalog))
                 {
-                    string search = await HttpClient.Get($"{init.corsHost()}/ajax/search_result_search_page_2/P0?limit=12&keywords={HttpUtility.UrlEncode(title)}&orderby_sort=entry_date|desc", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
                         return OnError(proxyManager);
 
-                    var rows = search.Split("<div class=\"ads-list__item\">");
+                    var rows = search.Split("</article>")[1].Split("grid-item d-flex fd-column");
 
                     catalog = new List<(string title, string url, string img)>(rows.Length);
 
                     foreach (string row in rows.Skip(1))
                     {
-                        var g = Regex.Match(row, "href=\"/anime/([^\"]+)\"[^>]+ class=\"h3 ads-list__item__title\">([^<]+)</a>").Groups;
+                        var g = Regex.Match(row, "<a href=\"https?://[^/]+/([^\"]+)\" class=\"poster__link\"><h3 class=\"poster__title line-clamp\">([^<]+)</h3></a>").Groups;
 
-                        if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
-                            catalog.Add((g[2].Value, g[1].Value, null));
+                        if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrEmpty(g[2].Value))
+                        {
+                            string img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                            if (!string.IsNullOrEmpty(img))
+                                img = init.host + img;
+
+                            if (similar || StringConvert.SearchName(g[2].Value).Contains(StringConvert.SearchName(title)))
+                                catalog.Add((g[2].Value, g[1].Value, img));
+                        }
                     }
 
-                    if (catalog.Count == 0 && !search.Contains("xads-list"))
+                    if (catalog.Count == 0 && !search.Contains("id=\"dosearch\""))
                         return OnError();
 
                     proxyManager.Success();
@@ -61,13 +67,13 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 if (!similar && catalog.Count == 1)
-                    return LocalRedirect(accsArgs($"/lite/animedia?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&code={catalog[0].code}"));
+                    return LocalRedirect(accsArgs($"/lite/animedia?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&news={HttpUtility.UrlEncode(catalog[0].url)}"));
 
                 var stpl = new SimilarTpl(catalog.Count);
 
                 foreach (var res in catalog)
                 {
-                    string uri = $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&code={res.code}";
+                    string uri = $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&news={HttpUtility.UrlEncode(res.url)}";
                     stpl.Append(res.title, string.Empty, string.Empty, uri, PosterApi.Size(res.img));
                 }
 
@@ -76,88 +82,82 @@ namespace Lampac.Controllers.LITE
             }
             else 
             {
-                if (s == -1)
+                #region Серии
+                string memKey = $"animedia:{news}";
+                if (!hybridCache.TryGetValue(memKey, out List<(int episode, string s, string vod)> links))
                 {
-                    #region Сезоны
-                    string memKey = $"animedia:seasons:{code}";
-                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri, string season)> links))
+                    string html = await HttpClient.Get($"{init.corsHost()}/{news}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    if (html == null)
+                        return OnError(proxyManager);
+
+                    var match = Regex.Match(html, "data-vid=\"([0-9]+)\"[\t ]+data-vlnk=\"([^\"]+)\"");
+                    links = new List<(int episode, string s, string vod)>(match.Length);
+
+                    string pmovie = Regex.Match(html, "class=\"pmovie__main-info ws-nowrap\">([^<]+)<").Groups[1].Value;
+                    string s = Regex.Match(pmovie, "Season[\t ]+([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+                    if (string.IsNullOrEmpty(s))
+                        s = "1";
+
+                    while (match.Success)
                     {
-                        string news = await HttpClient.Get($"{init.corsHost()}/anime/{code}/1/1", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
-                        if (news == null)
-                            return OnError(proxyManager);
-
-                        string entryid = Regex.Match(news, "name=\"entry_id\" value=\"([0-9]+)\"").Groups[1].Value;
-                        if (string.IsNullOrEmpty(entryid))
-                            return OnError();
-
-                        links = new List<(string, string, string)>(5);
-
-                        var match = Regex.Match(news, $"<a href=\"/anime/{code}/([0-9]+)/1\" class=\"item\">([^<]+)</a>");
-                        while (match.Success)
+                        string vod = match.Groups[2].Value;
+                        if (!string.IsNullOrEmpty(match.Groups[1].Value) && !string.IsNullOrEmpty(vod) && vod.Contains("/vod/"))
                         {
-                            if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                                links.Add((match.Groups[2].Value.ToLower(), $"lite/animedia?title={HttpUtility.UrlEncode(title)}&code={code}&s={match.Groups[1].Value}&entry_id={entryid}", match.Groups[1].Value));
-
-                            match = match.NextMatch();
+                            if (int.TryParse(match.Groups[1].Value, out int episode) && episode > 0)
+                            {
+                                if (links.FirstOrDefault(i => i.episode == episode).vod == null)
+                                    links.Add((episode, s, vod));
+                            }
                         }
 
-                        if (links.Count == 0)
-                            return OnError();
-
-                        proxyManager.Success();
-                        hybridCache.Set(memKey, links, cacheTime(30, init: init));
+                        match = match.NextMatch();
                     }
 
-                    var tpl = new SeasonTpl(links.Count);
+                    if (links.Count == 0)
+                        return OnError();
 
-                    foreach (var l in links)
-                        tpl.Append(l.name, $"{host}/{l.uri}", l.season);
-
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
-                    #endregion
+                    proxyManager.Success();
+                    hybridCache.Set(memKey, links, cacheTime(30, init: init));
                 }
-                else
-                {
-                    #region Серии
-                    var proxy = proxyManager.Get();
 
-                    string memKey = $"animedia:playlist:{entry_id}:{s}";
-                    if (!hybridCache.TryGetValue(memKey, out List<(string name, string uri)> links))
-                    {
-                        var playlist = await HttpClient.Get<JArray>($"{init.corsHost()}/embeds/playlist-j.txt/{entry_id}/{s}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
-                        if (playlist == null || playlist.Count == 0)
-                            return OnError(proxyManager);
+                var etpl = new EpisodeTpl(links.Count);
 
-                        links = new List<(string name, string uri)>();
+                foreach (var l in links.OrderBy(i => i.episode))
+                    etpl.Append($"{l.episode} серия", title, l.s, l.episode.ToString(), $"{host}/lite/animedia/video.m3u8?vod={HttpUtility.UrlEncode(l.vod)}", vast: init.vast);
 
-                        foreach (var pl in playlist)
-                        {
-                            string name = pl.Value<string>("title");
-                            string file = pl.Value<string>("file");
-                            if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(file))
-                                links.Add((name, file));
-                        }
-
-                        if (links.Count == 0)
-                            return OnError();
-
-                        proxyManager.Success();
-                        hybridCache.Set(memKey, links, cacheTime(30, init: init));
-                    }
-
-                    var etpl = new EpisodeTpl(links.Count);
-                    string sArhc = s.ToString();
-
-                    foreach (var l in links)
-                    {
-                        string link = HostStreamProxy(init, l.uri, proxy: proxy);
-                        etpl.Append(l.name, $"{title} / {l.name.ToLower()}", sArhc, Regex.Match(l.name, "([0-9]+)$").Groups[1].Value, link, vast: init.vast);
-                    }
-
-                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
-                    #endregion
-                }
+                return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                #endregion
             }
         }
+
+
+        #region Video
+        [HttpGet]
+        [Route("lite/animedia/video.m3u8")]
+        async public ValueTask<ActionResult> Video(string vod)
+        {
+            var init = await loadKit(AppInit.conf.AniMedia);
+            if (await IsBadInitialization(init, rch: false))
+                return badInitMsg;
+
+            string memKey = $"animedia:{vod}";
+            if (!hybridCache.TryGetValue(memKey, out string hls))
+            {
+                string embed = await HttpClient.Get(vod, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+
+                if (string.IsNullOrEmpty(embed))
+                    return OnError(proxyManager);
+
+                hls = Regex.Match(embed, "file:\"([^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(hls))
+                    return OnError(proxyManager);
+
+                proxyManager.Success();
+                hybridCache.Set(memKey, hls, cacheTime(180, init: init));
+            }
+
+            return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get()));
+        }
+        #endregion
     }
 }

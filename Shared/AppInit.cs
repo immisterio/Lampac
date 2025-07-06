@@ -1023,7 +1023,10 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy");
+        /// <summary>
+        /// api v2 - AniLiberty
+        /// </summary>
+        public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy", enable: false);
 
         public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dqloleuld1zwi");
 
@@ -1068,7 +1071,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22rqolqh1dqlphgld1wy", streamproxy: true, enable: false);
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1vr");
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true);
 
@@ -1076,9 +1079,8 @@ namespace Lampac
 
         public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("Animebesst", "kwwsv=22dqlph41ehvw");
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1ph", streamproxy: true)
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1ph", streamproxy: true, enable: false)
         {
-            enable = false,
             headers_stream = HeadersModel.Init(
                 ("origin", "https://aniboom.one"),
                 ("referer", "https://aniboom.one/")

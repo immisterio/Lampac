@@ -698,10 +698,10 @@ namespace Lampac.Controllers
                 send(conf.AnilibriaOnline, "anilibria", "Anilibria");
                 send(conf.AnimeLib);
                 send(conf.Animevost, rch_access: "apk,cors");
-                send(conf.MoonAnime);
                 send(conf.Animebesst, rch_access: "apk");
                 send(conf.AnimeGo);
                 send(conf.AniMedia);
+                send(conf.MoonAnime);
             }
 
             #region VoKino
@@ -1111,7 +1111,6 @@ namespace Lampac.Controllers
                             case "hdvb":
                             case "anilibria":
                             case "aniliberty":
-                            case "animedia":
                             case "redheadsound":
                             case "iframevideo":
                             case "animego":
@@ -1140,6 +1139,7 @@ namespace Lampac.Controllers
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":
+                            case "animedia":
                             case "animevost":
                             case "animebesst":
                             case "kodik":
