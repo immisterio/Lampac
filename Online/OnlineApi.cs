@@ -694,6 +694,7 @@ namespace Lampac.Controllers
 
             if (serial == -1 || isanime)
             {
+                send(conf.AniLiberty);
                 send(conf.AnilibriaOnline, "anilibria", "Anilibria");
                 send(conf.AnimeLib);
                 send(conf.Animevost, rch_access: "apk,cors");
@@ -1109,6 +1110,7 @@ namespace Lampac.Controllers
                             case "ashdi":
                             case "hdvb":
                             case "anilibria":
+                            case "aniliberty":
                             case "animedia":
                             case "redheadsound":
                             case "iframevideo":
