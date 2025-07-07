@@ -17,6 +17,7 @@ using Shared.Models.Online.Kinobase;
 using Shared.Models.ServerProxy;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Lampac
 {
@@ -31,38 +32,65 @@ namespace Lampac
 
         static FileSystemWatcher fileWatcher;
 
-        static AppInit() 
+        static AppInit()
         {
             updateConf();
             LoadModules();
 
-            fileWatcher = new FileSystemWatcher
+            #region watcherInit
+            if (conf.watcherInit == "system")
             {
-                Path = Directory.GetCurrentDirectory(),
-                Filter = "init.conf",
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
-                EnableRaisingEvents = true
-            };
+                fileWatcher = new FileSystemWatcher
+                {
+                    Path = Directory.GetCurrentDirectory(),
+                    Filter = "init.conf",
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                    EnableRaisingEvents = true
+                };
 
-            fileWatcher.Changed += async (s, e) => 
+                fileWatcher.Changed += async (s, e) =>
+                {
+                    fileWatcher.EnableRaisingEvents = false;
+
+                    try
+                    {
+                        await Task.Delay(150);
+                        updateConf();
+                    }
+                    finally
+                    {
+                        fileWatcher.EnableRaisingEvents = true;
+                    }
+                };
+            }
+            else
             {
-                fileWatcher.EnableRaisingEvents = false;
+                ThreadPool.QueueUserWorkItem(async _ =>
+                {
+                    while (true)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
-                try
-                {
-                    await Task.Delay(200);
-                    updateConf();
-                }
-                finally
-                {
-                    fileWatcher.EnableRaisingEvents = true;
-                }
-            };
+                        if (File.Exists("init.conf"))
+                        {
+                            var lwt = File.GetLastWriteTime("init.conf");
+                            if (lwt != lastUpdateConf)
+                            {
+                                lastUpdateConf = lwt;
+                                updateConf();
+                            }
+                        }
+                    }
+                });
+            }
+            #endregion
         }
         #endregion
 
 
         #region conf
+        static DateTime lastUpdateConf = default;
+
         public static AppInit conf = null;
 
         static void updateConf()
@@ -254,6 +282,8 @@ namespace Lampac
 
         public int cacheHybridExtend = 5; // seconds
 
+        public string watcherInit = "system";
+
         public string imagelibrary = "NetVips"; // NetVips|ImageMagick|none
 
         public bool pirate_store = true;
@@ -316,7 +346,7 @@ namespace Lampac
         public CubConf cub { get; set; } = new CubConf()
         {
             enable = false, viewru = true,
-            domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "https",
+            domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "http",
             mirror = "mirror-kurwa.men",
             cache_api = 20, cache_img = 120,
         };
@@ -377,7 +407,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "39e8a5e63049751791c643f93b2eb9efe5a46e6d"
+            tree = "29bcf1fec94c1515b4094f04e36793f750b68dc8"
         };
 
         public OnlineConf online = new OnlineConf()

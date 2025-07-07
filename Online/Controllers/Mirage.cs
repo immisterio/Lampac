@@ -68,7 +68,7 @@ namespace Lampac.Controllers.LITE
                     long id = file.Value<long>("id");
                     bool uhd = init.m4s ? file.Value<bool>("uhd") : false;
 
-                    string link = $"{host}/lite/mirage/video?id_file={id}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}";
+                    string link = $"{host}/lite/mirage/video?id_file={id}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}&acceptsName={frame.acceptsName}";
                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                     mtpl.Append(translation, link, "call", streamlink, voice_name: uhd ? "2160p" : quality, quality: uhd ? "2160p" : "");
@@ -161,7 +161,7 @@ namespace Lampac.Controllers.LITE
                                 string translation = voice.Value<string>("translation");
                                 int e = voice.Value<int>("episode");
 
-                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}";
+                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}&acceptsName={frame.acceptsName}";
                                 string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                 if (e > 0)
@@ -215,7 +215,7 @@ namespace Lampac.Controllers.LITE
                                         string translation = episode.Value.Value<string>("translation");
                                         int e = episode.Value.Value<int>("episode");
 
-                                        string link = $"{host}/lite/mirage/video?id_file={episode.Value.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}";
+                                        string link = $"{host}/lite/mirage/video?id_file={episode.Value.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}&acceptsName={frame.acceptsName}";
                                         string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                         if (e > 0)
@@ -257,7 +257,7 @@ namespace Lampac.Controllers.LITE
                                 if (voice.Value<int>("id_translation") != t)
                                     continue;
 
-                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}";
+                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&acceptsControls={frame.acceptsControls}&acceptsName={frame.acceptsName}";
                                 string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                 etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
@@ -279,12 +279,12 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/mirage/video")]
         [Route("lite/mirage/video.m3u8")]
-        async public ValueTask<ActionResult> Video(long id_file, string token_movie, string acceptsControls, bool play)
+        async public ValueTask<ActionResult> Video(long id_file, string token_movie, string acceptsControls, string acceptsName, bool play)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-            
+
             string acceptsId = "7ece5f32f2db86bdba74f85bf871002140fa863f461ab4e33786b666a0934484";
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
@@ -292,7 +292,7 @@ namespace Lampac.Controllers.LITE
             {
                 var root = await HttpClient.Post<JObject>($"{init.linkhost}/api/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "*/*"),
-                    ("acepts-controls", $"{acceptsControls}|{acceptsId}"),
+                    (acceptsName, $"{acceptsControls}|{acceptsId}"),
                     ("origin", init.linkhost),
                     ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
                     ("sec-fetch-dest", "empty"),
@@ -320,7 +320,7 @@ namespace Lampac.Controllers.LITE
             }
 
             var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                ("acepts-controls", $"{acceptsControls}|{acceptsId}"),
+                (acceptsName, $"{acceptsControls}|{acceptsId}"),
                 ("origin", init.linkhost),
                 ("referer", $"{init.linkhost}/"),
                 ("sec-fetch-dest", "empty"),
@@ -352,14 +352,14 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region iframe
-        async ValueTask<(JToken all, JToken active, string acceptsControls)> iframe(string token_movie)
+        async ValueTask<(JToken all, JToken active, string acceptsControls, string acceptsName)> iframe(string token_movie)
         {
             if (string.IsNullOrEmpty(token_movie))
                 return default;
 
             var init = await Initialization();
             string memKey = $"mirage:iframe:{token_movie}";
-            if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active, string acceptsControls) cache))
+            if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active, string acceptsControls, string acceptsName) cache))
             {
                 string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -378,13 +378,36 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(acceptsControls))
                     return default;
 
+                #region acceptsName
+                string acceptsMemKey = "mirage:accepts";
+                if (!hybridCache.TryGetValue(acceptsMemKey, out string acceptsName))
+                {
+                    string appjs = Regex.Match(html, "<script src=\"/(build/app\\.[^\"]+)\"").Groups[1].Value;
+                    if (!string.IsNullOrEmpty(appjs))
+                    {
+                        string build = await HttpClient.Get($"{init.linkhost}/{appjs}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
+                            ("accept", "*/*"),
+                            ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
+                            ("sec-fetch-dest", "script"),
+                            ("sec-fetch-mode", "no-cors"),
+                            ("sec-fetch-site", "same-origin")
+                        )));
+
+                        acceptsName = Regex.Match(build ?? "", "'headers':\\{'([^\']+)'").Groups[1].Value;
+                    }
+
+                    if (string.IsNullOrEmpty(acceptsName))
+                        acceptsName = "aceptis-controls";
+                }
+                #endregion
+
                 try
                 {
                     var root = JsonConvert.DeserializeObject<JObject>(json);
                     if (root == null || !root.ContainsKey("all"))
                         return default;
 
-                    cache = (root["all"], root["active"], acceptsControls);
+                    cache = (root["all"], root["active"], acceptsControls, acceptsName);
 
                     hybridCache.Set(memKey, cache, cacheTime(40));
                 }

@@ -64,7 +64,7 @@ namespace Lampac.Engine.Middlewares
             if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
                 domain = $"{path.Split(".")[0]}.{domain}";
 
-            if (domain.StartsWith("geo") && !string.IsNullOrEmpty(requestInfo.Country))
+            if (domain.StartsWith("geo"))
             {
                 await httpContext.Response.WriteAsync(requestInfo.Country, httpContext.RequestAborted).ConfigureAwait(false);
                 return;
@@ -140,7 +140,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
-                var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), init.viewru && path.Split(".")[0] == "tmdb");
+                var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
 
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                 {
@@ -210,6 +210,9 @@ namespace Lampac.Engine.Middlewares
                 if (!hybridCache.TryGetValue(memkey, out (string content, int statusCode, string contentType) cache))
                 {
                     var headers = HeadersModel.Init();
+
+                    if (!string.IsNullOrEmpty(requestInfo.Country))
+                        headers.Add(new HeadersModel("cf-connecting-ip", requestInfo.IP));
 
                     if (path.Split(".")[0] == "tmdb")
                     {
@@ -295,7 +298,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region CreateProxyHttpRequest
-        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri, bool viewru)
+        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri, RequestModel requestInfo, bool viewru)
         {
             var request = context.Request;
 
@@ -327,6 +330,9 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
             #endregion
+
+            if (!string.IsNullOrEmpty(requestInfo.Country))
+                requestMessage.Headers.Add("cf-connecting-ip", requestInfo.IP);
 
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
