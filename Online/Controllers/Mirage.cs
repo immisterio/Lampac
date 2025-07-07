@@ -397,7 +397,9 @@ namespace Lampac.Controllers.LITE
                     }
 
                     if (string.IsNullOrEmpty(acceptsName))
-                        acceptsName = "aceptis-controls";
+                        acceptsName = CrypTo.DecodeBase64("YWNlcHRpcy1jb250cm9scw==");
+
+                    hybridCache.Set(acceptsMemKey, acceptsName, DateTime.Now.AddMinutes(10));
                 }
                 #endregion
 
