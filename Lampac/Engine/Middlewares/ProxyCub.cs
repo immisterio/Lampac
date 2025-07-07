@@ -140,7 +140,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
-                var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"));
+                var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), init.viewru && path.Split(".")[0] == "tmdb");
 
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                 {
@@ -210,10 +210,21 @@ namespace Lampac.Engine.Middlewares
                 if (!hybridCache.TryGetValue(memkey, out (string content, int statusCode, string contentType) cache))
                 {
                     var headers = HeadersModel.Init();
-                    foreach (var header in httpContext.Request.Headers)
+
+                    if (path.Split(".")[0] == "tmdb")
                     {
-                        if (header.Key.ToLower() is "cookie" or "user-agent")
-                            headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
+                        if (init.viewru)
+                            headers.Add(new HeadersModel("cookie", "viewru=1"));
+
+                        headers.Add(new HeadersModel("user-agent", httpContext.Request.Headers.UserAgent.ToString()));
+                    }
+                    else
+                    {
+                        foreach (var header in httpContext.Request.Headers)
+                        {
+                            if (header.Key.ToLower() is "cookie" or "user-agent")
+                                headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
+                        }
                     }
 
                     var result = await CORE.HttpClient.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
@@ -284,7 +295,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region CreateProxyHttpRequest
-        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri)
+        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri, bool viewru)
         {
             var request = context.Request;
 
@@ -297,10 +308,16 @@ namespace Lampac.Engine.Middlewares
                 requestMessage.Content = streamContent;
             }
 
+            if (viewru)
+                request.Headers.Add("cookie", "viewru=1");
+
             #region Headers
             foreach (var header in request.Headers)
             {
-                if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
+                if (header.Key.ToLower() is "host" or "origin" or "content-disposition" or "accept-encoding")
+                    continue;
+
+                if (viewru && header.Key.ToLower() == "cookie")
                     continue;
 
                 if (header.Key.ToLower().StartsWith("x-"))

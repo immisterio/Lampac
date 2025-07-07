@@ -315,7 +315,7 @@ namespace Lampac
 
         public CubConf cub { get; set; } = new CubConf()
         {
-            enable = false, 
+            enable = false, viewru = true,
             domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "https",
             mirror = "mirror-kurwa.men",
             cache_api = 20, cache_img = 120,
