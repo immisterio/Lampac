@@ -1,6 +1,7 @@
 ﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
 using Shared.Models;
@@ -66,7 +67,15 @@ namespace Lampac.Engine.Middlewares
 
             if (domain.StartsWith("geo"))
             {
-                await httpContext.Response.WriteAsync(requestInfo.Country, httpContext.RequestAborted).ConfigureAwait(false);
+                string country = requestInfo.Country;
+                if (string.IsNullOrEmpty(country))
+                {
+                    var ipify = await CORE.HttpClient.Get<JObject>("https://api.ipify.org/?format=json");
+                    if (ipify != null || !string.IsNullOrEmpty(ipify.Value<string>("ip")))
+                        country = GeoIP2.Country(ipify.Value<string>("ip"));
+                }
+
+                await httpContext.Response.WriteAsync(country ?? "", httpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 

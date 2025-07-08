@@ -470,9 +470,14 @@ namespace Lampac.Controllers
             send(AppInit.conf.VeoVeo, "veoveo-spider");
 
             if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
-                send(AppInit.conf.VideoCDN);
+            {
+                if (!AppInit.conf.VideoCDN.disable_protection)
+                    rhub = true;
 
-            if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
+                send(AppInit.conf.VideoCDN);
+            }
+
+            if (Firefox.Status != PlaywrightStatus.disabled)
                 send(AppInit.conf.Lumex);
 
             send(AppInit.conf.VDBmovies);
@@ -923,7 +928,7 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 0)
                 send(conf.IframeVideo);
 
-            if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
+            if (kinopoisk_id > 0 && !isanime)
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
             #region ENG

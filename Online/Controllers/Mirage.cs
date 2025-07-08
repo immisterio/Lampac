@@ -1,6 +1,7 @@
 ﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Online;
@@ -380,7 +381,7 @@ namespace Lampac.Controllers.LITE
 
                 #region acceptsName
                 string acceptsMemKey = "mirage:accepts";
-                if (!hybridCache.TryGetValue(acceptsMemKey, out string acceptsName))
+                if (!memoryCache.TryGetValue(acceptsMemKey, out string acceptsName))
                 {
                     string appjs = Regex.Match(html, "<script src=\"/(build/app\\.[^\"]+)\"").Groups[1].Value;
                     if (!string.IsNullOrEmpty(appjs))
@@ -399,7 +400,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrEmpty(acceptsName))
                         acceptsName = CrypTo.DecodeBase64("YWNlcHRpcy1jb250cm9scw==");
 
-                    hybridCache.Set(acceptsMemKey, acceptsName, DateTime.Now.AddMinutes(10));
+                    memoryCache.Set(acceptsMemKey, acceptsName, DateTime.Now.AddMinutes(10));
                 }
                 #endregion
 

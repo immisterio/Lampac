@@ -407,7 +407,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "29bcf1fec94c1515b4094f04e36793f750b68dc8"
+            tree = "4e6c5ca96eb7b0d14ea214ca7e19598356b71e8a"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -678,7 +678,7 @@ namespace Lampac
 
         public OnlinesSettings Plvideo { get; set; } = new OnlinesSettings("Plvideo", "kwwsv=22dsl1j41soylghr1ux", streamproxy: true);
 
-        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sod|hu1fgqylghrkxe1frp", streamproxy: true, enable: false)
+        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sodsl1fgqylghrkxe1frp", streamproxy: true)
         {
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -686,16 +686,13 @@ namespace Lampac
                 ("referer", "encrypt:kwwsv=22kgnlqr1sxe2"),
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "iframe"),
-                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site"),
-                ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
