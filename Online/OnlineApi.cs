@@ -477,8 +477,16 @@ namespace Lampac.Controllers
                 send(AppInit.conf.VideoCDN);
             }
 
-            if (Firefox.Status != PlaywrightStatus.disabled)
-                send(AppInit.conf.Lumex);
+            if (AppInit.conf.Lumex.priorityBrowser == "scraping")
+            {
+                if (Chromium.Status == PlaywrightStatus.NoHeadless)
+                    send(AppInit.conf.Lumex);
+            }
+            else
+            {
+                if (Firefox.Status != PlaywrightStatus.disabled)
+                    send(AppInit.conf.Lumex);
+            }
 
             send(AppInit.conf.VDBmovies);
             send(AppInit.conf.HDVB, "hdvb-search");

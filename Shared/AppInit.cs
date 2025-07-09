@@ -331,13 +331,14 @@ namespace Lampac
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
             enable = true, Xvfb = true,
-            Args = new string[] { "--disable-blink-features=AutomationControlled" },
+            Args = new string[] { "--disable-blink-features=AutomationControlled", "--window-position=-2000,100" },
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
+            Args = new string[] { "--window-position=-2000,100" },
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 1, max = 2 }
         };
 
@@ -869,6 +870,7 @@ namespace Lampac
             enable = true,
             hls = true,
             scheme = "http",
+            priorityBrowser = "scraping",
             geostreamproxy = new string[] { "ALL" }
         };
 

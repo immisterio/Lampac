@@ -28,7 +28,7 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            var cache = await InvokeCache<JObject>(rch.ipkey($"cdnvideohub:view:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<JObject>(rch.ipkey($"cdnvideohub:view:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
