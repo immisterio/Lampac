@@ -144,8 +144,11 @@ namespace Lampac.Controllers.LITE
                     {
                         browser.OnRequest += e => 
                         {
-                            if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)"))
+                            if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)") ||
+                               !Regex.IsMatch(e.HttpClient.Request.Url, "(lumex|cloudflare|sentry|gstatic)\\."))
+                            {
                                 e.Ok(string.Empty);
+                            }
                         };
 
                         var scrap = await browser.WaitPageResult(15);

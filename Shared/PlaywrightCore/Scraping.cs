@@ -2,7 +2,6 @@
 using Shared.Engine;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
@@ -51,12 +50,20 @@ namespace Shared.PlaywrightCore
                     // Сохраняем в PFX-файл (с паролем)
                     byte[] certBytes = rootCert.Export(X509ContentType.Pkcs12, "35sd85454gfd");
                     File.WriteAllBytes("data/titanium.pfx", certBytes);
+
+                    certBytes = proxyServer.CertificateManager.RootCertificate.Export(X509ContentType.Cert);
+                    File.WriteAllBytes("data/titanium.crt", certBytes);
                 }
 
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !File.Exists("/usr/local/share/ca-certificates/lampac_titanium.pfx"))
-                    File.Copy("data/titanium.pfx", "/usr/local/share/ca-certificates/lampac_titanium.pfx", true);
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !File.Exists("/usr/local/share/ca-certificates/lampac_titanium.crt"))
+                {
+                    File.Copy("data/titanium.crt", "/usr/local/share/ca-certificates/lampac_titanium.crt", true);
+                    Bash.Invoke("update-ca-certificates");
+                }
 
                 proxyServer.CertificateManager.LoadRootCertificate("data/titanium.pfx", "35sd85454gfd");
+                proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
+
                 explicitEndPoint = new ExplicitProxyEndPoint(System.Net.IPAddress.Loopback, 0, true);
                 proxyServer.AddEndPoint(explicitEndPoint);
                 proxyServer.Start();
@@ -96,9 +103,11 @@ namespace Shared.PlaywrightCore
                                 $"--proxy-bypass-list=\"localhost;127.0.0.1;*.microsoft.com;{proxyBypassList}\" " +
                                 $"--ignore-certificate-errors " +
                                 $"--ignore-ssl-errors " +
+                                $"--disable-web-security " +
                                 $"--no-first-run " +
                                 $"--no-default-browser-check " +
                                 $"--disable-background-mode " +
+                                $"--no-sandbox " +
                                 (AppInit.conf.chromium.DEV || AppInit.conf.chromium.Args == null ? "--window-position=100,100 " : $"--window-position=-2000,100 ") +
                                 $"\"{targetUrl}\"",
                     UseShellExecute = false,
@@ -217,25 +226,46 @@ namespace Shared.PlaywrightCore
 
                     if (proxyServer.ProxyRunning)
                     {
-                        proxyServer.Stop();
-                        proxyServer.Dispose();
+                        Task.Run(() =>
+                        {
+                            try
+                            {
+                                proxyServer.Stop();
+                                proxyServer.Dispose();
+                            }
+                            catch { }
+                        });
                     }
                 }
             }
             catch { }
 
-
             try
             {
                 if (process != null)
                 {
-                    process.Kill();
-                    process.Close();
-                    process.Dispose();
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            process.Kill();
+                            process.Close();
+                            process.Dispose();
+                        }
+                        catch { }
+                    });
                 }
             }
             catch { }
         }
         #endregion
+
+
+
+        private Task OnCertificateValidation(object sender, CertificateValidationEventArgs e)
+        {
+            e.IsValid = true;
+            return Task.CompletedTask;
+        }
     }
 }
