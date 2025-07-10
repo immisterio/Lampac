@@ -76,7 +76,8 @@ namespace Shared.Engine
                                     return false;
                                 }
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac-{arc}/node")}");
+                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac-{arc}/node")}");
+                                await Task.Delay(TimeSpan.FromSeconds(4));
                                 break;
                             }
                         default:
@@ -100,7 +101,8 @@ namespace Shared.Engine
                                     return false;
                                 }
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux-{arc}/node")}");
+                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux-{arc}/node")}");
+                                await Task.Delay(TimeSpan.FromSeconds(4));
                                 break;
                             }
                         case Architecture.Arm:
@@ -112,7 +114,8 @@ namespace Shared.Engine
                                     return false;
                                 }
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux-arm/node")}");
+                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux-arm/node")}");
+                                await Task.Delay(TimeSpan.FromSeconds(4));
                                 break;
                             }
                         default:

@@ -73,8 +73,9 @@ namespace Shared.Engine
                                         return;
                                     }
 
-                                    await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/Camoufox.app/Contents/MacOS/camoufox")}");
+                                    Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/Camoufox.app/Contents/MacOS/camoufox")}");
                                     executablePath = ".playwright/Camoufox.app/Contents/MacOS/camoufox";
+                                    await Task.Delay(TimeSpan.FromSeconds(4));
                                     break;
                                 }
                             default:
@@ -112,8 +113,9 @@ namespace Shared.Engine
                                 return;
                             }
 
-                            await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/firefox/camoufox")}");
+                            Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/firefox/camoufox")}");
                             executablePath = ".playwright/firefox/camoufox";
+                            await Task.Delay(TimeSpan.FromSeconds(4));
                         }
                     }
                     else

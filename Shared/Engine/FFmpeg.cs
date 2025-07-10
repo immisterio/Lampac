@@ -85,7 +85,8 @@ namespace Shared.Engine
                             string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
                             if (await HttpClient.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg/ffmpeg-linux"+arh, "data/ffmpeg"))
                             {
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffmpeg")}");
+                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffmpeg")}");
+                                await Task.Delay(2000); // Wait for chmod to complete
                                 Console.WriteLine("FFmpeg: Initialization");
                                 disableInstall = false;
                                 return true;

@@ -2,6 +2,8 @@
 using Shared.Engine;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -37,6 +39,24 @@ namespace Shared.PlaywrightCore
                 proxyServer.BeforeRequest += Request;
                 proxyServer.BeforeResponse += Response;
 
+                if (!File.Exists("data/titanium.pfx"))
+                {
+                    // Генерируем корневой сертификат (если еще не создан)
+                    if (proxyServer.CertificateManager.RootCertificate == null)
+                        proxyServer.CertificateManager.CreateRootCertificate();
+
+                    // Получаем корневой сертификат
+                    X509Certificate2 rootCert = proxyServer.CertificateManager.RootCertificate;
+
+                    // Сохраняем в PFX-файл (с паролем)
+                    byte[] certBytes = rootCert.Export(X509ContentType.Pkcs12, "35sd85454gfd");
+                    File.WriteAllBytes("data/titanium.pfx", certBytes);
+                }
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !File.Exists("/usr/local/share/ca-certificates/lampac_titanium.pfx"))
+                    File.Copy("data/titanium.pfx", "/usr/local/share/ca-certificates/lampac_titanium.pfx", true);
+
+                proxyServer.CertificateManager.LoadRootCertificate("data/titanium.pfx", "35sd85454gfd");
                 explicitEndPoint = new ExplicitProxyEndPoint(System.Net.IPAddress.Loopback, 0, true);
                 proxyServer.AddEndPoint(explicitEndPoint);
                 proxyServer.Start();
