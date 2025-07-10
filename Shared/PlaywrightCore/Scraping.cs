@@ -26,7 +26,7 @@ namespace Shared.PlaywrightCore
         public Action<SessionEventArgs> OnResponse { get; set; }
 
 
-        public Scraping(string targetUrl, string patternUrl, string headerKey)
+        public Scraping(string targetUrl, string patternUrl, string headerKey, string proxyBypassList = "*.example.com")
         {
             this.patternUrl = patternUrl;
             this.headerKey = headerKey;
@@ -48,19 +48,10 @@ namespace Shared.PlaywrightCore
                 {
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        switch (RuntimeInformation.ProcessArchitecture)
-                        {
-                            case Architecture.X86:
-                            case Architecture.X64:
-                            case Architecture.Arm64:
-                                {
-                                    if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
-                                        executablePath = ".playwright\\chrome-win32\\chrome.exe";
-                                    else
-                                        executablePath = ".playwright\\chrome-win\\chrome.exe";
-                                    break;
-                                }
-                        }
+                        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                            executablePath = ".playwright\\chrome-win32\\chrome.exe";
+                        else
+                            executablePath = ".playwright\\chrome-win\\chrome.exe";
                     }
                     else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                     {
@@ -82,22 +73,13 @@ namespace Shared.PlaywrightCore
                 {
                     FileName = executablePath,
                     Arguments = $"--proxy-server=127.0.0.1:{proxyPort} " +
+                                $"--proxy-bypass-list=\"localhost;127.0.0.1;*.microsoft.com;{proxyBypassList}\" " +
                                 $"--ignore-certificate-errors " +
                                 $"--ignore-ssl-errors " +
-                                $"--disable-features=VizDisplayCompositor,FlashDeprecationWarning,EnablePasswordsAccountStorage " +
-                                $"--user-data-dir=./chrome-data " +
                                 $"--no-first-run " +
                                 $"--no-default-browser-check " +
-                                $"--force-color-profile=srgb " +
-                                $"--metrics-recording-only " +
-                                $"--password-store=basic " +
-                                $"--use-mock-keychain " +
-                                $"--export-tagged-pdf " +
                                 $"--disable-background-mode " +
-                                $"--enable-features=NetworkService,NetworkServiceInProcess,LoadCryptoTokenExtension,PermuteTLSExtensions " +
-                                $"--deny-permission-prompts " +
-                                $"--disable-gpu " +
-                                $"--window-position=-2000,100 " +
+                                (AppInit.conf.chromium.DEV || AppInit.conf.chromium.Args == null ? "--window-position=100,100 " : $"--window-position=-2000,100 ") +
                                 $"\"{targetUrl}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -146,27 +128,33 @@ namespace Shared.PlaywrightCore
                 }
             }
 
-            //Console.WriteLine("=== HTTP ЗАПРОС ===");
-            //Console.WriteLine($"URL: {session.Url}");
-            //Console.WriteLine($"Метод: {session.Method}");
-            //Console.WriteLine("Заголовки:");
-            //foreach (var header in session.Headers)
-            //    Console.WriteLine($"  {header.Name}: {header.Value}");
-            //Console.WriteLine();
+            if (AppInit.conf.chromium.consoleLog)
+            {
+                Console.WriteLine("=== HTTP ЗАПРОС ===");
+                Console.WriteLine($"URL: {session.Url}");
+                Console.WriteLine($"Метод: {session.Method}");
+                Console.WriteLine("Заголовки:");
+                foreach (var header in session.Headers)
+                    Console.WriteLine($"  {header.Name}: {header.Value}");
+                Console.WriteLine();
+            }
         }
 
         async private Task Response(object sender, SessionEventArgs e)
         {
             OnResponse?.Invoke(e);
 
-            //var session = e.HttpClient.Response;
-            //Console.WriteLine("=== HTTP ОТВЕТ ===");
-            //Console.WriteLine($"URL: {e.HttpClient.Request.Url}");
-            //Console.WriteLine($"Статус: {session.StatusCode} {session.StatusDescription}");
-            //Console.WriteLine("Заголовки:");
-            //foreach (var header in session.Headers)
-            //    Console.WriteLine($"  {header.Name}: {header.Value}");
-            //Console.WriteLine();
+            if (AppInit.conf.chromium.consoleLog)
+            {
+                var session = e.HttpClient.Response;
+                Console.WriteLine("=== HTTP ОТВЕТ ===");
+                Console.WriteLine($"URL: {e.HttpClient.Request.Url}");
+                Console.WriteLine($"Статус: {session.StatusCode} {session.StatusDescription}");
+                Console.WriteLine("Заголовки:");
+                foreach (var header in session.Headers)
+                    Console.WriteLine($"  {header.Name}: {header.Value}");
+                Console.WriteLine();
+            }
         }
 
 
@@ -197,6 +185,9 @@ namespace Shared.PlaywrightCore
         #region Dispose
         public void Dispose()
         {
+            if (AppInit.conf.chromium.DEV)
+                return;
+
             try
             {
                 if (proxyServer != null)

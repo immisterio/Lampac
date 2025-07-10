@@ -10,6 +10,7 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Templates;
+using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -252,13 +253,15 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Playwright
-                if (Firefox.Status == PlaywrightStatus.disabled)
-                    return OnError();
-
                 string memKey = $"alloha:black_magic:{proxy.data.ip}:{token_movie}:{t}:{s}:{e}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+                        return OnError();
+
+                    cache.headers = new List<HeadersModel>();
+
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
                         var headers = httpHeaders(init, HeadersModel.Init(
                             ("sec-fetch-dest", "iframe"),
@@ -266,8 +269,6 @@ namespace Lampac.Controllers.LITE
                             ("sec-fetch-site", "cross-site"),
                             ("referer", $"https://alloha.tv/")
                         ));
-
-                        cache.headers = new List<HeadersModel>();
 
                         var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers.ToDictionary()).ConfigureAwait(false);
                         if (page == null)
@@ -297,8 +298,7 @@ namespace Lampac.Controllers.LITE
                                     }
 
                                     PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.IsCompleted = true;
-                                    browser.completionSource.SetResult(route.Request.Url);
+                                    browser.SetPageResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -311,18 +311,18 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        string uri = $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}";
+                        string targetUrl = $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}";
                         if (s > 0)
-                            uri += $"&season={s}&episode={e}";
+                            targetUrl += $"&season={s}&episode={e}";
 
-                        PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(uri));
-                        cache.m3u8 = await browser.WaitPageResult(30);
-
-                        if (string.IsNullOrEmpty(cache.m3u8))
-                            return OnError();
-
-                        hybridCache.Set(memKey, cache, cacheTime(20, init: init));
+                        PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(targetUrl/* + "&autoplay=1"*/));
+                        cache.m3u8 = await browser.WaitPageResult(20);
                     }
+
+                    if (string.IsNullOrEmpty(cache.m3u8))
+                        return OnError();
+
+                    hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 
                 init.streamproxy = true; // force streamproxy

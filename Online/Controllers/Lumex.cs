@@ -31,14 +31,14 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (init.priorityBrowser == "scraping")
+            if (init.priorityBrowser == "firefox")
             {
-                if (Chromium.Status != PlaywrightStatus.NoHeadless)
+                if (Firefox.Status == PlaywrightStatus.disabled)
                     return OnError();
             }
             else
             {
-                if (Firefox.Status == PlaywrightStatus.disabled)
+                if (Chromium.Status != PlaywrightStatus.NoHeadless)
                     return OnError();
             }
 
@@ -87,28 +87,7 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                if (init.priorityBrowser == "scraping")
-                {
-                    #region Scraping
-                    using (var browser = new Scraping(targetUrl, null, "x-captcha-token"))
-                    {
-                        var scrap = await browser.WaitPageResult(15);
-
-                        if (scrap != null)
-                        {
-                            content_uri = scrap.Url;
-                            foreach (var item in scrap.Headers)
-                            {
-                                if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                    continue;
-
-                                content_headers.Add(new HeadersModel(item.Name, item.Value));
-                            }
-                        }
-                    }
-                    #endregion
-                }
-                else
+                if (init.priorityBrowser == "firefox")
                 {
                     #region Firefox
                     try
@@ -156,6 +135,33 @@ namespace Lampac.Controllers.LITE
                         }
                     }
                     catch { }
+                    #endregion
+                }
+                else
+                {
+                    #region Scraping
+                    using (var browser = new Scraping(targetUrl, null, "x-captcha-token"))
+                    {
+                        browser.OnRequest += e => 
+                        {
+                            if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)"))
+                                e.Ok(string.Empty);
+                        };
+
+                        var scrap = await browser.WaitPageResult(15);
+
+                        if (scrap != null)
+                        {
+                            content_uri = scrap.Url;
+                            foreach (var item in scrap.Headers)
+                            {
+                                if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                    continue;
+
+                                content_headers.Add(new HeadersModel(item.Name, item.Value));
+                            }
+                        }
+                    }
                     #endregion
                 }
 

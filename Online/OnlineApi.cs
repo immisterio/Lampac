@@ -477,14 +477,14 @@ namespace Lampac.Controllers
                 send(AppInit.conf.VideoCDN);
             }
 
-            if (AppInit.conf.Lumex.priorityBrowser == "scraping")
+            if (AppInit.conf.Lumex.priorityBrowser == "firefox")
             {
-                if (Chromium.Status == PlaywrightStatus.NoHeadless)
+                if (Firefox.Status != PlaywrightStatus.disabled)
                     send(AppInit.conf.Lumex);
             }
             else
             {
-                if (Firefox.Status != PlaywrightStatus.disabled)
+                if (Chromium.Status == PlaywrightStatus.NoHeadless)
                     send(AppInit.conf.Lumex);
             }
 
@@ -856,8 +856,22 @@ namespace Lampac.Controllers
 
             send(conf.VideoCDN);
 
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost) || conf.Lumex.overridehosts?.Length > 0)
+            #region Lumex
+            if (!string.IsNullOrEmpty(conf.Lumex.overridehost) || conf.Lumex.overridehosts?.Length > 0)
+            {
                 send(conf.Lumex);
+            }
+            else if (AppInit.conf.Lumex.priorityBrowser == "firefox" && Firefox.Status != PlaywrightStatus.disabled)
+            {
+                if (Firefox.Status != PlaywrightStatus.disabled)
+                    send(AppInit.conf.Lumex);
+            }
+            else
+            {
+                if (Chromium.Status == PlaywrightStatus.NoHeadless)
+                    send(AppInit.conf.Lumex);
+            }
+            #endregion
 
             if (kinopoisk_id > 0)
                 send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");

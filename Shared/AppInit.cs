@@ -870,7 +870,6 @@ namespace Lampac
             enable = true,
             hls = true,
             scheme = "http",
-            priorityBrowser = "scraping",
             geostreamproxy = new string[] { "ALL" }
         };
 
