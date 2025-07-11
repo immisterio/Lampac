@@ -905,9 +905,6 @@ namespace Lampac.Controllers
                 send(conf.RutubeMovie, "rutubemovie", "Rutube", rch_access: "apk,cors");
             }
 
-            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
-                send(conf.Hydraflix, "hydraflix", "HydraFlix (DASH)");
-
             if (conf.Videoseed.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videoseed.overridehost) || conf.Videoseed.overridehosts?.Length > 0)
                 send(conf.Videoseed);
 
@@ -956,37 +953,37 @@ namespace Lampac.Controllers
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
-                    send(conf.Videasy, "videasy", "Videasy (ENG)");
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
+                    send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
                     send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
+                    send(conf.VidLink, "vidlink", "VidLink (ENG)");
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
+                    send(conf.Videasy, "videasy", "Videasy (ENG)");
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
                     send(conf.MovPI, "movpi", "MovPI (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
-                    send(conf.VidLink, "vidlink", "VidLink (ENG)");
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
+                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
+
 
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost) || conf.Twoembed.overridehosts?.Length > 0)
                     send(conf.Twoembed, "twoembed", "2Embed (ENG)");
 
-                if (conf.Autoembed.priorityBrowser != "http" || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
-                {
-                    if (Firefox.Status != PlaywrightStatus.disabled)
-                        send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
-                }
-
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
-                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
+                if (conf.Autoembed.priorityBrowser == "http" || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
+                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+                else if (Firefox.Status != PlaywrightStatus.disabled)
+                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
 
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost) || conf.Playembed.overridehosts?.Length > 0)
                     send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
 
                 send(conf.Rgshows, "rgshows", "RgShows (ENG)");
-
-                if (conf.Autoembed.priorityBrowser == "http")
-                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
             }
             #endregion
 

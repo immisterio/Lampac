@@ -87,7 +87,7 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                if (init.priorityBrowser == "firefox")
+                if (init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless)
                 {
                     #region Firefox
                     try

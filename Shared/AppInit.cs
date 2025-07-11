@@ -408,7 +408,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "13562866c2f6b8070ac1f2224055dc76bb7716db"
+            tree = "28449483902de520694ca4067125272c83d75575"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -990,7 +990,14 @@ namespace Lampac
         /// </summary>
         public OnlinesSettings VidLink { get; set; } = new OnlinesSettings("VidLink", "kwwsv=22ylgolqn1sur", streamproxy: true);
 
-        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true)
+        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
+
+        /// <summary>
+        /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
+        /// </summary>
+        public OnlinesSettings Smashystream { get; set; } = new OnlinesSettings("Smashystream", "kwwsv=22sod|hu1vpdvk|vwuhdp1frp", streamproxy: true);
+
+        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true, enable: false)
         {
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
@@ -1003,7 +1010,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff")
+        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", enable: false)
         {
             priorityBrowser = "http",
             headers_stream = HeadersModel.Init(
@@ -1017,14 +1024,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
-
-        /// <summary>
-        /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
-        /// </summary>
-        public OnlinesSettings Smashystream { get; set; } = new OnlinesSettings("Smashystream", "kwwsv=22sod|hu1vpdvk|vwuhdp1frp", streamproxy: true);
-
-        public OnlinesSettings Rgshows { get; set; } = new OnlinesSettings("Rgshows", "kwwsv=22dsl1ujvkrzv1ph", streamproxy: true)
+        public OnlinesSettings Rgshows { get; set; } = new OnlinesSettings("Rgshows", "kwwsv=22dsl1ujvkrzv1ph", streamproxy: true, enable: false)
         {
             headers = HeadersModel.Init(
                 ("accept", "*/*"),
@@ -1035,10 +1035,20 @@ namespace Lampac
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-site")
+            ).ToDictionary(),
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "encrypt:kwwsv=22zzz1ujvkrzv1ph2"),
+                ("origin", "encrypt:kwwsv=22zzz1ujvkrzv1ph"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
-        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su");
+        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su", enable: false);
         #endregion
 
         #region Anime

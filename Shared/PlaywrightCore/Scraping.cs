@@ -38,7 +38,7 @@ namespace Shared.PlaywrightCore
                 proxyServer.BeforeRequest += Request;
                 proxyServer.BeforeResponse += Response;
 
-                if (!File.Exists("data/titanium.pfx"))
+                if (!File.Exists("cache/titanium.pfx"))
                 {
                     // Генерируем корневой сертификат (если еще не создан)
                     if (proxyServer.CertificateManager.RootCertificate == null)
@@ -49,19 +49,19 @@ namespace Shared.PlaywrightCore
 
                     // Сохраняем в PFX-файл (с паролем)
                     byte[] certBytes = rootCert.Export(X509ContentType.Pkcs12, "35sd85454gfd");
-                    File.WriteAllBytes("data/titanium.pfx", certBytes);
+                    File.WriteAllBytes("cache/titanium.pfx", certBytes);
 
                     certBytes = proxyServer.CertificateManager.RootCertificate.Export(X509ContentType.Cert);
-                    File.WriteAllBytes("data/titanium.crt", certBytes);
+                    File.WriteAllBytes("cache/titanium.crt", certBytes);
                 }
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !File.Exists("/usr/local/share/ca-certificates/lampac_titanium.crt"))
                 {
-                    File.Copy("data/titanium.crt", "/usr/local/share/ca-certificates/lampac_titanium.crt", true);
+                    File.Copy("cache/titanium.crt", "/usr/local/share/ca-certificates/lampac_titanium.crt", true);
                     Bash.Invoke("update-ca-certificates");
                 }
 
-                proxyServer.CertificateManager.LoadRootCertificate("data/titanium.pfx", "35sd85454gfd");
+                proxyServer.CertificateManager.LoadRootCertificate("cache/titanium.pfx", "35sd85454gfd");
                 proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
 
                 explicitEndPoint = new ExplicitProxyEndPoint(System.Net.IPAddress.Loopback, 0, true);

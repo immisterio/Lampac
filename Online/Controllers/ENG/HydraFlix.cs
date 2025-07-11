@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hydraflix")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Hydraflix, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, chromium: true, method: "call", extension: "mpd");
+            return ViewTmdb(AppInit.conf.Hydraflix, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, chromium: true, method: "call", extension: "m3u8");
         }
 
 
