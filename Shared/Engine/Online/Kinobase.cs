@@ -128,7 +128,7 @@ namespace Shared.Engine.Online
                         return new EmbedModel()
                         {
                             serial = res,
-                            quality = video.Contains("2160.") ? "2160p" : video.Contains("1440.") ? "1440p" : video.Contains("1080.") ? "1080p" : video.Contains("720.") ? "720p" : video.Contains("480.") ? "480p" : "360p"
+                            quality = (video.Contains("2160.") || video.Contains("2160_")) ? "2160p" : (video.Contains("1440.") || video.Contains("1440_")) ? "1440p" : (video.Contains("1080.") || video.Contains("1080_")) ? "1080p" : video.Contains("720.") ? "720p" : video.Contains("480.") ? "480p" : "360p"
                         };
                     }
                     else
@@ -209,7 +209,7 @@ namespace Shared.Engine.Online
                             {
                                 foreach (var line2 in voices)
                                 {
-                                    if (line2.Contains(voice) && (line2.Contains($"_{q}.mp4") || line2.Contains($"_{q}.m3u8")))
+                                    if (line2.Contains(voice) && (line2.Contains($"_{q}") || line2.Contains($"_{q}")))
                                     {
                                         string links = Regex.Match(line2, "\\}([^\\[,;]+)").Groups[1].Value;
                                         if (string.IsNullOrEmpty(links))
@@ -231,7 +231,7 @@ namespace Shared.Engine.Online
 
                     foreach (string q in new string[] { "1080", "720", "480", "360" })
                     {
-                        string link = Regex.Match(md.content, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{q}.(mp4|m3u8))").Groups[1].Value;
+                        string link = Regex.Match(md.content, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{q}(_10)?.(mp4|m3u8))").Groups[1].Value;
                         if (string.IsNullOrEmpty(link))
                             continue;
 
@@ -331,7 +331,7 @@ namespace Shared.Engine.Online
 
                             foreach (string quality in new List<string> { "2160", "1440", "1080", "720", "480", "360" })
                             {
-                                string qline = Regex.Match(episode.file, $"\\[{quality}p\\]([^\\[]+)").Groups[1].Value;
+                                string qline = Regex.Match(episode.file, $"\\[{quality}p( [^\\]]+)?\\]([^\\[]+)").Groups[2].Value;
                                 if (string.IsNullOrEmpty(qline))
                                     continue;
 

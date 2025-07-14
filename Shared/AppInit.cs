@@ -845,7 +845,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, true) 
+        public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, hdr: true) 
         { 
             geostreamproxy = new string[] { "ALL" } 
         };
