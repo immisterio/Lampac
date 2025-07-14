@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Shared.Engine;
 using Shared.Model.Online.VeoVeo;
-using System.Text.RegularExpressions;
 using Shared.Model.Base;
 
 namespace Lampac.Controllers.LITE
@@ -92,10 +91,12 @@ namespace Lampac.Controllers.LITE
                     }
                     else
                     {
-                        var etpl = new EpisodeTpl();
+                        var episodes = cache.Value.Where(i => i["season"].Value<int>("order") == s);
+
+                        var etpl = new EpisodeTpl(episodes.Count());
                         string sArhc = s.ToString();
 
-                        foreach (var episode in cache.Value.Where(i => i["season"].Value<int>("order") == s))
+                        foreach (var episode in episodes.OrderBy(i => i.Value<int>("order")))
                         {
                             string name = episode.Value<string>("title");
                             string file = episode.Value<string>("m3u8MasterFilePath");

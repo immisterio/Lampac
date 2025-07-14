@@ -1,22 +1,24 @@
-﻿using System.Threading.Tasks;
+﻿using Lampac.Engine.CORE;
+using Lampac.Models.LITE;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Model.Online.Lumex;
+using Online;
+using Shared.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online;
-using System.Linq;
-using System.Collections.Generic;
+using Shared.Model.Online.Lumex;
+using Shared.Model.Templates;
 using System;
-using System.Web;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Http;
-using Shared.Model.Base;
-using System.IO;
-using Lampac.Models.LITE;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers.LITE
 {
@@ -58,10 +60,13 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(init.username) || string.IsNullOrEmpty(init.password))
                 return OnError();
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
             if (content_id == 0)
             {
                 var search = await InvokeCache($"videocdn:search:{imdb_id}:{kinopoisk_id}:{title ?? original_title}:{clarification}:{similar}", TimeSpan.FromHours(1),
-                    () => Search(init, imdb_id, kinopoisk_id, title, original_title, serial, clarification, similar)
+                    () => Search(init, imdb_id, kinopoisk_id, title, original_title, serial, clarification, similar, proxy)
                 );
 
                 if (search.content_type == null && search.similar.data == null)
@@ -84,11 +89,11 @@ namespace Lampac.Controllers.LITE
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
-            string accessToken = await getToken();
+            string accessToken = await getToken(proxy);
             if (string.IsNullOrEmpty(accessToken))
                 return OnError();
 
-            var player = await getPlayer(content_id, content_type, accessToken);
+            var player = await getPlayer(content_id, content_type, accessToken, proxy);
             if (player == null)
                 return OnError();
 
@@ -212,7 +217,10 @@ namespace Lampac.Controllers.LITE
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
-            string accessToken = await getToken();
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            string accessToken = await getToken(proxy);
             if (string.IsNullOrEmpty(accessToken))
                 return OnError("token", gbcache: false);
 
@@ -248,7 +256,7 @@ namespace Lampac.Controllers.LITE
             {
                 var headers = HeadersModel.Join(HeadersModel.Init("Authorization", $"Bearer {accessToken}"), HeadersModel.Init(("x-forwarded-for", clientIP)));
 
-                var result = await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers);
+                var result = await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
                 if (result == null || !result.ContainsKey("url"))
                     return OnError(null, gbcache: false);
 
@@ -267,7 +275,7 @@ namespace Lampac.Controllers.LITE
             if (play)
                 return Redirect(HostStreamProxy(init, hls));
 
-            var player = await getPlayer(content_id, content_type, accessToken);
+            var player = await getPlayer(content_id, content_type, accessToken, proxy);
             VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
             if (init.disable_ads)
                 vast = null;
@@ -333,7 +341,7 @@ namespace Lampac.Controllers.LITE
 
 
         #region getToken
-        async ValueTask<string> getToken()
+        async ValueTask<string> getToken(WebProxy proxy)
         {
             var init = await Initialization();
 
@@ -342,7 +350,7 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out string refreshToken))
             {
                 var data = new System.Net.Http.StringContent($"{{\"username\":\"{init.username}\",\"password\":\"{init.password}\"}}", Encoding.UTF8, "application/json");
-                var job = await HttpClient.Post<JObject>($"{init.apihost}/login", data, useDefaultHeaders: false);
+                var job = await HttpClient.Post<JObject>($"{init.apihost}/login", data, useDefaultHeaders: false, proxy: proxy);
                 if (job == null || !job.ContainsKey("refreshToken"))
                     return null;
 
@@ -360,7 +368,7 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out string accessToken))
             {
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
-                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", clientIP)));
+                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", clientIP)), proxy: proxy);
                 if (job == null || !job.ContainsKey("accessToken"))
                     return null;
 
@@ -376,7 +384,7 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region getPlayer
-        async ValueTask<EmbedModel> getPlayer(long content_id, string content_type, string accessToken)
+        async ValueTask<EmbedModel> getPlayer(long content_id, string content_type, string accessToken, WebProxy proxy)
         {
             if (content_id == 0 || string.IsNullOrEmpty(content_type))
                 return null;
@@ -392,7 +400,7 @@ namespace Lampac.Controllers.LITE
                     ("x-forwarded-for", clientIP)
                 );
 
-                string json = await HttpClient.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers);
+                string json = await HttpClient.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers, proxy: proxy);
                 if (string.IsNullOrEmpty(json))
                     return null;
 
@@ -407,7 +415,7 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region Search
-        async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(LumexSettings init, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar)
+        async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(LumexSettings init, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar, WebProxy proxy)
         {
             async Task<JToken> searchId(string imdb_id, long kinopoisk_id)
             {
@@ -418,7 +426,7 @@ namespace Lampac.Controllers.LITE
                     return null;
 
                 string arg = kinopoisk_id > 0 ? $"&kinopoisk_id={kinopoisk_id}" : $"&imdb_id={imdb_id}";
-                var job = await HttpClient.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, timeoutSeconds: 8);
+                var job = await HttpClient.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, timeoutSeconds: 8, proxy: proxy);
                 if (job == null || !job.ContainsKey("data"))
                     return null;
 
@@ -440,7 +448,7 @@ namespace Lampac.Controllers.LITE
                     return default;
 
                 string uri = $"{init.iframehost}/api/short?api_token={init.token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
-                string json = await HttpClient.Get(uri, timeoutSeconds: 8);
+                string json = await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy);
                 if (json == null)
                     return default;
 

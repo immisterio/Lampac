@@ -61,7 +61,7 @@ namespace Lampac.Controllers.LITE
                         var tpl = new SeasonTpl();
                         var hash = new HashSet<int>();
 
-                        foreach (var video in cache.Value["video"])
+                        foreach (var video in cache.Value["video"].OrderBy(i => i.Value<int>("season")))
                         {
                             int season = video.Value<int>("season");
 
@@ -101,6 +101,7 @@ namespace Lampac.Controllers.LITE
 
                         var etpl = new EpisodeTpl();
                         string sArhc = s.ToString();
+                        var tmpEpisode = new HashSet<int>();
 
                         foreach (var video in cache.Value["video"].OrderBy(i => i.Value<int>("episode")))
                         {
@@ -108,7 +109,15 @@ namespace Lampac.Controllers.LITE
                                 continue;
 
                             string hls = video.Value<JObject>("sources").Value<string>("hlsUrl");
+                            if (string.IsNullOrEmpty(hls))
+                                continue;
+
                             int episode = video.Value<int>("episode");
+
+                            if (tmpEpisode.Contains(episode))
+                                continue;
+
+                            tmpEpisode.Add(episode);
 
                             etpl.Append($"{episode} серия", title ?? original_title, sArhc, episode.ToString(), HostStreamProxy(init, hls, proxy: proxy), vast: init.vast);
                         }

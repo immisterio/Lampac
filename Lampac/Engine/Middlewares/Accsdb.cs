@@ -1,7 +1,6 @@
 ﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Shared.Engine;
 using Shared.Models;
 using System;
 using System.Collections.Generic;
@@ -84,6 +83,8 @@ namespace Lampac.Engine.Middlewares
             {
                 if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && !AppInit.conf.storage.enable)
                     return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
+
+                return _next(httpContext);
             }
 
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|bigfangroup|mazepa)";

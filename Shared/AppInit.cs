@@ -54,7 +54,7 @@ namespace Lampac
 
                     try
                     {
-                        await Task.Delay(150);
+                        await Task.Delay(200);
                         updateConf();
                     }
                     finally
@@ -71,15 +71,19 @@ namespace Lampac
                     {
                         await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
-                        if (File.Exists("init.conf"))
+                        try
                         {
-                            var lwt = File.GetLastWriteTime("init.conf");
-                            if (lwt != lastUpdateConf)
+                            if (File.Exists("init.conf"))
                             {
-                                lastUpdateConf = lwt;
-                                updateConf();
+                                var lwt = File.GetLastWriteTime("init.conf");
+                                if (lwt != lastUpdateConf)
+                                {
+                                    updateConf();
+                                    lastUpdateConf = lwt;
+                                }
                             }
                         }
+                        catch { }
                     }
                 });
             }
@@ -282,7 +286,7 @@ namespace Lampac
 
         public int cacheHybridExtend = 5; // seconds
 
-        public string watcherInit = "system";
+        public string watcherInit = "cron";// system
 
         public string imagelibrary = "NetVips"; // NetVips|ImageMagick|none
 
@@ -408,7 +412,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "28449483902de520694ca4067125272c83d75575"
+            tree = "e30ff301db9a3fb4fdab473210b5e741cd3942ba"
         };
 
         public OnlineConf online = new OnlineConf()
