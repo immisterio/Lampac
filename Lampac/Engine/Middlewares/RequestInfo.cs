@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Playwright;
-using Shared.Engine.CORE;
 using Shared.Models;
 using System;
 using System.IO;
@@ -104,7 +102,7 @@ namespace Lampac.Engine.Middlewares
             };
 
             #region Weblog Request
-            if (!IsLocalRequest)
+            if (!IsLocalRequest && soks.weblog_clients.Count > 0)
             {
                 var logBuilder = new System.Text.StringBuilder();
                 logBuilder.AppendLine($"{DateTime.Now}");

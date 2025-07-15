@@ -370,6 +370,7 @@ namespace Lampac
             app.UseOverrideResponse(first: true);
             app.UseStaticFiles();
             app.UseRequestInfo();
+            app.UseWAF();
             app.UseAccsdb();
             app.UseOverrideResponse(first: false);
 

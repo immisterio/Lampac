@@ -324,6 +324,8 @@ namespace Lampac
 
         public SyncConf sync = new SyncConf();
 
+        public WafConf WAF = new WafConf();
+
         public WebLogConf weblog = new WebLogConf();
 
         public OpenStatConf openstat = new OpenStatConf();
