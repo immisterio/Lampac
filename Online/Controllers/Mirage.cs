@@ -402,11 +402,15 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(acceptsName))
                     return default;
 
-                string metaName = Regex.Match(build, ",'meta\\[name=([^\\]]+)\\]").Groups[1].Value;
-                if (string.IsNullOrEmpty(metaName))
-                    return default;
+                string acceptsControls = Regex.Match(html, "name=\"[^\"]+\" content=\"([a-zA-Z0-9]+)\"").Groups[1].Value;
+                string metaName = Regex.Match(build, "\\('meta\\[name=([^\\]]+)\\]").Groups[1].Value;
+                if (!string.IsNullOrEmpty(metaName))
+                {
+                    acceptsControls = Regex.Match(html, $"name=\"{metaName}\" content=\"([^\"]+)\"").Groups[1].Value;
+                    if (string.IsNullOrEmpty(acceptsControls))
+                        return default;
+                }
 
-                string acceptsControls = Regex.Match(html, $"name=\"{metaName}\" content=\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(acceptsControls))
                     return default;
 
