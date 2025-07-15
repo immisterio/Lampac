@@ -44,10 +44,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial, int clarification, List<DatumDB>? database = null)
+        public async ValueTask<SimilarTpl> Search(string title, string? original_title, int serial, int clarification, List<DatumDB>? database = null)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
-                return null;
+                return default;
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -61,7 +61,7 @@ namespace Shared.Engine.Online
                 if (json == null)
                 {
                     requesterror?.Invoke();
-                    return null;
+                    return default;
                 }
 
                 SearchRoot? root = null;
@@ -70,9 +70,9 @@ namespace Shared.Engine.Online
                 {
                     root = JsonSerializer.Deserialize<SearchRoot>(json);
                     if (root?.data == null || root.data.Count == 0)
-                        return null;
+                        return default;
                 }
-                catch { return null; }
+                catch { return default; }
 
                 var stpl = new SimilarTpl(root.data.Count);
 
@@ -109,7 +109,7 @@ namespace Shared.Engine.Online
             {
                 #region database
                 if (database == null)
-                    return null;
+                    return default;
 
                 var stpl = new SimilarTpl(database.Count > 100 ? 100 : database.Count);
 
@@ -167,7 +167,7 @@ namespace Shared.Engine.Online
                 #endregion
             }
 
-            return null;
+            return default;
         }
         #endregion
 

@@ -463,6 +463,7 @@ namespace Lampac.Controllers
             send(AppInit.conf.RezkaPrem, "rhsprem");
 
             send(AppInit.conf.KinoPub);
+            send(AppInit.conf.GetsTV, "getstv-search");
             send(AppInit.conf.Kinobase);
             send(AppInit.conf.Alloha, "alloha-search");
             send(AppInit.conf.Mirage, "mirage-search");
@@ -792,6 +793,7 @@ namespace Lampac.Controllers
 
             send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
             send(conf.IptvOnline, "iptvonline", "iptv.online");
+            send(conf.GetsTV);
 
             #region Alloha
             {
@@ -1123,6 +1125,7 @@ namespace Lampac.Controllers
                                 quality = " ~ 2160p";
                                 break;
                             case "kinobase":
+                            case "getstv":
                             case "zetflix":
                             case "vcdn":
                             case "videocdn":

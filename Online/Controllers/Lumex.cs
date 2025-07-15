@@ -56,15 +56,20 @@ namespace Lampac.Controllers.LITE
 
             if (similar || (content_id == 0 && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
-                var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), async res =>
+                string memKey = $"lumex:search:{title}:{original_title}:{clarification}";
+                if (!hybridCache.TryGetValue(memKey, out SimilarTpl search))
                 {
                     if (string.IsNullOrEmpty(init.token) && database == null && init.spider)
                         database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
 
-                    return await oninvk.Search(title, original_title, serial, clarification, database);
-                });
+                    search = await oninvk.Search(title, original_title, serial, clarification, database);
+                    if (search.data?.Count == 0)
+                        return OnError("search");
 
-                return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
+                    hybridCache.Set(memKey, search, cacheTime(40, init: init));
+                }
+
+                return ContentTo(rjson ? search.ToJson() : search.ToHtml());
             }
 
             var cache = await InvokeCache<EmbedModel>($"videocdn:{content_id}:{content_type}:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", cacheTime(10, init: init), proxyManager,  async res =>
