@@ -1,6 +1,7 @@
 ﻿using Lampac.Models.Module;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Shared.Engine;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -28,7 +29,29 @@ namespace Lampac.Engine.Middlewares
                 {
                     try
                     {
-                        if (mod.assembly.GetType(mod.NamespacePath(mod.middlewares)) is Type t)
+                        Assembly assembly = null;
+
+                        if (mod.dynamic)
+                        {
+                            string cacheKey = $"{mod.dll}:{mod.middlewares}";
+                            if (!memoryCache.TryGetValue(cacheKey, out assembly))
+                            {
+                                assembly = CSharpEval.Compilation(mod);
+                                var cacheEntryOptions = new MemoryCacheEntryOptions
+                                {
+                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(1)
+                                };
+
+                                if (assembly != null)
+                                    memoryCache.Set(cacheKey, assembly, cacheEntryOptions);
+                            }
+                        }
+                        else
+                        {
+                            assembly = mod.assembly;
+                        }
+
+                        if (assembly != null && assembly.GetType(mod.NamespacePath(mod.middlewares)) is Type t)
                         {
                             if (t.GetMethod("Invoke") is MethodInfo m2)
                             {
