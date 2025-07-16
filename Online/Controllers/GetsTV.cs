@@ -1,6 +1,7 @@
 using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Online;
 using Shared.Engine.CORE;
@@ -9,6 +10,7 @@ using Shared.Model.Templates;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -16,6 +18,34 @@ namespace Lampac.Controllers.LITE
 {
     public class GetsTV : BaseOnlineController
     {
+        #region Bind
+        [HttpGet]
+        [Route("/lite/getstv/bind")]
+        async public Task<ActionResult> Bind(string login, string pass)
+        {
+            string html = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
+            {
+                return ContentTo("Введите данные аккаунта getstv.com <br> <br><form method=\"get\" action=\"/lite/getstv/bind\"><input type=\"text\" name=\"login\" placeholder=\"email\"> &nbsp; &nbsp; <input type=\"text\" name=\"pass\" placeholder=\"пароль\"><br><br><button>Авторизоваться</button></form>");
+            }
+            else
+            {
+                string postdata = $"{{\"email\":\"{login}\",\"password\":\"{pass}\",\"fingerprint\":\"{CrypTo.md5(DateTime.Now.ToString())}\",\"device\":{{}}}}";
+                var result =  await HttpClient.Post<JObject>($"{AppInit.conf.GetsTV.corsHost()}/api/login", new System.Net.Http.StringContent(postdata, Encoding.UTF8, "application/json"), headers: httpHeaders(AppInit.conf.GetsTV));
+
+                if (result == null)
+                    ContentTo("Ошибка авторизации ;(");
+
+                string token = result.Value<string>("token");
+                if (string.IsNullOrEmpty(token))
+                    return ContentTo(JsonConvert.SerializeObject(result, Formatting.Indented));
+
+                return ContentTo("Добавьте в init.conf<br><br>\"GetsTV\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + token + "\"<br>}");
+            }
+        }
+        #endregion
+
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.GetsTV);
 
         [HttpGet]
