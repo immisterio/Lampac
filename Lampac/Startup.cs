@@ -202,6 +202,14 @@ namespace Lampac
                         return;
                     }
 
+                    if (mod.dynamic && mod.middlewares != null)
+                    {
+                        Console.WriteLine("dynamic module: " + mod.dll);
+                        mod.index = mod.index != 0 ? mod.index : (100 + AppInit.modules.Count);
+                        AppInit.modules.Add(mod);
+                        return;
+                    }
+
                     string path = Directory.Exists(mod.dll) ? mod.dll : $"{Environment.CurrentDirectory}/module/{mod.dll}";
                     if (Directory.Exists(path))
                     {
@@ -290,6 +298,9 @@ namespace Lampac
                         CompilationMod(mod);
                     }
                 }
+
+                if (references != null)
+                    CSharpEval.appReferences = references;
             }
 
             if (AppInit.modules != null)
@@ -370,6 +381,7 @@ namespace Lampac
             app.UseOverrideResponse(first: true);
             app.UseStaticFiles();
             app.UseRequestInfo();
+            app.UseWAF();
             app.UseAccsdb();
             app.UseOverrideResponse(first: false);
 

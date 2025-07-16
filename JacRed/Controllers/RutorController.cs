@@ -36,7 +36,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("rutor", jackett.Rutor);
 
-            byte[]  _t = await HttpClient.Download($"{Regex.Replace(jackett.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: jackett.Rutor.host, proxy: proxyManager.Get());
+            byte[] _t = await HttpClient.Download($"{Regex.Replace(jackett.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: jackett.Rutor.host, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 

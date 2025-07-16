@@ -399,7 +399,7 @@ namespace Lampac.Controllers
             var piders = new List<(string name, string uri, int index)>();
 
             #region send
-            void send(BaseSettings init, in string plugin = null)
+            void send(BaseSettings init, string plugin = null)
             {
                 if (!init.spider || !init.enable || init.rip)
                     return;
@@ -463,6 +463,7 @@ namespace Lampac.Controllers
             send(AppInit.conf.RezkaPrem, "rhsprem");
 
             send(AppInit.conf.KinoPub);
+            send(AppInit.conf.GetsTV, "getstv-search");
             send(AppInit.conf.Kinobase);
             send(AppInit.conf.Alloha, "alloha-search");
             send(AppInit.conf.Mirage, "mirage-search");
@@ -470,10 +471,23 @@ namespace Lampac.Controllers
             send(AppInit.conf.VeoVeo, "veoveo-spider");
 
             if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
-                send(AppInit.conf.VideoCDN);
+            {
+                if (!AppInit.conf.VideoCDN.disable_protection)
+                    rhub = true;
 
-            if (!string.IsNullOrEmpty(AppInit.conf.Lumex.token))
-                send(AppInit.conf.Lumex);
+                send(AppInit.conf.VideoCDN);
+            }
+
+            if (AppInit.conf.Lumex.priorityBrowser == "firefox")
+            {
+                if (Firefox.Status != PlaywrightStatus.disabled)
+                    send(AppInit.conf.Lumex);
+            }
+            else
+            {
+                if (Chromium.Status == PlaywrightStatus.NoHeadless)
+                    send(AppInit.conf.Lumex);
+            }
 
             send(AppInit.conf.VDBmovies);
             send(AppInit.conf.HDVB, "hdvb-search");
@@ -609,7 +623,7 @@ namespace Lampac.Controllers
             #endregion
 
             #region send
-            void send(BaseSettings _init, in string plugin = null, in string name = null, in string arg_title = null, in string arg_url = null, in string rch_access = null, BaseSettings myinit = null)
+            void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, string rch_access = null, BaseSettings myinit = null)
             {
                 var init = myinit != null ? _init : loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
@@ -694,13 +708,14 @@ namespace Lampac.Controllers
 
             if (serial == -1 || isanime)
             {
+                send(conf.AniLiberty);
                 send(conf.AnilibriaOnline, "anilibria", "Anilibria");
                 send(conf.AnimeLib);
                 send(conf.Animevost, rch_access: "apk,cors");
-                send(conf.MoonAnime);
                 send(conf.Animebesst, rch_access: "apk");
                 send(conf.AnimeGo);
                 send(conf.AniMedia);
+                send(conf.MoonAnime);
             }
 
             #region VoKino
@@ -778,6 +793,7 @@ namespace Lampac.Controllers
 
             send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
             send(conf.IptvOnline, "iptvonline", "iptv.online");
+            send(conf.GetsTV);
 
             #region Alloha
             {
@@ -842,16 +858,30 @@ namespace Lampac.Controllers
 
             send(conf.VideoCDN);
 
-            if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost) || conf.Lumex.overridehosts?.Length > 0)
+            #region Lumex
+            if (!string.IsNullOrEmpty(conf.Lumex.overridehost) || conf.Lumex.overridehosts?.Length > 0)
+            {
                 send(conf.Lumex);
+            }
+            else if (AppInit.conf.Lumex.priorityBrowser == "firefox" && Firefox.Status != PlaywrightStatus.disabled)
+            {
+                if (Firefox.Status != PlaywrightStatus.disabled)
+                    send(AppInit.conf.Lumex);
+            }
+            else
+            {
+                if (Chromium.Status == PlaywrightStatus.NoHeadless)
+                    send(AppInit.conf.Lumex);
+            }
+            #endregion
 
             if (kinopoisk_id > 0)
                 send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
 
-            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)");
-
             if (!isanime)
                 send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
+
+            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)", rch_access: "apk,cors");
 
             #region Collaps
             {
@@ -876,9 +906,6 @@ namespace Lampac.Controllers
                 send(conf.Plvideo, "plvideo", "Plvideo", rch_access: "apk,cors");
                 send(conf.RutubeMovie, "rutubemovie", "Rutube", rch_access: "apk,cors");
             }
-
-            if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
-                send(conf.Hydraflix, "hydraflix", "HydraFlix (DASH)");
 
             if (conf.Videoseed.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videoseed.overridehost) || conf.Videoseed.overridehosts?.Length > 0)
                 send(conf.Videoseed);
@@ -922,43 +949,43 @@ namespace Lampac.Controllers
             if (serial == -1 || serial == 0)
                 send(conf.IframeVideo);
 
-            if (kinopoisk_id > 0 && (serial == -1 || serial == 0))
+            if (kinopoisk_id > 0 && !isanime)
                 send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
 
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
-                    send(conf.Videasy, "videasy", "Videasy (ENG)");
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
+                    send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
                     send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
+                    send(conf.VidLink, "vidlink", "VidLink (ENG)");
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
+                    send(conf.Videasy, "videasy", "Videasy (ENG)");
+
+                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
                     send(conf.MovPI, "movpi", "MovPI (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
-                    send(conf.VidLink, "vidlink", "VidLink (ENG)");
+                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
+                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
+
 
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost) || conf.Twoembed.overridehosts?.Length > 0)
                     send(conf.Twoembed, "twoembed", "2Embed (ENG)");
 
-                if (conf.Autoembed.priorityBrowser != "http" || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
-                {
-                    if (Firefox.Status != PlaywrightStatus.disabled)
-                        send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
-                }
-
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
-                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
+                if (conf.Autoembed.priorityBrowser == "http" || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
+                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+                else if (Firefox.Status != PlaywrightStatus.disabled)
+                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
 
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost) || conf.Playembed.overridehosts?.Length > 0)
                     send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
 
                 send(conf.Rgshows, "rgshows", "RgShows (ENG)");
-
-                if (conf.Autoembed.priorityBrowser == "http")
-                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
             }
             #endregion
 
@@ -1098,6 +1125,7 @@ namespace Lampac.Controllers
                                 quality = " ~ 2160p";
                                 break;
                             case "kinobase":
+                            case "getstv":
                             case "zetflix":
                             case "vcdn":
                             case "videocdn":
@@ -1109,7 +1137,7 @@ namespace Lampac.Controllers
                             case "ashdi":
                             case "hdvb":
                             case "anilibria":
-                            case "animedia":
+                            case "aniliberty":
                             case "redheadsound":
                             case "iframevideo":
                             case "animego":
@@ -1138,6 +1166,7 @@ namespace Lampac.Controllers
                                 quality = " ~ 1080p";
                                 break;
                             case "voidboost":
+                            case "animedia":
                             case "animevost":
                             case "animebesst":
                             case "kodik":

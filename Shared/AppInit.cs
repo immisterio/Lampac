@@ -17,6 +17,7 @@ using Shared.Models.Online.Kinobase;
 using Shared.Models.ServerProxy;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Lampac
 {
@@ -31,38 +32,69 @@ namespace Lampac
 
         static FileSystemWatcher fileWatcher;
 
-        static AppInit() 
+        static AppInit()
         {
             updateConf();
             LoadModules();
 
-            fileWatcher = new FileSystemWatcher
+            #region watcherInit
+            if (conf.watcherInit == "system")
             {
-                Path = Directory.GetCurrentDirectory(),
-                Filter = "init.conf",
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
-                EnableRaisingEvents = true
-            };
+                fileWatcher = new FileSystemWatcher
+                {
+                    Path = Directory.GetCurrentDirectory(),
+                    Filter = "init.conf",
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                    EnableRaisingEvents = true
+                };
 
-            fileWatcher.Changed += async (s, e) => 
+                fileWatcher.Changed += async (s, e) =>
+                {
+                    fileWatcher.EnableRaisingEvents = false;
+
+                    try
+                    {
+                        await Task.Delay(200);
+                        updateConf();
+                    }
+                    finally
+                    {
+                        fileWatcher.EnableRaisingEvents = true;
+                    }
+                };
+            }
+            else
             {
-                fileWatcher.EnableRaisingEvents = false;
+                ThreadPool.QueueUserWorkItem(async _ =>
+                {
+                    while (true)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
-                try
-                {
-                    await Task.Delay(100);
-                    updateConf();
-                }
-                finally
-                {
-                    fileWatcher.EnableRaisingEvents = true;
-                }
-            };
+                        try
+                        {
+                            if (File.Exists("init.conf"))
+                            {
+                                var lwt = File.GetLastWriteTime("init.conf");
+                                if (lwt != lastUpdateConf)
+                                {
+                                    updateConf();
+                                    lastUpdateConf = lwt;
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                });
+            }
+            #endregion
         }
         #endregion
 
 
         #region conf
+        static DateTime lastUpdateConf = default;
+
         public static AppInit conf = null;
 
         static void updateConf()
@@ -254,6 +286,8 @@ namespace Lampac
 
         public int cacheHybridExtend = 5; // seconds
 
+        public string watcherInit = "cron";// system
+
         public string imagelibrary = "NetVips"; // NetVips|ImageMagick|none
 
         public bool pirate_store = true;
@@ -290,6 +324,8 @@ namespace Lampac
 
         public SyncConf sync = new SyncConf();
 
+        public WafConf WAF = new WafConf();
+
         public WebLogConf weblog = new WebLogConf();
 
         public OpenStatConf openstat = new OpenStatConf();
@@ -301,13 +337,14 @@ namespace Lampac
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
             enable = true, Xvfb = true,
-            Args = new string[] { "--disable-blink-features=AutomationControlled" },
+            Args = new string[] { "--disable-blink-features=AutomationControlled", "--window-position=-2000,100" },
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
+            Args = new string[] { "--window-position=-2000,100" },
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 1, max = 2 }
         };
 
@@ -315,8 +352,8 @@ namespace Lampac
 
         public CubConf cub { get; set; } = new CubConf()
         {
-            enable = false, 
-            domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "https",
+            enable = false, viewru = true,
+            domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "http",
             mirror = "mirror-kurwa.men",
             cache_api = 20, cache_img = 120,
         };
@@ -324,6 +361,7 @@ namespace Lampac
         public TmdbConf tmdb { get; set; } = new TmdbConf()
         {
             enable = true,
+            httpversion = 2,
             DNS = "9.9.9.9", DNS_TTL = 20,
             cache_api = 20, cache_img = 60, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
@@ -376,7 +414,7 @@ namespace Lampac
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "b7762fa503462f9dfe5b5a2b2b1e8b627890813c"
+            tree = "4e69d324e3e5e8c0a4379b0f89a7ce6bd96173cf"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -385,7 +423,7 @@ namespace Lampac
             spider = true, spiderName = "Spider",
             component = "lampac", name = "Lampac", description = "Плагин для просмотра онлайн сериалов и фильмов",
             version = true, btn_priority_forced = true, showquality = true,
-            with_search = new List<string>() { "kinotochka", "kinobase", "kinopub", "lumex", "filmix", "filmixtv", "fxapi", "redheadsound", "animevost", "animego", "animedia", "animebesst", "anilibria", "rezka", "rhsprem", "kodik", "remux", "animelib", "kinoukr", "rc/filmix", "rc/fxapi", "rc/rhs", "vcdn", "videocdn", "lumex", "collaps", "collaps-dash", "vdbmovies", "hdvb", "mirage", "alloha", "veoveo", "rutubemovie" }
+            with_search = new List<string>() { "kinotochka", "kinobase", "kinopub", "lumex", "filmix", "filmixtv", "fxapi", "redheadsound", "animevost", "animego", "animedia", "animebesst", "anilibria", "aniliberty", "rezka", "rhsprem", "kodik", "remux", "animelib", "kinoukr", "rc/filmix", "rc/fxapi", "rc/rhs", "vcdn", "videocdn", "lumex", "collaps", "collaps-dash", "vdbmovies", "hdvb", "mirage", "alloha", "veoveo", "rutubemovie" }
         };
 
         public SisiConf sisi { get; set; } = new SisiConf()
@@ -634,7 +672,9 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1fr", streamproxy: true);
+        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy");
+
+        public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1yls", streamproxy: true);
 
         public OnlinesSettings RutubeMovie { get; set; } = new OnlinesSettings("RutubeMovie", "kwwsv=22uxwxeh1ux", streamproxy: true)
         {
@@ -645,7 +685,7 @@ namespace Lampac
 
         public OnlinesSettings Plvideo { get; set; } = new OnlinesSettings("Plvideo", "kwwsv=22dsl1j41soylghr1ux", streamproxy: true);
 
-        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sod|hu1fgqylghrkxe1frp", streamproxy: true, enable: false)
+        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sodsl1fgqylghrkxe1frp", streamproxy: true)
         {
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -653,16 +693,13 @@ namespace Lampac
                 ("referer", "encrypt:kwwsv=22kgnlqr1sxe2"),
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
+                ("sec-ch-ua", "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "iframe"),
-                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site"),
-                ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
@@ -810,7 +847,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, true) 
+        public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, hdr: true) 
         { 
             geostreamproxy = new string[] { "ALL" } 
         };
@@ -937,6 +974,13 @@ namespace Lampac
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
+
+        public OnlinesSettings GetsTV { get; set; } = new OnlinesSettings("GetsTV", "https://getstv.com", enable: false) 
+        {
+            headers = HeadersModel.Init(
+                ("user-agent", "Mozilla/5.0 (Web0S; Linux/SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.34 Safari/537.36 WebAppManager")
+            ).ToDictionary()
+        };
         #endregion
 
         #region ENG
@@ -959,7 +1003,14 @@ namespace Lampac
         /// </summary>
         public OnlinesSettings VidLink { get; set; } = new OnlinesSettings("VidLink", "kwwsv=22ylgolqn1sur", streamproxy: true);
 
-        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true)
+        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
+
+        /// <summary>
+        /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
+        /// </summary>
+        public OnlinesSettings Smashystream { get; set; } = new OnlinesSettings("Smashystream", "kwwsv=22sod|hu1vpdvk|vwuhdp1frp", streamproxy: true);
+
+        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true, enable: false)
         {
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
@@ -972,7 +1023,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff")
+        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", enable: false)
         {
             priorityBrowser = "http",
             headers_stream = HeadersModel.Init(
@@ -986,14 +1037,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings Videasy { get; set; } = new OnlinesSettings("Videasy", "kwwsv=22sod|hu1ylghdv|1qhw", streamproxy: true);
-
-        /// <summary>
-        /// aHR0cHM6Ly9zbWFzaHlzdHJlYW0ueHl6
-        /// </summary>
-        public OnlinesSettings Smashystream { get; set; } = new OnlinesSettings("Smashystream", "kwwsv=22sod|hu1vpdvk|vwuhdp1frp", streamproxy: true);
-
-        public OnlinesSettings Rgshows { get; set; } = new OnlinesSettings("Rgshows", "kwwsv=22dsl1ujvkrzv1ph", streamproxy: true)
+        public OnlinesSettings Rgshows { get; set; } = new OnlinesSettings("Rgshows", "kwwsv=22dsl1ujvkrzv1ph", streamproxy: true, enable: false)
         {
             headers = HeadersModel.Init(
                 ("accept", "*/*"),
@@ -1004,10 +1048,20 @@ namespace Lampac
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-site")
+            ).ToDictionary(),
+            headers_stream = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"),
+                ("accept-language", "en-US,en;q=0.5"),
+                ("referer", "encrypt:kwwsv=22zzz1ujvkrzv1ph2"),
+                ("origin", "encrypt:kwwsv=22zzz1ujvkrzv1ph"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
-        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su");
+        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su", enable: false);
         #endregion
 
         #region Anime
@@ -1020,7 +1074,12 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy");
+        /// <summary>
+        /// api v2 - AniLiberty
+        /// </summary>
+        public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy", enable: false);
+
+        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dqloleuld1zwi");
 
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
@@ -1063,7 +1122,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22rqolqh1dqlphgld1wy", streamproxy: true, enable: false);
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1vr");
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true);
 
@@ -1071,25 +1130,13 @@ namespace Lampac
 
         public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("Animebesst", "kwwsv=22dqlph41ehvw");
 
-        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1df", streamproxy: true)
+        public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1ph", streamproxy: true, enable: false)
         {
             headers_stream = HeadersModel.Init(
                 ("origin", "https://aniboom.one"),
                 ("referer", "https://aniboom.one/")
             ).ToDictionary()
         };
-        #endregion
-
-
-
-        #region RIP
-        public RezkaSettings Voidboost { get; set; } = new RezkaSettings("Voidboost", "kwwsv=22yrlgerrvw1qhw", streamproxy: true) { enable = false, rip = true };
-
-        public OnlinesSettings Seasonvar { get; set; } = new OnlinesSettings("Seasonvar", "kwws=22dsl1vhdvrqydu1ux", enable: false, rip: true);
-
-        public OnlinesSettings Lostfilmhd { get; set; } = new OnlinesSettings("Lostfilmhd", "kwws=22zzz1glvqh|oryh1ux", streamproxy: true, rip: true);
-
-        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rip: true);
         #endregion
     }
 }

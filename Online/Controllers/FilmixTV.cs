@@ -53,7 +53,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                var rtk = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/request-token");
+                var rtk = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/request-token", timeoutSeconds: 30);
                 if (rtk == null || !rtk.ContainsKey("token"))
                     return ShowError("rtk");
 
@@ -73,12 +73,12 @@ namespace Lampac.Controllers.LITE
                 if (F.Exists(authFile))
                 {
                     string refreshToken = Regex.Match(F.ReadAllText(authFile), "\"refreshToken\": ?\"([^\"]+)\"").Groups[1].Value;
-                    root_auth = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/refresh?refreshToken={HttpUtility.UrlEncode(refreshToken)}", headers: HeadersModel.Init("hash", init.hash_apitv));
+                    root_auth = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/refresh?refreshToken={HttpUtility.UrlEncode(refreshToken)}", headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
                 }
                 else
                 {
                     var data = new System.Net.Http.StringContent($"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\",\"session\":true}}", Encoding.UTF8, "application/json");
-                    root_auth = await HttpClient.Post<JObject>($"{init.corsHost()}/api-fx/auth", data, headers: HeadersModel.Init("hash", init.hash_apitv));
+                    root_auth = await HttpClient.Post<JObject>($"{init.corsHost()}/api-fx/auth", data, headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
                 }
 
                 string accessToken = root_auth?.GetValue("accessToken")?.ToString();

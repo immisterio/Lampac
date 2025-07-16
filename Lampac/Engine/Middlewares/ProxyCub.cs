@@ -1,6 +1,7 @@
 ﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json.Linq;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
 using Shared.Models;
@@ -64,17 +65,45 @@ namespace Lampac.Engine.Middlewares
             if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
                 domain = $"{path.Split(".")[0]}.{domain}";
 
-            if (domain.StartsWith("geo") && !string.IsNullOrEmpty(requestInfo.Country))
+            if (domain.StartsWith("geo"))
             {
-                await httpContext.Response.WriteAsync(requestInfo.Country, httpContext.RequestAborted).ConfigureAwait(false);
+                string country = requestInfo.Country;
+                if (string.IsNullOrEmpty(country))
+                {
+                    var ipify = await CORE.HttpClient.Get<JObject>("https://api.ipify.org/?format=json");
+                    if (ipify != null || !string.IsNullOrEmpty(ipify.Value<string>("ip")))
+                        country = GeoIP2.Country(ipify.Value<string>("ip"));
+                }
+
+                await httpContext.Response.WriteAsync(country ?? "", httpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
+            #region checker
             if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
             {
+                if (HttpMethods.IsPost(httpContext.Request.Method))
+                {
+                    if (httpContext.Request.ContentType != null &&
+                        httpContext.Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using var reader = new StreamReader(httpContext.Request.Body, leaveOpen: true);
+                        string form = await reader.ReadToEndAsync().ConfigureAwait(false);
+
+                        var match = Regex.Match(form, @"(?:^|&)data=([^&]+)");
+                        if (match.Success)
+                        {
+                            string dataValue = Uri.UnescapeDataString(match.Groups[1].Value);
+                            await httpContext.Response.WriteAsync(dataValue, httpContext.RequestAborted).ConfigureAwait(false);
+                            return;
+                        }
+                    }
+                }
+
                 await httpContext.Response.WriteAsync("ok", httpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
+            #endregion
 
             if (uri.StartsWith("api/plugins/blacklist"))
             {
@@ -120,7 +149,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
-                var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"));
+                var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
 
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                 {
@@ -190,10 +219,24 @@ namespace Lampac.Engine.Middlewares
                 if (!hybridCache.TryGetValue(memkey, out (string content, int statusCode, string contentType) cache))
                 {
                     var headers = HeadersModel.Init();
-                    foreach (var header in httpContext.Request.Headers)
+
+                    if (!string.IsNullOrEmpty(requestInfo.Country))
+                        headers.Add(new HeadersModel("cf-connecting-ip", requestInfo.IP));
+
+                    if (path.Split(".")[0] == "tmdb")
                     {
-                        if (header.Key.ToLower() is "cookie" or "user-agent")
-                            headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
+                        if (init.viewru)
+                            headers.Add(new HeadersModel("cookie", "viewru=1"));
+
+                        headers.Add(new HeadersModel("user-agent", httpContext.Request.Headers.UserAgent.ToString()));
+                    }
+                    else
+                    {
+                        foreach (var header in httpContext.Request.Headers)
+                        {
+                            if (header.Key.ToLower() is "cookie" or "user-agent")
+                                headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
+                        }
                     }
 
                     var result = await CORE.HttpClient.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
@@ -245,7 +288,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region getContentType
-        static string getContentType(in string uri)
+        static string getContentType(string uri)
         {
             return Path.GetExtension(uri).ToLowerInvariant() switch
             {
@@ -264,7 +307,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region CreateProxyHttpRequest
-        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri)
+        HttpRequestMessage CreateProxyHttpRequest(HttpContext context, Uri uri, RequestModel requestInfo, bool viewru)
         {
             var request = context.Request;
 
@@ -277,10 +320,16 @@ namespace Lampac.Engine.Middlewares
                 requestMessage.Content = streamContent;
             }
 
+            if (viewru)
+                request.Headers.Add("cookie", "viewru=1");
+
             #region Headers
             foreach (var header in request.Headers)
             {
-                if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
+                if (header.Key.ToLower() is "host" or "origin" or "content-disposition" or "accept-encoding")
+                    continue;
+
+                if (viewru && header.Key.ToLower() == "cookie")
                     continue;
 
                 if (header.Key.ToLower().StartsWith("x-"))
@@ -290,6 +339,9 @@ namespace Lampac.Engine.Middlewares
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
             #endregion
+
+            if (!string.IsNullOrEmpty(requestInfo.Country))
+                requestMessage.Headers.Add("cf-connecting-ip", requestInfo.IP);
 
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;

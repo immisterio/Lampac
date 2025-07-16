@@ -14,9 +14,9 @@ namespace Shared.Engine.CORE
 
         /// <param name="IP">IP пользователя</param>
         /// <returns>Страна UA,RU,BY,KZ</returns>
-        public static string Country(in string IP)
+        public static string Country(string IP)
         {
-            if (string.IsNullOrWhiteSpace(IP) || cityReader == null)
+            if (string.IsNullOrEmpty(IP) || cityReader == null)
                 return null;
 
             try

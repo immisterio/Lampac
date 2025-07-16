@@ -75,7 +75,10 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             if (init.showOrigUri)
+            {
+                //Console.WriteLine("PX-Orig: " + decryptLink.uri);
                 httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
+            }
 
             #region handler
             HttpClientHandler handler = new HttpClientHandler()
@@ -592,7 +595,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 try
                                 {
-                                    await response.Body.WriteAsync(chunkBuffer.AsMemory(0, length), context.RequestAborted);
+                                    await response.Body.WriteAsync(chunkBuffer, 0, length, context.RequestAborted);
                                 }
                                 finally
                                 {

@@ -54,10 +54,10 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(img))
                             img = null;
 
-                        if (!string.IsNullOrWhiteSpace(player_id) && !string.IsNullOrWhiteSpace(name) && name.ToLower().Contains(title.ToLower()))
+                        if (!string.IsNullOrWhiteSpace(player_id) && !string.IsNullOrWhiteSpace(name) && StringConvert.SearchName(name).Contains(StringConvert.SearchName(title)))
                         {
                             string season = "0";
-                            if (animeyear == year.ToString() && name.ToLower() == title.ToLower())
+                            if (animeyear == year.ToString() && StringConvert.SearchName(name) == StringConvert.SearchName(title))
                                 season = "1";
 
                             catalog.Add((name, Regex.Match(row, ">([0-9]{4})</a>").Groups[1].Value, player_id, season, img));

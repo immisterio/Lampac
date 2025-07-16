@@ -112,7 +112,7 @@ namespace Shared.Engine.CORE
         #endregion
 
         #region ReadCache
-        private bool ReadCache<TItem>(in string key, out TItem value)
+        private bool ReadCache<TItem>(string key, out TItem value)
         {
             value = default;
             if (AppInit.conf.typecache == "mem")
@@ -176,7 +176,7 @@ namespace Shared.Engine.CORE
         #endregion
 
         #region WriteCache
-        private bool WriteCache<TItem>(in string key, TItem value, DateTimeOffset absoluteExpiration, TimeSpan absoluteExpirationRelativeToNow)
+        private bool WriteCache<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, TimeSpan absoluteExpirationRelativeToNow)
         {
             if (AppInit.conf.typecache == "mem")
                 return false;

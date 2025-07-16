@@ -151,9 +151,9 @@ namespace TorrServer
                                 tsprocess?.Dispose();
                                 bool success = await HttpClient.DownloadFile(downloadUrl, tspath, timeoutSeconds: 200);
                                 if (success)
-                                    await Bash.Run($"chmod +x {tspath}");
+                                    Bash.Invoke($"chmod +x {tspath}");
                                 else
-                                    await Bash.Run($"rm -f {tspath}");
+                                    Bash.Invoke($"rm -f {tspath}");
                             }
                         }
                         catch

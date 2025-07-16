@@ -4,6 +4,7 @@ using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
 using Shared.Model.Templates;
+using Shared.PlaywrightCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -15,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videasy")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Videasy, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call");
+            return ViewTmdb(AppInit.conf.Videasy, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call", chromium: true);
         }
 
 
@@ -30,9 +31,6 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (id == 0)
-                return OnError();
-
-            if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -70,7 +68,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"videasy:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    using (var browser = new PlaywrightBrowser())
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)

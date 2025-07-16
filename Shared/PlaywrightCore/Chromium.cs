@@ -87,8 +87,9 @@ namespace Shared.Engine
                                         return;
                                     }
 
-                                    await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium")}");
+                                    Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium")}");
                                     executablePath = ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium";
+                                    await Task.Delay(TimeSpan.FromSeconds(4));
                                     break;
                                 }
                             default:
@@ -111,8 +112,9 @@ namespace Shared.Engine
                                         return;
                                     }
 
-                                    await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-linux/chrome")}");
+                                    Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/chrome-linux/chrome")}");
                                     executablePath = ".playwright/chrome-linux/chrome";
+                                    await Task.Delay(TimeSpan.FromSeconds(4));
                                     break;
                                 }
                             default:

@@ -1,19 +1,21 @@
-﻿using System.Threading.Tasks;
+﻿using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.Online;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Model.Online.Lumex;
-using Shared.Model.Online;
-using System.Linq;
-using System.Collections.Generic;
-using System;
+using Online;
 using Shared.Engine;
+using Shared.Engine.CORE;
+using Shared.Engine.Online;
+using Shared.Model.Online;
+using Shared.Model.Online.Lumex;
+using Shared.Model.Templates;
+using Shared.PlaywrightCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers.LITE
 {
@@ -29,8 +31,16 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (Firefox.Status == PlaywrightStatus.disabled)
-                return OnError();
+            if (init.priorityBrowser == "firefox")
+            {
+                if (Firefox.Status == PlaywrightStatus.disabled)
+                    return OnError();
+            }
+            else
+            {
+                if (Chromium.Status != PlaywrightStatus.NoHeadless)
+                    return OnError();
+            }
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
@@ -46,15 +56,20 @@ namespace Lampac.Controllers.LITE
 
             if (similar || (content_id == 0 && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
-                var search = await InvokeCache<SimilarTpl>($"lumex:search:{title}:{original_title}:{clarification}", cacheTime(40, init: init), async res =>
+                string memKey = $"lumex:search:{title}:{original_title}:{clarification}";
+                if (!hybridCache.TryGetValue(memKey, out SimilarTpl search))
                 {
                     if (string.IsNullOrEmpty(init.token) && database == null && init.spider)
                         database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
 
-                    return await oninvk.Search(title, original_title, serial, clarification, database);
-                });
+                    search = await oninvk.Search(title, original_title, serial, clarification, database);
+                    if (search.data?.Count == 0)
+                        return OnError("search");
 
-                return OnResult(search, () => rjson ? search.Value.ToJson() : search.Value.ToHtml());
+                    hybridCache.Set(memKey, search, cacheTime(40, init: init));
+                }
+
+                return ContentTo(rjson ? search.ToJson() : search.ToHtml());
             }
 
             var cache = await InvokeCache<EmbedModel>($"videocdn:{content_id}:{content_type}:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", cacheTime(10, init: init), proxyManager,  async res =>
@@ -62,66 +77,101 @@ namespace Lampac.Controllers.LITE
                 string content_uri = null;
                 var content_headers = new List<HeadersModel>();
 
-                #region Firefox
-                try
+                #region uri
+                string targetUrl = $"https://p.{init.iframehost}/{init.clientId}";
+                if (content_id > 0)
                 {
-                    using(var browser = new Firefox())
+                    targetUrl += $"/{content_type}/{content_id}";
+                }
+                else
+                {
+                    if (kinopoisk_id > 0)
+                        targetUrl += $"?kp_id={kinopoisk_id}";
+                    if (!string.IsNullOrEmpty(imdb_id))
+                        targetUrl += (targetUrl.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
+                }
+                #endregion
+
+                if (init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless)
+                {
+                    #region Firefox
+                    try
                     {
-                        var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
-                        if (page == null)
-                            return null;
-
-                        await page.RouteAsync("**/*", async route =>
+                        using (var browser = new Firefox())
                         {
-                            if (content_uri != null || browser.IsCompleted)
-                            {
-                                PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                                return;
-                            }
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
+                            if (page == null)
+                                return null;
 
-                            if (route.Request.Url.Contains("/content?clientId="))
+                            await page.RouteAsync("**/*", async route =>
                             {
-                                content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
-                                foreach (var item in route.Request.Headers)
+                                if (content_uri != null || browser.IsCompleted)
                                 {
-                                    if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection" || item.Key == "range")
-                                        continue;
-
-                                    content_headers.Add(new HeadersModel(item.Key, item.Value));
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
                                 }
 
-                                browser.IsCompleted = true;
-                                browser.completionSource.SetResult(string.Empty);
-                                await route.AbortAsync();
-                                return;
-                            }
+                                if (route.Request.Url.Contains("/content?clientId="))
+                                {
+                                    content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection" || item.Key == "range")
+                                            continue;
 
-                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                return;
+                                        content_headers.Add(new HeadersModel(item.Key, item.Value));
+                                    }
 
-                            await route.ContinueAsync();
-                        });
+                                    browser.IsCompleted = true;
+                                    browser.completionSource.SetResult(string.Empty);
+                                    await route.AbortAsync();
+                                    return;
+                                }
 
-                        string uri = $"https://p.{init.iframehost}/{init.clientId}";
-                        if (content_id > 0)
-                        {
-                            uri += $"/{content_type}/{content_id}";
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
+
+                                await route.ContinueAsync();
+                            });
+
+                            PlaywrightBase.GotoAsync(page, targetUrl);
+                            await browser.WaitPageResult().ConfigureAwait(false);
                         }
-                        else
-                        {
-                            if (kinopoisk_id > 0)
-                                uri += $"?kp_id={kinopoisk_id}";
-                            if (!string.IsNullOrEmpty(imdb_id))
-                                uri += (uri.Contains("?") ? "&" : "?") + $"imdb_id={imdb_id}";
-                        }
-
-                        PlaywrightBase.GotoAsync(page, uri);
-                        await browser.WaitPageResult().ConfigureAwait(false);
                     }
+                    catch { }
+                    #endregion
                 }
-                catch { }
-                #endregion
+                else
+                {
+                    #region Scraping
+                    using (var browser = new Scraping(targetUrl, null, "x-captcha-token"))
+                    {
+                        browser.OnRequest += e => 
+                        {
+                            if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)") ||
+                               !Regex.IsMatch(e.HttpClient.Request.Url, "(lumex|cloudflare|sentry|gstatic)\\."))
+                            {
+                                e.Ok(string.Empty);
+                            }
+                        };
+
+                        var scrap = await browser.WaitPageResult(15);
+
+                        if (scrap != null)
+                        {
+                            content_uri = scrap.Url;
+                            foreach (var item in scrap.Headers)
+                            {
+                                if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                    continue;
+
+                                content_headers.Add(new HeadersModel(item.Name, item.Value));
+                            }
+                        }
+                    }
+                    #endregion
+                }
 
                 if (content_uri == null)
                     return res.Fail("content_uri");
@@ -174,7 +224,7 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            if (Firefox.Status == PlaywrightStatus.disabled)
+            if (string.IsNullOrEmpty(playlist) || string.IsNullOrEmpty(csrf))
                 return OnError();
 
             var proxyManager = new ProxyManager(init);

@@ -56,7 +56,10 @@ namespace Lampac.Controllers
 
         #region Version / Headers / geo / myip / testaccsdb / reqinfo / personal.lampa
         [Route("/version")]
-        public ActionResult Version() => Content($"{appversion}.{minorversion}", contentType: "text/plain; charset=utf-8");
+        public ActionResult Version() => Content($"{appversion}.{minorversion}");
+
+        [Route("/ping")]
+        public ActionResult PingPong() => Content("pong");
 
         [Route("/headers")]
         public ActionResult Headers() => Json(HttpContext.Request.Headers);
@@ -658,7 +661,7 @@ namespace Lampac.Controllers
         #region weblog
         [HttpGet]
         [Route("weblog")]
-        public ActionResult WebLog(string token, string pattern)
+        public ActionResult WebLog(string token, string pattern, string receive = "http")
         {
             if (!AppInit.conf.weblog.enable)
                 return Content("Включите weblog в init.conf\n\n\"weblog\": {\n   \"enable\": true\n}", contentType: "text/plain; charset=utf-8");
@@ -666,7 +669,7 @@ namespace Lampac.Controllers
             if (!string.IsNullOrEmpty(AppInit.conf.weblog.token) && token != AppInit.conf.weblog.token)
                 return Content("Используйте /weblog?token=my_key\n\n\"weblog\": {\n   \"enable\": true,\n   \"token\": \"my_key\"\n}", contentType: "text/plain; charset=utf-8");
 
-            string html = @"<!DOCTYPE html>
+            string html = $@"<!DOCTYPE html>
 <html>
 <head>
     <meta charset='utf-8' />
@@ -681,10 +684,9 @@ namespace Lampac.Controllers
             .build();
  
 		function send(message)
-		{" +
-        (string.IsNullOrEmpty(pattern) ? "" : "if (message.indexOf('"+pattern+ "') === -1) return;")
-        +@"
-
+		{{
+// &pattern=rezka.ag
+{(string.IsNullOrEmpty(pattern) ? "" : "if (message.indexOf('" + pattern + "') === -1) return;")}
 			var par = document.getElementById('log');
 			
 			let messageElement = document.createElement('hr');
@@ -695,23 +697,24 @@ namespace Lampac.Controllers
 			messageElement.style.cssText = 'padding: 10px; background: cornsilk; white-space: pre-wrap; word-wrap: break-word;';
             messageElement.textContent = message;
 			par.insertBefore(messageElement, par.children[0]);
-		}
+		}}
  
-		hubConnection.on('Receive', function(message, plugin) {
-            send(message);
-		});
+		hubConnection.on('Receive', function(message, e) {{
+            // &receive=http|request
+            if('{receive}' == e) send(message);
+		}});
 
-		hubConnection.onclose(function(err) {
+		hubConnection.onclose(function(err) {{
             send(err.toString());
-		});
+		}});
  
         hubConnection.start()
-            .then(function () {
-				hubConnection.invoke('RegistryWebLog', '" + token+@"');
-            })
-            .catch(function (err) {
+            .then(function () {{
+				hubConnection.invoke('RegistryWebLog', '{token}');
+            }})
+            .catch(function (err) {{
                 send(err.toString());
-            });
+            }});
     </script>
 </body>
 </html>";

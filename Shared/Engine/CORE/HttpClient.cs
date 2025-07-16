@@ -15,13 +15,13 @@ namespace Lampac.Engine.CORE
         public static IHttpClientFactory httpClientFactory;
 
         #region Handler
-        public static HttpClientHandler Handler(in string url, WebProxy proxy, CookieContainer cookieContainer = null)
+        public static HttpClientHandler Handler(string url, WebProxy proxy, CookieContainer cookieContainer = null)
         {
             string log = string.Empty;
             return Handler(url, proxy, ref log, cookieContainer);
         }
 
-        public static HttpClientHandler Handler(in string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
+        public static HttpClientHandler Handler(string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
         {
             var handler = new HttpClientHandler()
             {
@@ -79,13 +79,13 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region DefaultRequestHeaders
-        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, in int timeoutSeconds, in long MaxResponseContentBufferSize, in string cookie, in string referer, List<HeadersModel> headers, in bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
         {
             string loglines = string.Empty;
             DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
         }
 
-        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, in int timeoutSeconds, in long MaxResponseContentBufferSize, in string cookie, in string referer, List<HeadersModel> headers, ref string loglines, in bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
         {
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
@@ -94,11 +94,8 @@ namespace Lampac.Engine.CORE
 
             if (useDefaultHeaders)
             {
-                //client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate, br");
                 client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
-
-                //loglines += "Accept-Encoding: gzip, deflate, br\n";
-                loglines += "Accept-Language: ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5\n";
+                loglines += $"Accept-Language: {client.DefaultRequestHeaders.AcceptLanguage}\n";
             }
 
             if (cookie != null)
@@ -133,7 +130,7 @@ namespace Lampac.Engine.CORE
             if (useDefaultHeaders && setDefaultUseragent)
             {
                 client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                loglines += $"User-Agent: {UserAgent}\n";
+                loglines += $"User-Agent: {client.DefaultRequestHeaders.UserAgent}\n";
             }
         }
         #endregion
@@ -346,7 +343,7 @@ namespace Lampac.Engine.CORE
 
 
         #region Post
-        public static ValueTask<string> Post(in string url, in string data, in string cookie = null, in int MaxResponseContentBufferSize = 0, in int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, in int httpversion = 1, CookieContainer cookieContainer = null, in bool useDefaultHeaders = true, in bool removeContentType = false)
+        public static ValueTask<string> Post(string url, in string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false)
         {
             return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, removeContentType: removeContentType);
         }
@@ -358,7 +355,7 @@ namespace Lampac.Engine.CORE
         #endregion
 
         #region Post<T>
-        public static Task<T> Post<T>(in string url, in string data, in string cookie = null, in int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, in bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, in bool useDefaultHeaders = true, in int httpversion = 1)
+        public static Task<T> Post<T>(string url, in string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1)
         {
             return Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), cookie: cookie, timeoutSeconds: timeoutSeconds, headers: headers, encoding: encoding, proxy: proxy, IgnoreDeserializeObject: IgnoreDeserializeObject, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, httpversion: httpversion);
         }
@@ -557,7 +554,7 @@ namespace Lampac.Engine.CORE
 
         public static EventHandler<string> onlog = null;
 
-        static void WriteLog(in string url, in string method, in string postdata, in string result)
+        static void WriteLog(string url, string method, in string postdata, in string result)
         {
             if (url.Contains("127.0.0.1"))
                 return;

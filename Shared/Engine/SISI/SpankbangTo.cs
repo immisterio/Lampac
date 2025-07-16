@@ -7,7 +7,7 @@ namespace Shared.Engine.SISI
 {
     public static class SpankbangTo
     {
-        public static ValueTask<string?> InvokeHtml(in string host, in string? search, in string? sort, in int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string?> InvokeHtml(string host, string? search, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
         {
             string url = $"{host}/";
 
@@ -26,7 +26,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(in string uri, in string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -73,7 +73,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, in string? sort)
+        public static List<MenuItem> Menu(string? host, string? sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
 

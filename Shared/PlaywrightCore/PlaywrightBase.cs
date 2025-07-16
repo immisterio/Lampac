@@ -76,7 +76,8 @@ namespace Shared.Engine
                                     return false;
                                 }
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac-{arc}/node")}");
+                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/mac-{arc}/node")}");
+                                await Task.Delay(TimeSpan.FromSeconds(4));
                                 break;
                             }
                         default:
@@ -100,7 +101,8 @@ namespace Shared.Engine
                                     return false;
                                 }
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux-{arc}/node")}");
+                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $".playwright/node/linux-{arc}/node")}");
+                                await Task.Delay(TimeSpan.FromSeconds(4));
                                 break;
                             }
                         case Architecture.Arm:
@@ -112,7 +114,8 @@ namespace Shared.Engine
                                     return false;
                                 }
 
-                                await Bash.Run($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux-arm/node")}");
+                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), ".playwright/node/linux-arm/node")}");
+                                await Task.Delay(TimeSpan.FromSeconds(4));
                                 break;
                             }
                         default:
@@ -230,7 +233,7 @@ namespace Shared.Engine
             catch { }
         }
 
-        public static void WebLog(in string method, in string url, in string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
+        public static void WebLog(string method, string url, in string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
         {
             try
             {
@@ -266,9 +269,9 @@ namespace Shared.Engine
         #endregion
 
         #region IframeUrl
-        public static string IframeUrl(in string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
+        public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
 
-        public static string IframeHtml(in string link) => $@"<html lang=""ru"">
+        public static string IframeHtml(string link) => $@"<html lang=""ru"">
                 <head>
                     <meta charset=""UTF-8"">
                     <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
@@ -385,7 +388,7 @@ namespace Shared.Engine
         #endregion
 
 
-        public static void GotoAsync(IPage page, in string uri)
+        public static void GotoAsync(IPage page, string uri)
         {
             _ = page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
         }

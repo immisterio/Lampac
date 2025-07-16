@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace Lampac.Models.Module
 {
     public class RootModule
     {
         public bool enable { get; set; }
+
+        public bool dynamic { get; set; }
 
         public int index { get; set; }
 

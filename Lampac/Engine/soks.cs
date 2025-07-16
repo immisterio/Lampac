@@ -26,8 +26,9 @@ namespace Lampac.Engine
             if (!AppInit.conf.rch.enable)
                 return;
 
-            var requestInfo = Context.GetHttpContext().Features.Get<RequestModel>();
-            RchClient.Registry(requestInfo.IP, Context.ConnectionId, json);
+            var httpContext = Context.GetHttpContext();
+            var requestInfo = httpContext.Features.Get<RequestModel>();
+            RchClient.Registry(requestInfo.IP, Context.ConnectionId, AppInit.Host(httpContext), json);
         }
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace Lampac.Engine
         #endregion
 
         #region WebLog
-        static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
+        public static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
 
         public void RegistryWebLog(string token)
         {
@@ -70,7 +71,7 @@ namespace Lampac.Engine
 
         public static void SendLog(string message, string plugin)
         {
-            if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 1_000000)
+            if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 4_000000)
                 return;
 
             if (weblog_clients.Count > 0)

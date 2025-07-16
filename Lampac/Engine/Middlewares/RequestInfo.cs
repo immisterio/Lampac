@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.Memory;
-using Shared.Engine;
 using Shared.Models;
 using System;
 using System.IO;
@@ -27,7 +26,7 @@ namespace Lampac.Engine.Middlewares
         public Task Invoke(HttpContext httpContext)
         {
             #region stats
-            if (AppInit.conf.openstat.enable)
+            if (AppInit.conf.openstat.enable && !Regex.IsMatch(httpContext.Request.Path.Value, "^/(rch|ping|ws)(/|$)"))
             {
                 string skey = $"stats:request:{DateTime.Now.Minute}";
                 if (!memoryCache.TryGetValue(skey, out long _req))
@@ -101,6 +100,22 @@ namespace Lampac.Engine.Middlewares
                 Query = httpContext.Request.QueryString.Value,
                 UserAgent = httpContext.Request.Headers.UserAgent
             };
+
+            #region Weblog Request
+            if (!IsLocalRequest && soks.weblog_clients.Count > 0)
+            {
+                var logBuilder = new System.Text.StringBuilder();
+                logBuilder.AppendLine($"{DateTime.Now}");
+                logBuilder.AppendLine($"IP: {clientIp} {req.Country}");
+                logBuilder.AppendLine($"URL: {AppInit.Host(httpContext)}{httpContext.Request.Path}{httpContext.Request.QueryString}\n");
+
+                foreach (var header in httpContext.Request.Headers)
+                    logBuilder.AppendLine($"{header.Key}: {header.Value}");
+
+                //Console.WriteLine(logBuilder.ToString());
+                soks.SendLog(logBuilder.ToString(), "request");
+            }
+            #endregion
 
             if (string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
             {

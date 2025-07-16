@@ -26,9 +26,9 @@ namespace Lampac.Engine
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "144";
+        public static string appversion => "145";
 
-        public static string minorversion => "15";
+        public static string minorversion => "9";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -77,12 +77,12 @@ namespace Lampac.Engine
             return httpHeaders(init.host, HeadersModel.Join(HeadersModel.Init(init.headers), headers));
         }
 
-        public List<HeadersModel> httpHeaders(in string site, Dictionary<string, string> headers)
+        public List<HeadersModel> httpHeaders(string site, Dictionary<string, string> headers)
         {
             return httpHeaders(site, HeadersModel.Init(headers));
         }
 
-        public List<HeadersModel> httpHeaders(in string site, List<HeadersModel> _headers)
+        public List<HeadersModel> httpHeaders(string site, List<HeadersModel> _headers)
         {
             if (_headers == null)
                 return _headers;
@@ -146,7 +146,7 @@ namespace Lampac.Engine
         #endregion
 
         #region HostImgProxy
-        public string HostImgProxy(in string uri, int height = 0, List<HeadersModel> headers = null, in string plugin = null)
+        public string HostImgProxy(string uri, int height = 0, List<HeadersModel> headers = null, string plugin = null)
         {
             if (!AppInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri)) 
                 return uri;
@@ -155,7 +155,7 @@ namespace Lampac.Engine
             int width = init.widthPicture;
             height = height > 0 ? height : init.heightPicture;
 
-            string goEncryptUri(in string _uri)
+            string goEncryptUri(string _uri)
             {
                 string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, headers, verifyip: false, ex: DateTime.Now.AddMinutes(5));
                 if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
@@ -348,7 +348,7 @@ namespace Lampac.Engine
             return val;
         }
 
-        public TimeSpan cacheTime(in int multiaccess, in int home = 5, in int mikrotik = 2, BaseSettings init = null, in int rhub = -1)
+        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null, int rhub = -1)
         {
             if (init != null && init.rhub && rhub != -1)
                 return TimeSpan.FromMinutes(rhub);
@@ -460,7 +460,7 @@ namespace Lampac.Engine
         #endregion
 
         #region accsArgs
-        public string accsArgs(in string uri)
+        public string accsArgs(string uri)
         {
             return AccsDbInvk.Args(uri, HttpContext);
         }

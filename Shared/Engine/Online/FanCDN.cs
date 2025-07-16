@@ -1,4 +1,5 @@
-﻿using Shared.Model.Base;
+﻿using Lampac.Engine.CORE;
+using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Online.FanCDN;
 using Shared.Model.Templates;
@@ -17,7 +18,7 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Func<string, string>? onlog;
 
-        public FanCDNInvoke(in string? host, in string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public FanCDNInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null; this.apihost = apihost;
             this.onget = onget;
@@ -27,7 +28,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedSearch
-        async public ValueTask<EmbedModel?> EmbedSearch(string title, string original_title, int year, int serial)
+        async public ValueTask<EmbedModel> EmbedSearch(string title, string original_title, int year, int serial)
         {
             if (serial == 1)
             {
@@ -46,20 +47,22 @@ namespace Shared.Engine.Online
 
                 foreach (string itemsearch in search.Split("item-search-serial"))
                 {
-                    string? info = itemsearch.Split("torrent-link")?[0];
-                    if (!string.IsNullOrEmpty(info) &&
-                        (info.Contains($"({year - 1}") || info.Contains($"({year}") || info.Contains($"({year + 1}")) &&
-                        (info.Contains(title) || info.Contains(original_title)))
+                    string info = itemsearch.Split("torrent-link")?[0];
+                    if (!string.IsNullOrEmpty(info) && (info.Contains($"({year - 1}") || info.Contains($"({year}") || info.Contains($"({year + 1}")))
                     {
-                        href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
-                        break;
+                        string _info = StringConvert.SearchName(info);
+                        if (_info.Contains(StringConvert.SearchName(title)) || (!string.IsNullOrEmpty(original_title) && _info.Contains(StringConvert.SearchName(original_title))))
+                        {
+                            href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                            break;
+                        }
                     }
                 }
 
                 if (string.IsNullOrEmpty(href))
                     return null;
 
-                string? html = await onget(href);
+                string html = await onget(href);
                 if (string.IsNullOrEmpty(html))
                     return null;
 
@@ -134,7 +137,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, in string imdb_id, in long kinopoisk_id, in string? title, in string? original_title, int t = -1, in int s = -1, in bool rjson = false, VastConf vast = null, List<HeadersModel> headers = null)
+        public string Html(EmbedModel? root, string imdb_id, long kinopoisk_id, string? title, string? original_title, int t = -1, int s = -1, bool rjson = false, VastConf vast = null, List<HeadersModel> headers = null)
         {
             if (root == null)
                 return string.Empty;

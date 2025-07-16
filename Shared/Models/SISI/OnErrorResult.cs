@@ -2,7 +2,7 @@
 {
     public struct OnErrorResult
     {
-        public OnErrorResult(in string msg)
+        public OnErrorResult(string msg)
         {
             this.msg = msg;
         }

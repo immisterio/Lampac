@@ -1,12 +1,13 @@
-﻿using System.Threading.Tasks;
+﻿using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
 using Shared.Engine;
-using Lampac.Models.LITE;
-using System;
-using Shared.Model.Templates;
+using Shared.Engine.CORE;
 using Shared.Model.Online;
+using Shared.Model.Templates;
+using Shared.PlaywrightCore;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers.LITE
 {
@@ -16,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vidlink")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.VidLink, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
+            return ViewTmdb(AppInit.conf.VidLink, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", chromium: true);
         }
 
 
@@ -30,9 +31,6 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (id == 0)
-                return OnError();
-
-            if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -70,58 +68,92 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"vidlink:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    if (true) // init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
-                        if (page == null)
-                            return default;
-
-                        await page.RouteAsync("**/*", async route =>
+                        #region Firefox
+                        using (var browser = new PlaywrightBrowser())
                         {
-                            try
+                            var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                            if (page == null)
+                                return default;
+
+                            await page.RouteAsync("**/*", async route =>
                             {
-                                if (browser.IsCompleted)
+                                try
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
-                                    await route.AbortAsync();
-                                    return;
-                                }
-
-                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$"))
-                                    return;
-
-                                if (route.Request.Url.Contains("adsco.") || route.Request.Url.Contains("pubtrky.") || route.Request.Url.Contains("clarity."))
-                                {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
-                                    await route.AbortAsync();
-                                    return;
-                                }
-
-                                if (route.Request.Url.Contains(".m3u") || route.Request.Url.Contains(".mp4"))
-                                {
-                                    cache.headers = new List<HeadersModel>();
-                                    foreach (var item in route.Request.Headers)
+                                    if (browser.IsCompleted)
                                     {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                            continue;
-
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        await route.AbortAsync();
+                                        return;
                                     }
 
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.IsCompleted = true;
-                                    browser.completionSource.SetResult(route.Request.Url);
-                                    await route.AbortAsync();
-                                    return;
+                                    if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true, patterCache: "/api/(mercury|venus)$"))
+                                        return;
+
+                                    if (route.Request.Url.Contains("adsco.") || route.Request.Url.Contains("pubtrky.") || route.Request.Url.Contains("clarity."))
+                                    {
+                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        await route.AbortAsync();
+                                        return;
+                                    }
+
+                                    if (route.Request.Url.Contains(".m3u") || route.Request.Url.Contains(".mp4"))
+                                    {
+                                        cache.headers = new List<HeadersModel>();
+                                        foreach (var item in route.Request.Headers)
+                                        {
+                                            if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                continue;
+
+                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        }
+
+                                        PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
+                                        //browser.IsCompleted = true;
+                                        browser.SetPageResult(route.Request.Url);
+                                        await route.AbortAsync();
+                                        return;
+                                    }
+
+                                    await route.ContinueAsync();
                                 }
+                                catch { }
+                            });
 
-                                await route.ContinueAsync();
+                            PlaywrightBase.GotoAsync(page, uri);
+                            cache.m3u8 = await browser.WaitPageResult();
+                        }
+                        #endregion
+                    }
+                    else
+                    {
+                        #region Scraping
+                        using (var browser = new Scraping(uri, "\\.(m3u|mp4)", null))
+                        {
+                            browser.OnRequest += e =>
+                            {
+                                if (Regex.IsMatch(e.HttpClient.Request.Url, "(adsco|pubtrky|clarity)\\."))
+                                    e.Ok(string.Empty);
+                            };
+
+                            var scrap = await browser.WaitPageResult();
+
+                            if (scrap != null)
+                            {
+                                cache.m3u8 = scrap.Url;
+                                cache.headers = new List<HeadersModel>();
+
+                                foreach (var item in scrap.Headers)
+                                {
+                                    if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                        continue;
+
+                                    cache.headers.Add(new HeadersModel(item.Name, item.Value));
+                                }
                             }
-                            catch { }
-                        });
-
-                        PlaywrightBase.GotoAsync(page, uri);
-                        cache.m3u8 = await browser.WaitPageResult();
+                        }
+                        #endregion
                     }
 
                     if (cache.m3u8 == null)

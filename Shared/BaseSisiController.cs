@@ -77,7 +77,7 @@ namespace SISI
         #endregion
 
         #region OnError
-        public JsonResult OnError(in string msg, ProxyManager proxyManager, in bool refresh_proxy = true, in bool rcache = true)
+        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true)
         {
             if (refresh_proxy && !init.rhub)
                 proxyManager?.Refresh();
@@ -85,7 +85,7 @@ namespace SISI
             return OnError(msg, rcache: rcache);
         }
 
-        public JsonResult OnError(in string msg, in bool rcache = true)
+        public JsonResult OnError(string msg, bool rcache = true)
         {
             var model = new OnErrorResult(msg);
 
@@ -97,7 +97,7 @@ namespace SISI
         #endregion
 
         #region OnResult
-        public JsonResult OnResult(IList<PlaylistItem> playlists, BaseSettings conf, in IList<MenuItem> menu, WebProxy proxy = null, in int total_pages = 0)
+        public JsonResult OnResult(IList<PlaylistItem> playlists, BaseSettings conf, IList<MenuItem> menu, WebProxy proxy = null, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
@@ -128,7 +128,7 @@ namespace SISI
             return new JsonResult(new OnListResult(resultArray, total_pages, menu));
         }
 
-        public JsonResult OnResult(IList<PlaylistItem> playlists, in IList<MenuItem> menu, List<HeadersModel> headers = null, in int total_pages = 0, in string plugin = null)
+        public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, List<HeadersModel> headers = null, int total_pages = 0, string plugin = null)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);

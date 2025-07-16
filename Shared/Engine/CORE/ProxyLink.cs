@@ -12,7 +12,7 @@ namespace Lampac.Engine.CORE
 {
     public class ProxyLink : IProxyLink
     {
-        public string Encrypt(in string uri, in string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
+        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
 
 
         static string conditionPath => "cache/proxylink.json";
@@ -31,9 +31,9 @@ namespace Lampac.Engine.CORE
             }
         }
 
-        public static string Encrypt(in string uri, ProxyLinkModel p, in bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, forceMd5: forceMd5);
+        public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, forceMd5: forceMd5);
 
-        public static string Encrypt(in string uri, in string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, in string plugin = null, in bool verifyip = true, DateTime ex = default, in bool forceMd5 = false)
+        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
@@ -103,7 +103,7 @@ namespace Lampac.Engine.CORE
             return hash;
         }
 
-        public static ProxyLinkModel Decrypt(string hash, in string reqip)
+        public static ProxyLinkModel Decrypt(string hash, string reqip)
         {
             if (string.IsNullOrEmpty(hash))
                 return null;

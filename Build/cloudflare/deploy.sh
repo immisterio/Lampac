@@ -1,14 +1,13 @@
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
 #./dotnet-install.sh --version 9.0.200 -InstallDir ./dotnet
-#./dotnet-install.sh --version 8.0.110 -InstallDir ./dotnet
 ./dotnet-install.sh --version 6.0.133 -InstallDir ./dotnet6
 
 chmod +x Build/cloudflare/nightlies.sh
 ./Build/cloudflare/nightlies.sh
 
-chmod +x Build/cloudflare/nightlies_debug.sh
-./Build/cloudflare/nightlies_debug.sh
+#chmod +x Build/cloudflare/nightlies_debug.sh
+#./Build/cloudflare/nightlies_debug.sh
 
 mkdir -p out/
 cp -R Build/cloudflare/functions .
@@ -20,9 +19,9 @@ mkdir -p lpc
 cp -R ../lpc/* lpc/
 cp lpc/update.sh ver.sh
 
-mkdir -p debug
-mv ../debug/debug.zip .
-mv ../debug/debug.sh .
+#mkdir -p debug
+#mv ../debug/debug.zip .
+#mv ../debug/debug.sh .
 
 return;
 

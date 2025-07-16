@@ -6,6 +6,8 @@ namespace Shared.Models.AppConf
     {
         public bool enable { get; set; }
 
+        public int httpversion { get; set; }
+
         public string api_key { get; set; }
 
 

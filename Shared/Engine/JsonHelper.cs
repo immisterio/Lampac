@@ -5,7 +5,7 @@ namespace Shared.Engine
 {
     public static class JsonHelper
     {
-        public static List<T> ListReader<T>(in string filePath, in int capacity = 0)
+        public static List<T> ListReader<T>(string filePath, int capacity = 0)
         {
             var items = new List<T>(capacity);
 

@@ -14,7 +14,7 @@ namespace Shared.Model.Templates
 
         List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data;
 
-        public MovieTpl(in string title, in string original_title = null, in int capacity = 15) 
+        public MovieTpl(string title, string original_title = null, int capacity = 15) 
         {
             this.title = title;
             this.original_title = original_title;
@@ -23,19 +23,19 @@ namespace Shared.Model.Templates
 
         public bool IsEmpty() => data.Count == 0;
 
-        public void Append(in string voiceOrQuality, in string link, in string method = "play", in string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, in string voice_name = null, in string year = null, in string details = null, in string quality = null, VastConf vast = null, List<HeadersModel> headers = null, in int? hls_manifest_timeout = null)
+        public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null)
         {
             if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
                 data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout));
         }
 
-        public string ToHtml(in string voiceOrQuality, in string link, in string method = "play", in string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, in string voice_name = null, in string year = null, in string details = null, in string quality = null, VastConf vast = null, List<HeadersModel> headers = null, in int? hls_manifest_timeout = null)
+        public string ToHtml(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null)
         {
             Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout);
             return ToHtml();
         }
 
-        public string ToHtml(in bool reverse = false)
+        public string ToHtml(bool reverse = false)
         {
             if (data.Count == 0)
                 return string.Empty;
@@ -79,7 +79,7 @@ namespace Shared.Model.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson(in bool reverse = false, in VoiceTpl? vtpl = null)
+        public string ToJson(bool reverse = false, in VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return "[]";

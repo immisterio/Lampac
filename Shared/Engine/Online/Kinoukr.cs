@@ -35,7 +35,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public KinoukrInvoke(in string? host, in string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KinoukrInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -237,7 +237,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, in int clarification, in string? title, in string? original_title, in int year, int t, int s, in string? href, VastConf? vast = null, in bool rjson = false)
+        public string Html(EmbedModel? result, int clarification, string? title, string? original_title, int year, int t, int s, string? href, VastConf? vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -266,7 +266,7 @@ namespace Shared.Engine.Online
             }
             #endregion
 
-            string fixStream(in string _l) => _l.Replace("0yql3tj", "oyql3tj");
+            string fixStream(string _l) => _l.Replace("0yql3tj", "oyql3tj");
 
             if (result.content != null)
             {

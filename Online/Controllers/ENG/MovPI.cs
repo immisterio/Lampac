@@ -1,14 +1,14 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using Shared.Engine;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
-using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
+using Shared.Engine;
+using Shared.Engine.CORE;
 using Shared.Model.Online;
-using System;
-using System.Collections.Generic;
 using Shared.Model.Templates;
+using Shared.PlaywrightCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers.LITE
 {
@@ -18,7 +18,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/movpi")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.MovPI, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call");
+            return ViewTmdb(AppInit.conf.MovPI, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call", chromium: true);
         }
 
 
@@ -33,9 +33,6 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (id == 0)
-                return OnError();
-
-            if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -73,67 +70,101 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"movpi:black_magic:{uri}:{proxy.ip}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    if (init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless)
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
-                        if (page == null)
-                            return default;
-
-                        await page.RouteAsync("**/*", async route =>
+                        #region Firefox
+                        using (var browser = new Firefox())
                         {
-                            try
+                            var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                            if (page == null)
+                                return default;
+
+                            await page.RouteAsync("**/*", async route =>
                             {
-                                if (route.Request.Url.Contains("api/chromium/iframe"))
+                                try
                                 {
-                                    await route.ContinueAsync();
-                                    return;
-                                }
-
-                                if (browser.IsCompleted)
-                                {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
-                                    await route.AbortAsync();
-                                    return;
-                                }
-
-                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                    return;
-
-                                if (route.Request.Url == uri)
-                                {
-                                    await route.ContinueAsync(new RouteContinueOptions
+                                    if (route.Request.Url.Contains("api/chromium/iframe"))
                                     {
-                                        Headers = httpHeaders(init, HeadersModel.Init(("referer", CrypTo.DecodeBase64("aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcC8=")))).ToDictionary()
-                                    });
-                                    return;
-                                }
-
-                                if (route.Request.Url.Contains(".m3u8"))
-                                {
-                                    cache.headers = new List<HeadersModel>();
-                                    foreach (var item in route.Request.Headers)
-                                    {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                            continue;
-
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        await route.ContinueAsync();
+                                        return;
                                     }
 
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.IsCompleted = true;
-                                    browser.completionSource.SetResult(route.Request.Url);
-                                    await route.AbortAsync();
-                                    return;
+                                    if (browser.IsCompleted)
+                                    {
+                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        await route.AbortAsync();
+                                        return;
+                                    }
+
+                                    if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                        return;
+
+                                    if (route.Request.Url == uri)
+                                    {
+                                        await route.ContinueAsync(new RouteContinueOptions
+                                        {
+                                            Headers = httpHeaders(init, HeadersModel.Init(("referer", CrypTo.DecodeBase64("aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcC8=")))).ToDictionary()
+                                        });
+                                        return;
+                                    }
+
+                                    if (route.Request.Url.Contains(".m3u8"))
+                                    {
+                                        cache.headers = new List<HeadersModel>();
+                                        foreach (var item in route.Request.Headers)
+                                        {
+                                            if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                continue;
+
+                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        }
+
+                                        PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
+                                        browser.IsCompleted = true;
+                                        browser.completionSource.SetResult(route.Request.Url);
+                                        await route.AbortAsync();
+                                        return;
+                                    }
+
+                                    await route.ContinueAsync();
                                 }
+                                catch { }
+                            });
 
-                                await route.ContinueAsync();
+                            PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(uri));
+
+                            cache.m3u8 = await browser.WaitPageResult();
+                        }
+                        #endregion
+                    }
+                    else
+                    {
+                        #region Scraping
+                        using (var browser = new Scraping(uri, "\\.m3u8", null))
+                        {
+                            browser.OnRequest += e =>
+                            {
+                                if (uri == e.HttpClient.Request.Url)
+                                    e.HttpClient.Request.Headers.AddHeader("Referer", CrypTo.DecodeBase64("aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcC8="));
+                            };
+
+                            var scrap = await browser.WaitPageResult();
+
+                            if (scrap != null)
+                            {
+                                cache.m3u8 = scrap.Url;
+                                cache.headers = new List<HeadersModel>();
+
+                                foreach (var item in scrap.Headers)
+                                {
+                                    if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                        continue;
+
+                                    cache.headers.Add(new HeadersModel(item.Name, item.Value));
+                                }
                             }
-                            catch { }
-                        });
-
-                        PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(uri));
-
-                        cache.m3u8 = await browser.WaitPageResult();
+                        }
+                        #endregion
                     }
 
                     if (cache.m3u8 == null)

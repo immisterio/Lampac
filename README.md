@@ -66,7 +66,7 @@ ip:9118/admin
 3. Основные настройки в init.conf (пример example.conf)
 
 # Источники онлайн
-Filmix, KinoPub, Alloha, Rezka, iptv.online, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, VeoVeo, HDVB, Kodik, Ashdi (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Anilibria, AnimeGo, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, Redheadsound, VoKino, Rutube, Plvideo, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG), PlayEmbed (ENG), RgShows (ENG)
+Filmix, KinoPub, Alloha, Rezka, GetsTV, iptv.online, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, VeoVeo, HDVB, Kodik, Ashdi (Украинский), Eneyida (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Redheadsound, VoKino, Rutube, Plvideo, Anilibria, AniLiberty, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, AnimeGo, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG), PlayEmbed (ENG), RgShows (ENG)
 
 Для работы Lumex и ENG балансеров, нужно включить Firefox в init.conf
 
@@ -84,6 +84,7 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 * KinoPub - http://IP:9118/lite/kinopubpro
 * VoKino - http://IP:9118/lite/vokinotk
 * HDRezka - http://IP:9118/lite/rhs/bind
+* GetsTV - http://IP:9118/lite/getstv/bind
 * iptv.online - http://IP:9118/lite/iptvonline/bind
 
 # Плагин DLNA.js

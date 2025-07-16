@@ -1,4 +1,5 @@
-﻿using Lampac.Models.LITE.AniLibria;
+﻿using Lampac.Engine.CORE;
+using Lampac.Models.LITE.AniLibria;
 using Shared.Model.Base;
 using Shared.Model.Templates;
 using System.Text.RegularExpressions;
@@ -15,7 +16,7 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Action? requesterror;
 
-        public AniLibriaInvoke(in string? host, in string apihost, Func<string, ValueTask<List<RootObject>?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
+        public AniLibriaInvoke(string? host, string apihost, Func<string, ValueTask<List<RootObject>?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -35,15 +36,15 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string stitle = title.ToLower();
+            string stitle = StringConvert.SearchName(title);
 
             var result = new List<RootObject>(search.Count);
 
             foreach (var item in search)
             {
-                if (item.names.ru != null && item.names.ru.ToLower().StartsWith(stitle))
+                if (item.names.ru != null && StringConvert.SearchName(item.names.ru).StartsWith(stitle))
                     result.Add(item);
-                else if (item.names.en != null && item.names.en.ToLower().StartsWith(stitle))
+                else if (item.names.en != null && StringConvert.SearchName(item.names.en).StartsWith(stitle))
                     result.Add(item);
             }
 
@@ -55,12 +56,14 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<RootObject>? result, in string title, string code, in int year, in bool rjson = false, VastConf vast = null, in bool similar = false)
+        public string Html(List<RootObject>? result, string title, string code, int year, bool rjson = false, VastConf vast = null, bool similar = false)
         {
             if (result == null || result.Count == 0)
                 return string.Empty;
 
-            if (!similar && (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (result[0].names.ru?.ToLower() == title.ToLower() || result[0].names.en?.ToLower() == title.ToLower()))))
+            string stitle = StringConvert.SearchName(title);
+
+            if (!similar && (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (StringConvert.SearchName(result[0].names.ru) == stitle || StringConvert.SearchName(result[0].names.en) == stitle))))
             {
                 #region Серии
                 var root = string.IsNullOrEmpty(code) ? result[0] : result.Find(i => i.code == code);
@@ -85,7 +88,7 @@ namespace Shared.Engine.Online
                     string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
                     hls = onstreamfile($"https://{root.player.host}{hls}");
 
-                    string season = root.names.ru?.ToLower() == title.ToLower() || root.names.en?.ToLower() == title.ToLower() ? "1" : "0";
+                    string season = StringConvert.SearchName(root.names.ru) == stitle || StringConvert.SearchName(root.names.en) == stitle ? "1" : "0";
                     if (season == "0")
                     {
                         season = Regex.Match(code ?? "", "-([0-9]+)(nd|th)").Groups[1].Value;

@@ -1,4 +1,5 @@
-﻿using Lampac.Models.LITE.Filmix;
+﻿using Lampac.Engine.CORE;
+using Lampac.Models.LITE.Filmix;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Model.Base;
@@ -25,7 +26,7 @@ namespace Shared.Engine.Online
         Action? requesterror;
         bool rjson;
 
-        public FilmixInvoke(in string? host, in string apihost, in string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
+        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -71,20 +72,20 @@ namespace Shared.Engine.Online
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            string? stitle = title?.ToLower();
-            string? sorigtitle = original_title?.ToLower();
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
 
             foreach (var item in root)
             {
                 if (item == null)
                     continue;
 
-                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}"  : (item.title ?? item.original_title);
+                string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}"  : (item.title ?? item.original_title);
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster)); 
 
-                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
-                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
+                if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -142,20 +143,20 @@ namespace Shared.Engine.Online
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            string? stitle = title?.ToLower();
-            string? sorigtitle = original_title?.ToLower();
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
 
             foreach (var item in result)
             {
                 if (item == null)
                     continue;
 
-                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
+                string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
 
-                if ((!string.IsNullOrEmpty(stitle) && item.title?.ToLower() == stitle) ||
-                    (!string.IsNullOrEmpty(sorigtitle) && item.original_title?.ToLower() == sorigtitle))
+                if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -182,9 +183,9 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("Search3");
 
-            string? html = await onpost.Invoke("https://filmix.fm/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
-                ("Origin", "https://filmix.fm"),
-                ("Referer", "https://filmix.fm/search/"),
+            string? html = await onpost.Invoke("https://filmix.my/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
+                ("Origin", "https://filmix.my"),
+                ("Referer", "https://filmix.my/search/"),
                 ("X-Requested-With", "XMLHttpRequest"),
                 ("Sec-Fetch-Site", "same-origin"),
                 ("Sec-Fetch-Mode", "cors"),
@@ -267,7 +268,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, in bool pro, in int postid, in string? title, in string? original_title, in int t, in int? s, VastConf vast = null)
+        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf vast = null)
         {
             var player_links = root?.player_links;
             if (player_links == null)

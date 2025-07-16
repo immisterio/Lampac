@@ -30,7 +30,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get<List<RootObject>>(init.cors(ongettourl)) : HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get<List<RootObject>>(init.cors(ongettourl)) : HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 40, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

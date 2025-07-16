@@ -9,7 +9,7 @@ namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        public static ValueTask<string> InvokeHtml(in string host, in string plugin, in string? search, in string? model, in string? sort, in int c, in string? hd, in int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string plugin, string? search, string? model, string? sort, int c, string? hd, int pg, Func<string, ValueTask<string?>> onresult)
         {
             string url = $"{host}/";
 
@@ -58,7 +58,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(in string video_uri, in string list_uri, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, in bool related = false, in bool prem = false, in bool IsModel_page = false)
+        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -117,7 +117,7 @@ namespace Shared.Engine.SISI
                 if (row.Contains("brand__badge") || row.Contains("private-vid-title"))
                     continue;
 
-                string m(in string pattern, in int index = 1)
+                string m(string pattern, int index = 1)
                 {
                     string res = Regex.Match(row, pattern).Groups[index].Value;
                     if (string.IsNullOrWhiteSpace(res))
@@ -182,10 +182,10 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string host, in string plugin, in string search, in string sort, int c, in string hd = null)
+        public static List<MenuItem> Menu(string host, string plugin, string search, string sort, int c, string hd = null)
         {
             #region getSortName
-            string getSortName(in string sort, in string emptyName)
+            string getSortName(string sort, string emptyName)
             {
                 if (string.IsNullOrWhiteSpace(sort))
                     return emptyName;

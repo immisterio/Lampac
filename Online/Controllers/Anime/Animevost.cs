@@ -69,7 +69,7 @@ namespace Lampac.Controllers.LITE
 
                             smlr.Add((g[2].Value, animeyear, g[1].Value, season, string.IsNullOrEmpty(img) ? null : img));
 
-                            if (animeyear == year.ToString() && g[2].Value.ToLower().StartsWith(title.ToLower()))
+                            if (animeyear == year.ToString() && StringConvert.SearchName(g[2].Value).Contains(StringConvert.SearchName(title)))
                                 catalog.Add((g[2].Value, animeyear, g[1].Value, season, null));
                         }
                     }

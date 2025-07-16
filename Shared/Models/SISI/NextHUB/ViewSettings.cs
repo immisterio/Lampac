@@ -26,7 +26,9 @@
 
         public bool abortMedia { get; set; } = true;
 
-        public string? patternAbort { get; set; }
+        public string patternAbort { get; set; }
+
+        public string patternAbortEnd { get; set; }
 
         public bool related { get; set; }
 

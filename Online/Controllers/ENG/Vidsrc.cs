@@ -1,16 +1,17 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using Shared.Engine;
+﻿using Lampac.Engine.CORE;
 using Lampac.Models.LITE;
-using System;
-using System.Text.RegularExpressions;
-using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json.Linq;
-using Shared.Model.Templates;
-using System.Collections.Concurrent;
+using Shared.Engine;
+using Shared.Engine.CORE;
 using Shared.Model.Online;
+using Shared.Model.Templates;
+using Shared.PlaywrightCore;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers.LITE
 {
@@ -20,7 +21,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vidsrc")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Vidsrc, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call");
+            return ViewTmdb(AppInit.conf.Vidsrc, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call", chromium: false);
         }
 
 
@@ -40,9 +41,6 @@ namespace Lampac.Controllers.LITE
                 return badInitMsg;
 
             if (id == 0)
-                return OnError();
-
-            if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -126,60 +124,100 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"vidsrc:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    if (init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless)
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
-                        if (page == null)
-                            return default;
-
-                        await page.RouteAsync("**/*", async route =>
+                        #region Firefox
+                        using (var browser = new Firefox())
                         {
-                            try
+                            var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                            if (page == null)
+                                return default;
+
+                            await page.RouteAsync("**/*", async route =>
                             {
-                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|ico)$"))
+                                try
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
-                                    await route.AbortAsync();
-                                    return;
-                                }
-
-                                if (await PlaywrightBase.AbortOrCache(page, route, fullCacheJS: true))
-                                    return;
-
-                                if (Regex.IsMatch(route.Request.Url, "/api/[0-9]+/servers"))
-                                {
-                                    string vrf = Regex.Match(route.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
-                                    if (!string.IsNullOrEmpty(vrf) && route.Request.Url.Contains("&type=tv"))
-                                        lastvrf.AddOrUpdate(id, vrf, (k, v) => vrf);
-                                }
-
-                                if (route.Request.Url.Contains(".m3u8"))
-                                {
-                                    cache.headers = new List<HeadersModel>();
-                                    foreach (var item in route.Request.Headers)
+                                    if (browser.IsCompleted || Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|ico)$"))
                                     {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                            continue;
-
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        await route.AbortAsync();
+                                        return;
                                     }
 
-                                    lastHeaders = cache.headers;
+                                    if (await PlaywrightBase.AbortOrCache(page, route, fullCacheJS: true))
+                                        return;
 
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.IsCompleted = true;
-                                    browser.completionSource.SetResult(route.Request.Url);
-                                    await route.AbortAsync();
-                                    return;
+                                    if (Regex.IsMatch(route.Request.Url, "/api/[0-9]+/servers"))
+                                    {
+                                        string vrf = Regex.Match(route.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
+                                        if (!string.IsNullOrEmpty(vrf) && route.Request.Url.Contains("&type=tv"))
+                                            lastvrf.AddOrUpdate(id, vrf, (k, v) => vrf);
+                                    }
+
+                                    if (route.Request.Url.Contains(".m3u8"))
+                                    {
+                                        cache.headers = new List<HeadersModel>();
+                                        foreach (var item in route.Request.Headers)
+                                        {
+                                            if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                continue;
+
+                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        }
+
+                                        lastHeaders = cache.headers;
+
+                                        PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
+                                        browser.IsCompleted = true;
+                                        browser.completionSource.SetResult(route.Request.Url);
+                                        await route.AbortAsync();
+                                        return;
+                                    }
+
+                                    await route.ContinueAsync();
                                 }
+                                catch { }
+                            });
 
-                                await route.ContinueAsync();
+                            PlaywrightBase.GotoAsync(page, uri);
+                            cache.m3u8 = await browser.WaitPageResult();
+                        }
+                        #endregion
+                    }
+                    else
+                    {
+                        #region Scraping
+                        using (var browser = new Scraping(uri, "\\.m3u8", null))
+                        {
+                            browser.OnRequest += e =>
+                            {
+                                if (Regex.IsMatch(e.HttpClient.Request.Url, "/api/[0-9]+/servers"))
+                                {
+                                    string vrf = Regex.Match(e.HttpClient.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
+                                    if (!string.IsNullOrEmpty(vrf) && e.HttpClient.Request.Url.Contains("&type=tv"))
+                                        lastvrf.AddOrUpdate(id, vrf, (k, v) => vrf);
+                                }
+                                else if (Regex.IsMatch(e.HttpClient.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|ico)$"))
+                                    e.Ok(string.Empty);
+                            };
+
+                            var scrap = await browser.WaitPageResult();
+
+                            if (scrap != null)
+                            {
+                                cache.m3u8 = scrap.Url;
+                                cache.headers = new List<HeadersModel>();
+
+                                foreach (var item in scrap.Headers)
+                                {
+                                    if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                        continue;
+
+                                    cache.headers.Add(new HeadersModel(item.Name, item.Value));
+                                }
                             }
-                            catch { }
-                        });
-
-                        PlaywrightBase.GotoAsync(page, uri);
-                        cache.m3u8 = await browser.WaitPageResult();
+                        }
+                        #endregion
                     }
 
                     if (cache.m3u8 == null)

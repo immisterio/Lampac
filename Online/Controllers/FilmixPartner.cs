@@ -293,6 +293,9 @@ namespace Lampac.Controllers.LITE
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
 
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
+
             foreach (var item in root)
             {
                 if (item == null)
@@ -302,8 +305,8 @@ namespace Lampac.Controllers.LITE
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/fxapi?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
-                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
-                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);
@@ -357,6 +360,9 @@ namespace Lampac.Controllers.LITE
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
 
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
+
             foreach (var item in result)
             {
                 if (item == null)
@@ -366,8 +372,8 @@ namespace Lampac.Controllers.LITE
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
-                if ((!string.IsNullOrEmpty(title) && item.title?.ToLower() == title.ToLower()) ||
-                    (!string.IsNullOrEmpty(original_title) && item.original_title?.ToLower() == original_title.ToLower()))
+                if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
+                    (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
                 {
                     if (item.year == year)
                         ids.Add(item.id);

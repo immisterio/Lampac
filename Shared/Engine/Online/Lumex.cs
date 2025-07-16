@@ -44,10 +44,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial, int clarification, List<DatumDB>? database = null)
+        public async ValueTask<SimilarTpl> Search(string title, string? original_title, int serial, int clarification, List<DatumDB>? database = null)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
-                return null;
+                return default;
 
             string? enc_title = HttpUtility.UrlEncode(title);
             string? enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -61,7 +61,7 @@ namespace Shared.Engine.Online
                 if (json == null)
                 {
                     requesterror?.Invoke();
-                    return null;
+                    return default;
                 }
 
                 SearchRoot? root = null;
@@ -70,9 +70,9 @@ namespace Shared.Engine.Online
                 {
                     root = JsonSerializer.Deserialize<SearchRoot>(json);
                     if (root?.data == null || root.data.Count == 0)
-                        return null;
+                        return default;
                 }
-                catch { return null; }
+                catch { return default; }
 
                 var stpl = new SimilarTpl(root.data.Count);
 
@@ -109,7 +109,7 @@ namespace Shared.Engine.Online
             {
                 #region database
                 if (database == null)
-                    return null;
+                    return default;
 
                 var stpl = new SimilarTpl(database.Count > 100 ? 100 : database.Count);
 
@@ -167,12 +167,12 @@ namespace Shared.Engine.Online
                 #endregion
             }
 
-            return null;
+            return default;
         }
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, in long content_id, in string content_type, in string? imdb_id, in long kinopoisk_id, in string? title, in string? original_title, in int clarification, string t, int s, in bool rjson = false, in bool bwa = false)
+        public string Html(EmbedModel? result, string args, long content_id, string content_type, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
         {
             if (result?.media == null || result.media.Count == 0)
                 return string.Empty;

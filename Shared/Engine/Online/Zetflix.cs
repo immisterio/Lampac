@@ -18,7 +18,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
 
-        public ZetflixInvoke(in string? host, in string? apihost, in bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public ZetflixInvoke(string? host, string? apihost, bool hls, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -105,7 +105,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, in int number_of_seasons, in long kinopoisk_id, in string? title, in string? original_title, string? t, in int s, in bool isbwa = false, in bool rjson = false, VastConf? vast = null)
+        public string Html(EmbedModel? root, int number_of_seasons, long kinopoisk_id, string? title, string? original_title, string? t, int s, bool isbwa = false, bool rjson = false, VastConf? vast = null)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;

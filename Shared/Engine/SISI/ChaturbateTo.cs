@@ -5,7 +5,7 @@ namespace Shared.Engine.SISI
 {
     public static class ChaturbateTo
     {
-        public static ValueTask<string?> InvokeHtml(in string host, in string? sort, in int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string?> InvokeHtml(string host, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
         {
             string url = host + "/api/ts/roomlist/room-list/?enable_recommendations=false&limit=90";
 
@@ -18,7 +18,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(in string uri, in string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();

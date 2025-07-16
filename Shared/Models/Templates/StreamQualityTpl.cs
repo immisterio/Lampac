@@ -12,13 +12,13 @@ namespace Shared.Model.Templates
 
         public bool Any() => data.Any();
 
-        public void Append(in string link, in string quality)
+        public void Append(string link, string quality)
         {
             if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
                 data.Add((link, quality));
         }
 
-        public void Insert(in string link, in string quality)
+        public void Insert(string link, string quality)
         {
             if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
                 data.Insert(0, (link, quality));

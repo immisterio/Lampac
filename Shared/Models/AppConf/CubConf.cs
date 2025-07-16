@@ -1,6 +1,4 @@
 ﻿using Shared.Model.Base;
-using System.Linq;
-
 namespace Shared.Models.AppConf
 {
     public class CubConf : Iproxy
@@ -8,6 +6,8 @@ namespace Shared.Models.AppConf
         public bool enable { get; set; }
 
         public string[] geo { get; set; }
+
+        public bool viewru { get; set; }
 
 
         public string domain { get; set; }

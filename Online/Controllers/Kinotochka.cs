@@ -1,16 +1,16 @@
-﻿using System;
+﻿using Lampac.Engine.CORE;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using Online;
+using Shared.Engine.CORE;
+using Shared.Model.Online.Kinotochka;
+using Shared.Model.Templates;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using System.Web;
-using Lampac.Engine.CORE;
-using System.Linq;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using Shared.Model.Online.Kinotochka;
 
 namespace Lampac.Controllers.LITE
 {
@@ -39,8 +39,6 @@ namespace Lampac.Controllers.LITE
 
             if (serial == 1)
             {
-                // https://kinovibe.co/embed.html
-
                 if (s == -1)
                 {
                     #region Сезоны
@@ -49,37 +47,61 @@ namespace Lampac.Controllers.LITE
                         if (rch.IsNotConnected())
                             return res.Fail(rch.connectionMsg);
 
-                        string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
-                        string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
-                        if (search == null)
+                        List<(string, string, string)> links = null;
+
+                        if (kinopoisk_id > 0) // https://kinovibe.co/embed.html
                         {
-                            if (!rch.enable)
-                                proxyManager?.Refresh();
+                            string uri = $"{init.corsHost()}/api/find-by-kinopoisk.php?kinopoisk={kinopoisk_id}";
+                            var root = rch.enable ? await rch.Get<JArray>(uri, httpHeaders(init)) : await HttpClient.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                            if (root == null || root.Count == 0)
+                                return res.Fail("find-by-kinopoisk");
 
-                            return res.Fail("search");
-                        }
-
-                        var rows = search.Split("sres-wrap clearfix");
-                        var links = new List<(string, string, string)>(rows.Length);
-
-                        string stitle = title.ToLower();
-
-                        foreach (string row in rows.Skip(1).Reverse())
-                        {
-                            var gname = Regex.Match(row, "<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase).Groups;
-
-                            if (gname[1].Value.ToLower() == stitle)
+                            links = new List<(string, string, string)>(root.Count);
+                            foreach (var item in root)
                             {
-                                string uri = Regex.Match(row, "href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
-                                if (string.IsNullOrWhiteSpace(uri))
-                                    continue;
-
-                                links.Add((gname[2].Value.ToLower(), $"{host}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}", gname[3].Value));
+                                string url = item.Value<string>("url");
+                                string sname = Regex.Match(url, "-([0-9]+)-sezon").Groups[1].Value;
+                                if (!string.IsNullOrEmpty(sname))
+                                    links.Add(($"{sname} сезон", $"{host}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={sname}&newsuri={HttpUtility.UrlEncode(url)}", sname));
                             }
-                        }
 
-                        if (links.Count == 0 && !search.Contains(">Поиск по сайту<"))
-                            return res.Fail("links");
+                            if (links.Count == 0)
+                                return res.Fail("links");
+                        }
+                        else
+                        {
+                            string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
+                            string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                            if (search == null)
+                            {
+                                if (!rch.enable)
+                                    proxyManager?.Refresh();
+
+                                return res.Fail("search");
+                            }
+
+                            var rows = search.Split("sres-wrap clearfix");
+                            links = new List<(string, string, string)>(rows.Length);
+
+                            string stitle = StringConvert.SearchName(title);
+
+                            foreach (string row in rows.Skip(1).Reverse())
+                            {
+                                var gname = Regex.Match(row, "<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase).Groups;
+
+                                if (StringConvert.SearchName(gname[1].Value) == stitle)
+                                {
+                                    string uri = Regex.Match(row, "href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                                    if (string.IsNullOrWhiteSpace(uri))
+                                        continue;
+
+                                    links.Add((gname[2].Value.ToLower(), $"{host}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}", gname[3].Value));
+                                }
+                            }
+
+                            if (links.Count == 0 && !search.Contains(">Поиск по сайту<"))
+                                return res.Fail("links");
+                        }
 
                         return links;
                     });

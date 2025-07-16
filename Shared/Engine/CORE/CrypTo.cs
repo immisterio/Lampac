@@ -5,7 +5,7 @@ namespace Lampac.Engine.CORE
 {
     public class CrypTo
     {
-        public static string md5(in string text)
+        public static string md5(string text)
         {
             if (text == null)
                 return string.Empty;
@@ -17,7 +17,7 @@ namespace Lampac.Engine.CORE
             }
         }
 
-        public static byte[] md5binary(in string text)
+        public static byte[] md5binary(string text)
         {
             if (text == null)
                 return null;
@@ -29,7 +29,7 @@ namespace Lampac.Engine.CORE
             }
         }
 
-        public static string DecodeBase64(in string base64Text)
+        public static string DecodeBase64(string base64Text)
         {
             if (string.IsNullOrEmpty(base64Text))
                 return string.Empty;
@@ -37,7 +37,7 @@ namespace Lampac.Engine.CORE
             return Encoding.UTF8.GetString(Convert.FromBase64String(base64Text));
         }
 
-        public static string Base64(in string text)
+        public static string Base64(string text)
         {
             if (text == null)
                 return string.Empty;
@@ -45,7 +45,7 @@ namespace Lampac.Engine.CORE
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
         }
 
-        public static string Base64(in byte[] text)
+        public static string Base64(byte[] text)
         {
             if (text == null)
                 return string.Empty;
@@ -53,7 +53,7 @@ namespace Lampac.Engine.CORE
             return Convert.ToBase64String(text);
         }
 
-        public static string SHA256(in string text)
+        public static string SHA256(string text)
         {
             using (SHA256 sha256 = System.Security.Cryptography.SHA256.Create())
             {
@@ -65,7 +65,7 @@ namespace Lampac.Engine.CORE
             }
         }
 
-        public static string SHA(in string text)
+        public static string SHA(string text)
         {
             using (SHA1 sha = SHA1.Create())
             {

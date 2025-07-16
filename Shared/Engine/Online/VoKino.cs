@@ -20,7 +20,7 @@ namespace Shared.Engine.Online
         Func<string, string>? onlog;
         Action? requesterror;
 
-        public VoKinoInvoke(in string? host, in string apihost, in string token, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public VoKinoInvoke(string? host, string apihost, string token, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -144,7 +144,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, in long kinopoisk_id, in string? title, in string? original_title, in string? balancer, string t, int s, VastConf? vast = null, in bool rjson = false)
+        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, string t, int s, VastConf? vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
