@@ -1084,7 +1084,7 @@ namespace Lampac
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj", streamproxy: true)
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj")
         {
             enable = false,
             headers = HeadersModel.Init(

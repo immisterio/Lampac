@@ -48,22 +48,18 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(string? original_title, int year, string? href)
+        public async ValueTask<EmbedModel> Embed(string? original_title, int year, string href)
         {
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return null;
+
+            return await EmbedKurwa(original_title, year, href);
 
             string? link = href;
             var result = new EmbedModel();
 
             if (string.IsNullOrWhiteSpace(link))
             {
-                EmbedModel? kurwa = await EmbedKurwa(original_title, year);
-                if (kurwa != null)
-                    return kurwa;
-
-                return kurwa;
-
                 onlog?.Invoke("search start");
                 //string? search = await onget.Invoke($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
 
@@ -166,39 +162,44 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedKurwa
-        public async ValueTask<EmbedModel?> EmbedKurwa(string? original_title, int year)
+        public async ValueTask<EmbedModel?> EmbedKurwa(string? original_title, int year, string href)
         {
-            if (string.IsNullOrWhiteSpace(original_title) || year == 0)
-                return null;
-
+            string iframeUri = href;
             var result = new EmbedModel();
 
-            string? json = await onget.Invoke($"https://bobr-kurwa.men/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
-            if (json == null)
+            if (string.IsNullOrEmpty(iframeUri))
             {
-                requesterror?.Invoke();
-                return null;
-            }
-
-            BobrKurwa? kurwa = null;
-
-            try
-            {
-                foreach (var item in JsonSerializer.Deserialize<List<BobrKurwa>>(json))
+                string json = await onget.Invoke($"https://bobr-kurwa.men/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
+                if (json == null)
                 {
-                    if (item.year == year.ToString())
+                    requesterror?.Invoke();
+                    return null;
+                }
+
+                result.similars = new List<Similar>();
+
+                try
+                {
+                    foreach (var item in JsonSerializer.Deserialize<List<BobrKurwa>>(json))
                     {
-                        kurwa = item;
-                        break;
+                        result.similars.Add(new Similar()
+                        {
+                            href = item.tortuga ?? item.ashdi,
+                            title = $"{item.name} / {item.eng_name}",
+                            year = item.year
+                        });
                     }
                 }
+                catch { }
+
+                if (result.similars.Count == 0)
+                    return new EmbedModel() { IsEmpty = true };
+
+                if (result.similars.Count > 1)
+                    return result;
+
+                iframeUri = result.similars[0].href;
             }
-            catch { }
-
-            if (kurwa == null)
-                return new EmbedModel() {  IsEmpty = true };
-
-            string iframeUri = kurwa.tortuga ?? kurwa.ashdi;
 
             onlog?.Invoke("iframeUri: " + iframeUri);
             string? content = await onget.Invoke(iframeUri);

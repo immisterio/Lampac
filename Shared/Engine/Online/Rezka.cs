@@ -86,7 +86,7 @@ namespace Shared.Engine.Online
 
             result.search_uri = $"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
-            string? search = await onget(result.search_uri, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", $"{apihost}/"))));
+            string search = await onget(result.search_uri, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", $"{apihost}/"))));
             if (search == null)
             {
                 log("search error");

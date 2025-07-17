@@ -32,7 +32,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(string? original_title, int year, string? href)
+        public async ValueTask<EmbedModel> Embed(string original_title, int year, string href, bool similar)
         {
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return null;
@@ -43,7 +43,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(link))
             {
                 onlog?.Invoke("search start");
-                string? search = await onpost.Invoke($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}");
+                string search = await onpost.Invoke($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}");
                 if (search == null)
                 {
                     requesterror?.Invoke();
@@ -68,14 +68,21 @@ namespace Shared.Engine.Online
                     var g = Regex.Match(row, "class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>").Groups;
 
                     string name = g[3].Value.Replace("&bull;", "").Trim();
+                    if (string.IsNullOrEmpty(name))
+                        continue;
+
                     if (result.similars == null)
                         result.similars = new List<Similar>(rows.Length);
 
+                    string uaname = Regex.Match(row, "id=\"short_title\"[^>]+>([^<]+)<").Groups[1].Value;
+                    string img = Regex.Match(row, "data-src=\"/([^\"]+)\"").Groups[1].Value;
+
                     result.similars.Add(new Similar()
                     {
-                        title = name,
+                        title = $"{uaname} / {name}",
                         year = g[2].Value,
-                        href = newslink
+                        href = newslink,
+                        img = string.IsNullOrEmpty(img) ? null : $"{apihost}/{img}"
                     });
 
                     if (StringConvert.SearchName(name) == stitle && g[2].Value == year.ToString())
@@ -85,8 +92,14 @@ namespace Shared.Engine.Online
                     }
                 }
 
+                if (similar)
+                    return result;
+
                 if (string.IsNullOrEmpty(link))
                 {
+                    if (result.similars.Count > 0)
+                        return result;
+
                     if (search.Contains(">Пошук по сайту<"))
                         return new EmbedModel() { IsEmpty = true };
 
@@ -160,7 +173,7 @@ namespace Shared.Engine.Online
                     {
                         string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                        stpl.Append(similar.title, similar.year, string.Empty, link);
+                        stpl.Append(similar.title, similar.year, string.Empty, link, PosterApi.Size(similar.img));
                     }
 
                     return rjson ? stpl.ToJson() : stpl.ToHtml();
