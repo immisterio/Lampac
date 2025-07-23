@@ -123,7 +123,7 @@ namespace Lampac.Controllers.LITE
                 var etpl = new EpisodeTpl(links.Count);
 
                 foreach (var l in links.OrderBy(i => i.episode))
-                    etpl.Append($"{l.episode} серия", title, l.s, l.episode.ToString(), $"{host}/lite/animedia/video.m3u8?vod={HttpUtility.UrlEncode(l.vod)}", vast: init.vast);
+                    etpl.Append($"{l.episode} серия", title, l.s, l.episode.ToString(), accsArgs($"{host}/lite/animedia/video.m3u8?vod={HttpUtility.UrlEncode(l.vod)}"), vast: init.vast);
 
                 return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
                 #endregion

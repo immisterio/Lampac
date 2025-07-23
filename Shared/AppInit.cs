@@ -959,7 +959,6 @@ namespace Lampac
 
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true)
         {
-            enable = true,
             streamproxy = true,
             reserve = true,
             headers = HeadersModel.Init(
@@ -1075,11 +1074,11 @@ namespace Lampac
         };
 
         /// <summary>
-        /// api v2 - AniLiberty
+        /// move to AniLiberty
         /// </summary>
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy", enable: false);
 
-        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dqloleuld1zwi");
+        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dsl1dqloleuld1dss");
 
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
@@ -1122,7 +1121,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1vr");
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1rqolqh");
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true);
 

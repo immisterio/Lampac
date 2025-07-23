@@ -402,7 +402,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(acceptsName))
                     return default;
 
-                string acceptsControls = Regex.Match(html, "tokens:([\t ]+)?'([a-zA-Z0-9]+)'").Groups[2].Value;
+                string acceptsControls = Regex.Match(html, "name=\"bobrSraka\" content=\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(acceptsControls))
                     return default;
 
