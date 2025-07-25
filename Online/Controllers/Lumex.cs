@@ -117,7 +117,7 @@ namespace Lampac.Controllers.LITE
                                     content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
                                     foreach (var item in route.Request.Headers)
                                     {
-                                        if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection" || item.Key == "range")
+                                        if (item.Key is "host" or "accept-encoding" or "connection" or "range" or "cookie")
                                             continue;
 
                                         content_headers.Add(new HeadersModel(item.Key, item.Value));
@@ -145,9 +145,9 @@ namespace Lampac.Controllers.LITE
                 else
                 {
                     #region Scraping
-                    using (var browser = new Scraping(targetUrl, null, "x-captcha-token"))
+                    using (var browser = new Scraping(targetUrl, "/content\\?contentId=", null))
                     {
-                        browser.OnRequest += e => 
+                        browser.OnRequest += e =>
                         {
                             if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)") ||
                                !Regex.IsMatch(e.HttpClient.Request.Url, "(lumex|cloudflare|sentry|gstatic)\\."))
@@ -163,7 +163,7 @@ namespace Lampac.Controllers.LITE
                             content_uri = scrap.Url;
                             foreach (var item in scrap.Headers)
                             {
-                                if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range" or "cookie")
                                     continue;
 
                                 content_headers.Add(new HeadersModel(item.Name, item.Value));
@@ -198,9 +198,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 content_headers.Add(new HeadersModel("x-csrf-token", csrf.Split("%")[0]));
-                var hcookie = content_headers.FirstOrDefault(i => i.name == "cookie");
-                if (hcookie != null)
-                    hcookie.val = $"x-csrf-token={csrf}; {hcookie.val}";
+                content_headers.Add(new HeadersModel("cookie", $"x-csrf-token={csrf}"));
 
                 var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
                 md.csrf = CrypTo.md5(DateTime.Now.ToFileTime().ToString());
