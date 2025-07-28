@@ -257,7 +257,7 @@ namespace Lampac.Controllers.LITE
                 var headers = HeadersModel.Init("Authorization", $"Bearer {accessToken}");
 
                 if (!init.streamproxy)
-                    headers.Add(new ("x-forwarded-for", clientIP));
+                    headers.Add(new ("X-LAMPA-CLIENT-IP", clientIP));
 
                 var result = rch.enable ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) : 
                                           await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
@@ -372,7 +372,7 @@ namespace Lampac.Controllers.LITE
             memKey = $"videocdn:accessToken:{(init.streamproxy ? "" : clientIP)}";
             if (!hybridCache.TryGetValue(memKey, out string accessToken))
             {
-                var headers = init.streamproxy ? null : HeadersModel.Init(("x-forwarded-for", clientIP));
+                var headers = init.streamproxy ? null : HeadersModel.Init(("X-LAMPA-CLIENT-IP", clientIP));
 
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
                 var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: headers, proxy: proxy);
@@ -407,7 +407,7 @@ namespace Lampac.Controllers.LITE
                 );
 
                 if (!init.streamproxy)
-                    headers.Add(new("x-forwarded-for", clientIP));
+                    headers.Add(new("X-LAMPA-CLIENT-IP", clientIP));
 
                 string json = await HttpClient.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers, proxy: proxy);
                 if (string.IsNullOrEmpty(json))

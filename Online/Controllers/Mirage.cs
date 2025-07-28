@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Online;
+using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
@@ -20,6 +21,9 @@ namespace Lampac.Controllers.LITE
 {
     public class Mirage : BaseOnlineController
     {
+        static string acceptsName, acceptsControls;
+        static string acceptsId = CrypTo.md5(DateTime.Now.ToBinary().ToString()) + CrypTo.md5("bobrSraka" + DateTime.Now.ToBinary().ToString());
+
         ValueTask<AllohaSettings> Initialization()
         {
             return loadKit(AppInit.conf.Mirage, (j, i, c) =>
@@ -69,7 +73,7 @@ namespace Lampac.Controllers.LITE
                     long id = file.Value<long>("id");
                     bool uhd = init.m4s ? file.Value<bool>("uhd") : false;
 
-                    string link = $"{host}/lite/mirage/video?id_file={id}&token_movie={data.Value<string>("token_movie")}&ac={frame.acceptsControls}&an={frame.acceptsName}";
+                    string link = $"{host}/lite/mirage/video?id_file={id}&token_movie={data.Value<string>("token_movie")}";
                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                     mtpl.Append(translation, link, "call", streamlink, voice_name: uhd ? "2160p" : quality, quality: uhd ? "2160p" : "");
@@ -162,7 +166,7 @@ namespace Lampac.Controllers.LITE
                                 string translation = voice.Value<string>("translation");
                                 int e = voice.Value<int>("episode");
 
-                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&ac={frame.acceptsControls}&an={frame.acceptsName}";
+                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
                                 string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                 if (e > 0)
@@ -216,7 +220,7 @@ namespace Lampac.Controllers.LITE
                                         string translation = episode.Value.Value<string>("translation");
                                         int e = episode.Value.Value<int>("episode");
 
-                                        string link = $"{host}/lite/mirage/video?id_file={episode.Value.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&ac={frame.acceptsControls}&an={frame.acceptsName}";
+                                        string link = $"{host}/lite/mirage/video?id_file={episode.Value.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
                                         string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                         if (e > 0)
@@ -258,7 +262,7 @@ namespace Lampac.Controllers.LITE
                                 if (voice.Value<int>("id_translation") != t)
                                     continue;
 
-                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}&ac={frame.acceptsControls}&an={frame.acceptsName}";
+                                string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
                                 string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                 etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
@@ -280,20 +284,18 @@ namespace Lampac.Controllers.LITE
         [HttpGet]
         [Route("lite/mirage/video")]
         [Route("lite/mirage/video.m3u8")]
-        async public ValueTask<ActionResult> Video(long id_file, string token_movie, string ac, string an, bool play)
+        async public ValueTask<ActionResult> Video(long id_file, string token_movie, bool play)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-
-            string acceptsId = "7ece5f32f2db86bdba74f85bf871002140fa863f461ab4e33786b666a0934484";
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
                 var root = await HttpClient.Post<JObject>($"{init.linkhost}/api/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "*/*"),
-                    (an, $"{ac}|{acceptsId}"),
+                    (acceptsName, $"{acceptsControls}|{acceptsId}"),
                     ("origin", init.linkhost),
                     ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
                     ("sec-fetch-dest", "empty"),
@@ -321,7 +323,7 @@ namespace Lampac.Controllers.LITE
             }
 
             var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                (an, $"{ac}|{acceptsId}"),
+                (acceptsName, $"{acceptsControls}|{acceptsId}"),
                 ("origin", init.linkhost),
                 ("referer", $"{init.linkhost}/"),
                 ("sec-fetch-dest", "empty"),
@@ -353,14 +355,14 @@ namespace Lampac.Controllers.LITE
         #endregion
 
         #region iframe
-        async ValueTask<(JToken all, JToken active, string acceptsControls, string acceptsName)> iframe(string token_movie)
+        async ValueTask<(JToken all, JToken active)> iframe(string token_movie)
         {
             if (string.IsNullOrEmpty(token_movie))
                 return default;
 
             var init = await Initialization();
             string memKey = $"mirage:iframe:{token_movie}";
-            if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active, string acceptsControls, string acceptsName) cache))
+            if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active) cache))
             {
                 string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -398,13 +400,15 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                string acceptsName = Regex.Match(build, "'headers':\\{'([^\']+)'").Groups[1].Value;
+                acceptsName = Regex.Match(build, "'headers':\\{'([^\']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(acceptsName))
                     return default;
 
-                string acceptsControls = Regex.Match(html, "name=\"bobrSraka\" content=\"([^\"]+)\"").Groups[1].Value;
+                acceptsControls = Regex.Match(html, "name=\"bobrSraka\" content=\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(acceptsControls))
                     return default;
+
+                acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), acceptsControls);
 
                 try
                 {
@@ -412,7 +416,7 @@ namespace Lampac.Controllers.LITE
                     if (root == null || !root.ContainsKey("all"))
                         return default;
 
-                    cache = (root["all"], root["active"], acceptsControls, acceptsName);
+                    cache = (root["all"], root["active"]);
 
                     hybridCache.Set(memKey, cache, cacheTime(40));
                 }
