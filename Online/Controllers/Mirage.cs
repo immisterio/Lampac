@@ -13,6 +13,7 @@ using Shared.Model.Templates;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -22,7 +23,7 @@ namespace Lampac.Controllers.LITE
     public class Mirage : BaseOnlineController
     {
         static string acceptsName, acceptsControls;
-        static string acceptsId = CrypTo.md5(DateTime.Now.ToBinary().ToString()) + CrypTo.md5("bobrSraka" + DateTime.Now.ToBinary().ToString());
+        static string acceptsId = "42065767ad35a81f1f84ff56f9d5c74581dd99553de99b9cd9a6e88ddca67b9f";
 
         ValueTask<AllohaSettings> Initialization()
         {
@@ -290,10 +291,20 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var streamHeaders = httpHeaders(init, HeadersModel.Init(
+                (acceptsName, $"{acceptsControls}|{acceptsId}"),
+                ("origin", init.linkhost),
+                ("referer", $"{init.linkhost}/"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ));
+
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
-                var root = await HttpClient.Post<JObject>($"{init.linkhost}/api/movie/{id_file}", $"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                var data = new System.Net.Http.StringContent($"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", Encoding.UTF8, "application/x-www-form-urlencoded");
+                var result = await HttpClient.BasePost($"{init.linkhost}/api/movie/{id_file}", data, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "*/*"),
                     (acceptsName, $"{acceptsControls}|{acceptsId}"),
                     ("origin", init.linkhost),
@@ -304,8 +315,13 @@ namespace Lampac.Controllers.LITE
                     ("x-requested-with", "XMLHttpRequest")
                 )));
 
-                if (root == null || !root.ContainsKey("hlsSource"))
+                if (result.content == null || !result.content.Contains("hlsSource"))
                     return OnError();
+
+                if (data.Headers.TryGetValues(acceptsName, out var newControls))
+                    acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), newControls.ToString());
+
+                var root = JsonConvert.DeserializeObject<JObject>(result.content);
 
                 foreach (var item in root["hlsSource"])
                 {
@@ -321,15 +337,6 @@ namespace Lampac.Controllers.LITE
 
                 hybridCache.Set(memKey, hlsSource, cacheTime(15));
             }
-
-            var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                (acceptsName, $"{acceptsControls}|{acceptsId}"),
-                ("origin", init.linkhost),
-                ("referer", $"{init.linkhost}/"),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site")
-            ));
 
             var streamquality = new StreamQualityTpl();
 
@@ -404,7 +411,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(acceptsName))
                     return default;
 
-                acceptsControls = Regex.Match(html, "name=\"bobrSraka\" content=\"([^\"]+)\"").Groups[1].Value;
+                acceptsControls = Regex.Match(html, "name=\"warbots\" content=\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(acceptsControls))
                     return default;
 

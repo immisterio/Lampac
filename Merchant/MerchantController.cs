@@ -32,6 +32,7 @@ namespace Merchant
                 {
                     if (AppInit.conf.accsdb.findUser(email) is AccsUser user)
                     {
+                        ex = user.expires;
                         ex = ex > DateTime.UtcNow ? ex.AddDays(days) : DateTime.UtcNow.AddDays(days);
                         user.expires = ex;
                         user.group = AppInit.conf.Merchant.defaultGroup;
@@ -51,6 +52,7 @@ namespace Merchant
                 {
                     if (AppInit.conf.accsdb.findUser(email) is AccsUser user)
                     {
+                        ex = user.expires;
                         ex = ex > DateTime.UtcNow ? ex.AddMonths(AppInit.conf.Merchant.accessForMonths) : DateTime.UtcNow.AddMonths(AppInit.conf.Merchant.accessForMonths);
                         user.expires = ex;
                         user.group = AppInit.conf.Merchant.defaultGroup;
