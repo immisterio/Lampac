@@ -1,4 +1,6 @@
 ﻿using Lampac.Engine.CORE;
+using Lampac.Models.LITE.KinoPub;
+using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json;
@@ -38,7 +40,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                if (Chromium.Status != PlaywrightStatus.NoHeadless)
+                if (Chromium.Status == PlaywrightStatus.disabled)
                     return OnError();
             }
 
@@ -92,57 +94,7 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                if (init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless)
-                {
-                    #region Firefox
-                    try
-                    {
-                        using (var browser = new Firefox())
-                        {
-                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
-                            if (page == null)
-                                return null;
-
-                            await page.RouteAsync("**/*", async route =>
-                            {
-                                if (content_uri != null || browser.IsCompleted)
-                                {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
-                                    await route.AbortAsync();
-                                    return;
-                                }
-
-                                if (route.Request.Url.Contains("/content?clientId="))
-                                {
-                                    content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
-                                    foreach (var item in route.Request.Headers)
-                                    {
-                                        if (item.Key is "host" or "accept-encoding" or "connection" or "range" or "cookie")
-                                            continue;
-
-                                        content_headers.Add(new HeadersModel(item.Key, item.Value));
-                                    }
-
-                                    browser.IsCompleted = true;
-                                    browser.completionSource.SetResult(string.Empty);
-                                    await route.AbortAsync();
-                                    return;
-                                }
-
-                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                    return;
-
-                                await route.ContinueAsync();
-                            });
-
-                            PlaywrightBase.GotoAsync(page, targetUrl);
-                            await browser.WaitPageResult().ConfigureAwait(false);
-                        }
-                    }
-                    catch { }
-                    #endregion
-                }
-                else
+                if (init.priorityBrowser == "scraping")
                 {
                     #region Scraping
                     using (var browser = new Scraping(targetUrl, "/content\\?contentId=", null))
@@ -170,6 +122,66 @@ namespace Lampac.Controllers.LITE
                             }
                         }
                     }
+                    #endregion
+                }
+                else
+                {
+                    #region Playwright
+                    try
+                    {
+                        using (var browser = new PlaywrightBrowser())
+                        {
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
+                            if (page == null)
+                                return null;
+
+                            await page.RouteAsync("**/*", async route =>
+                            {
+                                if (content_uri != null || browser.IsCompleted)
+                                {
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                if (route.Request.Url.Contains("/content?clientId="))
+                                {
+                                    content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key is "host" or "accept-encoding" or "connection" or "range" or "cookie")
+                                            continue;
+
+                                        content_headers.Add(new HeadersModel(item.Key, item.Value));
+                                    }
+
+                                    foreach (var h in new List<(string key, string val)> 
+                                    {
+                                        ("sec-fetch-site", "same-site"),
+                                        ("sec-fetch-mode", "cors"),
+                                        ("sec-fetch-dest", "empty"),
+                                    })
+                                    {
+                                        if (!route.Request.Headers.ContainsKey(h.key))
+                                            content_headers.Add(new HeadersModel(h.key, h.val));
+                                    }
+
+                                    browser.SetPageResult(string.Empty);
+                                    await route.AbortAsync();
+                                    return;
+                                }
+
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
+
+                                await route.ContinueAsync();
+                            });
+
+                            PlaywrightBase.GotoAsync(page, targetUrl);
+                            await browser.WaitPageResult().ConfigureAwait(false);
+                        }
+                    }
+                    catch { }
                     #endregion
                 }
 

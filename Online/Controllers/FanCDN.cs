@@ -16,6 +16,7 @@ using BrowserCookie = Microsoft.Playwright.Cookie;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Routing;
+using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -155,12 +156,11 @@ namespace Lampac.Controllers.LITE
 
                 using (var browser = new PlaywrightBrowser())
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman);
+                    var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: baseproxy.data, imitationHuman: init.imitationHuman);
                     if (page == null)
                         return null;
 
                     browser.failedUrl = uri;
-                    await page.SetExtraHTTPHeadersAsync(init.headers);
                     await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
 
                     await page.RouteAsync("**/*", async route =>

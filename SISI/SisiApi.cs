@@ -273,7 +273,7 @@ namespace SISI
             send("ebalovo.porn", conf.Ebalovo, "elo", "apk");
             send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
 
-            if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Spankbang.overridehost) || conf.Spankbang.overridehosts?.Length > 0)
+            if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Spankbang.overridehost) || conf.Spankbang.overridehosts?.Length > 0)
                 send("spankbang.com", conf.Spankbang, "sbg");
 
             send("eporner.com", conf.Eporner, "epr", "apk,cors");
@@ -282,10 +282,10 @@ namespace SISI
             send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
             send("tizam.pw", conf.Tizam, "tizam", "apk,cors");
 
-            if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.BongaCams.overridehost) || conf.BongaCams.overridehosts?.Length > 0)
+            if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.BongaCams.overridehost) || conf.BongaCams.overridehosts?.Length > 0)
                 send("bongacams.com", conf.BongaCams, "bgs", "apk");
 
-            if (conf.Runetki.priorityBrowser == "http" || conf.Runetki.rhub || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Runetki.overridehost) || conf.Runetki.overridehosts?.Length > 0)
+            if (conf.Runetki.priorityBrowser == "http" || conf.Runetki.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Runetki.overridehost) || conf.Runetki.overridehosts?.Length > 0)
                 send("runetki.com", conf.Runetki, "runetki", "apk");
 
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");

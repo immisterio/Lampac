@@ -16,7 +16,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/videasy")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Videasy, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call", chromium: true);
+            return ViewTmdb(AppInit.conf.Videasy, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
 
 

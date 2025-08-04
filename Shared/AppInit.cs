@@ -336,15 +336,14 @@ namespace Lampac
 
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
-            enable = true, Xvfb = true,
-            Args = new string[] { "--disable-blink-features=AutomationControlled", "--window-position=-2000,100" },
+            enable = true, Headless = true,
+            Args = new string[] { "--disable-blink-features=AutomationControlled" }, // , "--window-position=-2000,100"
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
-            Args = new string[] { "--window-position=-2000,100" },
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 1, max = 2 }
         };
 
@@ -1083,7 +1082,7 @@ namespace Lampac
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj")
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj", streamproxy: true)
         {
             enable = false,
             headers = HeadersModel.Init(

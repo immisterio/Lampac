@@ -2,19 +2,17 @@
 using Microsoft.AspNetCore.Mvc;
 using Online;
 using Shared.Model.Templates;
-using Shared.Engine;
 using Lampac.Models.LITE;
 using Newtonsoft.Json.Linq;
 using Lampac.Engine.CORE;
 using System.Web;
-using Shared.PlaywrightCore;
 using System;
 
 namespace Lampac.Controllers.LITE
 {
     public class BaseENGController : BaseOnlineController
     {
-        async public ValueTask<ActionResult> ViewTmdb(OnlinesSettings _init, bool browser, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", bool chromium = false, int? hls_manifest_timeout = null, string extension = "m3u8")
+        async public ValueTask<ActionResult> ViewTmdb(OnlinesSettings _init, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", int? hls_manifest_timeout = null, string extension = "m3u8")
         {
             if (checksearch)
                 return Content("data-json=");
@@ -25,20 +23,6 @@ namespace Lampac.Controllers.LITE
 
             if (hls_manifest_timeout == null)
                 hls_manifest_timeout = (int)TimeSpan.FromSeconds(20).TotalMilliseconds;
-
-            if (browser)
-            {
-                if (chromium)
-                {
-                    if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
-                        return OnError();
-                }
-                else
-                {
-                    if (Firefox.Status == PlaywrightStatus.disabled)
-                        return OnError();
-                }
-            }
 
             if (serial == 1)
             {

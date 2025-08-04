@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/vidlink")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.VidLink, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", chromium: true);
+            return ViewTmdb(AppInit.conf.VidLink, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
 
 
@@ -68,9 +68,38 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"vidlink:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    if (true) // init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless
+                    if (init.priorityBrowser == "scraping")
                     {
-                        #region Firefox
+                        #region Scraping
+                        using (var browser = new Scraping(uri, "\\.(m3u|mp4)", null))
+                        {
+                            browser.OnRequest += e =>
+                            {
+                                if (Regex.IsMatch(e.HttpClient.Request.Url, "(adsco|pubtrky|clarity)\\."))
+                                    e.Ok(string.Empty);
+                            };
+
+                            var scrap = await browser.WaitPageResult();
+
+                            if (scrap != null)
+                            {
+                                cache.m3u8 = scrap.Url;
+                                cache.headers = new List<HeadersModel>();
+
+                                foreach (var item in scrap.Headers)
+                                {
+                                    if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                        continue;
+
+                                    cache.headers.Add(new HeadersModel(item.Name, item.Value));
+                                }
+                            }
+                        }
+                        #endregion
+                    }
+                    else
+                    {
+                        #region Playwright
                         using (var browser = new PlaywrightBrowser())
                         {
                             var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
@@ -110,7 +139,6 @@ namespace Lampac.Controllers.LITE
                                         }
 
                                         PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                        //browser.IsCompleted = true;
                                         browser.SetPageResult(route.Request.Url);
                                         await route.AbortAsync();
                                         return;
@@ -123,35 +151,6 @@ namespace Lampac.Controllers.LITE
 
                             PlaywrightBase.GotoAsync(page, uri);
                             cache.m3u8 = await browser.WaitPageResult();
-                        }
-                        #endregion
-                    }
-                    else
-                    {
-                        #region Scraping
-                        using (var browser = new Scraping(uri, "\\.(m3u|mp4)", null))
-                        {
-                            browser.OnRequest += e =>
-                            {
-                                if (Regex.IsMatch(e.HttpClient.Request.Url, "(adsco|pubtrky|clarity)\\."))
-                                    e.Ok(string.Empty);
-                            };
-
-                            var scrap = await browser.WaitPageResult();
-
-                            if (scrap != null)
-                            {
-                                cache.m3u8 = scrap.Url;
-                                cache.headers = new List<HeadersModel>();
-
-                                foreach (var item in scrap.Headers)
-                                {
-                                    if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                        continue;
-
-                                    cache.headers.Add(new HeadersModel(item.Name, item.Value));
-                                }
-                            }
                         }
                         #endregion
                     }

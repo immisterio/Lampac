@@ -35,11 +35,6 @@ namespace Shared.Engine
                 if (!init.enable || browser != null || shutdown)
                     return;
 
-                if (init.DISPLAY != null)
-                    Environment.SetEnvironmentVariable("DISPLAY", init.DISPLAY);
-                else if (File.Exists("/tmp/.X99-lock"))
-                    Environment.SetEnvironmentVariable("DISPLAY", ":99");
-
                 string executablePath = init.executablePath;
 
                 #region Download chromium
@@ -351,8 +346,24 @@ namespace Shared.Engine
                     }
                     #endregion
 
+                    #region SetExtraHTTPHeadersAsync
                     if (headers != null && headers.Count > 0)
-                        await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+                    {
+                        var newheaders = new Dictionary<string, string>(headers);
+                        newheaders["sec-ch-ua"] = "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"";
+                        newheaders["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
+
+                        await page.SetExtraHTTPHeadersAsync(newheaders).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await page.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
+                        {
+                            ["sec-ch-ua"] = "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+                            ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+                        }).ConfigureAwait(false);
+                    }
+                    #endregion
 
                     page.Popup += Page_Popup;
                     page.Download += Page_Download;
@@ -391,8 +402,24 @@ namespace Shared.Engine
                     }
                     #endregion
 
+                    #region SetExtraHTTPHeadersAsync
                     if (headers != null && headers.Count > 0)
-                        await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+                    {
+                        var newheaders = new Dictionary<string, string>(headers);
+                        newheaders["sec-ch-ua"] = "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"";
+                        newheaders["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
+
+                        await page.SetExtraHTTPHeadersAsync(newheaders).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await page.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
+                        {
+                            ["sec-ch-ua"] = "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+                            ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+                        }).ConfigureAwait(false);
+                    }
+                    #endregion
 
                     page.Popup += Page_Popup;
                     page.Download += Page_Download;

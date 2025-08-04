@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/smashystream")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Smashystream, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, hls_manifest_timeout: (int)TimeSpan.FromSeconds(35).TotalMilliseconds);
+            return ViewTmdb(AppInit.conf.Smashystream, checksearch, id, imdb_id, title, original_title, serial, s, rjson, hls_manifest_timeout: (int)TimeSpan.FromSeconds(35).TotalMilliseconds);
         }
 
 

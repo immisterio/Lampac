@@ -32,7 +32,7 @@ namespace Shared.PlaywrightCore
             this.patternUrl = patternUrl;
             this.headerKey = headerKey;
 
-            if (Chromium.Status == PlaywrightStatus.NoHeadless)
+            if (Chromium.Status != PlaywrightStatus.disabled)
             {
                 proxyServer = new ProxyServer();
                 proxyServer.BeforeRequest += Request;
@@ -109,7 +109,7 @@ namespace Shared.PlaywrightCore
                                 $"--no-default-browser-check " +
                                 $"--disable-background-mode " +
                                 $"--no-sandbox " +
-                                (AppInit.conf.chromium.DEV || AppInit.conf.chromium.Args == null ? "--window-position=100,100 " : $"--window-position=-2000,100 ") +
+                                (AppInit.conf.chromium.Headless ? "--headless " : "") +
                                 $"\"{targetUrl}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,

@@ -129,7 +129,7 @@ namespace Shared.Engine
                     return false;
                 }
 
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && (AppInit.conf.chromium.Xvfb || AppInit.conf.firefox.Xvfb))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && (AppInit.conf.chromium.Headless == false || AppInit.conf.firefox.Headless == false))
                 {
                     if (!File.Exists("/usr/bin/Xvfb"))
                     {

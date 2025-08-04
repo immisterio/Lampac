@@ -291,15 +291,6 @@ namespace Lampac.Controllers.LITE
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                (acceptsName, $"{acceptsControls}|{acceptsId}"),
-                ("origin", init.linkhost),
-                ("referer", $"{init.linkhost}/"),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site")
-            ));
-
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
@@ -337,6 +328,14 @@ namespace Lampac.Controllers.LITE
 
                 hybridCache.Set(memKey, hlsSource, cacheTime(15));
             }
+
+            var streamHeaders = httpHeaders(init, HeadersModel.Init(
+                ("origin", init.linkhost),
+                ("referer", $"{init.linkhost}/"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
+            ));
 
             var streamquality = new StreamQualityTpl();
 

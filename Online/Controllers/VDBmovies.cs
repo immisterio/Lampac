@@ -160,12 +160,11 @@ namespace Lampac.Controllers.LITE
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: baseproxy.data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
+                    var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: baseproxy.data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
                     browser.failedUrl = uri;
-                    await page.SetExtraHTTPHeadersAsync(headers.ToDictionary()).ConfigureAwait(false);
 
                     await page.RouteAsync("**/*", async route =>
                     {

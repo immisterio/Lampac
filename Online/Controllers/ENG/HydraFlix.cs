@@ -17,7 +17,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/hydraflix")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Hydraflix, true, checksearch, id, imdb_id, title, original_title, serial, s, rjson, chromium: true, method: "call", extension: "m3u8");
+            return ViewTmdb(AppInit.conf.Hydraflix, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call", extension: "m3u8");
         }
 
 
@@ -35,7 +35,7 @@ namespace Lampac.Controllers.LITE
             if (id == 0)
                 return OnError();
 
-            if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
