@@ -1,4 +1,4 @@
-﻿using Lampac.Models.LITE.Ashdi;
+﻿using Lampac.Models.LITE.Tortuga;
 
 namespace Shared.Model.Online.Eneyida
 {
