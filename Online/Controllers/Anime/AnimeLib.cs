@@ -259,7 +259,7 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(href))
                             continue;
 
-                        string file = HostStreamProxy(init, "https://video1.anilib.me/.%D0%B0s/" + href, proxy: proxyManager.Get(), headers: headers_stream);
+                        string file = HostStreamProxy(init, "https://video1.cdnlibs.org/.%D0%B0s/" + href, proxy: proxyManager.Get(), headers: headers_stream);
 
                         _streams.Add((file, $"{item.Value<int>("quality")}p"));
                     }

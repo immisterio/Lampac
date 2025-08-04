@@ -250,13 +250,18 @@ namespace Lampac.Controllers.LITE
             catch { }
 
             string clientIP = init.verifyip ? requestInfo.IP : "::1";
-            string memkey = $"videocdn/video:{playlist}:{clientIP}";
+            string memkey = $"videocdn/video:{playlist}:{(init.streamproxy ? "" : clientIP)}";
 
             if (!hybridCache.TryGetValue(memkey, out string hls))
             {
-                var headers = HeadersModel.Join(HeadersModel.Init("Authorization", $"Bearer {accessToken}"), HeadersModel.Init(("x-forwarded-for", clientIP)));
+                var headers = HeadersModel.Init("Authorization", $"Bearer {accessToken}");
 
-                var result = await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
+                if (!init.streamproxy)
+                    headers.Add(new ("X-LAMPA-CLIENT-IP", clientIP));
+
+                var result = rch.enable ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) : 
+                                          await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
+
                 if (result == null || !result.ContainsKey("url"))
                     return OnError(null, gbcache: false);
 
@@ -364,11 +369,13 @@ namespace Lampac.Controllers.LITE
 
             string clientIP = init.verifyip ? requestInfo.IP : "::1";
 
-            memKey = $"videocdn:accessToken:{clientIP}";
+            memKey = $"videocdn:accessToken:{(init.streamproxy ? "" : clientIP)}";
             if (!hybridCache.TryGetValue(memKey, out string accessToken))
             {
+                var headers = init.streamproxy ? null : HeadersModel.Init(("X-LAMPA-CLIENT-IP", clientIP));
+
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
-                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: HeadersModel.Init(("x-forwarded-for", clientIP)), proxy: proxy);
+                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: headers, proxy: proxy);
                 if (job == null || !job.ContainsKey("accessToken"))
                     return null;
 
@@ -392,13 +399,15 @@ namespace Lampac.Controllers.LITE
             var init = await Initialization();
             string clientIP = init.verifyip ? requestInfo.IP : "::1";
 
-            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{clientIP}", TimeSpan.FromMinutes(5), async () =>
+            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{(init.streamproxy ? "" : clientIP)}", TimeSpan.FromMinutes(5), async () =>
             {
                 var headers = HeadersModel.Init(
                     ("Authorization", $"Bearer {accessToken}"),
-                    ("User-Agent", HttpContext.Request.Headers.UserAgent),
-                    ("x-forwarded-for", clientIP)
+                    ("User-Agent", HttpContext.Request.Headers.UserAgent)
                 );
+
+                if (!init.streamproxy)
+                    headers.Add(new("X-LAMPA-CLIENT-IP", clientIP));
 
                 string json = await HttpClient.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers, proxy: proxy);
                 if (string.IsNullOrEmpty(json))

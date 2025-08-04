@@ -1,4 +1,6 @@
 ﻿using Lampac.Engine.CORE;
+using Lampac.Models.LITE.KinoPub;
+using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json;
@@ -38,7 +40,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                if (Chromium.Status != PlaywrightStatus.NoHeadless)
+                if (Chromium.Status == PlaywrightStatus.disabled)
                     return OnError();
             }
 
@@ -92,12 +94,42 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                if (init.priorityBrowser == "firefox" || Chromium.Status != PlaywrightStatus.NoHeadless)
+                if (init.priorityBrowser == "scraping")
                 {
-                    #region Firefox
+                    #region Scraping
+                    using (var browser = new Scraping(targetUrl, "/content\\?contentId=", null))
+                    {
+                        browser.OnRequest += e =>
+                        {
+                            if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)") ||
+                               !Regex.IsMatch(e.HttpClient.Request.Url, "(lumex|cloudflare|sentry|gstatic)\\."))
+                            {
+                                e.Ok(string.Empty);
+                            }
+                        };
+
+                        var scrap = await browser.WaitPageResult(15);
+
+                        if (scrap != null)
+                        {
+                            content_uri = scrap.Url;
+                            foreach (var item in scrap.Headers)
+                            {
+                                if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range" or "cookie")
+                                    continue;
+
+                                content_headers.Add(new HeadersModel(item.Name, item.Value));
+                            }
+                        }
+                    }
+                    #endregion
+                }
+                else
+                {
+                    #region Playwright
                     try
                     {
-                        using (var browser = new Firefox())
+                        using (var browser = new PlaywrightBrowser())
                         {
                             var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
                             if (page == null)
@@ -117,14 +149,24 @@ namespace Lampac.Controllers.LITE
                                     content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
                                     foreach (var item in route.Request.Headers)
                                     {
-                                        if (item.Key == "host" || item.Key == "accept-encoding" || item.Key == "connection" || item.Key == "range")
+                                        if (item.Key is "host" or "accept-encoding" or "connection" or "range" or "cookie")
                                             continue;
 
                                         content_headers.Add(new HeadersModel(item.Key, item.Value));
                                     }
 
-                                    browser.IsCompleted = true;
-                                    browser.completionSource.SetResult(string.Empty);
+                                    foreach (var h in new List<(string key, string val)> 
+                                    {
+                                        ("sec-fetch-site", "same-site"),
+                                        ("sec-fetch-mode", "cors"),
+                                        ("sec-fetch-dest", "empty"),
+                                    })
+                                    {
+                                        if (!route.Request.Headers.ContainsKey(h.key))
+                                            content_headers.Add(new HeadersModel(h.key, h.val));
+                                    }
+
+                                    browser.SetPageResult(string.Empty);
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -140,36 +182,6 @@ namespace Lampac.Controllers.LITE
                         }
                     }
                     catch { }
-                    #endregion
-                }
-                else
-                {
-                    #region Scraping
-                    using (var browser = new Scraping(targetUrl, null, "x-captcha-token"))
-                    {
-                        browser.OnRequest += e => 
-                        {
-                            if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)") ||
-                               !Regex.IsMatch(e.HttpClient.Request.Url, "(lumex|cloudflare|sentry|gstatic)\\."))
-                            {
-                                e.Ok(string.Empty);
-                            }
-                        };
-
-                        var scrap = await browser.WaitPageResult(15);
-
-                        if (scrap != null)
-                        {
-                            content_uri = scrap.Url;
-                            foreach (var item in scrap.Headers)
-                            {
-                                if (item.Name.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                    continue;
-
-                                content_headers.Add(new HeadersModel(item.Name, item.Value));
-                            }
-                        }
-                    }
                     #endregion
                 }
 
@@ -198,9 +210,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 content_headers.Add(new HeadersModel("x-csrf-token", csrf.Split("%")[0]));
-                var hcookie = content_headers.FirstOrDefault(i => i.name == "cookie");
-                if (hcookie != null)
-                    hcookie.val = $"x-csrf-token={csrf}; {hcookie.val}";
+                content_headers.Add(new HeadersModel("cookie", $"x-csrf-token={csrf}"));
 
                 var md = JsonConvert.DeserializeObject<JObject>(result.content)["player"].ToObject<EmbedModel>();
                 md.csrf = CrypTo.md5(DateTime.Now.ToFileTime().ToString());

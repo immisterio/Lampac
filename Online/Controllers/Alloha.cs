@@ -256,7 +256,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"alloha:black_magic:{proxy.data.ip}:{token_movie}:{t}:{s}:{e}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    if (PlaywrightBrowser.Status != PlaywrightStatus.NoHeadless)
+                    if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                         return OnError();
 
                     cache.headers = new List<HeadersModel>();

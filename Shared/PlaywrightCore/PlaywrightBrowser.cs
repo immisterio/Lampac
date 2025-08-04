@@ -49,40 +49,15 @@ namespace Shared.PlaywrightCore
         public Firefox firefox = null;
 
 
-        public PlaywrightBrowser(string priorityBrowser = null, PlaywrightStatus minimalAPI = PlaywrightStatus.NoHeadless)
+        public PlaywrightBrowser(string priorityBrowser = null)
         {
-            if (string.IsNullOrEmpty(priorityBrowser))
-                priorityBrowser = "chromium";
-
             if (priorityBrowser == "firefox" && Firefox.Status != PlaywrightStatus.disabled)
             {
                 firefox = new Firefox();
                 return;
             }
 
-            if (priorityBrowser == "chromium")
-            {
-                if (Chromium.Status == PlaywrightStatus.NoHeadless || Chromium.Status == minimalAPI)
-                {
-                    chromium = new Chromium();
-                    return;
-                }
-            }
-
-            if (Chromium.Status != PlaywrightStatus.disabled)
-            {
-                if (Chromium.Status == PlaywrightStatus.NoHeadless || Chromium.Status == minimalAPI)
-                {
-                    chromium = new Chromium();
-                    return;
-                }
-            }
-
-            if (Firefox.Status != PlaywrightStatus.disabled)
-            {
-                firefox = new Firefox();
-                return;
-            }
+            chromium = new Chromium();
         }
 
         public string failedUrl
@@ -101,17 +76,21 @@ namespace Shared.PlaywrightCore
         }
 
 
-        public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
+        async public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {
             try
             {
                 if (chromium == null && firefox == null)
                     return default;
 
-                if (chromium != null)
-                    return chromium.NewPageAsync(plugin, headers, proxy, keepopen: keepopen, imitationHuman: imitationHuman);
+                IPage page = default;
 
-                return firefox.NewPageAsync(plugin, headers, proxy, keepopen: keepopen);
+                if (chromium != null)
+                    page = await chromium.NewPageAsync(plugin, headers, proxy, keepopen: keepopen, imitationHuman: imitationHuman).ConfigureAwait(false);
+                else
+                    page = await firefox.NewPageAsync(plugin, headers, proxy, keepopen: keepopen).ConfigureAwait(false);
+
+                return page;
             }
             catch { return default; }
         }
@@ -157,11 +136,11 @@ namespace Shared.PlaywrightCore
 
 
 
-        async public static ValueTask<string> Get(BaseSettings init, string url, List<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, PlaywrightStatus minimalAPI = PlaywrightStatus.NoHeadless, List<Cookie> cookies = null)
+        async public static ValueTask<string> Get(BaseSettings init, string url, List<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null)
         {
             try
             {
-                using (var browser = new PlaywrightBrowser(init.priorityBrowser, minimalAPI))
+                using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
                     var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy).ConfigureAwait(false);
                     if (page == null)

@@ -32,7 +32,7 @@ namespace Shared.PlaywrightCore
             this.patternUrl = patternUrl;
             this.headerKey = headerKey;
 
-            if (Chromium.Status == PlaywrightStatus.NoHeadless)
+            if (Chromium.Status != PlaywrightStatus.disabled)
             {
                 proxyServer = new ProxyServer();
                 proxyServer.BeforeRequest += Request;
@@ -101,6 +101,7 @@ namespace Shared.PlaywrightCore
                     FileName = executablePath,
                     Arguments = $"--proxy-server=127.0.0.1:{proxyPort} " +
                                 $"--proxy-bypass-list=\"localhost;127.0.0.1;*.microsoft.com;{proxyBypassList}\" " +
+                                $"--incognito " +
                                 $"--ignore-certificate-errors " +
                                 $"--ignore-ssl-errors " +
                                 $"--disable-web-security " +
@@ -108,7 +109,7 @@ namespace Shared.PlaywrightCore
                                 $"--no-default-browser-check " +
                                 $"--disable-background-mode " +
                                 $"--no-sandbox " +
-                                (AppInit.conf.chromium.DEV || AppInit.conf.chromium.Args == null ? "--window-position=100,100 " : $"--window-position=-2000,100 ") +
+                                (AppInit.conf.chromium.Headless ? "--headless " : "") +
                                 $"\"{targetUrl}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -126,8 +127,6 @@ namespace Shared.PlaywrightCore
         async private Task Request(object sender, SessionEventArgs e)
         {
             var session = e.HttpClient.Request;
-
-            OnRequest?.Invoke(e);
 
             if (IsCompleted)
             {
@@ -167,12 +166,12 @@ namespace Shared.PlaywrightCore
                     Console.WriteLine($"  {header.Name}: {header.Value}");
                 Console.WriteLine();
             }
+
+            OnRequest?.Invoke(e);
         }
 
         async private Task Response(object sender, SessionEventArgs e)
         {
-            OnResponse?.Invoke(e);
-
             if (AppInit.conf.chromium.consoleLog)
             {
                 var session = e.HttpClient.Response;
@@ -184,6 +183,8 @@ namespace Shared.PlaywrightCore
                     Console.WriteLine($"  {header.Name}: {header.Value}");
                 Console.WriteLine();
             }
+
+            OnResponse?.Invoke(e);
         }
 
 

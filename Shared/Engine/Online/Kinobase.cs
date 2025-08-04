@@ -41,7 +41,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(title))
                 return null;
 
-            string? content = await onget($"{apihost}/search?query={HttpUtility.UrlEncode(title)}");
+            string content = await onget($"{apihost}/search?query={HttpUtility.UrlEncode(title)}");
             if (content == null)
             {
                 requesterror?.Invoke();

@@ -12,7 +12,7 @@ namespace Lampac.Controllers.LITE
     {
         [HttpGet]
         [Route("lite/eneyida")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, string t, int s = -1, string href = null, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.Eneyida);
             if (await IsBadInitialization(init, rch: true))
@@ -38,12 +38,12 @@ namespace Lampac.Controllers.LITE
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<EmbedModel>($"eneyida:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"eneyida:view:{title}:{year}:{href}:{clarification}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(clarification == 1 ? title : original_title, year, href);
+                return await oninvk.Embed((similar || clarification == 1) ? title : original_title, year, href, similar);
             });
 
             if (IsRhubFallback(cache, init))

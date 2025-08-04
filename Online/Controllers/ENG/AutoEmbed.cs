@@ -19,7 +19,7 @@ namespace Lampac.Controllers.LITE
         public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Autoembed;
-            return ViewTmdb(init, init.priorityBrowser != "http", checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
+            return ViewTmdb(init, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
 
 

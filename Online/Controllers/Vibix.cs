@@ -7,7 +7,6 @@ using Shared.Engine.CORE;
 using Online;
 using Shared.Model.Templates;
 using Shared.Model.Online;
-using Newtonsoft.Json;
 using System.Web;
 using Lampac.Models.LITE;
 using Shared.Model.Online.Vibix;
@@ -58,22 +57,22 @@ namespace Lampac.Controllers.LITE
                 {
                     file = html.Split(",file:")?[1]?.Split("function")?[0];
                     if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
-                        res.Fail("file");
+                        return res.Fail("file");
 
                     return new EmbedModel() { content = file };
                 }
                 else
                 {
-                    file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\])\\}\\)").Groups[1].Value.Trim();
-                    if (string.IsNullOrEmpty(file))
-                        file = Regex.Match(html, "file:([^\n\r]+\\]\\}\\]\\}\\]),").Groups[1].Value.Trim();
+                    string json = Regex.Match(html, "new Playerjs\\(([^\n\r]+)").Groups[1].Value.Split(");")[0];
 
-                    if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
-                        res.Fail("file");
+                    var jObj = JObject.Parse(json);
+                    var fileToken = jObj["file"];
+                    if (fileToken == null)
+                        return res.Fail("file");
 
                     try
                     {
-                        return new EmbedModel() { serial = JsonConvert.DeserializeObject<List<Seasons>>(file) };
+                        return new EmbedModel() { serial = fileToken.ToObject<List<Seasons>>() };
                     }
                     catch { return res.Fail("DeserializeObject"); }
                 }
@@ -91,11 +90,12 @@ namespace Lampac.Controllers.LITE
 
                     var streams = new StreamQualityTpl();
 
-                    var match = new Regex("([0-9]+p)\\](https?://[^,\t ]+\\.mp4)").Match(cache.Value.content);
-                    while (match.Success)
+                    foreach (string q in new string[] { "1080p", "720p", "480p" })
                     {
-                        streams.Insert(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy), match.Groups[1].Value);
-                        match = match.NextMatch();
+                        var g = new Regex($"({q})\\](https?://[^,\t ]+\\.mp4)").Match(cache.Value.content).Groups;
+
+                        if (!string.IsNullOrEmpty(g[2].Value))
+                            streams.Append(HostStreamProxy(init, g[2].Value, proxy: proxy), g[1].Value);
                     }
 
                     if (streams.Any())
@@ -143,18 +143,18 @@ namespace Lampac.Controllers.LITE
                             foreach (var episode in season.folder)
                             {
                                 string name = episode.title;
-                                string file = episode.folder.First().file;
+                                string file = episode?.folder?.First()?.file ?? episode.file;
 
                                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(file))
                                     continue;
 
                                 var streams = new StreamQualityTpl();
 
-                                var match = new Regex("([0-9]+p)\\](https?://[^,\t\\[ ]+\\.mp4)").Match(file);
-                                while (match.Success)
+                                foreach (string q in new string[] { "1080p", "720p", "480p" })
                                 {
-                                    streams.Append(HostStreamProxy(init, match.Groups[2].Value, proxy: proxy), match.Groups[1].Value);
-                                    match = match.NextMatch();
+                                    var g = new Regex($"({q})\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+\\.mp4)").Match(file).Groups;
+                                    if (!string.IsNullOrEmpty(g["file"].Value))
+                                        streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), g[1].Value);
                                 }
 
                                 if (streams.Any())

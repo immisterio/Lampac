@@ -336,15 +336,14 @@ namespace Lampac
 
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
-            enable = true, Xvfb = true,
-            Args = new string[] { "--disable-blink-features=AutomationControlled", "--window-position=-2000,100" },
+            enable = true, Headless = true,
+            Args = new string[] { "--disable-blink-features=AutomationControlled" }, // , "--window-position=-2000,100"
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
         };
 
         public PuppeteerConf firefox = new PuppeteerConf()
         {
             enable = false, Headless = true,
-            Args = new string[] { "--window-position=-2000,100" },
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 1, max = 2 }
         };
 
@@ -957,9 +956,8 @@ namespace Lampac
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
 
-        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22roor0dv1doodunqrz1rqolqh", "875912cc3b0d48c90397c419a957e8", "", true, true)
+        public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22txdguloolrq0dv1doodunqrz1rqolqh", "6892d506bbdd5790e0ca047ff39462", "", true, true)
         {
-            enable = true,
             streamproxy = true,
             reserve = true,
             headers = HeadersModel.Init(
@@ -967,11 +965,11 @@ namespace Lampac
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\""),
+                ("sec-ch-ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-storage-access", "active"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 
@@ -1075,11 +1073,11 @@ namespace Lampac
         };
 
         /// <summary>
-        /// api v2 - AniLiberty
+        /// move to AniLiberty
         /// </summary>
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy", enable: false);
 
-        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dqloleuld1zwi");
+        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dsl1dqloleuld1dss");
 
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
@@ -1122,7 +1120,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1vr");
+        public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1rqolqh");
 
         public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true);
 

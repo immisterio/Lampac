@@ -485,7 +485,7 @@ namespace Lampac.Controllers
             }
             else
             {
-                if (Chromium.Status == PlaywrightStatus.NoHeadless)
+                if (Chromium.Status != PlaywrightStatus.disabled)
                     send(AppInit.conf.Lumex);
             }
 
@@ -838,12 +838,12 @@ namespace Lampac.Controllers
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost) || conf.Kinobase.overridehosts?.Length > 0)
                 send(conf.Kinobase);
 
-            if (conf.VDBmovies.rhub || conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VDBmovies.overridehost) || conf.VDBmovies.overridehosts?.Length > 0)
+            if (conf.VDBmovies.rhub || conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VDBmovies.overridehost) || conf.VDBmovies.overridehosts?.Length > 0)
                 send(conf.VDBmovies, rch_access: "apk");
 
             if (kinopoisk_id > 0)
             {
-                if (conf.VideoDB.rhub || conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VideoDB.overridehost) || conf.VideoDB.overridehosts?.Length > 0)
+                if (conf.VideoDB.rhub || conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VideoDB.overridehost) || conf.VideoDB.overridehosts?.Length > 0)
                     send(conf.VideoDB, rch_access: "apk");
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost) || conf.Zetflix.overridehosts?.Length > 0)
@@ -852,7 +852,7 @@ namespace Lampac.Controllers
 
             if (serial == -1 || serial == 0 || !string.IsNullOrEmpty(conf.FanCDN.token) || !string.IsNullOrEmpty(conf.FanCDN.overridehost) || conf.FanCDN.overridehosts?.Length > 0)
             {
-                if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.FanCDN.overridehost) || conf.FanCDN.overridehosts?.Length > 0)
+                if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.FanCDN.overridehost) || conf.FanCDN.overridehosts?.Length > 0)
                     send(conf.FanCDN, rch_access: "apk");
             }
 
@@ -863,14 +863,14 @@ namespace Lampac.Controllers
             {
                 send(conf.Lumex);
             }
-            else if (AppInit.conf.Lumex.priorityBrowser == "firefox" && Firefox.Status != PlaywrightStatus.disabled)
+            else if (AppInit.conf.Lumex.priorityBrowser == "firefox")
             {
                 if (Firefox.Status != PlaywrightStatus.disabled)
                     send(AppInit.conf.Lumex);
             }
             else
             {
-                if (Chromium.Status == PlaywrightStatus.NoHeadless)
+                if (Chromium.Status != PlaywrightStatus.disabled)
                     send(AppInit.conf.Lumex);
             }
             #endregion
@@ -955,19 +955,19 @@ namespace Lampac.Controllers
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
                     send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
                     send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
                     send(conf.VidLink, "vidlink", "VidLink (ENG)");
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
                     send(conf.Videasy, "videasy", "Videasy (ENG)");
 
-                if (PlaywrightBrowser.Status == PlaywrightStatus.NoHeadless || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
                     send(conf.MovPI, "movpi", "MovPI (ENG)");
 
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)

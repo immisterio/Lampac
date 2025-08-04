@@ -87,7 +87,7 @@ namespace Lampac.Controllers.LITE
             {
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title, 1);
-                mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}"), vast: init.vast);
+                mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}") + "#.m3u8", vast: init.vast);
 
                 return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
@@ -168,6 +168,9 @@ namespace Lampac.Controllers.LITE
                             if (!string.IsNullOrEmpty(location))
                                 break;
                         }
+
+                        if (string.IsNullOrEmpty(location))
+                            location = Regex.Match(html, "\"file\":\"([^,\"]+)").Groups[1].Value.Trim();
                     }
                     else
                     {

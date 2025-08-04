@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
 
                 try
                 {
-                    using (var browser = new PlaywrightBrowser(init.priorityBrowser, PlaywrightStatus.headless))
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
                         log += "browser init\n";
 
