@@ -55,7 +55,8 @@ namespace Lampac.Controllers.LITE
             {
                 string uri = $"{ztfhost}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
-                string result = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: HeadersModel.Init("Referer", "https://www.google.com/"));
+                var headers = HeadersModel.Init(("Referer", "https://www.google.com/"), ("User-Agent", Chromium.baseContextOptions.UserAgent));
+                string result = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: headers);
                 if (result != null && !result.StartsWith("<script>(function"))
                 {
                     if (!result.Contains("new Playerjs"))
@@ -104,17 +105,9 @@ namespace Lampac.Controllers.LITE
                             catch { }
                         });
 
-                        PlaywrightBase.GotoAsync(page, uri);
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle).ConfigureAwait(false);
+                        await page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.NetworkIdle }).ConfigureAwait(false);
 
-                        var responce = browser.firefox != null ? await page.GotoAsync(uri).ConfigureAwait(false) : await page.ReloadAsync().ConfigureAwait(false);
-                        if (responce == null)
-                        {
-                            proxyManager.Refresh();
-                            return null;
-                        }
-
-                        result = await responce.TextAsync().ConfigureAwait(false);
+                        result = await page.ContentAsync().ConfigureAwait(false);
 
                         log += $"{result}\n\n";
 

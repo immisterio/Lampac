@@ -31,7 +31,7 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("class=\"video-item\"");
+            var rows = html.Split("class=\"video-item responsive-page\"");
             var playlists = new List<PlaylistItem>(rows.Length);
 
             foreach (string row in rows.Skip(1))
