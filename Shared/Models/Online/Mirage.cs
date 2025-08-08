@@ -1,4 +1,4 @@
-﻿namespace Shared.Models.Online
+﻿namespace Shared.Models.Online.Mirage
 {
-    public record MirageAcDecode(string baer);
+    public record AcDecode(string baer);
 }
