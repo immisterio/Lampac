@@ -36,12 +36,12 @@ namespace Shared.Model.Online
             return h;
         }
 
-        public static List<HeadersModel> Init(Dictionary<string, string> headers)
+        public static List<HeadersModel> Init(IEnumerable<KeyValuePair<string, string>> headers)
         {
-            if (headers == null || headers.Count == 0)
+            if (headers == null || headers.Count() == 0)
                 return new List<HeadersModel>();
 
-            var h = new List<HeadersModel>(headers.Count);
+            var h = new List<HeadersModel>(headers.Count());
 
             foreach (var i in headers)
                 h.Add(new HeadersModel(i.Key, i.Value));

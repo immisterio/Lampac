@@ -93,7 +93,18 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                if (init.priorityBrowser == "scraping")
+                if (init.priorityBrowser == "http" && kinopoisk_id > 0)
+                {
+                    content_uri = $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={kinopoisk_id}";
+                    content_headers = HeadersModel.Init(Chromium.baseContextOptions.ExtraHTTPHeaders);
+                    content_headers.Add(new HeadersModel("accept", "*/*"));
+                    content_headers.Add(new HeadersModel("origin", $"https://p.{init.iframehost}"));
+                    content_headers.Add(new HeadersModel("referer", $"https://p.{init.iframehost}/"));
+                    content_headers.Add(new HeadersModel("sec-fetch-site", "same-site "));
+                    content_headers.Add(new HeadersModel("sec-fetch-mode", "cors"));
+                    content_headers.Add(new HeadersModel("sec-fetch-dest", "empty"));
+                }
+                else if (init.priorityBrowser == "scraping")
                 {
                     #region Scraping
                     using (var browser = new Scraping(targetUrl, "/content\\?contentId=", null))
@@ -134,7 +145,7 @@ namespace Lampac.Controllers.LITE
                             if (page == null)
                                 return null;
 
-                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = "api.lumex.space", Name = "x-csrf-token" });
+                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = $"api.{init.iframehost}", Name = "x-csrf-token" });
 
                             await page.RouteAsync("**/*", async route =>
                             {

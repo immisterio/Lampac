@@ -758,21 +758,50 @@ namespace Lampac.Controllers
             par.insertBefore(messageElement, par.children[0]);
         }}
 
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 150; // 5 minutes
+        const reconnectDelay = 2000;      // 2 seconds
+
+        function startConnection() {{
+            hubConnection.start()
+                .then(function () {{
+                    if (reconnectAttempts != 0)
+                        send('WebSocket connected');
+                    reconnectAttempts = 0; // Reset counter on successful connection
+                    hubConnection.invoke('RegistryWebLog', '{token}');
+                }})
+                .catch(function (err) {{
+                    send(`${{err.toString()}}\n\nAttempting to reconnect (${{reconnectAttempts}}/${{maxReconnectAttempts}})...`);
+                    attemptReconnect();
+                }});
+        }}
+
+        function attemptReconnect() {{
+            if (reconnectAttempts < maxReconnectAttempts) {{
+                reconnectAttempts++;
+                setTimeout(function() {{
+                    startConnection();
+                }}, reconnectDelay);
+            }} else {{
+                send('Max reconnection attempts reached. Please refresh the page.');
+            }}
+        }}
+
         hubConnection.on('Receive', function(message, e) {{
             if(receive === e) send(message);
         }});
 
         hubConnection.onclose(function(err) {{
-            send(err.toString());
+            if (err) {{
+                send('Connection closed due to error: ' + err.toString());
+            }} else {{
+                send('Connection closed');
+            }}
+            attemptReconnect();
         }});
 
-        hubConnection.start()
-            .then(function () {{
-                hubConnection.invoke('RegistryWebLog', '{token}');
-            }})
-            .catch(function (err) {{
-                send(err.toString());
-            }});
+        // Start initial connection
+        startConnection();
     </script>
 </body>
 </html>";

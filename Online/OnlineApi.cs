@@ -478,16 +478,8 @@ namespace Lampac.Controllers
                 send(AppInit.conf.VideoCDN);
             }
 
-            if (AppInit.conf.Lumex.priorityBrowser == "firefox")
-            {
-                if (Firefox.Status != PlaywrightStatus.disabled)
-                    send(AppInit.conf.Lumex);
-            }
-            else
-            {
-                if (Chromium.Status != PlaywrightStatus.disabled)
-                    send(AppInit.conf.Lumex);
-            }
+            if (AppInit.conf.Lumex.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled)
+                send(AppInit.conf.Lumex);
 
             send(AppInit.conf.VDBmovies);
             send(AppInit.conf.HDVB, "hdvb-search");
@@ -858,22 +850,8 @@ namespace Lampac.Controllers
 
             send(conf.VideoCDN);
 
-            #region Lumex
-            if (!string.IsNullOrEmpty(conf.Lumex.overridehost) || conf.Lumex.overridehosts?.Length > 0)
-            {
+            if (conf.Lumex.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost) || conf.Lumex.overridehosts?.Length > 0)
                 send(conf.Lumex);
-            }
-            else if (AppInit.conf.Lumex.priorityBrowser == "firefox")
-            {
-                if (Firefox.Status != PlaywrightStatus.disabled)
-                    send(AppInit.conf.Lumex);
-            }
-            else
-            {
-                if (Chromium.Status != PlaywrightStatus.disabled)
-                    send(AppInit.conf.Lumex);
-            }
-            #endregion
 
             if (kinopoisk_id > 0)
                 send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");

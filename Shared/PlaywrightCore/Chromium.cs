@@ -193,7 +193,7 @@ namespace Shared.Engine
                     if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
                     {
                         create_keepopen_context = DateTime.Now;
-                        var kpc = await browser.NewContextAsync().ConfigureAwait(false);
+                        var kpc = await browser.NewContextAsync(baseContextOptions).ConfigureAwait(false);
                         await kpc.NewPageAsync().ConfigureAwait(false);
 
                         try
@@ -243,7 +243,7 @@ namespace Shared.Engine
             {
                 await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
-                if (AppInit.conf.multiaccess && keepopen_context != null && Status != PlaywrightStatus.disabled)
+                if ((AppInit.conf.multiaccess || AppInit.conf.chromium.Headless) && keepopen_context != null && Status != PlaywrightStatus.disabled)
                 {
                     try
                     {
