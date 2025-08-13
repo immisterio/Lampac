@@ -211,6 +211,11 @@ namespace Shared.Engine
                                 keepopen_page = pg;
                                 page = pg.page;
                                 page.RequestFailed += Page_RequestFailed;
+                                await ClearCookie(pg.context);
+
+                                if (headers != null && headers.Count > 0)
+                                    await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+
                                 return page;
                             }
                         }
@@ -246,6 +251,11 @@ namespace Shared.Engine
                                 keepopen_page = pg;
                                 page = pg.page;
                                 page.RequestFailed += Page_RequestFailed;
+                                await ClearCookie(pg.context);
+
+                                if (headers != null && headers.Count > 0)
+                                    await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+
                                 return page;
                             }
                         }
@@ -274,6 +284,22 @@ namespace Shared.Engine
                 return page;
             }
             catch { return null; }
+        }
+
+        async Task ClearCookie(IBrowserContext context)
+        {
+            var cookies = await context.CookiesAsync();
+            var cfCookies = cookies.Where(c => c.Name == "cf_clearance").ToList();
+
+            foreach (var cookie in cfCookies)
+            {
+                await context.ClearCookiesAsync(new BrowserContextClearCookiesOptions
+                {
+                    Name = cookie.Name,
+                    Domain = cookie.Domain,
+                    Path = cookie.Path
+                });
+            }
         }
 
 

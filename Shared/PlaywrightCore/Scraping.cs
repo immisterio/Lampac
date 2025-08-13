@@ -58,7 +58,7 @@ namespace Shared.PlaywrightCore
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !File.Exists("/usr/local/share/ca-certificates/lampac_titanium.crt"))
                 {
                     File.Copy("cache/titanium.crt", "/usr/local/share/ca-certificates/lampac_titanium.crt", true);
-                    Bash.Invoke("update-ca-certificates");
+                    _ = Bash.Run("update-ca-certificates");
                 }
 
                 proxyServer.CertificateManager.LoadRootCertificate("cache/titanium.pfx", "35sd85454gfd");

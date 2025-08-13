@@ -244,7 +244,7 @@ namespace SISI
             #region NextHUB
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled && conf.sisi.NextHUB)
             {
-                foreach (string inFile in Directory.GetFiles("NextHUB", "*.json"))
+                foreach (string inFile in Directory.GetFiles("NextHUB/sites", "*.yaml"))
                 {
                     try
                     {
@@ -260,6 +260,10 @@ namespace SISI
                             Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
 
                         send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}", init.client_type);
+                    }
+                    catch (YamlDotNet.Core.YamlException ex)
+                    {
+                        Console.WriteLine($"\nОшибка: {ex.Message}\nфайл: {Path.GetFileName(inFile)}\nстрока: {ex.Start.Line}");
                     }
                     catch (Exception ex) { Console.WriteLine($"NextHUB: error DeserializeObject {inFile}\n {ex.Message}"); }
                 }

@@ -370,7 +370,7 @@ namespace Shared.Engine
                             {
                                 var content = await response.BodyAsync();
                                 if (content != null)
-                                    hybridCache.Set(memkey, (content, response.Headers), DateTime.Now.AddMinutes(10));
+                                    hybridCache.Set(memkey, (content, response.Headers), DateTime.Now.AddHours(1));
                             }
                         }
 

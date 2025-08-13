@@ -721,7 +721,7 @@ namespace Lampac.Controllers
         function send(message) {{
             if (pattern && message.indexOf(pattern) === -1) return;
 
-            message = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            var messageHtml = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             const markers = [
               {{ text: 'CurrentUrl: ', caseSensitive: true }},
@@ -731,16 +731,16 @@ namespace Lampac.Controllers
 
             for (const marker of markers) {{
               let searchText = marker.text;
-              let messageText = message;
+              let messageText = messageHtml;
   
               if (!marker.caseSensitive)
-                messageText = message.toLowerCase();
+                messageText = messageHtml.toLowerCase();
   
               const index = messageText.indexOf(searchText);
               if (index !== -1) {{
-                message = message.slice(0, index) 
+                messageHtml = messageHtml.slice(0, index) 
                   + '<details><summary>Показать содержимое</summary>'
-                  + message.slice(index) 
+                  + messageHtml.slice(index) 
                   + '</details>';
                 break;
               }}
@@ -754,7 +754,10 @@ namespace Lampac.Controllers
 
             messageElement = document.createElement('pre');
             messageElement.style.cssText = 'padding: 10px; background: cornsilk; white-space: pre-wrap; word-wrap: break-word;';
-            messageElement.innerHTML = message;
+            if (messageHtml.indexOf('<details>') !== -1)
+                messageElement.innerHTML = messageHtml;
+            else 
+                messageElement.innerText = message;
             par.insertBefore(messageElement, par.children[0]);
         }}
 
@@ -771,7 +774,7 @@ namespace Lampac.Controllers
                     hubConnection.invoke('RegistryWebLog', '{token}');
                 }})
                 .catch(function (err) {{
-                    send(`${{err.toString()}}\n\nAttempting to reconnect (${{reconnectAttempts}}/${{maxReconnectAttempts}})...`);
+                    console.log(`${{err.toString()}}\n\nAttempting to reconnect (${{reconnectAttempts}}/${{maxReconnectAttempts}})...`);
                     attemptReconnect();
                 }});
         }}

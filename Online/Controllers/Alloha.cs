@@ -14,6 +14,7 @@ using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -240,7 +241,7 @@ namespace Lampac.Controllers.LITE
                 }
 
                 if (play)
-                    return Redirect(streams[0].link);
+                    return Redirect(streams[0].link.Split(" ")[0]);
 
                 return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title),
                     streamquality: new StreamQualityTpl(streams),
@@ -253,17 +254,28 @@ namespace Lampac.Controllers.LITE
             else
             {
                 #region Playwright
+                init.streamproxy = true; // force streamproxy
+
+                var baseheaders = HeadersModel.Init(
+                    ("cache-control", "no-cache"),
+                    ("dnt", "1"),
+                    ("pragma", "no-cache"),
+                    ("priority", "u=1, i"),
+                    ("sec-ch-ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\""),
+                    ("sec-ch-ua-mobile", "?0"),
+                    ("sec-ch-ua-platform", "\"Windows\""),
+                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
+                );
+
                 string memKey = $"alloha:black_magic:{proxy.data.ip}:{token_movie}:{t}:{s}:{e}";
-                if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
+                if (!hybridCache.TryGetValue(memKey, out (JToken hlsSource, JToken tracks, List <HeadersModel> streamHeaders) cache))
                 {
                     if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                         return OnError();
 
-                    cache.headers = new List<HeadersModel>();
-
                     using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
-                        var headers = httpHeaders(init, HeadersModel.Init(
+                        var headers = HeadersModel.Join(baseheaders, HeadersModel.Init(
                             ("sec-fetch-dest", "iframe"),
                             ("sec-fetch-mode", "navigate"),
                             ("sec-fetch-site", "cross-site"),
@@ -274,32 +286,24 @@ namespace Lampac.Controllers.LITE
                         if (page == null)
                             return null;
 
-                        await page.AddInitScriptAsync("localStorage.setItem('allplay', '{\"captionParam\":{\"fontSize\":\"100%\",\"colorText\":\"Белый\",\"colorBackground\":\"Черный\",\"opacityText\":\"100%\",\"opacityBackground\":\"75%\",\"styleText\":\"Без контура\",\"weightText\":\"Обычный текст\"},\"quality\":" + (init.m4s ? "2160" : "1080") + ",\"volume\":0.5,\"muted\":false,\"label\":\"(Russian) Forced\",\"captions\":true}');").ConfigureAwait(false);
-
                         await page.RouteAsync("**/*", async route =>
                         {
                             try
                             {
-                                if (browser.IsCompleted || route.Request.Url.Contains("blank.mp4") || route.Request.Url.Contains("googleapis.com"))
+                                if (browser.IsCompleted || route.Request.Url.Contains("/master.m3u8") || route.Request.Url.Contains("blank.mp4") || route.Request.Url.Contains("googleapis.com"))
                                 {
                                     PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
 
-                                if (route.Request.Url.Contains("/master.m3u8"))
+                                if (route.Request.Url.Contains("/api/movies/"))
                                 {
-                                    foreach (var item in route.Request.Headers)
-                                    {
-                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                            continue;
-
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
-                                    }
-
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.SetPageResult(route.Request.Url);
-                                    await route.AbortAsync();
+                                    await route.ContinueAsync();
+                                    var response = await page.WaitForResponseAsync(route.Request.Url);
+                                    string result = response != null ? await response.TextAsync() : string.Empty;
+                                    browser.SetPageResult(result);
+                                    PlaywrightBase.WebLog(route.Request, response, result);
                                     return;
                                 }
 
@@ -316,23 +320,76 @@ namespace Lampac.Controllers.LITE
                             targetUrl += $"&season={s}&episode={e}";
 
                         PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(targetUrl/* + "&autoplay=1"*/));
-                        cache.m3u8 = await browser.WaitPageResult(20);
+
+                        try
+                        {
+                            var root = JsonConvert.DeserializeObject<JObject>(await browser.WaitPageResult(20));
+
+                            foreach (var item in root["hlsSource"])
+                            {
+                                if (item?.Value<bool>("default") == true)
+                                {
+                                    cache.hlsSource = item;
+                                    break;
+                                }
+                            }
+
+                            if (cache.hlsSource == null)
+                                cache.hlsSource = root["hlsSource"].First;
+
+                            if (root.ContainsKey("tracks"))
+                                cache.tracks = root["tracks"];
+                        }
+                        catch { }
                     }
 
-                    if (string.IsNullOrEmpty(cache.m3u8))
+                    if (cache.hlsSource == null)
                         return OnError();
+
+                    cache.streamHeaders = HeadersModel.Join(baseheaders, HeadersModel.Init(
+                        ("origin", init.linkhost),
+                        ("referer", $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}"),
+                        ("sec-fetch-dest", "empty"),
+                        ("sec-fetch-mode", "cors"),
+                        ("sec-fetch-site", "cross-site")
+                    ));
 
                     hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 
-                init.streamproxy = true; // force streamproxy
-                string m3u8 = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
+                var streamquality = new StreamQualityTpl();
+
+                foreach (var q in cache.hlsSource["quality"].ToObject<Dictionary<string, string>>())
+                {
+                    if (!init.m4s && (q.Key is "2160" or "1440"))
+                        continue;
+
+                    string link = init.reserve ? q.Value : Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
+                    streamquality.Append(HostStreamProxy(init, link, headers: cache.streamHeaders), $"{q.Key}p");
+                }
 
                 if (play)
-                    return Redirect(m3u8);
+                    return Redirect(streamquality.Firts().link);
 
-                return ContentTo(VideoTpl.ToJson("play", m3u8, title ?? original_title,
-                    vast: init.vast
+                #region subtitle
+                var subtitles = new SubtitleTpl();
+
+                try
+                {
+                    if (cache.tracks != null)
+                    {
+                        foreach (var sub in cache.tracks)
+                            subtitles.Append(sub.Value<string>("label"), HostStreamProxy(init, sub.Value<string>("src"), headers: cache.streamHeaders));
+                    }
+                }
+                catch { }
+                #endregion
+
+                return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, cache.hlsSource.Value<string>("label"),
+                       streamquality: streamquality,
+                       subtitles: subtitles,
+                       vast: init.vast,
+                       headers: cache.streamHeaders
                 ));
                 #endregion
             }
