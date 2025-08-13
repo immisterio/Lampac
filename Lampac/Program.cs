@@ -52,7 +52,7 @@ namespace Lampac
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
                 if (!AppInit.conf.multiaccess)
-                    Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=128");
+                    Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=256");
 
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {

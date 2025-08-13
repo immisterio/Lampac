@@ -1,8 +1,7 @@
 ﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE.KinoPub;
-using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Online;
@@ -94,7 +93,18 @@ namespace Lampac.Controllers.LITE
                 }
                 #endregion
 
-                if (init.priorityBrowser == "scraping")
+                if (init.priorityBrowser == "http" && kinopoisk_id > 0)
+                {
+                    content_uri = $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={kinopoisk_id}";
+                    content_headers = HeadersModel.Init(Chromium.baseContextOptions.ExtraHTTPHeaders);
+                    content_headers.Add(new HeadersModel("accept", "*/*"));
+                    content_headers.Add(new HeadersModel("origin", $"https://p.{init.iframehost}"));
+                    content_headers.Add(new HeadersModel("referer", $"https://p.{init.iframehost}/"));
+                    content_headers.Add(new HeadersModel("sec-fetch-site", "same-site "));
+                    content_headers.Add(new HeadersModel("sec-fetch-mode", "cors"));
+                    content_headers.Add(new HeadersModel("sec-fetch-dest", "empty"));
+                }
+                else if (init.priorityBrowser == "scraping")
                 {
                     #region Scraping
                     using (var browser = new Scraping(targetUrl, "/content\\?contentId=", null))
@@ -135,46 +145,52 @@ namespace Lampac.Controllers.LITE
                             if (page == null)
                                 return null;
 
+                            await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = $"api.{init.iframehost}", Name = "x-csrf-token" });
+
                             await page.RouteAsync("**/*", async route =>
                             {
-                                if (content_uri != null || browser.IsCompleted)
+                                try
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
-                                    await route.AbortAsync();
-                                    return;
-                                }
-
-                                if (route.Request.Url.Contains("/content?clientId="))
-                                {
-                                    content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
-                                    foreach (var item in route.Request.Headers)
+                                    if (content_uri != null || browser.IsCompleted)
                                     {
-                                        if (item.Key is "host" or "accept-encoding" or "connection" or "range" or "cookie")
-                                            continue;
-
-                                        content_headers.Add(new HeadersModel(item.Key, item.Value));
+                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        await route.AbortAsync();
+                                        return;
                                     }
 
-                                    foreach (var h in new List<(string key, string val)> 
+                                    if (route.Request.Url.Contains("/content?clientId="))
                                     {
-                                        ("sec-fetch-site", "same-site"),
-                                        ("sec-fetch-mode", "cors"),
-                                        ("sec-fetch-dest", "empty"),
-                                    })
-                                    {
-                                        if (!route.Request.Headers.ContainsKey(h.key))
-                                            content_headers.Add(new HeadersModel(h.key, h.val));
+                                        content_uri = route.Request.Url.Replace("%3D", "=").Replace("%3F", "&");
+                                        foreach (var item in route.Request.Headers)
+                                        {
+                                            if (item.Key is "host" or "accept-encoding" or "connection" or "range" or "cookie")
+                                                continue;
+
+                                            content_headers.Add(new HeadersModel(item.Key, item.Value));
+                                        }
+
+                                        foreach (var h in new List<(string key, string val)>
+                                        {
+                                            ("sec-fetch-site", "same-site"),
+                                            ("sec-fetch-mode", "cors"),
+                                            ("sec-fetch-dest", "empty"),
+                                        })
+                                        {
+                                            if (!route.Request.Headers.ContainsKey(h.key))
+                                                content_headers.Add(new HeadersModel(h.key, h.val));
+                                        }
+
+                                        browser.SetPageResult(string.Empty);
+                                        await route.AbortAsync();
+                                        return;
                                     }
 
-                                    browser.SetPageResult(string.Empty);
-                                    await route.AbortAsync();
-                                    return;
+                                    if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                        return;
+
+                                    await route.ContinueAsync();
                                 }
-
-                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                    return;
-
-                                await route.ContinueAsync();
+                                catch { }
                             });
 
                             PlaywrightBase.GotoAsync(page, targetUrl);

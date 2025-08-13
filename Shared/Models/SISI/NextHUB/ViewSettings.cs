@@ -4,7 +4,11 @@
     {
         public string? addInitScript { get; set; }
 
+        public string routeEval { get; set; }
+
         public string? eval { get; set; }
+
+        public string? evalJS { get; set; }
 
         public string fileEval { get; set; }
 

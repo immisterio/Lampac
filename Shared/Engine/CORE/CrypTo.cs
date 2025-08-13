@@ -135,17 +135,5 @@ namespace Lampac.Engine.CORE
             return array.ToString();
         }
         #endregion
-
-        #region cf_clearance
-        static string _cfclearance = null;
-        public static string cf_clearance()
-        {
-            if (_cfclearance != null)
-                return _cfclearance;
-
-            _cfclearance = $"{unic(43)}-{((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}-1.2.1.1-{unic(299, addArrayList: "._")}";
-            return _cfclearance;
-        }
-        #endregion
     }
 }

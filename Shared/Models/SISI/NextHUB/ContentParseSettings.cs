@@ -8,13 +8,15 @@
 
         public SingleNodeSettings href { get; set; }
 
-        public SingleNodeSettings? img { get; set; }
+        public SingleNodeSettings img { get; set; }
 
-        public SingleNodeSettings? duration { get; set; }
+        public SingleNodeSettings duration { get; set; }
 
-        public SingleNodeSettings? quality { get; set; }
+        public SingleNodeSettings quality { get; set; }
 
-        public SingleNodeSettings? myarg { get; set; }
+        public SingleNodeSettings preview { get; set; }
+
+        public SingleNodeSettings myarg { get; set; }
 
         public string eval { get; set; }
     }

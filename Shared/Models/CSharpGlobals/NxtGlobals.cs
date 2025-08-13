@@ -9,9 +9,11 @@ namespace Shared.Models.CSharpGlobals
 {
     public record NxtChangePlaylis(string html, string host, NxtSettings init, PlaylistItem pl, HtmlNodeCollection nodes, HtmlNode row);
 
-    public record NxtRoute(IRoute route, string search, string sort, string cat, int pg);
+    public record NxtRoute(IRoute route, string search, string sort, string cat, int page);
 
     public record NxtFindStreamFile(string html, string plugin, string url);
 
     public record NxtChangeStreamFile(string file, List<HeadersModel> headers);
+
+    public record NxtMenuRoute(string host, string url, string cat, string sort, int page);
 }

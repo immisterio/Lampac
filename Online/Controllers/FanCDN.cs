@@ -16,7 +16,6 @@ using BrowserCookie = Microsoft.Playwright.Cookie;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Routing;
-using System.Linq;
 
 namespace Lampac.Controllers.LITE
 {
@@ -76,8 +75,6 @@ namespace Lampac.Controllers.LITE
 
                            string fanhost = "." + Regex.Replace(init.host, "^https?://", "");
                            var excookie = DateTimeOffset.UtcNow.AddYears(1).ToUnixTimeSeconds();
-
-                           await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = fanhost, Name = "cf_clearance" });
 
                            var cookies = new List<BrowserCookie>();
                            foreach (string line in init.cookie.Split(";"))
@@ -161,7 +158,6 @@ namespace Lampac.Controllers.LITE
                         return null;
 
                     browser.failedUrl = uri;
-                    await page.Context.ClearCookiesAsync(new BrowserContextClearCookiesOptions { Domain = ".fancdn.net", Name = "cf_clearance" });
 
                     await page.RouteAsync("**/*", async route =>
                     {
@@ -177,7 +173,7 @@ namespace Lampac.Controllers.LITE
                             else if (route.Request.Url == uri)
                             {
                                 string html = null;
-                                await route.ContinueAsync();
+                                await browser.ClearContinueAsync(route);
 
                                 var response = await page.WaitForResponseAsync(route.Request.Url);
                                 if (response != null)
@@ -198,7 +194,7 @@ namespace Lampac.Controllers.LITE
                                     if (await PlaywrightBase.AbortOrCache(page, route))
                                         return;
 
-                                    await route.ContinueAsync();
+                                    await browser.ClearContinueAsync(route);
                                 }
                             }
                         }

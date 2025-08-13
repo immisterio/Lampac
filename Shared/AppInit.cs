@@ -873,8 +873,8 @@ namespace Lampac
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5")
         {
             enable = true,
-            hls = true,
-            scheme = "http",
+            hls = true, scheme = "http",
+            priorityBrowser = "http",
             geostreamproxy = new string[] { "ALL" }
         };
 
@@ -954,7 +954,7 @@ namespace Lampac
             ).ToDictionary()
         };
 
-        public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1doodunqrz1rqolqh", "", "", true, true);
+        public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1vwordgl1olyh", "", "", true, true);
 
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22txdguloolrq0dv1doodunqrz1rqolqh", "6892d506bbdd5790e0ca047ff39462", "", true, true)
         {
@@ -1089,8 +1089,8 @@ namespace Lampac
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
-                ("origin", "encrypt:kwwsv=22dqlole1ph"),
-                ("referer", "encrypt:kwwsv=22dqlole1ph2"),
+                ("origin", "encrypt:kwwsv=22y51dqlphole1ruj"),
+                ("referer", "encrypt:kwwsv=22y51dqlphole1ruj2"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
                 ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
@@ -1106,8 +1106,8 @@ namespace Lampac
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
-                ("origin", "encrypt:kwwsv=22dqlole1ph"),
-                ("referer", "encrypt:kwwsv=22dqlole1ph2"),
+                ("origin", "encrypt:kwwsv=22y51dqlphole1ruj"),
+                ("referer", "encrypt:kwwsv=22y51dqlphole1ruj2"),
                 ("pragma", "no-cache"),
                 ("priority", "i"),
                 ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),

@@ -10,6 +10,7 @@ using Shared.Engine.CORE;
 using Shared.Model.Base;
 using Shared.Model.Online;
 using Shared.Model.Templates;
+using Shared.Models.Online.Mirage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -309,8 +310,8 @@ namespace Lampac.Controllers.LITE
                 if (result.content == null || !result.content.Contains("hlsSource"))
                     return OnError();
 
-                if (data.Headers.TryGetValues(acceptsName, out var newControls))
-                    acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), newControls.ToString());
+                if (data.Headers.TryGetValues("face-controls", out var newControls))
+                    acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), new AcDecode(newControls.ToString()));
 
                 var root = JsonConvert.DeserializeObject<JObject>(result.content);
 
@@ -414,7 +415,7 @@ namespace Lampac.Controllers.LITE
                 if (string.IsNullOrEmpty(acceptsControls))
                     return default;
 
-                acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), acceptsControls);
+                acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), new AcDecode(acceptsControls));
 
                 try
                 {

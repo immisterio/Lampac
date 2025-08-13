@@ -173,5 +173,29 @@ namespace Shared.PlaywrightCore
 
             return null;
         }
+
+
+
+        public Task ClearContinueAsync(IRoute route)
+        {
+            if (!route.Request.Headers.ContainsKey("cf_clearance"))
+                return route.ContinueAsync();
+
+            var request = route.Request;
+            var headers = new Dictionary<string, string>(request.Headers);
+
+            headers.Remove("cf_clearance");
+
+            if (headers.Count == 0)
+                headers = null;
+
+            return route.ContinueAsync(new RouteContinueOptions
+            {
+                Headers = headers,
+                Url = request.Url,
+                Method = request.Method,
+                PostData = request.PostDataBuffer
+            });
+        }
     }
 }

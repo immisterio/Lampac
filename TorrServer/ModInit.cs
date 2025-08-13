@@ -25,7 +25,7 @@ namespace TorrServer
         #endregion
 
         #region ModInit
-        public bool updatets { get; set; }
+        public string releases { get; set; } = "MatriX.135";
 
         public bool rdb { get; set; }
 
@@ -103,6 +103,8 @@ namespace TorrServer
                 if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                 {
                     downloadUrl = "https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-windows-amd64.exe";
+                    if (conf.releases != "latest")
+                        downloadUrl = $"https://github.com/YouROK/TorrServer/releases/download/{conf.releases}/TorrServer-windows-amd64.exe";
                 }
                 else
                 {
@@ -110,13 +112,15 @@ namespace TorrServer
                     string arch = uname.Contains("x86_64") ? "amd64" : (uname.Contains("i386") || uname.Contains("i686")) ? "386" : uname.Contains("aarch64") ? "arm64" : uname.Contains("armv7") ? "arm7" : uname.Contains("armv6") ? "arm5" : "amd64";
 
                     downloadUrl = "https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-" + arch;
+                    if (conf.releases != "latest")
+                        downloadUrl = $"https://github.com/YouROK/TorrServer/releases/download/{conf.releases}/TorrServer-linux-" + arch;
                 }
                 #endregion
 
                 #region updatet/install
                 reinstall: try
                 {
-                    if (conf.updatets)
+                    if (conf.releases == "latest")
                     {
                         var root = await HttpClient.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
                         if (root != null && root.ContainsKey("tag_name"))
@@ -174,7 +178,7 @@ namespace TorrServer
 
                 if (!File.Exists("isdocker") && conf.checkfile)
                 {
-                    var response = await HttpClient.ResponseHeaders(downloadUrl, timeoutSeconds: 20, allowAutoRedirect: true);
+                    var response = await HttpClient.ResponseHeaders(downloadUrl, timeoutSeconds: 10, allowAutoRedirect: true);
                     if (response != null && response.Content.Headers.ContentLength.HasValue && new FileInfo(tspath).Length != response.Content.Headers.ContentLength.Value)
                     {
                         File.Delete(tspath);
@@ -182,7 +186,7 @@ namespace TorrServer
                         goto reinstall;
                     }
                 }
-            #endregion
+                #endregion
 
                 reset: try
                 {

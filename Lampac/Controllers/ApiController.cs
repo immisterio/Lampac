@@ -721,7 +721,7 @@ namespace Lampac.Controllers
         function send(message) {{
             if (pattern && message.indexOf(pattern) === -1) return;
 
-            message = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            var messageHtml = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             const markers = [
               {{ text: 'CurrentUrl: ', caseSensitive: true }},
@@ -731,16 +731,16 @@ namespace Lampac.Controllers
 
             for (const marker of markers) {{
               let searchText = marker.text;
-              let messageText = message;
+              let messageText = messageHtml;
   
               if (!marker.caseSensitive)
-                messageText = message.toLowerCase();
+                messageText = messageHtml.toLowerCase();
   
               const index = messageText.indexOf(searchText);
               if (index !== -1) {{
-                message = message.slice(0, index) 
+                messageHtml = messageHtml.slice(0, index) 
                   + '<details><summary>Показать содержимое</summary>'
-                  + message.slice(index) 
+                  + messageHtml.slice(index) 
                   + '</details>';
                 break;
               }}
@@ -754,8 +754,40 @@ namespace Lampac.Controllers
 
             messageElement = document.createElement('pre');
             messageElement.style.cssText = 'padding: 10px; background: cornsilk; white-space: pre-wrap; word-wrap: break-word;';
-            messageElement.innerHTML = message;
+            if (messageHtml.indexOf('<details>') !== -1)
+                messageElement.innerHTML = messageHtml;
+            else 
+                messageElement.innerText = message;
             par.insertBefore(messageElement, par.children[0]);
+        }}
+
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 150; // 5 minutes
+        const reconnectDelay = 2000;      // 2 seconds
+
+        function startConnection() {{
+            hubConnection.start()
+                .then(function () {{
+                    if (reconnectAttempts != 0)
+                        send('WebSocket connected');
+                    reconnectAttempts = 0; // Reset counter on successful connection
+                    hubConnection.invoke('RegistryWebLog', '{token}');
+                }})
+                .catch(function (err) {{
+                    console.log(`${{err.toString()}}\n\nAttempting to reconnect (${{reconnectAttempts}}/${{maxReconnectAttempts}})...`);
+                    attemptReconnect();
+                }});
+        }}
+
+        function attemptReconnect() {{
+            if (reconnectAttempts < maxReconnectAttempts) {{
+                reconnectAttempts++;
+                setTimeout(function() {{
+                    startConnection();
+                }}, reconnectDelay);
+            }} else {{
+                send('Max reconnection attempts reached. Please refresh the page.');
+            }}
         }}
 
         hubConnection.on('Receive', function(message, e) {{
@@ -763,16 +795,16 @@ namespace Lampac.Controllers
         }});
 
         hubConnection.onclose(function(err) {{
-            send(err.toString());
+            if (err) {{
+                send('Connection closed due to error: ' + err.toString());
+            }} else {{
+                send('Connection closed');
+            }}
+            attemptReconnect();
         }});
 
-        hubConnection.start()
-            .then(function () {{
-                hubConnection.invoke('RegistryWebLog', '{token}');
-            }})
-            .catch(function (err) {{
-                send(err.toString());
-            }});
+        // Start initial connection
+        startConnection();
     </script>
 </body>
 </html>";
