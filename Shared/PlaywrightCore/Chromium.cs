@@ -243,9 +243,8 @@ namespace Shared.Engine
                         if (AppInit.conf.multiaccess == false && keepopen_context == null)
                             continue;
 
-                        var context = keepopen_context;
-                        if (context == null)
-                            context = await browser.NewContextAsync(baseContextOptions).ConfigureAwait(false);
+                        if (browser == null && keepopen_context == null)
+                            continue;
 
                         bool isOk = false;
 
