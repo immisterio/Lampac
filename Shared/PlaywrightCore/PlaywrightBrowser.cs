@@ -176,26 +176,47 @@ namespace Shared.PlaywrightCore
 
 
 
-        public Task ClearContinueAsync(IRoute route)
+        async public Task ClearContinueAsync(IRoute route, IPage page)
         {
-            if (!route.Request.Headers.ContainsKey("cf_clearance"))
-                return route.ContinueAsync();
-
-            var request = route.Request;
-            var headers = new Dictionary<string, string>(request.Headers);
-
-            headers.Remove("cf_clearance");
-
-            if (headers.Count == 0)
-                headers = null;
-
-            return route.ContinueAsync(new RouteContinueOptions
+            var cookies = await page.Context.CookiesAsync();
+            if (cookies == null || cookies.Count == 0)
             {
-                Headers = headers,
-                Url = request.Url,
-                Method = request.Method,
-                PostData = request.PostDataBuffer
-            });
+                // нету куки, продолжаем
+                await route.ContinueAsync();
+                return;
+            }
+
+            var filteredCookies = cookies.Where(c => c.Name != "cf_clearance").Select(c => new Cookie
+            {
+                Name = c.Name,
+                Value = c.Value,
+                Domain = c.Domain,
+                Path = c.Path,
+                Expires = c.Expires,
+                HttpOnly = c.HttpOnly,
+                Secure = c.Secure,
+                SameSite = c.SameSite
+            }).ToList();
+
+            if (filteredCookies.Count == cookies.Count)
+            {
+                // Если куки не содержат cf_clearance, продолжаем
+                await route.ContinueAsync();
+                return;
+            }
+
+            if (filteredCookies.Count == 0)
+            {
+                // после удаления cf_clearance не осталось других куки
+                await page.Context.ClearCookiesAsync();
+                await route.ContinueAsync();
+                return;
+            }
+
+            await page.Context.ClearCookiesAsync();
+            await page.Context.AddCookiesAsync(filteredCookies);
+
+            await route.ContinueAsync();
         }
     }
 }

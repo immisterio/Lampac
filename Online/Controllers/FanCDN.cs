@@ -173,7 +173,7 @@ namespace Lampac.Controllers.LITE
                             else if (route.Request.Url == uri)
                             {
                                 string html = null;
-                                await browser.ClearContinueAsync(route);
+                                await browser.ClearContinueAsync(route, page);
 
                                 var response = await page.WaitForResponseAsync(route.Request.Url);
                                 if (response != null)
@@ -194,7 +194,7 @@ namespace Lampac.Controllers.LITE
                                     if (await PlaywrightBase.AbortOrCache(page, route))
                                         return;
 
-                                    await browser.ClearContinueAsync(route);
+                                    await browser.ClearContinueAsync(route, page);
                                 }
                             }
                         }

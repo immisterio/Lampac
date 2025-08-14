@@ -11,7 +11,9 @@ using Shared.Model.SISI.NextHUB;
 using Shared.Models.CSharpGlobals;
 using Shared.PlaywrightCore;
 using SISI;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -83,8 +85,6 @@ namespace Lampac.Controllers.NextHUB
                         if (page == default)
                             return default;
 
-                        string browser_host = "." + Regex.Replace(init.host, "^https?://", "");
-
                         if (init.cookies != null)
                             await page.Context.AddCookiesAsync(init.cookies).ConfigureAwait(false);
 
@@ -93,7 +93,7 @@ namespace Lampac.Controllers.NextHUB
 
                         string routeEval = init.view.routeEval;
                         if (!string.IsNullOrEmpty(routeEval) && routeEval.EndsWith(".cs"))
-                            routeEval = FileCache.ReadAllText($"NextHUB/{routeEval}");
+                            routeEval = FileCache.ReadAllText($"NextHUB/sites/{routeEval}");
 
                         #region RouteAsync
                         await page.RouteAsync("**/*", async route =>
@@ -138,7 +138,7 @@ namespace Lampac.Controllers.NextHUB
 
                                     if (init.view.waitLocationFile)
                                     {
-                                        await browser.ClearContinueAsync(route);
+                                        await browser.ClearContinueAsync(route, page);
                                         string setUri = route.Request.Url;
 
                                         var response = await page.WaitForResponseAsync(route.Request.Url);
@@ -146,6 +146,9 @@ namespace Lampac.Controllers.NextHUB
                                         {
                                             setHeaders(response.Request.Headers);
                                             setUri = response.Headers["location"];
+
+                                            //await page.WaitForURLAsync(route.Request.Url);
+                                            //setUri = page.Url;
                                         }
 
                                         if (setUri.StartsWith("//"))
@@ -186,7 +189,7 @@ namespace Lampac.Controllers.NextHUB
                                 }
                                 #endregion
 
-                                await browser.ClearContinueAsync(route);
+                                await browser.ClearContinueAsync(route, page);
                             }
                             catch { }
                         });
@@ -261,7 +264,7 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 if (!string.IsNullOrEmpty(_content))
                                 {
-                                    string infile = $"NextHUB/{init.view.eval ?? init.view.evalJS}";
+                                    string infile = $"NextHUB/sites/{init.view.eval ?? init.view.evalJS}";
                                     if ((infile.EndsWith(".cs") || infile.EndsWith(".js")) && System.IO.File.Exists(infile))
                                     {
                                         string evaluate = FileCache.ReadAllText(infile);
@@ -341,15 +344,15 @@ namespace Lampac.Controllers.NextHUB
                     #region fileEval
                     if (init.view.fileEval != null)
                     {
-                        string infile = $"NextHUB/{init.view.fileEval}";
-                        if (!System.IO.File.Exists(infile))
+                        string infile = $"NextHUB/sites/{init.view.fileEval}";
+                        if (System.IO.File.Exists(infile))
                         {
-                            cache.file = CSharpEval.Execute<string>(init.view.fileEval, new NxtChangeStreamFile(cache.file, cache.headers));
+                            string evaluate = FileCache.ReadAllText($"NextHUB/sites/{init.view.fileEval}");
+                            cache.file = CSharpEval.Execute<string>(evaluate, new NxtChangeStreamFile(cache.file, cache.headers));
                         }
                         else
                         {
-                            string evaluate = FileCache.ReadAllText($"NextHUB/{init.view.fileEval}");
-                            cache.file = CSharpEval.Execute<string>(evaluate, new NxtChangeStreamFile(cache.file, cache.headers));
+                            cache.file = CSharpEval.Execute<string>(init.view.fileEval, new NxtChangeStreamFile(cache.file, cache.headers));
                         }
                     }
                     #endregion

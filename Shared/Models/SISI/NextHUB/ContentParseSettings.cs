@@ -18,6 +18,8 @@
 
         public SingleNodeSettings myarg { get; set; }
 
+        public ModelParse model { get; set; }
+
         public string eval { get; set; }
     }
 }

@@ -70,7 +70,7 @@ namespace Lampac.Controllers.NextHUB
                 if (string.IsNullOrEmpty(init.plugin))
                     init.plugin = init.displayname;
 
-                if (!init.debug)
+                if (!init.debug || !AppInit.conf.multiaccess)
                     hybridCache.Set(memKey, init, DateTime.Now.AddMinutes(1));
             }
 

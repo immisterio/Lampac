@@ -165,8 +165,9 @@ namespace Shared.Engine
                 if (AppInit.conf.chromium.context.keepopen)
                 {
                     create_keepopen_context = DateTime.Now;
-                    keepopen_context = await browser.NewContextAsync(baseContextOptions);
-                    await keepopen_context.NewPageAsync();
+                    var kpc = await browser.NewContextAsync(baseContextOptions);
+                    await kpc.NewPageAsync();
+                    keepopen_context = kpc;
                 }
             }
             catch (Exception ex) 
@@ -198,7 +199,7 @@ namespace Shared.Engine
 
                         try
                         {
-                            await keepopen_context.CloseAsync().ConfigureAwait(false);
+                            _= keepopen_context.CloseAsync().ConfigureAwait(false);
                         }
                         catch { }
 
@@ -215,15 +216,7 @@ namespace Shared.Engine
                             try
                             {
                                 if (pages_keepopen.Remove(k))
-                                {
-                                    await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
-
-                                    try
-                                    {
-                                        await k.context.CloseAsync().ConfigureAwait(false);
-                                    }
-                                    catch { pages_keepopen.Add(k); }
-                                }
+                                    _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(i => k.context.CloseAsync()).ConfigureAwait(false);
                             }
                             catch { }
                         }
@@ -243,18 +236,25 @@ namespace Shared.Engine
             {
                 await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
-                if ((AppInit.conf.multiaccess || AppInit.conf.chromium.Headless) && keepopen_context != null && Status != PlaywrightStatus.disabled)
+                if ((AppInit.conf.multiaccess || AppInit.conf.chromium.Headless) && Status != PlaywrightStatus.disabled)
                 {
                     try
                     {
+                        if (AppInit.conf.multiaccess == false && keepopen_context == null)
+                            continue;
+
+                        var context = keepopen_context;
+                        if (context == null)
+                            context = await browser.NewContextAsync(baseContextOptions).ConfigureAwait(false);
+
                         bool isOk = false;
 
                         try
                         {
-                            var p = await keepopen_context.NewPageAsync().ConfigureAwait(false);
+                            IPage p = keepopen_context != null ? await keepopen_context.NewPageAsync().ConfigureAwait(false) : await browser.NewPageAsync().ConfigureAwait(false);
                             if (p != null)
                             {
-                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping").ConfigureAwait(false);
+                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping", new PageGotoOptions() { Timeout = 10 }).ConfigureAwait(false);
                                 if (r != null && r.Status == 200)
                                 {
                                     await p.CloseAsync().ConfigureAwait(false);
@@ -273,14 +273,15 @@ namespace Shared.Engine
                             {
                                 if (browser != null)
                                 {
-                                    await browser.CloseAsync().ConfigureAwait(false);
-                                    await browser.DisposeAsync().ConfigureAwait(false);
+                                    _= browser.CloseAsync().ConfigureAwait(false);
+                                    _= browser.DisposeAsync().ConfigureAwait(false);
                                 }
                             }
                             catch { }
 
                             browser = null;
                             pages_keepopen = new();
+                            keepopen_context = null;
                             await CreateAsync().ConfigureAwait(false);
                         }
                     }
@@ -334,8 +335,8 @@ namespace Shared.Engine
                             {
                                 stats_keepopen++;
                                 keepopen_page = pg;
-                                await ClearCookie(pg.context);
-                                page = await pg.context.NewPageAsync();
+                                await ClearCookie(pg.context).ConfigureAwait(false);
+                                page = await pg.context.NewPageAsync().ConfigureAwait(false);
                                 break;
                             }
                         }
@@ -393,7 +394,7 @@ namespace Shared.Engine
                     if (keepopen && keepopen_context != default)
                     {
                         stats_keepopen++;
-                        await ClearCookie(keepopen_context);
+                        await ClearCookie(keepopen_context).ConfigureAwait(false);
                         page = await keepopen_context.NewPageAsync().ConfigureAwait(false);
                     }
                     else
@@ -420,20 +421,31 @@ namespace Shared.Engine
         }
 
 
+        static bool workClearCookie = false;
+
         async Task ClearCookie(IBrowserContext context)
         {
-            var cookies = await context.CookiesAsync();
-            var cfCookies = cookies.Where(c => c.Name == "cf_clearance").ToList();
+            if (workClearCookie)
+                return;
 
-            foreach (var cookie in cfCookies)
+            try
             {
-                await context.ClearCookiesAsync(new BrowserContextClearCookiesOptions
+                workClearCookie = true;
+                var cookies = await context.CookiesAsync();
+
+                foreach (var cookie in cookies.Where(c => c.Name == "cf_clearance"))
                 {
-                    Name = cookie.Name,
-                    Domain = cookie.Domain,
-                    Path = cookie.Path
-                });
+                    await context.ClearCookiesAsync(new BrowserContextClearCookiesOptions
+                    {
+                        Name = cookie.Name,
+                        Domain = cookie.Domain,
+                        Path = cookie.Path
+                    });
+                }
             }
+            catch { }
+
+            workClearCookie = false;
         }
 
 

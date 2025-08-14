@@ -94,7 +94,7 @@ namespace Lampac.Engine.CORE
             else if (uri.Contains(".srt"))
                 hash += ".srt";
 
-            if (IsMd5 && !links.ContainsKey(hash))
+            if (IsMd5)
             {
                 var md = new ProxyLinkModel(reqip, headers, proxy, uri_clear, plugin, verifyip, ex: ex);
                 links.AddOrUpdate(hash, md, (d, u) => md);
@@ -133,7 +133,7 @@ namespace Lampac.Engine.CORE
 
             if (links.TryGetValue(hash, out ProxyLinkModel val))
             {
-                if (!val.verifyip || !AppInit.conf.serverproxy.verifyip || reqip == null || reqip == val.reqip)
+                if (val.verifyip == false || AppInit.conf.serverproxy.verifyip == false || val.reqip == string.Empty || reqip == null || reqip == val.reqip)
                     return val;
             }
 

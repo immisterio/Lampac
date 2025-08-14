@@ -1,9 +1,9 @@
 ﻿using HtmlAgilityPack;
 using Lampac.Models.SISI;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Playwright;
 using Shared.Model.Online;
 using Shared.Model.SISI.NextHUB;
-using System.Collections.Generic;
 
 namespace Shared.Models.CSharpGlobals
 {
@@ -15,5 +15,5 @@ namespace Shared.Models.CSharpGlobals
 
     public record NxtChangeStreamFile(string file, List<HeadersModel> headers);
 
-    public record NxtMenuRoute(string host, string url, string cat, string sort, int page);
+    public record NxtMenuRoute(string host, string plugin, string url, string search, string cat, string sort, string model, IQueryCollection query, int page);
 }
