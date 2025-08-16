@@ -11,6 +11,8 @@ namespace Shared.Model.SISI.NextHUB
 
         public bool debug { get; set; }
 
+        public int timeout { get; set; } = 10;
+
         public bool streamproxy_preview { get; set; }
 
         public bool ignore_no_picture { get; set; } = true;
@@ -31,7 +33,7 @@ namespace Shared.Model.SISI.NextHUB
 
         public ListSettings search { get; set; }
 
-        public ContentParseSettings modelParse { get; set; }
+        public ListSettings model { get; set; }
 
         public ContentParseSettings contentParse { get; set; }
 

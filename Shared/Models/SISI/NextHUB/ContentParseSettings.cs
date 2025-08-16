@@ -20,6 +20,8 @@
 
         public ModelParse model { get; set; }
 
+        public bool json { get; set; } = true;
+
         public string eval { get; set; }
     }
 }

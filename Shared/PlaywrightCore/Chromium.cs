@@ -32,6 +32,8 @@ namespace Shared.Engine
 
         public static long stats_newcontext { get; set; }
 
+        public static DateTime stats_ping { get; set; }
+
 
         public static IBrowser browser = null;
 
@@ -253,11 +255,11 @@ namespace Shared.Engine
                             IPage p = keepopen_context != null ? await keepopen_context.NewPageAsync().ConfigureAwait(false) : await browser.NewPageAsync().ConfigureAwait(false);
                             if (p != null)
                             {
-                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping", new PageGotoOptions() { Timeout = 10 }).ConfigureAwait(false);
+                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping").ConfigureAwait(false);
                                 if (r != null && r.Status == 200)
                                 {
-                                    await p.CloseAsync().ConfigureAwait(false);
                                     isOk = true;
+                                    await p.CloseAsync().ConfigureAwait(false);
                                 }
                             }
                         }

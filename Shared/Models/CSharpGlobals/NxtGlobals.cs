@@ -7,9 +7,11 @@ using Shared.Model.SISI.NextHUB;
 
 namespace Shared.Models.CSharpGlobals
 {
-    public record NxtChangePlaylis(string html, string host, NxtSettings init, PlaylistItem pl, HtmlNodeCollection nodes, HtmlNode row);
+    public record NxtPlaylist(NxtSettings init, string plugin, string host, string html, HtmlDocument doc, List<PlaylistItem> playlists);
 
-    public record NxtRoute(IRoute route, string search, string sort, string cat, int page);
+    public record NxtChangePlaylis(NxtSettings init, string plugin, string host, string html, HtmlNodeCollection nodes, PlaylistItem pl, HtmlNode row);
+
+    public record NxtRoute(IRoute route, string requestUrl, string search, string sort, string cat, int page);
 
     public record NxtFindStreamFile(string html, string plugin, string url);
 

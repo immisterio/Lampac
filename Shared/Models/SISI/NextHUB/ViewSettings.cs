@@ -24,6 +24,8 @@
 
         public SingleNodeSettings nodeFile { get; set; }
 
+        public RegexMatchSettings regexMatch { get; set; }
+
         public bool bindingToIP { get; set; }
 
         public bool fullCacheJS { get; set; } = true;
@@ -34,7 +36,11 @@
 
         public string patternAbortEnd { get; set; }
 
+        public string patternWhiteRequest { get; set; }
+
         public bool related { get; set; }
+
+        public ContentParseSettings relatedParse { get; set; }
 
         public bool NetworkIdle { get; set; }
 
@@ -46,8 +52,5 @@
         public string? priorityBrowser { get; set; }
 
         public bool keepopen { get; set; } = true;
-
-
-        public ContentParseSettings? contentParse { get; set; }
     }
 }

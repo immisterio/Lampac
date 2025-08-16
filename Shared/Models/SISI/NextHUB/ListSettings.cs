@@ -8,6 +8,8 @@
 
         public string uri { get; set; }
 
+        public string format { get; set; }
+
         public bool viewsource { get; set; } = true;
 
         public string waitForSelector { get; set; }

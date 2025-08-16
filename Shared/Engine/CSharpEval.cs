@@ -30,12 +30,17 @@ namespace Shared.Engine
                 {
                     var options = Microsoft.CodeAnalysis.Scripting.ScriptOptions.Default
                         .AddImports("System")
-                        .AddImports("System.Collections.Generic")
+                        .AddImports("System.Web")
                         .AddImports("System.Linq")
+                        .AddImports("System.Collections.Generic")
                         .AddImports("System.Text.RegularExpressions")
 
                         .AddReferences(typeof(Playwright).Assembly)
                         .AddImports(typeof(RouteContinueOptions).Namespace)
+
+                        .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly)
+                        .AddImports("Newtonsoft.Json")
+                        .AddImports("Newtonsoft.Json.Linq")
 
                         .AddReferences(typeof(Bookmark).Assembly)
                         .AddImports(typeof(Bookmark).Namespace)
