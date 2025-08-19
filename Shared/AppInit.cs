@@ -360,8 +360,7 @@ namespace Lampac
         public TmdbConf tmdb { get; set; } = new TmdbConf()
         {
             enable = true,
-            httpversion = 2,
-            DNS = "9.9.9.9", DNS_TTL = 20,
+            httpversion = 2, DNS_TTL = 20,
             cache_api = 20, cache_img = 60, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
@@ -785,6 +784,7 @@ namespace Lampac
         /// </summary>
         public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("CDNmovies", "kwwsv=22frogfgq1{|}")
         {
+            enable = false,
             headers = HeadersModel.Init(
                 ("DNT", "1"),
                 ("Upgrade-Insecure-Requests", "1")

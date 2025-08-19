@@ -32,7 +32,7 @@ namespace Shared.Engine
 
         public static long stats_newcontext { get; set; }
 
-        public static DateTime stats_ping { get; set; }
+        public static (DateTime time, int status, string ex) stats_ping { get; set; }
 
 
         public static IBrowser browser = null;
@@ -232,19 +232,23 @@ namespace Shared.Engine
         #region Browser_Disconnected
         async public static Task Browser_Disconnected()
         {
+            stats_ping = (DateTime.Now, 1, null);
             await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
 
             while (!shutdown)
             {
                 await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+                stats_ping = (DateTime.Now, 2, null);
 
                 if ((AppInit.conf.multiaccess || AppInit.conf.chromium.Headless) && Status != PlaywrightStatus.disabled)
                 {
                     try
                     {
+                        stats_ping = (DateTime.Now, 3, null);
                         if (AppInit.conf.multiaccess == false && keepopen_context == null)
                             continue;
 
+                        stats_ping = (DateTime.Now, 4, null);
                         if (browser == null && keepopen_context == null)
                             continue;
 
@@ -252,18 +256,25 @@ namespace Shared.Engine
 
                         try
                         {
+                            stats_ping = (DateTime.Now, 5, null);
                             IPage p = keepopen_context != null ? await keepopen_context.NewPageAsync().ConfigureAwait(false) : await browser.NewPageAsync().ConfigureAwait(false);
                             if (p != null)
                             {
                                 var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping").ConfigureAwait(false);
-                                if (r != null && r.Status == 200)
+                                if (r != null)
                                 {
-                                    isOk = true;
-                                    await p.CloseAsync().ConfigureAwait(false);
+                                    stats_ping = (DateTime.Now, r.Status, null);
+                                    if (r.Status == 200)
+                                        isOk = true;
                                 }
+
+                                await p.CloseAsync().ConfigureAwait(false);
                             }
                         }
-                        catch { }
+                        catch
+                        {
+                            stats_ping = (DateTime.Now, 500, null);
+                        }
 
                         if (!isOk)
                         {
@@ -286,7 +297,11 @@ namespace Shared.Engine
                             await CreateAsync().ConfigureAwait(false);
                         }
                     }
-                    catch (Exception ex) { Console.WriteLine(ex.Message); }
+                    catch (Exception ex) 
+                    {
+                        stats_ping = (DateTime.Now, -1, ex.Message);
+                        Console.WriteLine(ex.Message); 
+                    }
                 }
             }
         }

@@ -6,6 +6,8 @@
 
         public string attribute { get; set; }
 
+        public string[] attributes { get; set; }
+
         public string format { get; set; }
     }
 }

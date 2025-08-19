@@ -1,5 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
+using Shared.Models;
+using Shared.Models.CSharpGlobals;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -21,6 +25,7 @@ namespace Lampac.Engine.Middlewares
         {
             if (AppInit.conf.overrideResponse != null && AppInit.conf.overrideResponse.Count > 0)
             {
+                var requestInfo = first ? null : httpContext.Features.Get<RequestModel>();
                 string url = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
 
                 foreach (var over in AppInit.conf.overrideResponse.Where(i => i.firstEndpoint == first))
@@ -58,6 +63,16 @@ namespace Lampac.Engine.Middlewares
                                 {
                                     httpContext.Response.Redirect(over.val);
                                     return Task.CompletedTask;
+                                }
+                            case "eval":
+                                {
+                                    var options = ScriptOptions.Default.AddReferences(typeof(Console).Assembly).AddImports("System")
+                                                                       .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
+
+                                    bool _next = CSharpEval.BaseExecute<bool>(over.val, new OverrideResponseGlobals(url, httpContext.Request, requestInfo), options);
+                                    if (!_next)
+                                        return Task.CompletedTask;
+                                    break;
                                 }
                             default:
                                 break;

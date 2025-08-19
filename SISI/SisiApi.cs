@@ -242,7 +242,7 @@ namespace SISI
             #endregion
 
             #region NextHUB
-            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled && conf.sisi.NextHUB)
+            if (conf.sisi.NextHUB)
             {
                 foreach (string inFile in Directory.GetFiles("NextHUB/sites", "*.yaml"))
                 {
@@ -258,6 +258,16 @@ namespace SISI
 
                         if (init.debug)
                             Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
+
+                        if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
+                        {
+                            if (init.priorityBrowser != "http" || (init.view != null && init.view.viewsource == false))
+                            {
+                                if (AppInit.conf.multiaccess == false)
+                                    Console.WriteLine($"NextHUB: {plugin} - Playwright is disabled, skipping.");
+                                continue;
+                            }
+                        }
 
                         send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}", init.client_type);
                     }

@@ -3,6 +3,7 @@ using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Shared.Engine;
@@ -12,6 +13,7 @@ using Shared.Model.SISI.NextHUB;
 using Shared.Models.CSharpGlobals;
 using Shared.PlaywrightCore;
 using SISI;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -40,6 +42,9 @@ namespace Lampac.Controllers.NextHUB
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
+
+            if (init.view.initUrlEval != null)
+                url = CSharpEval.Execute<string>(init.view.initUrlEval, new NxtUrlRequest(init.host, plugin, url, HttpContext.Request.Query, related));
 
             (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) video = default;
             if ((init.view.priorityBrowser ?? init.priorityBrowser) == "http" && init.view.viewsource && 
@@ -126,7 +131,9 @@ namespace Lampac.Controllers.NextHUB
                                 #region routeEval
                                 if (routeEval != null)
                                 {
-                                    bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, url, null, null, null, 0));
+                                    var options = ScriptOptions.Default.AddReferences(typeof(Playwright).Assembly).AddImports(typeof(RouteContinueOptions).Namespace);
+
+                                    bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, HttpContext.Request.Query, url, null, null, null, null, 0), options);
                                     if (!_next)
                                         return;
                                 }
@@ -135,49 +142,60 @@ namespace Lampac.Controllers.NextHUB
                                 #region patternFile
                                 if (init.view.patternFile != null && Regex.IsMatch(route.Request.Url, init.view.patternFile, RegexOptions.IgnoreCase))
                                 {
-                                    void setHeaders(Dictionary<string, string> _headers)
+                                    if (init.view.waitForResponse)
                                     {
-                                        if (_headers != null && _headers.Count > 0)
-                                        {
-                                            cache.headers = new List<HeadersModel>(_headers.Count);
-                                            foreach (var item in _headers)
-                                            {
-                                                if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                                    continue;
-
-                                                cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
-                                            }
-                                        }
-                                    }
-
-                                    setHeaders(route.Request.Headers);
-
-                                    if (init.view.waitLocationFile)
-                                    {
+                                        string result = null;
                                         await browser.ClearContinueAsync(route, page);
-                                        string setUri = route.Request.Url;
-
                                         var response = await page.WaitForResponseAsync(route.Request.Url);
-                                        if (response != null && response.Headers.ContainsKey("location"))
-                                        {
-                                            setHeaders(response.Request.Headers);
-                                            setUri = response.Headers["location"];
+                                        if (response != null)
+                                            result = await response.TextAsync().ConfigureAwait(false);
 
-                                            //await page.WaitForURLAsync(route.Request.Url);
-                                            //setUri = page.Url;
-                                        }
-
-                                        if (setUri.StartsWith("//"))
-                                            setUri = $"{(init.host.StartsWith("https") ? "https" : "http")}:{setUri}";
-
-                                        PlaywrightBase.ConsoleLog($"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
-                                        browser.SetPageResult(setUri);
+                                        PlaywrightBase.ConsoleLog($"\nPlaywright: {result}\n");
+                                        browser.SetPageResult(result);
                                     }
                                     else
                                     {
-                                        PlaywrightBase.ConsoleLog($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
-                                        browser.SetPageResult(route.Request.Url);
-                                        await route.AbortAsync();
+                                        void setHeaders(Dictionary<string, string> _headers)
+                                        {
+                                            if (_headers != null && _headers.Count > 0)
+                                            {
+                                                cache.headers = new List<HeadersModel>(_headers.Count);
+                                                foreach (var item in _headers)
+                                                {
+                                                    if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                        continue;
+
+                                                    cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                                }
+                                            }
+                                        }
+
+                                        setHeaders(route.Request.Headers);
+
+                                        if (init.view.waitLocationFile)
+                                        {
+                                            await browser.ClearContinueAsync(route, page);
+                                            string setUri = route.Request.Url;
+
+                                            var response = await page.WaitForResponseAsync(route.Request.Url);
+                                            if (response != null && response.Headers.ContainsKey("location"))
+                                            {
+                                                setHeaders(response.Request.Headers);
+                                                setUri = response.Headers["location"];
+                                            }
+
+                                            if (setUri.StartsWith("//"))
+                                                setUri = $"{(init.host.StartsWith("https") ? "https" : "http")}:{setUri}";
+
+                                            PlaywrightBase.ConsoleLog($"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                            browser.SetPageResult(setUri);
+                                        }
+                                        else
+                                        {
+                                            PlaywrightBase.ConsoleLog($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                            browser.SetPageResult(route.Request.Url);
+                                            await route.AbortAsync();
+                                        }
                                     }
 
                                     return;
@@ -227,6 +245,9 @@ namespace Lampac.Controllers.NextHUB
                             html = await responce.TextAsync().ConfigureAwait(false);
                         #endregion
 
+                        if (init.view.waitForResponse)
+                            html = await browser.WaitPageResult().ConfigureAwait(false);
+
                         #region WaitForSelector
                         if (!string.IsNullOrEmpty(init.view.waitForSelector) || !string.IsNullOrEmpty(init.view.playbtn))
                         {
@@ -239,6 +260,20 @@ namespace Lampac.Controllers.NextHUB
                                 }).ConfigureAwait(false);
                             }
                             catch { }
+
+                            html = await page.ContentAsync().ConfigureAwait(false);
+                        }
+                        #endregion
+
+                        #region iframe
+                        if (init.view.iframe != null && url.Contains(init.host))
+                        {
+                            string iframeUrl = CSharpEval.Execute<string>(evalCodeToRegexMatch(init.view.iframe), new NxtRegexMatch(html, init.view.iframe));
+                            if (!string.IsNullOrEmpty(iframeUrl) && iframeUrl != url)
+                            {
+                                url = init.view.iframe.format != null ? init.view.iframe.format.Replace("{value}", iframeUrl) : iframeUrl;
+                                goto resetGotoAsync;
+                            }
                         }
                         #endregion
 
@@ -285,42 +320,42 @@ namespace Lampac.Controllers.NextHUB
                         else if (init.view.regexMatch != null)
                         {
                             #region regexMatch
-                            string evalCode()
+                            if (init.view.NetworkIdle)
                             {
-                                var rm = init.view.regexMatch;
-                                string pattern = rm.pattern.Replace("\\\"", "_TeMp_").Replace("\"", "\\\"").Replace("_TeMp_", "\\\"");
+                                for (int i = 0; i < 10; i++)
+                                {
+                                    cache.file = CSharpEval.Execute<string>(evalCodeToRegexMatch(init.view.regexMatch), new NxtRegexMatch(html, init.view.regexMatch));
+                                    if (!string.IsNullOrEmpty(cache.file) && init.view.regexMatch.format != null)
+                                        cache.file = init.view.regexMatch.format.Replace("{value}", cache.file).Replace("{host}", init.host);
 
-                                if (rm.matches != null)
-                                {
-                                    string matches = "\"" + string.Join("\", \"", rm.matches) + "\"";
-                                    return $@"foreach (string q in new string[] {{ {matches} }})
-                                    {{
-                                        string file = Regex.Match(html, ""{pattern}"".Replace(""{{value}}"", $""{{q}}""), RegexOptions.IgnoreCase).Groups[{rm.index}].Value;
-                                        if (!string.IsNullOrEmpty(file))
-                                            return file;
-                                    }}
-                                    return null;";
-                                }
-                                else
-                                {
-                                    return $"return Regex.Match(html, \"{pattern}\", RegexOptions.IgnoreCase).Groups[{rm.index}].Value;";
+                                    if (!string.IsNullOrEmpty(cache.file))
+                                        break;
+
+                                    PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
+                                    await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
-
-                            if (init.debug)
-                                System.Console.WriteLine($"\n\nregexMatch\n{evalCode()}");
-
-                            cache.file = CSharpEval.Execute<string>(evalCode(), new NxtFindStreamFile(html, plugin, url));
-                            if (!string.IsNullOrEmpty(cache.file) && init.view.regexMatch.format != null)
-                                cache.file = init.view.regexMatch.format.Replace("{value}", cache.file);
+                            else
+                            {
+                                cache.file = CSharpEval.Execute<string>(evalCodeToRegexMatch(init.view.regexMatch), new NxtRegexMatch(html, init.view.regexMatch));
+                                if (!string.IsNullOrEmpty(cache.file) && init.view.regexMatch.format != null)
+                                    cache.file = init.view.regexMatch.format.Replace("{value}", cache.file).Replace("{host}", init.host);
+                            }
 
                             PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
                             #endregion
                         }
-                        else if (!string.IsNullOrEmpty(init.view.eval ?? init.view.evalJS))
+                        else if (string.IsNullOrEmpty(init.view.eval ?? init.view.evalJS))
                         {
-                            #region eval
-                            async ValueTask<string> goFile(string _content)
+                            cache.file = await browser.WaitPageResult().ConfigureAwait(false);
+                        }
+
+                        cache.file = cache.file?.Replace("\\", "")?.Replace("&amp;", "&");
+
+                        #region eval
+                        if (!string.IsNullOrEmpty(init.view.eval ?? init.view.evalJS))
+                        {
+                            Task<string> goFile(string _content)
                             {
                                 if (!string.IsNullOrEmpty(_content))
                                 {
@@ -330,16 +365,18 @@ namespace Lampac.Controllers.NextHUB
                                         string evaluate = FileCache.ReadAllText(infile);
 
                                         if (infile.EndsWith(".js"))
-                                            return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {evaluate} }}", new { _content, plugin, url }).ConfigureAwait(false);
+                                            return page.EvaluateAsync<string>($"(html, plugin, url, file) => {{ {evaluate} }}", new { _content, plugin, url, cache.file });
 
-                                        return CSharpEval.Execute<string>(evaluate, new NxtFindStreamFile(_content, plugin, url));
+                                        var nxt = new NxtEvalView(init, HttpContext.Request.Query, _content, plugin, url, cache.file, cache.headers, proxyManager);
+                                        return CSharpEval.ExecuteAsync<string>(goEval(evaluate), nxt, Root.evalOptionsFull);
                                     }
                                     else
                                     {
                                         if (init.view.evalJS != null)
-                                            return await page.EvaluateAsync<string>($"(html, plugin, url) => {{ {init.view.evalJS} }}", new { _content, plugin, url }).ConfigureAwait(false);
+                                            return page.EvaluateAsync<string>($"(html, plugin, url, file) => {{ {init.view.evalJS} }}", new { _content, plugin, url, cache.file });
 
-                                        return CSharpEval.Execute<string>(init.view.eval, new NxtFindStreamFile(_content, plugin, url));
+                                        var nxt = new NxtEvalView(init, HttpContext.Request.Query, _content, plugin, url, cache.file, cache.headers, proxyManager);
+                                        return CSharpEval.ExecuteAsync<string>(goEval(init.view.eval), nxt, Root.evalOptionsFull);
                                     }
                                 }
 
@@ -350,7 +387,7 @@ namespace Lampac.Controllers.NextHUB
                             {
                                 for (int i = 0; i < 10; i++)
                                 {
-                                    cache.file = await goFile(await page.ContentAsync().ConfigureAwait(false));
+                                    cache.file = await goFile(await page.ContentAsync().ConfigureAwait(false)).ConfigureAwait(false);
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
@@ -360,21 +397,23 @@ namespace Lampac.Controllers.NextHUB
                             }
                             else
                             {
-                                cache.file = await goFile(html);
+                                cache.file = await goFile(html).ConfigureAwait(false);
                             }
 
                             PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
-                            #endregion
                         }
-                        else
-                        {
-                            cache.file = await browser.WaitPageResult().ConfigureAwait(false);
-                        }
+                        #endregion
 
                         if (string.IsNullOrEmpty(cache.file))
                         {
                             proxyManager.Refresh();
                             return default;
+                        }
+
+                        if (cache.file.StartsWith("GotoAsync:"))
+                        {
+                            url = cache.file.Replace("GotoAsync:", "").Trim();
+                            goto resetGotoAsync;
                         }
 
                         #region related
@@ -391,31 +430,7 @@ namespace Lampac.Controllers.NextHUB
                             }
                         }
                         #endregion
-
-                        if (cache.file.StartsWith("GotoAsync:"))
-                        {
-                            url = cache.file.Replace("GotoAsync:", "").Trim();
-                            goto resetGotoAsync;
-                        }
                     }
-
-                    cache.file = cache.file.Replace("\\", "").Replace("&amp;", "&");
-
-                    #region fileEval
-                    if (init.view.fileEval != null)
-                    {
-                        string infile = $"NextHUB/sites/{init.view.fileEval}";
-                        if (System.IO.File.Exists(infile))
-                        {
-                            string evaluate = FileCache.ReadAllText($"NextHUB/sites/{init.view.fileEval}");
-                            cache.file = CSharpEval.Execute<string>(evaluate, new NxtChangeStreamFile(cache.file, cache.headers));
-                        }
-                        else
-                        {
-                            cache.file = CSharpEval.Execute<string>(init.view.fileEval, new NxtChangeStreamFile(cache.file, cache.headers));
-                        }
-                    }
-                    #endregion
 
                     proxyManager.Success();
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time, init: init));
@@ -423,7 +438,13 @@ namespace Lampac.Controllers.NextHUB
 
                 return cache;
             }
-            catch { return default; }
+            catch (Exception ex)
+            {
+                if (init.debug)
+                    Console.WriteLine(ex);
+
+                return default; 
+            }
         }
         #endregion
 
@@ -448,6 +469,18 @@ namespace Lampac.Controllers.NextHUB
                     if (string.IsNullOrEmpty(html))
                         return default;
 
+                    #region iframe
+                    if (init.view.iframe != null && url.Contains(init.host))
+                    {
+                        string iframeUrl = CSharpEval.Execute<string>(evalCodeToRegexMatch(init.view.iframe), new NxtRegexMatch(html, init.view.iframe));
+                        if (!string.IsNullOrEmpty(iframeUrl) && iframeUrl != url)
+                        {
+                            url = init.view.iframe.format != null ? init.view.iframe.format.Replace("{value}", iframeUrl) : iframeUrl;
+                            goto resetGotoAsync;
+                        }
+                    }
+                    #endregion
+
                     if (init.view.nodeFile != null)
                     {
                         #region nodeFile
@@ -470,60 +503,25 @@ namespace Lampac.Controllers.NextHUB
                     else if (init.view.regexMatch != null)
                     {
                         #region regexMatch
-                        string evalCode()
-                        {
-                            var rm = init.view.regexMatch;
-                            string pattern = rm.pattern.Replace("\\\"", "_TeMp_").Replace("\"", "\\\"").Replace("_TeMp_", "\\\"");
-
-                            if (rm.matches != null)
-                            {
-                                string matches = "\"" + string.Join("\", \"", rm.matches) + "\"";
-                                return $@"foreach (string q in new string[] {{ {matches} }})
-                                {{
-                                    string file = Regex.Match(html, ""{pattern}"".Replace(""{{value}}"", $""{{q}}""), RegexOptions.IgnoreCase).Groups[{rm.index}].Value;
-                                    if (!string.IsNullOrEmpty(file))
-                                        return file;
-                                }}
-                                return null;";
-                            }
-                            else
-                            {
-                                return $"return Regex.Match(html, \"{pattern}\", RegexOptions.IgnoreCase).Groups[{rm.index}].Value;";
-                            }
-                        }
-
-                        if (init.debug)
-                            System.Console.WriteLine($"\n\nregexMatch\n{evalCode()}");
-
-                        cache.file = CSharpEval.Execute<string>(evalCode(), new NxtFindStreamFile(html, plugin, url));
+                        cache.file = CSharpEval.Execute<string>(evalCodeToRegexMatch(init.view.regexMatch), new NxtRegexMatch(html, init.view.regexMatch));
                         if (!string.IsNullOrEmpty(cache.file) && init.view.regexMatch.format != null)
-                            cache.file = init.view.regexMatch.format.Replace("{value}", cache.file);
+                            cache.file = init.view.regexMatch.format.Replace("{value}", cache.file).Replace("{host}", init.host);
 
                         PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
                         #endregion
                     }
-                    else if (!string.IsNullOrEmpty(init.view.eval))
+
+                    cache.file = cache.file?.Replace("\\", "")?.Replace("&amp;", "&");
+
+                    #region eval
+                    if (!string.IsNullOrEmpty(init.view.eval))
                     {
-                        #region eval
-                        string goFile(string _content)
-                        {
-                            string infile = $"NextHUB/sites/{init.view.eval}";
-                            if (infile.EndsWith(".cs") && System.IO.File.Exists(infile))
-                            {
-                                string evaluate = FileCache.ReadAllText(infile);
-                                return CSharpEval.Execute<string>(evaluate, new NxtFindStreamFile(_content, plugin, url));
-                            }
-                            else
-                            {
-                                return CSharpEval.Execute<string>(init.view.eval, new NxtFindStreamFile(_content, plugin, url));
-                            }
-                        }
-
-                        cache.file = goFile(html);
+                        var nxt = new NxtEvalView(init, HttpContext.Request.Query, html, plugin, url, cache.file, cache.headers, proxyManager);
+                        cache.file = await CSharpEval.ExecuteAsync<string>(goEval(init.view.eval), nxt, Root.evalOptionsFull).ConfigureAwait(false);
 
                         PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
-                        #endregion
                     }
+                    #endregion
 
                     if (string.IsNullOrEmpty(cache.file))
                     {
@@ -533,32 +531,14 @@ namespace Lampac.Controllers.NextHUB
                         return default;
                     }
 
-                    if (init.view.related && cache.recomends == null)
-                        cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, plugin);
-
                     if (cache.file.StartsWith("GotoAsync:"))
                     {
                         url = cache.file.Replace("GotoAsync:", "").Trim();
                         goto resetGotoAsync;
                     }
 
-                    cache.file = cache.file.Replace("\\", "").Replace("&amp;", "&");
-
-                    #region fileEval
-                    if (init.view.fileEval != null)
-                    {
-                        string infile = $"NextHUB/sites/{init.view.fileEval}";
-                        if (System.IO.File.Exists(infile))
-                        {
-                            string evaluate = FileCache.ReadAllText($"NextHUB/sites/{init.view.fileEval}");
-                            cache.file = CSharpEval.Execute<string>(evaluate, new NxtChangeStreamFile(cache.file, cache.headers));
-                        }
-                        else
-                        {
-                            cache.file = CSharpEval.Execute<string>(init.view.fileEval, new NxtChangeStreamFile(cache.file, cache.headers));
-                        }
-                    }
-                    #endregion
+                    if (init.view.related && cache.recomends == null)
+                        cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, plugin);
 
                     if (!rch.enable)
                         proxyManager.Success();
@@ -568,7 +548,58 @@ namespace Lampac.Controllers.NextHUB
 
                 return cache;
             }
-            catch { return default; }
+            catch (Exception ex)
+            {
+                if (init.debug)
+                    Console.WriteLine(ex);
+
+                return default;
+            }
+        }
+        #endregion
+
+
+        #region evalCodeToRegexMatch
+        static string evalCodeToRegexMatch(RegexMatchSettings rm)
+        {
+            return @"if (m.matches != null && m.matches.Length > 0)
+            {
+                foreach (string q in m.matches)
+                {
+                    string file = Regex.Match(html, m.pattern.Replace(""{value}"", $""{q}""), RegexOptions.IgnoreCase).Groups[m.index].Value;
+                    if (!string.IsNullOrEmpty(file))
+                        return file;
+                }
+                return null;
+            }
+
+            return Regex.Match(html, m.pattern, RegexOptions.IgnoreCase).Groups[m.index].Value;";
+        }
+        #endregion
+
+        #region goEval
+        static string goEval(string evalcode)
+        {
+            string infile = $"NextHUB/sites/{evalcode}";
+            if (infile.EndsWith(".cs") && System.IO.File.Exists(infile))
+                evalcode = FileCache.ReadAllText(infile);
+
+            if (evalcode.Contains("{include:"))
+            {
+                string includePattern = @"{include:(?<file>[^}]+)}";
+                var matches = Regex.Matches(evalcode, includePattern);
+                foreach (Match match in matches)
+                {
+                    string file = match.Groups["file"].Value.Trim();
+                    if (System.IO.File.Exists($"NextHUB/utils/{file}"))
+                    {
+                        string includeCode = FileCache.ReadAllText($"NextHUB/utils/{file}");
+                        evalcode = evalcode.Replace(match.Value, includeCode);
+                    }
+                }
+            }
+
+            return evalcode;
         }
         #endregion
     }
