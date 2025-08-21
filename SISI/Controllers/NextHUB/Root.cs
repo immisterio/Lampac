@@ -1,5 +1,10 @@
-﻿using Shared.Engine.CORE;
+﻿using Lampac.Engine.CORE;
+using Lampac.Models.SISI;
+using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.Playwright;
+using Shared.Engine.CORE;
 using Shared.Model.SISI.NextHUB;
+using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,6 +15,28 @@ namespace Lampac.Controllers.NextHUB
 {
     public static class Root
     {
+        #region evalOptionsFull
+        public static ScriptOptions evalOptionsFull = ScriptOptions.Default
+
+            .AddReferences(typeof(Playwright).Assembly)
+            .AddImports(typeof(Playwright).Namespace)
+
+            .AddReferences(typeof(PlaywrightBrowser).Assembly)
+            .AddImports(typeof(PlaywrightBrowser).Namespace)
+
+            .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly)
+            .AddImports("Newtonsoft.Json")
+            .AddImports("Newtonsoft.Json.Linq")
+
+            .AddReferences(typeof(RchClient).Assembly)
+            .AddReferences(typeof(HttpClient).Assembly)
+            .AddImports("Lampac.Engine.CORE")
+
+            .AddReferences(typeof(PlaylistItem).Assembly)
+            .AddImports(typeof(PlaylistItem).Namespace)
+            .AddImports("Shared.Model.SISI");
+        #endregion
+
         public static NxtSettings goInit(string plugin)
         {
             if (string.IsNullOrEmpty(plugin))
@@ -70,7 +97,7 @@ namespace Lampac.Controllers.NextHUB
                 if (string.IsNullOrEmpty(init.plugin))
                     init.plugin = init.displayname;
 
-                if (!init.debug)
+                if (!init.debug || !AppInit.conf.multiaccess)
                     hybridCache.Set(memKey, init, DateTime.Now.AddMinutes(1));
             }
 

@@ -2,12 +2,14 @@
 using Lampac.Engine.CORE;
 using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.Engine.CORE;
 using Shared.Model.Online;
 using Shared.Model.SISI;
 using Shared.Model.SISI.NextHUB;
+using Shared.Models;
 using Shared.Models.CSharpGlobals;
 using Shared.PlaywrightCore;
 using SISI;
@@ -24,7 +26,7 @@ namespace Lampac.Controllers.NextHUB
     {
         [HttpGet]
         [Route("nexthub")]
-        async public ValueTask<ActionResult> Index(string plugin, string search, string sort, string cat, int pg = 1)
+        async public ValueTask<ActionResult> Index(string plugin, string search, string sort, string cat, string model, int pg = 1)
         {
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
@@ -39,11 +41,31 @@ namespace Lampac.Controllers.NextHUB
             if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(init.search?.uri))
                 return OnError("search disable");
 
-            string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{pg}";
+            string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";
+            if (init.menu?.customs != null)
+            {
+                foreach (var item in init.menu.customs)
+                    memKey += $":{HttpContext.Request.Query[item.arg]}";
+            }
+
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
             {
+                var rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.BaseGet();
+
+                #region contentParse
+                var contentParse = init.list.contentParse ?? init.contentParse;
+
+                if (!string.IsNullOrEmpty(search) && init.search?.contentParse != null)
+                    contentParse = init.search.contentParse;
+
+                if (!string.IsNullOrEmpty(model) && init.model?.contentParse != null)
+                    contentParse = init.model.contentParse;
+                #endregion
 
                 #region html
                 string url = $"{init.host}/{(pg == 1 && init.list.firstpage != null ? init.list.firstpage : init.list.uri)}";
@@ -54,40 +76,74 @@ namespace Lampac.Controllers.NextHUB
                 }
                 else
                 {
-                    if (init.menu.eval != null && (!string.IsNullOrEmpty(sort) || !string.IsNullOrEmpty(cat)))
-                        url = CSharpEval.Execute<string>(init.menu.eval, new NxtMenuRoute(init.host, url, cat, sort, pg));
-                    else if (!string.IsNullOrEmpty(sort))
+                    if (!string.IsNullOrEmpty(sort))
                         url = $"{init.host}/{sort}";
                     else if (!string.IsNullOrEmpty(cat))
                         url = $"{init.host}/{init.menu.formatcat(cat)}";
+                    else if (!string.IsNullOrEmpty(model))
+                    {
+                        url = $"{init.host}/{model}";
+                        if (init.model?.uri != null)
+                            url = init.model.uri.Replace("{host}", init.host).Replace("{model}", model);
+                        else if (init.model?.format != null)
+                        {
+                            string eval = $"return $\"{init.model.format}\";";
+                            url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+                        }
+                    }
+                    else if (init.menu?.customs != null)
+                    {
+                        foreach (var c in init.menu.customs)
+                        {
+                            if (HttpContext.Request.Query.ContainsKey(c.arg))
+                                url = $"{init.host}/{c.format.Replace("{value}", HttpContext.Request.Query[c.arg])}";
+                        }
+                    }
+
+                    if (init.menu?.route != null)
+                    {
+                        string goroute(string name)
+                        {
+                            if (init.menu.route.TryGetValue(name, out string value))
+                                return value;
+
+                            if (init.menu.route.TryGetValue("-", out value))
+                                return value;
+
+                            return string.Empty;
+                        }
+
+                        string eval = $"return (cat != null && sort != null) ? $\"{goroute("catsort")}\" : (model != null && sort != null) ? $\"{goroute("modelsort")}\" : model != null ? $\"{goroute("model")}\" : cat != null ? $\"{goroute("cat")}\" : sort != null ? $\"{goroute("sort")}\" : \"{url}\";";
+                        url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+                    }
                 }
 
-                string html = init.priorityBrowser == "http" ? await HttpClient.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: 8) :
-                              init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) :
-                                                     await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, pg);
+                if (init.route?.eval != null)
+                    url = CSharpEval.Execute<string>(init.route.eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+
+                string html = rch.enable ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) :
+                           init.priorityBrowser == "http" ? await HttpClient.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) :
+                           init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) :
+                                                  await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, model, pg);
 
                 if (string.IsNullOrEmpty(html))
-                    return OnError("html", rcache: !init.debug);
+                    return OnError("html", rcache: !(init.debug || rch.enable));
                 #endregion
 
-                var contentParse = init.list.contentParse ?? init.contentParse;
-                if (!string.IsNullOrEmpty(search))
-                    contentParse = init.search?.contentParse ?? init.contentParse;
-
-                playlists = goPlaylist(host, contentParse, init, html, plugin);
+                playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
 
                 if (playlists == null || playlists.Count == 0)
-                    return OnError("playlists", proxyManager, rcache: !init.debug);
+                    return OnError("playlists", proxyManager, rcache: !(init.debug || rch.enable));
 
                 proxyManager.Success();
                 hybridCache.Set(memKey, playlists, cacheTime(init.cache_time, init: init));
             }
 
-
-            List<MenuItem> menu = new List<MenuItem>(3);
+            var menu = new List<MenuItem>(3);
+            bool usedRoute = init.menu?.route != null || init.route?.eval != null;
 
             #region search
-            if (init.search?.uri != null)
+            if (string.IsNullOrEmpty(model) && init.search?.uri != null)
             {
                 menu.Add(new MenuItem()
                 {
@@ -103,19 +159,19 @@ namespace Lampac.Controllers.NextHUB
             {
                 var msort = new MenuItem()
                 {
-                    title = $"Сортировка: {init.menu.sort.FirstOrDefault(i => i.Value == sort).Key ?? init.menu.sort.First().Key}",
+                    title = $"Сортировка: {init.menu.sort.FirstOrDefault(i => i.Value.Trim() == sort).Key ?? init.menu.sort.First().Key}",
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                 };
 
-                string arg = init.menu.eval != null ? $"&cat={HttpUtility.UrlEncode(cat)}" : string.Empty;
+                string arg = usedRoute && init.menu.bind ? $"&cat={HttpUtility.UrlEncode(cat)}&model={HttpUtility.UrlEncode(model)}" : string.Empty;
 
                 foreach (var s in init.menu.sort)
                 {
                     msort.submenu.Add(new MenuItem()
                     {
                         title = s.Key,
-                        playlist_url = $"{host}/nexthub?plugin={plugin}&sort={HttpUtility.UrlEncode(s.Value)}" + arg,
+                        playlist_url = $"{host}/nexthub?plugin={plugin}&sort={HttpUtility.UrlEncode(s.Value.Trim())}" + arg,
                     });
                 }
 
@@ -125,25 +181,25 @@ namespace Lampac.Controllers.NextHUB
             #endregion
 
             #region categories
-            if (string.IsNullOrEmpty(search) && init.menu?.categories != null)
+            if (string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) && init.menu?.categories != null)
             {
                 var categories = init.menu.categories.Where(i => i.Key != "format");
 
                 var mcat = new MenuItem()
                 {
-                    title = $"Категории: {categories.FirstOrDefault(i => i.Value == cat).Key ?? "Выбрать"}",
+                    title = $"Категории: {categories.FirstOrDefault(i => i.Value.Trim() == cat).Key ?? "Выбрать"}",
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                 };
 
-                string arg = init.menu.eval != null ? $"&sort={HttpUtility.UrlEncode(sort)}" : string.Empty;
+                string arg = usedRoute && init.menu.bind ? $"&sort={HttpUtility.UrlEncode(sort)}" : string.Empty;
 
                 foreach (var s in categories)
                 {
                     mcat.submenu.Add(new MenuItem()
                     {
                         title = s.Key,
-                        playlist_url = $"{host}/nexthub?plugin={plugin}&cat={HttpUtility.UrlEncode(s.Value)}" + arg,
+                        playlist_url = $"{host}/nexthub?plugin={plugin}&cat={HttpUtility.UrlEncode(s.Value.Trim())}" + arg,
                     });
                 }
 
@@ -152,14 +208,53 @@ namespace Lampac.Controllers.NextHUB
             }
             #endregion
 
-            return OnResult(playlists, menu.Count == 0 ? null : menu, plugin: init.plugin);
+            #region custom categories
+            if (string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) && init.menu?.customs != null)
+            {
+                foreach (var custom in init.menu.customs)
+                {
+                    string argvalue = HttpContext.Request.Query[custom.arg];
+
+                    var mcat = new MenuItem()
+                    {
+                        title = $"{custom.name}: {custom.submenu.FirstOrDefault(i => i.Value.Trim() == argvalue).Key ?? "Выбрать"}",
+                        playlist_url = "submenu",
+                        submenu = new List<MenuItem>()
+                    };
+
+                    foreach (var s in custom.submenu)
+                    {
+                        mcat.submenu.Add(new MenuItem()
+                        {
+                            title = s.Key,
+                            playlist_url = $"{host}/nexthub?plugin={plugin}&{custom.arg}={HttpUtility.UrlEncode(s.Value.Trim())}",
+                        });
+                    }
+
+                    if (mcat.submenu.Count > 0)
+                        menu.Add(mcat);
+                }
+            }
+            #endregion
+
+            #region total_pages
+            int total_pages = init.list.total_pages;
+
+            if (search != null && init.search != null)
+                total_pages = init.search.total_pages;
+
+            if (model != null && init.model != null)
+                total_pages = init.model.total_pages;
+            #endregion
+
+            return OnResult(playlists, menu.Count == 0 ? null : menu, plugin: init.plugin, total_pages: total_pages);
         }
 
 
         #region goPlaylist
-        public static List<PlaylistItem> goPlaylist(string host, ContentParseSettings parse, NxtSettings init, in string html, string plugin)
+        public static List<PlaylistItem> goPlaylist(RequestModel requestInfo, string host, ContentParseSettings parse, NxtSettings init, in string html, string plugin)
         {
-            if (parse == null || string.IsNullOrEmpty(parse.nodes) || string.IsNullOrEmpty(html))
+            if (parse == null || string.IsNullOrEmpty(html))
                 return null;
 
             if (init.debug)
@@ -168,36 +263,91 @@ namespace Lampac.Controllers.NextHUB
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
 
+            string eval = parse.eval;
+            if (!string.IsNullOrEmpty(eval) && eval.EndsWith(".cs"))
+                eval = FileCache.ReadAllText($"NextHUB/sites/{eval}");
+
+            if (string.IsNullOrEmpty(parse.nodes))
+            {
+                if (string.IsNullOrEmpty(eval))
+                    return null;
+
+                var options = ScriptOptions.Default
+                    .AddReferences(typeof(PlaylistItem).Assembly)
+                    .AddImports(typeof(PlaylistItem).Namespace)
+                    .AddImports("Shared.Model.SISI")
+                    .AddReferences(typeof(HtmlDocument).Assembly)
+                    .AddImports(typeof(HtmlDocument).Namespace);
+
+                return CSharpEval.Execute<List<PlaylistItem>>(eval, new NxtPlaylist(init, plugin, host, html, doc, new List<PlaylistItem>()), options);
+            }
+
             var nodes = doc.DocumentNode.SelectNodes(parse.nodes);
             if (nodes == null || nodes.Count == 0)
                 return null;
 
             var playlists = new List<PlaylistItem>(nodes.Count);
 
-            string eval = parse.eval;
-            if (!string.IsNullOrEmpty(eval) && eval.EndsWith(".cs"))
-                eval = FileCache.ReadAllText($"NextHUB/{eval}");
-
             foreach (var row in nodes)
             {
                 #region nodeValue
                 string nodeValue(SingleNodeSettings nd)
                 {
+                    string value = null;
+
                     if (nd != null)
                     {
-                        if (string.IsNullOrEmpty(nd.node) && !string.IsNullOrEmpty(nd.attribute))
+                        if (string.IsNullOrEmpty(nd.node) && (!string.IsNullOrEmpty(nd.attribute) || nd.attributes != null))
                         {
-                            return row.GetAttributeValue(nd.attribute, null);
+                            if (nd.attributes != null)
+                            {
+                                foreach (var attr in nd.attributes)
+                                {
+                                    var attrValue = row.GetAttributeValue(attr, null);
+                                    if (!string.IsNullOrEmpty(attrValue))
+                                    {
+                                        value = attrValue;
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                value = row.GetAttributeValue(nd.attribute, null);
+                            }
                         }
                         else
                         {
                             var inNode = row.SelectSingleNode(nd.node);
                             if (inNode != null)
-                                return (!string.IsNullOrEmpty(nd.attribute) ? inNode.GetAttributeValue(nd.attribute, null) : inNode.InnerText)?.Trim();
+                            {
+                                if (nd.attributes != null)
+                                {
+                                    foreach (var attr in nd.attributes)
+                                    {
+                                        var attrValue = inNode.GetAttributeValue(attr, null);
+                                        if (!string.IsNullOrEmpty(attrValue))
+                                        {
+                                            value = attrValue;
+                                            break;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    value = (!string.IsNullOrEmpty(nd.attribute) ? inNode.GetAttributeValue(nd.attribute, null) : inNode.InnerText)?.Trim();
+                                }
+                            }
                         }
                     }
 
-                    return null;
+                    if (string.IsNullOrEmpty(value))
+                        return null;
+
+                    if (nd.format != null)
+                        return CSharpEval.BaseExecute<string>($"return $\"{nd.format}\";", new NxtNodeValue(value, host));
+
+                    return value;
                 }
                 #endregion
 
@@ -207,10 +357,41 @@ namespace Lampac.Controllers.NextHUB
                 string duration = nodeValue(parse.duration);
                 string quality = nodeValue(parse.quality);
                 string preview = nodeValue(parse.preview);
-                string myarg = nodeValue(parse.myarg);
+
+                #region model
+                ModelItem? model = null;
+                if (parse.model != null)
+                {
+                    string mname = nodeValue(parse.model.name);
+                    string mhref = nodeValue(parse.model.href);
+
+                    if (!string.IsNullOrEmpty(mname) && !string.IsNullOrEmpty(mhref))
+                    {
+                        model = new ModelItem()
+                        {
+                            name = mname,
+                            uri = $"nexthub?plugin={plugin}&model={HttpUtility.UrlEncode(mhref)}"
+                        };
+                    }
+                }
+                #endregion
+
+                #region args
+                string args = string.Empty;
+
+                if (parse.args != null)
+                {
+                    foreach (var a in parse.args)
+                    {
+                        string arg = nodeValue(a);
+                        if (!string.IsNullOrEmpty(arg))
+                            args += $"&{a.name}={HttpUtility.UrlEncode(arg)}";
+                    }
+                }
+                #endregion
 
                 if (init.debug)
-                    Console.WriteLine($"\n\nname: {name}\nhref: {href}\nimg: {img}\nduration: {duration}\nquality: {quality}\nmyarg: {myarg}\n\n{row.OuterHtml}");
+                    Console.WriteLine($"\n\nname: {name}\nhref: {href}\nimg: {img}\nduration: {duration}\nquality: {quality}\nmyarg: {args}\n\n{row.OuterHtml}");
 
                 if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(href))
                 {
@@ -228,6 +409,8 @@ namespace Lampac.Controllers.NextHUB
                     #region img
                     if (img != null)
                     {
+                        img = img.Replace("&amp;", "&").Replace("\\", "");
+
                         if (img.StartsWith("../"))
                             img = $"{init.host}/{img.Replace("../", "")}";
                         else if (img.StartsWith("//"))
@@ -242,6 +425,25 @@ namespace Lampac.Controllers.NextHUB
                     if (!init.ignore_no_picture && string.IsNullOrEmpty(img))
                         continue;
 
+                    #region preview
+                    if (preview != null)
+                    {
+                        preview = preview.Replace("&amp;", "&").Replace("\\", "");
+
+                        if (preview.StartsWith("../"))
+                            preview = $"{init.host}/{preview.Replace("../", "")}";
+                        else if (preview.StartsWith("//"))
+                            preview = $"https:{preview}";
+                        else if (preview.StartsWith("/"))
+                            preview = init.host + preview;
+                        else if (!preview.StartsWith("http"))
+                            preview = $"{init.host}/{preview}";
+
+                        if (init.streamproxy_preview)
+                            preview = $"{host}/proxy/{ProxyLink.Encrypt(preview, string.Empty, verifyip: false)}";
+                    }
+                    #endregion
+
                     string clearText(string text)
                     {
                         if (string.IsNullOrEmpty(text))
@@ -254,14 +456,15 @@ namespace Lampac.Controllers.NextHUB
                     var pl = new PlaylistItem()
                     {
                         name = clearText(name),
-                        video = $"{host}/nexthub/vidosik?uri={HttpUtility.UrlEncode($"{plugin}_-:-_{href}")}",
+                        video = $"{host}/nexthub/vidosik?uri={HttpUtility.UrlEncode($"{plugin}_-:-_{href}")}" + args,
                         preview = preview,
                         picture = img,
                         time = clearText(duration),
                         quality = clearText(quality),
-                        myarg = myarg,
-                        json = true,
+                        myarg = args,
+                        json = parse.json,
                         related = init.view != null ? init.view.related : false,
+                        model = model,
                         bookmark = new Bookmark()
                         {
                             site = "nexthub",
@@ -271,7 +474,19 @@ namespace Lampac.Controllers.NextHUB
                     };
 
                     if (eval != null)
-                        pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(html, host, init, pl, nodes, row));
+                    {
+                        var options = ScriptOptions.Default
+                            .AddReferences(typeof(PlaylistItem).Assembly)
+                            .AddImports(typeof(PlaylistItem).Namespace)
+                            .AddImports("Shared.Model.SISI")
+                            .AddReferences(typeof(HtmlDocument).Assembly)
+                            .AddImports(typeof(HtmlDocument).Namespace);
+
+                        pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(init, plugin, host, html, nodes, pl, row), options);
+                    }
+
+                    if (pl.json == false && (init.streamproxy || (init.geostreamproxy != null && init.geostreamproxy.Contains(requestInfo.Country))))
+                        pl.video = $"{host}/proxy/{ProxyLink.Encrypt(pl.video, requestInfo.IP, HeadersModel.Init(init.headers_stream))}";
 
                     if (pl != null)
                         playlists.Add(pl);
@@ -283,7 +498,7 @@ namespace Lampac.Controllers.NextHUB
         #endregion
 
         #region ContentAsync
-        async Task<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, int pg)
+        async Task<string> ContentAsync(NxtSettings init, string url, List<HeadersModel> headers, (string ip, string username, string password) proxy, string search, string sort, string cat, string model, int pg)
         {
             try
             {
@@ -300,7 +515,7 @@ namespace Lampac.Controllers.NextHUB
 
                     string routeEval = conf.routeEval;
                     if (!string.IsNullOrEmpty(routeEval) && routeEval.EndsWith(".cs"))
-                        routeEval = FileCache.ReadAllText($"NextHUB/{routeEval}");
+                        routeEval = FileCache.ReadAllText($"NextHUB/sites/{routeEval}");
 
                     await page.RouteAsync("**/*", async route =>
                     {
@@ -309,7 +524,9 @@ namespace Lampac.Controllers.NextHUB
                             #region routeEval
                             if (routeEval != null)
                             {
-                                bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, search, sort, cat, pg));
+                                var options = ScriptOptions.Default.AddReferences(typeof(Playwright).Assembly).AddImports(typeof(RouteContinueOptions).Namespace);
+
+                                bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, HttpContext.Request.Query, url, search, sort, cat, model, pg), options);
                                 if (!_next)
                                     return;
                             }
@@ -332,7 +549,7 @@ namespace Lampac.Controllers.NextHUB
                                 PlaywrightBase.ConsoleLog($"Playwright: {route.Request.Method} {route.Request.Url}");
                             }
 
-                            await browser.ClearContinueAsync(route);
+                            await browser.ClearContinueAsync(route, page);
                         }
                         catch (Exception ex) { PlaywrightBase.ConsoleLog(ex.Message); }
                     });

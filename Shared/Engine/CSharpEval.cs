@@ -1,63 +1,78 @@
 ﻿using Lampac.Engine.CORE;
 using Lampac.Models.Module;
-using Lampac.Models.SISI;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Extensions.DependencyModel;
-using Microsoft.Playwright;
-using Shared.Model.SISI;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Engine
 {
     public static class CSharpEval
     {
+        static InteractiveAssemblyLoader assemblyLoader = new InteractiveAssemblyLoader();
         static ConcurrentDictionary<string, dynamic> scripts = new ConcurrentDictionary<string, dynamic>();
 
-        public static T Execute<T>(in string cs, object model)
+        #region Execute
+        public static T Execute<T>(in string cs, object model, ScriptOptions options = null)
         {
-            return ExecuteAsync<T>(cs, model).GetAwaiter().GetResult();
+            return ExecuteAsync<T>(cs, model, options).GetAwaiter().GetResult();
         }
 
-        public static Task<T> ExecuteAsync<T>(string cs, object model)
+        public static Task<T> ExecuteAsync<T>(string cs, object model, ScriptOptions options = null)
         {
             var script = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
             {
-                using (var loader = new InteractiveAssemblyLoader())
-                {
-                    var options = Microsoft.CodeAnalysis.Scripting.ScriptOptions.Default
-                        .AddImports("System")
-                        .AddImports("System.Collections.Generic")
-                        .AddImports("System.Linq")
-                        .AddImports("System.Text.RegularExpressions")
+                if (options == null)
+                    options = ScriptOptions.Default;
 
-                        .AddReferences(typeof(Playwright).Assembly)
-                        .AddImports(typeof(RouteContinueOptions).Namespace)
+                options = options.AddReferences(typeof(Console).Assembly).AddImports("System")
+                                 .AddReferences(typeof(HttpUtility).Assembly).AddImports("System.Web")
+                                 .AddReferences(typeof(Enumerable).Assembly).AddImports("System.Linq")
+                                 .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
+                                 .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
 
-                        .AddReferences(typeof(Bookmark).Assembly)
-                        .AddImports(typeof(Bookmark).Namespace)
-
-                        .AddReferences(typeof(MenuItem).Assembly)
-                        .AddImports(typeof(MenuItem).Namespace);
-
-
-                    return CSharpScript.Create<T>(
-                        cs,
-                        options,
-                        globalsType: model.GetType(),
-                        assemblyLoader: loader
-                    ).CreateDelegate();
-                }
+                return CSharpScript.Create<T>(
+                    cs,
+                    options,
+                    globalsType: model.GetType(),
+                    assemblyLoader: assemblyLoader
+                ).CreateDelegate();
             });
 
             return script(model);
         }
+        #endregion
+
+        #region BaseExecute
+        public static T BaseExecute<T>(in string cs, object model, ScriptOptions options = null, InteractiveAssemblyLoader loader = null)
+        {
+            return BaseExecuteAsync<T>(cs, model, options, loader).GetAwaiter().GetResult();
+        }
+
+        public static Task<T> BaseExecuteAsync<T>(string cs, object model, ScriptOptions options = null, InteractiveAssemblyLoader loader = null)
+        {
+            var script = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+            {
+                return CSharpScript.Create<T>(
+                    cs,
+                    options,
+                    globalsType: model.GetType(),
+                    assemblyLoader: loader
+                ).CreateDelegate();
+            });
+
+            return script(model);
+        }
+        #endregion
 
 
-
+        #region Compilation
         public static List<PortableExecutableReference> appReferences;
 
         public static Assembly Compilation(RootModule mod)
@@ -128,5 +143,6 @@ namespace Shared.Engine
 
             return null;
         }
+        #endregion
     }
 }

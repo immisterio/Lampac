@@ -2,10 +2,11 @@
 {
     public class MenuSettings
     {
-        public string eval { get; set; }
+        public bool bind { get; set; } = true;
+
+        public Dictionary<string, string> route { get; set; }
 
         public Dictionary<string, string> sort { get; set; }
-
 
         public Dictionary<string, string> categories { get; set; }
 
@@ -16,5 +17,7 @@
 
             return cat;
         }
+
+        public List<CustomCategories> customs { get; set; }
     }
 }

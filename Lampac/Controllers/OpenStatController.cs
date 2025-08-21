@@ -38,6 +38,12 @@ namespace Lampac.Controllers
                     open = Chromium.browser?.Contexts?.Count,
                     req_keepopen = Chromium.stats_keepopen,
                     req_newcontext = Chromium.stats_newcontext,
+                    ping = new 
+                    {
+                        Chromium.stats_ping.status,
+                        Chromium.stats_ping.time,
+                        Chromium.stats_ping.ex
+                    }
                 },
                 Firefox = new
                 {
