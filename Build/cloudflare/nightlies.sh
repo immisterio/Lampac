@@ -1,30 +1,30 @@
 mkdir -p lpc/
 
-./dotnet6/dotnet publish Lampac -c Release
+./dotnet/dotnet publish Lampac -c Release
 rm -rf Lampac/bin/Release/net9.0/publish/runtimes
 cp -R Lampac/bin/Release/net9.0/publish/* lpc/
 
 mkdir -p lpc/module
 
-./dotnet6/dotnet publish DLNA -c Release
+./dotnet/dotnet publish DLNA -c Release
 cp DLNA/bin/Release/net9.0/publish/DLNA.dll lpc/module/
 
-./dotnet6/dotnet publish JacRed -c Release
+./dotnet/dotnet publish JacRed -c Release
 cp JacRed/bin/Release/net9.0/publish/JacRed.dll lpc/module/
 
-./dotnet6/dotnet publish Merchant -c Release
+./dotnet/dotnet publish Merchant -c Release
 cp Merchant/bin/Release/net9.0/publish/Merchant.dll lpc/module/
 
-./dotnet6/dotnet publish Online -c Release
+./dotnet/dotnet publish Online -c Release
 cp Online/bin/Release/net9.0/publish/Online.dll lpc/module/
 
-./dotnet6/dotnet publish SISI -c Release
+./dotnet/dotnet publish SISI -c Release
 cp SISI/bin/Release/net9.0/publish/SISI.dll lpc/module/
 
-./dotnet6/dotnet publish TorrServer -c Release
+./dotnet/dotnet publish TorrServer -c Release
 cp TorrServer/bin/Release/net9.0/publish/TorrServer.dll lpc/module/
 
-./dotnet6/dotnet publish Tracks -c Release
+./dotnet/dotnet publish Tracks -c Release
 cp Tracks/bin/Release/net9.0/publish/Tracks.dll lpc/module/
 
 cd lpc/
