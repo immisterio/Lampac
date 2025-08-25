@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Eneyida
+﻿namespace Shared.Models.Online.Eneyida
 {
     public class BobrKurwa
     {
@@ -9,8 +9,8 @@
         public string year { get; set; }
 
 
-        public string? ashdi { get; set; }
+        public string ashdi { get; set; }
 
-        public string? tortuga { get; set; }
+        public string tortuga { get; set; }
     }
 }

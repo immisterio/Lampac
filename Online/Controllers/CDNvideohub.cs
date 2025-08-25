@@ -1,15 +1,7 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Templates;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class CDNvideohub : BaseOnlineController
     {
@@ -34,7 +26,7 @@ namespace Lampac.Controllers.LITE
                     return res.Fail(rch.connectionMsg);
 
                 string uri = $"{init.corsHost()}/api/v1/player/sv?pub=27&id={kinopoisk_id}&aggr=kp";
-                var root = rch.enable ? await rch.Get<JObject>(uri, httpHeaders(init)) : await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = rch.enable ? await rch.Get<JObject>(uri, httpHeaders(init)) : await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("video"))
                     return res.Fail("root");
 

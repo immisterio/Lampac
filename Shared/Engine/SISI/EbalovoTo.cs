@@ -1,5 +1,5 @@
-﻿using Lampac.Models.SISI;
-using Shared.Model.SISI;
+﻿using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -7,7 +7,7 @@ namespace Shared.Engine.SISI
 {
     public static class EbalovoTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string? search, string? sort, string? c, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -39,7 +39,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, in string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -88,7 +88,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? sort, string? c)
+        public static List<MenuItem> Menu(string host, string sort, string c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
             string url = host + "elo";
@@ -768,16 +768,16 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onlocation = null)
+        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult, Func<string, ValueTask<string>> onlocation = null)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{url}");
+            string html = await onresult.Invoke($"{host}/{url}");
             if (html == null)
                 return null;
 
-            string? stream_link = null;
+            string stream_link = null;
             var match = new Regex("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
             while (match.Success)
             {
@@ -790,7 +790,7 @@ namespace Shared.Engine.SISI
 
             if (onlocation != null)
             {
-                string? location = await onlocation.Invoke(stream_link);
+                string location = await onlocation.Invoke(stream_link);
                 if (location == null || stream_link == location || location.Contains("/get_file/"))
                     return null;
 

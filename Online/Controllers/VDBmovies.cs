@@ -1,22 +1,11 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Online;
-using System.Text.RegularExpressions;
-using Shared.Engine.Online;
-using Shared.Engine;
-using Shared.Model.Online.VDBmovies;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Lampac.Models.LITE;
-using Shared.Engine.CORE;
+using Shared.Models.Online.Settings;
+using Shared.Models.Online.VDBmovies;
 using Shared.PlaywrightCore;
-using Lampac.Engine.CORE;
 using System.Net;
-using Shared.Model.Online;
-using System.Collections.Generic;
-using Shared.Model.Base;
-using Shared.Model.Templates;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class VDBmovies : BaseOnlineController
     {
@@ -156,7 +145,7 @@ namespace Lampac.Controllers.LITE
                 ));
 
                 if (init.priorityBrowser == "http")
-                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
@@ -164,7 +153,7 @@ namespace Lampac.Controllers.LITE
                     if (page == null)
                         return null;
 
-                    browser.failedUrl = uri;
+                    browser.SetFailedUrl(uri);
 
                     await page.RouteAsync("**/*", async route =>
                     {

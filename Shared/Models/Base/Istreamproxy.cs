@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Base
+﻿namespace Shared.Models.Base
 {
     public interface Istreamproxy
     {
@@ -12,12 +12,12 @@
 
         public bool apnstream { get; set; }
 
-        public string[]? geostreamproxy { get; set; }
+        public string[] geostreamproxy { get; set; }
 
         public bool qualitys_proxy { get; set; }
 
-        public ProxySettings? proxy { get; set; }
+        public ProxySettings proxy { get; set; }
 
-        public ApnConf? apn { get; set; }
+        public ApnConf apn { get; set; }
     }
 }

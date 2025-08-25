@@ -1,7 +1,6 @@
 ﻿using HtmlAgilityPack;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Model.SISI;
+using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -9,7 +8,7 @@ namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string plugin, string? search, string? model, string? sort, int c, string? hd, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string plugin, string search, string model, string sort, int c, string hd, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -58,7 +57,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
+        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -91,7 +90,7 @@ namespace Shared.Engine.SISI
             if (videoCategory == null)
                 return new List<PlaylistItem>();
 
-            ModelItem? model = null;
+            ModelItem model = null;
             if (IsModel_page) 
             {
                 string name = Regex.Match(html, "itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>").Groups[2].Value.Trim();
@@ -985,20 +984,20 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem> StreamLinks(string video_uri, string list_uri, string host, string? vkey, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<StreamItem> StreamLinks(string video_uri, string list_uri, string host, string vkey, Func<string, ValueTask<string>> onresult)
         {
             if (string.IsNullOrEmpty(vkey))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/view_video.php?viewkey={vkey}");
+            string html = await onresult.Invoke($"{host}/view_video.php?viewkey={vkey}");
             if (html == null)
                 return null;
 
-            string? hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+urlset\\\\/master\\.m3u[^\"]+)\"").Groups[1].Value;
+            string hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+urlset\\\\/master\\.m3u[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(hls))
             {
                 var qualitys = new Dictionary<string, string>();
-                string? flashvars = StringConvert.FindLastText(html, "var flashvars", "player_mp4_seek");
+                string flashvars = StringConvert.FindLastText(html, "var flashvars", "player_mp4_seek");
 
                 if (flashvars != null)
                 {
@@ -1079,7 +1078,7 @@ namespace Shared.Engine.SISI
                 string link = "";
                 foreach (string curr in m.Groups[2].Value.Replace(" ", "").Split('+'))
                 {
-                    string? param = vars.Find(x => x.name == curr).param;
+                    string param = vars.Find(x => x.name == curr).param;
                     if (param == null)
                         continue;
 

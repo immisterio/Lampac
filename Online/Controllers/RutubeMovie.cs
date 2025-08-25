@@ -1,13 +1,7 @@
-using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Templates;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class RutubeMovie : BaseOnlineController
     {
@@ -42,7 +36,7 @@ namespace Lampac.Controllers.LITE
                         return res.Fail(rch.connectionMsg);
 
                     string uri = $"api/search/video/?content_type=video&duration=movie&query={HttpUtility.UrlEncode($"{title} {year}")}";
-                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("results"))
                         return res.Fail("content");
 
@@ -106,7 +100,7 @@ namespace Lampac.Controllers.LITE
             var cache = await InvokeCache<string>($"rutubemovie:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string uri = $"api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp";
-                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("video_balancer"))
                     return res.Fail("video_balancer");
 

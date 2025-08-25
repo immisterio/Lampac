@@ -1,7 +1,6 @@
 ﻿using Microsoft.Playwright;
-using Shared.Engine;
-using Shared.Model.Base;
-using Shared.Model.Online;
+using Shared.Models;
+using Shared.Models.Base;
 
 namespace Shared.PlaywrightCore
 {
@@ -60,21 +59,17 @@ namespace Shared.PlaywrightCore
             chromium = new Chromium();
         }
 
-        public string failedUrl
+        public void SetFailedUrl(string url)
         {
-            set
+            if (chromium != null)
             {
-                if (chromium != null)
-                {
-                    chromium.failedUrl = value;
-                }
-                else
-                {
-                    firefox.failedUrl = value;
-                }
+                chromium.failedUrl = url;
+            }
+            else
+            {
+                firefox.failedUrl = url;
             }
         }
-
 
         async public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
         {

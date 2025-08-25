@@ -1,12 +1,5 @@
 ﻿using Jackett;
-using JacRed.Models;
 using JacRed.Models.AppConf;
-using Lampac.Engine;
-using Lampac.Models.AppConf;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace JacRed.Engine
 {

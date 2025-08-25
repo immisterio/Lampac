@@ -17,28 +17,28 @@ namespace Lampac.Engine.Middlewares
             if (httpContext.Request.Path.Value.StartsWith("/cors/check"))
                 return Task.CompletedTask;
 
-            httpContext.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
-            httpContext.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
-            httpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+            httpContext.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+            httpContext.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
+            httpContext.Response.Headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
 
             string allowHeaders = "Accept, Origin, Content-Type, Authorization, X-Requested-With, X-Signalr-User-Agent, Cache-Control, DNT, If-Modified-Since, Keep-Alive, User-Agent, Token, Profile";
             if (httpContext.Request.Headers.TryGetValue("Access-Control-Request-Headers", out var accessHeaders) && !string.IsNullOrEmpty(accessHeaders.ToString()))
                 allowHeaders += ", " + accessHeaders.ToString();
 
-            httpContext.Response.Headers.Add("Access-Control-Allow-Headers", allowHeaders);
+            httpContext.Response.Headers["Access-Control-Allow-Headers"] = allowHeaders;
 
             if (httpContext.Request.Headers.TryGetValue("origin", out var origin))
-                httpContext.Response.Headers.Add("Access-Control-Allow-Origin", origin.ToString());
+                httpContext.Response.Headers["Access-Control-Allow-Origin"] = origin.ToString();
             else if (httpContext.Request.Headers.TryGetValue("referer", out var referer))
-                httpContext.Response.Headers.Add("Access-Control-Allow-Origin", referer.ToString());
+                httpContext.Response.Headers["Access-Control-Allow-Origin"] = referer.ToString();
             else
-                httpContext.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                httpContext.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
             if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|cubproxy|tracks|dlna|timecode|ts)\\.js"))
             {
-                httpContext.Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
-                httpContext.Response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
-                httpContext.Response.Headers.Add("Expires", "0"); // Proxies.
+                httpContext.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate"; // HTTP 1.1.
+                httpContext.Response.Headers["Pragma"] = "no-cache"; // HTTP 1.0.
+                httpContext.Response.Headers["Expires"] = "0"; // Proxies.
             }
 
             if (HttpMethods.IsOptions(httpContext.Request.Method))

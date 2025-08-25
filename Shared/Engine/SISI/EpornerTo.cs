@@ -1,6 +1,6 @@
 ﻿using HtmlAgilityPack;
-using Lampac.Models.SISI;
-using Shared.Model.SISI;
+using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -8,7 +8,7 @@ namespace Shared.Engine.SISI
 {
     public static class EpornerTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string? search, string? sort, string? c, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -44,7 +44,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -111,7 +111,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? search, string? sort, string? c)
+        public static List<MenuItem> Menu(string host, string search, string sort, string c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
             string url = host + "epr";
@@ -565,12 +565,12 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>> onjson, Func<string, string>? onlog = null)
+        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult, Func<string, ValueTask<string>> onjson, Func<string, string> onlog = null)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{url}");
+            string html = await onresult.Invoke($"{host}/{url}");
             if (html == null)
                 return null;
 
@@ -579,7 +579,7 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrWhiteSpace(vid) || string.IsNullOrWhiteSpace(hash))
                 return null;
 
-            string? json = await onjson.Invoke($"{host}/xhr/video/{vid}?hash={convertHash(hash)}&domain={Regex.Replace(host, "^https?://", "")}&fallback=false&embed=false&supportedFormats=dash,mp4&_={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+            string json = await onjson.Invoke($"{host}/xhr/video/{vid}?hash={convertHash(hash)}&domain={Regex.Replace(host, "^https?://", "")}&fallback=false&embed=false&supportedFormats=dash,mp4&_={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
             if (json == null)
                 return null;
 

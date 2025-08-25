@@ -1,20 +1,7 @@
-﻿using System;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using System.Collections.Concurrent;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Collections.Generic;
-using Shared;
-using Shared.Engine.CORE;
-using JacRed.Engine;
-using JacRed.Models;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("kinozal/[action]")]
     public class KinozalController : JacBaseController
@@ -41,13 +28,13 @@ namespace Lampac.Controllers.JAC
             #region Download
             if (jackett.Kinozal.cookie != null || Cookie != null)
             {
-                var _t = await HttpClient.Download("http://dl.kinozal.tv/download.php?id=" + id, proxy: proxyManager.Get(), cookie: jackett.Kinozal.cookie ?? Cookie, referer: jackett.Kinozal.host, timeoutSeconds: 10);
+                var _t = await Http.Download("http://dl.kinozal.tv/download.php?id=" + id, proxy: proxyManager.Get(), cookie: jackett.Kinozal.cookie ?? Cookie, referer: jackett.Kinozal.host, timeoutSeconds: 10);
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                     return File(_t, "application/x-bittorrent");
             }
             #endregion
 
-            string srv_details = await HttpClient.Post($"{jackett.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", proxy: proxyManager.Get(), timeoutSeconds: 10);
+            string srv_details = await Http.Post($"{jackett.Kinozal.host}/get_srv_details.php?id={id}&action=2", $"id={id}&action=2", "__cfduid=d476ac2d9b5e18f2b67707b47ebd9b8cd1560164391; uid=20520283; pass=ouV5FJdFCd;", proxy: proxyManager.Get(), timeoutSeconds: 10);
             if (srv_details != null)
             {
                 string torrentHash = new Regex("<ul><li>Инфо хеш: +([^<]+)</li>").Match(srv_details).Groups[1].Value;
@@ -66,7 +53,7 @@ namespace Lampac.Controllers.JAC
             var torrents = new List<TorrentDetails>();
             var proxyManager = new ProxyManager("kinozal", jackett.Kinozal);
 
-            string html = await HttpClient.Get($"{jackett.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.Kinozal.host}/browse.php?s={HttpUtility.UrlEncode(query)}&g=0&c=0&v=0&d=0&w=0&t=0&f=0", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
 
             if (html != null && html.Contains("Кинозал.ТВ</title>"))
             {

@@ -1,5 +1,4 @@
-﻿using Lampac.Engine.CORE;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using System;
@@ -122,7 +121,7 @@ namespace TorrServer
                 {
                     if (conf.releases == "latest")
                     {
-                        var root = await HttpClient.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
+                        var root = await Http.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
                         if (root != null && root.ContainsKey("tag_name"))
                         {
                             string tagname = root.Value<string>("tag_name");
@@ -146,14 +145,14 @@ namespace TorrServer
                             if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                             {
                                 tsprocess?.Dispose();
-                                bool success = await HttpClient.DownloadFile(downloadUrl, tspath, timeoutSeconds: 200);
+                                bool success = await Http.DownloadFile(downloadUrl, tspath, timeoutSeconds: 200);
                                 if (!success)
                                     File.Delete(tspath);
                             }
                             else
                             {
                                 tsprocess?.Dispose();
-                                bool success = await HttpClient.DownloadFile(downloadUrl, tspath, timeoutSeconds: 200);
+                                bool success = await Http.DownloadFile(downloadUrl, tspath, timeoutSeconds: 200);
                                 if (success)
                                     Bash.Invoke($"chmod +x {tspath}");
                                 else
@@ -178,7 +177,7 @@ namespace TorrServer
 
                 if (!File.Exists("isdocker") && conf.checkfile)
                 {
-                    var response = await HttpClient.ResponseHeaders(downloadUrl, timeoutSeconds: 10, allowAutoRedirect: true);
+                    var response = await Http.ResponseHeaders(downloadUrl, timeoutSeconds: 10, allowAutoRedirect: true);
                     if (response != null && response.Content.Headers.ContentLength.HasValue && new FileInfo(tspath).Length != response.Content.Headers.ContentLength.Value)
                     {
                         File.Delete(tspath);

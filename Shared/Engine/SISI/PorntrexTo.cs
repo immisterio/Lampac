@@ -1,5 +1,4 @@
-﻿using Lampac.Models.SISI;
-using Shared.Model.SISI;
+﻿using Shared.Models.SISI.Base;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -7,7 +6,7 @@ namespace Shared.Engine.SISI
 {
     public static class PorntrexTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string? search, string? sort, string? c, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -47,7 +46,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, in string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -94,7 +93,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? search, string? sort, string? c)
+        public static List<MenuItem> Menu(string host, string search, string sort, string c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
             string url = host + "ptx";
@@ -621,12 +620,12 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? uri, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<Dictionary<string, string>> StreamLinks(string host, string uri, Func<string, ValueTask<string>> onresult)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{uri}");
+            string html = await onresult.Invoke($"{host}/{uri}");
             if (html == null)
                 return null;
 

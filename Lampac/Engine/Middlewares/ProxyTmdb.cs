@@ -1,12 +1,11 @@
 ﻿using DnsClient;
-using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using NetVips;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
+using Shared;
+using Shared.Engine;
 using Shared.Models;
 using System;
 using System.Buffers;
@@ -57,7 +56,7 @@ namespace Lampac.Engine.Middlewares
                 return API(httpContext, hybridCache, requestInfo);
 
             if (httpContext.Request.Path.Value.StartsWith("/tmdb/img/"))
-                return IMG(httpContext, hybridCache, requestInfo);
+                return IMG(httpContext, requestInfo);
 
             string path = Regex.Replace(httpContext.Request.Path.Value, "^/tmdb/https?://", "").Replace("/tmdb/", "");
             string uri = Regex.Match(path, "^[^/]+/(.*)").Groups[1].Value + httpContext.Request.QueryString.Value;
@@ -70,7 +69,7 @@ namespace Lampac.Engine.Middlewares
             else if (path.Contains("image.tmdb.org"))
             {
                 httpContext.Request.Path = $"/tmdb/img/{uri}";
-                return IMG(httpContext, hybridCache, requestInfo);
+                return IMG(httpContext, requestInfo);
             }
 
             httpContext.Response.StatusCode = 403;
@@ -99,16 +98,16 @@ namespace Lampac.Engine.Middlewares
             string uri = "https://api.themoviedb.org" + path + query;
 
             string mkey = $"tmdb/api:{path}:{query}";
-            if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache))
+            if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
             {
-                httpContex.Response.Headers.Add("X-Cache-Status", "HIT");
+                httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                 httpContex.Response.StatusCode = cache.statusCode;
                 httpContex.Response.ContentType = "application/json; charset=utf-8";
                 await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
-            httpContex.Response.Headers.Add("X-Cache-Status", "MISS");
+            httpContex.Response.Headers["X-Cache-Status"] = "MISS";
 
             string tmdb_ip = init.API_IP;
 
@@ -146,7 +145,7 @@ namespace Lampac.Engine.Middlewares
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
 
-            var result = await HttpClient.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
+            var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
             if (result.content == null)
             {
                 proxyManager.Refresh();
@@ -164,7 +163,7 @@ namespace Lampac.Engine.Middlewares
                 cache.json = JsonConvert.SerializeObject(result.content);
 
                 if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
-                    hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1));
+                    hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: false);
 
                 await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
                 return;
@@ -173,7 +172,7 @@ namespace Lampac.Engine.Middlewares
             cache.json = JsonConvert.SerializeObject(result.content);
 
             if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
-                hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api));
+                hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
 
             proxyManager.Success();
             httpContex.Response.ContentType = "application/json; charset=utf-8";
@@ -182,7 +181,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region IMG
-        async public Task IMG(HttpContext httpContex, HybridCache hybridCache, RequestModel requestInfo)
+        async public Task IMG(HttpContext httpContex, RequestModel requestInfo)
         {
             var init = AppInit.conf.tmdb;
             if (!init.enable)
@@ -205,7 +204,7 @@ namespace Lampac.Engine.Middlewares
 
             if (cacheFiles.ContainsKey(md5key))
             {
-                httpContex.Response.Headers.Add("X-Cache-Status", "HIT");
+                httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                 await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
                 return;
             }
@@ -248,12 +247,12 @@ namespace Lampac.Engine.Middlewares
 
             try
             {
-                var handler = HttpClient.Handler(uri, proxyManager.Get());
+                var handler = Http.Handler(uri, proxyManager.Get());
                 handler.AllowAutoRedirect = true;
 
                 var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
                 {
-                    HttpClient.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
+                    Http.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
                 });
 
                 using (var response = await client.GetAsync(uri).ConfigureAwait(false))
@@ -266,7 +265,7 @@ namespace Lampac.Engine.Middlewares
                     if (response.StatusCode == HttpStatusCode.OK && init.cache_img > 0 && AppInit.conf.mikrotik == false)
                     {
                         #region cache
-                        httpContex.Response.Headers.Add("X-Cache-Status", "MISS");
+                        httpContex.Response.Headers["X-Cache-Status"] = "MISS";
 
                         int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
                             (int)response.Content.Headers.ContentLength.Value :
@@ -338,7 +337,7 @@ namespace Lampac.Engine.Middlewares
                     else
                     {
                         httpContex.Response.StatusCode = (int)response.StatusCode;
-                        httpContex.Response.Headers.Add("X-Cache-Status", "bypass");
+                        httpContex.Response.Headers["X-Cache-Status"] = "bypass";
                         await response.Content.CopyToAsync(httpContex.Response.Body, httpContex.RequestAborted).ConfigureAwait(false);
                     }
                 }

@@ -1,24 +1,23 @@
-﻿using Lampac.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online.iRemux;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.iRemux;
+using Shared.Models.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class iRemuxInvoke
+    public struct iRemuxInvoke
     {
         #region iRemuxInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string, ValueTask<string?>> onpost;
+        Func<string, ValueTask<string>> onget;
+        Func<string, string, ValueTask<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
 
-        public iRemuxInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public iRemuxInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -31,21 +30,21 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string? title, string? original_title, int year, string? link)
+        async public ValueTask<EmbedModel> Embed(string title, string original_title, int year, string link)
         {
             var result = new EmbedModel();
 
             if (string.IsNullOrEmpty(link))
             {
-                string? search = await onget($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
+                string search = await onget($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
                 if (search == null)
                 {
                     requesterror?.Invoke();
                     return null;
                 }
 
-                string? stitle = title?.ToLower();
-                string? sorigtitle = original_title?.ToLower();
+                string stitle = title?.ToLower();
+                string sorigtitle = original_title?.ToLower();
 
                 foreach (string row in search.Split("item--announce").Skip(1))
                 {
@@ -86,7 +85,7 @@ namespace Shared.Engine.Online
                 link = result.similars[0].href;
             }
 
-            string? news = await onget(link);
+            string news = await onget(link);
             if (news == null)
             {
                 requesterror?.Invoke();
@@ -103,13 +102,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? title, string? original_title, int year, bool rjson = false)
+        public string Html(EmbedModel result, string title, string original_title, int year, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region similar
             if (result.content == null)
@@ -157,16 +156,16 @@ namespace Shared.Engine.Online
 
 
         #region Weblink
-        async public ValueTask<string?> Weblink(string linkid)
+        async public ValueTask<string> Weblink(string linkid)
         {
-            string? html = await onget($"https://cloud.mail.ru/public/{linkid}");
+            string html = await onget($"https://cloud.mail.ru/public/{linkid}");
             if (html == null)
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            string? weblinkRow = StringConvert.FindLastText(html, "\"weblink_get\"", "}");
+            string weblinkRow = StringConvert.FindLastText(html, "\"weblink_get\"", "}");
             if (weblinkRow == null)
                 return null;
 

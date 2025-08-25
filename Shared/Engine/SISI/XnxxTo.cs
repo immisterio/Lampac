@@ -1,6 +1,6 @@
-﻿using Lampac.Models.SISI;
-using Shared.Model.SISI;
-using Shared.Model.SISI.Xvideos;
+﻿using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
+using Shared.Models.SISI.Xvideos;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -9,7 +9,7 @@ namespace Shared.Engine.SISI
 {
     public static class XnxxTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string? search, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string search, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url = $"{host}/best/{DateTime.Today.AddMonths(-1):yyyy-MM}/{pg}";
             if (!string.IsNullOrWhiteSpace(search))
@@ -18,7 +18,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -85,12 +85,12 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)
+        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult, Func<string, ValueTask<string>> onm3u = null)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? string.Empty, "^([^/]+)/.*", "$1/_")}");
+            string html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? string.Empty, "^([^/]+)/.*", "$1/_")}");
             if (html == null)
                 return null;
 
@@ -99,7 +99,7 @@ namespace Shared.Engine.SISI
                 return null;
 
             #region getRelated
-            List<PlaylistItem>? getRelated()
+            List<PlaylistItem> getRelated()
             {
                 var related = new List<PlaylistItem>();
 
@@ -136,7 +136,7 @@ namespace Shared.Engine.SISI
             }
             #endregion
 
-            string? m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
+            string m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
             if (m3u8 == null)
             {
                 return new StreamItem()

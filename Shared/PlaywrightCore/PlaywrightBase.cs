@@ -1,16 +1,14 @@
-﻿using Lampac;
-using Lampac.Engine.CORE;
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using Newtonsoft.Json;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using Shared.Engine;
+using Shared.Models;
 
-namespace Shared.Engine
+namespace Shared.PlaywrightCore
 {
     public enum PlaywrightStatus
     {
@@ -21,6 +19,28 @@ namespace Shared.Engine
 
     public class PlaywrightBase
     {
+        public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
+
+        #region WaitPageResult
+        async public Task<string> WaitPageResult(int seconds = 10)
+        {
+            try
+            {
+                var completionTask = completionSource.Task;
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(seconds));
+
+                var completedTask = await Task.WhenAny(completionTask, timeoutTask).ConfigureAwait(false);
+
+                if (completedTask == completionTask)
+                    return await completionTask;
+
+                return null;
+            }
+            catch { return null; }
+        }
+        #endregion
+
+
         #region InitializationAsync
         async public static Task<bool> InitializationAsync()
         {
@@ -167,7 +187,7 @@ namespace Shared.Engine
 
             Console.WriteLine($"Playwright: Download {outfile}");
 
-            if (await HttpClient.DownloadFile(uri, outfile))
+            if (await Http.DownloadFile(uri, outfile))
             {
                 File.Create($"{outfile}.ok");
 
@@ -220,7 +240,7 @@ namespace Shared.Engine
                 if (response == null)
                 {
                     log.Append("\nresponse null");
-                    HttpClient.onlog?.Invoke(null, log.ToString());
+                    Http.onlog?.Invoke(null, log.ToString());
                     return;
                 }
 
@@ -228,7 +248,7 @@ namespace Shared.Engine
                 foreach (var item in response.Headers)
                     log.Append($"{item.Key}: {item.Value}\n");
 
-                HttpClient.onlog?.Invoke(null, $"{log.ToString()}\n{result}");
+                Http.onlog?.Invoke(null, $"{log.ToString()}\n{result}");
             }
             catch { }
         }
@@ -262,14 +282,14 @@ namespace Shared.Engine
                         log.Append($"{item.Key}: {item.Value}\n");
                 }
 
-                HttpClient.onlog?.Invoke(null, $"{log.ToString()}\n{result}");
+                Http.onlog?.Invoke(null, $"{log.ToString()}\n{result}");
             }
             catch { }
         }
         #endregion
 
         #region IframeUrl
-        public static string IframeUrl(string link) => $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
+        public static string IframeUrl(string link) => $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/api/chromium/iframe?src={HttpUtility.UrlEncode(link)}";
 
         public static string IframeHtml(string link) => $@"<html lang=""ru"">
                 <head>
@@ -281,27 +301,6 @@ namespace Shared.Engine
                     <iframe width=""560"" height=""400"" src=""{link}"" frameborder=""0"" allow=""*"" allowfullscreen></iframe>
                 </body>
             </html>";
-        #endregion
-
-        public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
-
-        #region WaitPageResult
-        async public Task<string> WaitPageResult(int seconds = 10)
-        {
-            try
-            {
-                var completionTask = completionSource.Task;
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(seconds));
-
-                var completedTask = await Task.WhenAny(completionTask, timeoutTask).ConfigureAwait(false);
-
-                if (completedTask == completionTask)
-                    return await completionTask;
-
-                return null;
-            }
-            catch { return null; }
-        }
         #endregion
 
         #region AbortOrCache
@@ -348,7 +347,7 @@ namespace Shared.Engine
                     if (valid)
                     {
                         var hybridCache = new HybridCache();
-                        if (hybridCache.TryGetValue(memkey, out (byte[] content, Dictionary<string, string> headers) cache))
+                        if (hybridCache.TryGetValue(memkey, out (byte[] content, Dictionary<string, string> headers) cache, inmemory: false))
                         {
                             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
                                 Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
@@ -370,7 +369,7 @@ namespace Shared.Engine
                             {
                                 var content = await response.BodyAsync();
                                 if (content != null)
-                                    hybridCache.Set(memkey, (content, response.Headers), DateTime.Now.AddHours(1));
+                                    hybridCache.Set(memkey, (content, response.Headers), DateTime.Now.AddHours(1), inmemory: false);
                             }
                         }
 
@@ -387,13 +386,14 @@ namespace Shared.Engine
         }
         #endregion
 
-
+        #region GotoAsync
         public static void GotoAsync(IPage page, string uri)
         {
             _ = page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
         }
+        #endregion
 
-
+        #region ConsoleLog
         public static void ConsoleLog(in string value, List<HeadersModel> headers = null)
         {
             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
@@ -408,5 +408,6 @@ namespace Shared.Engine
                 }
             }
         }
+        #endregion
     }
 }

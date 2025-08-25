@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Lampac.Models.DLNA
+namespace DLNA.Models
 {
     public class DlnaModel
     {

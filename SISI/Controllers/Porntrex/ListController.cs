@@ -1,14 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Shared.Model.Online;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Porntrex
+namespace SISI.Controllers.Porntrex
 {
     public class ListController : BaseSisiController
     {
@@ -21,7 +13,7 @@ namespace Lampac.Controllers.Porntrex
                 return badInitMsg;
 
             string memKey = $"ptx:{search}:{sort}:{c}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -34,7 +26,7 @@ namespace Lampac.Controllers.Porntrex
                     return ContentTo(rch.connectionMsg);
 
                 string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 playlists = PorntrexTo.Playlist($"{host}/ptx/vidosik", html);
@@ -50,7 +42,7 @@ namespace Lampac.Controllers.Porntrex
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
             }
 
             return OnResult(playlists, PorntrexTo.Menu(host, search, sort, c), headers: HeadersModel.Init("referer", $"{init.host}/"), plugin: init.plugin);

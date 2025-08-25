@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using Shared.Model.Base;
+using Shared.Models.Base;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class FilmixSettings : BaseSettings, ICloneable
     {
@@ -15,32 +15,32 @@ namespace Lampac.Models.LITE
         }
 
 
-        public string[]? tokens { get; set; }
+        public string[] tokens { get; set; }
 
         public bool pro { get; set; }
 
         public bool livehash { get; set; }
 
         [JsonIgnore]
-        public string? token_apitv { get; set; }
+        public string token_apitv { get; set; }
 
         [JsonIgnore]
-        public string? hash_apitv { get; set; }
+        public string hash_apitv { get; set; }
 
-        public string? user_apitv { get; set; }
+        public string user_apitv { get; set; }
 
-        public string? passwd_apitv { get; set; }
+        public string passwd_apitv { get; set; }
 
 
-        public string? APIKEY { get; set; }
+        public string APIKEY { get; set; }
 
-        public string? APISECRET { get; set; }
+        public string APISECRET { get; set; }
 
-        public string? user_name { get; set; }
+        public string user_name { get; set; }
 
-        public string? user_passw { get; set; }
+        public string user_passw { get; set; }
 
-        public string? lowlevel_api_passw { get; set; }
+        public string lowlevel_api_passw { get; set; }
 
 
         public FilmixSettings Clone()

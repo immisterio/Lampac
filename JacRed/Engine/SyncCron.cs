@@ -1,10 +1,5 @@
 ﻿using Jackett;
 using JacRed.Models.Sync;
-using Lampac.Engine.CORE;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace JacRed.Engine
 {
@@ -31,7 +26,7 @@ namespace JacRed.Engine
                         if (lastsync == -1 && File.Exists("cache/jacred/lastsync.txt"))
                             lastsync = long.Parse(File.ReadAllText("cache/jacred/lastsync.txt"));
 
-                        var root = await HttpClient.Get<RootObject>($"{ModInit.conf.Red.syncapi}/sync/fdb/torrents?time={lastsync}", timeoutSeconds: 300, MaxResponseContentBufferSize: 100_000_000, weblog: false).ConfigureAwait(false);
+                        var root = await Http.Get<RootObject>($"{ModInit.conf.Red.syncapi}/sync/fdb/torrents?time={lastsync}", timeoutSeconds: 300, MaxResponseContentBufferSize: 100_000_000, weblog: false).ConfigureAwait(false);
 
                         if (root?.collections == null)
                         {

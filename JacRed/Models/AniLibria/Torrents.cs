@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.JAC.AniLibria
+﻿namespace JacRed.Models.AniLibria
 {
     public class Torrents
     {

@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Kodik
+﻿namespace Shared.Models.Online.Kodik
 {
     public class StreamModel
     {

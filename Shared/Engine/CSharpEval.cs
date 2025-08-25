@@ -1,5 +1,4 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.Module;
+﻿using Shared.Models.Module;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;

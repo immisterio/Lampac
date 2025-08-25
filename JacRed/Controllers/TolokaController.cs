@@ -1,20 +1,7 @@
-﻿using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Shared;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("toloka/[action]")]
     public class TolokaController : JacBaseController
@@ -42,7 +29,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("toloka", jackett.Toloka);
 
-            byte[] _t = await HttpClient.Download($"{jackett.Toloka.host}/download.php?id={id}", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Toloka.host);
+            byte[] _t = await Http.Download($"{jackett.Toloka.host}/download.php?id={id}", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Toloka.host);
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -65,7 +52,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("toloka", jackett.Toloka);
 
-            string html = await HttpClient.Get($"{jackett.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.Toloka.host}/tracker.php?prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_cg=0&prev_ct=0&prev_at=0&prev_nt=0&prev_de=0&prev_nd=0&prev_tcs=1&prev_shs=0&f%5B%5D=-1&o=1&s=2&tm=-1&shf=1&sha=1&tcs=1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query)}&pn=&send=%D0%9F%D0%BE%D1%88%D1%83%D0%BA", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
 
             if (html != null && html.Contains("<html lang=\"uk\""))
             {

@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
-using Shared.Model.Online;
-using Merchant;
 using IO = System.IO.File;
 using System.IO;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using Shared;
+using Shared.Engine;
+using Shared.Models;
 
-namespace Lampac.Controllers.LITE
+namespace Merchant.Controllers
 {
     /// <summary>
     /// https://app.cryptocloud.plus/integration/api
@@ -42,7 +42,7 @@ namespace Lampac.Controllers.LITE
             if (memoryCache.TryGetValue($"cryptocloud:{email}", out string pay_url))
                 return Redirect(pay_url);
 
-            var root = await HttpClient.Post<JObject>("https://api.cryptocloud.plus/v1/invoice/create", new System.Net.Http.FormUrlEncodedContent(postParams), headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
+            var root = await Http.Post<JObject>("https://api.cryptocloud.plus/v1/invoice/create", new System.Net.Http.FormUrlEncodedContent(postParams), headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || !root.ContainsKey("pay_url"))
                 return Content("root == null");
 
@@ -67,7 +67,7 @@ namespace Lampac.Controllers.LITE
 
             WriteLog("cryptocloud", JsonConvert.SerializeObject(HttpContext.Request.Form));
 
-            var root = await HttpClient.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
+            var root = await Http.Get<JObject>("https://api.cryptocloud.plus/v1/invoice/info?uuid=INV-" + invoice_id, headers: HeadersModel.Init("Authorization", $"Token {AppInit.conf.Merchant.CryptoCloud.APIKEY}"));
             if (root == null || root.Value<string>("status") != "success")
                 return StatusCode(403);
 

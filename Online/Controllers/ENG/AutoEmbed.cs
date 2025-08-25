@@ -1,16 +1,10 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using Shared.Engine;
-using Lampac.Models.LITE;
-using System.Text.RegularExpressions;
-using Shared.Model.Templates;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
+using Shared.Models.Online.Settings;
+using Shared.PlaywrightCore;
 using System.Text;
-using Shared.Model.Online;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class AutoEmbed : BaseENGController
     {
@@ -51,7 +45,7 @@ namespace Lampac.Controllers.LITE
 
                 if (!hybridCache.TryGetValue(uri, out JObject data))
                 {
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
+                    var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
                         ("Accept-Language", "en-US,en;q=0.5"),
                         ("Alt-Used", "nono.autoembed.cc"),
                         ("Priority", "u=4"),
@@ -74,7 +68,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     var postdata = new System.Net.Http.StringContent("{\"encryptedData\":\"" + encryptedData + "\"}", Encoding.UTF8, "application/json");
-                    var videoSource = await HttpClient.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
+                    var videoSource = await Http.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
                         ("Accept-Language", "en-US,en;q=0.5"),
                         ("Alt-Used", "nono.autoembed.cc"),
                         ("Origin", apihost),

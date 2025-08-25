@@ -1,14 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using System.Threading.Tasks;
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using Lampac.Engine.CORE;
 using Shared.Engine;
+using Shared;
 
-namespace Lampac.Controllers
+namespace Tracks.Controllers
 {
     public class TracksController : BaseController
     {
@@ -64,12 +63,12 @@ namespace Lampac.Controllers
             }
 
             string memKey = $"tracks:ffprobe:{media}";
-            if (!hybridCache.TryGetValue(memKey, out string outPut))
+            if (!hybridCache.TryGetValue(memKey, out string outPut, inmemory: false))
             {
                 #region getFolder
                 static string getFolder(string magnethash)
                 {
-                    return $"cache/tracks/{magnethash}";
+                    return $"database/tracks/{magnethash}";
                 }
                 #endregion
 
@@ -107,7 +106,7 @@ namespace Lampac.Controllers
                     else
                     {
                         // заглушка
-                        hybridCache.Set(memKey, outPut, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 1));
+                        hybridCache.Set(memKey, outPut, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 20 : 1), inmemory: false);
                     }
                 }
             }

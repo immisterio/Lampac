@@ -1,18 +1,6 @@
-﻿using System.Collections.Concurrent;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using JacRed.Engine;
-using JacRed.Models;
-using System.Collections.Generic;
-using System;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("anifilm/[action]")]
     public class AnifilmController : JacBaseController
@@ -36,7 +24,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("anifilm", jackett.Anifilm);
 
-            var fullNews = await HttpClient.Get($"{jackett.Anifilm.host}/{url}", proxy: proxyManager.Get());
+            var fullNews = await Http.Get($"{jackett.Anifilm.host}/{url}", proxy: proxyManager.Get());
             if (fullNews == null)
                 return Content("error");
 
@@ -52,7 +40,7 @@ namespace Lampac.Controllers.JAC
 
             if (!string.IsNullOrWhiteSpace(tid))
             {
-                var _t = await HttpClient.Download($"{jackett.Anifilm.host}/{tid}", referer: $"{jackett.Anifilm.host}/", proxy: proxyManager.Get());
+                var _t = await Http.Download($"{jackett.Anifilm.host}/{tid}", referer: $"{jackett.Anifilm.host}/", proxy: proxyManager.Get());
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                     return File(_t, "application/x-bittorrent");
             }
@@ -68,7 +56,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("anifilm", jackett.Anifilm);
 
-            string html = await HttpClient.Get($"{jackett.Anifilm.host}/releases?title={HttpUtility.UrlEncode(query)}", timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get());
+            string html = await Http.Get($"{jackett.Anifilm.host}/releases?title={HttpUtility.UrlEncode(query)}", timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get());
 
             if (html == null || !html.Contains("id=\"ui-components\""))
             {

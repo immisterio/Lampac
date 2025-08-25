@@ -1,25 +1,24 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Shared.Model.Base;
-using Shared.Model.Online.Lumex;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.Lumex;
+using Shared.Models.Online.Settings;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class LumexInvoke
+    public struct LumexInvoke
     {
         #region LumexInvoke
-        string? host, scheme;
+        string host, scheme;
         bool hls;
         string apihost;
-        string? token;
-        Func<string, string, ValueTask<string?>> onget;
-        Func<string, string>? onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        string token;
+        Func<string, string, ValueTask<string>> onget;
+        Func<string, string> onstreamfile;
+        Func<string, string> onlog;
+        Action requesterror;
 
         public string onstream(string stream)
         {
@@ -29,7 +28,7 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public LumexInvoke(LumexSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null, Action? requesterror = null)
+        public LumexInvoke(LumexSettings init, Func<string, string, ValueTask<string>> onget, Func<string, string> onstreamfile, string host = null, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme ?? "http";
@@ -44,27 +43,27 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl> Search(string title, string? original_title, int serial, int clarification, List<DatumDB>? database = null)
+        public async ValueTask<SimilarTpl> Search(string title, string original_title, int serial, int clarification, List<DatumDB> database = null)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return default;
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             if (!string.IsNullOrEmpty(token))
             {
                 #region api/short
                 string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
-                string? json = await onget.Invoke(uri, apihost);
+                string json = await onget.Invoke(uri, apihost);
                 if (json == null)
                 {
                     requesterror?.Invoke();
                     return default;
                 }
 
-                SearchRoot? root = null;
+                SearchRoot root = null;
 
                 try
                 {
@@ -94,11 +93,11 @@ namespace Shared.Engine.Online
                     }
 
                     string year = item.add?.Split("-")?[0] ?? string.Empty;
-                    string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
+                    string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
 
                     string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
-                    string? img = PosterApi.Find(item.kp_id, item.imdb_id);
+                    string img = PosterApi.Find(item.kp_id, item.imdb_id);
                     stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&content_type={item.content_type}&content_id={item.id}&clarification={clarification}", img);
                 }
 
@@ -135,7 +134,7 @@ namespace Shared.Engine.Online
                             isok = true;
                     }
 
-                    string? stitle = StringConvert.SearchName(title);
+                    string stitle = StringConvert.SearchName(title);
                     if (!isok && stitle != null)
                     {
                         if (!string.IsNullOrEmpty(item.ru_title))
@@ -155,11 +154,11 @@ namespace Shared.Engine.Online
                         continue;
 
                     string year = item.year?.Split("-")?[0] ?? string.Empty;
-                    string? name = !string.IsNullOrEmpty(item.ru_title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.ru_title} / {item.orig_title}" : (item.ru_title ?? item.orig_title);
+                    string name = !string.IsNullOrEmpty(item.ru_title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.ru_title} / {item.orig_title}" : (item.ru_title ?? item.orig_title);
 
                     string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kinopoisk_id}";
 
-                    string? img = PosterApi.Find(item.kinopoisk_id, item.imdb_id);
+                    string img = PosterApi.Find(item.kinopoisk_id, item.imdb_id);
                     stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&content_type={item.content_type}&content_id={item.id}&clarification={clarification}", img);
                 }
 
@@ -172,7 +171,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, long content_id, string content_type, string? imdb_id, long kinopoisk_id, string? title, string? original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
+        public string Html(EmbedModel result, string args, long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
         {
             if (result?.media == null || result.media.Count == 0)
                 return string.Empty;
@@ -215,8 +214,8 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 try
                 {

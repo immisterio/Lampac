@@ -1,6 +1,6 @@
-﻿using Shared.Model.Templates;
+﻿using Shared.Models.Templates;
 
-namespace Shared.Model.Online.KinoPub
+namespace Shared.Models.Online.KinoPub
 {
     public class SearchResult
     {

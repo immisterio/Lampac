@@ -1,16 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Web;
-using Lampac.Models.SISI;
-using System.Text.RegularExpressions;
-using Shared.Model.SISI;
-using SISI;
-using Shared.Engine.CORE;
-using Lampac.Engine.CORE;
 
-namespace Lampac.Controllers.Tizam
+namespace SISI.Controllers.Tizam
 {
     public class ListController : BaseSisiController
     {
@@ -25,7 +16,7 @@ namespace Lampac.Controllers.Tizam
                 return OnError("no search", false);
 
             string memKey = $"tizam:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -44,7 +35,7 @@ namespace Lampac.Controllers.Tizam
                     uri += $"?p={page}";
 
                 string html = rch.enable ? await rch.Get(init.cors(uri), httpHeaders(init)) : 
-                                           await HttpClient.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                                           await Http.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
 
                 playlists = Playlist(html);
 
@@ -59,14 +50,14 @@ namespace Lampac.Controllers.Tizam
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(60, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(60, init: init), inmemory: false);
             }
 
             return OnResult(playlists, null, plugin: init.plugin);
         }
 
 
-        List<PlaylistItem> Playlist(string html)
+        static List<PlaylistItem> Playlist(string html)
         {
             var playlists = new List<PlaylistItem>() { Capacity = 25 };
             if (string.IsNullOrEmpty(html))

@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.VideoCDN
+﻿namespace Shared.Models.Online.VideoCDN
 {
     public class Folder
     {

@@ -1,26 +1,13 @@
 ﻿using HtmlAgilityPack;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Playwright;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.SISI;
-using Shared.Model.SISI.NextHUB;
-using Shared.Models;
 using Shared.Models.CSharpGlobals;
+using Shared.Models.SISI.NextHUB;
 using Shared.PlaywrightCore;
-using SISI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
 
-namespace Lampac.Controllers.NextHUB
+namespace SISI.Controllers.NextHUB
 {
     public class ListController : BaseSisiController
     {
@@ -48,7 +35,7 @@ namespace Lampac.Controllers.NextHUB
                     memKey += $":{HttpContext.Request.Query[item.arg]}";
             }
 
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotConnected())
@@ -122,7 +109,7 @@ namespace Lampac.Controllers.NextHUB
                     url = CSharpEval.Execute<string>(init.route.eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
 
                 string html = rch.enable ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) :
-                           init.priorityBrowser == "http" ? await HttpClient.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) :
+                           init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) :
                            init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) :
                                                   await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, model, pg);
 
@@ -136,7 +123,7 @@ namespace Lampac.Controllers.NextHUB
                     return OnError("playlists", proxyManager, rcache: !(init.debug || rch.enable));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(init.cache_time, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(init.cache_time, init: init), inmemory: false);
             }
 
             var menu = new List<MenuItem>(3);

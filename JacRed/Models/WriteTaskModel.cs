@@ -1,7 +1,4 @@
-﻿using JacRed.Engine;
-using System;
-
-namespace JacRed.Models
+﻿namespace JacRed.Models
 {
     public class WriteTaskModel
     {

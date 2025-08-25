@@ -1,15 +1,7 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Shared.Model.Online;
-using System.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Web;
 
-namespace Lampac.Controllers.Porntrex
+namespace SISI.Controllers.Porntrex
 {
     public class ViewController : BaseSisiController
     {
@@ -38,7 +30,7 @@ namespace Lampac.Controllers.Porntrex
                     if (rch.enable)
                         return rch.Get(init.cors(url), httpHeaders(init));
 
-                    return HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    return Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                 });
 
                 if (cache.links == null || cache.links.Count == 0)
@@ -82,7 +74,7 @@ namespace Lampac.Controllers.Porntrex
             string memKey = $"Porntrex:strem:{link}:{proxyManager.CurrentProxyIp}";
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
-                location = await HttpClient.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+                location = await Http.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("sec-fetch-dest", "document"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "none")

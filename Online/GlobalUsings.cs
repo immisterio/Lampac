@@ -1,0 +1,14 @@
+﻿global using System;
+global using System.Web;
+global using System.Threading.Tasks;
+global using System.Collections.Generic;
+global using System.Text.RegularExpressions;
+global using System.Collections.Concurrent;
+global using System.IO;
+global using System.Linq;
+global using Shared;
+global using Shared.Models;
+global using Shared.Engine;
+global using Shared.Engine.Online;
+global using Shared.Models.Templates;
+global using Shared.Models.Base;

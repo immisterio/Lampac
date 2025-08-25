@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Shared.Model.SISI.NextHUB
+namespace Shared.Models.SISI.NextHUB
 {
     public class NxtSettings : BaseSettings
     {

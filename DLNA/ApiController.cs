@@ -1,7 +1,4 @@
-﻿using Lampac.Engine;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Lampac.Models.DLNA;
+﻿using DLNA.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Driver;
@@ -10,8 +7,10 @@ using MonoTorrent.Client;
 using NetVips;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared;
 using Shared.Engine;
-using Shared.Model.Online;
+using Shared.Engine.JacRed;
+using Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +22,7 @@ using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
 
-namespace Lampac.Controllers
+namespace DLNA.Controllers
 {
     public class DLNAController : BaseController
     {
@@ -45,7 +44,7 @@ namespace Lampac.Controllers
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                string trackers_best_ip = await HttpClient.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20).ConfigureAwait(false);
+                string trackers_best_ip = await Http.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20).ConfigureAwait(false);
                 if (trackers_best_ip != null)
                 {
                     foreach (string line in trackers_best_ip.Split("\n"))
@@ -785,9 +784,9 @@ namespace Lampac.Controllers
 
                                 string uri = Regex.Replace(thumb, "^https?://[^/]+/", "");
 
-                                var array = await HttpClient.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8).ConfigureAwait(false);
+                                var array = await Http.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8).ConfigureAwait(false);
                                 if (array == null || !IsValidImg(array))
-                                    array = await HttpClient.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}").ConfigureAwait(false);
+                                    array = await Http.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}").ConfigureAwait(false);
 
                                 if (array != null && IsValidImg(array))
                                 {
@@ -940,10 +939,10 @@ namespace Lampac.Controllers
                         #region tmdb
                         string cat = serial ? "tv" : "movie";
                         var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                        string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
+                        string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
 
                         if (string.IsNullOrEmpty(json))
-                            json = await HttpClient.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
+                            json = await Http.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
 
                         if (!string.IsNullOrEmpty(json))
                         {
@@ -955,10 +954,10 @@ namespace Lampac.Controllers
                                 {
                                     async ValueTask write(int s)
                                     {
-                                        string seasons = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
+                                        string seasons = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20, headers: header);
 
                                         if (string.IsNullOrEmpty(seasons))
-                                            seasons = await HttpClient.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
+                                            seasons = await Http.Get($"https://apitmdb.{AppInit.conf.cub.mirror}/3/{cat}/{id}/season/{s}?api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 20);
 
                                         if (!string.IsNullOrEmpty(seasons))
                                             IO.File.WriteAllText($"{dlna_path}/tmdb/{id}_season-{s}.json", json);

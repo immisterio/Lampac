@@ -1,18 +1,8 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Online.Kinotochka;
-using Shared.Model.Templates;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
+using Shared.Models.Online.Kinotochka;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Kinotochka : BaseOnlineController
     {
@@ -52,7 +42,7 @@ namespace Lampac.Controllers.LITE
                         if (kinopoisk_id > 0) // https://kinovibe.co/embed.html
                         {
                             string uri = $"{init.corsHost()}/api/find-by-kinopoisk.php?kinopoisk={kinopoisk_id}";
-                            var root = rch.enable ? await rch.Get<JArray>(uri, httpHeaders(init)) : await HttpClient.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                            var root = rch.enable ? await rch.Get<JArray>(uri, httpHeaders(init)) : await Http.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                             if (root == null || root.Count == 0)
                                 return res.Fail("find-by-kinopoisk");
 
@@ -71,11 +61,11 @@ namespace Lampac.Controllers.LITE
                         else
                         {
                             string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
-                            string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                            string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                             if (search == null)
                             {
                                 if (!rch.enable)
-                                    proxyManager?.Refresh();
+                                    proxyManager.Refresh();
 
                                 return res.Fail("search");
                             }
@@ -129,11 +119,11 @@ namespace Lampac.Controllers.LITE
                         if (rch.IsNotConnected())
                             return res.Fail(rch.connectionMsg);
 
-                        string news = rch.enable ? await rch.Get(newsuri, httpHeaders(init)) : await HttpClient.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                        string news = rch.enable ? await rch.Get(newsuri, httpHeaders(init)) : await Http.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (news == null)
                         {
                             if (!rch.enable)
-                                proxyManager?.Refresh();
+                                proxyManager.Refresh();
 
                             return res.Fail("news");
                         }
@@ -142,11 +132,11 @@ namespace Lampac.Controllers.LITE
                         if (string.IsNullOrEmpty(filetxt))
                             return res.Fail("filetxt");
 
-                        var root = rch.enable ? await rch.Get<JObject>(filetxt, httpHeaders(init)) : await HttpClient.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                        var root = rch.enable ? await rch.Get<JObject>(filetxt, httpHeaders(init)) : await Http.Get<JObject>(filetxt, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (root == null)
                         {
                             if (!rch.enable)
-                                proxyManager?.Refresh();
+                                proxyManager.Refresh();
 
                             return res.Fail("root");
                         }
@@ -204,11 +194,11 @@ namespace Lampac.Controllers.LITE
                         return res.Fail(rch.connectionMsg);
 
                     string uri = $"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}";
-                    string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
+                    string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await Http.Get(uri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                     if (embed == null)
                     {
                         if (!rch.enable)
-                            proxyManager?.Refresh();
+                            proxyManager.Refresh();
 
                         return res.Fail("embed");
                     }

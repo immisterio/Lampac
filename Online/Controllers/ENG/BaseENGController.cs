@@ -1,14 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Online;
-using Shared.Model.Templates;
-using Lampac.Models.LITE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
-using System.Web;
-using System;
+using Shared.Models.Online.Settings;
+using Shared.Models.Templates;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class BaseENGController : BaseOnlineController
     {
@@ -29,7 +24,7 @@ namespace Lampac.Controllers.LITE
                 #region Сериал
                 var tmdb = await InvokeCache<JToken>($"tmdb:seasons:{id}", cacheTime(40, init: init), async res =>
                 {
-                    var root = await HttpClient.Get<JObject>($"{AppInit.conf.cub.scheme}://tmdb.{AppInit.conf.cub.mirror}/3/tv/{id}?api_key={AppInit.conf.tmdb.api_key}");
+                    var root = await Http.Get<JObject>($"{AppInit.conf.cub.scheme}://tmdb.{AppInit.conf.cub.mirror}/3/tv/{id}?api_key={AppInit.conf.tmdb.api_key}");
 
                     if (root == null || !root.ContainsKey("seasons"))
                         return res.Fail("seasons");

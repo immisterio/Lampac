@@ -1,8 +1,8 @@
-﻿namespace Shared.Model.Base
+﻿namespace Shared.Models.Base
 {
     public class ApnConf
     {
-        public string? host { get; set; }
+        public string host { get; set; }
 
         public string secure { get; set; }
 

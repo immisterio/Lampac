@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class KodikSettings : BaseSettings, ICloneable
     {
@@ -20,7 +20,7 @@ namespace Lampac.Models.LITE
 
         public bool cdn_is_working { get; set; }
 
-        public string? secret_token { get; set; }
+        public string secret_token { get; set; }
 
         public string linkhost { get; set; }
 

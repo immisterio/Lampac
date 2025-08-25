@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class AllohaSettings : BaseSettings, ICloneable
     {
@@ -17,7 +17,7 @@ namespace Lampac.Models.LITE
         }
 
 
-        public string? secret_token { get; set; }
+        public string secret_token { get; set; }
 
         public string linkhost { get; set; }
 

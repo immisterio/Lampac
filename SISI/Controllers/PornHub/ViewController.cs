@@ -1,13 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Lampac.Models.SISI;
-using Shared.Model.Online;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.PornHub
+namespace SISI.Controllers.PornHub
 {
     public class ViewController : BaseSisiController
     {
@@ -33,7 +26,7 @@ namespace Lampac.Controllers.PornHub
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await PornHubTo.StreamLinks($"{host}/phub/vidosik", "phub", init.corsHost(), vkey, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
@@ -71,7 +64,7 @@ namespace Lampac.Controllers.PornHub
             string memKey = $"phubprem:vidosik:{vkey}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", "phubprem", init.corsHost(), vkey, url => HttpClient.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
+                stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", "phubprem", init.corsHost(), vkey, url => Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);

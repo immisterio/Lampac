@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.Merchant.LtcWallet
+﻿namespace Shared.Models.Merchant.LtcWallet
 {
     public class RootTransactions
     {

@@ -1,5 +1,6 @@
-﻿using Lampac.Engine.CORE;
-using Shared.Model.Online;
+﻿using Shared;
+using Shared.Engine;
+using Shared.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -25,7 +26,7 @@ namespace Lampac.Engine.CRON
 
                 try
                 {
-                    var init = await HttpClient.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd)).ConfigureAwait(false);
+                    var init = await Http.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd)).ConfigureAwait(false);
                     if (init != null)
                     {
                         if (sync.sync_full)

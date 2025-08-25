@@ -1,10 +1,9 @@
 ﻿using HtmlAgilityPack;
-using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Playwright;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.SISI.NextHUB;
+using Shared.Engine;
+using Shared.Models.SISI.Base;
+using Shared.Models.SISI.NextHUB;
 
 namespace Shared.Models.CSharpGlobals
 {

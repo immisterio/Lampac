@@ -1,4 +1,5 @@
-﻿using Lampac.Engine.CORE;
+﻿using Shared;
+using Shared.Engine;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -28,7 +29,7 @@ namespace Lampac.Engine.CRON
                     {
                         try
                         {
-                            string js = await HttpClient.Get(url, Encoding.UTF8, weblog: false).ConfigureAwait(false);
+                            string js = await Http.Get(url, Encoding.UTF8, weblog: false).ConfigureAwait(false);
                             if (js != null && js.Contains(checkcode))
                             {
                                 if (path == null)
@@ -68,17 +69,17 @@ namespace Lampac.Engine.CRON
                 {
                     if (File.Exists("wwwroot/bwa/_framework/blazor.boot.json"))
                     {
-                        string bwajs = await HttpClient.Get("https://bwa.to/f", weblog: false).ConfigureAwait(false);
+                        string bwajs = await Http.Get("https://bwa.to/f", weblog: false).ConfigureAwait(false);
                         string framework = Regex.Match(bwajs, "framework = '([^']+)'").Groups[1].Value;
 
-                        string bootapp = await HttpClient.Get($"{framework}/blazor.boot.json", weblog: false).ConfigureAwait(false);
+                        string bootapp = await Http.Get($"{framework}/blazor.boot.json", weblog: false).ConfigureAwait(false);
                         if (bootapp != null && bootapp.Contains("JinEnergy.wasm"))
                         {
                             string currentapp = File.ReadAllText("wwwroot/bwa/_framework/blazor.boot.json");
 
                             if (CrypTo.md5(bootapp) != CrypTo.md5(currentapp))
                             {
-                                byte[] array = await HttpClient.Download($"{framework}/latest.zip", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40).ConfigureAwait(false);
+                                byte[] array = await Http.Download($"{framework}/latest.zip", MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40).ConfigureAwait(false);
                                 if (array != null)
                                 {
                                     await File.WriteAllBytesAsync("wwwroot/bwa/latest.zip", array).ConfigureAwait(false);

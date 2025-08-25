@@ -1,14 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using Lampac.Models.LITE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
+using Shared.Models.Online.Settings;
 using System.Net;
-using Shared.Model.Templates;
-using System;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class RgShows : BaseENGController
     {
@@ -60,7 +55,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"rgshows:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out string file))
                 {
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 40, httpversion: 2, headers: httpHeaders(init));
+                    var root = await Http.Get<JObject>(uri, timeoutSeconds: 40, httpversion: 2, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("stream"))
                     {
                         proxyManager.Refresh();

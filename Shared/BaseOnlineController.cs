@@ -1,18 +1,13 @@
-﻿using Lampac;
-using Lampac.Engine;
-using Lampac.Engine.CORE;
-using Lampac.Models.Module;
+﻿using Shared.Models.Module;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Base;
+using Shared.Models.Base;
 using Shared.Models;
-using Shared.Models.Module;
 using System.Reflection;
 
-namespace Online
+namespace Shared
 {
     public class BaseOnlineController : BaseController
     {
@@ -109,14 +104,14 @@ namespace Online
         public void OnLog(string msg)
         {
             if (AppInit.conf.weblog.enable)
-                HttpClient.onlog?.Invoke(null, msg + "\n");
+                Http.onlog?.Invoke(null, msg + "\n");
         }
         #endregion
 
         #region OnError
         public ActionResult OnError(ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null) => OnError(string.Empty, proxyManager, refresh_proxy, weblog: weblog);
 
-        public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null)
+        public ActionResult OnError(string msg, ProxyManager? proxyManager, bool refresh_proxy = true, string weblog = null)
         {
             if (string.IsNullOrEmpty(msg) || !msg.StartsWith("{\"rch\""))
             {
@@ -140,7 +135,7 @@ namespace Online
                 if (!string.IsNullOrEmpty(weblog))
                     log += $"\n\n\n===================\n\n{weblog}";
 
-                HttpClient.onlog?.Invoke(null, log);
+                Http.onlog?.Invoke(null, log);
             }
 
             if (AppInit.conf.multiaccess && gbcache)

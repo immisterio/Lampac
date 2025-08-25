@@ -1,20 +1,7 @@
-﻿using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Shared;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("rutracker/[action]")]
     public class RutrackerController : JacBaseController
@@ -45,14 +32,14 @@ namespace Lampac.Controllers.JAC
             #region Download
             if (jackett.Rutracker.priority == "torrent")
             {
-                var _t = await HttpClient.Download($"{jackett.Rutracker.host}/forum/dl.php?t={id}", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Rutracker.host);
+                var _t = await Http.Download($"{jackett.Rutracker.host}/forum/dl.php?t={id}", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Rutracker.host);
                 if (_t != null && BencodeTo.Magnet(_t) != null)
                     return File(_t, "application/x-bittorrent");
             }
             #endregion
 
             #region Magnet
-            var fullNews = await HttpClient.Get($"{jackett.Rutracker.host}/forum/viewtopic.php?t=" + id, proxy: proxyManager.Get(), cookie: cookie);
+            var fullNews = await Http.Get($"{jackett.Rutracker.host}/forum/viewtopic.php?t=" + id, proxy: proxyManager.Get(), cookie: cookie);
             if (fullNews != null)
             {
                 string magnet = Regex.Match(fullNews, "href=\"(magnet:[^\"]+)\" class=\"(med )?med magnet-link\"").Groups[1].Value;
@@ -81,7 +68,7 @@ namespace Lampac.Controllers.JAC
             #endregion
 
             #region Кеш html
-            string html = await HttpClient.Get($"{jackett.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.Rutracker.host}/forum/tracker.php?nm=" + HttpUtility.UrlEncode(query), proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
 
             if (html != null)
             {

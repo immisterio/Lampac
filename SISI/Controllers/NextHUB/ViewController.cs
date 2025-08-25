@@ -1,25 +1,15 @@
 ﻿using HtmlAgilityPack;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.SISI.NextHUB;
 using Shared.Models.CSharpGlobals;
 using Shared.PlaywrightCore;
-using SISI;
-using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using Shared.Models.SISI.NextHUB;
 
-namespace Lampac.Controllers.NextHUB
+namespace SISI.Controllers.NextHUB
 {
     public class ViewController : BaseSisiController
     {
@@ -456,15 +446,13 @@ namespace Lampac.Controllers.NextHUB
 
             try
             {
-                string memKey = $"nexthub:view18:goVideo:{url}";
-                if (init.view.bindingToIP)
-                    memKey += $":{proxyManager.CurrentProxyIp}";
+                string memKey = rch.ipkey($"nexthub:view18:goVideo:{url}", proxyManager);
 
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
                 {
                     resetGotoAsync:
                     string html = rch.enable ? await rch.Get(url, httpHeaders(init)) :
-                                               await HttpClient.Get(url, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: 8);
+                                               await Http.Get(url, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: 8);
 
                     if (string.IsNullOrEmpty(html))
                         return default;

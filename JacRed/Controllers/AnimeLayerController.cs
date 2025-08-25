@@ -1,20 +1,7 @@
-﻿using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Shared;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("animelayer/[action]")]
     public class AnimeLayerController : JacBaseController
@@ -42,7 +29,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("animelayer", jackett.Animelayer);
 
-            byte[] _t = await HttpClient.Download($"{url}download/", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Animelayer.host);
+            byte[] _t = await Http.Download($"{url}download/", proxy: proxyManager.Get(), cookie: cookie, referer: jackett.Animelayer.host);
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -66,7 +53,7 @@ namespace Lampac.Controllers.JAC
             var proxyManager = new ProxyManager("animelayer", jackett.Animelayer);
 
             #region html
-            string html = await HttpClient.Get($"{jackett.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.Animelayer.host}/torrents/anime/?q={HttpUtility.UrlEncode(query)}", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
 
             if (html != null && html.Contains("id=\"wrapper\""))
             {

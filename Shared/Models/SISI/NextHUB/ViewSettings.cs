@@ -1,18 +1,18 @@
-﻿namespace Shared.Model.SISI.NextHUB
+﻿namespace Shared.Models.SISI.NextHUB
 {
     public class ViewSettings
     {
         public string initUrlEval { get; set; }
 
-        public string? addInitScript { get; set; }
+        public string addInitScript { get; set; }
 
         public string routeEval { get; set; }
 
-        public string? eval { get; set; }
+        public string eval { get; set; }
 
-        public string? evalJS { get; set; }
+        public string evalJS { get; set; }
 
-        public string? playbtn { get; set; }
+        public string playbtn { get; set; }
 
         public string waitForSelector { get; set; }
 

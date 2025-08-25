@@ -1,13 +1,11 @@
 using Lampac.Engine;
-using Lampac.Engine.CORE;
 using Lampac.Engine.CRON;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Engine;
-using Shared.Model.Base;
+using Shared.Models.Base;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -17,6 +15,10 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Shared;
+using Shared.PlaywrightCore;
+using Shared.Engine;
+using System.Runtime.Loader;
 
 namespace Lampac
 {
@@ -31,25 +33,23 @@ namespace Lampac
 
         public static void Main(string[] args)
         {
+            #region load references
+            AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
+            {
+                var assemblyPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "references", $"{assemblyName.Name}.dll");
+                if (File.Exists(assemblyPath))
+                    return context.LoadFromAssemblyPath(assemblyPath);
+
+                return null;
+            };
+            #endregion
+
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            ThreadPool.QueueUserWorkItem(async _ =>
-            {
-                while (true)
-                {
-                    try
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            CollectionDb.Configure();
 
-                        if (File.Exists("update.sh"))
-                            File.Move("update.sh", "_old_update.sh");
-                    }
-                    catch { }
-                }
-            });
-
-            HttpClient.onlog += (e, log) => soks.SendLog(log, "http");
+            Http.onlog += (e, log) => soks.SendLog(log, "http");
             RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
 
             string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
@@ -104,11 +104,11 @@ namespace Lampac
             }
             #endregion
 
-            if (!File.Exists("vers.txt"))
-                File.WriteAllText("vers.txt", BaseController.appversion);
+            if (!File.Exists("data/vers.txt"))
+                File.WriteAllText("data/vers.txt", BaseController.appversion);
 
-            if (!File.Exists("vers-minor.txt"))
-                File.WriteAllText("vers-minor.txt", "1");
+            if (!File.Exists("data/vers-minor.txt"))
+                File.WriteAllText("data/vers-minor.txt", "1");
 
             ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run().ConfigureAwait(false));
             ThreadPool.QueueUserWorkItem(async _ => await LampaCron.Run().ConfigureAwait(false));
@@ -129,7 +129,7 @@ namespace Lampac
 
                         if (AppInit.conf.kit.enable && AppInit.conf.kit.IsAllUsersPath && !string.IsNullOrEmpty(AppInit.conf.kit.path))
                         {
-                            var users = await HttpClient.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path).ConfigureAwait(false);
+                            var users = await Http.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path).ConfigureAwait(false);
                             if (users != null)
                                 AppInit.conf.kit.allUsers = users;
                         }
@@ -142,13 +142,13 @@ namespace Lampac
             #region cloudflare_ips
             ThreadPool.QueueUserWorkItem(async _ => 
             {
-                string ips = await HttpClient.Get("https://www.cloudflare.com/ips-v4").ConfigureAwait(false);
+                string ips = await Http.Get("https://www.cloudflare.com/ips-v4").ConfigureAwait(false);
                 if (ips == null || !ips.Contains("173.245."))
                     ips = File.Exists("data/cloudflare/ips-v4.txt") ? File.ReadAllText("data/cloudflare/ips-v4.txt") : null;
 
                 if (ips != null)
                 {
-                    string ips_v6 = await HttpClient.Get("https://www.cloudflare.com/ips-v6").ConfigureAwait(false);
+                    string ips_v6 = await Http.Get("https://www.cloudflare.com/ips-v6").ConfigureAwait(false);
                     if (ips_v6 == null || !ips_v6.Contains("2400:cb00"))
                         ips_v6 = File.Exists("data/cloudflare/ips-v6.txt") ? File.ReadAllText("data/cloudflare/ips-v6.txt") : null;
 
@@ -247,7 +247,7 @@ namespace Lampac
                     {
                         ThreadPool.QueueUserWorkItem(async _ => 
                         {
-                            string new_update = await HttpClient.Get("https://raw.githubusercontent.com/immisterio/Lampac/refs/heads/main/update.sh").ConfigureAwait(false);
+                            string new_update = await Http.Get("https://raw.githubusercontent.com/immisterio/Lampac/refs/heads/main/update.sh").ConfigureAwait(false);
                             if (new_update != null && new_update.Contains("DEST=\"/home/lampac\""))
                                 File.WriteAllText("update.sh", new_update);
                         });
@@ -279,22 +279,22 @@ namespace Lampac
                 {
                     webBuilder.UseKestrel(op => 
                     {
-                        if (string.IsNullOrEmpty(AppInit.conf.listen_sock) && string.IsNullOrEmpty(AppInit.conf.listenip))
+                        if (string.IsNullOrEmpty(AppInit.conf.listen.sock) && string.IsNullOrEmpty(AppInit.conf.listen.ip))
                         {
                             op.Listen(IPAddress.Parse("127.0.0.1"), 9118);
                         }
                         else
                         {
-                            if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
+                            if (!string.IsNullOrEmpty(AppInit.conf.listen.sock))
                             {
-                                if (File.Exists($"/var/run/{AppInit.conf.listen_sock}.sock"))
-                                    File.Delete($"/var/run/{AppInit.conf.listen_sock}.sock");
+                                if (File.Exists($"/var/run/{AppInit.conf.listen.sock}.sock"))
+                                    File.Delete($"/var/run/{AppInit.conf.listen.sock}.sock");
 
-                                op.ListenUnixSocket($"/var/run/{AppInit.conf.listen_sock}.sock");
+                                op.ListenUnixSocket($"/var/run/{AppInit.conf.listen.sock}.sock");
                             }
 
-                            if (!string.IsNullOrEmpty(AppInit.conf.listenip))
-                                op.Listen(AppInit.conf.listenip == "any" ? IPAddress.Any : AppInit.conf.listenip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listenip), AppInit.conf.listenport);
+                            if (!string.IsNullOrEmpty(AppInit.conf.listen.ip))
+                                op.Listen(AppInit.conf.listen.ip == "any" ? IPAddress.Any : AppInit.conf.listen.ip == "broadcast" ? IPAddress.Broadcast : IPAddress.Parse(AppInit.conf.listen.ip), AppInit.conf.listen.port);
                         }
                     })
                     .UseStartup<Startup>();

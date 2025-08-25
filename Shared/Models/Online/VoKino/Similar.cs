@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.VoKino
+﻿namespace Shared.Models.Online.VoKino
 {
     public class Similar
     {

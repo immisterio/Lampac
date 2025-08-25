@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Lampac.Models.Module
+namespace Shared.Models.Module
 {
     public class RootModule
     {

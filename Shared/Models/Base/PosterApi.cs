@@ -1,12 +1,12 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Shared.Model.Base
+namespace Shared.Models.Base
 {
     public static class PosterApi
     {
-        static string? omdbapi_key;
-        static PosterApiConf? init;
-        static IProxyLink? iproxy;
+        static string omdbapi_key;
+        static PosterApiConf init;
+        static IProxyLink iproxy;
 
         public static void Initialization(string omdbkey, PosterApiConf conf, IProxyLink _iproxy)
         {
@@ -15,9 +15,9 @@ namespace Shared.Model.Base
             iproxy = _iproxy;
         }
 
-        public static string? Find(long? kpid, string? imdb)
+        public static string Find(long? kpid, string imdb)
         {
-            string? imdb_img = null, kp_img = null;
+            string imdb_img = null, kp_img = null;
 
             if (!string.IsNullOrEmpty(omdbapi_key) && !string.IsNullOrEmpty(imdb))
                 imdb_img = $"https://img.omdbapi.com/?apikey={omdbapi_key}&i={imdb}";
@@ -31,7 +31,7 @@ namespace Shared.Model.Base
             return Size(imdb_img ?? kp_img);
         }
 
-        public static string? Size(string? uri)
+        public static string Size(string uri)
         {
             if (string.IsNullOrEmpty(uri) || iproxy == null || init == null || !init.rsize || (init.width == 0 && init.height == 0))
                 return uri?.Split(" or ")?[0];

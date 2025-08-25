@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.CDNmovies
+﻿namespace Shared.Models.Online.CDNmovies
 {
     public class Voice
     {

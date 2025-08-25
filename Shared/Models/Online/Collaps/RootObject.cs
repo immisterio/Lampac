@@ -1,10 +1,10 @@
-﻿namespace Lampac.Models.LITE.Collaps
+﻿namespace Shared.Models.Online.Collaps
 {
     public class RootObject
     {
 
         public int season { get; set; }
 
-        public List<Episode>? episodes { get; set; }
+        public List<Episode> episodes { get; set; }
     }
 }

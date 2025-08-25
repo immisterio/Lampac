@@ -1,6 +1,5 @@
-﻿using Lampac;
-using Lampac.Engine;
-using Shared.Model.Base;
+﻿using Shared;
+using Shared.Models.Base;
 using System;
 using System.Web;
 

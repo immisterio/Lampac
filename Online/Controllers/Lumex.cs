@@ -1,24 +1,12 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Engine.Online;
-using Shared.Model.Online;
-using Shared.Model.Online.Lumex;
-using Shared.Model.Templates;
+using Shared.Models.Online.Lumex;
 using Shared.PlaywrightCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Lumex : BaseOnlineController
     {
@@ -49,7 +37,7 @@ namespace Lampac.Controllers.LITE
             var oninvk = new LumexInvoke
             (
                init,
-               (url, referer) => HttpClient.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init)),
+               (url, referer) => Http.Get(init.cors(url), referer: referer, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy),
                host,
                requesterror: () => proxyManager.Refresh()
@@ -204,7 +192,7 @@ namespace Lampac.Controllers.LITE
                 if (content_uri == null)
                     return res.Fail("content_uri");
 
-                var result = await HttpClient.BaseGetAsync(content_uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: content_headers);
+                var result = await Http.BaseGetAsync(content_uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: content_headers);
 
                 if (string.IsNullOrEmpty(result.content))
                 {
@@ -262,7 +250,7 @@ namespace Lampac.Controllers.LITE
                 if (!hybridCache.TryGetValue(csrf, out List<HeadersModel> content_headers))
                     return OnError();
 
-                var result = await HttpClient.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
+                var result = await Http.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
 
                 if (result == null || !result.ContainsKey("url"))
                     return OnError();

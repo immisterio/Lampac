@@ -1,14 +1,8 @@
-﻿using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.Templates;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Shared.Models.Online.Settings;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Videasy : BaseENGController
     {

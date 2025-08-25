@@ -1,25 +1,22 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.AppConf;
-using Lampac.Models.DLNA;
-using Lampac.Models.LITE;
-using Lampac.Models.Merchant;
-using Lampac.Models.Module;
-using Lampac.Models.SISI;
+﻿using Shared.Engine;
+using Shared.Models.AppConf;
+using Shared.Models.DLNA;
+using Shared.Models.Merchant;
+using Shared.Models.Module;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Online.Settings;
-using Shared.Model.SISI;
-using Shared.Models.AppConf;
+using Shared.Models.Base;
+using Shared.Models.Online.Settings;
 using Shared.Models.Browser;
 using Shared.Models.Online.Kinobase;
 using Shared.Models.ServerProxy;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Shared.Models.SISI.Base;
+using Shared.Models;
 
-namespace Lampac
+namespace Shared
 {
     public class AppInit
     {
@@ -205,12 +202,12 @@ namespace Lampac
         #region Host
         public static string Host(HttpContext httpContext)
         {
-            string scheme = string.IsNullOrEmpty(conf.listenscheme) ? httpContext.Request.Scheme : conf.listenscheme;
+            string scheme = string.IsNullOrEmpty(conf.listen.scheme) ? httpContext.Request.Scheme : conf.listen.scheme;
             if (httpContext.Request.Headers.TryGetValue("xscheme", out var xscheme) && !string.IsNullOrEmpty(xscheme))
                 scheme = xscheme;
 
-            if (!string.IsNullOrEmpty(conf.listenhost))
-                return $"{scheme}://{conf.listenhost}";
+            if (!string.IsNullOrEmpty(conf.listen.host))
+                return $"{scheme}://{conf.listen.host}";
 
             if (httpContext.Request.Headers.TryGetValue("xhost", out var xhost))
                 return $"{scheme}://{Regex.Replace(xhost, "^https?://", "")}";
@@ -260,31 +257,19 @@ namespace Lampac
         }
         #endregion
 
-        
+
         #region server
-        public string listenip = "any";
-
-        public int listenport = 9118;
-
-        public bool compression = true;
-
-        public string listen_sock = null;
-
-        public string listenscheme = null;
-
-        public string listenhost = null;
-
-        public string frontend = null; // cloudflare|nginx
-
-        public string localhost = "127.0.0.1";
+        public ListenConf listen = new ListenConf() 
+        {
+            localhost = "127.0.0.1",
+            ip = "any", port = 9118,
+            compression = true,
+            frontend = null // cloudflare|nginx
+        };
 
         public bool multiaccess = false;
 
         public bool mikrotik = false;
-
-        public string typecache = "hybrid"; // mem|file|hybrid
-
-        public int cacheHybridExtend = 5; // seconds
 
         public string watcherInit = "cron";// system
 
@@ -310,7 +295,7 @@ namespace Lampac
 
         public string corsehost { get; set; } = "https://cors.apn.monster";
 
-        public ApnConf apn { get; set; } = new ApnConf() { host = "http://apn.cfhttp.top", secure = "none" };
+        public ApnConf apn { get; set; } = new ApnConf() { secure = "none" };
 
         public Dictionary<string, CmdConf> cmd = new Dictionary<string, CmdConf>();
 
@@ -323,6 +308,12 @@ namespace Lampac
         public KitConf kit = new KitConf() { cacheToSeconds = 20 };
 
         public SyncConf sync = new SyncConf();
+
+        public HybridCacheConf cache = new HybridCacheConf() 
+        {
+            type = "hybrid",  // mem|file|hybrid
+            extend = 5        // seconds (hybrid)
+        };
 
         public WafConf WAF = new WafConf();
 
@@ -337,7 +328,7 @@ namespace Lampac
         public PuppeteerConf chromium = new PuppeteerConf() 
         { 
             enable = true, Headless = true,
-            Args = new string[] { "--disable-blink-features=AutomationControlled" }, // , "--window-position=-2000,100"
+            Args = ["--disable-blink-features=AutomationControlled"], // , "--window-position=-2000,100"
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
         };
 
@@ -488,7 +479,6 @@ namespace Lampac
             }
         };
         #endregion
-
 
         #region SISI
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp")

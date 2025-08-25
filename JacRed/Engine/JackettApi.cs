@@ -1,16 +1,7 @@
 ﻿using Jackett;
-using JacRed.Models;
-using Lampac;
-using Lampac.Controllers.JAC;
-using Lampac.Models.AppConf;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
+using JacRed.Controllers;
+using JacRed.Models.AppConf;
 using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace JacRed.Engine
 {
@@ -24,7 +15,7 @@ namespace JacRed.Engine
             var hybridCache = new HybridCache();
 
             string mkey = $"JackettApi:{query}:{title}:{year}:{is_serial}";
-            if (hybridCache.TryGetValue(mkey, out List<TorrentDetails> cache))
+            if (hybridCache.TryGetValue(mkey, out List<TorrentDetails> cache, inmemory: false))
                 return cache;
 
             var torrents = new ConcurrentBag<TorrentDetails>();
@@ -279,7 +270,7 @@ namespace JacRed.Engine
                 result = result.Where(i => i.title.Contains(year.ToString()) || i.title.Contains($"{year+1}") || i.title.Contains($"{year-1}"));
 
             if (ModInit.conf.Jackett.cacheToMinutes > 0)
-                hybridCache.Set(mkey, result.ToList(), DateTime.Now.AddMinutes(ModInit.conf.Jackett.cacheToMinutes));
+                hybridCache.Set(mkey, result.ToList(), DateTime.Now.AddMinutes(ModInit.conf.Jackett.cacheToMinutes), inmemory: false);
 
             return result.ToList();
         }

@@ -1,23 +1,23 @@
-﻿using Lampac.Models.LITE.Ashdi;
-using Shared.Model.Base;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
+using Shared.Models.Online.Ashdi;
 
 namespace Shared.Engine.Online
 {
-    public class AshdiInvoke
+    public struct AshdiInvoke
     {
         #region AshdiInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
+        Func<string, ValueTask<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
 
-        public AshdiInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public AshdiInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -29,9 +29,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id)
+        public async ValueTask<EmbedModel> Embed(long kinopoisk_id)
         {
-            string? product = await onget.Invoke($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}");
+            string product = await onget.Invoke($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}");
             if (product == null)
             {
                 requesterror?.Invoke();
@@ -48,7 +48,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string? content = await onget.Invoke(iframeuri);
+            string content = await onget.Invoke(iframeuri);
             if (content == null || !content.Contains("Playerjs"))
             {
                 requesterror?.Invoke();
@@ -58,7 +58,7 @@ namespace Shared.Engine.Online
             if (!content.Contains("file:'[{"))
                 return new EmbedModel() { content = content };
 
-            List<Voice>? root = null;
+            List<Voice> root = null;
 
             try
             {
@@ -73,7 +73,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, long kinopoisk_id, string? title, string? original_title, int t, int s, VastConf? vast = null, bool rjson = false)
+        public string Html(EmbedModel md, long kinopoisk_id, string title, string original_title, int t, int s, VastConf vast = null, bool rjson = false)
         {
             if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
                 return string.Empty;
@@ -114,8 +114,8 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 try
                 {

@@ -1,6 +1,4 @@
-﻿using Shared.Model.Online.AniLibria;
-
-namespace Lampac.Models.LITE.AniLibria
+﻿namespace Shared.Models.Online.AniLibria
 {
     public class RootObject
     {

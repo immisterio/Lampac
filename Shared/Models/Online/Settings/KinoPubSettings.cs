@@ -1,10 +1,10 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class KinoPubSettings : BaseSettings, ICloneable
     {
-        public KinoPubSettings(string plugin, string? host = null)
+        public KinoPubSettings(string plugin, string host = null)
         {
             this.plugin = plugin;
 
@@ -12,9 +12,9 @@ namespace Lampac.Models.LITE
                 this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
-        public string[]? tokens { get; set; }
+        public string[] tokens { get; set; }
 
-        public string? filetype { get; set; }
+        public string filetype { get; set; }
 
 
         public KinoPubSettings Clone()

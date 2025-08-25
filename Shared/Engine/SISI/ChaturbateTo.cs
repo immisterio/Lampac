@@ -1,11 +1,11 @@
-﻿using Lampac.Models.SISI;
+﻿using Shared.Models.SISI.Base;
 using System.Text.RegularExpressions;
 
 namespace Shared.Engine.SISI
 {
     public static class ChaturbateTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string sort, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url = host + "/api/ts/roomlist/room-list/?enable_recommendations=false&limit=90";
 
@@ -18,7 +18,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -57,7 +57,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? sort)
+        public static List<MenuItem> Menu(string host, string sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
 
@@ -101,12 +101,12 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>?> StreamLinks(string host, string? baba, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<Dictionary<string, string>> StreamLinks(string host, string baba, Func<string, ValueTask<string>> onresult)
         {
             if (string.IsNullOrWhiteSpace(baba))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{baba}/");
+            string html = await onresult.Invoke($"{host}/{baba}/");
             string hls = new Regex("(https?://[^ ]+/playlist\\.m3u8)").Match(html ?? "").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(hls))
                 return null;

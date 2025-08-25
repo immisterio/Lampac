@@ -1,9 +1,8 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Online.Rezka;
-using Shared.Model.Templates;
+﻿using Shared.Models;
+using Shared.Models.Base;
+using Shared.Models.Online;
+using Shared.Models.Online.Rezka;
+using Shared.Models.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -14,14 +13,14 @@ namespace Shared.Engine.Online
     public class RezkaInvoke
     {
         #region RezkaInvoke
-        string? host, scheme;
+        string host, scheme;
         string apihost;
         bool usehls, userprem, usereserve;
-        Func<string, List<HeadersModel>, ValueTask<string?>> onget;
-        Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost;
+        Func<string, List<HeadersModel>, ValueTask<string>> onget;
+        Func<string, string, List<HeadersModel>, ValueTask<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
 
         public string requestlog = string.Empty;
 
@@ -34,7 +33,7 @@ namespace Shared.Engine.Online
             onlog?.Invoke($"rezka: {msg}\n");
         }
 
-        public RezkaInvoke(string? host, string apihost, string? scheme, bool hls, bool reserve, bool userprem, Func<string, List<HeadersModel>, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RezkaInvoke(string host, string apihost, string scheme, bool hls, bool reserve, bool userprem, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -66,7 +65,7 @@ namespace Shared.Engine.Online
         async public Task<SearchModel> Search(string title, string original_title, int clarification, int year)
         {
             var result = new SearchModel();
-            string? reservedlink = null;
+            string reservedlink = null;
 
             var base_headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -161,7 +160,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string href, string search_uri)
+        async public ValueTask<EmbedModel> Embed(string href, string search_uri)
         {
             var result = new EmbedModel();
 
@@ -204,16 +203,16 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedID
-        async public Task<EmbedModel?> EmbedID(long kinopoisk_id, string? imdb_id)
+        async public Task<EmbedModel> EmbedID(long kinopoisk_id, string imdb_id)
         {
-            string? search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()), null);
+            string search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()), null);
             if (search == null)
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            string? link = null;
+            string link = null;
             var result = new EmbedModel();
 
             foreach (string row in search.Split("<li>").Skip(1))
@@ -258,7 +257,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string args, string? title, string? original_title, int s, string? href, bool showstream, bool rjson = false)
+        public string Html(EmbedModel result, string args, string title, string original_title, int s, string href, bool showstream, bool rjson = false)
         {
             if (result == null || result.IsEmpty || result.content == null)
                 return string.Empty;
@@ -266,9 +265,9 @@ namespace Shared.Engine.Online
             if (!string.IsNullOrEmpty(args))
                 args = $"&{args.Remove(0, 1)}";
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
-            string? enc_href = HttpUtility.UrlEncode(href);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_href = HttpUtility.UrlEncode(href);
 
             if (!result.content.Contains("data-season_id="))
             {
@@ -305,7 +304,7 @@ namespace Shared.Engine.Online
                             if (match.Groups[2].Value.Contains("data-director=\"1\""))
                                 link += "&director=1";
 
-                            string? stream = null;
+                            string stream = null;
                             if (showstream)
                             {
                                 stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
@@ -395,7 +394,7 @@ namespace Shared.Engine.Online
                             eshash.Add(m.Groups["name"].Value);
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups["episode"].Value}";
 
-                            string? stream = null;
+                            string stream = null;
                             if (showstream)
                             {
                                 stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
@@ -424,12 +423,12 @@ namespace Shared.Engine.Online
 
 
         #region Serial
-        async public ValueTask<Episodes?> SerialEmbed(long id, int t)
+        async public ValueTask<Episodes> SerialEmbed(long id, int t)
         {
             string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}{Random.Shared.Next(101, 999)}";
             string data = $"id={id}&translator_id={t}&action=get_episodes";
 
-            Episodes? root = null;
+            Episodes root = null;
 
             try
             {
@@ -449,10 +448,10 @@ namespace Shared.Engine.Online
                     ("x-requested-with", "XMLHttpRequest")
                 );
 
-                if (basereferer.TryGetValue(id, out string? referer) && !string.IsNullOrEmpty(referer))
+                if (basereferer.TryGetValue(id, out string referer) && !string.IsNullOrEmpty(referer))
                     headers = HeadersModel.Join(headers, HeadersModel.Init(("referer", referer)));
 
-                string? json = await onpost(uri, data, headers);
+                string json = await onpost(uri, data, headers);
                 if (json == null)
                 {
                     log("json null");
@@ -472,7 +471,7 @@ namespace Shared.Engine.Online
 
             log("root OK");
 
-            string? episodes = root.episodes;
+            string episodes = root.episodes;
             if (string.IsNullOrWhiteSpace(episodes) || episodes.ToLower() == "false")
             {
                 log("episodes null");
@@ -482,7 +481,7 @@ namespace Shared.Engine.Online
             return root;
         }
 
-        public string Serial(Episodes? root, EmbedModel? result, string args, string? title, string? original_title, string? href, long id, int t, int s, bool showstream, bool rjson = false)
+        public string Serial(Episodes root, EmbedModel result, string args, string title, string original_title, string href, long id, int t, int s, bool showstream, bool rjson = false)
         {
             if (root == null || result == null)
                 return string.Empty;
@@ -490,9 +489,9 @@ namespace Shared.Engine.Online
             if (!string.IsNullOrEmpty(args))
                 args = $"&{args.Remove(0, 1)}";
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
-            string? enc_href = HttpUtility.UrlEncode(href);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_href = HttpUtility.UrlEncode(href);
 
             #region Перевод
             var vtpl = new VoiceTpl();
@@ -575,9 +574,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        async public ValueTask<MovieModel?> Movie(long id, int t, int director, int s, int e, string? favs)
+        async public ValueTask<MovieModel> Movie(long id, int t, int director, int s, int e, string favs)
         {
-            string? data = null;
+            string data = null;
             string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}{Random.Shared.Next(101, 999)}";
 
             if (s == -1)
@@ -605,10 +604,10 @@ namespace Shared.Engine.Online
                 ("x-requested-with", "XMLHttpRequest")
             );
 
-            if (basereferer.TryGetValue(id, out string? referer) && !string.IsNullOrEmpty(referer))
+            if (basereferer.TryGetValue(id, out string referer) && !string.IsNullOrEmpty(referer))
                 headers = HeadersModel.Join(headers, HeadersModel.Init(("referer", referer)));
 
-            string? json = await onpost(uri, data, headers);
+            string json = await onpost(uri, data, headers);
             if (string.IsNullOrEmpty(json))
             {
                 log("json null");
@@ -618,7 +617,7 @@ namespace Shared.Engine.Online
 
             log("json OK");
 
-            Dictionary<string, object>? root = null;
+            Dictionary<string, object> root = null;
 
             try
             {
@@ -631,7 +630,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string? url = root?["url"]?.ToString();
+            string url = root?["url"]?.ToString();
             if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
             {
                 log("url null");
@@ -646,7 +645,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string? subtitlehtml = null;
+            string subtitlehtml = null;
 
             try
             {
@@ -657,7 +656,7 @@ namespace Shared.Engine.Online
             return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
         }
 
-        public string Movie(MovieModel md, string? title, string? original_title, bool play, VastConf vast = null)
+        public string Movie(MovieModel md, string title, string original_title, bool play, VastConf vast = null)
         {
             if (play)
                 return onstreamfile(md.links[0].stream_url!);
@@ -740,7 +739,7 @@ namespace Shared.Engine.Online
             var links = new List<ApiModel>() { Capacity = 6 };
 
             #region getLink
-            string? getLink(string _q)
+            string getLink(string _q)
             {
                 string qline = Regex.Match(data, $"\\[{_q}\\]([^,\\[]+)").Groups[1].Value;
                 if (!qline.Contains(".mp4") && !qline.Contains(".m3u8"))
@@ -777,7 +776,7 @@ namespace Shared.Engine.Online
 
             foreach (string q in qualities)
             {
-                string? link = null;
+                string link = null;
 
                 switch (q)
                 {
@@ -830,7 +829,7 @@ namespace Shared.Engine.Online
 
 
         #region fixcdn
-        public static string fixcdn(string? country, string? uacdn, string link)
+        public static string fixcdn(string country, string uacdn, string link)
         {
             if (uacdn != null && country == "UA" && !link.Contains(".vtt"))
                 return Regex.Replace(link, "https?://[^/]+", uacdn);

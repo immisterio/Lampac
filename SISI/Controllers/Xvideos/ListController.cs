@@ -1,14 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using System.Text.RegularExpressions;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Xvideos
+namespace SISI.Controllers.Xvideos
 {
     public class ListController : BaseSisiController
     {
@@ -25,7 +17,7 @@ namespace Lampac.Controllers.Xvideos
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
             string memKey = $"{plugin}:list:{search}:{sort}:{c}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -38,7 +30,7 @@ namespace Lampac.Controllers.Xvideos
                     return ContentTo(rch.connectionMsg);
 
                 string html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 playlists = XvideosTo.Playlist($"{host}/xds/vidosik", $"{plugin}/stars", html);
@@ -54,7 +46,7 @@ namespace Lampac.Controllers.Xvideos
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, plugin: init.plugin);
@@ -74,7 +66,7 @@ namespace Lampac.Controllers.Xvideos
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
             string memKey = $"{plugin}:stars:{uri}:{sort}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -87,7 +79,7 @@ namespace Lampac.Controllers.Xvideos
                     return ContentTo(rch.connectionMsg);
 
                 playlists = await XvideosTo.Pornstars($"{host}/xds/vidosik", $"{plugin}/stars", init.corsHost(), plugin, uri, sort, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (playlists == null || playlists.Count == 0)
@@ -101,7 +93,7 @@ namespace Lampac.Controllers.Xvideos
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
             }
 
 

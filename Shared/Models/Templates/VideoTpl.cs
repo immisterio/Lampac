@@ -1,10 +1,8 @@
-﻿using Lampac;
-using Shared.Model.Base;
-using Shared.Model.Online;
+﻿using Shared.Models.Base;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Shared.Model.Templates
+namespace Shared.Models.Templates
 {
     public static class VideoTpl
     {

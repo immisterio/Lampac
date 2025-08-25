@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.Ashdi
+﻿namespace Shared.Models.Online.Ashdi
 {
     public class Voice
     {

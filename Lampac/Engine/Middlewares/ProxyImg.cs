@@ -1,8 +1,7 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
+using Shared;
+using Shared.Engine;
 using Shared.Models;
 using System;
 using System.Buffers;
@@ -86,7 +85,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             if (AppInit.conf.serverproxy.showOrigUri)
-                httpContext.Response.Headers.Add("PX-Orig", href);
+                httpContext.Response.Headers["PX-Orig"] = href;
 
             #region width / height
             int width = 0;
@@ -120,7 +119,7 @@ namespace Lampac.Engine.Middlewares
 
             if (cacheimg && cacheFiles.ContainsKey(md5key))
             {
-                httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+                httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                 httpContext.Response.ContentType = contentType;
                 await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
                 return;
@@ -133,7 +132,7 @@ namespace Lampac.Engine.Middlewares
                 return;
             }
 
-            httpContext.Response.Headers.Add("X-Cache-Status", cacheimg ? "MISS" : "bypass");
+            httpContext.Response.Headers["X-Cache-Status"] = cacheimg ? "MISS" : "bypass";
 
             var proxyManager = decryptLink?.plugin == "posterapi" ? new ProxyManager("posterapi", AppInit.conf.posterApi) : new ProxyManager("proxyimg", init);
             var proxy = proxyManager.Get();
@@ -141,12 +140,12 @@ namespace Lampac.Engine.Middlewares
             if (width == 0 && height == 0)
             {
                 #region bypass
-                bypass_reset: var handler = CORE.HttpClient.Handler(href, proxy);
+                bypass_reset: var handler = Shared.Engine.Http.Handler(href, proxy);
                 handler.AllowAutoRedirect = true;
 
                 var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
                 {
-                    CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, decryptLink?.headers);
+                    Shared.Engine.Http.DefaultRequestHeaders(uclient, 8, 0, null, null, decryptLink?.headers);
                 });
 
                 using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
@@ -282,12 +281,12 @@ namespace Lampac.Engine.Middlewares
         {
             try
             {
-                var handler = CORE.HttpClient.Handler(url, proxy);
+                var handler = Shared.Engine.Http.Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
                 var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", headers?.ToDictionary(), updateClient: uclient => 
                 {
-                    CORE.HttpClient.DefaultRequestHeaders(uclient, 8, 0, null, null, headers);
+                    Shared.Engine.Http.DefaultRequestHeaders(uclient, 8, 0, null, null, headers);
                 });
 
                 using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))

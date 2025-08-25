@@ -1,24 +1,23 @@
-﻿using Lampac.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online.Redheadsound;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.Redheadsound;
+using Shared.Models.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class RedheadsoundInvoke
+    public struct RedheadsoundInvoke
     {
         #region RedheadsoundInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string, ValueTask<string?>> onpost;
+        Func<string, ValueTask<string>> onget;
+        Func<string, string, ValueTask<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
 
-        public RedheadsoundInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public RedheadsoundInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -31,12 +30,12 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public Task<EmbedModel?> Embed(string? title, int year)
+        async public Task<EmbedModel> Embed(string title, int year)
         {
             if (string.IsNullOrEmpty(title))
                 return null;
 
-            string? search = await onpost($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}");
+            string search = await onpost($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}");
             if (search == null)
             {
                 requesterror?.Invoke();
@@ -86,7 +85,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return null;
 
-            string? iframe = await onget(iframeUri);
+            string iframe = await onget(iframeUri);
             if (string.IsNullOrEmpty(iframe))
                 return null;
 
@@ -99,7 +98,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel content, string? title, VastConf? vast = null, bool rjson = false)
+        public string Html(EmbedModel content, string title, VastConf vast = null, bool rjson = false)
         {
             if (content == null || content.IsEmpty)
                 return string.Empty;

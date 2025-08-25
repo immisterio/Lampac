@@ -1,17 +1,10 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Microsoft.CodeAnalysis.Scripting;
+﻿using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Playwright;
-using Shared.Engine.CORE;
-using Shared.Model.SISI.NextHUB;
 using Shared.PlaywrightCore;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using YamlDotNet.Serialization;
+using Shared.Models.SISI.NextHUB;
 
-namespace Lampac.Controllers.NextHUB
+namespace SISI.Controllers.NextHUB
 {
     public static class Root
     {
@@ -29,7 +22,7 @@ namespace Lampac.Controllers.NextHUB
             .AddImports("Newtonsoft.Json.Linq")
 
             .AddReferences(typeof(RchClient).Assembly)
-            .AddReferences(typeof(HttpClient).Assembly)
+            .AddReferences(typeof(Http).Assembly)
             .AddImports("Lampac.Engine.CORE")
 
             .AddReferences(typeof(PlaylistItem).Assembly)
@@ -98,7 +91,7 @@ namespace Lampac.Controllers.NextHUB
                     init.plugin = init.displayname;
 
                 if (!init.debug || !AppInit.conf.multiaccess)
-                    hybridCache.Set(memKey, init, DateTime.Now.AddMinutes(1));
+                    hybridCache.Set(memKey, init, DateTime.Now.AddMinutes(1), inmemory: true);
             }
 
             return init;

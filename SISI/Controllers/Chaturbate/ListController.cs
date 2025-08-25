@@ -1,13 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Models.SISI;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Chaturbate
+namespace SISI.Controllers.Chaturbate
 {
     public class ListController : BaseSisiController
     {
@@ -23,7 +16,7 @@ namespace Lampac.Controllers.Chaturbate
                 return OnError("no search", false);
 
             string memKey = $"Chaturbate:list:{sort}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -36,7 +29,7 @@ namespace Lampac.Controllers.Chaturbate
                     return ContentTo(rch.connectionMsg);
 
                 string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html);
@@ -52,7 +45,7 @@ namespace Lampac.Controllers.Chaturbate
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(5, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(5, init: init), inmemory: false);
             }
 
             return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: init.plugin);

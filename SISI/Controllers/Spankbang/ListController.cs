@@ -1,14 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
-using Lampac.Engine.CORE;
 
-namespace Lampac.Controllers.Spankbang
+namespace SISI.Controllers.Spankbang
 {
     public class ListController : BaseSisiController
     {
@@ -21,7 +14,7 @@ namespace Lampac.Controllers.Spankbang
                 return badInitMsg;
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.BaseGet();
@@ -36,7 +29,7 @@ namespace Lampac.Controllers.Spankbang
                         return rch.Get(init.cors(url), httpHeaders(init));
 
                     if (init.priorityBrowser == "http")
-                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                        return Http.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });
@@ -54,7 +47,7 @@ namespace Lampac.Controllers.Spankbang
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? SpankbangTo.Menu(host, sort) : null, plugin: init.plugin);

@@ -1,6 +1,6 @@
-﻿using Lampac.Models.SISI;
-using Shared.Model.SISI;
-using Shared.Model.SISI.Xvideos;
+﻿using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
+using Shared.Models.SISI.Xvideos;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -10,7 +10,7 @@ namespace Shared.Engine.SISI
 {
     public static class XvideosTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string plugin, string? search, string? sort, string? c, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string plugin, string search, string sort, string c, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url;
 
@@ -43,7 +43,7 @@ namespace Shared.Engine.SISI
         }
 
 
-        public static List<PlaylistItem> Playlist(string uri, string uri_star, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null, string site = "xds")
+        public static List<PlaylistItem> Playlist(string uri, string uri_star, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, string site = "xds")
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -115,7 +115,7 @@ namespace Shared.Engine.SISI
         }
 
 
-        async public static ValueTask<List<PlaylistItem>?> Pornstars(string uri_video, string uri_star, string host, string plugin, string? uri, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<List<PlaylistItem>> Pornstars(string uri_video, string uri_star, string host, string plugin, string uri, string sort, int pg, Func<string, ValueTask<string>> onresult)
         {
             if (string.IsNullOrEmpty(uri))
                 return null;
@@ -125,7 +125,7 @@ namespace Shared.Engine.SISI
 
             url += $"/{pg}";
 
-            string? json = await onresult.Invoke(url);
+            string json = await onresult.Invoke(url);
             if (json == null || (!json.StartsWith("{") && !json.StartsWith("[")))
                 return null;
 
@@ -464,13 +464,13 @@ namespace Shared.Engine.SISI
         }
 
 
-        async public static ValueTask<StreamItem> StreamLinks(string uri, string uri_star, string host, string? url, Func<string, ValueTask<string?>> onresult, Func<string, ValueTask<string?>>? onm3u = null)
+        async public static ValueTask<StreamItem> StreamLinks(string uri, string uri_star, string host, string url, Func<string, ValueTask<string>> onresult, Func<string, ValueTask<string>> onm3u = null)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
             //string? html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? "", "^([^/]+)/.*", "$1/_")}");
-            string? html = await onresult.Invoke($"{host}/{url}");
+            string html = await onresult.Invoke($"{host}/{url}");
             if (html == null)
                 return null;
 
@@ -529,7 +529,7 @@ namespace Shared.Engine.SISI
             }
             #endregion
 
-            string? m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
+            string m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
             if (m3u8 == null)
             {
                 return new StreamItem()

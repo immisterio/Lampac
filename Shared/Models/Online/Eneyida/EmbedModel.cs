@@ -1,6 +1,6 @@
-﻿using Lampac.Models.LITE.Tortuga;
+﻿using Shared.Models.Online.Tortuga;
 
-namespace Shared.Model.Online.Eneyida
+namespace Shared.Models.Online.Eneyida
 {
     public class EmbedModel
     {

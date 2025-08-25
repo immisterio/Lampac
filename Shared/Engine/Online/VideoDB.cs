@@ -1,6 +1,6 @@
-﻿using Shared.Model.Online;
-using Shared.Model.Online.VideoDB;
-using Shared.Model.Templates;
+﻿using Shared.Models;
+using Shared.Models.Online.VideoDB;
+using Shared.Models.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -9,16 +9,16 @@ using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class VideoDBInvoke
+    public struct VideoDBInvoke
     {
         #region VideoDBInvoke
-        string? host;
+        string host;
         string apihost;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Func<string, List<HeadersModel>?, ValueTask<string?>> onget;
+        Func<string, string> onlog;
+        Func<string, List<HeadersModel>, ValueTask<string>> onget;
 
-        public VideoDBInvoke(string? host, string? apihost, Func<string, List<HeadersModel>?, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VideoDBInvoke(string host, string apihost, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
@@ -29,9 +29,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id)
+        public async ValueTask<EmbedModel> Embed(long kinopoisk_id)
         {
-            string? html = await onget.Invoke($"{apihost}/embed/AN?kinopoisk_id={kinopoisk_id}", null);
+            string html = await onget.Invoke($"{apihost}/embed/AN?kinopoisk_id={kinopoisk_id}", null);
 
             if (html == null)
             {
@@ -42,12 +42,12 @@ namespace Shared.Engine.Online
             return Embed(html);
         }
 
-        public EmbedModel? Embed(in string html)
+        public EmbedModel Embed(in string html)
         {
             if (string.IsNullOrEmpty(html))
                 return null;
 
-            string? decodePlayer(in string _html)
+            string decodePlayer(in string _html)
             {
                 try
                 {
@@ -64,7 +64,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            string? file = decodePlayer(html);
+            string file = decodePlayer(html);
             if (file == null)
             {
                 onlog?.Invoke("VideoDB: file null");
@@ -73,7 +73,7 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("VideoDB: file OK");
 
-            List<RootObject>? pl = JsonNode.Parse(file)?["file"]?.Deserialize<List<RootObject>>();
+            var pl = JsonNode.Parse(file)?["file"]?.Deserialize<List<RootObject>>();
             if (pl == null || pl.Count == 0)
             {
                 onlog?.Invoke("VideoDB: pl null");
@@ -88,7 +88,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string args, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, bool rjson, bool bwa = false, bool rhub = false)
+        public string Html(EmbedModel root, string args, long kinopoisk_id, string title, string original_title, string t, int s, int sid, bool rjson, bool bwa = false, bool rhub = false)
         {
             if (root?.pl == null || root.pl.Count == 0)
                 return string.Empty;
@@ -96,8 +96,8 @@ namespace Shared.Engine.Online
             if (!string.IsNullOrEmpty(args))
                 args = $"&{args.Remove(0, 1)}";
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             if (root.movie)
             {
@@ -106,8 +106,8 @@ namespace Shared.Engine.Online
 
                 foreach (var pl in root.pl)
                 {
-                    string? name = pl.title;
-                    string? file = pl.file;
+                    string name = pl.title;
+                    string file = pl.file;
 
                     if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                         continue;
@@ -175,7 +175,7 @@ namespace Shared.Engine.Online
 
                     for(int i = 0; i < root.pl.Count; i++)
                     {
-                        string? name = root.pl?[i].title;
+                        string name = root.pl?[i].title;
                         if (name == null)
                             continue;
 
@@ -228,8 +228,8 @@ namespace Shared.Engine.Online
                                 continue;
 
                             // 1 эпизод 
-                            string? name = episode?.title;
-                            string? file = pl?.file;
+                            string name = episode?.title;
+                            string file = pl?.file;
 
                             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                                 continue;
@@ -252,7 +252,7 @@ namespace Shared.Engine.Online
 
                             if (bwa || rhub)
                             {
-                                string? streamlink = rhub ? streams[0].link : null;
+                                string streamlink = rhub ? streams[0].link : null;
                                 etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call", streamlink: streamlink);
                             }
                             else

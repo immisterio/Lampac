@@ -1,4 +1,4 @@
-﻿using Lampac.Engine.CORE;
+﻿using Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Models;
@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Shared.Engine;
 
 namespace Lampac.Engine.Middlewares
 {

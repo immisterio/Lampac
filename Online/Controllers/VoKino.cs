@@ -1,17 +1,8 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using Lampac.Engine.CORE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using System.Web;
-using System.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Engine.Online;
-using Shared.Model.Online.VoKino;
-using Shared.Model.Online;
+using Shared.Models.Online.VoKino;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class VoKino : BaseOnlineController
     {
@@ -31,7 +22,7 @@ namespace Lampac.Controllers.LITE
             else
             {
                 string deviceid = new string(DateTime.Now.ToBinary().ToString().Reverse().ToArray()).Substring(0, 8);
-                var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get(), headers: HeadersModel.Init("user-agent", "lampac"));
+                var token_request = await Http.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get(), headers: HeadersModel.Init("user-agent", "lampac"));
 
                 if (token_request == null)
                     return Content($"нет доступа к {AppInit.conf.VoKino.corsHost()}", "text/html; charset=utf-8");
@@ -70,15 +61,17 @@ namespace Lampac.Controllers.LITE
             if (checksearch)
                 return Content("data-json="); // заглушка от 429
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxy = proxyManager.Get();
+
+            reset: 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             var oninvk = new VoKinoInvoke
             (
                host,
                init.corsHost(),
                init.token,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

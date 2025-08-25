@@ -1,6 +1,6 @@
-﻿using Shared.Model.Templates;
+﻿using Shared.Models.Templates;
 
-namespace Shared.Model.Online.Filmix
+namespace Shared.Models.Online.Filmix
 {
     public class SearchResult
     {

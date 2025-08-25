@@ -1,22 +1,20 @@
-﻿using Lampac;
-using Shared.Model.Base;
-using Shared.Model.Online;
+﻿using Shared.Models.Base;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
 
-namespace Shared.Model.Templates
+namespace Shared.Models.Templates
 {
     public struct EpisodeTpl
     {
-        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? streamlink, string? voice_name, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data;
+        List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string streamlink, string voice_name, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout)> data;
 
         public EpisodeTpl() : this(20) { }
 
         public EpisodeTpl(int capacity) 
         {
-            data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string?, string?, VastConf?, List<HeadersModel>?, int?)>(capacity);
+            data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, VastConf, List<HeadersModel>, int?)>(capacity);
         }
 
         public void Append(string name, string title, string s, string e, string link, string method = "play", in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null)

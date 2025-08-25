@@ -1,20 +1,6 @@
-﻿using HtmlAgilityPack;
-using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Shared.Engine;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("torrentby/[action]")]
     public class TorrentByController : JacBaseController
@@ -38,7 +24,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("torrentby", jackett.TorrentBy);
 
-            var _t = await HttpClient.Download($"{jackett.TorrentBy.host}/d.php?id={id}", referer: jackett.TorrentBy.host, proxy: proxyManager.Get());
+            var _t = await Http.Download($"{jackett.TorrentBy.host}/d.php?id={id}", referer: jackett.TorrentBy.host, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -57,7 +43,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("torrentby", jackett.TorrentBy);
 
-            string html = await HttpClient.Get($"{jackett.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.TorrentBy.host}/search/?search={HttpUtility.UrlEncode(query)}&category={cat}", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
 
             if (html == null || !html.Contains("id=\"find\""))
             {

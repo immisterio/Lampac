@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.DLNA
+﻿namespace DLNA.Models
 {
     public class Subtitle
     {

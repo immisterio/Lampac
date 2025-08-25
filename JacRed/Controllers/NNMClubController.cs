@@ -1,21 +1,8 @@
-﻿using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Shared;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("nnmclub/[action]")]
     public class NNMClubController : JacBaseController
@@ -40,7 +27,7 @@ namespace Lampac.Controllers.JAC
             var proxyManager = new ProxyManager("nnmclub", jackett.NNMClub);
 
             #region html
-            string html = await HttpClient.Get($"{jackett.NNMClub.host}/forum/viewtopic.php?t=" + id, proxy: proxyManager.Get());
+            string html = await Http.Get($"{jackett.NNMClub.host}/forum/viewtopic.php?t=" + id, proxy: proxyManager.Get());
             string magnet = new Regex("href=\"(magnet:[^\"]+)\" title=\"Примагнититься\"").Match(html ?? string.Empty).Groups[1].Value;
 
             if (html == null)
@@ -56,7 +43,7 @@ namespace Lampac.Controllers.JAC
                 string downloadid = new Regex("href=\"download\\.php\\?id=([0-9]+)\"").Match(html).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(downloadid))
                 {
-                    byte[] _t = await HttpClient.Download($"{jackett.NNMClub.host}/forum/download.php?id={downloadid}", proxy: proxyManager.Get(), cookie: jackett.NNMClub.cookie ?? Cookie, referer: jackett.NNMClub.host);
+                    byte[] _t = await Http.Download($"{jackett.NNMClub.host}/forum/download.php?id={downloadid}", proxy: proxyManager.Get(), cookie: jackett.NNMClub.cookie ?? Cookie, referer: jackett.NNMClub.host);
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                         return File(_t, "application/x-bittorrent");
                 }
@@ -81,7 +68,7 @@ namespace Lampac.Controllers.JAC
 
             #region html
             string data = $"prev_sd=0&prev_a=0&prev_my=0&prev_n=0&prev_shc=0&prev_shf=1&prev_sha=1&prev_shs=0&prev_shr=0&prev_sht=0&o=1&s=2&tm=-1&shf=1&sha=1&ta=-1&sns=-1&sds=-1&nm={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&pn=&submit=%CF%EE%E8%F1%EA";
-            string html = await HttpClient.Post($"{jackett.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Post($"{jackett.NNMClub.host}/forum/tracker.php", new System.Net.Http.StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"), encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
 
             if (html != null && html.Contains("NNM-Club</title>"))
             {

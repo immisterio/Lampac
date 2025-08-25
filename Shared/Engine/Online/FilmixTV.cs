@@ -1,8 +1,7 @@
-﻿using Lampac.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online.Filmix;
-using Shared.Model.Online.FilmixTV;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.Filmix;
+using Shared.Models.Online.FilmixTV;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Web;
@@ -12,16 +11,16 @@ namespace Shared.Engine.Online
     public class FilmixTVInvoke
     {
         #region FilmixTVInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string, ValueTask<string?>> onpost;
+        Func<string, ValueTask<string>> onget;
+        Func<string, string, ValueTask<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
         bool rjson;
 
-        public FilmixTVInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
+        public FilmixTVInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -35,7 +34,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<SearchResult?> Search(string? title, string? original_title, int clarification, int year, bool similar)
+        async public ValueTask<SearchResult> Search(string title, string original_title, int clarification, int year, bool similar)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -43,11 +42,11 @@ namespace Shared.Engine.Online
             string uri = $"{apihost}/api-fx/list?search={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&limit=48";
             onlog?.Invoke(uri);
 
-            string? json = await onget.Invoke(uri);
+            string json = await onget.Invoke(uri);
             if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
                 return await Search2(title, original_title, year, clarification);
 
-            List<SearchModel>? root = null;
+            List<SearchModel> root = null;
 
             try
             {
@@ -61,8 +60,8 @@ namespace Shared.Engine.Online
             var ids = new List<int>(root.Count);
             var stpl = new SimilarTpl(root.Count);
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
@@ -72,7 +71,7 @@ namespace Shared.Engine.Online
                 if (item == null)
                     continue;
 
-                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
+                string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
@@ -94,9 +93,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search2
-        async ValueTask<SearchResult?> Search2(string? title, string? original_title, int year, int clarification)
+        async ValueTask<SearchResult> Search2(string title, string original_title, int year, int clarification)
         {
-            async Task<List<SearchModel>> gosearch(string? story)
+            async Task<List<SearchModel>> gosearch(string story)
             {
                 if (string.IsNullOrEmpty(story))
                     return null;
@@ -104,11 +103,11 @@ namespace Shared.Engine.Online
                 string uri = $"http://filmixapp.cyou/api/v2/search?story={HttpUtility.UrlEncode(story)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi";
                 onlog?.Invoke(uri);
 
-                string? json = await onget.Invoke(uri);
+                string json = await onget.Invoke(uri);
                 if (json == null)
                     return null;
 
-                List<SearchModel>? root = null;
+                List<SearchModel> root = null;
 
                 try
                 {
@@ -132,18 +131,18 @@ namespace Shared.Engine.Online
             var ids = new List<int>(result.Count);
             var stpl = new SimilarTpl(result.Count);
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            string? stitle = StringConvert.SearchName(title);
-            string? sorigtitle = StringConvert.SearchName(original_title);
+            string stitle = StringConvert.SearchName(title);
+            string sorigtitle = StringConvert.SearchName(original_title);
 
             foreach (var item in result)
             {
                 if (item == null)
                     continue;
 
-                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
+                string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
@@ -165,7 +164,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Post
-        public RootObject? Post(in string json)
+        public Models.Online.FilmixTV.RootObject Post(in string json)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -175,7 +174,7 @@ namespace Shared.Engine.Online
 
             try
             {
-                var rootMs = new RootObject();
+                var rootMs = new Models.Online.FilmixTV.RootObject();
 
                 if (JsonDocument.Parse(json).RootElement.ValueKind == JsonValueKind.Array)
                 {
@@ -193,7 +192,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf vast = null)
+        public string Html(Models.Online.FilmixTV.RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
         {
             if (root == null)
                 return string.Empty;
@@ -201,8 +200,8 @@ namespace Shared.Engine.Online
             #region Сериал
             if (root.SerialVoice != null)
             {
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 if (s == null)
                 {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
-using Jackett;
+﻿using Jackett;
 using JacRed.Engine.CORE;
 using JacRed.Models;
 

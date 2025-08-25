@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Shared.Model.Templates
+namespace Shared.Models.Templates
 {
     public struct SubtitleTpl
     {

@@ -1,24 +1,11 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Lampac.Models.LITE.Alloha;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Templates;
+using Shared.Models.Online.Alloha;
+using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Alloha : BaseOnlineController
     {
@@ -196,7 +183,7 @@ namespace Lampac.Controllers.LITE
                         uri += "&directors_cut";
                     #endregion
 
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                    var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
                     if (root == null)
                         return OnError("json", proxyManager);
 
@@ -413,7 +400,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<JArray>($"alloha:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
             {
-                var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                var root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("data"))
                     return res.Fail("data");
 
@@ -456,7 +443,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null)
                         return (true, 0, null);
 
@@ -484,7 +471,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null)
                         return (true, 0, null);
 

@@ -1,18 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.Online;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Online.Kinobase;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Engine;
 using Shared.PlaywrightCore;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using Shared.Models.Online.Kinobase;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Kinobase : BaseOnlineController
     {
@@ -37,11 +28,10 @@ namespace Lampac.Controllers.LITE
                ongettourl => 
                {
                    if (ongettourl.Contains("/search?query="))
-                       return HttpClient.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
+                       return Http.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
 
                    return black_magic(ongettourl, init, proxy.data);
                },
-               (url, data) => HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy),
                requesterror: () => proxyManager.Refresh()
             );

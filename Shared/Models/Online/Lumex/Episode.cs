@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Lumex
+﻿namespace Shared.Models.Online.Lumex
 {
     public class Episode
     {

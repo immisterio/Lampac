@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.VideoCDN
+﻿namespace Shared.Models.Online.VideoCDN
 {
     public class VCDNSettings
     {

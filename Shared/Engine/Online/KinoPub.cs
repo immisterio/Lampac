@@ -1,8 +1,6 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE.KinoPub;
-using Shared.Model.Base;
-using Shared.Model.Online.KinoPub;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.KinoPub;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -12,14 +10,14 @@ namespace Shared.Engine.Online
     public class KinoPubInvoke
     {
         #region KinoPubInvoke
-        string? host, token;
+        string host, token;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string?, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, ValueTask<string>> onget;
+        Func<string, string, string> onstreamfile;
+        Func<string, string> onlog;
+        Action requesterror;
 
-        public KinoPubInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string?, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KinoPubInvoke(string host, string apihost, string token, Func<string, ValueTask<string>> onget, Func<string, string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -32,21 +30,21 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public Task<SearchResult?> Search(string? title, string? original_title, int year, int clarification, string? imdb_id, long kinopoisk_id)
+        async public Task<SearchResult> Search(string title, string original_title, int year, int clarification, string imdb_id, long kinopoisk_id)
         {
             if (string.IsNullOrEmpty(title ?? original_title))
                 return null;
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region goSearch
-            async Task<SearchResult> goSearch(string? q)
+            async Task<SearchResult> goSearch(string q)
             {
                 if (string.IsNullOrEmpty(q))
                     return null;
 
-                string? json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(q)}&access_token={token}&field=title&perpage=200");
+                string json = await onget($"{apihost}/v1/items/search?q={HttpUtility.UrlEncode(q)}&access_token={token}&field=title&perpage=200");
                 if (json == null)
                 {
                     requesterror?.Invoke();
@@ -61,11 +59,11 @@ namespace Shared.Engine.Online
                         var ids = new List<int>(items.Count);
                         var result = new SearchResult() { similars = new SimilarTpl(items.Count) };
 
-                        string? _q = StringConvert.SearchName(q);
+                        string _q = StringConvert.SearchName(q);
 
                         foreach (var item in items)
                         {
-                            string? img = PosterApi.Size(item?.posters?.Skip(1).First().Value);
+                            string img = PosterApi.Size(item?.posters?.Skip(1).First().Value);
                             result.similars.Value.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", img);
 
                             if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id || $"tt{item.imdb}" == imdb_id)
@@ -74,7 +72,7 @@ namespace Shared.Engine.Online
                             {
                                 if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
                                 {
-                                    string? _t = StringConvert.SearchName(item.title);
+                                    string _t = StringConvert.SearchName(item.title);
 
                                     if (!string.IsNullOrEmpty(_t) && !string.IsNullOrEmpty(_q))
                                     {
@@ -107,7 +105,7 @@ namespace Shared.Engine.Online
         #region Post
         async public Task<RootObject> Post(int postid)
         {
-            string? json = await onget($"{apihost}/v1/items/{postid}?access_token={token}");
+            string json = await onget($"{apihost}/v1/items/{postid}?access_token={token}");
             if (json == null)
             {
                 requesterror?.Invoke();
@@ -127,7 +125,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, string? filetype, string? title, string? original_title, int postid, int s = -1, int t = -1, string? codec = null, VastConf vast = null, bool rjson = false)
+        public string Html(RootObject root, string filetype, string title, string original_title, int postid, int s = -1, int t = -1, string codec = null, VastConf vast = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -190,7 +188,7 @@ namespace Shared.Engine.Online
                                 }
                                 else
                                 {
-                                    string? a = audio?.author?.title ?? audio?.type?.title;
+                                    string a = audio?.author?.title ?? audio?.type?.title;
                                     if (a != null)
                                     {
                                         a = $"{a} ({audio.lang})";
@@ -242,8 +240,8 @@ namespace Shared.Engine.Online
                     return string.Empty;
 
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 if (s == -1)
                 {
@@ -272,7 +270,7 @@ namespace Shared.Engine.Online
 
                         foreach (var a in root.item.seasons.First(i => i.number == s).episodes[0].audios)
                         {
-                            string? voice = a?.author?.title ?? a?.type?.title;
+                            string voice = a?.author?.title ?? a?.type?.title;
 
                             int? idt = a?.author?.id;
                             if (idt == null)

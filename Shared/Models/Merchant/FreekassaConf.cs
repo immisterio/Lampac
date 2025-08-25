@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.Merchant
+﻿namespace Shared.Models.Merchant
 {
     public class FreekassaConf
     {

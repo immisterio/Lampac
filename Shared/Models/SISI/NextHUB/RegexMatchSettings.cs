@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.SISI.NextHUB
+﻿namespace Shared.Models.SISI.NextHUB
 {
     public class RegexMatchSettings
     {

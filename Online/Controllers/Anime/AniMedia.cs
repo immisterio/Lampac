@@ -1,16 +1,6 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Mvc;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Templates;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class AniMedia : BaseOnlineController
     {
@@ -31,9 +21,9 @@ namespace Lampac.Controllers.LITE
 
                 #region Поиск
                 string memkey = $"animedia:search:{title}:{similar}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string url, string img)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string url, string img)> catalog, inmemory: false))
                 {
-                    string search = await HttpClient.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string search = await Http.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
                         return OnError(proxyManager);
 
@@ -60,7 +50,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     proxyManager.Success();
-                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
+                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init), inmemory: false);
                 }
 
                 if (catalog.Count == 0)
@@ -84,9 +74,9 @@ namespace Lampac.Controllers.LITE
             {
                 #region Серии
                 string memKey = $"animedia:{news}";
-                if (!hybridCache.TryGetValue(memKey, out List<(int episode, string s, string vod)> links))
+                if (!hybridCache.TryGetValue(memKey, out List<(int episode, string s, string vod)> links, inmemory: false))
                 {
-                    string html = await HttpClient.Get($"{init.corsHost()}/{news}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string html = await Http.Get($"{init.corsHost()}/{news}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (html == null)
                         return OnError(proxyManager);
 
@@ -117,7 +107,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, links, cacheTime(30, init: init));
+                    hybridCache.Set(memKey, links, cacheTime(30, init: init), inmemory: false);
                 }
 
                 var etpl = new EpisodeTpl(links.Count);
@@ -143,7 +133,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"animedia:{vod}";
             if (!hybridCache.TryGetValue(memKey, out string hls))
             {
-                string embed = await HttpClient.Get(vod, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                string embed = await Http.Get(vod, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
 
                 if (string.IsNullOrEmpty(embed))
                     return OnError(proxyManager);

@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.Alloha
+﻿namespace Shared.Models.Online.Alloha
 {
     public class Episode
     {

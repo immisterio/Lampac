@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.VDBmovies
+﻿namespace Shared.Models.Online.VDBmovies
 {
     public class Episode
     {
@@ -6,8 +6,8 @@
 
         public string file { get; set; }
 
-        public string? subtitle { get; set; }
+        public string subtitle { get; set; }
 
-        public string? subtitles { get; set; }
+        public string subtitles { get; set; }
     }
 }

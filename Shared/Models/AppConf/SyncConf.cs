@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Shared.Models.AppConf
+﻿namespace Shared.Models.AppConf
 {
     public class SyncConf
     {

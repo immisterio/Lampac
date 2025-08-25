@@ -1,13 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.LITE.AniLibria;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Engine.Online;
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.AniLibria;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class AniLibriaOnline : BaseOnlineController
     {
@@ -22,15 +16,17 @@ namespace Lampac.Controllers.LITE
             if (string.IsNullOrEmpty(title))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
+
+            reset: 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             var oninvk = new AniLibriaInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get<List<RootObject>>(init.cors(ongettourl)) : HttpClient.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 40, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get<List<RootObject>>(init.cors(ongettourl)) : Http.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 40, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

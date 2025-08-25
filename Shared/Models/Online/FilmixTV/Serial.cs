@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.FilmixTV
+﻿namespace Shared.Models.Online.FilmixTV
 {
     public class Season
     {

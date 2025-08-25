@@ -1,16 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Web;
-using System;
-using System.Linq;
 
-namespace Lampac.Controllers.XvideosRED
+namespace SISI.Controllers.XvideosRED
 {
     public class ListController : BaseSisiController
     {
@@ -26,7 +17,7 @@ namespace Lampac.Controllers.XvideosRED
             bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);
             string memKey = $"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}";
 
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -55,7 +46,7 @@ namespace Lampac.Controllers.XvideosRED
                 }
                 #endregion
 
-                string html = await HttpClient.Get(init.cors(url), cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                string html = await Http.Get(init.cors(url), cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -65,7 +56,7 @@ namespace Lampac.Controllers.XvideosRED
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
             }
 
             if (ismain)

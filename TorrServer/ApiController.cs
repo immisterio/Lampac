@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
 using System.IO;
 using System.Threading.Tasks;
 using System;
@@ -8,14 +7,14 @@ using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using TorrServer;
 using System.Buffers;
 using Shared.Engine;
-using Shared.Model.Base;
+using Shared.Models.Base;
 using System.Web;
 using System.Net;
+using Shared;
 
-namespace Lampac.Controllers
+namespace TorrServer.Controllers
 {
     public class TorrServerController : BaseController
     {
@@ -44,10 +43,10 @@ namespace Lampac.Controllers
             PooledConnectionLifetime = TimeSpan.FromMinutes(10)
         })
         {
-            BaseAddress = new Uri($"http://{AppInit.conf.localhost}:{ModInit.tsport}"),
+            BaseAddress = new Uri($"http://{AppInit.conf.listen.localhost}:{ModInit.tsport}"),
             DefaultRequestHeaders =
             {
-                Authorization = new AuthenticationHeaderValue("Basic", Engine.CORE.CrypTo.Base64($"ts:{ModInit.tspass}")),
+                Authorization = new AuthenticationHeaderValue("Basic", CrypTo.Base64($"ts:{ModInit.tspass}")),
             },
             Timeout = TimeSpan.FromSeconds(10)
         };
@@ -154,7 +153,7 @@ namespace Lampac.Controllers
                 }
 
                 HttpContext.Response.StatusCode = 401;
-                HttpContext.Response.Headers.Add("Www-Authenticate", "Basic realm=Authorization Required");
+                HttpContext.Response.Headers["Www-Authenticate"] = "Basic realm=Authorization Required";
                 return;
             }
             else
@@ -196,7 +195,7 @@ namespace Lampac.Controllers
             #endregion
 
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
-            string servUri = $"http://{AppInit.conf.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+            string servUri = $"http://{AppInit.conf.listen.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
             var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
 
@@ -228,7 +227,7 @@ namespace Lampac.Controllers
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
 
-            requestMessage.Headers.Host = string.IsNullOrEmpty(AppInit.conf.listenhost) ? context.Request.Host.Value : AppInit.conf.listenhost;
+            requestMessage.Headers.Host = string.IsNullOrEmpty(AppInit.conf.listen.host) ? context.Request.Host.Value : AppInit.conf.listen.host;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);
 

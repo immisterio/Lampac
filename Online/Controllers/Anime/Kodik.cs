@@ -1,20 +1,10 @@
-﻿using System;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Web;
-using Lampac.Engine.CORE;
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.Kodik;
+using Shared.Models.Online.Settings;
 using System.Security.Cryptography;
 using System.Text;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Engine.Online;
-using Shared.Model.Online.Kodik;
-using Shared.Model.Templates;
-using Lampac.Models.LITE;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Kodik : BaseOnlineController
     {
@@ -33,8 +23,8 @@ namespace Lampac.Controllers.LITE
                 init.hls,
                 init.cdn_is_working,
                 "video",
-                (uri, head) => HttpClient.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                (uri, data) => HttpClient.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                (uri, head) => Http.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                (uri, data) => Http.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                 requesterror: () => proxyManager.Refresh()
             );
@@ -155,7 +145,7 @@ namespace Lampac.Controllers.LITE
                     string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
                     string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                    string json = await HttpClient.Get($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
+                    string json = await Http.Get($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
 
                     streams = new List<(string q, string url)>(4);
                     var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);

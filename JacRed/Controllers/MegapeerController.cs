@@ -1,20 +1,7 @@
-﻿using HtmlAgilityPack;
-using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Shared.Engine;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("megapeer/[action]")]
     public class MegapeerController : JacBaseController
@@ -38,7 +25,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("megapeer", jackett.Megapeer);
 
-            byte[] _t = await HttpClient.Download($"{jackett.Megapeer.host}/download/{id}", referer: jackett.Megapeer.host, proxy: proxyManager.Get());
+            byte[] _t = await Http.Download($"{jackett.Megapeer.host}/download/{id}", referer: jackett.Megapeer.host, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -53,7 +40,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("megapeer", jackett.Megapeer);
 
-            string html = await HttpClient.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&cat={cat}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, headers: HeadersModel.Init(
+            string html = await Http.Get($"{jackett.Megapeer.host}/browse.php?search={HttpUtility.UrlEncode(query, Encoding.GetEncoding(1251))}&cat={cat}", encoding: Encoding.GetEncoding(1251), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds, headers: HeadersModel.Init(
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
                 ("referer", $"{jackett.Megapeer.host}"),

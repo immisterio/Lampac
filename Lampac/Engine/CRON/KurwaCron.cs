@@ -1,5 +1,5 @@
-﻿using Lampac.Engine.CORE;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,9 +17,9 @@ namespace Lampac.Engine.CRON
             {
                 try
                 {
-                    var externalids = await HttpClient.Get<Dictionary<string, string>>("http://bobr-kurwa.men/externalids.json", weblog: false).ConfigureAwait(false);
+                    var externalids = await Http.Get<Dictionary<string, string>>("http://bobr-kurwa.men/externalids.json", weblog: false).ConfigureAwait(false);
                     if (externalids != null && externalids.Count > 0)
-                        await File.WriteAllTextAsync("cache/externalids/master.json", JsonConvert.SerializeObject(externalids)).ConfigureAwait(false);
+                        await File.WriteAllTextAsync("data/externalids.json", JsonConvert.SerializeObject(externalids)).ConfigureAwait(false);
                 }
                 catch { }
 

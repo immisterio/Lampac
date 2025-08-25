@@ -1,12 +1,12 @@
-﻿namespace Shared.Model.Online.Filmix
+﻿namespace Shared.Models.Online.Filmix
 {
     public class SearchModel
     {
         public int id { get; set; }
 
-        public string? title { get; set; }
+        public string title { get; set; }
 
-        public string? original_title { get; set; }
+        public string original_title { get; set; }
 
         public string poster { get; set; }
 

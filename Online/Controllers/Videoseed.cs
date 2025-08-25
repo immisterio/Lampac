@@ -1,19 +1,8 @@
-﻿using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using System.Web;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Engine;
-using System.Collections.Generic;
-using System.Linq;
-using Shared.Model.Online;
 using Shared.PlaywrightCore;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Videoseed : BaseOnlineController
     {
@@ -45,7 +34,7 @@ namespace Lampac.Controllers.LITE
                         return null;
 
                     string uri = $"{init.host}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg;
-                    var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                    var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
                     if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
                     {
@@ -155,7 +144,7 @@ namespace Lampac.Controllers.LITE
                 {
                     if (init.priorityBrowser == "http")
                     {
-                        string html = await HttpClient.Get(iframe, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
+                        string html = await Http.Get(iframe, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
                         if (html == null)
                         {
                             proxyManager.Refresh();

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
+using Shared;
 using Shared.Models;
 using System;
 using System.Buffers;
@@ -14,6 +13,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Shared.Models.Proxy;
+using Shared.Engine;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -49,7 +50,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             #region decryptLink
-            var decryptLink = CORE.ProxyLink.Decrypt(Regex.Replace(servUri.Contains("aes:") ? servUri : servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
+            var decryptLink = ProxyLink.Decrypt(Regex.Replace(servUri.Contains("aes:") ? servUri : servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
 
             if (init.encrypt || decryptLink?.uri != null || httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
@@ -77,7 +78,7 @@ namespace Lampac.Engine.Middlewares
             if (init.showOrigUri)
             {
                 //Console.WriteLine("PX-Orig: " + decryptLink.uri);
-                httpContext.Response.Headers.Add("PX-Orig", decryptLink.uri);
+                httpContext.Response.Headers["PX-Orig"] = decryptLink.uri;
             }
 
             #region handler
@@ -106,7 +107,7 @@ namespace Lampac.Engine.Middlewares
                 var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                 {
-                    httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
+                    httpContext.Response.Headers["PX-Cache"] = "BYPASS";
                     await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                 }
                 #endregion
@@ -117,7 +118,7 @@ namespace Lampac.Engine.Middlewares
                 string md5file = httpContext.Request.Path.Value.Replace("/proxy/", "");
                 bool ists = md5file.EndsWith(".ts") || md5file.EndsWith(".m4s");
 
-                string md5key = ists ? fixuri(decryptLink) : CORE.CrypTo.md5(decryptLink.uri);
+                string md5key = ists ? fixuri(decryptLink) : CrypTo.md5(decryptLink.uri);
                 bool cache_stream = ists && !string.IsNullOrEmpty(md5key) && md5key.Length > 3;
 
                 string foldercache = cache_stream ? $"cache/hls/{md5key.Substring(0, 3)}" : string.Empty;
@@ -125,7 +126,7 @@ namespace Lampac.Engine.Middlewares
 
                 if (cache_stream && File.Exists(cachefile))
                 {
-                    httpContext.Response.Headers.Add("PX-Cache", "HIT");
+                    httpContext.Response.Headers["PX-Cache"] = "HIT";
                     httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                     await httpContext.Response.SendFileAsync(cachefile).ConfigureAwait(false);
                     return;
@@ -182,7 +183,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                     {
-                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{CORE.ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", httpContext));
+                        httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", httpContext));
                         return;
                     }
 
@@ -253,7 +254,7 @@ namespace Lampac.Engine.Middlewares
                                 while (m.Success)
                                 {
                                     string baseURL = m.Groups[1].Value;
-                                    mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{CORE.ProxyLink.Encrypt(baseURL, decryptLink, forceMd5: true)}/");
+                                    mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{ProxyLink.Encrypt(baseURL, decryptLink, forceMd5: true)}/");
                                     m = m.NextMatch();
                                 }
 
@@ -287,7 +288,7 @@ namespace Lampac.Engine.Middlewares
                                 byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
 
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
-                                httpContext.Response.Headers.Add("PX-Cache", "MISS");
+                                httpContext.Response.Headers["PX-Cache"] = "MISS";
                                 httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
                                 //httpContext.Response.ContentLength = buffer.Length;
                                 await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
@@ -314,7 +315,7 @@ namespace Lampac.Engine.Middlewares
                     }
                     else
                     {
-                        httpContext.Response.Headers.Add("PX-Cache", "BYPASS");
+                        httpContext.Response.Headers["PX-Cache"] = "BYPASS";
                         await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                     }
                 }
@@ -338,7 +339,7 @@ namespace Lampac.Engine.Middlewares
             string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
             string m3u8 = Regex.Replace(_m3u8, "(https?://[^\n\r\"\\# ]+)", m =>
             {
-                return validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(m.Groups[1].Value, decryptLink)}", httpContext);
+                return validArgs($"{proxyhost}/{ProxyLink.Encrypt(m.Groups[1].Value, decryptLink)}", httpContext);
             });
 
             string hlshost = Regex.Match(decryptLink.uri, "(https?://[^/]+)/").Groups[1].Value;
@@ -370,7 +371,7 @@ namespace Lampac.Engine.Middlewares
                     uri = hlspatch + uri;
                 }
 
-                return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}", httpContext);
+                return m.Groups[1].Value + validArgs($"{proxyhost}/{ProxyLink.Encrypt(uri, decryptLink)}", httpContext);
             });
 
             m3u8 = Regex.Replace(m3u8, "(URI=\")([^\"]+)", m =>
@@ -397,7 +398,7 @@ namespace Lampac.Engine.Middlewares
                     uri = hlspatch + uri;
                 }
 
-                return m.Groups[1].Value + validArgs($"{proxyhost}/{CORE.ProxyLink.Encrypt(uri, decryptLink)}", httpContext);
+                return m.Groups[1].Value + validArgs($"{proxyhost}/{ProxyLink.Encrypt(uri, decryptLink)}", httpContext);
             });
 
             return m3u8;
@@ -429,7 +430,7 @@ namespace Lampac.Engine.Middlewares
                     if (string.IsNullOrEmpty(key) || uri == key)
                         continue;
 
-                    return CORE.CrypTo.md5($"{decryptLink.plugin}:{key}");
+                    return CrypTo.md5($"{decryptLink.plugin}:{key}");
                 }
             }
 
@@ -489,7 +490,7 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (!requestMessage.Headers.Contains("User-Agent"))
-                requestMessage.Headers.TryAddWithoutValidation("User-Agent", CORE.HttpClient.UserAgent);
+                requestMessage.Headers.TryAddWithoutValidation("User-Agent", Shared.Engine.Http.UserAgent);
             #endregion
 
             requestMessage.Headers.Host = uri.Authority;

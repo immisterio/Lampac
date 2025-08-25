@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.AniLibria
+﻿namespace Shared.Models.Online.AniLibria
 {
     public class Poster
     {

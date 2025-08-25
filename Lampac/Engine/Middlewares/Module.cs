@@ -1,4 +1,4 @@
-﻿using Lampac.Models.Module;
+﻿using Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Shared.Models.Module;
 
 namespace Lampac.Engine.Middlewares
 {

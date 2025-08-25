@@ -1,5 +1,5 @@
-﻿using Lampac.Models.SISI;
-using Shared.Model.SISI;
+﻿using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -7,7 +7,7 @@ namespace Shared.Engine.SISI
 {
     public static class SpankbangTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string? search, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string search, string sort, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -26,7 +26,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, in string? html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -73,7 +73,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string? sort)
+        public static List<MenuItem> Menu(string host, string sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
 
@@ -111,12 +111,12 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{url}");
+            string html = await onresult.Invoke($"{host}/{url}");
             if (string.IsNullOrEmpty(html))
                 return null;
 

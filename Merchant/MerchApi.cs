@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Merchant;
+using Shared;
 
-namespace Lampac.Controllers.LITE
+namespace Merchant.Controllers
 {
     public class MerchApi : MerchantController
     {

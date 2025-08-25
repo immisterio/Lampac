@@ -1,19 +1,12 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.Online;
-using Online;
-using Shared.Model.Online.VideoDB;
-using Shared.Model.Templates;
-using Shared.Engine;
-using Lampac.Models.LITE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Engine.CORE;
+using Shared.Models.Online.Settings;
+using Shared.Models.Online.VideoDB;
 using Shared.PlaywrightCore;
-using Lampac.Engine.CORE;
+using System;
 using System.Net;
-using Shared.Model.Online;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class VideoDB : BaseOnlineController
     {
@@ -101,7 +94,7 @@ namespace Lampac.Controllers.LITE
                     }
                     else if (init.priorityBrowser == "http")
                     {
-                        location = await HttpClient.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
+                        location = await Http.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
                     }
                     else
                     {
@@ -111,7 +104,7 @@ namespace Lampac.Controllers.LITE
                             if (page == null)
                                 return null;
 
-                            browser.failedUrl = link;
+                            browser.SetFailedUrl(link);
 
                             await page.RouteAsync("**/*", async route =>
                             {
@@ -187,7 +180,7 @@ namespace Lampac.Controllers.LITE
                 ));
 
                 if (init.priorityBrowser == "http")
-                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
@@ -195,7 +188,7 @@ namespace Lampac.Controllers.LITE
                     if (page == null)
                         return null;
 
-                    browser.failedUrl = uri;
+                    browser.SetFailedUrl(uri);
 
                     await page.RouteAsync("**/*", async route =>
                     {

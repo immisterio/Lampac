@@ -1,17 +1,7 @@
-﻿using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Lampac.Models.JAC.AniLibria;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Web;
+﻿using Microsoft.AspNetCore.Mvc;
+using JacRed.Models.AniLibria;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("anilibria/[action]")]
     public class AniLibriaController : JacBaseController
@@ -24,7 +14,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("anilibria", jackett.Anilibria);
 
-            byte[] _t = await HttpClient.Download($"{jackett.Anilibria.host}/{url}", referer: $"{jackett.Anilibria.host}/release/{code}.html", proxy: proxyManager.Get());
+            byte[] _t = await Http.Download($"{jackett.Anilibria.host}/{url}", referer: $"{jackett.Anilibria.host}/release/{code}.html", proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -41,7 +31,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("anilibria", jackett.Anilibria);
 
-            var roots = await HttpClient.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get(), IgnoreDeserializeObject: true);
+            var roots = await Http.Get<List<RootObject>>("https://api.anilibria.tv/v2/searchTitles?search=" + HttpUtility.UrlEncode(query), timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get(), IgnoreDeserializeObject: true);
             if (roots == null || roots.Count == 0)
             {
                 consoleErrorLog("anilibria");

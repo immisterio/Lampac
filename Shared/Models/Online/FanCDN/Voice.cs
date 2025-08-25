@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.FanCDN
+﻿namespace Shared.Models.Online.FanCDN
 {
     public class Voice
     {

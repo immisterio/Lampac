@@ -1,10 +1,10 @@
-﻿using Lampac;
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
+using Shared.Engine;
 using Shared.Models.Browser;
 using System.Runtime.InteropServices;
 using System.Timers;
 
-namespace Shared.Engine
+namespace Shared.PlaywrightCore
 {
     public class Chromium : PlaywrightBase, IDisposable
     {
@@ -260,7 +260,7 @@ namespace Shared.Engine
                             IPage p = keepopen_context != null ? await keepopen_context.NewPageAsync().ConfigureAwait(false) : await browser.NewPageAsync().ConfigureAwait(false);
                             if (p != null)
                             {
-                                var r = await p.GotoAsync($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/api/chromium/ping").ConfigureAwait(false);
+                                var r = await p.GotoAsync($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/api/chromium/ping").ConfigureAwait(false);
                                 if (r != null)
                                 {
                                     stats_ping = (DateTime.Now, r.Status, null);

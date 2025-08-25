@@ -1,19 +1,9 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json.Linq;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.Templates;
+using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class VidSrc : BaseENGController
     {
@@ -58,11 +48,11 @@ namespace Lampac.Controllers.LITE
                 {
                     try
                     {
-                        var root = await HttpClient.Get<JObject>(uri, timeoutSeconds: 8);
+                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8);
                         if (root != null && root.ContainsKey("data"))
                         {
                             string hash = root["data"].First.Value<string>("hash");
-                            var source = await HttpClient.Get<JObject>($"{init.host}/api/source/{hash}", timeoutSeconds: 8);
+                            var source = await Http.Get<JObject>($"{init.host}/api/source/{hash}", timeoutSeconds: 8);
                             if (source != null && source.ContainsKey("data"))
                             {
                                 data = source["data"];

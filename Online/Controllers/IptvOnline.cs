@@ -1,20 +1,11 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.Templates;
-using System;
-using System.Linq;
+using Shared.Models.Online.Settings;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class IptvOnline : BaseOnlineController
     {
@@ -55,7 +46,7 @@ namespace Lampac.Controllers.LITE
             #region AUTH
             if (!hybridCache.TryGetValue($"iptvonline:auth:{init.token}", out string codeauth))
             {
-                var auth = await HttpClient.Post<JObject>($"{init.host}/v1/api/auth", "", timeoutSeconds: 8, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
+                var auth = await Http.Post<JObject>($"{init.host}/v1/api/auth", "", timeoutSeconds: 8, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
                     ("X-API-KEY", init.token.Split(":")[1]),
                     ("X-API-ID", init.token.Split(":")[0])
                 ));
@@ -92,7 +83,7 @@ namespace Lampac.Controllers.LITE
                 ));
 
                 string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}/{id}/";
-                var root = await HttpClient.Get<JObject>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
+                var root = await Http.Get<JObject>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
 
                 if (root == null || !root.ContainsKey("data"))
                     return res.Fail("data");
@@ -190,7 +181,7 @@ namespace Lampac.Controllers.LITE
                     string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}";
                     var data = new System.Net.Http.StringContent(JsonConvert.SerializeObject(new { search }), Encoding.UTF8, "application/json");
 
-                    var video = await HttpClient.Get<JObject>(uri, body: data, timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
+                    var video = await Http.Get<JObject>(uri, body: data, timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
 
                     if (video == null)
                     {

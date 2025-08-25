@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
 using System;
 using Newtonsoft.Json;
-using Merchant;
 using IO = System.IO.File;
 using System.IO;
+using Shared.Engine;
+using Shared;
 
-namespace Lampac.Controllers.LITE
+namespace Merchant.Controllers
 {
     /// <summary>
     /// https://docs.freekassa.ru/

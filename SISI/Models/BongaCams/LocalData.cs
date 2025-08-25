@@ -1,4 +1,4 @@
-﻿namespace Lampac.Model.SISI.BongaCams
+﻿namespace SISI.Models.BongaCams
 {
     public class LocalData
     {

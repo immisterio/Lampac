@@ -1,20 +1,10 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Engine.Online;
-using Online;
-using Shared.Engine.CORE;
-using System;
-using Shared.Model.Online.Filmix;
-using Shared.Model.Online;
+using Shared.Models.Online.FilmixTV;
 using System.Text;
-using Shared.Model.Online.FilmixTV;
-using System.Text.RegularExpressions;
 using F = System.IO.File;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     /// <summary>
     /// Автор https://github.com/fellicienne
@@ -53,7 +43,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                var rtk = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/request-token", timeoutSeconds: 30);
+                var rtk = await Http.Get<JObject>($"{init.corsHost()}/api-fx/request-token", timeoutSeconds: 30);
                 if (rtk == null || !rtk.ContainsKey("token"))
                     return ShowError("rtk");
 
@@ -73,12 +63,12 @@ namespace Lampac.Controllers.LITE
                 if (F.Exists(authFile))
                 {
                     string refreshToken = Regex.Match(F.ReadAllText(authFile), "\"refreshToken\": ?\"([^\"]+)\"").Groups[1].Value;
-                    root_auth = await HttpClient.Get<JObject>($"{init.corsHost()}/api-fx/refresh?refreshToken={HttpUtility.UrlEncode(refreshToken)}", headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
+                    root_auth = await Http.Get<JObject>($"{init.corsHost()}/api-fx/refresh?refreshToken={HttpUtility.UrlEncode(refreshToken)}", headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
                 }
                 else
                 {
                     var data = new System.Net.Http.StringContent($"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\",\"session\":true}}", Encoding.UTF8, "application/json");
-                    root_auth = await HttpClient.Post<JObject>($"{init.corsHost()}/api-fx/auth", data, headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
+                    root_auth = await Http.Post<JObject>($"{init.corsHost()}/api-fx/auth", data, headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
                 }
 
                 string accessToken = root_auth?.GetValue("accessToken")?.ToString();
@@ -116,8 +106,8 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
-               (url, data) => HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: headers),
+               ongettourl => Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
+               (url, data) => Http.Post(init.cors(url), data, timeoutSeconds: 8, headers: headers),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => proxyManager.Refresh(),
                rjson: rjson
@@ -125,7 +115,7 @@ namespace Lampac.Controllers.LITE
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmixtv:search:{title}:{original_title}:{clarification}:{similar}", cacheTime(40, init: init), proxyManager, async res =>
+                var search = await InvokeCache<Shared.Models.Online.Filmix.SearchResult>($"filmixtv:search:{title}:{original_title}:{clarification}:{similar}", cacheTime(40, init: init), proxyManager, async res =>
                 {
                     return await oninvk.Search(title, original_title, clarification, year, similar);
                 });
@@ -141,7 +131,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<RootObject>($"filmixtv:post:{postid}:{init.token_apitv}", cacheTime(20, init: init), proxyManager, onget: async res =>
             {
-                string json = await HttpClient.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", timeoutSeconds: 8, headers: headers);
+                string json = await Http.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", timeoutSeconds: 8, headers: headers);
 
                 return oninvk.Post(json);
             });

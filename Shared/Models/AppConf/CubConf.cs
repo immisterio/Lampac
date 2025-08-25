@@ -1,4 +1,5 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
+
 namespace Shared.Models.AppConf
 {
     public class CubConf : Iproxy

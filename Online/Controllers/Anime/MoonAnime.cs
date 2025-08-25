@@ -1,20 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using System.Web;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
-using Shared.Model.Online;
-using System.Linq;
-using System.IO;
-using System;
-using Shared.Model.Base;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class MoonAnime : BaseOnlineController
     {
@@ -39,14 +26,14 @@ namespace Lampac.Controllers.LITE
             {
                 #region Поиск
                 string memkey = $"moonanime:search:{imdb_id}:{title}:{original_title}";
-                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, long id, string poster)> catalog))
+                if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, long id, string poster)> catalog, inmemory: false))
                 {
                     async Task<JObject> goSearch(string arg)
                     {
                         if (string.IsNullOrEmpty(arg.Split("=")?[1]))
                             return null;
 
-                        var search = await HttpClient.Get<JObject>($"{init.corsHost()}/api/2.0/titles?api_key={init.token}&limit=20" + arg, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                        var search = await Http.Get<JObject>($"{init.corsHost()}/api/2.0/titles?api_key={init.token}&limit=20" + arg, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                         if (search == null || !search.ContainsKey("anime_list"))
                             return null;
 
@@ -77,7 +64,7 @@ namespace Lampac.Controllers.LITE
                         return OnError();
 
                     proxyManager.Success();
-                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init));
+                    hybridCache.Set(memkey, catalog, cacheTime(40, init: init), inmemory: false);
                 }
 
                 if (!similar && catalog.Count == 1)
@@ -100,7 +87,7 @@ namespace Lampac.Controllers.LITE
                 string memKey = $"moonanime:playlist:{animeid}";
                 if (!hybridCache.TryGetValue(memKey, out JArray root))
                 {
-                    root = await HttpClient.Get<JArray>($"{init.corsHost()}/api/2.0/title/{animeid}/videos?api_key={init.token}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    root = await Http.Get<JArray>($"{init.corsHost()}/api/2.0/title/{animeid}/videos?api_key={init.token}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (root == null)
                         return OnError(proxyManager);
 
@@ -210,7 +197,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"moonanime:vod:{vod}";
             if (!hybridCache.TryGetValue(memKey, out (string file, string subtitle) cache))
             {
-                string iframe = await HttpClient.Get(vod + "?partner=lampa", timeoutSeconds: 10, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
+                string iframe = await Http.Get(vod + "?partner=lampa", timeoutSeconds: 10, httpversion: 2, proxy: proxyManager.Get(), headers: httpHeaders(init, HeadersModel.Init(
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -235,7 +222,7 @@ namespace Lampac.Controllers.LITE
                     return OnError();
 
                 #region stats
-                _ = await HttpClient.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, removeContentType: true, proxy: proxyManager.Get(), headers: HeadersModel.Init(
+                _ = await Http.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, removeContentType: true, proxy: proxyManager.Get(), headers: HeadersModel.Init(
                     ("accept", "*/*"),
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),

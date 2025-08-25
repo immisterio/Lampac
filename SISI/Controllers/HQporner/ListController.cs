@@ -1,13 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Models.SISI;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.HQporner
+namespace SISI.Controllers.HQporner
 {
     public class ListController : BaseSisiController
     {
@@ -20,7 +13,7 @@ namespace Lampac.Controllers.HQporner
                 return badInitMsg;
 
             string memKey = $"hqr:{search}:{sort}:{c}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -33,7 +26,7 @@ namespace Lampac.Controllers.HQporner
                     return ContentTo(rch.connectionMsg);
 
                 string html = await HQpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 playlists = HQpornerTo.Playlist($"{host}/hqr/vidosik", html);
@@ -49,7 +42,7 @@ namespace Lampac.Controllers.HQporner
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? HQpornerTo.Menu(host, sort, c) : null, plugin: init.plugin);

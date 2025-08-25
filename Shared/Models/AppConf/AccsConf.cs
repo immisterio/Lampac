@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Shared.Model.Base;
+using Shared.Models.Base;
 using System.Collections.Concurrent;
 
-namespace Lampac.Models.AppConf
+namespace Shared.Models.AppConf
 {
     public class AccsConf
     {

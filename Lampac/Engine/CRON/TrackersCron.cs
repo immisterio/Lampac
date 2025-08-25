@@ -1,4 +1,5 @@
-﻿using Lampac.Engine.CORE;
+﻿using Shared;
+using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,7 +40,7 @@ namespace Lampac.Engine.CRON
                             "https://newtrackon.com/api/all"
                         })
                         {
-                            string plain = await HttpClient.Get(uri, weblog: false).ConfigureAwait(false);
+                            string plain = await Http.Get(uri, weblog: false).ConfigureAwait(false);
                             if (plain == null)
                                 continue;
 

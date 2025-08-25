@@ -1,15 +1,7 @@
 ﻿using Jackett;
-using JacRed.Models;
-using JacRed.Models.Tracks;
-using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
+using Shared.Models.JacRed.Tracks;
 
 namespace JacRed.Engine
 {
@@ -35,7 +27,7 @@ namespace JacRed.Engine
             if (category != null && category.Count > 0)
                 queryString.Append($"&category[]={category.First().Value}");
 
-            var root = await HttpClient.Get<JObject>($"{ModInit.conf.webApiHost}/api/v2.0/indexers/all/results?query={HttpUtility.UrlEncode(query)}" + queryString.ToString(), timeoutSeconds: 8);
+            var root = await Http.Get<JObject>($"{ModInit.conf.webApiHost}/api/v2.0/indexers/all/results?query={HttpUtility.UrlEncode(query)}" + queryString.ToString(), timeoutSeconds: 8);
             if (root == null)
                 return new List<TorrentDetails>();
 

@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.Filmix
+﻿namespace Shared.Models.Online.Filmix
 {
     public class Movie
     {

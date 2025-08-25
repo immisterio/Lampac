@@ -1,14 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using Shared.Engine.SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
-using SISI;
 
-namespace Lampac.Controllers.Runetki
+namespace SISI.Controllers.Runetki
 {
     public class ListController : BaseSisiController
     {
@@ -27,7 +20,7 @@ namespace Lampac.Controllers.Runetki
             var proxy = proxyManager.BaseGet();
 
             string memKey = $"{init.plugin}:list:{sort}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache))
+            if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache, inmemory: false))
             {
                 reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
                 if (rch.IsNotSupport("web,cors", out string rch_error))
@@ -42,7 +35,7 @@ namespace Lampac.Controllers.Runetki
                         return rch.Get(init.cors(url), httpHeaders(init));
 
                     if (init.priorityBrowser == "http")
-                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                        return Http.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });
@@ -61,7 +54,7 @@ namespace Lampac.Controllers.Runetki
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, cache, cacheTime(5, init: init));
+                hybridCache.Set(memKey, cache, cacheTime(5, init: init), inmemory: false);
             }
 
             return OnResult(cache.playlists, init, RunetkiTo.Menu(host, sort), proxy: proxy.proxy, total_pages: cache.total_pages);

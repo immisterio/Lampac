@@ -1,23 +1,13 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Online;
-using Shared.Model.Online.FanCDN;
-using Shared.Engine.Online;
-using Shared.Engine;
-using Lampac.Models.LITE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Engine.CORE;
-using System;
 using Shared.PlaywrightCore;
-using Lampac.Engine.CORE;
-using Shared.Model.Online;
 using System.Net;
 using BrowserCookie = Microsoft.Playwright.Cookie;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Routing;
+using Shared.Models.Online.Settings;
+using Shared.Models.Online.FanCDN;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class FanCDN : BaseOnlineController
     {
@@ -62,7 +52,7 @@ namespace Lampac.Controllers.LITE
                        return await rch.Get(init.cors(ongettourl), headers);
 
                    if (init.priorityBrowser == "http")
-                       return await HttpClient.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
+                       return await Http.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
 
                    #region Browser Search
                    try
@@ -149,7 +139,7 @@ namespace Lampac.Controllers.LITE
                     return await rch.Get(uri, headers);
 
                 if (init.priorityBrowser == "http")
-                    return await HttpClient.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser())
                 {
@@ -157,7 +147,7 @@ namespace Lampac.Controllers.LITE
                     if (page == null)
                         return null;
 
-                    browser.failedUrl = uri;
+                    browser.SetFailedUrl(uri);
 
                     await page.RouteAsync("**/*", async route =>
                     {

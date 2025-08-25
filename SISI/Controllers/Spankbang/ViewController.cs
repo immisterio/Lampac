@@ -1,13 +1,7 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Lampac.Models.SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
-using Lampac.Engine.CORE;
 
-namespace Lampac.Controllers.Spankbang
+namespace SISI.Controllers.Spankbang
 {
     public class ViewController : BaseSisiController
     {
@@ -35,7 +29,7 @@ namespace Lampac.Controllers.Spankbang
                         return rch.Get(init.cors(url), httpHeaders(init));
 
                     if (init.priorityBrowser == "http")
-                        return HttpClient.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                        return Http.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });

@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class LumexSettings : BaseSettings, ICloneable
     {
@@ -21,16 +21,16 @@ namespace Lampac.Models.LITE
         }
 
 
-        public string? clientId { get; set; }
+        public string clientId { get; set; }
 
-        public string? iframehost { get; set; }
+        public string iframehost { get; set; }
 
 
-        public string? username { get; set; }
+        public string username { get; set; }
 
-        public string? password { get; set; }
+        public string password { get; set; }
 
-        public string? domain { get; set; }
+        public string domain { get; set; }
 
         public bool disable_protection { get; set; }
 

@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.JAC.AniLibria
+﻿namespace JacRed.Models.AniLibria
 {
     public class Series
     {

@@ -1,6 +1,4 @@
-﻿using Lampac.Models.LITE.Collaps;
-
-namespace Shared.Model.Online.Collaps
+﻿namespace Shared.Models.Online.Collaps
 {
     public class EmbedModel
     {

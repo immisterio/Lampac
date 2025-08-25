@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Rezka
+﻿namespace Shared.Models.Online.Rezka
 {
     public class Episodes
     {

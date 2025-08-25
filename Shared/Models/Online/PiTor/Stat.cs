@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.PiTor
+﻿namespace Shared.Models.Online.PiTor
 {
     public class Stat
     {

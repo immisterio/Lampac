@@ -1,19 +1,10 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Engine.Online;
-using Online;
-using Shared.Engine.CORE;
-using System;
-using System.Text.RegularExpressions;
-using Lampac.Models.LITE.Filmix;
-using Shared.Model.Online.Filmix;
-using Shared.Model.Online;
+using Shared.Models.Online.Filmix;
+using Shared.Models.Online.Settings;
 using System.Text;
-using Lampac.Models.LITE;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Filmix : BaseOnlineController
     {
@@ -22,7 +13,7 @@ namespace Lampac.Controllers.LITE
         [Route("lite/filmixpro")]
         async public Task<ActionResult> Pro()
         {
-            var token_request = await HttpClient.Get<JObject>($"{AppInit.conf.Filmix.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=", useDefaultHeaders: false);
+            var token_request = await Http.Get<JObject>($"{AppInit.conf.Filmix.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=", useDefaultHeaders: false);
 
             if (token_request == null)
                 return Content($"нет доступа к {AppInit.conf.Filmix.corsHost()}", "text/html; charset=utf-8");
@@ -70,7 +61,7 @@ namespace Lampac.Controllers.LITE
                 string accessToken = await InvokeCache($"filmix:accessToken:{init.user_apitv}:{init.token_apitv}", TimeSpan.FromHours(8), async () => 
                 {
                     var content = new System.Net.Http.StringContent($"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\"}}", Encoding.UTF8, "application/json"); ;
-                    var jobject = await HttpClient.Post<JObject>("https://api.filmix.tv/api-fx/auth", content, timeoutSeconds: 8);
+                    var jobject = await Http.Post<JObject>("https://api.filmix.tv/api-fx/auth", content, timeoutSeconds: 8);
                     return jobject?.GetValue("accessToken")?.ToString();
                 });
 
@@ -92,9 +83,9 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                token,
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init), useDefaultHeaders: false) : 
-                                          HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
+                                          Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
                (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : httpHeaders(init)), useDefaultHeaders: false) : 
-                                                 HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
+                                                 Http.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
                streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },
                rjson: rjson
@@ -141,12 +132,12 @@ namespace Lampac.Controllers.LITE
             {
                 if (!string.IsNullOrEmpty(init.token_apitv))
                 {
-                    string json = await HttpClient.Get("https://api.filmix.tv/api-fx/post/171042/video-links", timeoutSeconds: 8, headers: HeadersModel.Init("Authorization", $"Bearer {init.token_apitv}"));
+                    string json = await Http.Get("https://api.filmix.tv/api-fx/post/171042/video-links", timeoutSeconds: 8, headers: HeadersModel.Init("Authorization", $"Bearer {init.token_apitv}"));
                     hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
                 }
                 else if (!string.IsNullOrEmpty(init.token))
                 {
-                    string json = await HttpClient.Get($"{init.corsHost()}/api/v2/post/171042?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
+                    string json = await Http.Get($"{init.corsHost()}/api/v2/post/171042?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
                     hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
                 }
                 else

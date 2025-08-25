@@ -1,12 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Lampac.Models.SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.XvideosRED
+namespace SISI.Controllers.XvideosRED
 {
     public class ViewController : BaseSisiController
     {
@@ -25,7 +19,7 @@ namespace Lampac.Controllers.XvideosRED
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
                 stream_links = await XvideosTo.StreamLinks($"{host}/xdsred/vidosik", $"{host}/xdsred/stars", init.corsHost(), uri, 
-                    url => HttpClient.Get(url, cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    url => Http.Get(url, cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)

@@ -1,5 +1,4 @@
-﻿using Shared.Model.Base;
-using System.Collections.Generic;
+﻿using Shared.Models.Base;
 
 namespace Shared.Models.ServerProxy
 {

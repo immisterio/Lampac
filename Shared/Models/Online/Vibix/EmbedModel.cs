@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Vibix
+﻿namespace Shared.Models.Online.Vibix
 {
     public class EmbedModel
     {

@@ -1,26 +1,14 @@
-﻿using Lampac;
-using Lampac.Engine;
-using Lampac.Engine.CORE;
-using Lampac.Models.Module;
-using Lampac.Models.SISI;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Engine;
-using Shared.Model.Base;
 using Shared.Models.CSharpGlobals;
 using Shared.Models.Module;
 using Shared.PlaywrightCore;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
+using Shared.Models.Base;
 
 namespace SISI
 {
@@ -252,7 +240,7 @@ namespace SISI
                             continue;
 
                         string plugin = Path.GetFileNameWithoutExtension(inFile);
-                        var init = Lampac.Controllers.NextHUB.Root.goInit(plugin);
+                        var init = Controllers.NextHUB.Root.goInit(plugin);
                         if (init == null)
                             continue;
 
@@ -309,7 +297,7 @@ namespace SISI
             {
                 try
                 {
-                    var ch = await HttpClient.Get<JObject>("https://vi.sisi.am", timeoutSeconds: 4);
+                    var ch = await Http.Get<JObject>("https://vi.sisi.am", timeoutSeconds: 4);
 
                     foreach (var pl in ch.GetValue("channels"))
                     {

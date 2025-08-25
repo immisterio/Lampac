@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Lampac.Models.DLNA
+namespace Shared.Models.DLNA
 {
     public class CoverSettings
     {

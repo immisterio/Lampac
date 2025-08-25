@@ -1,12 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.HQporner
+namespace SISI.Controllers.HQporner
 {
     public class ViewController : BaseSisiController
     {
@@ -32,8 +26,8 @@ namespace Lampac.Controllers.HQporner
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri, 
-                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
-                               iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : HttpClient.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
+                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
+                               iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : Http.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
 
                 if (stream_links == null || stream_links.Count == 0)
                 {

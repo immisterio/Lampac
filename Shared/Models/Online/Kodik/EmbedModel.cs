@@ -1,11 +1,11 @@
-﻿using Shared.Model.Templates;
+﻿using Shared.Models.Templates;
 
-namespace Shared.Model.Online.Kodik
+namespace Shared.Models.Online.Kodik
 {
     public class EmbedModel
     {
         public SimilarTpl? stpl { get; set; }
 
-        public List<Result>? result { get; set; }
+        public List<Result> result { get; set; }
     }
 }

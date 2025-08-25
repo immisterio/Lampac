@@ -1,14 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Shared.Model.Online;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Ebalovo
+namespace SISI.Controllers.Ebalovo
 {
     public class ListController : BaseSisiController
     {
@@ -21,7 +13,7 @@ namespace Lampac.Controllers.Ebalovo
                 return badInitMsg;
 
             string memKey = $"elo:{search}:{sort}:{c}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -44,7 +36,7 @@ namespace Lampac.Controllers.Ebalovo
                 ));
 
                 string html = await EbalovoTo.InvokeHtml(ehost, search, sort, c, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers)
+                    rch.enable ? rch.Get(init.cors(url), headers) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers)
                 );
 
                 playlists = EbalovoTo.Playlist($"{host}/elo/vidosik", html);
@@ -60,7 +52,7 @@ namespace Lampac.Controllers.Ebalovo
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(10, init: init));
+                hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null, plugin: init.plugin);

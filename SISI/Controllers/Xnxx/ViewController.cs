@@ -1,12 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Lampac.Models.SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Xnxx
+namespace SISI.Controllers.Xnxx
 {
     public class ViewController : BaseSisiController
     {
@@ -32,7 +26,7 @@ namespace Lampac.Controllers.Xnxx
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await XnxxTo.StreamLinks($"{host}/xnx/vidosik", init.corsHost(), uri, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)

@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Zetflix
+﻿namespace Shared.Models.Online.Zetflix
 {
     public class Folder
     {

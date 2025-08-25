@@ -1,6 +1,4 @@
-﻿using Lampac.Models.LITE;
-
-namespace Shared.Model.Online.Rezka
+﻿namespace Shared.Models.Online.Rezka
 {
     public class MovieModel
     {
@@ -14,6 +12,6 @@ namespace Shared.Model.Online.Rezka
         /// </summary>
         public string url { get; set; }
 
-        public string? subtitlehtml { get; set; }
+        public string subtitlehtml { get; set; }
     }
 }

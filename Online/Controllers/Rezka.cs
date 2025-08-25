@@ -1,22 +1,10 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Engine.Online;
-using Shared.Model.Online.Rezka;
-using System;
-using Shared.Model.Online;
-using System.Collections.Generic;
-using Lampac.Models.LITE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.RegularExpressions;
+using Shared.Models.Online.Rezka;
+using Shared.Models.Online.Settings;
 using System.Net;
-using Shared.Model.Base;
-using Shared.Model.Templates;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Rezka : BaseOnlineController
     {
@@ -50,9 +38,9 @@ namespace Lampac.Controllers.LITE
                 init.reserve,
                 init.premium,
                 (url, hed) => rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) : 
-                                           HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
+                                           Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
                 (url, data, hed) => rch.enable ? rch.Post(url, data, HeadersModel.Join(hed, headers)) : 
-                                                 HttpClient.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
+                                                 Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, headers: RezkaInvoke.StreamProxyHeaders(init.host)),
                 requesterror: () => proxyManager.Refresh()
             );
@@ -333,7 +321,7 @@ namespace Lampac.Controllers.LITE
                 using (var client = new System.Net.Http.HttpClient(clientHandler))
                 {
                     client.Timeout = TimeSpan.FromSeconds(20);
-                    client.DefaultRequestHeaders.Add("user-agent", HttpClient.UserAgent);
+                    client.DefaultRequestHeaders.Add("user-agent", Http.UserAgent);
 
                     var postParams = new Dictionary<string, string>
                     {

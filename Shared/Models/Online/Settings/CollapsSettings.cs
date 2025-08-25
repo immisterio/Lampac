@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Shared.Model.Online.Settings
+namespace Shared.Models.Online.Settings
 {
     public class CollapsSettings : BaseSettings, ICloneable
     {

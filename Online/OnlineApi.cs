@@ -1,41 +1,22 @@
-﻿using Lampac.Engine;
-using Lampac.Engine.CORE;
+﻿using LiteDB;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Engine.Online;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Online.Lumex;
 using Shared.Models.CSharpGlobals;
 using Shared.Models.Module;
+using Shared.Models.Online.Lumex;
 using Shared.PlaywrightCore;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Data;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 using IO = System.IO;
 
-namespace Lampac.Controllers
+namespace Online.Controllers
 {
     public class OnlineApiController : BaseController
     {
-        static OnlineApiController()
-        {
-            Directory.CreateDirectory("cache/externalids");
-        }
-
         #region online.js
         [HttpGet]
         [Route("online.js")]
@@ -152,22 +133,26 @@ namespace Lampac.Controllers
         /// </summary>
         static ConcurrentDictionary<string, string> externalids = new ConcurrentDictionary<string, string>();
 
-        static DateTime externalids_lastWriteTime = default;
+        static DateTime externalids_lastWriteTime = default, externalids_nextCheck = default;
 
         [Route("externalids")]
         async public ValueTask<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
             #region load externalids
-            if (IO.File.Exists("cache/externalids/master.json"))
+            if (IO.File.Exists("data/externalids.json"))
             {
                 try
                 {
-                    var lastWriteTime = IO.File.GetLastWriteTime("cache/externalids/master.json");
-                    if (lastWriteTime != externalids_lastWriteTime)
+                    if (externalids_nextCheck > DateTime.Now)
                     {
-                        externalids_lastWriteTime = lastWriteTime;
-                        foreach (var item in JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("cache/externalids/master.json")))
-                            externalids.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                        externalids_nextCheck = DateTime.Now.AddMinutes(5);
+                        var lastWriteTime = IO.File.GetLastWriteTime("data/externalids.json");
+                        if (lastWriteTime != externalids_lastWriteTime)
+                        {
+                            externalids_lastWriteTime = lastWriteTime;
+                            foreach (var item in JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("data/externalids.json")))
+                                externalids.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                        }
                     }
                 }
                 catch { }
@@ -177,7 +162,7 @@ namespace Lampac.Controllers
             #region KP_
             if (id != null && id.StartsWith("KP_"))
             {
-                string _kp = id.AsSpan(3).ToString();
+                string _kp = id.Substring(0, 3);
                 foreach (var eid in externalids)
                 {
                     if (eid.Value == _kp && !string.IsNullOrEmpty(eid.Key))
@@ -194,11 +179,11 @@ namespace Lampac.Controllers
                 else
                 {
                     string mkey = $"externalids:KP_:{_kp}";
-                    if (!hybridCache.TryGetValue(mkey, out string _imdbid))
+                    if (!hybridCache.TryGetValue(mkey, out string _imdbid, inmemory: false))
                     {
-                        string json = await HttpClient.Get($"https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&kp=" + _kp, timeoutSeconds: 5);
+                        string json = await Http.Get($"https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&kp=" + _kp, timeoutSeconds: 5);
                         _imdbid = Regex.Match(json ?? "", "\"id_imdb\":\"(tt[^\"]+)\"").Groups[1].Value;
-                        hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
+                        hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8), inmemory: false);
                     }
 
                     return Json(new { imdb_id = _imdbid, kinopoisk_id = _kp });
@@ -210,7 +195,7 @@ namespace Lampac.Controllers
             async Task<string> getAlloha(string imdb)
             {
                 var proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
-                string json = await HttpClient.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 4, proxy: proxyManager.Get());
+                string json = await Http.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 5, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
@@ -223,39 +208,32 @@ namespace Lampac.Controllers
 
             async Task<string> getVSDN(string imdb)
             {
-                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token) || LITE.Lumex.database != null)
+                if (Lumex.database == null && AppInit.conf.Lumex.spider && AppInit.conf.mikrotik == false)
+                    Lumex.database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
+
+                if (Lumex.database != null)
                 {
-                    if (LITE.Lumex.database == null && AppInit.conf.Lumex.spider && AppInit.conf.mikrotik == false)
-                        LITE.Lumex.database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
-
-                    if (LITE.Lumex.database == null)
-                        return null;
-
-                    long? res = LITE.Lumex.database.Find(i => i.imdb_id == imdb)?.kinopoisk_id;
+                    long? res = Lumex.database.Find(i => i.imdb_id == imdb)?.kinopoisk_id;
                     if (res > 0)
                         return res.ToString();
-
-                    return null;
                 }
-                else
-                {
-                    var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
-                    string json = await HttpClient.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.token}&imdb_id={imdb}", timeoutSeconds: 4, proxy: proxyManager.Get());
-                    if (json == null)
-                        return null;
 
-                    string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
-                    if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
-                        return kpid;
-
+                var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
+                string json = await Http.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.iframehost}&imdb_id={imdb}", timeoutSeconds: 5, proxy: proxyManager.Get());
+                if (json == null)
                     return null;
-                }
+
+                string kpid = Regex.Match(json, "\"kp_id\":\"?([0-9]+)\"?").Groups[1].Value;
+                if (!string.IsNullOrEmpty(kpid) && kpid != "0" && kpid != "null")
+                    return kpid;
+
+                return null;
             }
 
             async Task<string> getTabus(string imdb)
             {
                 var proxyManager = new ProxyManager("collaps", AppInit.conf.Collaps);
-                string json = await HttpClient.Get("https://api.bhcesh.me/franchise/details?token=d39edcf2b6219b6421bffe15dde9f1b3&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 4, proxy: proxyManager.Get());
+                string json = await Http.Get("https://api.bhcesh.me/franchise/details?token=d39edcf2b6219b6421bffe15dde9f1b3&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 5, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
@@ -285,12 +263,10 @@ namespace Lampac.Controllers
 
                 if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
                 {
-                    string path = $"cache/externalids/{id}_{serial}";
-                    if (IO.File.Exists(path))
-                    {
-                        imdb_id = IO.File.ReadAllText(path);
-                    }
-                    else
+                    var collection = CollectionDb.externalids_imdb;
+                    imdb_id = collection.FindById($"{id}_{serial}")?["value"]?.AsString;
+
+                    if (string.IsNullOrEmpty(imdb_id))
                     {
                         string mkey = $"externalids:locktmdb:{serial}:{id}";
                         if (!hybridCache.TryGetValue(mkey, out _))
@@ -299,12 +275,18 @@ namespace Lampac.Controllers
 
                             string cat = serial == 1 ? "tv" : "movie";
                             var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                            string json = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
+                            string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
                             if (!string.IsNullOrWhiteSpace(json))
                             {
                                 imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
                                 if (!string.IsNullOrWhiteSpace(imdb_id))
-                                    IO.File.WriteAllText(path, imdb_id);
+                                {
+                                    collection.Insert(new BsonDocument() 
+                                    {
+                                        ["_id"] = $"{id}_{serial}",
+                                        ["value"] = imdb_id
+                                    });
+                                }
                             }
                         }
                     }
@@ -320,14 +302,11 @@ namespace Lampac.Controllers
                 externalids.TryGetValue(imdb_id, out kpid);
 
                 if (string.IsNullOrEmpty(kpid) || kpid == "0")
-                { 
-                    string path = $"cache/externalids/{imdb_id}";
-                    if (IO.File.Exists(path))
-                    {
-                        kpid = IO.File.ReadAllText(path);
-                        externalids.TryAdd(imdb_id, kpid);
-                    }
-                    else if (kinopoisk_id == 0)
+                {
+                    var collection = CollectionDb.externalids_kp;
+                    kpid = collection.FindById(imdb_id)?["value"]?.AsString;
+
+                    if (string.IsNullOrEmpty(kpid) && kinopoisk_id == 0)
                     {
                         string mkey = $"externalids:lockkpid:{imdb_id}";
                         if (!hybridCache.TryGetValue(mkey, out _))
@@ -347,22 +326,32 @@ namespace Lampac.Controllers
                                     break;
                                 default:
                                     {
-                                        var tasks = new Task<string>[] { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
-                                        await Task.WhenAll(tasks);
+                                        var tasks = new List<Task<string>> { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
 
-                                        kpid = tasks[0].Result ?? tasks[1].Result ?? tasks[2].Result;
+                                        while (tasks.Count > 0)
+                                        {
+                                            var completedTask = await Task.WhenAny(tasks);
+                                            tasks.Remove(completedTask);
+
+                                            var result = completedTask.Result;
+                                            if (result != null)
+                                            {
+                                                kpid = result;
+                                                break;
+                                            }
+                                        }
+
                                         break;
                                     }
                             }
 
                             if (!string.IsNullOrEmpty(kpid) && kpid != "0")
                             {
-                                if (externalids.ContainsKey(imdb_id))
-                                    externalids[imdb_id] = kpid;
-                                else
-                                    externalids.TryAdd(imdb_id, kpid);
-
-                                IO.File.WriteAllText(path, kpid);
+                                collection.Insert(new BsonDocument()
+                                {
+                                    ["_id"] = imdb_id,
+                                    ["value"] = kpid
+                                });
                             }
                         }
                     }
@@ -547,7 +536,7 @@ namespace Lampac.Controllers
                 if (chineseRegex.IsMatch(title) || japaneseRegex.IsMatch(title) || koreanRegex.IsMatch(title))
                 {
                     var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                    var result = await HttpClient.Get<JObject>($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/3/{(serial == 1 ? "tv" : "movie")}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=en", timeoutSeconds: 4, headers: header);
+                    var result = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{(serial == 1 ? "tv" : "movie")}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=en", timeoutSeconds: 4, headers: header);
                     if (result != null)
                     {
                         string _title = serial == 1 ? result.Value<string>("name") : result.Value<string>("title");
@@ -733,7 +722,7 @@ namespace Lampac.Controllers
                         {
                             if (!hybridCache.TryGetValue($"vokino:view:{kinopoisk_id}", out JObject view))
                             {
-                                view = await HttpClient.Get<JObject>($"{myinit.corsHost()}/v2/view/{kinopoisk_id}?token={myinit.token}", timeoutSeconds: 4);
+                                view = await Http.Get<JObject>($"{myinit.corsHost()}/v2/view/{kinopoisk_id}?token={myinit.token}", timeoutSeconds: 4);
                                 if (view != null)
                                     hybridCache.Set($"vokino:view:{kinopoisk_id}", view, cacheTime(20));
                             }
@@ -975,7 +964,7 @@ namespace Lampac.Controllers
 
             if (chos && IO.File.Exists("isdocker"))
             {
-                string version = await HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/version", timeoutSeconds: 4, headers: HeadersModel.Init("localrequest", AppInit.rootPasswd));
+                string version = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/version", timeoutSeconds: 4, headers: HeadersModel.Init("localrequest", AppInit.rootPasswd));
                 if (version == null || !version.StartsWith(appversion))
                     chos = false;
             }
@@ -1023,11 +1012,11 @@ namespace Lampac.Controllers
         {
             try
             {
-                string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}");
+                string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}");
                 var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", AppInit.rootPasswd)) : null;
 
                 string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
-                string res = await HttpClient.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header).ConfigureAwait(false);
+                string res = await Http.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(res))
                     res = string.Empty;

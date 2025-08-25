@@ -1,20 +1,10 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using System.Web;
-using Lampac.Models.LITE;
+using Shared.Models.Online.Settings;
+using Shared.Models.Online.VeoVeo;
 using System.Net;
-using System.Collections.Generic;
-using System.Linq;
-using Shared.Engine;
-using Shared.Model.Online.VeoVeo;
-using Shared.Model.Base;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class VeoVeo : BaseOnlineController
     {
@@ -45,7 +35,7 @@ namespace Lampac.Controllers.LITE
             var cache = await InvokeCache<JArray>($"{init.plugin}:view:{movieid}", cacheTime(20, init: init), proxyManager, async res =>
             {
                 string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movieid}";
-                var root = await HttpClient.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await Http.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (root == null || root.Count == 0)
                     return res.Fail("data");

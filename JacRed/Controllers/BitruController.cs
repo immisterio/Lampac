@@ -1,18 +1,6 @@
-﻿using System;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using System.Collections.Concurrent;
-using Shared.Engine.CORE;
-using JacRed.Engine;
-using JacRed.Models;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("bitru/[action]")]
     public class BitruController : JacBaseController
@@ -36,7 +24,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("bitru", jackett.Bitru);
 
-            byte[] _t = await HttpClient.Download($"{jackett.Bitru.host}/download.php?id={id}", referer: $"{jackett.Bitru}/details.php?id={id}", proxy: proxyManager.Get());
+            byte[] _t = await Http.Download($"{jackett.Bitru.host}/download.php?id={id}", referer: $"{jackett.Bitru}/details.php?id={id}", proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -51,7 +39,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("bitru", jackett.Bitru);
 
-            string html = await HttpClient.Get($"{jackett.Bitru.host}/browse.php?s={HttpUtility.HtmlEncode(query)}&sort=&tmp=&cat=&subcat=&year=&country=&sound=&soundtrack=&subtitles=#content", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.Bitru.host}/browse.php?s={HttpUtility.HtmlEncode(query)}&sort=&tmp=&cat=&subcat=&year=&country=&sound=&soundtrack=&subtitles=#content", proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
 
             if (html == null || !html.Contains("id=\"logo\""))
             {

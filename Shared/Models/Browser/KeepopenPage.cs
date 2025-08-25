@@ -1,5 +1,4 @@
 ﻿using Microsoft.Playwright;
-using System;
 
 namespace Shared.Models.Browser
 {

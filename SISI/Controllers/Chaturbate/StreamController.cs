@@ -1,12 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using Shared.Engine.SISI;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Chaturbate
+namespace SISI.Controllers.Chaturbate
 {
     public class StreamController : BaseSisiController
     {
@@ -32,7 +26,7 @@ namespace Lampac.Controllers.Chaturbate
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 if (stream_links == null || stream_links.Count == 0)

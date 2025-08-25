@@ -1,16 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Engine.Online;
-using System;
-using Lampac.Models.LITE.KinoPub;
-using Shared.Model.Online.KinoPub;
+using Shared.Models.Online.KinoPub;
 using System.Net;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class KinoPub : BaseOnlineController
     {
@@ -29,7 +22,7 @@ namespace Lampac.Controllers.LITE
 
             if (string.IsNullOrWhiteSpace(code))
             {
-                var token_request = await HttpClient.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                var token_request = await Http.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
 
                 if (token_request == null)
                     return Content($"нет доступа к {init.corsHost()}", "text/html; charset=utf-8");
@@ -44,12 +37,12 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                var device_token = await HttpClient.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                var device_token = await Http.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
                 if (device_token == null || string.IsNullOrWhiteSpace(device_token.Value<string>("access_token")))
                     return LocalRedirect("/lite/kinopubpro");
 
                 if (!string.IsNullOrEmpty(name))
-                    await HttpClient.Post($"{init.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name}", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                    await Http.Post($"{init.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name}", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
 
                 return Content("Добавьте в init.conf<br><br>\"KinoPub\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + device_token.Value<string>("access_token") + "\"<br>}", "text/html; charset=utf-8");
             }
@@ -84,7 +77,7 @@ namespace Lampac.Controllers.LITE
                init.corsHost(),
                token,
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : 
-                                          HttpClient.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), cookieContainer: cookies),
+                                          Http.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), cookieContainer: cookies),
                (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

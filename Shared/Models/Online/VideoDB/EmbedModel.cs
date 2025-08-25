@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.VideoDB
+﻿namespace Shared.Models.Online.VideoDB
 {
     public class EmbedModel
     {

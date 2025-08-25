@@ -1,10 +1,10 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class OnlinesSettings : BaseSettings, ICloneable
     {
-        public OnlinesSettings(string plugin, string host, string? apihost = null, bool useproxy = false, string? token = null, bool enable = true, bool streamproxy = false, bool rip = false, bool forceEncryptToken = false)
+        public OnlinesSettings(string plugin, string host, string apihost = null, bool useproxy = false, string token = null, bool enable = true, bool streamproxy = false, bool rip = false, bool forceEncryptToken = false)
         {
             this.enable = enable;
             this.plugin = plugin;

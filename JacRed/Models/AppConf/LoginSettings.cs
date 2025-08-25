@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.JAC
+﻿namespace JacRed.Models.AppConf
 {
     public class LoginSettings
     {

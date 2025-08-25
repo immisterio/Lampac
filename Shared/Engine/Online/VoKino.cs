@@ -1,26 +1,26 @@
-﻿using Lampac.Models.LITE;
-using Newtonsoft.Json.Linq;
-using Shared.Model.Base;
-using Shared.Model.Online.VoKino;
-using Shared.Model.Templates;
+﻿using Newtonsoft.Json.Linq;
+using Shared.Models.Base;
+using Shared.Models.Online.Settings;
+using Shared.Models.Online.VoKino;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class VoKinoInvoke
+    public struct VoKinoInvoke
     {
         #region VoKinoInvoke
-        string? host;
+        string host;
         string apihost;
         string token;
-        Func<string, ValueTask<string?>> onget;
+        Func<string, ValueTask<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
 
-        public VoKinoInvoke(string? host, string apihost, string token, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public VoKinoInvoke(string host, string apihost, string token, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -76,13 +76,13 @@ namespace Shared.Engine.Online
         }
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? balancer, string? t)
+        public async ValueTask<EmbedModel> Embed(long kinopoisk_id, string balancer, string t)
         {
             try
             {
                 if (string.IsNullOrEmpty(balancer))
                 {
-                    string? json = await onget($"{apihost}/v2/view/{kinopoisk_id}?token={token}");
+                    string json = await onget($"{apihost}/v2/view/{kinopoisk_id}?token={token}");
                     if (json == null)
                     {
                         requesterror?.Invoke();
@@ -96,7 +96,7 @@ namespace Shared.Engine.Online
 
                     foreach (var item in JsonSerializer.Deserialize<JsonElement>(json).GetProperty("online").EnumerateObject())
                     {
-                        string? playlistUrl = item.Value.GetProperty("playlist_url").GetString();
+                        string playlistUrl = item.Value.GetProperty("playlist_url").GetString();
                         if (string.IsNullOrEmpty(playlistUrl))
                             continue;
 
@@ -120,7 +120,7 @@ namespace Shared.Engine.Online
                     if (!string.IsNullOrEmpty(t))
                         uri += $"&{t}";
 
-                    string? json = await onget(uri);
+                    string json = await onget(uri);
                     if (json == null)
                     {
                         requesterror?.Invoke();
@@ -144,13 +144,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, long kinopoisk_id, string? title, string? original_title, string? balancer, string t, int s, VastConf? vast = null, bool rjson = false)
+        public string Html(EmbedModel result, long kinopoisk_id, string title, string original_title, string balancer, string t, int s, VastConf vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region similar
             if (result.similars != null)
@@ -236,7 +236,7 @@ namespace Shared.Engine.Online
                     {
                         name = name.Replace("2160p.", "4K ");
 
-                        if (ch.extra != null && ch.extra.TryGetValue("size", out string? size) && !string.IsNullOrEmpty(size))
+                        if (ch.extra != null && ch.extra.TryGetValue("size", out string size) && !string.IsNullOrEmpty(size))
                             name += $" - {size}";
                     }
 

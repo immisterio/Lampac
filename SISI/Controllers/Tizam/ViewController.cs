@@ -1,13 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
-using SISI;
-using Shared.Engine.CORE;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Tizam
+namespace SISI.Controllers.Tizam
 {
     public class ViewController : BaseSisiController
     {
@@ -32,7 +25,7 @@ namespace Lampac.Controllers.Tizam
                     return ContentTo(rch.connectionMsg);
 
                 string html = rch.enable ? await rch.Get($"{init.corsHost()}/{uri}", httpHeaders(init)) : 
-                                           await HttpClient.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                                           await Http.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
                 
                 string location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
 

@@ -1,8 +1,8 @@
-﻿namespace Shared.Model.Base
+﻿namespace Shared.Models.Base
 {
     public class AccsUser
     {
-        public string? id { get; set; }
+        public string id { get; set; }
 
         public List<string> ids { get; set; } = new List<string>();
 
@@ -14,10 +14,10 @@
 
         public bool ban { get; set; }
 
-        public string? ban_msg { get; set; }
+        public string ban_msg { get; set; }
 
-        public string? comment { get; set; }
+        public string comment { get; set; }
 
-        public Dictionary<string, object>? @params { get; set; }
+        public Dictionary<string, object> @params { get; set; }
     }
 }

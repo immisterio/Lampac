@@ -1,6 +1,4 @@
-﻿using Lampac.Models.JAC;
-
-namespace Lampac.Models.AppConf
+﻿namespace JacRed.Models.AppConf
 {
     public class JacConf
     {

@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.DLNA
+﻿namespace Shared.Models.DLNA
 {
     public class DLNASettings
     {

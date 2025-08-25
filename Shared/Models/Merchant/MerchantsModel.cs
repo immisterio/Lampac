@@ -1,6 +1,6 @@
-﻿using Lampac.Models.Merchant.LtcWallet;
+﻿using Shared.Models.Merchant.LtcWallet;
 
-namespace Lampac.Models.Merchant
+namespace Shared.Models.Merchant
 {
     public class MerchantsModel
     {

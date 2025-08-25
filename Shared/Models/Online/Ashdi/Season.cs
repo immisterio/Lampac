@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.Ashdi
+﻿namespace Shared.Models.Online.Ashdi
 {
     public class Season
     {

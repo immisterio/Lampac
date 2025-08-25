@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Engine;
+using Shared;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -10,7 +10,7 @@ namespace Lampac.Controllers
         [Route("rch/check/connected")]
         public ActionResult СheckСonnected()
         {
-            var rch = new RchClient(HttpContext, host, new Shared.Model.Base.BaseSettings() { rhub = true }, requestInfo);
+            var rch = new RchClient(HttpContext, host, new Shared.Models.Base.BaseSettings() { rhub = true }, requestInfo);
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 

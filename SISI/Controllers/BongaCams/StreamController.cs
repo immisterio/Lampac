@@ -7,7 +7,7 @@
 //using Microsoft.AspNetCore.Mvc;
 //using Microsoft.Extensions.Caching.Memory;
 
-//namespace Lampac.Controllers.BongaCams
+//namespace SISI.Controllers.BongaCams
 //{
 //    public class StreamController : BaseController
 //    {

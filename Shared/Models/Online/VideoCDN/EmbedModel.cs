@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.VideoCDN
+﻿namespace Shared.Models.Online.VideoCDN
 {
     public class EmbedModel
     {
@@ -8,9 +8,9 @@
 
         public Dictionary<string, HashSet<int>> voiceSeasons { get; set; }
 
-        public Dictionary<string, List<Season>>? serial { get; set; }
+        public Dictionary<string, List<Season>> serial { get; set; }
 
-        public Dictionary<string, string>? movie { get; set; }
+        public Dictionary<string, string> movie { get; set; }
 
         public string quality { get; set; }
     }

@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Lampac.Models.JAC
+namespace JacRed.Models.AppConf
 {
     public class TrackerSettings : Iproxy
     {

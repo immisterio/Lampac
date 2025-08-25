@@ -1,11 +1,9 @@
-﻿using Lampac.Engine;
-using Lampac.Engine.CORE;
+﻿using Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Shared.Engine;
-using Shared.Engine.CORE;
 using Shared.Models.CSharpGlobals;
 using System;
 using System.Collections.Generic;
@@ -270,25 +268,27 @@ namespace Lampac.Controllers
         [Route("samsung.wgt")]
         public ActionResult SamsWgt(string overwritehost)
         {
-            if (!IO.File.Exists("widgets/samsung/loader.js"))
+            string folder = "data/widgets";
+
+            if (!IO.File.Exists($"{folder}/samsung/loader.js"))
                 return Content(string.Empty);
 
-            string wgt = $"widgets/{CrypTo.md5(overwritehost ?? host + "v3")}.wgt";
+            string wgt = $"{folder}/{CrypTo.md5(overwritehost ?? host + "v3")}.wgt";
             if (IO.File.Exists(wgt))
                 return File(IO.File.OpenRead(wgt), "application/octet-stream");
 
-            string index = IO.File.ReadAllText("widgets/samsung/index.html");
-            IO.File.WriteAllText("widgets/samsung/publish/index.html", index.Replace("{localhost}", overwritehost ?? host));
+            string index = IO.File.ReadAllText($"{folder}/samsung/index.html");
+            IO.File.WriteAllText($"{folder}/samsung/publish/index.html", index.Replace("{localhost}", overwritehost ?? host));
 
-            string loader = IO.File.ReadAllText("widgets/samsung/loader.js");
-            IO.File.WriteAllText("widgets/samsung/publish/loader.js", loader.Replace("{localhost}", overwritehost ?? host));
+            string loader = IO.File.ReadAllText($"{folder}/samsung/loader.js");
+            IO.File.WriteAllText($"{folder}/samsung/publish/loader.js", loader.Replace("{localhost}", overwritehost ?? host));
 
-            string app = IO.File.ReadAllText("widgets/samsung/app.js");
-            IO.File.WriteAllText("widgets/samsung/publish/app.js", app.Replace("{localhost}", overwritehost ?? host));
+            string app = IO.File.ReadAllText($"{folder}/samsung/app.js");
+            IO.File.WriteAllText($"{folder}/samsung/publish/app.js", app.Replace("{localhost}", overwritehost ?? host));
 
-            IO.File.Copy("widgets/samsung/icon.png", "widgets/samsung/publish/icon.png", overwrite: true);
-            IO.File.Copy("widgets/samsung/logo_appname_fg.png", "widgets/samsung/publish/logo_appname_fg.png", overwrite: true);
-            IO.File.Copy("widgets/samsung/config.xml", "widgets/samsung/publish/config.xml", overwrite: true);
+            IO.File.Copy($"{folder}/samsung/icon.png", $"{folder}/samsung/publish/icon.png", overwrite: true);
+            IO.File.Copy($"{folder}/samsung/logo_appname_fg.png", $"{folder}/samsung/publish/logo_appname_fg.png", overwrite: true);
+            IO.File.Copy($"{folder}/samsung/config.xml", $"{folder}/samsung/publish/config.xml", overwrite: true);
 
             string gethash(string file)
             {
@@ -299,28 +299,28 @@ namespace Lampac.Controllers
                 }
             }
 
-            string indexhashsha512 = gethash("widgets/samsung/publish/index.html");
-            string loaderhashsha512 = gethash("widgets/samsung/publish/loader.js");
-            string apphashsha512 = gethash("widgets/samsung/publish/app.js");
-            string confighashsha512 = gethash("widgets/samsung/publish/config.xml");
-            string iconhashsha512 = gethash("widgets/samsung/publish/icon.png");
-            string logohashsha512 = gethash("widgets/samsung/publish/logo_appname_fg.png");
+            string indexhashsha512 = gethash($"{folder}/samsung/publish/index.html");
+            string loaderhashsha512 = gethash($"{folder}/samsung/publish/loader.js");
+            string apphashsha512 = gethash($"{folder}/samsung/publish/app.js");
+            string confighashsha512 = gethash($"{folder}/samsung/publish/config.xml");
+            string iconhashsha512 = gethash($"{folder}/samsung/publish/icon.png");
+            string logohashsha512 = gethash($"{folder}/samsung/publish/logo_appname_fg.png");
 
-            string author_sigxml = IO.File.ReadAllText("widgets/samsung/author-signature.xml");
+            string author_sigxml = IO.File.ReadAllText($"{folder}/samsung/author-signature.xml");
             author_sigxml = author_sigxml.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512)
                                          .Replace("iconhashsha512", iconhashsha512).Replace("logohashsha512", logohashsha512)
                                          .Replace("confighashsha512", confighashsha512)
                                          .Replace("indexhashsha512", indexhashsha512);
-            IO.File.WriteAllText("widgets/samsung/publish/author-signature.xml", author_sigxml);
+            IO.File.WriteAllText($"{folder}/samsung/publish/author-signature.xml", author_sigxml);
 
-            string authorsignaturehashsha512 = gethash("widgets/samsung/publish/author-signature.xml");
-            string sigxml1 = IO.File.ReadAllText("widgets/samsung/signature1.xml");
+            string authorsignaturehashsha512 = gethash($"{folder}/samsung/publish/author-signature.xml");
+            string sigxml1 = IO.File.ReadAllText($"{folder}/samsung/signature1.xml");
             sigxml1 = sigxml1.Replace("loaderhashsha512", loaderhashsha512).Replace("apphashsha512", apphashsha512)
                              .Replace("confighashsha512", confighashsha512).Replace("authorsignaturehashsha512", authorsignaturehashsha512)
                              .Replace("iconhashsha512", iconhashsha512).Replace("logohashsha512", logohashsha512).Replace("indexhashsha512", indexhashsha512);
-            IO.File.WriteAllText("widgets/samsung/publish/signature1.xml", sigxml1);
+            IO.File.WriteAllText($"{folder}/samsung/publish/signature1.xml", sigxml1);
 
-            ZipFile.CreateFromDirectory("widgets/samsung/publish/", wgt);
+            ZipFile.CreateFromDirectory($"{folder}/samsung/publish/", wgt);
 
             return File(IO.File.OpenRead(wgt), "application/octet-stream");
         }

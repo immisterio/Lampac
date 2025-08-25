@@ -1,12 +1,7 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.Online;
-using Shared.Engine.CORE;
-using Online;
-using Lampac.Models.LITE.Ashdi;
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.Ashdi;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Ashdi : BaseOnlineController
     {
@@ -29,7 +24,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), statusCodeOK: false),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), statusCodeOK: false),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

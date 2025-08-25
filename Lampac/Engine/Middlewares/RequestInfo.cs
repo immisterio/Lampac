@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.Memory;
+using Shared;
 using Shared.Models;
 using System;
 using System.IO;
@@ -51,7 +51,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Headers.TryGetValue("x-client-ip", out var xip) && !string.IsNullOrEmpty(xip))
                     clientIp = xip;
             }
-            else if (AppInit.conf.real_ip_cf || AppInit.conf.frontend == "cloudflare")
+            else if (AppInit.conf.real_ip_cf || AppInit.conf.listen.frontend == "cloudflare")
             {
                 #region cloudflare
                 if (Program.cloudflare_ips != null && Program.cloudflare_ips.Count > 0)
@@ -61,7 +61,7 @@ namespace Lampac.Engine.Middlewares
                         var clientIPAddress = IPAddress.Parse(clientIp);
                         foreach (var cf in Program.cloudflare_ips)
                         {
-                            if (new IPNetwork(cf.prefix, cf.prefixLength).Contains(clientIPAddress))
+                            if (new System.Net.IPNetwork(cf.prefix, cf.prefixLength).Contains(clientIPAddress))
                             {
                                 if (httpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out var xip) && !string.IsNullOrEmpty(xip))
                                     clientIp = xip;
@@ -87,7 +87,7 @@ namespace Lampac.Engine.Middlewares
             else if (httpContext.Request.Headers.ContainsKey("CF-Connecting-IP") && !httpContext.Request.Path.Value.StartsWith("/admin"))
             {
                 // если не указан frontend и это не первоначальная установка, тогда выводим ошибку
-                if (string.IsNullOrEmpty(AppInit.conf.frontend) && File.Exists("module/manifest.json"))
+                if (string.IsNullOrEmpty(AppInit.conf.listen.frontend) && File.Exists("module/manifest.json"))
                     return httpContext.Response.WriteAsync(unknownFrontend, httpContext.RequestAborted);
             }
 

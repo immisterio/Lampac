@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.Module
+﻿namespace Shared.Models.Module
 {
     public class SisiMod
     {

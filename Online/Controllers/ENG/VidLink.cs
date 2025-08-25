@@ -1,15 +1,8 @@
-﻿using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.Templates;
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class VidLink : BaseENGController
     {

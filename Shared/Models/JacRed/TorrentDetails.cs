@@ -1,6 +1,6 @@
-﻿using JacRed.Models.Tracks;
+﻿using Shared.Models.JacRed.Tracks;
 
-namespace JacRed.Models
+namespace Shared.Models.JacRed
 {
     public class TorrentDetails : ICloneable
     {

@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.iRemux
+﻿namespace Shared.Models.Online.iRemux
 {
     public class Similar
     {

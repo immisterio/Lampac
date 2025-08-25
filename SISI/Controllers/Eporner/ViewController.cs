@@ -1,12 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Lampac.Models.SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Eporner
+namespace SISI.Controllers.Eporner
 {
     public class ViewController : BaseSisiController
     {
@@ -32,8 +26,8 @@ namespace Lampac.Controllers.Eporner
                     return ContentTo(rch.connectionMsg);
 
                 stream_links = await EpornerTo.StreamLinks($"{host}/epr/vidosik", init.corsHost(), uri, 
-                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : HttpClient.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
-                               jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : HttpClient.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
+                               htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
+                               jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : Http.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                 {

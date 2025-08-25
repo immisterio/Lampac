@@ -1,25 +1,12 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Templates;
 using Shared.Models.Online.Mirage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Shared.Models.Online.Settings;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Mirage : BaseOnlineController
     {
@@ -296,7 +283,7 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
             {
                 var data = new System.Net.Http.StringContent($"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", Encoding.UTF8, "application/x-www-form-urlencoded");
-                var result = await HttpClient.BasePost($"{init.linkhost}/api/movie/{id_file}", data, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                var result = await Http.BasePost($"{init.linkhost}/api/movie/{id_file}", data, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "*/*"),
                     (acceptsName, $"{acceptsControls}|{acceptsId}"),
                     ("origin", init.linkhost),
@@ -371,7 +358,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"mirage:iframe:{token_movie}";
             if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active) cache))
             {
-                string html = await HttpClient.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
+                string html = await Http.Get($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                     ("referer", $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)]),
                     ("sec-fetch-dest", "iframe"),
@@ -391,7 +378,7 @@ namespace Lampac.Controllers.LITE
                     string appjs = Regex.Match(html, "<script src=\"/(build/app\\.[^\"]+)\"").Groups[1].Value;
                     if (!string.IsNullOrEmpty(appjs))
                     {
-                        build = await HttpClient.Get($"{init.linkhost}/{appjs}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
+                        build = await Http.Get($"{init.linkhost}/{appjs}", httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
                             ("accept", "*/*"),
                             ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
                             ("sec-fetch-dest", "script"),
@@ -451,7 +438,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<JArray>($"mirage:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
             {
-                var root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get());
+                var root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null || !root.ContainsKey("data"))
                     return res.Fail("data");
 
@@ -497,7 +484,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8);
+                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8);
                     if (root == null)
                         return (true, 0, null);
 
@@ -523,7 +510,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    root = await HttpClient.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8);
+                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8);
                     if (root == null)
                         return (true, 0, null);
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.Memory;
+using Shared;
 using Shared.Models;
 using System;
 using System.Linq;
@@ -69,7 +69,7 @@ namespace Lampac.Engine.Middlewares
                         string[] parts = ip.Split('/');
                         if (int.TryParse(parts[1], out int prefixLength))
                         {
-                            if (new IPNetwork(IPAddress.Parse(parts[0]), prefixLength).Contains(clientIPAddress))
+                            if (new System.Net.IPNetwork(IPAddress.Parse(parts[0]), prefixLength).Contains(clientIPAddress))
                             {
                                 httpContext.Response.StatusCode = 403;
                                 return Task.CompletedTask;
@@ -92,7 +92,7 @@ namespace Lampac.Engine.Middlewares
                             string[] parts = ip.Split('/');
                             if (int.TryParse(parts[1], out int prefixLength))
                             {
-                                if (new IPNetwork(IPAddress.Parse(parts[0]), prefixLength).Contains(clientIPAddress))
+                                if (new System.Net.IPNetwork(IPAddress.Parse(parts[0]), prefixLength).Contains(clientIPAddress))
                                 {
                                     deny = false;
                                     break;

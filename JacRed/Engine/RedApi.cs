@@ -1,13 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System;
-using System.Web;
-using MonoTorrent;
-using Lampac.Engine.CORE;
+﻿using MonoTorrent;
 using JacRed.Models.AppConf;
 using Jackett;
-using JacRed.Models;
 
 namespace JacRed.Engine
 {

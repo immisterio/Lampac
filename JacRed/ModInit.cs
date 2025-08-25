@@ -1,14 +1,6 @@
-﻿using JacRed.Engine;
-using JacRed.Models.AppConf;
-using Lampac.Engine.CORE;
-using Lampac.Models.AppConf;
-using Lampac.Models.JAC;
+﻿using JacRed.Models.AppConf;
 using Newtonsoft.Json;
-using Shared.Engine.CORE;
-using System;
-using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Jackett
 {
@@ -53,7 +45,6 @@ namespace Jackett
         public static void loaded()
         {
             Directory.CreateDirectory("cache/jacred");
-            Directory.CreateDirectory("cache/jackett");
             File.WriteAllText("module/JacRed.current.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
 
             ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run().ConfigureAwait(false));
@@ -77,7 +68,7 @@ namespace Jackett
                                     return false;
 
                                 var proxyManager = new ProxyManager(name, settings);
-                                string html = await HttpClient.Get($"{settings.host}", timeoutSeconds: conf.Jackett.timeoutSeconds, proxy: proxyManager.Get(), weblog: false).ConfigureAwait(false);
+                                string html = await Http.Get($"{settings.host}", timeoutSeconds: conf.Jackett.timeoutSeconds, proxy: proxyManager.Get(), weblog: false).ConfigureAwait(false);
                                 return html == null;
                             }
 

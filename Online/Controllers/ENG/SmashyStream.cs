@@ -1,15 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Engine;
-using Lampac.Models.LITE;
-using System;
-using System.Text.RegularExpressions;
-using Shared.Model.Online;
-using System.Collections.Generic;
+using Shared.Models.Online.Settings;
+using Shared.PlaywrightCore;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class SmashyStream : BaseENGController
     {

@@ -1,4 +1,4 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
 namespace Shared.Models.Module
 {

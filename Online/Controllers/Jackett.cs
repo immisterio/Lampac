@@ -1,15 +1,7 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using System.Web;
-using System.Linq;
-using System.Collections.Generic;
-using Lampac.Engine.CORE;
-using Lampac.Engine;
-using System;
-using Shared.Model.Online;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Jackett : BaseController
     {
@@ -21,12 +13,12 @@ namespace Lampac.Controllers.LITE
                 return Content(string.Empty);
 
             #region Кеш запроса
-            string localhost = $"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}";
+            string localhost = $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}";
 
             string memkey = $"lite/jac:{title}:{original_title}:{year}";
-            if (!hybridCache.TryGetValue(memkey, out JArray results) || quality == -1)
+            if (!hybridCache.TryGetValue(memkey, out JArray results, inmemory: false) || quality == -1)
             {
-                var root = await HttpClient.Get<JObject>($"{localhost}/api/v2.0/indexers/all/results?apikey={AppInit.conf.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11, headers: HeadersModel.Init("localrequest", AppInit.rootPasswd));
+                var root = await Http.Get<JObject>($"{localhost}/api/v2.0/indexers/all/results?apikey={AppInit.conf.apikey}&title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}", timeoutSeconds: 11, headers: HeadersModel.Init("localrequest", AppInit.rootPasswd));
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
@@ -34,7 +26,7 @@ namespace Lampac.Controllers.LITE
                 if (results == null || results.Count == 0)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
-                hybridCache.Set(memkey, results, DateTime.Now.AddMinutes(5));
+                hybridCache.Set(memkey, results, DateTime.Now.AddMinutes(5), inmemory: false);
             }
             #endregion
 

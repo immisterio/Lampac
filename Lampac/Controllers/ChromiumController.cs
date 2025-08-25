@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
+using Shared;
 
 namespace Lampac.Controllers
 {

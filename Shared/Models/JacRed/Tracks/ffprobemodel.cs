@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace JacRed.Models.Tracks
+﻿namespace Shared.Models.JacRed.Tracks
 {
     public class ffprobemodel
     {

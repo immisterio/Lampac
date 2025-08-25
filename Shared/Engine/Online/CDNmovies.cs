@@ -1,22 +1,22 @@
-﻿using Lampac.Models.LITE.CDNmovies;
-using Shared.Model.Base;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
+using Shared.Models.Online.CDNmovies;
 
 namespace Shared.Engine.Online
 {
-    public class CDNmoviesInvoke
+    public struct CDNmoviesInvoke
     {
         #region CDNmoviesInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
+        Func<string, ValueTask<string>> onget;
         Func<string, string> onstreamfile;
-        Action? requesterror;
+        Action requesterror;
 
-        public CDNmoviesInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
+        public CDNmoviesInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -27,9 +27,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<List<Voice>?> Embed(long kinopoisk_id)
+        public async ValueTask<List<Voice>> Embed(long kinopoisk_id)
         {
-            string? html = await onget.Invoke($"{apihost}/serial/kinopoisk/{kinopoisk_id}");
+            string html = await onget.Invoke($"{apihost}/serial/kinopoisk/{kinopoisk_id}");
             if (html == null)
             {
                 requesterror?.Invoke();
@@ -40,7 +40,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(file))
                 return null;
 
-            List<Voice>? content;
+            List<Voice> content;
 
             try
             {
@@ -56,13 +56,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Voice>? voices, long kinopoisk_id, string? title, string? original_title, int t, int s, int sid, VastConf? vast = null, bool rjson = false)
+        public string Html(List<Voice> voices, long kinopoisk_id, string title, string original_title, int t, int s, int sid, VastConf vast = null, bool rjson = false)
         {
             if (voices == null || voices.Count == 0)
                 return string.Empty;
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region Перевод html
             var vtpl = new VoiceTpl(voices.Count);

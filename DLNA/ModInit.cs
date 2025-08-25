@@ -1,6 +1,5 @@
-﻿using Lampac;
-using Lampac.Controllers;
-using Lampac.Engine.CORE;
+﻿using DLNA.Controllers;
+using Shared;
 using Shared.Engine;
 using System;
 using System.IO;

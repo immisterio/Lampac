@@ -1,10 +1,10 @@
-﻿namespace Shared.Model.Online.Lumex
+﻿namespace Shared.Models.Online.Lumex
 {
     public class EmbedModel
     {
-        public string? csrf { get; set; }
+        public string csrf { get; set; }
 
-        public string? tag_url { get; set; }
+        public string tag_url { get; set; }
 
         public string content_type { get; set; }
 

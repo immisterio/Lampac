@@ -1,24 +1,23 @@
-﻿using Lampac.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Online.FanCDN;
-using Shared.Model.Templates;
+﻿using Shared.Models;
+using Shared.Models.Base;
+using Shared.Models.Online.FanCDN;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class FanCDNInvoke
+    public struct FanCDNInvoke
     {
         #region FanCDNInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
+        Func<string, ValueTask<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
+        Func<string, string> onlog;
 
-        public FanCDNInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public FanCDNInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null)
         {
             this.host = host != null ? $"{host}/" : null; this.apihost = apihost;
             this.onget = onget;
@@ -39,11 +38,11 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(title) || year == 0)
                     return null;
 
-                string? search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
+                string search = await onget($"{apihost}/?do=search&subaction=search&story={HttpUtility.UrlEncode(title)}");
                 if (string.IsNullOrEmpty(search))
                     return null;
 
-                string? href = null;
+                string href = null;
 
                 foreach (string itemsearch in search.Split("item-search-serial"))
                 {
@@ -67,7 +66,7 @@ namespace Shared.Engine.Online
                     return null;
 
 
-                string? iframe_url = null;
+                string iframe_url = null;
 
                 foreach (Match match in Regex.Matches(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\""))
                 {
@@ -86,7 +85,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedToken
-        async public ValueTask<EmbedModel?> EmbedToken(long kinopoisk_id, string token)
+        async public ValueTask<EmbedModel> EmbedToken(long kinopoisk_id, string token)
         {
             if (kinopoisk_id == 0)
                 return null;
@@ -96,12 +95,12 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel?> Embed(string iframe_url)
+        async public ValueTask<EmbedModel> Embed(string iframe_url)
         {
             if (string.IsNullOrEmpty(iframe_url))
                 return null;
 
-            string? iframe = await onget(iframe_url);
+            string iframe = await onget(iframe_url);
             if (string.IsNullOrEmpty(iframe))
                 return null;
 
@@ -137,7 +136,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string imdb_id, long kinopoisk_id, string? title, string? original_title, int t = -1, int s = -1, bool rjson = false, VastConf vast = null, List<HeadersModel> headers = null)
+        public string Html(EmbedModel root, string imdb_id, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, VastConf vast = null, List<HeadersModel> headers = null)
         {
             if (root == null)
                 return string.Empty;
@@ -175,8 +174,8 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 if (s == -1)
                 {

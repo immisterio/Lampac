@@ -1,10 +1,10 @@
-﻿using Shared.Model.Templates;
+﻿using Shared.Models.Templates;
 
-namespace Shared.Model.Online.Kinobase
+namespace Shared.Models.Online.Kinobase
 {
     public class SearchModel
     {
-        public string? link { get; set; }
+        public string link { get; set; }
 
         public SimilarTpl? similar { get; set; }
     }

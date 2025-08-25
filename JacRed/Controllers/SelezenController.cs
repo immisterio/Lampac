@@ -1,20 +1,7 @@
-﻿using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Shared;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("selezen/[action]")]
     public class SelezenController : JacBaseController
@@ -42,7 +29,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("selezen", jackett.Selezen);
 
-            string html = await HttpClient.Get(url, cookie: cookie, proxy: proxyManager.Get());
+            string html = await Http.Get(url, cookie: cookie, proxy: proxyManager.Get());
             string magnet = new Regex("href=\"(magnet:[^\"]+)\"").Match(html ?? string.Empty).Groups[1].Value;
 
             if (html == null)
@@ -54,7 +41,7 @@ namespace Lampac.Controllers.JAC
                 string id = new Regex("href=\"/index.php\\?do=download&id=([0-9]+)").Match(html).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(id))
                 {
-                    var _t = await HttpClient.Download($"{jackett.Selezen.host}/index.php?do=download&id={id}", cookie: cookie, referer: jackett.Selezen.host, timeoutSeconds: 10);
+                    var _t = await Http.Download($"{jackett.Selezen.host}/index.php?do=download&id={id}", cookie: cookie, referer: jackett.Selezen.host, timeoutSeconds: 10);
                     if (_t != null && BencodeTo.Magnet(_t) != null)
                         return File(_t, "application/x-bittorrent");
                 }
@@ -83,7 +70,7 @@ namespace Lampac.Controllers.JAC
             #region html
             var proxyManager = new ProxyManager("selezen", jackett.Selezen);
 
-            string html = await HttpClient.Post($"{jackett.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Post($"{jackett.Selezen.host}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(query)}&titleonly=0&searchuser=&replyless=0&replylimit=0&searchdate=0&beforeafter=after&sortby=date&resorder=desc&showposts=0&catlist%5B%5D=9", proxy: proxyManager.Get(), cookie: cookie, timeoutSeconds: jackett.timeoutSeconds);
 
             if (html != null && html.Contains("dle_root"))
             {

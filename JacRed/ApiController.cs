@@ -1,18 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using JacRed.Engine;
-using Lampac;
 using Jackett;
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
 using Newtonsoft.Json;
-using System.Linq;
-using System.Globalization;
-using JacRed.Models;
-using Shared.Model.Online.Kodik;
 
 namespace JacRed.Controllers
 {
@@ -56,7 +45,7 @@ namespace JacRed.Controllers
                 else
                 {
                     if (Regex.IsMatch(query, "^([^a-z-A-Z]+) ((19|20)[0-9]{2})$"))
-                        return Content(JsonConvert.SerializeObject(new { Results = new List<Result>(), jacred = ModInit.conf.typesearch == "red" }), "application/json; charset=utf-8");
+                        return Content(JsonConvert.SerializeObject(new { Results = new List<object>(), jacred = ModInit.conf.typesearch == "red" }), "application/json; charset=utf-8");
 
                     mNum = Regex.Match(query, "^([^a-z-A-Z]+) ([^а-я-А-Я]+)$");
 
@@ -82,14 +71,14 @@ namespace JacRed.Controllers
             {
                 #region red
                 string memoryKey = $"{ModInit.conf.typesearch}:{query}:{rqnum}:{title}:{title_original}:{year}:{is_serial}";
-                if (!hybridCache.TryGetValue(memoryKey, out List<TorrentDetails> _redCache))
+                if (!hybridCache.TryGetValue(memoryKey, out List<TorrentDetails> _redCache, inmemory: false))
                 {
                     var res = RedApi.Indexers(rqnum, apikey, query, title, title_original, year, is_serial, category);
 
                     _redCache = res.torrents.ToList();
 
                     if (res.setcache && !red.evercache.enable)
-                        hybridCache.Set(memoryKey, _redCache, DateTime.Now.AddMinutes(5));
+                        hybridCache.Set(memoryKey, _redCache, DateTime.Now.AddMinutes(5), inmemory: false);
                 }
 
                 if (ModInit.conf.merge == "jackett")
@@ -176,18 +165,18 @@ namespace JacRed.Controllers
             if (!string.IsNullOrWhiteSpace(search) && Regex.IsMatch(search.Trim(), "^(tt|kp)[0-9]+$"))
             {
                 string memkey = $"api/v1.0/torrents:{search}";
-                if (!hybridCache.TryGetValue(memkey, out (string original_name, string name) cache))
+                if (!hybridCache.TryGetValue(memkey, out (string original_name, string name) cache, inmemory: false))
                 {
                     search = search.Trim();
                     string uri = $"&imdb={search}";
                     if (search.StartsWith("kp"))
                         uri = $"&kp={search.Remove(0, 2)}";
 
-                    var root = await HttpClient.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 10);
+                    var root = await Http.Get<JObject>("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1" + uri, timeoutSeconds: 10);
                     cache.original_name = root?.Value<JObject>("data")?.Value<string>("original_name");
                     cache.name = root?.Value<JObject>("data")?.Value<string>("name");
 
-                    hybridCache.Set(memkey, cache, DateTime.Now.AddDays(1));
+                    hybridCache.Set(memkey, cache, DateTime.Now.AddDays(1), inmemory: false);
                 }
 
                 if (!string.IsNullOrWhiteSpace(cache.name) && !string.IsNullOrWhiteSpace(cache.original_name))

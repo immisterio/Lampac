@@ -1,22 +1,21 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE.AniLibria;
-using Shared.Model.Base;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.AniLibria;
+using Shared.Models.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class AniLibriaInvoke
+    public struct AniLibriaInvoke
     {
         #region AniLibriaInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<List<RootObject>?>> onget;
+        Func<string, ValueTask<List<RootObject>>> onget;
         Func<string, string> onstreamfile;
-        Action? requesterror;
+        Action requesterror;
 
-        public AniLibriaInvoke(string? host, string apihost, Func<string, ValueTask<List<RootObject>?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
+        public AniLibriaInvoke(string host, string apihost, Func<string, ValueTask<List<RootObject>>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -27,9 +26,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<List<RootObject>?> Embed(string title)
+        public async ValueTask<List<RootObject>> Embed(string title)
         {
-            List<RootObject>? search = await onget($"{apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title));
+            List<RootObject> search = await onget($"{apihost}/v2/searchTitles?search=" + HttpUtility.UrlEncode(title));
             if (search == null)
             {
                 requesterror?.Invoke();
@@ -56,7 +55,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<RootObject>? result, string title, string code, int year, bool rjson = false, VastConf vast = null, bool similar = false)
+        public string Html(List<RootObject> result, string title, string code, int year, bool rjson = false, VastConf vast = null, bool similar = false)
         {
             if (result == null || result.Count == 0)
                 return string.Empty;
@@ -76,7 +75,7 @@ namespace Shared.Engine.Online
                     #region streansquality
                     var streams = new List<(string link, string quality)>(3);
 
-                    foreach (var f in new List<(string quality, string? url)> { ("1080p", episode.hls.fhd), ("720p", episode.hls.hd), ("480p", episode.hls.sd) })
+                    foreach (var f in new List<(string quality, string url)> { ("1080p", episode.hls.fhd), ("720p", episode.hls.hd), ("480p", episode.hls.sd) })
                     {
                         if (string.IsNullOrWhiteSpace(f.url))
                             continue;
@@ -110,13 +109,13 @@ namespace Shared.Engine.Online
             {
                 #region Поиск
                 var stpl = new SimilarTpl(result.Count);
-                string? enc_title = HttpUtility.UrlEncode(title);
+                string enc_title = HttpUtility.UrlEncode(title);
 
                 foreach (var root in result)
                 {
-                    string? name = !string.IsNullOrEmpty(root.names.ru) && !string.IsNullOrEmpty(root.names.en) ? $"{root.names.ru} / {root.names.en}" : (root.names.ru ?? root.names.en);
+                    string name = !string.IsNullOrEmpty(root.names.ru) && !string.IsNullOrEmpty(root.names.en) ? $"{root.names.ru} / {root.names.en}" : (root.names.ru ?? root.names.en);
 
-                    string? img = root?.posters?.original?.url;
+                    string img = root?.posters?.original?.url;
                     if (!string.IsNullOrEmpty(img))
                         img = "https://anilibria.tv" + img;
 

@@ -1,20 +1,7 @@
-﻿using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Shared;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("lostfilm/[action]")]
     public class LostfilmController : JacBaseController
@@ -51,14 +38,14 @@ namespace Lampac.Controllers.JAC
 
             #region html
             bool validrq = false;
-            string html = await HttpClient.Get($"{jackett.Lostfilm.host}/search/?q={HttpUtility.UrlEncode(query)}", timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get());
+            string html = await Http.Get($"{jackett.Lostfilm.host}/search/?q={HttpUtility.UrlEncode(query)}", timeoutSeconds: jackett.timeoutSeconds, proxy: proxyManager.Get());
 
             if (html != null && html.Contains("onClick=\"FollowSerial("))
             {
                 string serie = Regex.Match(html, "href=\"/series/([^\"]+)\" class=\"no-decoration\"").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(serie))
                 {
-                    html = await HttpClient.Get($"{jackett.Lostfilm.host}/series/{serie}/seasons/", timeoutSeconds: jackett.timeoutSeconds);
+                    html = await Http.Get($"{jackett.Lostfilm.host}/series/{serie}/seasons/", timeoutSeconds: jackett.timeoutSeconds);
                     if (html != null && html.Contains("LostFilm.TV"))
                         validrq = true;
                 }
@@ -135,12 +122,12 @@ namespace Lampac.Controllers.JAC
                 var proxy = proxyManager.Get();
 
                 // Получаем ссылку на поиск
-                string v_search = await HttpClient.Get($"{jackett.Lostfilm.host}/v_search.php?a={episodeid}", proxy: proxy, cookie: cookie);
+                string v_search = await Http.Get($"{jackett.Lostfilm.host}/v_search.php?a={episodeid}", proxy: proxy, cookie: cookie);
                 string retreSearchUrl = new Regex("url=(\")?(https?://[^/]+/[^\"]+)").Match(v_search ?? "").Groups[2].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(retreSearchUrl))
                 {
                     // Загружаем HTML поиска
-                    string shtml = await HttpClient.Get(retreSearchUrl, proxy: proxy, cookie: cookie);
+                    string shtml = await Http.Get(retreSearchUrl, proxy: proxy, cookie: cookie);
                     if (!string.IsNullOrWhiteSpace(shtml))
                     {
                         var match = new Regex("<div class=\"inner-box--link main\"><a href=\"([^\"]+)\">([^<]+)</a></div>").Match(Regex.Replace(shtml, "[\n\r\t]+", ""));
@@ -153,7 +140,7 @@ namespace Lampac.Controllers.JAC
 
                                 if (!string.IsNullOrWhiteSpace(torrentFile) && !string.IsNullOrWhiteSpace(quality))
                                 {
-                                    byte[] torrent = await HttpClient.Download(torrentFile, referer: $"{jackett.Lostfilm.host}/", proxy: proxy, cookie: cookie);
+                                    byte[] torrent = await Http.Download(torrentFile, referer: $"{jackett.Lostfilm.host}/", proxy: proxy, cookie: cookie);
                                     if (BencodeTo.Magnet(torrent) != null)
                                         return torrent;
                                 }

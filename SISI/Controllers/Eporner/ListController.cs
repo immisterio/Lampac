@@ -1,13 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Eporner
+namespace SISI.Controllers.Eporner
 {
     public class ListController : BaseSisiController
     {
@@ -33,7 +26,7 @@ namespace Lampac.Controllers.Eporner
                     return res.Fail(rch.connectionMsg);
 
                 string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => 
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 var playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html);
@@ -42,7 +35,7 @@ namespace Lampac.Controllers.Eporner
                     return res.Fail("playlists");
 
                 return playlists;
-            });
+            }, memory: false);
 
             if (!cache.IsSuccess)
             {

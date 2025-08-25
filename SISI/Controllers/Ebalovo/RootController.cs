@@ -1,10 +1,4 @@
-﻿using System.Threading.Tasks;
-using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
-using System.Text.RegularExpressions;
-using System;
-
-namespace Lampac.Controllers.Ebalovo
+﻿namespace SISI.Controllers.Ebalovo
 {
     public static class RootController
     {
@@ -20,7 +14,7 @@ namespace Lampac.Controllers.Ebalovo
             if (hybridCache.TryGetValue(memkey, out string _host))
                 return _host;
 
-            _host = await HttpClient.GetLocation(host, timeoutSeconds: 5, allowAutoRedirect: true);
+            _host = await Http.GetLocation(host, timeoutSeconds: 5, allowAutoRedirect: true);
             if (_host != null && !Regex.IsMatch(_host, "^https?://www\\."))
             {
                 _host = Regex.Replace(_host, "/$", "");

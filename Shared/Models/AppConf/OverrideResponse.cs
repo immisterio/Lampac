@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.AppConf
+﻿namespace Shared.Models.AppConf
 {
     public class OverrideResponse
     {

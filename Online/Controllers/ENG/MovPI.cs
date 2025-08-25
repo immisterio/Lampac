@@ -1,16 +1,9 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.Templates;
 using Shared.PlaywrightCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Shared.Models.Online.Settings;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class MovPI : BaseENGController
     {

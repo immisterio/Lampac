@@ -1,19 +1,18 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Text.RegularExpressions;
-using Lampac.Models.Merchant.LtcWallet;
 using Shared;
 using System.Threading;
-using Shared.Model.Online;
-using Merchant;
 using IO = System.IO.File;
 using System.IO;
+using Shared.Engine;
+using Shared.Models.Merchant.LtcWallet;
+using Shared.Models;
 
-namespace Lampac.Controllers.LITE
+namespace Merchant.Controllers
 {
     public class Litecoin : MerchantController
     {
@@ -30,7 +29,7 @@ namespace Lampac.Controllers.LITE
         {
             if (!Startup.memoryCache.TryGetValue("Litecoin:kurs:ltc", out double kurs))
             {
-                var exmo = await HttpClient.Get<JObject>("https://api.exmo.com/v1.1/ticker");
+                var exmo = await Http.Get<JObject>("https://api.exmo.com/v1.1/ticker");
                 var LTC_USD = exmo.GetValue("LTC_USD");
 
                 double avg = LTC_USD.Value<double>("avg");
@@ -66,7 +65,7 @@ namespace Lampac.Controllers.LITE
             }
             else
             {
-                string json = await HttpClient.Post(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"getnewaddress\"}", headers: HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}"));
+                string json = await Http.Post(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"getnewaddress\"}", headers: HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}"));
 
                 string payinAddress = Regex.Match(json ?? string.Empty, "\"result\":\"([^\"]+)\"").Groups[1].Value.Trim();
 
@@ -105,7 +104,7 @@ namespace Lampac.Controllers.LITE
                     if (kurs == -1)
                         continue;
 
-                    var root = await HttpClient.Post<RootTransactions>(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"listtransactions\", \"params\": [\"*\", 20]}", headers: HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}"));
+                    var root = await Http.Post<RootTransactions>(AppInit.conf.Merchant.LtcWallet.rpc, "{\"method\": \"listtransactions\", \"params\": [\"*\", 20]}", headers: HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{AppInit.conf.Merchant.LtcWallet.rpcuser}:{AppInit.conf.Merchant.LtcWallet.rpcpassword}")}"));
 
                     var transactions = root?.result;
                     if (transactions == null || transactions.Count == 0)

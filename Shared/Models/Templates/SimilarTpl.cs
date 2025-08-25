@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
 
-namespace Shared.Model.Templates
+namespace Shared.Models.Templates
 {
     public struct SimilarTpl
     {

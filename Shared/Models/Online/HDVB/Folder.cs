@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.HDVB
+﻿namespace Shared.Models.Online.HDVB
 {
     public class Folder
     {

@@ -1,13 +1,7 @@
-using Lampac.Engine.CORE;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Templates;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Plvideo : BaseOnlineController
     {
@@ -42,7 +36,7 @@ namespace Lampac.Controllers.LITE
                         return res.Fail(rch.connectionMsg);
 
                     string uri = $"v1/videos?Type=video&Query={HttpUtility.UrlEncode($"{title} {year}")}&From=0&Size=20&Aud=16&Qf=false";
-                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("items"))
                         return res.Fail("content");
 
@@ -104,7 +98,7 @@ namespace Lampac.Controllers.LITE
             var cache = await InvokeCache<JObject>($"plvideo:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string uri = $"v1/videos/{linkid}?Aud=16";
-                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await HttpClient.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("item"))
                     return res.Fail("item");
 

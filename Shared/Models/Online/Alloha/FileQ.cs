@@ -1,9 +1,9 @@
-﻿namespace Shared.Model.Online.Alloha
+﻿namespace Shared.Models.Online.Alloha
 {
     public class FileQ
     {
         public string h264 { get; set; }
 
-        public string? av1 { get; set; }
+        public string av1 { get; set; }
     }
 }

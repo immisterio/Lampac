@@ -1,13 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Xnxx
+namespace SISI.Controllers.Xnxx
 {
     public class ListController : BaseSisiController
     {
@@ -20,7 +13,7 @@ namespace Lampac.Controllers.Xnxx
                 return badInitMsg;
 
             string memKey = $"xnx:list:{search}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists))
+            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -33,7 +26,7 @@ namespace Lampac.Controllers.Xnxx
                     return ContentTo(rch.connectionMsg);
 
                 string html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
                 playlists = XnxxTo.Playlist($"{host}/xnx/vidosik", html);
@@ -49,7 +42,7 @@ namespace Lampac.Controllers.Xnxx
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, playlists, cacheTime(10));
+                hybridCache.Set(memKey, playlists, cacheTime(10), inmemory: false);
             }
 
             return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, plugin: init.plugin);

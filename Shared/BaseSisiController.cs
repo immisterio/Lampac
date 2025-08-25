@@ -1,19 +1,15 @@
-﻿using Lampac;
-using Lampac.Engine;
-using Lampac.Models.Module;
-using Lampac.Models.SISI;
+﻿using Shared.Models.Module;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.SISI;
-using Shared.Models.Module;
+using Shared.Models.Base;
 using System.Net;
 using System.Reflection;
+using Shared.Models.SISI.OnResult;
+using Shared.Models.SISI.Base;
+using Shared.Models;
 
-namespace SISI
+namespace Shared
 {
     public class BaseSisiController : BaseController
     {
@@ -77,7 +73,7 @@ namespace SISI
         #endregion
 
         #region OnError
-        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true)
+        public JsonResult OnError(string msg, ProxyManager? proxyManager, bool refresh_proxy = true, bool rcache = true)
         {
             if (refresh_proxy && !init.rhub)
                 proxyManager?.Refresh();
@@ -171,10 +167,7 @@ namespace SISI
             if (!init.streamproxy && (init.geostreamproxy == null || init.geostreamproxy.Length == 0))
             {
                 if (init.qualitys_proxy)
-                {
-                    var bsc = new BaseSettings() { streamproxy = true, useproxystream = init.useproxystream, apn = init.apn, apnstream = init.apnstream };
-                    qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(bsc, v.Value, proxy: proxy, headers: headers_stream));
-                }
+                    qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream, force_streamproxy: true));
             }
 
             var recomendsArray = new OnResultPlaylistItem[stream_links?.recomends?.Count ?? 0];

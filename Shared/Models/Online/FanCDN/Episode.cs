@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.FanCDN
+﻿namespace Shared.Models.Online.FanCDN
 {
     public class Episode
     {
@@ -6,7 +6,7 @@
 
         public string file { get; set; }
 
-        public string? subtitles { get; set; }
+        public string subtitles { get; set; }
 
 
         public Dictionary<string, Episode> folder { get; set; }

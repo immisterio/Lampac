@@ -1,16 +1,8 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.Online;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Online.Collaps;
-using System.Web;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Model.Templates;
-using Shared.Model.Base;
+using Shared.Models.Online.Collaps;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Collaps : BaseOnlineController
     {
@@ -52,7 +44,7 @@ namespace Lampac.Controllers.LITE
                host,
                init.corsHost(),
                init.dash,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                onstreamtofile => rch.enable ? onstreamtofile : HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
@@ -101,7 +93,7 @@ namespace Lampac.Controllers.LITE
                     return res.Fail(rch.connectionMsg);
 
                 string uri = $"{init.apihost}/list?token={init.token}&name={HttpUtility.UrlEncode(title)}";
-                var root = rch.enable ? await rch.Get<JObject>(uri) : await HttpClient.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
+                var root = rch.enable ? await rch.Get<JObject>(uri) : await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
                 if (root == null || !root.ContainsKey("results"))
                     return res.Fail("results");
 

@@ -1,19 +1,8 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Online;
-using Shared.Engine.Online;
-using System.Collections.Generic;
-using System;
-using System.Linq;
-using Shared.Model.Online;
-using Shared.Engine.CORE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using System.Text.RegularExpressions;
 using Shared.PlaywrightCore;
-using Shared.Engine;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Zetflix : BaseOnlineController
     {
@@ -44,7 +33,7 @@ namespace Lampac.Controllers.LITE
                host,
                ztfhost,
                init.hls,
-               (url, head) => HttpClient.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy.proxy),
+               (url, head) => Http.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy.proxy),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy.proxy)
                //AppInit.log
             );
@@ -56,7 +45,7 @@ namespace Lampac.Controllers.LITE
                 string uri = $"{ztfhost}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
                 var headers = HeadersModel.Init(("Referer", "https://www.google.com/"), ("User-Agent", Chromium.baseContextOptions.UserAgent));
-                string result = string.IsNullOrEmpty(PHPSESSID) ? null : await HttpClient.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: headers);
+                string result = string.IsNullOrEmpty(PHPSESSID) ? null : await Http.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: headers);
                 if (result != null && !result.StartsWith("<script>(function"))
                 {
                     if (!result.Contains("new Playerjs"))
@@ -172,7 +161,7 @@ namespace Lampac.Controllers.LITE
                 return ztfhost;
             }
 
-            string html = await HttpClient.Get(host, timeoutSeconds: 8);
+            string html = await Http.Get(host, timeoutSeconds: 8);
             if (html != null)
             {
                 ztfhost = Regex.Match(html, "\"([^\"]+)\"\\);</script>").Groups[1].Value;

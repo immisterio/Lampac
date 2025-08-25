@@ -1,26 +1,13 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Online.Lumex;
-using Shared.Model.Templates;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using Shared.Models.Online.Lumex;
+using Shared.Models.Online.Settings;
 using System.Net;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class VideoCDN : BaseOnlineController
     {
@@ -260,7 +247,7 @@ namespace Lampac.Controllers.LITE
                     headers.Add(new ("X-LAMPA-CLIENT-IP", clientIP));
 
                 var result = rch.enable ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) : 
-                                          await HttpClient.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
+                                          await Http.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
 
                 if (result == null || !result.ContainsKey("url"))
                     return OnError(null, gbcache: false);
@@ -355,7 +342,7 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out string refreshToken))
             {
                 var data = new System.Net.Http.StringContent($"{{\"username\":\"{init.username}\",\"password\":\"{init.password}\"}}", Encoding.UTF8, "application/json");
-                var job = await HttpClient.Post<JObject>($"{init.apihost}/login", data, useDefaultHeaders: false, proxy: proxy);
+                var job = await Http.Post<JObject>($"{init.apihost}/login", data, useDefaultHeaders: false, proxy: proxy);
                 if (job == null || !job.ContainsKey("refreshToken"))
                     return null;
 
@@ -375,7 +362,7 @@ namespace Lampac.Controllers.LITE
                 var headers = init.streamproxy ? null : HeadersModel.Init(("X-LAMPA-CLIENT-IP", clientIP));
 
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
-                var job = await HttpClient.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: headers, proxy: proxy);
+                var job = await Http.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: headers, proxy: proxy);
                 if (job == null || !job.ContainsKey("accessToken"))
                     return null;
 
@@ -409,7 +396,7 @@ namespace Lampac.Controllers.LITE
                 if (!init.streamproxy)
                     headers.Add(new("X-LAMPA-CLIENT-IP", clientIP));
 
-                string json = await HttpClient.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers, proxy: proxy);
+                string json = await Http.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers, proxy: proxy);
                 if (string.IsNullOrEmpty(json))
                     return null;
 
@@ -435,7 +422,7 @@ namespace Lampac.Controllers.LITE
                     return null;
 
                 string arg = kinopoisk_id > 0 ? $"&kinopoisk_id={kinopoisk_id}" : $"&imdb_id={imdb_id}";
-                var job = await HttpClient.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, timeoutSeconds: 8, proxy: proxy);
+                var job = await Http.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, timeoutSeconds: 8, proxy: proxy);
                 if (job == null || !job.ContainsKey("data"))
                     return null;
 
@@ -457,7 +444,7 @@ namespace Lampac.Controllers.LITE
                     return default;
 
                 string uri = $"{init.iframehost}/api/short?api_token={init.token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
-                string json = await HttpClient.Get(uri, timeoutSeconds: 8, proxy: proxy);
+                string json = await Http.Get(uri, timeoutSeconds: 8, proxy: proxy);
                 if (json == null)
                     return default;
 

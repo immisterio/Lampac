@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Base
+﻿namespace Shared.Models.Base
 {
     public class ProxyAction
     {

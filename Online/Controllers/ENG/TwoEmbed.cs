@@ -1,14 +1,8 @@
-﻿using Lampac.Models.LITE;
-using Microsoft.AspNetCore.Mvc;
-using NetVips;
-using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Model.Templates;
-using System;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.Settings;
+using Shared.PlaywrightCore;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class TwoEmbed : BaseENGController
     {

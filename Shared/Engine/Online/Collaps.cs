@@ -1,25 +1,24 @@
-﻿using Lampac.Models.LITE.Collaps;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Online.Collaps;
-using Shared.Model.Templates;
+﻿using Shared.Models;
+using Shared.Models.Base;
+using Shared.Models.Online.Collaps;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class CollapsInvoke
+    public struct CollapsInvoke
     {
         #region CollapsInvoke
-        string? host;
+        string host;
         string apihost;
         bool dash;
-        Func<string, ValueTask<string?>> onget;
+        Func<string, ValueTask<string>> onget;
         Func<string, string> onstreamfile;
-        Action? requesterror;
+        Action requesterror;
 
-        public CollapsInvoke(string? host, string apihost, bool dash, Func<string, ValueTask<string?>> onget, Func<string, string> onstreamfile, Action? requesterror = null)
+        public CollapsInvoke(string host, string apihost, bool dash, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -31,7 +30,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(string? imdb_id, long kinopoisk_id, long orid)
+        public async ValueTask<EmbedModel> Embed(string imdb_id, long kinopoisk_id, long orid)
         {
             string uri = $"{apihost}/embed/imdb/{imdb_id}";
             if (kinopoisk_id > 0)
@@ -39,7 +38,7 @@ namespace Shared.Engine.Online
             if (orid > 0)
                 uri = $"{apihost}/embed/movie/{orid}";
 
-            string? content = await onget.Invoke(uri);
+            string content = await onget.Invoke(uri);
             if (string.IsNullOrEmpty(content))
             {
                 requesterror?.Invoke();
@@ -49,7 +48,7 @@ namespace Shared.Engine.Online
             if (!content.Contains("seasons:"))
                 return new EmbedModel() { content = content };
 
-            List<RootObject>? root = null;
+            List<RootObject> root = null;
 
             try
             {
@@ -64,7 +63,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? md, string? imdb_id, long kinopoisk_id, long orid, string? title, string? original_title, int s, bool rjson = false, List<HeadersModel>? headers = null, VastConf? vast = null)
+        public string Html(EmbedModel md, string imdb_id, long kinopoisk_id, long orid, string title, string original_title, int s, bool rjson = false, List<HeadersModel> headers = null, VastConf vast = null)
         {
             if (md == null)
                 return string.Empty;
@@ -121,8 +120,8 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 try
                 {
@@ -149,7 +148,7 @@ namespace Shared.Engine.Online
 
                         foreach (var episode in episodes)
                         {
-                            string? stream = episode.hls ?? episode.dasha ?? episode.dash;
+                            string stream = episode.hls ?? episode.dasha ?? episode.dash;
                             if (dash && (episode.dasha ?? episode.dash) != null)
                                 stream = episode.dasha ?? episode.dash;
 

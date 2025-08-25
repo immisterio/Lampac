@@ -1,19 +1,6 @@
-﻿using HtmlAgilityPack;
-using JacRed.Engine;
-using Shared.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Web;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("bigfangroup/[action]")]
     public class BigFanGroup : JacBaseController
@@ -37,7 +24,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("bigfangroup", jackett.BigFanGroup);
 
-            var _t = await HttpClient.Download($"{jackett.BigFanGroup.host}/download.php?id={id}", proxy: proxyManager.Get(), referer: jackett.BigFanGroup.host);
+            var _t = await Http.Download($"{jackett.BigFanGroup.host}/download.php?id={id}", proxy: proxyManager.Get(), referer: jackett.BigFanGroup.host);
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -52,7 +39,7 @@ namespace Lampac.Controllers.JAC
             var proxyManager = new ProxyManager("bigfangroup", jackett.BigFanGroup);
 
             #region Кеш html
-            string html = await HttpClient.Get($"{jackett.BigFanGroup.host}/browse.php?search=" + HttpUtility.UrlEncode(query), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.BigFanGroup.host}/browse.php?search=" + HttpUtility.UrlEncode(query), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
 
             if (html == null || !html.Contains("id=\"searchinput\""))
             {

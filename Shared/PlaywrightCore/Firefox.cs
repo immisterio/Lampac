@@ -1,9 +1,9 @@
-﻿using Lampac;
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
+using Shared.Engine;
 using Shared.Models.Browser;
 using System.Runtime.InteropServices;
 
-namespace Shared.Engine
+namespace Shared.PlaywrightCore
 {
     public class Firefox : PlaywrightBase, IDisposable
     {

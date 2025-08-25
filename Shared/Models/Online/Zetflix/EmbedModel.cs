@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Zetflix
+﻿namespace Shared.Models.Online.Zetflix
 {
     public class EmbedModel
     {
@@ -8,6 +8,6 @@
 
         public string quality { get; set; }
 
-        public string? check_url { get; set; }
+        public string check_url { get; set; }
     }
 }

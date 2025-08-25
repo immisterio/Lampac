@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
+﻿using Shared.Models.Base;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class RezkaSettings : BaseSettings, ICloneable
     {
@@ -15,15 +15,15 @@ namespace Lampac.Models.LITE
         }
 
 
-        public string? login { get; set; }
+        public string login { get; set; }
 
-        public string? passwd { get; set; }
+        public string passwd { get; set; }
 
         public bool premium { get; set; }
 
         public bool reserve { get; set; }
 
-        public string? uacdn { get; set; }
+        public string uacdn { get; set; }
 
         public bool forceua { get; set; }
 

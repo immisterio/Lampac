@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Web;
 
-namespace Shared.Model.Templates
+namespace Shared.Models.Templates
 {
     public struct VoiceTpl
     {

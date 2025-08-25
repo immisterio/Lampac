@@ -1,7 +1,7 @@
-﻿using Shared.Model.Base;
-using Shared.Model.Online.VoKino;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.VoKino;
 
-namespace Lampac.Models.LITE
+namespace Shared.Models.Online.Settings
 {
     public class VokinoSettings : BaseSettings, ICloneable
     {

@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.Kodik
+﻿namespace Shared.Models.Online.Kodik
 {
     public class Season
     {

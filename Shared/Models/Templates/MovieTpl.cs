@@ -2,23 +2,21 @@
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.Web;
-using Shared.Model.Online;
-using Shared.Model.Base;
-using Lampac;
+using Shared.Models.Base;
 
-namespace Shared.Model.Templates
+namespace Shared.Models.Templates
 {
     public struct MovieTpl
     {
-        string? title, original_title;
+        string title, original_title;
 
-        List<(string? voiceOrQuality, string? link, string method, string? stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string? voice_name, string? year, string? details, string? quality, VastConf? vast, List<HeadersModel>? headers, int? hls_manifest_timeout)> data;
+        List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout)> data;
 
         public MovieTpl(string title, string original_title = null, int capacity = 15) 
         {
             this.title = title;
             this.original_title = original_title;
-            data = new List<(string?, string?, string, string?, StreamQualityTpl?, SubtitleTpl?, string?, string?, string?, string?, VastConf? vast, List<HeadersModel>?, int?)>(capacity); 
+            data = new List<(string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, string, string, VastConf vast, List<HeadersModel>, int?)>(capacity); 
         }
 
         public bool IsEmpty() => data.Count == 0;

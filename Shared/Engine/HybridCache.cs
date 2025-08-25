@@ -1,0 +1,179 @@
+﻿using LiteDB;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using System.Threading;
+
+namespace Shared.Engine
+{
+    public struct HybridCacheModel()
+    {
+        [BsonId]
+        public string id { get; set; }
+
+        public DateTimeOffset ex { get; set; }
+
+        public byte[] value { get; set; }
+    }
+
+
+    public struct HybridCache
+    {
+        #region HybridCache
+        static IMemoryCache memoryCache;
+
+        public static void Configure(IMemoryCache mem)
+        {
+            memoryCache = mem;
+
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+                        CollectionDb.hybrid_cache.DeleteMany(i => DateTimeOffset.Now > i.ex);
+                    }
+                    catch { }
+                }
+            });
+        }
+        #endregion
+
+
+        #region TryGetValue
+        public bool TryGetValue(string key, out object value)
+        {
+            return memoryCache.TryGetValue(key, out value);
+        }
+
+        public bool TryGetValue<TItem>(string key, out TItem value, bool? inmemory = null)
+        {
+            if (!AppInit.conf.mikrotik)
+            {
+                if (AppInit.conf.cache.type == "hybrid" && memoryCache.TryGetValue(key, out value))
+                    return true;
+
+                if (ReadCache(key, out value))
+                {
+                    if (inmemory != false && AppInit.conf.cache.type == "hybrid")
+                        memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cache.extend));
+
+                    return true;
+                }
+            }
+
+            return memoryCache.TryGetValue(key, out value);
+        }
+        #endregion
+
+        #region ReadCache
+        private bool ReadCache<TItem>(string key, out TItem value)
+        {
+            value = default;
+            if (AppInit.conf.cache.type == "mem")
+                return false;
+
+            var type = typeof(TItem);
+            bool isText = type == typeof(string);
+            bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
+            bool isValueType = type.IsValueType;
+
+            if (!isText && !isConstructor && !isValueType)
+                return false;
+
+            try
+            {
+                var doc = CollectionDb.hybrid_cache.FindById(CrypTo.md5(key));
+
+                if (doc.id == null || DateTimeOffset.Now > doc.ex)
+                    return false;
+
+                if (isConstructor || isValueType)
+                    value = JsonConvert.DeserializeObject<TItem>(BrotliTo.Decompress(doc.value));
+                else
+                    value = (TItem)Convert.ChangeType(BrotliTo.Decompress(doc.value), type);
+
+                return true;
+            }
+            catch { }
+
+            return false;
+        }
+        #endregion
+
+
+        #region Set
+        public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, bool? inmemory = null)
+        {
+            if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
+            {
+                if (AppInit.conf.cache.type == "hybrid" && inmemory != false)
+                    memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cache.extend));
+
+                return value;
+            }
+
+            return memoryCache.Set(key, value, absoluteExpiration);
+        }
+
+        public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow, bool? inmemory = null)
+        {
+            if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
+            {
+                if (AppInit.conf.cache.type == "hybrid" && inmemory != false)
+                    memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cache.extend));
+
+                return value;
+            }
+
+            return memoryCache.Set(key, value, absoluteExpirationRelativeToNow);
+        }
+        #endregion
+
+        #region WriteCache
+        private bool WriteCache<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, TimeSpan absoluteExpirationRelativeToNow)
+        {
+            if (AppInit.conf.cache.type == "mem")
+                return false;
+
+            var type = typeof(TItem);
+            bool isText = type == typeof(string);
+            bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
+            bool isValueType = type.IsValueType;
+
+            if (!isText && !isConstructor && !isValueType)
+                return false;
+
+            try
+            {
+                byte[] compressedValue;
+
+                if (isConstructor || isValueType)
+                {
+                    compressedValue = BrotliTo.Compress(JsonConvert.SerializeObject(value));
+                }
+                else
+                {
+                    compressedValue = BrotliTo.Compress(value.ToString());
+                }
+
+                if (absoluteExpiration == default)
+                    absoluteExpiration = DateTimeOffset.Now.Add(absoluteExpirationRelativeToNow);
+
+                CollectionDb.hybrid_cache.Upsert(new HybridCacheModel() 
+                {
+                    id = CrypTo.md5(key),
+                    ex = absoluteExpiration,
+                    value = compressedValue
+                });
+
+                return true;
+            }
+            catch { }
+
+            return false;
+        }
+        #endregion
+    }
+}

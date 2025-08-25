@@ -1,6 +1,6 @@
 using Lampac.Engine;
 using Lampac.Engine.Middlewares;
-using Lampac.Models.Module;
+using Shared.Models.Module;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -17,8 +17,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
 using Newtonsoft.Json;
 using Shared.Engine;
-using Shared.Engine.CORE;
-using Shared.Models.Module;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,6 +25,8 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Shared;
+using Shared.PlaywrightCore;
 
 namespace Lampac
 {
@@ -99,7 +99,7 @@ namespace Lampac
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            if (AppInit.conf.compression)
+            if (AppInit.conf.listen.compression)
             {
                 services.AddResponseCompression(options =>
                 {
@@ -318,7 +318,7 @@ namespace Lampac
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
             ProxyManager.Configure(memory);
-            Engine.CORE.HttpClient.httpClientFactory = httpClientFactory;
+            Http.httpClientFactory = httpClientFactory;
 
             #region modules loaded
             if (AppInit.modules != null)
@@ -329,6 +329,9 @@ namespace Lampac
                     {
                         if (mod.dll == "DLNA.dll")
                             mod.initspace = "DLNA.ModInit";
+
+                        if (mod.dll == "SISI.dll")
+                            mod.initspace = "SISI.ModInit";
 
                         if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                         {
@@ -348,8 +351,8 @@ namespace Lampac
             }
             #endregion
 
-            if (!string.IsNullOrEmpty(AppInit.conf.listen_sock))
-                _ = Bash.Run($"sleep 10 && chmod 666 /var/run/{AppInit.conf.listen_sock}.sock");
+            if (!string.IsNullOrEmpty(AppInit.conf.listen.sock))
+                _ = Bash.Run($"sleep 10 && chmod 666 /var/run/{AppInit.conf.listen.sock}.sock");
 
             if (!AppInit.conf.multiaccess)
                 app.UseDeveloperExceptionPage();
@@ -366,7 +369,7 @@ namespace Lampac
             if (AppInit.conf.KnownProxies != null && AppInit.conf.KnownProxies.Count > 0)
             {
                 foreach (var k in AppInit.conf.KnownProxies)
-                    forwarded.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(k.ip), k.prefixLength));
+                    forwarded.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse(k.ip), k.prefixLength));
             }
 
             app.UseForwardedHeaders(forwarded);
@@ -374,7 +377,7 @@ namespace Lampac
 
             app.UseRouting();
 
-            if (AppInit.conf.compression)
+            if (AppInit.conf.listen.compression)
                 app.UseResponseCompression();
 
             app.UseModHeaders();
@@ -418,6 +421,7 @@ namespace Lampac
 
         private void OnShutdown()
         {
+            CollectionDb.Dispose();
             Chromium.FullDispose();
             Firefox.FullDispose();
         }

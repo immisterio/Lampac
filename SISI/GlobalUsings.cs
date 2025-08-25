@@ -1,0 +1,12 @@
+﻿global using System;
+global using System.Threading.Tasks;
+global using System.Collections.Generic;
+global using System.Text.RegularExpressions;
+global using System.IO;
+global using System.Linq;
+global using Shared;
+global using Shared.Models;
+global using Shared.Engine;
+global using Shared.Engine.SISI;
+global using Shared.Models.SISI.Base;
+global using Shared.Models.SISI.OnResult;

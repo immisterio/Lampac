@@ -1,13 +1,7 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.Online;
-using Shared.Engine.CORE;
-using Online;
-using System.Collections.Generic;
-using Lampac.Models.LITE.CDNmovies;
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.CDNmovies;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class CDNmovies : BaseOnlineController
     {
@@ -33,7 +27,7 @@ namespace Lampac.Controllers.LITE
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : HttpClient.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );

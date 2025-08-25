@@ -1,16 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Lampac.Models.SISI;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
-using System.Text.RegularExpressions;
-using Shared.Model.Online;
 
-namespace Lampac.Controllers.PornHub
+namespace SISI.Controllers.PornHub
 {
     public class ListController : BaseSisiController
     {
@@ -27,7 +18,7 @@ namespace Lampac.Controllers.PornHub
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
 
             string memKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))
+            if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
@@ -40,7 +31,7 @@ namespace Lampac.Controllers.PornHub
                     return ContentTo(rch.connectionMsg);
 
                 string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : HttpClient.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
+                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
                 );
 
                 cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);
@@ -57,7 +48,7 @@ namespace Lampac.Controllers.PornHub
                 if (!rch.enable)
                     proxyManager.Success();
 
-                hybridCache.Set(memKey, cache, cacheTime(10, init: init));
+                hybridCache.Set(memKey, cache, cacheTime(10, init: init), inmemory: false);
             }
 
             return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, plugin: init.plugin, total_pages: cache.total_pages);
@@ -73,12 +64,12 @@ namespace Lampac.Controllers.PornHub
                 return badInitMsg;
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))
+            if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))
             {
                 var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
 
-                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => HttpClient.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
+                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => Http.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -89,7 +80,7 @@ namespace Lampac.Controllers.PornHub
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, cache, cacheTime(10, init: init));
+                hybridCache.Set(memKey, cache, cacheTime(10, init: init), inmemory: false);
             }
 
             return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, "phubprem", search, sort, c, hd) : null, plugin: "phubprem", total_pages: cache.total_pages);

@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Eneyida
+﻿namespace Shared.Models.Online.Eneyida
 {
     public class Similar
     {

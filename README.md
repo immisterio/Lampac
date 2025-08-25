@@ -9,7 +9,8 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 ```
 curl -L -k -s https://lampac.sh | bash
 ```
-* 500Mb RAM, 1.5GB HDD, многопользовательская
+* Минимальные требования: 1 CPU, 1GB RAM, 2GB HDD
+* Рекомендуемые требования: 1 CPU, 2GB RAM, 5GB SSD
 * Порт генерируется рандомно и выводится в конце установки скрипта
 * Изменить или посмотреть порт можно в init.conf - 
 ```grep "listenport" /home/lampac/init.conf```
@@ -23,7 +24,7 @@ curl -L -k -s https://lampac.sh/home | bash
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
 # Установка на Windows
-1. Установить ".NET Core 6" https://github.com/dotnet/core/blob/main/release-notes/6.0/6.0.30/6.0.30.md
+1. Установить ".NET Core 9" https://github.com/dotnet/core/blob/main/release-notes/9.0/9.0.8/9.0.109.md
 2. Распаковать https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 3. Запустить Lampac.exe
 

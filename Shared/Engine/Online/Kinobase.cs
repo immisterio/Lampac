@@ -1,28 +1,24 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE.Kinobase;
-using Shared.Model.Base;
-using Shared.Model.Online.Kinobase;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
 using Shared.Models.Online.Kinobase;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class KinobaseInvoke
+    public struct KinobaseInvoke
     {
         #region KinobaseInvoke
         KinobaseSettings init;
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string, ValueTask<string?>> onpost;
+        Func<string, ValueTask<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
 
-        public KinobaseInvoke(string? host, KinobaseSettings init, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public KinobaseInvoke(string host, KinobaseSettings init, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.init = init;
             this.host = host != null ? $"{host}/" : null;
@@ -30,7 +26,6 @@ namespace Shared.Engine.Online
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
-            this.onpost = onpost;
             this.requesterror = requesterror;
         }
         #endregion
@@ -267,7 +262,7 @@ namespace Shared.Engine.Online
                         }
                         else
                         {
-                            return renderSeason(md.serial);
+                            return renderSeason(md.serial, host, onstreamfile);
                         }
                     }
                     else
@@ -287,11 +282,11 @@ namespace Shared.Engine.Online
                         }
                         else
                         {
-                            return renderSeason(md.serial.First(i => i.title.StartsWith($"{s} ")).folder);
+                            return renderSeason(md.serial.First(i => i.title.StartsWith($"{s} ")).folder, host, onstreamfile);
                         }
                     }
 
-                    string renderSeason(List<Season> episodes)
+                    string renderSeason(List<Season> episodes, string host, Func<string, string> onstreamfile)
                     {
                         #region Перевод
                         var vtpl = new VoiceTpl();
@@ -384,7 +379,7 @@ namespace Shared.Engine.Online
                 else
                 {
                     #region uppod.js
-                    string finEpisode(List<Season> data)
+                    string finEpisode(List<Season> data, Func<string, string> onstreamfile)
                     {
                         var etpl = new EpisodeTpl(data.Count);
 
@@ -425,7 +420,7 @@ namespace Shared.Engine.Online
                         }
                         else
                         {
-                            return finEpisode(md.serial);
+                            return finEpisode(md.serial, onstreamfile);
                         }
                     }
                     else
@@ -445,7 +440,7 @@ namespace Shared.Engine.Online
                         }
                         else
                         {
-                            return finEpisode(md.serial.First(i => i.title.StartsWith($"{s} ")).folder);
+                            return finEpisode(md.serial.First(i => i.title.StartsWith($"{s} ")).folder, onstreamfile);
                         }
                     }
                     #endregion

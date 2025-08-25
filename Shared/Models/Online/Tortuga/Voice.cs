@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.Tortuga
+﻿namespace Shared.Models.Online.Tortuga
 {
     public class Voice
     {

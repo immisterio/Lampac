@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Lampac.Engine.CORE
+namespace Shared.Engine
 {
     public static class StringConvert
     {

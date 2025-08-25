@@ -1,6 +1,4 @@
-﻿using Lampac;
-
-namespace Shared.Model.Base
+﻿namespace Shared.Models.Base
 {
     public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup , ICloneable
     {
@@ -40,53 +38,53 @@ namespace Shared.Model.Base
 
         public bool rhub_fallback { get; set; }
 
-        public string[]? rhub_geo_disable { get; set; }
+        public string[] rhub_geo_disable { get; set; }
 
-        public string[]? geo_hide { get; set; }
+        public string[] geo_hide { get; set; }
 
-        public string? client_type { get; set; }
+        public string client_type { get; set; }
 
         public bool rip { get; set; }
 
         public int cache_time { get; set; }
 
-        public string? displayname { get; set; }
+        public string displayname { get; set; }
 
         public int displayindex { get; set; }
 
-        public string? overridehost { get; set; }
+        public string overridehost { get; set; }
 
-        public string[]? overridehosts { get; set; }
+        public string[] overridehosts { get; set; }
 
-        public string? overridepasswd { get; set; }
+        public string overridepasswd { get; set; }
 
-        public string? host { get; set; }
+        public string host { get; set; }
 
-        public string? apihost { get; set; }
+        public string apihost { get; set; }
 
-        public string? scheme { get; set; }
+        public string scheme { get; set; }
 
         public bool hls { get; set; }
 
-        public string? cookie { get; set; }
+        public string cookie { get; set; }
 
-        public string? token { get; set; }
+        public string token { get; set; }
 
-        public Dictionary<string, string>? headers { get; set; }
+        public Dictionary<string, string> headers { get; set; }
 
-        public Dictionary<string, string>? headers_stream { get; set; }
+        public Dictionary<string, string> headers_stream { get; set; }
 
-        public VastConf? vast { get; set; }
+        public VastConf vast { get; set; }
 
-        public string? priorityBrowser { get; set; }
+        public string priorityBrowser { get; set; }
 
 
         #region proxy
         public bool useproxy { get; set; }
 
-        public string? globalnameproxy { get; set; }
+        public string globalnameproxy { get; set; }
 
-        public ProxySettings? proxy { get; set; }
+        public ProxySettings proxy { get; set; }
 
         public bool useproxystream { get; set; }
 
@@ -94,9 +92,9 @@ namespace Shared.Model.Base
 
         public bool apnstream { get; set; }
 
-        public string[]? geostreamproxy { get; set; }
+        public string[] geostreamproxy { get; set; }
 
-        public ApnConf? apn { get; set; }
+        public ApnConf apn { get; set; }
 
         public bool qualitys_proxy { get; set; } = true;
 
@@ -106,11 +104,11 @@ namespace Shared.Model.Base
         #region cors
         public bool corseu { get; set; }
 
-        public string? webcorshost { get; set; }
+        public string webcorshost { get; set; }
 
         public string corsHost()
         {
-            string? crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.conf.corsehost : null;
+            string crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.conf.corsehost : null;
             if (string.IsNullOrWhiteSpace(crhost))
                 return host;
 
@@ -119,7 +117,7 @@ namespace Shared.Model.Base
 
         public string cors(string uri)
         {
-            string? crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.conf.corsehost : null;
+            string crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.conf.corsehost : null;
             if (string.IsNullOrWhiteSpace(crhost) || string.IsNullOrWhiteSpace(uri) || uri.Contains(crhost))
                 return uri;
 
@@ -128,7 +126,7 @@ namespace Shared.Model.Base
         #endregion
 
 
-        public string? Decrypt(string? data)
+        public string Decrypt(string data)
         {
             try
             {

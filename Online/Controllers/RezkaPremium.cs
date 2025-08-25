@@ -1,23 +1,11 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Engine.Online;
-using Shared.Model.Online.Rezka;
-using System;
-using Shared.Model.Online;
-using System.Collections.Generic;
-using Lampac.Models.LITE;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.RegularExpressions;
 using System.Net;
 using System.Management;
-using Shared.Model.Templates;
-using System.Web;
-using Shared.Model.Base;
+using Shared.Models.Online.Settings;
+using Shared.Models.Online.Rezka;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class RezkaPremium : BaseOnlineController
     {
@@ -112,8 +100,8 @@ namespace Lampac.Controllers.LITE
                 init.hls,
                 init.reserve,
                 true,
-                (url, _) => rch.enable ? rch.Get(url, headers) : HttpClient.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search")),
-                (url, data, _) => rch.enable ? rch.Post(url, data, headers) : HttpClient.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                (url, _) => rch.enable ? rch.Get(url, headers) : Http.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search")),
+                (url, data, _) => rch.enable ? rch.Post(url, data, headers) : Http.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy),
                 requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             ), cook.cookie, null);

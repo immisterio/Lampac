@@ -1,18 +1,6 @@
-﻿using HtmlAgilityPack;
-using JacRed.Engine;
-using JacRed.Models;
-using Lampac.Engine.CORE;
-using Lampac.Engine.Parse;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Engine.CORE;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using Shared.Engine;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.JAC
+namespace JacRed.Controllers
 {
     [Route("rutor/[action]")]
     public class RutorController : JacBaseController
@@ -36,7 +24,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("rutor", jackett.Rutor);
 
-            byte[] _t = await HttpClient.Download($"{Regex.Replace(jackett.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: jackett.Rutor.host, proxy: proxyManager.Get());
+            byte[] _t = await Http.Download($"{Regex.Replace(jackett.Rutor.host, "^(https?:)//", "$1//d.")}/download/{id}", referer: jackett.Rutor.host, proxy: proxyManager.Get());
             if (_t != null && BencodeTo.Magnet(_t) != null)
                 return File(_t, "application/x-bittorrent");
 
@@ -57,7 +45,7 @@ namespace Lampac.Controllers.JAC
 
             var proxyManager = new ProxyManager("rutor", jackett.Rutor);
 
-            string html = await HttpClient.Get($"{jackett.Rutor.host}/search" + (cat == "0" ? $"/{HttpUtility.UrlEncode(query)}" : $"/0/{cat}/000/0/{HttpUtility.UrlEncode(query)}"), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
+            string html = await Http.Get($"{jackett.Rutor.host}/search" + (cat == "0" ? $"/{HttpUtility.UrlEncode(query)}" : $"/0/{cat}/000/0/{HttpUtility.UrlEncode(query)}"), proxy: proxyManager.Get(), timeoutSeconds: jackett.timeoutSeconds);
 
             if (html == null || !html.Contains("id=\"logo\""))
             {

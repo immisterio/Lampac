@@ -1,7 +1,6 @@
 ﻿using System.Net;
-using Shared.Model.Online;
 
-namespace Shared.Models
+namespace Shared.Models.Proxy
 {
     public class ProxyLinkModel
     {

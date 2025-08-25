@@ -1,17 +1,7 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Templates;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class AniLiberty : BaseOnlineController
     {
@@ -26,7 +16,8 @@ namespace Lampac.Controllers.LITE
             var proxyManager = new ProxyManager(AppInit.conf.AniLiberty);
             var proxy = proxyManager.Get();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            reset: 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             if (releases == 0)
             {
@@ -42,7 +33,7 @@ namespace Lampac.Controllers.LITE
 
                     string req_uri = $"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}";
                     var search = rch.enable ? await rch.Get<JArray>(req_uri, httpHeaders(init)) :
-                                              await HttpClient.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                                              await Http.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                     if (search == null || search.Count == 0)
                         return res.Fail("search");
@@ -113,7 +104,7 @@ namespace Lampac.Controllers.LITE
                     string req_uri = $"{init.corsHost()}/api/v1/anime/releases/{releases}";
 
                     var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :
-                                            await HttpClient.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+                                            await Http.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
 
                     if (root == null || !root.ContainsKey("episodes"))
                         return res.Fail("episodes");

@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Http;
 using System.Text;
-using Merchant;
 using IO = System.IO.File;
 using System.IO;
+using Shared;
+using Shared.Engine;
 
-namespace Lampac.Controllers.LITE
+namespace Merchant.Controllers
 {
     /// <summary>
     /// https://pay.b2pay.io/merchant/api.php
@@ -46,7 +46,7 @@ namespace Lampac.Controllers.LITE
 
             string data = $"payment={CrypTo.Base64(CrypTo.AES256(JsonConvert.SerializeObject(payment), AppInit.conf.Merchant.B2PAY.encryption_password, AppInit.conf.Merchant.B2PAY.encryption_iv))}&id={AppInit.conf.Merchant.B2PAY.username_id}";
 
-            var root = await HttpClient.Post<JObject>(AppInit.conf.Merchant.B2PAY.sandbox ? "https://pay.b2pay.io/api_sandbox/merchantpayments.php" : "https://pay.b2pay.io/api/merchantpayments.php", data);
+            var root = await Http.Post<JObject>(AppInit.conf.Merchant.B2PAY.sandbox ? "https://pay.b2pay.io/api_sandbox/merchantpayments.php" : "https://pay.b2pay.io/api/merchantpayments.php", data);
             if (root == null || !root.ContainsKey("data"))
                 return Content("data == null");
 

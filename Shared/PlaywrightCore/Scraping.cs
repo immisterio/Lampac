@@ -1,5 +1,4 @@
-﻿using Lampac;
-using Shared.Engine;
+﻿using Shared.Engine;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
@@ -124,14 +123,14 @@ namespace Shared.PlaywrightCore
         }
 
 
-        async private Task Request(object sender, SessionEventArgs e)
+        private Task Request(object sender, SessionEventArgs e)
         {
             var session = e.HttpClient.Request;
 
             if (IsCompleted)
             {
                 e.Ok(string.Empty);
-                return;
+                return Task.CompletedTask;
             }
 
             if (session.Method == "GET" && !string.IsNullOrEmpty(patternUrl) && Regex.IsMatch(session.Url, patternUrl))
@@ -139,7 +138,7 @@ namespace Shared.PlaywrightCore
                 IsCompleted = true;
                 completionSource.TrySetResult(session);
                 e.Ok(string.Empty);
-                return;
+                return Task.CompletedTask;
             }
 
             if (!string.IsNullOrEmpty(headerKey))
@@ -151,7 +150,7 @@ namespace Shared.PlaywrightCore
                         IsCompleted = true;
                         completionSource.TrySetResult(session);
                         e.Ok(string.Empty);
-                        return;
+                        return Task.CompletedTask;
                     }
                 }
             }
@@ -168,9 +167,10 @@ namespace Shared.PlaywrightCore
             }
 
             OnRequest?.Invoke(e);
+            return Task.CompletedTask;
         }
 
-        async private Task Response(object sender, SessionEventArgs e)
+        private Task Response(object sender, SessionEventArgs e)
         {
             if (AppInit.conf.chromium.consoleLog)
             {
@@ -185,6 +185,7 @@ namespace Shared.PlaywrightCore
             }
 
             OnResponse?.Invoke(e);
+            return Task.CompletedTask;
         }
 
 

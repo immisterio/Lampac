@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Lampac.Engine;
 using IO = System.IO;
-using Lampac.Engine.CORE;
+using Shared;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
 using System.Threading;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -21,8 +22,8 @@ namespace Lampac.Controllers
 
         static StorageController()
         {
-            Directory.CreateDirectory("cache/storage");
-            Directory.CreateDirectory("cache/storage/temp");
+            Directory.CreateDirectory("database/storage");
+            Directory.CreateDirectory("database/storage/temp");
         }
         #endregion
 
@@ -38,11 +39,11 @@ namespace Lampac.Controllers
             var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };
 
             if (responseInfo)
-                return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo });
+                return Json(new { success = true, uid = requestInfo.user_uid, fileInfo });
 
             string data = AppInit.conf.storage.brotli ? BrotliTo.Decompress(outFile) : IO.File.ReadAllText(outFile);
 
-            return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data });
+            return Json(new { success = true, uid = requestInfo.user_uid, fileInfo, data });
         }
         #endregion
 
@@ -105,7 +106,7 @@ namespace Lampac.Controllers
             return Json(new 
             { 
                 success = true,
-                uid = requestInfo?.user_uid,
+                uid = requestInfo.user_uid,
                 fileInfo = new { inf.Name, path = outFile, inf.Length, changeTime = new DateTimeOffset(inf.LastWriteTimeUtc).ToUnixTimeMilliseconds() }
             });
         }
@@ -124,11 +125,11 @@ namespace Lampac.Controllers
             var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };
 
             if (responseInfo)
-                return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo });
+                return Json(new { success = true, uid = requestInfo.user_uid, fileInfo });
 
             string data = AppInit.conf.storage.brotli ? BrotliTo.Decompress(outFile) : IO.File.ReadAllText(outFile);
 
-            return Json(new { success = true, uid = requestInfo?.user_uid, fileInfo, data });
+            return Json(new { success = true, uid = requestInfo.user_uid, fileInfo, data });
         }
         #endregion
 
@@ -182,7 +183,7 @@ namespace Lampac.Controllers
             return Json(new
             {
                 success = true,
-                uid = requestInfo?.user_uid,
+                uid = requestInfo.user_uid,
                 fileInfo = new { inf.Name, path = outFile, inf.Length, changeTime = new DateTimeOffset(inf.LastWriteTimeUtc).ToUnixTimeMilliseconds() }
             });
         }
@@ -204,14 +205,14 @@ namespace Lampac.Controllers
 
             if (path == "temp")
             {
-                return $"cache/storage/{path}/{md5key}";
+                return $"database/storage/{path}/{md5key}";
             }
             else
             {
                 if (createDirectory)
-                    Directory.CreateDirectory($"cache/storage/{path}/{md5key.Substring(0, 2)}");
+                    Directory.CreateDirectory($"database/storage/{path}/{md5key.Substring(0, 2)}");
 
-                return $"cache/storage/{path}/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+                return $"database/storage/{path}/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
             }
         }
         #endregion

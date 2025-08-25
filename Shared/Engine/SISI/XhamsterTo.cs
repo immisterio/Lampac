@@ -1,6 +1,6 @@
 ﻿using HtmlAgilityPack;
-using Lampac.Models.SISI;
-using Shared.Model.SISI;
+using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -8,7 +8,7 @@ namespace Shared.Engine.SISI
 {
     public static class XhamsterTo
     {
-        public static ValueTask<string?> InvokeHtml(string host, string plugin, string? search, string? c, string? q, string? sort, int pg, Func<string, ValueTask<string?>> onresult)
+        public static ValueTask<string> InvokeHtml(string host, string plugin, string search, string c, string q, string sort, int pg, Func<string, ValueTask<string>> onresult)
         {
             string url;
 
@@ -43,7 +43,7 @@ namespace Shared.Engine.SISI
                         url += "/newest";
                         break;
                     case "best":
-                        url += "/best/weekly";
+                        url += "/best";
                         break;
                     default:
                         break;
@@ -56,7 +56,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem>? onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -91,7 +91,7 @@ namespace Shared.Engine.SISI
                         duration = Regex.Match(row, "datetime=\"([^\"]+)\"").Groups[1].Value;
 
                     string img = Regex.Match(row, " srcset=\"([^\"]+)\"").Groups[1].Value;
-                    if (!img.StartsWith("http"))
+                    if (!img.StartsWith("http") || img.Contains("(w:16,h:9)"))
                     {
                         img = Regex.Match(row, "thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
                         if (!img.StartsWith("http"))
@@ -129,7 +129,7 @@ namespace Shared.Engine.SISI
             return playlists;
         }
 
-        public static List<MenuItem> Menu(string? host, string plugin, string? c, string? q, string? sort)
+        public static List<MenuItem> Menu(string host, string plugin, string c, string q, string sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
 
@@ -1090,12 +1090,12 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem?> StreamLinks(string uri, string host, string? url, Func<string, ValueTask<string?>> onresult)
+        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string? html = await onresult.Invoke($"{host}/{url}");
+            string html = await onresult.Invoke($"{host}/{url}");
             if (html == null)
                 return null;
 

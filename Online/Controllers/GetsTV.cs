@@ -1,20 +1,10 @@
-using Lampac.Engine.CORE;
-using Lampac.Models.LITE;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Online;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
-using Shared.Model.Templates;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Shared.Models.Online.Settings;
 using System.Text;
-using System.Threading.Tasks;
-using System.Web;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class GetsTV : BaseOnlineController
     {
@@ -32,7 +22,7 @@ namespace Lampac.Controllers.LITE
             else
             {
                 string postdata = $"{{\"email\":\"{login}\",\"password\":\"{pass}\",\"fingerprint\":\"{CrypTo.md5(DateTime.Now.ToString())}\",\"device\":{{}}}}";
-                var result =  await HttpClient.Post<JObject>($"{AppInit.conf.GetsTV.corsHost()}/api/login", new System.Net.Http.StringContent(postdata, Encoding.UTF8, "application/json"), headers: httpHeaders(AppInit.conf.GetsTV));
+                var result =  await Http.Post<JObject>($"{AppInit.conf.GetsTV.corsHost()}/api/login", new System.Net.Http.StringContent(postdata, Encoding.UTF8, "application/json"), headers: httpHeaders(AppInit.conf.GetsTV));
 
                 if (result == null)
                     ContentTo("Ошибка авторизации ;(");
@@ -71,7 +61,7 @@ namespace Lampac.Controllers.LITE
             var cache = await InvokeCache<JObject>($"getstv:movies:{orid}", cacheTime(20, init: init), proxyManager, async res =>
             {
                 var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
-                var root = await HttpClient.Get<JObject>($"{init.corsHost()}/api/movies/{orid}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
+                var root = await Http.Get<JObject>($"{init.corsHost()}/api/movies/{orid}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
                 if (root == null)
                     return res.Fail("movies");
 
@@ -184,7 +174,7 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out JObject root))
             {
                 var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
-                root = await HttpClient.Get<JObject>($"{init.corsHost()}/api/media/{id}?format=m3u8&protocol=https", timeoutSeconds: 8, proxy: proxy, headers: headers);
+                root = await Http.Get<JObject>($"{init.corsHost()}/api/media/{id}?format=m3u8&protocol=https", timeoutSeconds: 8, proxy: proxy, headers: headers);
                 if (root == null)
                     return OnError("json", proxyManager);
 
@@ -261,7 +251,7 @@ namespace Lampac.Controllers.LITE
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
-                root = await HttpClient.Get<JArray>($"{init.corsHost()}/api/movies?skip=0&sort=updated&searchText={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
+                root = await Http.Get<JArray>($"{init.corsHost()}/api/movies?skip=0&sort=updated&searchText={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
                 if (root == null)
                 {
                     proxyManager.Refresh();

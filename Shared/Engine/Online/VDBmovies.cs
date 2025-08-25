@@ -1,6 +1,6 @@
-﻿using Shared.Model.Base;
-using Shared.Model.Online.VDBmovies;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.VDBmovies;
+using Shared.Models.Templates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -8,15 +8,15 @@ using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class VDBmoviesInvoke
+    public struct VDBmoviesInvoke
     {
         #region VDBmoviesInvoke
-        string? host;
+        string host;
         bool usehls;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
+        Func<string, string> onlog;
 
-        public VDBmoviesInvoke(string? host, bool hls, Func<string, string> onstreamfile, Func<string, string>? onlog = null)
+        public VDBmoviesInvoke(string host, bool hls, Func<string, string> onstreamfile, Func<string, string> onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.onstreamfile = onstreamfile;
@@ -102,7 +102,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public EmbedModel? Embed(in string? json)
+        public EmbedModel Embed(in string json)
         {
             if (string.IsNullOrEmpty(json))
                 return null;
@@ -113,7 +113,7 @@ namespace Shared.Engine.Online
             {
                 if (json.Contains("\"folder\""))
                 {
-                    var serial = JsonSerializer.Deserialize<List<Lampac.Models.LITE.CDNmovies.Voice>>(json);
+                    var serial = JsonSerializer.Deserialize<List<Models.Online.CDNmovies.Voice>>(json);
                     if (serial == null || serial.Count == 0)
                         return null;
 
@@ -133,7 +133,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? root, string orid, string imdb_id, long kinopoisk_id, string? title, string? original_title, string? t, int s, int sid, VastConf? vast = null, bool rjson = false)
+        public string Html(EmbedModel root, string orid, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int sid, VastConf vast = null, bool rjson = false)
         {
             if (root == null)
                 return string.Empty;
@@ -186,8 +186,8 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 if (s == -1)
                 {

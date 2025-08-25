@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System;
-using Merchant;
 using IO = System.IO.File;
 using System.IO;
 using System.Net.Http;
@@ -11,8 +10,9 @@ using Chaos.NaCl;
 using System.Text.RegularExpressions;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
+using Shared;
 
-namespace Lampac.Controllers.LITE
+namespace Merchant.Controllers
 {
     public class Streampay : MerchantController
     {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.CodeAnalysis.Scripting;
+using Shared;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.CSharpGlobals;
@@ -25,7 +26,7 @@ namespace Lampac.Engine.Middlewares
         {
             if (AppInit.conf.overrideResponse != null && AppInit.conf.overrideResponse.Count > 0)
             {
-                var requestInfo = first ? null : httpContext.Features.Get<RequestModel>();
+                var requestInfo = first ? new RequestModel() : httpContext.Features.Get<RequestModel>();
                 string url = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
 
                 foreach (var over in AppInit.conf.overrideResponse.Where(i => i.firstEndpoint == first))

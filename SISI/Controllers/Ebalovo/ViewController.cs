@@ -1,13 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using Shared.Engine.SISI;
-using Shared.Engine.CORE;
-using SISI;
-using Lampac.Models.SISI;
-using Shared.Model.Online;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.Ebalovo
+namespace SISI.Controllers.Ebalovo
 {
     public class ViewController : BaseSisiController
     {
@@ -52,7 +45,7 @@ namespace Lampac.Controllers.Ebalovo
                             ("upgrade-insecure-requests", "1")
                         ));
 
-                        return rch.enable ? rch.Get(init.cors(url), headers) : HttpClient.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: headers);
+                        return rch.enable ? rch.Get(init.cors(url), headers) : Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: headers);
                     },
                     async location =>
                     {
@@ -69,7 +62,7 @@ namespace Lampac.Controllers.Ebalovo
                             return res.currentUrl;
                         }
 
-                        return await HttpClient.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        return await Http.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     }
                 );
 

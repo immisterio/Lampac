@@ -1,20 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Web;
-using System.Linq;
-using System.Collections.Generic;
-using Lampac.Engine.CORE;
-using System;
-using System.Text.RegularExpressions;
-using Online;
-using Shared.Model.Online.PiTor;
-using Shared.Model.Templates;
-using Shared.Model.Online;
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.PiTor;
+using Shared.Models.Online.Settings;
 using System.Data;
-using System.IO;
-using Shared.Model.Online.Settings;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class PiTor : BaseOnlineController
     {
@@ -33,7 +22,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"pidtor:{title}:{original_title}:{year}";
             if (!hybridCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
             {
-                var root = await HttpClient.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}&apikey={init.apikey}", timeoutSeconds: 8);
+                var root = await Http.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}&apikey={init.apikey}", timeoutSeconds: 8);
                 if (root == null)
                     return Content(string.Empty, "text/html; charset=utf-8");
 
@@ -359,10 +348,10 @@ namespace Lampac.Controllers.LITE
                         string accs = System.IO.File.ReadAllText("torrserver/accs.db");
                         string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
 
-                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{AppInit.conf.localhost}:9080");
+                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{AppInit.conf.listen.localhost}:9080");
                     }
 
-                    return (null, $"http://{AppInit.conf.localhost}:9080");
+                    return (null, $"http://{AppInit.conf.listen.localhost}:9080");
                 }
 
                 if (init.auth_torrs != null && init.auth_torrs.Count > 0)
@@ -396,7 +385,7 @@ namespace Lampac.Controllers.LITE
                 hybridCache.Set(tskey, ts, DateTime.Now.AddHours(4));
             }
 
-            string hash = await HttpClient.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
+            string hash = await Http.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
             if (hash == null)
                 return OnError();
 
@@ -407,12 +396,12 @@ namespace Lampac.Controllers.LITE
             Stat stat = null;
             DateTime startGotInfoTime = DateTime.Now;
 
-            resetgotingo: stat = await HttpClient.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
+            resetgotingo: stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
             if (stat?.file_stats == null || stat.file_stats.Count == 0)
             {
                 if (DateTime.Now > startGotInfoTime.AddSeconds(20))
                 {
-                    _ = await HttpClient.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 2, headers: ts.header);
+                    _ = await Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 2, headers: ts.header);
                     return OnError();
                 }
 
@@ -459,7 +448,7 @@ namespace Lampac.Controllers.LITE
                 var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
                     headers = HeadersModel.Join(headers, addheaders);
 
-                await HttpClient.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
+                await Http.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
 
                 return Redirect($"{uhost ?? host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index={index}&play");
             }
@@ -472,7 +461,7 @@ namespace Lampac.Controllers.LITE
                     string accs = System.IO.File.ReadAllText("torrserver/accs.db");
                     string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
 
-                    return await auth_stream($"http://{AppInit.conf.localhost}:9080", "ts", passwd, uhost: $"{host}/ts");
+                    return await auth_stream($"http://{AppInit.conf.listen.localhost}:9080", "ts", passwd, uhost: $"{host}/ts");
                 }
 
                 return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");

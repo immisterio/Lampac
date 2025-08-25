@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Jackett;
+﻿using Jackett;
 using JacRed.Engine.CORE;
 using JacRed.Models;
-using Lampac.Engine.CORE;
 
 namespace JacRed.Engine
 {

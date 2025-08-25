@@ -1,25 +1,24 @@
-﻿using Lampac.Engine.CORE;
-using Shared.Model.Base;
-using Shared.Model.Online.Eneyida;
-using Shared.Model.Templates;
+﻿using Shared.Models.Base;
+using Shared.Models.Online.Eneyida;
+using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
 {
-    public class EneyidaInvoke
+    public struct EneyidaInvoke
     {
         #region EneyidaInvoke
-        string? host;
+        string host;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string, ValueTask<string?>> onpost;
+        Func<string, ValueTask<string>> onget;
+        Func<string, string, ValueTask<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
 
-        public EneyidaInvoke(string? host, string apihost, Func<string, ValueTask<string?>> onget, Func<string, string, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null)
+        public EneyidaInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -37,7 +36,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return null;
 
-            string? link = href, reservedlink = null;
+            string link = href;
             var result = new EmbedModel();
 
             if (string.IsNullOrEmpty(link))
@@ -108,7 +107,7 @@ namespace Shared.Engine.Online
             }
 
             onlog?.Invoke("link: " + link);
-            string? news = await onget.Invoke(link);
+            string news = await onget.Invoke(link);
             if (news == null)
             {
                 requesterror?.Invoke();
@@ -123,7 +122,7 @@ namespace Shared.Engine.Online
                 return null;
 
             onlog?.Invoke("iframeUri: " + iframeUri);
-            string? content = await onget.Invoke(iframeUri);
+            string content = await onget.Invoke(iframeUri);
             if (content == null || !content.Contains("file:"))
             {
                 requesterror?.Invoke();
@@ -132,11 +131,11 @@ namespace Shared.Engine.Online
 
             if (Regex.IsMatch(content, "file: ?'\\["))
             {
-                List<Lampac.Models.LITE.Tortuga.Voice>? root = null;
+                List<Models.Online.Tortuga.Voice> root = null;
 
                 try
                 {
-                    root = JsonSerializer.Deserialize<List<Lampac.Models.LITE.Tortuga.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                    root = JsonSerializer.Deserialize<List<Models.Online.Tortuga.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
                     if (root == null || root.Count == 0)
                         return null;
                 }
@@ -154,7 +153,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, int clarification, string? title, string? original_title, int year, string t, int s, string? href, VastConf vast = null, bool rjson = false)
+        public string Html(EmbedModel result, int clarification, string title, string original_title, int year, string t, int s, string href, VastConf vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;

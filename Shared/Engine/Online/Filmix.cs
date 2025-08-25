@@ -1,11 +1,9 @@
-﻿using Lampac.Engine.CORE;
-using Lampac.Models.LITE.Filmix;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Model.Base;
-using Shared.Model.Online;
-using Shared.Model.Online.Filmix;
-using Shared.Model.Templates;
+using Shared.Models;
+using Shared.Models.Base;
+using Shared.Models.Online.Filmix;
+using Shared.Models.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -16,17 +14,17 @@ namespace Shared.Engine.Online
         #region FilmixInvoke
         public bool disableSphinxSearch;
 
-        public string? token;
-        string? host, args;
+        public string token;
+        string host, args;
         string apihost;
-        Func<string, ValueTask<string?>> onget;
-        Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost;
+        Func<string, ValueTask<string>> onget;
+        Func<string, string, List<HeadersModel>, ValueTask<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string> onlog;
+        Action requesterror;
         bool rjson;
 
-        public FilmixInvoke(string? host, string apihost, string? token, Func<string, ValueTask<string?>> onget, Func<string, string, List<HeadersModel>?, ValueTask<string?>> onpost, Func<string, string> onstreamfile, Func<string, string>? onlog = null, Action? requesterror = null, bool rjson = false)
+        public FilmixInvoke(string host, string apihost, string token, Func<string, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -43,7 +41,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public Task<SearchResult?> Search(string? title, string? original_title, int clarification, int year, bool similar)
+        async public Task<SearchResult> Search(string title, string original_title, int clarification, int year, bool similar)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -51,11 +49,11 @@ namespace Shared.Engine.Online
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&{args}";
             onlog?.Invoke(uri);
             
-            string? json = await onget.Invoke(uri);
+            string json = await onget.Invoke(uri);
             if (json == null)
                 return await Search2(title, original_title, clarification, year);
 
-            List<SearchModel>? root = null;
+            List<SearchModel> root = null;
 
             try
             {
@@ -69,8 +67,8 @@ namespace Shared.Engine.Online
             var ids = new List<int>(root.Count);
             var stpl = new SimilarTpl(root.Count);
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
@@ -102,9 +100,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search2
-        async Task<SearchResult?> Search2(string? title, string? original_title, int clarification, int year)
+        async Task<SearchResult> Search2(string title, string original_title, int clarification, int year)
         {
-            async Task<List<SearchModel>> gosearch(string? story)
+            async Task<List<SearchModel>> gosearch(string story)
             {
                 if (string.IsNullOrEmpty(story))
                     return null;
@@ -112,11 +110,11 @@ namespace Shared.Engine.Online
                 string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(story)}&limit=48";
                 onlog?.Invoke(uri);
 
-                string? json = await onget.Invoke(uri);
+                string json = await onget.Invoke(uri);
                 if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
                     return null;
 
-                List<SearchModel>? root = null;
+                List<SearchModel> root = null;
 
                 try
                 {
@@ -140,8 +138,8 @@ namespace Shared.Engine.Online
             var ids = new List<int>(result.Count);
             var stpl = new SimilarTpl(result.Count);
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
@@ -173,7 +171,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search3
-        async Task<SearchResult?> Search3(string? title, string? original_title, int clarification, int year)
+        async Task<SearchResult> Search3(string title, string original_title, int clarification, int year)
         {
             if (disableSphinxSearch)
             {
@@ -183,7 +181,7 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("Search3");
 
-            string? html = await onpost.Invoke("https://filmix.my/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
+            string html = await onpost.Invoke("https://filmix.my/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
                 ("Origin", "https://filmix.my"),
                 ("Referer", "https://filmix.my/search/"),
                 ("X-Requested-With", "XMLHttpRequest"),
@@ -204,11 +202,11 @@ namespace Shared.Engine.Online
             var ids = new List<int>(rows.Length);
             var stpl = new SimilarTpl(rows.Length);
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            string? stitle = title?.ToLower();
-            string? sorigtitle = original_title?.ToLower();
+            string stitle = title?.ToLower();
+            string sorigtitle = original_title?.ToLower();
 
             foreach (string row in rows)
             {
@@ -219,7 +217,7 @@ namespace Shared.Engine.Online
 
                 if (int.TryParse(fid, out int id) && id > 0)
                 {
-                    string? name = !string.IsNullOrEmpty(ftitle) && !string.IsNullOrEmpty(ftitle_orig) ? $"{ftitle} / {ftitle_orig}" : (ftitle ?? ftitle_orig);
+                    string name = !string.IsNullOrEmpty(ftitle) && !string.IsNullOrEmpty(ftitle_orig) ? $"{ftitle} / {ftitle_orig}" : (ftitle ?? ftitle_orig);
 
                     stpl.Append(name, fyear, string.Empty, host + $"lite/filmix?postid={id}&title={enc_title}&original_title={enc_original_title}");
 
@@ -242,12 +240,12 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Post
-        async public Task<RootObject?> Post(int postid)
+        async public Task<RootObject> Post(int postid)
         {
             string uri = $"{apihost}/api/v2/post/{postid}?{args}";
             onlog?.Invoke(uri);
 
-            string? json = await onget.Invoke(uri);
+            string json = await onget.Invoke(uri);
             if (json == null)
             {
                 requesterror?.Invoke();
@@ -268,7 +266,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject? root, bool pro, int postid, string? title, string? original_title, int t, int? s, VastConf vast = null)
+        public string Html(RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
         {
             var player_links = root?.player_links;
             if (player_links == null)
@@ -327,8 +325,8 @@ namespace Shared.Engine.Online
                 if (player_links.playlist == null || player_links.playlist.Count == 0)
                     return string.Empty;
 
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 if (s == null)
                 {
@@ -346,7 +344,7 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    string? sArch = s?.ToString();
+                    string sArch = s?.ToString();
 
                     if (sArch == null)
                         return string.Empty;
@@ -368,7 +366,7 @@ namespace Shared.Engine.Online
                     #endregion
 
                     #region Deserialize
-                    Dictionary<string, Movie>? episodes = null;
+                    Dictionary<string, Movie> episodes = null;
 
                     try
                     {

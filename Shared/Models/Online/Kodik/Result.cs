@@ -1,14 +1,12 @@
-﻿using Lampac.Models.LITE.Kodik;
-
-namespace Shared.Model.Online.Kodik
+﻿namespace Shared.Models.Online.Kodik
 {
     public class Result
     {
         public string id { get; set; }
 
-        public string? title { get; set; }
+        public string title { get; set; }
 
-        public string? title_orig { get; set; }
+        public string title_orig { get; set; }
 
         public string type { get; set; }
 
@@ -23,6 +21,6 @@ namespace Shared.Model.Online.Kodik
         public Dictionary<string, Season> seasons { get; set; }
 
 
-        public MaterialData? material_data { get; set; }
+        public MaterialData material_data { get; set; }
     }
 }

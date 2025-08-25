@@ -1,19 +1,8 @@
-﻿using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Web;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using System.Linq;
-using Lampac.Engine.CORE;
-using Lampac.Models.LITE.HDVB;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using Shared.Model.Online;
-using Shared.Model.Base;
+using Shared.Models.Online.HDVB;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class HDVB : BaseOnlineController
     {
@@ -131,7 +120,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"video:view:video:{iframe}";
             if (!hybridCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
+                string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
                 if (html == null)
                     return OnError(proxyManager);
 
@@ -159,7 +148,7 @@ namespace Lampac.Controllers.LITE
                     ("x-csrf-token", csrftoken)
                 ));
 
-                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
+                urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
                 if (urim3u8 == null)
                     return OnError(proxyManager);
 
@@ -171,7 +160,7 @@ namespace Lampac.Controllers.LITE
                     if (string.IsNullOrWhiteSpace(file))
                         return OnError();
 
-                    urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
+                    urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
                     if (urim3u8 == null)
                         return OnError(proxyManager);
                 }
@@ -204,7 +193,7 @@ namespace Lampac.Controllers.LITE
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
             if (!hybridCache.TryGetValue(memKey, out string urim3u8))
             {
-                string html = await HttpClient.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (html == null)
                     return OnError(proxyManager);
 
@@ -233,7 +222,7 @@ namespace Lampac.Controllers.LITE
                     ("x-csrf-token", csrftoken)
                 ));
 
-                var playlist = await HttpClient.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers, IgnoreDeserializeObject: true);
+                var playlist = await Http.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers, IgnoreDeserializeObject: true);
                 if (playlist == null || playlist.Count == 0)
                     return OnError(proxyManager);
                 #endregion
@@ -245,7 +234,7 @@ namespace Lampac.Controllers.LITE
                 file = Regex.Replace(file, "^/playlist/", "/");
                 file = Regex.Replace(file, "\\.txt$", "");
 
-                urim3u8 = await HttpClient.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers);
+                urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers);
                 if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
                     return OnError(proxyManager);
 
@@ -277,7 +266,7 @@ namespace Lampac.Controllers.LITE
 
             var cache = await InvokeCache<JArray>($"hdvb:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
             {
-                var root = await HttpClient.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                var root = await Http.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null)
                     return res.Fail("results");
 
@@ -316,7 +305,7 @@ namespace Lampac.Controllers.LITE
             {
                 var init = await loadKit(AppInit.conf.HDVB);
 
-                root = await HttpClient.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                root = await Http.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
                 if (root == null)
                 {
                     proxyManager.Refresh();

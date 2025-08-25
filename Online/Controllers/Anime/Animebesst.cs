@@ -1,16 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine.CORE;
-using System.Web;
-using System.Linq;
-using System.Text.RegularExpressions;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using Shared.Model.Base;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Animebesst : BaseOnlineController
     {
@@ -40,7 +30,7 @@ namespace Lampac.Controllers.LITE
                         return res.Fail(rch.connectionMsg);
 
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
-                    string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await HttpClient.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
                         return res.Fail("search");
 
@@ -111,7 +101,7 @@ namespace Lampac.Controllers.LITE
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
-                    string news = rch.enable ? await rch.Get(uri) : await HttpClient.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string news = rch.enable ? await rch.Get(uri) : await Http.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (news == null)
                         return res.Fail("news");
 
@@ -189,7 +179,7 @@ namespace Lampac.Controllers.LITE
                 }
                 else
                 {
-                    iframe = await HttpClient.Get(init.cors($"https://{uri}"), referer: init.host, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
+                    iframe = await Http.Get(init.cors($"https://{uri}"), referer: init.host, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
                 }
 
                 if (iframe == null)

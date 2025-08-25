@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Shared.Models.ServerProxy
+﻿namespace Shared.Models.ServerProxy
 {
     public class HlsCacheConf
     {

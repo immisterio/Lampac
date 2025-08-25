@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.Kinobase
+﻿namespace Shared.Models.Online.Kinobase
 {
     public class Playlist
     {

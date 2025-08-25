@@ -1,19 +1,9 @@
-﻿using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Lampac.Engine.CORE;
-using Shared.Engine.CORE;
-using Online;
-using Shared.Model.Templates;
-using Shared.Model.Online;
-using System.Web;
-using Lampac.Models.LITE;
-using Shared.Model.Online.Vibix;
-using System.Collections.Generic;
-using System.Linq;
+using Shared.Models.Online.Vibix;
+using Shared.Models.Online.Settings;
 
-namespace Lampac.Controllers.LITE
+namespace Online.Controllers
 {
     public class Vibix : BaseOnlineController
     {
@@ -46,7 +36,7 @@ namespace Lampac.Controllers.LITE
                     return res.Fail(rch.connectionMsg);
 
                 string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) :
-                                           await HttpClient.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                                           await Http.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (html == null)
                     return res.Fail("html");
@@ -190,7 +180,7 @@ namespace Lampac.Controllers.LITE
                         ("X-CSRF-TOKEN", "")
                     ));
 
-                    var video = await HttpClient.Get<JObject>($"{init.host}/api/v1/publisher/videos/{uri}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: header);
+                    var video = await Http.Get<JObject>($"{init.host}/api/v1/publisher/videos/{uri}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: header);
 
                     if (video == null)
                     {

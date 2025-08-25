@@ -7,7 +7,7 @@ namespace Tracks
     {
         public static void loaded()
         {
-            Directory.CreateDirectory("cache/tracks");
+            Directory.CreateDirectory("database/tracks");
 
             FFprobe.InitializationAsync().ConfigureAwait(false);
         }

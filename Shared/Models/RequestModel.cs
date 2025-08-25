@@ -1,11 +1,14 @@
-﻿using Shared.Engine.CORE;
-using Shared.Model.Base;
-using System.Collections.Generic;
+﻿using Shared.Engine;
+using Shared.Models.Base;
 
 namespace Shared.Models
 {
-    public class RequestModel
+    public struct RequestModel
     {
+        public RequestModel()
+        {
+        }
+
         public bool IsLocalRequest { get; set; }
 
         public string IP { get; set; }

@@ -1,25 +1,25 @@
 ﻿using System.Text.RegularExpressions;
 using System.Web;
 using System.Text.Json;
-using Shared.Model.Online.VideoCDN;
-using Shared.Model.Templates;
-using Lampac.Models.LITE;
+using Shared.Models.Online.VideoCDN;
+using Shared.Models.Templates;
 using System.Text;
+using Shared.Models.Online.Settings;
 
 namespace Shared.Engine.Online
 {
-    public class VideoCDNInvoke
+    public struct VideoCDNInvoke
     {
         #region VideoCDNInvoke
-        string? host, scheme;
+        string host, scheme;
         string iframeapihost;
         string apihost;
-        string? token;
+        string token;
         bool usehls;
-        Func<string, string, ValueTask<string?>> onget;
-        Func<string, string>? onstreamfile;
-        Func<string, string>? onlog;
-        Action? requesterror;
+        Func<string, string, ValueTask<string>> onget;
+        Func<string, string> onstreamfile;
+        Func<string, string> onlog;
+        Action requesterror;
 
         public string onstream(string stream)
         {
@@ -29,7 +29,7 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public VideoCDNInvoke(OnlinesSettings init, Func<string, string, ValueTask<string?>> onget, Func<string, string>? onstreamfile, string? host = null, Func<string, string>? onlog = null, Action? requesterror = null)
+        public VideoCDNInvoke(OnlinesSettings init, Func<string, string, ValueTask<string>> onget, Func<string, string> onstreamfile, string host = null, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme;
@@ -45,21 +45,21 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl?> Search(string title, string? original_title, int serial)
+        public async ValueTask<SimilarTpl?> Search(string title, string original_title, int serial)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
             string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(original_title ?? title)}";
 
-            string? json = await onget.Invoke(uri, apihost);
+            string json = await onget.Invoke(uri, apihost);
             if (json == null)
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            SearchRoot? root = null;
+            SearchRoot root = null;
 
             try
             {
@@ -71,8 +71,8 @@ namespace Shared.Engine.Online
 
             var stpl = new SimilarTpl(root.data.Count);
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             foreach (var item in root.data)
             {
@@ -92,7 +92,7 @@ namespace Shared.Engine.Online
                     continue;
 
                 string year = item.add?.Split("-")?[0] ?? string.Empty;
-                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
+                string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
 
                 string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
@@ -104,10 +104,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel?> Embed(long kinopoisk_id, string? imdb_id)
+        public async ValueTask<EmbedModel> Embed(long kinopoisk_id, string imdb_id)
         {
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
-            string? content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.ec/113447-venom-3-poslednij-tanec.html");
+            string content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.ec/113447-venom-3-poslednij-tanec.html");
             if (content == null)
             {
                 requesterror?.Invoke();
@@ -135,7 +135,7 @@ namespace Shared.Engine.Online
                 }
             }
 
-            string? Decode(string pass, string src)
+            string Decode(string pass, string src)
             {
                 try
                 {
@@ -163,7 +163,7 @@ namespace Shared.Engine.Online
                 catch { return null; }
             }
 
-            string? files = null;
+            string files = null;
             string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"").Groups[1].Value;
 
             var m = Regex.Match(content, "<input type=\"hidden\" id=\"[^\"]+\" value=('|\")([^\"']+)");
@@ -211,7 +211,7 @@ namespace Shared.Engine.Online
 
                     foreach (var voice in result.serial.OrderByDescending(k => k.Key == "0"))
                     {
-                        if (result.voices.TryGetValue(voice.Key, out string? name) && name != null)
+                        if (result.voices.TryGetValue(voice.Key, out string name) && name != null)
                         {
                             foreach (var season in voice.Value)
                             {
@@ -236,7 +236,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel? result, string? imdb_id, long kinopoisk_id, string? title, string? original_title, string t, int s, bool rjson = false)
+        public string Html(EmbedModel result, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, bool rjson = false)
         {
             if (result == null)
                 return string.Empty;
@@ -251,7 +251,7 @@ namespace Shared.Engine.Online
 
                 foreach (var voice in result.movie)
                 {
-                    result.voices.TryGetValue(voice.Key, out string? name);
+                    result.voices.TryGetValue(voice.Key, out string name);
                     if (string.IsNullOrEmpty(name))
                     {
                         if (result.movie.Count > 1)
@@ -290,8 +290,8 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string? enc_title = HttpUtility.UrlEncode(title);
-                string? enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
                 try
                 {
@@ -328,7 +328,7 @@ namespace Shared.Engine.Online
                             if (!voice.Value.Contains(s))
                                 continue;
 
-                            if (result.voices.TryGetValue(voice.Key, out string? name) && name != null)
+                            if (result.voices.TryGetValue(voice.Key, out string name) && name != null)
                             {
                                 if (string.IsNullOrEmpty(t))
                                     t = voice.Key;

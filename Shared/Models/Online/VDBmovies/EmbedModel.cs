@@ -1,10 +1,10 @@
-﻿namespace Shared.Model.Online.VDBmovies
+﻿namespace Shared.Models.Online.VDBmovies
 {
     public class EmbedModel
     {
         public List<Episode> movies { get; set; }
 
-        public List<Lampac.Models.LITE.CDNmovies.Voice> serial { get; set; }
+        public List<CDNmovies.Voice> serial { get; set; }
 
         public string quality { get; set; }
     }

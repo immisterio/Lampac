@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lampac.Models.LITE.KinoPub
+﻿namespace Shared.Models.Online.KinoPub
 {
     public class Season
     {

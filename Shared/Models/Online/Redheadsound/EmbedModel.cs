@@ -1,4 +1,4 @@
-﻿namespace Shared.Model.Online.Redheadsound
+﻿namespace Shared.Models.Online.Redheadsound
 {
     public class EmbedModel
     {

@@ -1,9 +1,8 @@
-﻿using Lampac.Engine.CORE;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
-using Shared.Engine.CORE;
-using Shared.Model.Online;
+using Shared;
+using Shared.Engine;
 using Shared.Models;
 using System;
 using System.Buffers;
@@ -70,7 +69,7 @@ namespace Lampac.Engine.Middlewares
                 string country = requestInfo.Country;
                 if (string.IsNullOrEmpty(country))
                 {
-                    var ipify = await CORE.HttpClient.Get<JObject>("https://api.ipify.org/?format=json");
+                    var ipify = await Http.Get<JObject>("https://api.ipify.org/?format=json");
                     if (ipify != null || !string.IsNullOrEmpty(ipify.Value<string>("ip")))
                         country = GeoIP2.Country(ipify.Value<string>("ip"));
                 }
@@ -128,7 +127,7 @@ namespace Lampac.Engine.Middlewares
 
                 if (isCacheRequest && cacheFiles.ContainsKey(md5key))
                 {
-                    httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+                    httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContext.Response.ContentType = getContentType(uri);
                     await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
                     return;
@@ -157,7 +156,7 @@ namespace Lampac.Engine.Middlewares
                     {
                         #region cache
                         httpContext.Response.ContentType = getContentType(uri);
-                        httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+                        httpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
                         int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
                             (int)response.Content.Headers.ContentLength.Value :
@@ -206,7 +205,7 @@ namespace Lampac.Engine.Middlewares
                     }
                     else
                     {
-                        httpContext.Response.Headers.Add("X-Cache-Status", "bypass");
+                        httpContext.Response.Headers["X-Cache-Status"] = "bypass";
                         await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                     }
                 }
@@ -216,7 +215,7 @@ namespace Lampac.Engine.Middlewares
             {
                 #region cache
                 string memkey = $"cubproxy:{domain}:{uri}";
-                if (!hybridCache.TryGetValue(memkey, out (string content, int statusCode, string contentType) cache))
+                if (!hybridCache.TryGetValue(memkey, out (string content, int statusCode, string contentType) cache, inmemory: false))
                 {
                     var headers = HeadersModel.Init();
 
@@ -239,7 +238,7 @@ namespace Lampac.Engine.Middlewares
                         }
                     }
 
-                    var result = await CORE.HttpClient.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
+                    var result = await Http.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
                     if (string.IsNullOrEmpty(result.content))
                     {
                         proxyManager.Refresh();
@@ -256,7 +255,7 @@ namespace Lampac.Engine.Middlewares
                         if (cache.content == "{\"blocked\":true}")
                         {
                             var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                            string json = await CORE.HttpClient.Get($"http://{AppInit.conf.localhost}:{AppInit.conf.listenport}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
+                            string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
                             if (!string.IsNullOrEmpty(json))
                             {
                                 cache.statusCode = 200;
@@ -266,17 +265,17 @@ namespace Lampac.Engine.Middlewares
                         }
                     }
 
-                    httpContext.Response.Headers.Add("X-Cache-Status", "MISS");
+                    httpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
                     if (cache.statusCode == 200)
                     {
                         proxyManager.Success();
-                        hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_api));
+                        hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
                     }
                 }
                 else
                 {
-                    httpContext.Response.Headers.Add("X-Cache-Status", "HIT");
+                    httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                 }
 
                 httpContext.Response.StatusCode = cache.statusCode;
@@ -321,7 +320,7 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (viewru)
-                request.Headers.Add("cookie", "viewru=1");
+                request.Headers["cookie"] = "viewru=1";
 
             #region Headers
             foreach (var header in request.Headers)

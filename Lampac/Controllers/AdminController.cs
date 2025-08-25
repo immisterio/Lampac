@@ -1,16 +1,15 @@
-﻿using Lampac.Engine;
-using Lampac.Models.Module;
+﻿using Shared.Models.Module;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using IO = System.IO;
+using Shared;
 
 namespace Lampac.Controllers
 {
@@ -128,8 +127,8 @@ namespace Lampac.Controllers
 
 			try
 			{
-				Directory.CreateDirectory("cache/backup/init");
-                IO.File.WriteAllText($"cache/backup/init/{DateTime.Now.ToString("dd-MM-yyyy.HH")}.conf", JsonConvert.SerializeObject(jo, Formatting.Indented));
+				Directory.CreateDirectory("data/backup/init");
+                IO.File.WriteAllText($"data/backup/init/{DateTime.Now.ToString("dd-MM-yyyy.HH")}.conf", JsonConvert.SerializeObject(jo, Formatting.Indented));
             }
 			catch { }
 
@@ -353,7 +352,7 @@ namespace Lampac.Controllers
                 IO.File.WriteAllText("module/manifest.json", $"[{string.Join(",", modules)}]");
 
                 #region ENG
-                if (eng == "on")
+                if (eng != "on")
                 {
 					if (IO.File.Exists("init.conf"))
 					{
@@ -361,14 +360,14 @@ namespace Lampac.Controllers
 						if (initconf != null)
 						{
                             if (initconf.StartsWith("{"))
-                                IO.File.WriteAllText("init.conf", "{\"firefox\":{\"enable\":true}," + initconf.Remove(0, 1));
+                                IO.File.WriteAllText("init.conf", "{\"disableEng\": true," + initconf.Remove(0, 1));
 							else
-                                IO.File.WriteAllText("init.conf", "\"firefox\":{\"enable\":true}," + initconf);
+                                IO.File.WriteAllText("init.conf", "\"disableEng\": true," + initconf);
                         }
                     }
 					else
 					{
-						IO.File.WriteAllText("init.conf", "\"firefox\":{\"enable\":true}");
+						IO.File.WriteAllText("init.conf", "\"disableEng\":{\"enable\": true}");
 					}
                 }
 				#endregion
@@ -465,7 +464,7 @@ namespace Lampac.Controllers
 			<input name='online' type='checkbox' {IsChecked("Online.dll", "checked")} /> Онлайн балансеры Rezka, Filmix, etc
 		</div>
 		<div class='flex'>
-			&nbsp; &nbsp; &nbsp; <input name='eng' type='checkbox' /> ENG балансеры, требуется дополнительно 1GB HDD и 1.5Gb RAM
+			&nbsp; &nbsp; &nbsp; <input name='eng' type='checkbox' checked /> ENG балансеры
 		</div>
 		<div class='flex'>
 			<input name='sisi' type='checkbox' {IsChecked("SISI.dll", "checked")} /> Клубничка 18+, PornHub, Xhamster, etc
@@ -479,9 +478,6 @@ namespace Lampac.Controllers
 		<div class='flex'>
 			<input name='tracks' type='checkbox' {IsChecked("Tracks.dll", "checked")} /> Tracks - Заменяет название аудиодорожек и субтитров с rus1, rus2 на читаемые LostFilm, HDRezka, etc
 		</div>
-		<!--<div class='flex'>
-			<input name='jac' type='checkbox' /> Локальный jacred.xyz (не рекомендуется ставить на домашние устройства из за частых операций с диском)
-		</div>-->
 		<div class='flex'>
 			<input name='merch' type='checkbox' {IsChecked("Merchant.dll", "")} /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud
 		</div>

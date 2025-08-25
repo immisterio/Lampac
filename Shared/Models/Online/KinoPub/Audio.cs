@@ -1,4 +1,4 @@
-﻿namespace Lampac.Models.LITE.KinoPub
+﻿namespace Shared.Models.Online.KinoPub
 {
     public class Audio
     {
