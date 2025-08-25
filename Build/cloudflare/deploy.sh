@@ -4,13 +4,3 @@ chmod +x dotnet-install.sh
 
 chmod +x Build/cloudflare/nightlies.sh
 ./Build/cloudflare/nightlies.sh
-
-cd out/
-
-mkdir -p lpc
-cp -R ../lpc/* lpc/
-cp lpc/update.sh ver.sh
-
-#mkdir -p debug
-#mv ../debug/debug.zip .
-#mv ../debug/debug.sh .
