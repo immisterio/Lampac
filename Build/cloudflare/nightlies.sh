@@ -8,7 +8,8 @@ publish_dir="Lampac/bin/Release/net9.0/publish"
 
 # Удаляем все папки в runtimes кроме references
 for dir in "$publish_dir/runtimes"/*/; do
-    if [[ "$(basename "$dir")" != "references" ]]; then
+    dirname=$(basename "$dir")
+    if [ "$dirname" != "references" ]; then
         rm -rf "$dir"
     fi
 done
