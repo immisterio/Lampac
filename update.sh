@@ -17,12 +17,12 @@ if [ -n "$VERSION" ]; then
     systemctl stop lampac
     unzip -o update.zip
     rm -f update.zip
-    echo -n $VERSION > vers-minor.txt
+    echo -n $VERSION > data/vers-minor.txt
     systemctl start lampac
     exit
 fi
 
-ver=$(cat vers.txt)
+ver=$(cat data/vers.txt)
 gitver=$(curl --connect-timeout 10 -m 20 -k -s https://api.github.com/repos/immisterio/Lampac/releases/latest | grep tag_name | sed s/[^0-9]//g)
 if [ $gitver -gt $ver ]; then
     echo "update lampac to version $gitver"
@@ -38,7 +38,7 @@ if [ $gitver -gt $ver ]; then
     systemctl stop lampac
     unzip -o update.zip
     rm -f update.zip
-    echo -n $gitver > vers.txt
+    echo -n $gitver > data/vers.txt
     systemctl start lampac
 else
     check_ping() {
@@ -59,7 +59,7 @@ else
         exit 1
     fi
 
-    mver=$(cat vers-minor.txt)
+    mver=$(cat data/vers-minor.txt)
     dver=$(curl -k -s $BASE_URL/update/$ver.txt)
 	
     if [[ ${#dver} -eq 8 && $dver != $mver ]]; then
@@ -76,7 +76,7 @@ else
         systemctl stop lampac
         unzip -o update.zip
         rm -f update.zip
-        echo -n $dver > vers-minor.txt
+        echo -n $dver > data/vers-minor.txt
         systemctl start lampac
     else
         echo "lampac already current version $ver"
