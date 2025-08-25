@@ -13,9 +13,8 @@ for dir in "$publish_dir/runtimes"/*/; do
     fi
 done
 
-# Перемещаем языковые папки в runtimes
-langs=("cs" "de" "es" "fr" "it" "ja" "ko" "pl" "pt-BR" "ru" "tr" "zh-Hans" "zh-Hant")
-for lang in "${langs[@]}"; do
+# Перемещаем языковые папки в runtimes/references/
+for lang in cs de es fr it ja ko pl pt-BR ru tr zh-Hans zh-Hant; do
     if [ -d "$publish_dir/$lang" ]; then
         mv "$publish_dir/$lang" "$publish_dir/runtimes/references/"
     fi
