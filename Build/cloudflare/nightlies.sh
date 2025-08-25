@@ -1,9 +1,26 @@
 mkdir -p lpc/
 
+# Публикация проекта
 ./dotnet/dotnet publish Lampac -c Release
-rm -rf Lampac/bin/Release/net9.0/publish/runtimes
-cp -R Lampac/bin/Release/net9.0/publish/* lpc/
 
+# Целевая директория
+publish_dir="Lampac/bin/Release/net9.0/publish"
+
+# Удаляем все папки в runtimes кроме references
+find "$publish_dir/runtimes" -mindepth 1 -maxdepth 1 -type d ! -name "references" -exec rm -rf {} +
+
+# Перемещаем языковые папки в runtimes
+langs=("cs" "de" "es" "fr" "it" "ja" "ko" "pl" "pt-BR" "ru" "tr" "zh-Hans" "zh-Hant")
+for lang in "${langs[@]}"; do
+    if [ -d "$publish_dir/$lang" ]; then
+        mv "$publish_dir/$lang" "$publish_dir/runtimes/references/"
+    fi
+done
+
+# Копируем всё в lpc/
+cp -R "$publish_dir"/* lpc/
+
+# Сборка модулей
 mkdir -p lpc/module
 
 ./dotnet/dotnet publish DLNA -c Release
