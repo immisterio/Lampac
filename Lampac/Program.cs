@@ -34,6 +34,21 @@ namespace Lampac
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
+                        if (File.Exists("update.sh"))
+                            File.Move("update.sh", "_old_update.sh");
+                    }
+                    catch { }
+                }
+            });
+
             HttpClient.onlog += (e, log) => soks.SendLog(log, "http");
             RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
 

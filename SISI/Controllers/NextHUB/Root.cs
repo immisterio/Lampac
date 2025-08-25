@@ -59,10 +59,10 @@ namespace Lampac.Controllers.NextHUB
                 string yaml = File.ReadAllText($"NextHUB/sites/{plugin}.yaml");
                 var target = deserializer.Deserialize<Dictionary<object, object>>(yaml);
 
-                if (File.Exists($"NextHUB/override/{plugin}.yaml"))
+                if (File.Exists($"NextHUB/override/{plugin}.yaml") || File.Exists($"NextHUB/override/_.yaml"))
                 {
                     // Чтение пользовательского YAML-файла
-                    string myYaml = File.ReadAllText($"NextHUB/override/{plugin}.yaml");
+                    string myYaml = File.Exists($"NextHUB/override/{plugin}.yaml") ? File.ReadAllText($"NextHUB/override/{plugin}.yaml") : File.ReadAllText("NextHUB/override/_.yaml");
                     var mySource = deserializer.Deserialize<Dictionary<object, object>>(myYaml);
 
                     // Объединение словарей
