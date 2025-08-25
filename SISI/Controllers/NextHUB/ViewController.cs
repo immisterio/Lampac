@@ -41,13 +41,18 @@ namespace SISI.Controllers.NextHUB
                 (init.view.nodeFile != null || init.view.eval != null || init.view.regexMatch != null) &&
                  init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
             {
-                var rch = new RchClient(HttpContext, host, init, requestInfo);
+                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
                 video = await goVideoToHttp(rch, plugin, url, init, proxyManager, proxy.proxy);
                 if (string.IsNullOrEmpty(video.file))
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
+
                     return OnError("file", rcache: !rch.enable);
+                }
             }
             else
             {

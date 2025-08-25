@@ -37,6 +37,7 @@ namespace SISI.Controllers.NextHUB
 
             if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
             {
+                reset:
                 var rch = new RchClient(HttpContext, host, init, requestInfo);
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
@@ -112,17 +113,21 @@ namespace SISI.Controllers.NextHUB
                            init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) :
                            init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) :
                                                   await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, model, pg);
-
-                if (string.IsNullOrEmpty(html))
-                    return OnError("html", rcache: !(init.debug || rch.enable));
                 #endregion
 
                 playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
 
                 if (playlists == null || playlists.Count == 0)
-                    return OnError("playlists", proxyManager, rcache: !(init.debug || rch.enable));
+                {
+                    if (IsRhubFallback(init))
+                        goto reset;
 
-                proxyManager.Success();
+                    return OnError("playlists", proxyManager, rcache: !(init.debug || rch.enable));
+                }
+
+                if (!rch.enable)
+                    proxyManager.Success();
+
                 hybridCache.Set(memKey, playlists, cacheTime(init.cache_time, init: init), inmemory: false);
             }
 
