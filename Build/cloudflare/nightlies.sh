@@ -7,7 +7,11 @@ mkdir -p lpc/
 publish_dir="Lampac/bin/Release/net9.0/publish"
 
 # Удаляем все папки в runtimes кроме references
-find "$publish_dir/runtimes" -mindepth 1 -maxdepth 1 -type d ! -name "references" -exec rm -rf {} +
+for dir in "$publish_dir/runtimes"/*/; do
+    if [[ "$(basename "$dir")" != "references" ]]; then
+        rm -rf "$dir"
+    fi
+done
 
 # Перемещаем языковые папки в runtimes
 langs=("cs" "de" "es" "fr" "it" "ja" "ko" "pl" "pt-BR" "ru" "tr" "zh-Hans" "zh-Hant")
