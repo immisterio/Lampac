@@ -451,7 +451,10 @@ namespace SISI.Controllers.NextHUB
 
             try
             {
-                string memKey = rch.ipkey($"nexthub:view18:goVideo:{url}", proxyManager);
+                string memKey = $"nexthub:view18:goVideo:{url}";
+
+                if (init.view.bindingToIP)
+                    memKey = rch.ipkey(memKey, proxyManager);
 
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
                 {
