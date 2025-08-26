@@ -62,7 +62,7 @@ namespace Online.Controllers
                 string memKey = $"videasy:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new PlaywrightBrowser())
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)

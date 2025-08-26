@@ -93,7 +93,7 @@ namespace Online.Controllers
                     else
                     {
                         #region Playwright
-                        using (var browser = new PlaywrightBrowser())
+                        using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
                             var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                             if (page == null)
