@@ -10,7 +10,7 @@
 
         public bool selected { get; set; }
 
-        public List<Сhannel> submenu { get; set; }
+        public Сhannel[] submenu { get; set; }
 
 
         public string stream_url { get; set; }

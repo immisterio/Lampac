@@ -6,6 +6,6 @@
 
         public string content { get; set; }
 
-        public List<Voice> serial { get; set; }
+        public Voice[] serial { get; set; }
     }
 }

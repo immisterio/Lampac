@@ -58,12 +58,12 @@ namespace Shared.Engine.Online
             if (!content.Contains("file:'[{"))
                 return new EmbedModel() { content = content };
 
-            List<Voice> root = null;
+            Voice[] root = null;
 
             try
             {
-                root = JsonSerializer.Deserialize<List<Voice>>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
-                if (root == null || root.Count == 0)
+                root = JsonSerializer.Deserialize<Voice[]>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
+                if (root == null || root.Length == 0)
                     return null;
             }
             catch { return null; }
@@ -149,9 +149,9 @@ namespace Shared.Engine.Online
                         #region Перевод
                         var vtpl = new VoiceTpl();
 
-                        for (int i = 0; i < md.serial.Count; i++)
+                        for (int i = 0; i < md.serial.Length; i++)
                         {
-                            if (md.serial[i].folder.FirstOrDefault(i => i.title.EndsWith($" {s}")) == null)
+                            if (md.serial[i].folder.FirstOrDefault(i => i.title.EndsWith($" {s}")).title == null)
                                 continue;
 
                             if (t == -1)
@@ -166,7 +166,7 @@ namespace Shared.Engine.Online
                         string sArch = s.ToString();
                         var episodes = md.serial[t].folder.First(i => i.title.EndsWith($" {s}")).folder;
 
-                        var etpl = new EpisodeTpl(episodes.Count);
+                        var etpl = new EpisodeTpl(episodes.Length);
 
                         foreach (var episode in episodes)
                         {

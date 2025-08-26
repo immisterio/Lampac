@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Collaps
 {
-    public class Cc
+    public struct Cc
     {
         public string url { get; set; }
 

@@ -268,8 +268,8 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
         {
-            var player_links = root?.player_links;
-            if (player_links == null)
+            var player_links = root.player_links;
+            if (player_links.movie == null && player_links.playlist == null)
                 return string.Empty;
 
             onlog?.Invoke("html reder");
@@ -277,16 +277,16 @@ namespace Shared.Engine.Online
             int filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
             bool hidefree720 = string.IsNullOrEmpty(token) /*&& filmixservtime >= 19 && filmixservtime <= 23*/;
 
-            if (player_links.movie != null && player_links.movie.Count > 0)
+            if (player_links.movie != null && player_links.movie.Length > 0)
             {
                 #region Фильм
                 onlog?.Invoke("movie 1");
 
-                if (player_links.movie.Count == 1 && player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
+                if (player_links.movie.Length == 1 && player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
                     return string.Empty;
 
                 onlog?.Invoke("movie 2");
-                var mtpl = new MovieTpl(title, original_title, player_links.movie.Count);
+                var mtpl = new MovieTpl(title, original_title, player_links.movie.Length);
 
                 foreach (var v in player_links.movie)
                 {
@@ -397,7 +397,7 @@ namespace Shared.Engine.Online
 
                     foreach (var episode in episodes)
                     {
-                        var streams = new List<(string link, string quality)>(episode.Value.qualities.Count);
+                        var streams = new List<(string link, string quality)>(episode.Value.qualities.Length);
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {

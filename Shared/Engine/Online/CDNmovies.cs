@@ -27,7 +27,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<List<Voice>> Embed(long kinopoisk_id)
+        public async ValueTask<Voice[]> Embed(long kinopoisk_id)
         {
             string html = await onget.Invoke($"{apihost}/serial/kinopoisk/{kinopoisk_id}");
             if (html == null)
@@ -40,15 +40,15 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(file))
                 return null;
 
-            List<Voice> content;
+            Voice[] content;
 
             try
             {
-                content = JsonSerializer.Deserialize<List<Voice>>(file);
+                content = JsonSerializer.Deserialize<Voice[]>(file);
             }
             catch { return null; }
 
-            if (content == null || content.Count == 0)
+            if (content == null || content.Length == 0)
                 return null;
 
             return content;
@@ -56,18 +56,18 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Voice> voices, long kinopoisk_id, string title, string original_title, int t, int s, int sid, VastConf vast = null, bool rjson = false)
+        public string Html(Voice[] voices, long kinopoisk_id, string title, string original_title, int t, int s, int sid, VastConf vast = null, bool rjson = false)
         {
-            if (voices == null || voices.Count == 0)
+            if (voices == null || voices.Length == 0)
                 return string.Empty;
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             #region Перевод html
-            var vtpl = new VoiceTpl(voices.Count);
+            var vtpl = new VoiceTpl(voices.Length);
 
-            for (int i = 0; i < voices.Count; i++)
+            for (int i = 0; i < voices.Length; i++)
             {
                 string link = host + $"lite/cdnmovies?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&t={i}";
                 vtpl.Append(voices[i].title, t == i, link);
@@ -77,9 +77,9 @@ namespace Shared.Engine.Online
             if (s == -1)
             {
                 #region Сезоны
-                var tpl = new SeasonTpl(voices[t].folder.Count);
+                var tpl = new SeasonTpl(voices[t].folder.Length);
 
-                for (int i = 0; i < voices[t].folder.Count; i++)
+                for (int i = 0; i < voices[t].folder.Length; i++)
                 {
                     string season = Regex.Match(voices[t].folder[i].title, "([0-9]+)$").Groups[1].Value;
                     if (string.IsNullOrEmpty(season))

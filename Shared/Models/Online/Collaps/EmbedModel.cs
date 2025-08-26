@@ -2,8 +2,8 @@
 {
     public class EmbedModel
     {
-        public string content { get; set; } = null!;
+        public string content { get; set; }
 
-        public List<RootObject> serial { get; set; }
+        public RootObject[] serial { get; set; }
     }
 }

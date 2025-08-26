@@ -116,8 +116,8 @@ namespace Shared.Engine.Online
 
                     if (video.EndsWith("]"))
                     {
-                        var res = JsonSerializer.Deserialize<List<Season>>(video);
-                        if (res == null || res.Count == 0)
+                        var res = JsonSerializer.Deserialize<Season[]>(video);
+                        if (res == null || res.Length == 0)
                             return null;
 
                         return new EmbedModel()
@@ -147,8 +147,8 @@ namespace Shared.Engine.Online
                             return null;
                         }
 
-                        var res = JsonSerializer.Deserialize<List<Season>>(video);
-                        if (res == null || res.Count == 0)
+                        var res = JsonSerializer.Deserialize<Season[]>(video);
+                        if (res == null || res.Length == 0)
                             return null;
 
                         return new EmbedModel()
@@ -286,7 +286,7 @@ namespace Shared.Engine.Online
                         }
                     }
 
-                    string renderSeason(List<Season> episodes, string host, Func<string, string> onstreamfile)
+                    string renderSeason(Season[] episodes, string host, Func<string, string> onstreamfile)
                     {
                         #region Перевод
                         var vtpl = new VoiceTpl();
@@ -315,7 +315,7 @@ namespace Shared.Engine.Online
                         }
                         #endregion
 
-                        var etpl = new EpisodeTpl(episodes.Count);
+                        var etpl = new EpisodeTpl(episodes.Length);
 
                         foreach (var episode in episodes)
                         {
@@ -379,9 +379,9 @@ namespace Shared.Engine.Online
                 else
                 {
                     #region uppod.js
-                    string finEpisode(List<Season> data, Func<string, string> onstreamfile)
+                    string finEpisode(Season[] data, Func<string, string> onstreamfile)
                     {
-                        var etpl = new EpisodeTpl(data.Count);
+                        var etpl = new EpisodeTpl(data.Length);
 
                         foreach (var episode in data)
                         {

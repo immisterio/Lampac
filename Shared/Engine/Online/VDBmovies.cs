@@ -113,16 +113,16 @@ namespace Shared.Engine.Online
             {
                 if (json.Contains("\"folder\""))
                 {
-                    var serial = JsonSerializer.Deserialize<List<Models.Online.CDNmovies.Voice>>(json);
-                    if (serial == null || serial.Count == 0)
+                    var serial = JsonSerializer.Deserialize<Models.Online.CDNmovies.Voice[]>(json);
+                    if (serial == null || serial.Length == 0)
                         return null;
 
                     return new EmbedModel() { serial = serial, quality = quality };
                 }
                 else
                 {
-                    var movies = JsonSerializer.Deserialize<List<Episode>>(json);
-                    if (movies == null || movies.Count == 0)
+                    var movies = JsonSerializer.Deserialize<Episode[]>(json);
+                    if (movies == null || movies.Length == 0)
                         return null;
 
                     return new EmbedModel() { movies = movies, quality = quality };
@@ -141,7 +141,7 @@ namespace Shared.Engine.Online
             if (root.movies != null)
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title, root.movies.Count);
+                var mtpl = new MovieTpl(title, original_title, root.movies.Length);
 
                 foreach (var m in root.movies)
                 {
@@ -192,9 +192,9 @@ namespace Shared.Engine.Online
                 if (s == -1)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl(root.quality, root.serial.Count);
+                    var tpl = new SeasonTpl(root.quality, root.serial.Length);
 
-                    for (int i = 0; i < root.serial.Count; i++)
+                    for (int i = 0; i < root.serial.Length; i++)
                     {
                         string season = Regex.Match(root.serial[i].title, "^([0-9]+)").Groups[1].Value;
                         if (string.IsNullOrEmpty(season))

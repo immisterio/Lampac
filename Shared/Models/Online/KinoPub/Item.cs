@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.KinoPub
 {
-    public class Item
+    public struct Item
     {
         public bool advert { get; set; }
 
@@ -8,8 +8,8 @@
 
         public string voice { get; set; }
 
-        public List<Video> videos { get; set; }
+        public Video[] videos { get; set; }
 
-        public List<Season> seasons { get; set; }
+        public Season[] seasons { get; set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.VoKino
 {
-    public class Similar
+    public struct Similar
     {
         public string title { get; set; }
 

@@ -1,10 +1,10 @@
 ﻿namespace Shared.Models.Online.Collaps
 {
-    public class RootObject
+    public struct RootObject
     {
 
         public int season { get; set; }
 
-        public List<Episode> episodes { get; set; }
+        public Episode[] episodes { get; set; }
     }
 }

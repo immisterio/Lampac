@@ -73,8 +73,8 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("VideoDB: file OK");
 
-            var pl = JsonNode.Parse(file)?["file"]?.Deserialize<List<RootObject>>();
-            if (pl == null || pl.Count == 0)
+            var pl = JsonNode.Parse(file)?["file"]?.Deserialize<RootObject[]>();
+            if (pl == null || pl.Length == 0)
             {
                 onlog?.Invoke("VideoDB: pl null");
                 return null;
@@ -90,7 +90,7 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel root, string args, long kinopoisk_id, string title, string original_title, string t, int s, int sid, bool rjson, bool bwa = false, bool rhub = false)
         {
-            if (root?.pl == null || root.pl.Count == 0)
+            if (root?.pl == null || root.pl.Length == 0)
                 return string.Empty;
 
             if (!string.IsNullOrEmpty(args))
@@ -102,7 +102,7 @@ namespace Shared.Engine.Online
             if (root.movie)
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title, root.pl.Count);
+                var mtpl = new MovieTpl(title, original_title, root.pl.Length);
 
                 foreach (var pl in root.pl)
                 {
@@ -171,9 +171,9 @@ namespace Shared.Engine.Online
                 #region Сериал
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(root.quality, root.pl.Count);
+                    var tpl = new SeasonTpl(root.quality, root.pl.Length);
 
-                    for(int i = 0; i < root.pl.Count; i++)
+                    for(int i = 0; i < root.pl.Length; i++)
                     {
                         string name = root.pl?[i].title;
                         if (name == null)
@@ -190,7 +190,7 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    var season = root.pl?[sid]?.folder;
+                    var season = root.pl[sid].folder;
                     if (season == null)
                         return string.Empty;
 
@@ -203,14 +203,14 @@ namespace Shared.Engine.Online
 
                     foreach (var episode in season)
                     {
-                        var episodes = episode?.folder;
-                        if (episodes == null || episodes.Count == 0)
+                        var episodes = episode.folder;
+                        if (episodes == null || episodes.Length == 0)
                             continue;
 
                         foreach (var pl in episodes)
                         {
                             // MVO | LostFilm
-                            string perevod = Regex.Replace(pl?.title ?? "", "^[a-zA-Z]{3} \\| ", "");
+                            string perevod = Regex.Replace(pl.title ?? "", "^[a-zA-Z]{3} \\| ", "");
                             if (!string.IsNullOrEmpty(perevod) && string.IsNullOrEmpty(t))
                                 t = perevod;
 
@@ -228,8 +228,8 @@ namespace Shared.Engine.Online
                                 continue;
 
                             // 1 эпизод 
-                            string name = episode?.title;
-                            string file = pl?.file;
+                            string name = episode.title;
+                            string file = pl.file;
 
                             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                                 continue;

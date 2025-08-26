@@ -1,7 +1,7 @@
 ﻿namespace Shared.Models.Online.Collaps
 {
-    public class Audio
+    public struct Audio
     {
-        public List<string> names { get; set; }
+        public string[] names { get; set; }
     }
 }

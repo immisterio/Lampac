@@ -131,7 +131,7 @@ namespace Shared.Engine.Online
                         return new EmbedModel() { IsEmpty = true };
 
                     var root = JsonSerializer.Deserialize<RootObject>(json);
-                    if (root?.channels == null || root.channels.Count == 0)
+                    if (root?.channels == null || root.channels.Length == 0)
                         return null;
 
                     return new EmbedModel() { menu = root.menu, channels = root.channels };
@@ -168,14 +168,14 @@ namespace Shared.Engine.Online
             }
             #endregion
 
-            if (result?.channels == null || result.channels.Count == 0)
+            if (result?.channels == null || result.channels.Length == 0)
                 return string.Empty;
 
             #region Переводы
             var voices = result?.menu?.FirstOrDefault(i => i.title == "Перевод")?.submenu;
-            var vtpl = new VoiceTpl(voices != null ? voices.Count : 0);
+            var vtpl = new VoiceTpl(voices != null ? voices.Length : 0);
 
-            if (voices != null && voices.Count > 0)
+            if (voices != null && voices.Length > 0)
             {
                 foreach (var translation in voices)
                 {
@@ -192,7 +192,7 @@ namespace Shared.Engine.Online
             {
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(quality: result.channels[0].quality_full?.Replace("2160p.", "4K "), result.channels.Count);
+                    var tpl = new SeasonTpl(quality: result.channels[0].quality_full?.Replace("2160p.", "4K "), result.channels.Length);
 
                     foreach (var ch in result.channels)
                     {
@@ -209,7 +209,7 @@ namespace Shared.Engine.Online
                 {
                     var series = result.channels.First(i => i.title.StartsWith($"{s} ") || i.title.EndsWith($" {s}")).submenu;
 
-                    var tpl = new EpisodeTpl(series.Count);
+                    var tpl = new EpisodeTpl(series.Length);
 
                     string sArhc = s.ToString();
 
@@ -227,7 +227,7 @@ namespace Shared.Engine.Online
             }
             else
             {
-                var mtpl = new MovieTpl(title, original_title, result.channels.Count);
+                var mtpl = new MovieTpl(title, original_title, result.channels.Length);
 
                 foreach (var ch in result!.channels)
                 {

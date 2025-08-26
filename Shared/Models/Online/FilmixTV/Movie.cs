@@ -1,8 +1,8 @@
 ﻿namespace Shared.Models.Online.FilmixTV
 {
-    public class MovieTV
+    public struct MovieTV
     {
-        public List<File> files { get; set; }
+        public File[] files { get; set; }
         public string voiceover { get; set; }
     }
 }

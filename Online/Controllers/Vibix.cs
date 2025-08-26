@@ -62,7 +62,7 @@ namespace Online.Controllers
 
                     try
                     {
-                        return new EmbedModel() { serial = fileToken.ToObject<List<Seasons>>() };
+                        return new EmbedModel() { serial = fileToken.ToObject<Seasons[]>() };
                     }
                     catch { return res.Fail("DeserializeObject"); }
                 }
@@ -106,7 +106,7 @@ namespace Online.Controllers
                     
                     if (s == -1)
                     {
-                        var tpl = new SeasonTpl(cache.Value.serial.Count);
+                        var tpl = new SeasonTpl(cache.Value.serial.Length);
 
                         foreach (var season in cache.Value.serial)
                         {
@@ -133,7 +133,7 @@ namespace Online.Controllers
                             foreach (var episode in season.folder)
                             {
                                 string name = episode.title;
-                                string file = episode?.folder?.First()?.file ?? episode.file;
+                                string file = episode.folder?.First().file ?? episode.file;
 
                                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(file))
                                     continue;

@@ -259,14 +259,14 @@ namespace Shared.Engine.Online
 
                     var selectedSeason = root.SerialVoice.ElementAt(t).Value.FirstOrDefault(x => x.Value.season == s);
 
-                    if (selectedSeason.Value == null)
+                    if (selectedSeason.Value.episodes == null)
                         return string.Empty;
 
                     var etpl = new EpisodeTpl(selectedSeason.Value.episodes.Count);
 
                     foreach (var episode in selectedSeason.Value.episodes)
                     {
-                        var streams = new List<(string link, string quality)>(episode.Value.files.Count);
+                        var streams = new List<(string link, string quality)>(episode.Value.files.Length);
 
                         var sortedFiles = episode.Value.files
                             .Where(file => pro || file.quality <= 720)
@@ -298,7 +298,7 @@ namespace Shared.Engine.Online
 
                 foreach (var item in root.Movies)
                 {
-                    var streams = new List<(string link, string quality)>(item.files.Count);
+                    var streams = new List<(string link, string quality)>(item.files.Length);
 
                     foreach (var file in item.files)
                     {

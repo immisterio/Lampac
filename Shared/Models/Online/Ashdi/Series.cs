@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Ashdi
 {
-    public class Series
+    public struct Series
     {
         public string title { get; set; }
 

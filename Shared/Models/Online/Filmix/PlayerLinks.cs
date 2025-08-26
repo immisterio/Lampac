@@ -2,9 +2,9 @@
 
 namespace Shared.Models.Online.Filmix
 {
-    public class PlayerLinks
+    public struct PlayerLinks
     {
-        public List<Movie> movie { get; set; }
+        public Movie[] movie { get; set; }
 
         /// <summary>
         /// сезон, (озвучка, (серия, item))

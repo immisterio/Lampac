@@ -115,7 +115,7 @@ namespace Shared.Engine.Online
             try
             {
                 var root = JsonSerializer.Deserialize<RootObject>(json);
-                if (root?.item?.seasons == null && root?.item?.videos == null)
+                if (root?.item.seasons == null && root?.item.videos == null)
                     return null;
 
                 return root;
@@ -130,10 +130,10 @@ namespace Shared.Engine.Online
             if (root == null)
                 return string.Empty;
 
-            if (root?.item?.videos != null)
+            if (root?.item.videos != null)
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title, root.item.videos.Count);
+                var mtpl = new MovieTpl(title, original_title, root.item.videos.Length);
 
                 if (filetype == "hls")
                 {
@@ -236,7 +236,7 @@ namespace Shared.Engine.Online
             }
             else
             {
-                if (root?.item?.seasons == null || root.item.seasons.Count == 0)
+                if (root?.item.seasons == null || root.item.seasons.Length == 0)
                     return string.Empty;
 
                 #region Сериал
@@ -246,7 +246,7 @@ namespace Shared.Engine.Online
                 if (s == -1)
                 {
                     #region Сезоны
-                    var tpl = new SeasonTpl(root.item.quality > 0 ? $"{root.item.quality}p" : null, root.item.seasons.Count);
+                    var tpl = new SeasonTpl(root.item.quality > 0 ? $"{root.item.quality}p" : null, root.item.seasons.Length);
 
                     foreach (var season in root.item.seasons)
                     {

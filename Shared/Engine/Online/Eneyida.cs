@@ -131,12 +131,12 @@ namespace Shared.Engine.Online
 
             if (Regex.IsMatch(content, "file: ?'\\["))
             {
-                List<Models.Online.Tortuga.Voice> root = null;
+                Models.Online.Tortuga.Voice[] root = null;
 
                 try
                 {
-                    root = JsonSerializer.Deserialize<List<Models.Online.Tortuga.Voice>>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
-                    if (root == null || root.Count == 0)
+                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                    if (root == null || root.Length == 0)
                         return null;
                 }
                 catch { return null; }
@@ -262,12 +262,12 @@ namespace Shared.Engine.Online
 
                         string sArhc = s.ToString();
                         var episodes = result.serial.First(i => i.title.StartsWith($"{sArhc} ")).folder;
-                        var etpl = new EpisodeTpl(episodes.Count);
+                        var etpl = new EpisodeTpl(episodes.Length);
 
                         foreach (var episode in episodes)
                         {
                             var video = episode.folder.FirstOrDefault(i => i.title == t);
-                            if (video == null)
+                            if (video.file == null)
                                 continue;
 
                             #region subtitle

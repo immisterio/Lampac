@@ -10,7 +10,7 @@ namespace Shared.Models.Online.Eneyida
 
         public string quel { get; set; }
 
-        public List<Voice> serial { get; set; }
+        public Voice[] serial { get; set; }
 
         public List<Similar> similars { get; set; }
     }

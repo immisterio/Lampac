@@ -1,10 +1,10 @@
 ﻿namespace Shared.Models.Online.VideoDB
 {
-    public class Folder
+    public struct Folder
     {
         public string title { get; set; }
 
-        public List<Folder> folder { get; set; }
+        public Folder[] folder { get; set; }
 
         public string file { get; set; }
     }

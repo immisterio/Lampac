@@ -32,7 +32,7 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
-            var cache = await InvokeCache<List<Voice>>($"cdnmovies:view:{kinopoisk_id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<Voice[]>($"cdnmovies:view:{kinopoisk_id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);

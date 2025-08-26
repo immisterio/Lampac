@@ -4,9 +4,9 @@
     {
         public bool IsEmpty { get; set; }
 
-        public List<Сhannel> menu { get; set; }
+        public Сhannel[] menu { get; set; }
 
-        public List<Сhannel> channels { get; set; }
+        public Сhannel[] channels { get; set; }
 
         public List<Similar> similars { get; set; }
     }

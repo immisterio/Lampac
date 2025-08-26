@@ -30,7 +30,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(string imdb_id, long kinopoisk_id, long orid)
+        public async ValueTask<EmbedModel?> Embed(string imdb_id, long kinopoisk_id, long orid)
         {
             string uri = $"{apihost}/embed/imdb/{imdb_id}";
             if (kinopoisk_id > 0)
@@ -48,12 +48,12 @@ namespace Shared.Engine.Online
             if (!content.Contains("seasons:"))
                 return new EmbedModel() { content = content };
 
-            List<RootObject> root = null;
+            RootObject[] root = null;
 
             try
             {
-                root = JsonSerializer.Deserialize<List<RootObject>>(Regex.Match(content, "seasons:([^\n\r]+)").Groups[1].Value);
-                if (root == null || root.Count == 0)
+                root = JsonSerializer.Deserialize<RootObject[]>(Regex.Match(content, "seasons:([^\n\r]+)").Groups[1].Value);
+                if (root == null || root.Length == 0)
                     return null;
             }
             catch { return null; }
@@ -127,7 +127,7 @@ namespace Shared.Engine.Online
                 {
                     if (s == -1)
                     {
-                        var tpl = new SeasonTpl(md.serial.Count);
+                        var tpl = new SeasonTpl(md.serial.Length);
 
                         foreach (var season in md.serial.OrderBy(i => i.season))
                         {
@@ -143,7 +143,7 @@ namespace Shared.Engine.Online
                         if (episodes == null)
                             return string.Empty;
 
-                        var etpl = new EpisodeTpl(episodes.Count);
+                        var etpl = new EpisodeTpl(episodes.Length);
                         string sArch = s.ToString();
 
                         foreach (var episode in episodes)
@@ -158,14 +158,14 @@ namespace Shared.Engine.Online
                             #region voicename
                             string voicename = string.Empty;
 
-                            if (episode.audio?.names != null)
+                            if (episode.audio.names != null)
                                 voicename = Regex.Replace(string.Join(", ", episode.audio.names), "[, ]+$", "");
                             #endregion
 
                             #region subtitle
-                            var subtitles = new SubtitleTpl(episode.cc?.Count ?? 0);
+                            var subtitles = new SubtitleTpl(episode.cc.Length);
 
-                            if (episode.cc != null && episode.cc.Count > 0)
+                            if (episode.cc != null && episode.cc.Length > 0)
                             {
                                 foreach (var cc in episode.cc)
                                 {

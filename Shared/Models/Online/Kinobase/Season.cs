@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Kinobase
 {
-    public class Season
+    public struct Season
     {
         public long id { get; set; }
 
@@ -12,6 +12,6 @@
 
         public string subtitle { get; set; }
 
-        public List<Season> folder { get; set; }
+        public Season[] folder { get; set; }
     }
 }

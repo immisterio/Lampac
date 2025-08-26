@@ -4,6 +4,6 @@
     {
         public string content { get; set; }
 
-        public List<Seasons> serial { get; set; }
+        public Seasons[] serial { get; set; }
     }
 }
