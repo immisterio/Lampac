@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Models.Online.AnimeLib;
 
 namespace Online.Controllers
 {
@@ -33,7 +34,7 @@ namespace Online.Controllers
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
-                    async Task<JObject> goSearch(string q)
+                    async Task<DataSearch[]> goSearch(string q)
                     {
                         if (string.IsNullOrEmpty(q))
                             return null;
@@ -45,36 +46,30 @@ namespace Online.Controllers
                         if (result == null || !result.ContainsKey("data"))
                             return null;
 
-                        return result;
+                        return result["data"].ToObject<DataSearch[]>();
                     }
 
-                    var search = await goSearch(original_title) ?? await goSearch(title);
-                    if (search == null)
+                    var search = await goSearch(original_title);
+
+                    if (search == null || search.Length == 0)
+                        search = await goSearch(title);
+
+                    if (search == null || search.Length == 0)
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                     string stitle = StringConvert.SearchName(title);
-                    catalog = new List<(string title, string year, string uri, bool coincidence, string cover)>(search["data"].Count());
+                    catalog = new List<(string title, string year, string uri, bool coincidence, string cover)>(search.Length);
 
-                    foreach (var anime in search["data"])
+                    foreach (var anime in search)
                     {
-                        string rus_name = anime.Value<string>("rus_name");
-                        string eng_name = anime.Value<string>("eng_name");
-                        string slug_url = anime.Value<string>("slug_url");
-                        string releaseDate = anime.Value<string>("releaseDate");
-
-                        if (string.IsNullOrEmpty(slug_url))
+                        if (string.IsNullOrEmpty(anime.slug_url))
                             continue;
 
-                        string img = null;
-                        var cover = anime["cover"];
-                        if (cover != null)
-                            img = cover.Value<string>("default");
+                        var model = ($"{anime.rus_name} / {anime.eng_name}", (anime.releaseDate != null ? anime.releaseDate.Split("-")[0] : "0"), anime.slug_url, false, anime.cover.@default);
 
-                        var model = ($"{rus_name} / {eng_name}", (releaseDate != null ? releaseDate.Split("-")[0] : "0"), slug_url, false, img);
-
-                        if (stitle == StringConvert.SearchName(rus_name) || stitle == StringConvert.SearchName(eng_name))
+                        if (stitle == StringConvert.SearchName(anime.rus_name) || stitle == StringConvert.SearchName(anime.eng_name))
                         {
-                            if (!string.IsNullOrEmpty(releaseDate) && releaseDate.StartsWith(year.ToString()))
+                            if (!string.IsNullOrEmpty(anime.releaseDate) && anime.releaseDate.StartsWith(year.ToString()))
                                 model.Item4 = true;
                         }
 
@@ -101,11 +96,11 @@ namespace Online.Controllers
                 return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
                 #endregion
             }
-            else 
+            else
             {
                 #region Серии
                 string memKey = $"animelib:playlist:{uri}";
-                if (!hybridCache.TryGetValue(memKey, out JArray episodes))
+                if (!hybridCache.TryGetValue(memKey, out Episode[] episodes))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
@@ -118,9 +113,9 @@ namespace Online.Controllers
                     if (root == null || !root.ContainsKey("data"))
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
-                    episodes = root["data"].ToObject<JArray>();
+                    episodes = root["data"].ToObject<Episode[]>();
 
-                    if (episodes.Count == 0)
+                    if (episodes.Length == 0)
                         return OnError();
 
                     if (!rch.enable)
@@ -130,13 +125,13 @@ namespace Online.Controllers
                 }
 
                 #region Перевод
-                memKey = $"animelib:video:{episodes.First.Value<int>("id")}";
-                if (!hybridCache.TryGetValue(memKey, out JArray players))
+                memKey = $"animelib:video:{episodes.First().id}";
+                if (!hybridCache.TryGetValue(memKey, out Player[] players))
                 {
                     if (rch.IsNotConnected())
                         return ContentTo(rch.connectionMsg);
 
-                    string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First.Value<int>("id")}";
+                    string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First().id}";
 
                     var root = rch.enable ? await rch.Get<JObject>(req_uri, headers) : 
                                             await Http.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: headers);
@@ -144,41 +139,34 @@ namespace Online.Controllers
                     if (root == null || !root.ContainsKey("data"))
                         return OnError(proxyManager, refresh_proxy: !rch.enable);
 
-                    players = root["data"]["players"].ToObject<JArray>();
+                    players = root["data"]["players"].ToObject<Player[]>();
                     hybridCache.Set(memKey, players, cacheTime(30, init: init));
                 }
 
-                var vtpl = new VoiceTpl(players.Count);
+                var vtpl = new VoiceTpl(players.Length);
                 string activTranslate = t;
 
                 foreach (var player in players)
                 {
-                    if (player.Value<string>("player") != "Animelib")
+                    if (player.player != "Animelib")
                         continue;
 
-                    string name = player["team"].Value<string>("name");
-
                     if (string.IsNullOrEmpty(activTranslate))
-                        activTranslate = name;
+                        activTranslate = player.team.name;
 
-                    vtpl.Append(name, activTranslate == name, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(uri)}&t={HttpUtility.UrlEncode(name)}");
+                    vtpl.Append(player.team.name, activTranslate == player.team.name, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(uri)}&t={HttpUtility.UrlEncode(player.team.name)}");
                 }
                 #endregion
 
-                var etpl = new EpisodeTpl(episodes.Count);
+                var etpl = new EpisodeTpl(episodes.Length);
 
                 foreach (var episode in episodes)
                 {
-                    int id = episode.Value<int>("id");
-                    string number = episode.Value<string>("number");
-                    string season = episode.Value<string>("season");
+                    string name = string.IsNullOrEmpty(episode.name) ? title : $"{title} / {episode.name}";
 
-                    string name = episode.Value<string>("name");
-                    name = string.IsNullOrEmpty(name) ? title : $"{title} / {name}";
+                    string link = $"{host}/lite/animelib/video?id={episode.id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
 
-                    string link = $"{host}/lite/animelib/video?id={id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
-
-                    etpl.Append($"{number} серия", name, season, number, link, "call", streamlink: accsArgs($"{link}&play=true"));
+                    etpl.Append($"{episode.number} серия", name, episode.season, episode.number, link, "call", streamlink: accsArgs($"{link}&play=true"));
                 }
                 
                 if (rjson)

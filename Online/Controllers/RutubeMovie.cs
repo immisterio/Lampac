@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Models.Online.RutubeMovie;
 
 namespace Online.Controllers
 {
@@ -18,7 +19,6 @@ namespace Online.Controllers
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
@@ -30,17 +30,19 @@ namespace Online.Controllers
             }
             else
             {
-                var cache = await InvokeCache<JArray>($"rutubemovie:view:{searchTitle}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var cache = await InvokeCache<Result[]>($"rutubemovie:view:{searchTitle}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
                     string uri = $"api/search/video/?content_type=video&duration=movie&query={HttpUtility.UrlEncode($"{title} {year}")}";
-                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : 
+                                            await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+
                     if (root == null || !root.ContainsKey("results"))
                         return res.Fail("content");
 
-                    return root["results"].ToObject<JArray>();
+                    return root["results"].ToObject<Result[]>();
                 });
 
                 if (IsRhubFallback(cache, init))
@@ -48,25 +50,25 @@ namespace Online.Controllers
 
                 return OnResult(cache, () =>
                 {
-                    var mtpl = new MovieTpl(title, original_title, cache.Value.Count);
+                    var mtpl = new MovieTpl(title, original_title, cache.Value.Length);
 
                     foreach (var movie in cache.Value)
                     {
-                        string name = StringConvert.SearchName(movie.Value<string>("title"));
+                        string name = StringConvert.SearchName(movie.title);
                         if (name != null && name.Contains(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         {
-                            long duration = movie.Value<long>("duration");
+                            long duration = movie.duration;
                             if (duration > 1800) // 30 minutes
                             {
                                 if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
                                     continue;
 
-                                if (movie["category"].Value<int>("id") == 4)
+                                if (movie.category.id == 4)
                                 {
-                                    if (movie.Value<bool>("is_hidden") || movie.Value<bool>("is_deleted") || movie.Value<bool>("is_adult") || movie.Value<bool>("is_locked") || movie.Value<bool>("is_audio") || movie.Value<bool>("is_paid") || movie.Value<bool>("is_livestream"))
+                                    if (movie.is_hidden || movie.is_deleted || movie.is_adult || movie.is_locked || movie.is_audio || movie.is_paid || movie.is_livestream)
                                         continue;
 
-                                    mtpl.Append(movie.Value<string>("title"), $"{host}/lite/rutubemovie/play?linkid={movie.Value<string>("id")}", "call", vast: init.vast);
+                                    mtpl.Append(movie.title, $"{host}/lite/rutubemovie/play?linkid={movie.id}", "call", vast: init.vast);
                                 }
                             }
                         }
@@ -100,7 +102,9 @@ namespace Online.Controllers
             var cache = await InvokeCache<string>($"rutubemovie:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string uri = $"api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp";
-                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : 
+                                        await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+
                 if (root == null || !root.ContainsKey("video_balancer"))
                     return res.Fail("video_balancer");
 

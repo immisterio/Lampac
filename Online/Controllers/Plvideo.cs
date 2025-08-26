@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Models.Online.Plvideo;
 
 namespace Online.Controllers
 {
@@ -30,17 +31,19 @@ namespace Online.Controllers
             }
             else
             {
-                var cache = await InvokeCache<JArray>($"plvideo:view:{searchTitle}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var cache = await InvokeCache<Item[]>($"plvideo:view:{searchTitle}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
 
                     string uri = $"v1/videos?Type=video&Query={HttpUtility.UrlEncode($"{title} {year}")}&From=0&Size=20&Aud=16&Qf=false";
-                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : 
+                                            await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+
                     if (root == null || !root.ContainsKey("items"))
                         return res.Fail("content");
 
-                    return root["items"].ToObject<JArray>();
+                    return root["items"].ToObject<Item[]>();
                 });
 
                 if (IsRhubFallback(cache, init))
@@ -48,23 +51,23 @@ namespace Online.Controllers
 
                 return OnResult(cache, () =>
                 {
-                    var mtpl = new MovieTpl(title, original_title, cache.Value.Count);
+                    var mtpl = new MovieTpl(title, original_title, cache.Value.Length);
 
                     foreach (var movie in cache.Value)
                     {
-                        string name = StringConvert.SearchName(movie.Value<string>("title"));
+                        string name = StringConvert.SearchName(movie.title);
                         if (name != null && name.StartsWith(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         {
-                            long duration = movie["uploadFile"].Value<long>("videoDuration");
+                            long duration = movie.uploadFile.videoDuration;
                             if (duration > 1900000) // 30 minutes
                             {
                                 if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
                                     continue;
 
-                                if (movie.Value<string>("visible") != "public")
+                                if (movie.visible != "public")
                                     continue;
 
-                                mtpl.Append(movie.Value<string>("title"), $"{host}/lite/plvideo/movie?linkid={movie.Value<string>("id")}", "call");
+                                mtpl.Append(movie.title, $"{host}/lite/plvideo/movie?linkid={movie.id}", "call");
                             }
                         }
                     }
@@ -95,14 +98,16 @@ namespace Online.Controllers
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
-            var cache = await InvokeCache<JObject>($"plvideo:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<Dictionary<string, Profile>>($"plvideo:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string uri = $"v1/videos/{linkid}?Aud=16";
-                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : 
+                                        await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+
                 if (root == null || !root.ContainsKey("item"))
                     return res.Fail("item");
 
-                return root["item"].Value<JObject>("profiles");
+                return root["item"]["profiles"].ToObject<Dictionary<string, Profile>>();
             });
 
             if (IsRhubFallback(cache, init))
@@ -111,11 +116,10 @@ namespace Online.Controllers
             var streams = new StreamQualityTpl();
             foreach (string q in new string[] { "2160p", "1440p", "1080p", "720p", "468p", "360p", "240p" })
             {
-                if (cache.Value[q] is JObject jq && jq.ContainsKey("hls"))
+                if (cache.Value.TryGetValue(q, out Profile p))
                 {
-                    string hls = jq.Value<string>("hls");
-                    if (!string.IsNullOrEmpty(hls))
-                        streams.Append(HostStreamProxy(init, hls + "#.m3u8", proxy: proxy), q);
+                    if (!string.IsNullOrEmpty(p.hls))
+                        streams.Append(HostStreamProxy(init, p.hls + "#.m3u8", proxy: proxy), q);
                 }
             }
 

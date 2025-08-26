@@ -20,7 +20,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            JObject data = await search(init, imdb_id, kinopoisk_id);
+            var data = await search(init, imdb_id, kinopoisk_id);
             if (data == null)
                 return OnError();
 
@@ -29,7 +29,7 @@ namespace Online.Controllers
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
-            string iframe_url = data.Value<string>("iframe_url");
+            string iframe_url = data.iframe_url;
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
@@ -43,7 +43,7 @@ namespace Online.Controllers
 
                 string file = null;
 
-                if (data.Value<string>("type") == "movie")
+                if (data.type == "movie")
                 {
                     file = html.Split(",file:")?[1]?.Split("function")?[0];
                     if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
@@ -71,7 +71,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            if (data.Value<string>("type") == "movie")
+            if (data.type == "movie")
             {
                 #region Фильм
                 return OnResult(cache, () => 
@@ -162,13 +162,13 @@ namespace Online.Controllers
 
 
         #region search
-        async ValueTask<JObject> search(OnlinesSettings init, string imdb_id, long kinopoisk_id)
+        async ValueTask<Video> search(OnlinesSettings init, string imdb_id, long kinopoisk_id)
         {
             string memKey = $"vibix:view:{kinopoisk_id}:{imdb_id}";
 
-            if (!hybridCache.TryGetValue(memKey, out JObject root))
+            if (!hybridCache.TryGetValue(memKey, out Video root))
             {
-                async Task<JObject> goSearch(string imdb_id, long kinopoisk_id)
+                async Task<Video> goSearch(string imdb_id, long kinopoisk_id)
                 {
                     if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                         return null;
@@ -180,7 +180,7 @@ namespace Online.Controllers
                         ("X-CSRF-TOKEN", "")
                     ));
 
-                    var video = await Http.Get<JObject>($"{init.host}/api/v1/publisher/videos/{uri}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: header);
+                    var video = await Http.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: header);
 
                     if (video == null)
                     {
@@ -188,7 +188,7 @@ namespace Online.Controllers
                         return null;
                     }
 
-                    if (!video.ContainsKey("id"))
+                    if (string.IsNullOrEmpty(video.iframe_url) || string.IsNullOrEmpty(video.type))
                         return null;
 
                     return video;

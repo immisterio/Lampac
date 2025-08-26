@@ -87,7 +87,7 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            var cache = await InvokeCache<JArray>($"collaps:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<ResultSearch[]>($"collaps:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -97,7 +97,7 @@ namespace Online.Controllers
                 if (root == null || !root.ContainsKey("results"))
                     return res.Fail("results");
 
-                return root["results"].ToObject<JArray>();
+                return root["results"].ToObject<ResultSearch[]>();
             });
 
             if (IsRhubFallback(cache, init))
@@ -105,12 +105,12 @@ namespace Online.Controllers
 
             return OnResult(cache, () =>
             {
-                var stpl = new SimilarTpl(cache.Value.Count);
+                var stpl = new SimilarTpl(cache.Value.Length);
 
                 foreach (var j in cache.Value)
                 {
-                    string uri = $"{host}/lite/collaps?orid={j.Value<long>("id")}";
-                    stpl.Append(j.Value<string>("name") ?? j.Value<string>("origin_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                    string uri = $"{host}/lite/collaps?orid={j.id}";
+                    stpl.Append(j.name ?? j.origin_name, j.year.ToString(), string.Empty, uri, PosterApi.Size(j.poster));
                 }
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();
