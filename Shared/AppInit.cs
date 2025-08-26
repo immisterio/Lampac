@@ -982,7 +982,10 @@ namespace Shared
         /// <summary>
         /// aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcA==
         /// </summary>
-        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true);
+        public OnlinesSettings Hydraflix { get; set; } = new OnlinesSettings("Hydraflix", "kwwsv=22ylgidvw1sur", streamproxy: true) 
+        {
+            priorityBrowser = "scraping"
+        };
 
         /// <summary>
         /// aHR0cHM6Ly92aWRzcmMueHl6
