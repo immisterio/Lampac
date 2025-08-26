@@ -14,21 +14,7 @@ namespace Shared.Engine
         public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
 
 
-        static string conditionPath => "cache/proxylink.json";
-
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
-
-        static ProxyLink()
-        {
-            if (File.Exists(conditionPath))
-            {
-                try
-                {
-                    links = Newtonsoft.Json.JsonConvert.DeserializeObject<ConcurrentDictionary<string, ProxyLinkModel>>(BrotliTo.Decompress(conditionPath)) ?? new ConcurrentDictionary<string, ProxyLinkModel>();
-                }
-                catch { links = new ConcurrentDictionary<string, ProxyLinkModel>(); }
-            }
-        }
 
         public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, forceMd5: forceMd5);
 
@@ -95,7 +81,7 @@ namespace Shared.Engine
 
             if (IsMd5)
             {
-                var md = new ProxyLinkModel(reqip, headers, proxy, uri_clear, plugin, verifyip, ex: ex);
+                var md = new ProxyLinkModel(verifyip ? reqip : null, headers, proxy, uri_clear, plugin, verifyip, ex: ex);
                 links.AddOrUpdate(hash, md, (d, u) => md);
             }
 
@@ -130,7 +116,16 @@ namespace Shared.Engine
                 return new ProxyLinkModel(reqip, headers, null, root["u"].GetValue<string>());
             }
 
-            if (links.TryGetValue(hash, out ProxyLinkModel val))
+            if (!links.TryGetValue(hash, out ProxyLinkModel val))
+            {
+                try
+                {
+                    val = CollectionDb.proxyLink.FindById(hash);
+                }
+                catch { }
+            }
+
+            if (val != null)
             {
                 if (val.verifyip == false || AppInit.conf.serverproxy.verifyip == false || val.reqip == string.Empty || reqip == null || reqip == val.reqip)
                     return val;
@@ -142,31 +137,23 @@ namespace Shared.Engine
 
         async public static Task Cron()
         {
-            await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-
             while (true)
             {
+                await Task.Delay(TimeSpan.FromMinutes(5)).ConfigureAwait(false);
+
                 try
                 {
+                    CollectionDb.proxyLink.DeleteMany(i => DateTime.Now > i.ex);
+
                     foreach (var link in links)
                     {
-                        if (link.Value.ex != default)
-                        {
-                            if (DateTime.Now > link.Value.ex)
-                                links.TryRemove(link.Key, out _);
-                        }
-                        else
-                        {
-                            if (DateTime.Now > link.Value.upd.AddHours(20))
-                                links.TryRemove(link.Key, out _);
-                        }
-                    }
+                        link.Value.Id = link.Key;
+                        CollectionDb.proxyLink.Upsert(link.Value);
 
-                    BrotliTo.Compress(conditionPath, Newtonsoft.Json.JsonConvert.SerializeObject(links));
+                        links.TryRemove(link.Key, out _);
+                    }
                 }
                 catch { }
-
-                await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
             }
         }
     }

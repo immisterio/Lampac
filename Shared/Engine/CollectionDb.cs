@@ -1,5 +1,6 @@
 ﻿using LiteDB;
 using Shared.Models.Base;
+using Shared.Models.Proxy;
 
 namespace Shared.Engine
 {
@@ -14,6 +15,8 @@ namespace Shared.Engine
         public static ILiteCollection<BsonDocument> externalids_imdb { get; set; }
 
         public static ILiteCollection<BsonDocument> externalids_kp { get; set; }
+
+        public static ILiteCollection<ProxyLinkModel> proxyLink { get; set; }
 
 
         static LiteDatabase cacheDb, dataDb;
@@ -31,11 +34,15 @@ namespace Shared.Engine
             try
             {
                 cacheDb = new LiteDatabase("cache/app.db");
-                hybrid_cache = cacheDb.GetCollection<HybridCacheModel>("fdb");
-                hybrid_cache.EnsureIndex(x => x.ex);
 
                 externalids_imdb = cacheDb.GetCollection("externalids_imdb");
                 externalids_kp = cacheDb.GetCollection("externalids_kp");
+
+                hybrid_cache = cacheDb.GetCollection<HybridCacheModel>("fdb");
+                hybrid_cache.EnsureIndex(x => x.ex);
+
+                proxyLink = cacheDb.GetCollection<ProxyLinkModel>("ProxyLink");
+                proxyLink.EnsureIndex(x => x.ex);
             }
             catch { }
         }

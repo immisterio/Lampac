@@ -1,9 +1,15 @@
-﻿using System.Net;
+﻿using LiteDB;
+using System.Net;
 
 namespace Shared.Models.Proxy
 {
     public class ProxyLinkModel
     {
+        public ProxyLinkModel() 
+        { 
+            ex = DateTime.Now.AddHours(36);
+        }
+
         public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTime ex = default)
         {
             this.ex = ex;
@@ -13,9 +19,13 @@ namespace Shared.Models.Proxy
             this.uri = uri;
             this.plugin = plugin;
             this.verifyip = verifyip;
+
+            if (this.ex == default)
+                this.ex = DateTime.Now.AddHours(36);
         }
 
-        public DateTime upd { get; set; } = DateTime.Now;
+        [BsonId]
+        public string Id { get; set; }
 
         public DateTime ex { get; set; }
 
