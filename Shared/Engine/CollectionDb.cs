@@ -1,6 +1,8 @@
 ﻿using LiteDB;
 using Shared.Models.Base;
 using Shared.Models.Proxy;
+using Shared.PlaywrightCore;
+using System.Threading;
 
 namespace Shared.Engine
 {
@@ -17,6 +19,8 @@ namespace Shared.Engine
         public static ILiteCollection<BsonDocument> externalids_kp { get; set; }
 
         public static ILiteCollection<ProxyLinkModel> proxyLink { get; set; }
+
+        public static ILiteCollection<PlaywrightRouteCache> playwrightRoute { get; set; }
 
 
         static LiteDatabase cacheDb, dataDb;
@@ -43,8 +47,26 @@ namespace Shared.Engine
 
                 proxyLink = cacheDb.GetCollection<ProxyLinkModel>("ProxyLink");
                 proxyLink.EnsureIndex(x => x.ex);
+
+                playwrightRoute = cacheDb.GetCollection<PlaywrightRouteCache>("playwrightRoute");
+                playwrightRoute.EnsureIndex(x => x.ex);
             }
             catch { }
+
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+                        hybrid_cache.DeleteMany(i => DateTimeOffset.Now > i.ex);
+                        proxyLink.DeleteMany(i => DateTimeOffset.Now > i.ex);
+                        playwrightRoute.DeleteMany(i => DateTimeOffset.Now > i.ex);
+                    }
+                    catch { }
+                }
+            });
         }
 
         public static void Dispose()

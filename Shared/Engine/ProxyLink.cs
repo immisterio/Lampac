@@ -143,8 +143,6 @@ namespace Shared.Engine
 
                 try
                 {
-                    CollectionDb.proxyLink.DeleteMany(i => DateTime.Now > i.ex);
-
                     foreach (var link in links)
                     {
                         link.Value.Id = link.Key;

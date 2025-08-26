@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Shared.Engine;
 using Shared.Models;
+using LiteDB;
 
 namespace Shared.PlaywrightCore
 {
@@ -16,6 +17,19 @@ namespace Shared.PlaywrightCore
         headless,
         NoHeadless
     }
+
+    public struct PlaywrightRouteCache()
+    {
+        [BsonId]
+        public string id { get; set; }
+
+        public DateTimeOffset ex { get; set; }
+
+        public byte[] content { get; set; }
+
+        public Dictionary<string, string> headers { get; set; }
+    }
+
 
     public class PlaywrightBase
     {
@@ -346,16 +360,16 @@ namespace Shared.PlaywrightCore
 
                     if (valid)
                     {
-                        var hybridCache = new HybridCache();
-                        if (hybridCache.TryGetValue(memkey, out (byte[] content, Dictionary<string, string> headers) cache, inmemory: false))
+                        var doc = CollectionDb.playwrightRoute.FindById(memkey);
+                        if (doc.content != null)
                         {
                             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
                                 Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
 
                             await route.FulfillAsync(new RouteFulfillOptions
                             {
-                                BodyBytes = cache.content,
-                                Headers = cache.headers
+                                BodyBytes = doc.content,
+                                Headers = doc.headers
                             });
                         }
                         else
@@ -369,7 +383,15 @@ namespace Shared.PlaywrightCore
                             {
                                 var content = await response.BodyAsync();
                                 if (content != null)
-                                    hybridCache.Set(memkey, (content, response.Headers), DateTime.Now.AddHours(1), inmemory: false);
+                                {
+                                    CollectionDb.playwrightRoute.Upsert(new PlaywrightRouteCache()
+                                    {
+                                        id = memkey,
+                                        ex = DateTimeOffset.Now.AddDays(1),
+                                        headers = response.Headers,
+                                        content = content
+                                    });
+                                }
                             }
                         }
 

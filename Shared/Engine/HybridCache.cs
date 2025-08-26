@@ -1,7 +1,6 @@
 ﻿using LiteDB;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
-using System.Threading;
 
 namespace Shared.Engine
 {
@@ -24,19 +23,6 @@ namespace Shared.Engine
         public static void Configure(IMemoryCache mem)
         {
             memoryCache = mem;
-
-            ThreadPool.QueueUserWorkItem(async _ =>
-            {
-                while (true)
-                {
-                    try
-                    {
-                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-                        CollectionDb.hybrid_cache.DeleteMany(i => DateTimeOffset.Now > i.ex);
-                    }
-                    catch { }
-                }
-            });
         }
         #endregion
 
