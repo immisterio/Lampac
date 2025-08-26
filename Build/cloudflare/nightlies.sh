@@ -58,6 +58,7 @@ rm -f cloudflare.zip
 python -m zipfile -c update.zip *
 
 cd ../
+mkdir out/
 cat Build/cloudflare/nightlies_update.sh > lpc/update.sh
-cp lpc/update.sh out/ver.sh
-mv lpc out/lpc/
+cat lpc/update.sh > out/ver.sh
+mv lpc out/
