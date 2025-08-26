@@ -12,7 +12,7 @@ namespace Shared.Engine
 
         public DateTimeOffset ex { get; set; }
 
-        public byte[] value { get; set; }
+        public string value { get; set; }
     }
 
 
@@ -90,9 +90,9 @@ namespace Shared.Engine
                     return false;
 
                 if (isConstructor || isValueType)
-                    value = JsonConvert.DeserializeObject<TItem>(BrotliTo.Decompress(doc.value));
+                    value = JsonConvert.DeserializeObject<TItem>(doc.value);
                 else
-                    value = (TItem)Convert.ChangeType(BrotliTo.Decompress(doc.value), type);
+                    value = (TItem)Convert.ChangeType(doc.value, type);
 
                 return true;
             }
@@ -147,15 +147,15 @@ namespace Shared.Engine
 
             try
             {
-                byte[] compressedValue;
+                string result;
 
                 if (isConstructor || isValueType)
                 {
-                    compressedValue = BrotliTo.Compress(JsonConvert.SerializeObject(value));
+                    result = JsonConvert.SerializeObject(value);
                 }
                 else
                 {
-                    compressedValue = BrotliTo.Compress(value.ToString());
+                    result = value.ToString();
                 }
 
                 if (absoluteExpiration == default)
@@ -165,7 +165,7 @@ namespace Shared.Engine
                 {
                     id = CrypTo.md5(key),
                     ex = absoluteExpiration,
-                    value = compressedValue
+                    value = result
                 });
 
                 return true;
