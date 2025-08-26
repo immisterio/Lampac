@@ -2,6 +2,12 @@
 {
     public struct MenuItem
     {
+        public MenuItem(string title, string playlist_url) 
+        {
+            this.title = title;
+            this.playlist_url = playlist_url;
+        }
+
         public string title { get; set; }
 
         public string search_on { get; set; }

@@ -147,16 +147,8 @@ namespace Shared.Engine.SISI
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                     {
-                        new MenuItem()
-                        {
-                            title = "Любое",
-                            playlist_url = host + $"{plugin}?c={c}&sort={sort}"
-                        },
-                        new MenuItem()
-                        {
-                            title = "2160p",
-                            playlist_url = host + $"{plugin}?c={c}&sort={sort}&q=4k"
-                        }
+                        new MenuItem("Любое", host + $"{plugin}?c={c}&sort={sort}"),
+                        new MenuItem("2160p", host + $"{plugin}?c={c}&sort={sort}&q=4k")
                     }
                 },
                 new MenuItem()
@@ -165,21 +157,9 @@ namespace Shared.Engine.SISI
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                     {
-                        new MenuItem()
-                        {
-                            title = "В тренде",
-                            playlist_url = host + $"{plugin}?c={c}&q={q}&sort=trend"
-                        },
-                        new MenuItem()
-                        {
-                            title = "Самые новые",
-                            playlist_url = host + $"{plugin}?c={c}&q={q}&sort=newest"
-                        },
-                        new MenuItem()
-                        {
-                            title = "Лучшие видео",
-                            playlist_url = host + $"{plugin}?c={c}&q={q}&sort=best"
-                        }
+                        new MenuItem("В тренде", host + $"{plugin}?c={c}&q={q}&sort=trend"),
+                        new MenuItem("Самые новые", host + $"{plugin}?c={c}&q={q}&sort=newest"),
+                        new MenuItem("Лучшие видео", host + $"{plugin}?c={c}&q={q}&sort=best")
                     }
                 },
                 new MenuItem()
@@ -188,21 +168,9 @@ namespace Shared.Engine.SISI
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                     {
-                        new MenuItem()
-                        {
-                            title = "Гетеро",
-                            playlist_url = host + "xmr",
-                        },
-                        new MenuItem()
-                        {
-                            title = "Геи",
-                            playlist_url = host + "xmrgay",
-                        },
-                        new MenuItem()
-                        {
-                            title = "Трансы",
-                            playlist_url = host + "xmrsml",
-                        }
+                        new MenuItem("Гетеро", host + "xmr"),
+                        new MenuItem("Геи", host + "xmrgay"),
+                        new MenuItem("Трансы", host + "xmrsml")
                     }
                 }
             };
@@ -211,371 +179,79 @@ namespace Shared.Engine.SISI
             {
                 var submenu = new List<MenuItem>()
                 {
-                    new MenuItem()
-                    {
-                        title = "Все",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Русское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=russian"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Секс втроем",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=threesome"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Азиатское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=asian"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Анал",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=anal"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Арабское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=arab"
-                    },
-                    new MenuItem()
-                    {
-                        title = "АСМР",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=asmr"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Бабки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=granny"
-                    },
-                    new MenuItem()
-                    {
-                        title = "БДСМ",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bdsm"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Би",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bisexual"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большие жопы",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=big-ass"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большие задницы",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=pawg"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большие сиськи",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=big-tits"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большой член",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=big-cock"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Британское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=british"
-                    },
-                    new MenuItem()
-                    {
-                        title = "В возрасте",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=mature"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Вебкамера",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=webcam"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Винтаж",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=vintage"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Волосатые",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=hairy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Голые мужчины одетые женщины",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cfnm"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Групповой секс",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=group-sex"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Гэнгбэнг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=gangbang"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Дилдо",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=dildo"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Домашнее порно",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=homemade"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Дрочка ступнями",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=footjob"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Женское доминирование",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=femdom"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Жиробасина",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=ssbbw"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Жопа",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=ass"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Застряла",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=stuck"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Знаменитость",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=celebrity"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Игра",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=game"
-                    },
-                    new MenuItem()
-                    {
-                        title = "История",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=story"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Кастинг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=casting"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Комический",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=comic"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Кончина",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cumshot"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Кремовый пирог",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=creampie"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Латина",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=latina"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Лесбиянка",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=lesbian"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Лизать киску",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=eating-pussy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Любительское порно",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=amateur"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Массаж",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=massage"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Медсестра",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=nurse"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Межрасовый секс",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=interracial"
-                    },
-                    new MenuItem()
-                    {
-                        title = "МИЛФ",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=milf"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Милые",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cute"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Минет",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=blowjob"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Миниатюрная",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=petite"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Миссионерская поза",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=missionary"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Монахиня",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=nun"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Мультфильмы",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cartoon"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Негритянки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=black"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Немецкое",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=german"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Офис",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=office"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Первый раз",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=first-time"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Пляж",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=beach"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Порно для женщин",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=porn-for-women"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Реслинг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=wrestling"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Рогоносцы",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cuckold"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Романтический",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=romantic"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Свингеры",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=swingers"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Сквирт",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=squirting"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Старик",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=old-man"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Старые с молодыми",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=old-young"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Тинейджеры (18+)",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=teen"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Толстушки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bbw"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Тренажерный зал",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=gym"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Узкая киска",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=tight-pussy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Французское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=french"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Футанари",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=futanari"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хардкор",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=hardcore"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хенджоб",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=handjob"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хентай",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=hentai"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Японское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=japanese"
-                    }
+                    new MenuItem("Все", host + $"{plugin}?sort={sort}&q={q}"),
+                    new MenuItem("Русское", host + $"{plugin}?sort={sort}&q={q}&c=russian"),
+                    new MenuItem("Секс втроем", host + $"{plugin}?sort={sort}&q={q}&c=threesome"),
+                    new MenuItem("Азиатское", host + $"{plugin}?sort={sort}&q={q}&c=asian"),
+                    new MenuItem("Анал", host + $"{plugin}?sort={sort}&q={q}&c=anal"),
+                    new MenuItem("Арабское", host + $"{plugin}?sort={sort}&q={q}&c=arab"),
+                    new MenuItem("АСМР", host + $"{plugin}?sort={sort}&q={q}&c=asmr"),
+                    new MenuItem("Бабки", host + $"{plugin}?sort={sort}&q={q}&c=granny"),
+                    new MenuItem("БДСМ", host + $"{plugin}?sort={sort}&q={q}&c=bdsm"),
+                    new MenuItem("Би", host + $"{plugin}?sort={sort}&q={q}&c=bisexual"),
+                    new MenuItem("Большие жопы", host + $"{plugin}?sort={sort}&q={q}&c=big-ass"),
+                    new MenuItem("Большие задницы", host + $"{plugin}?sort={sort}&q={q}&c=pawg"),
+                    new MenuItem("Большие сиськи", host + $"{plugin}?sort={sort}&q={q}&c=big-tits"),
+                    new MenuItem("Большой член", host + $"{plugin}?sort={sort}&q={q}&c=big-cock"),
+                    new MenuItem("Британское", host + $"{plugin}?sort={sort}&q={q}&c=british"),
+                    new MenuItem("В возрасте", host + $"{plugin}?sort={sort}&q={q}&c=mature"),
+                    new MenuItem("Вебкамера", host + $"{plugin}?sort={sort}&q={q}&c=webcam"),
+                    new MenuItem("Винтаж", host + $"{plugin}?sort={sort}&q={q}&c=vintage"),
+                    new MenuItem("Волосатые", host + $"{plugin}?sort={sort}&q={q}&c=hairy"),
+                    new MenuItem("Голые мужчины одетые женщины", host + $"{plugin}?sort={sort}&q={q}&c=cfnm"),
+                    new MenuItem("Групповой секс", host + $"{plugin}?sort={sort}&q={q}&c=group-sex"),
+                    new MenuItem("Гэнгбэнг", host + $"{plugin}?sort={sort}&q={q}&c=gangbang"),
+                    new MenuItem("Дилдо", host + $"{plugin}?sort={sort}&q={q}&c=dildo"),
+                    new MenuItem("Домашнее порно", host + $"{plugin}?sort={sort}&q={q}&c=homemade"),
+                    new MenuItem("Дрочка ступнями", host + $"{plugin}?sort={sort}&q={q}&c=footjob"),
+                    new MenuItem("Женское доминирование", host + $"{plugin}?sort={sort}&q={q}&c=femdom"),
+                    new MenuItem("Жиробасина", host + $"{plugin}?sort={sort}&q={q}&c=ssbbw"),
+                    new MenuItem("Жопа", host + $"{plugin}?sort={sort}&q={q}&c=ass"),
+                    new MenuItem("Застряла", host + $"{plugin}?sort={sort}&q={q}&c=stuck"),
+                    new MenuItem("Знаменитость", host + $"{plugin}?sort={sort}&q={q}&c=celebrity"),
+                    new MenuItem("Игра", host + $"{plugin}?sort={sort}&q={q}&c=game"),
+                    new MenuItem("История", host + $"{plugin}?sort={sort}&q={q}&c=story"),
+                    new MenuItem("Кастинг", host + $"{plugin}?sort={sort}&q={q}&c=casting"),
+                    new MenuItem("Комический", host + $"{plugin}?sort={sort}&q={q}&c=comic"),
+                    new MenuItem("Кончина", host + $"{plugin}?sort={sort}&q={q}&c=cumshot"),
+                    new MenuItem("Кремовый пирог", host + $"{plugin}?sort={sort}&q={q}&c=creampie"),
+                    new MenuItem("Латина", host + $"{plugin}?sort={sort}&q={q}&c=latina"),
+                    new MenuItem("Лесбиянка", host + $"{plugin}?sort={sort}&q={q}&c=lesbian"),
+                    new MenuItem("Лизать киску", host + $"{plugin}?sort={sort}&q={q}&c=eating-pussy"),
+                    new MenuItem("Любительское порно", host + $"{plugin}?sort={sort}&q={q}&c=amateur"),
+                    new MenuItem("Массаж", host + $"{plugin}?sort={sort}&q={q}&c=massage"),
+                    new MenuItem("Медсестра", host + $"{plugin}?sort={sort}&q={q}&c=nurse"),
+                    new MenuItem("Межрасовый секс", host + $"{plugin}?sort={sort}&q={q}&c=interracial"),
+                    new MenuItem("МИЛФ", host + $"{plugin}?sort={sort}&q={q}&c=milf"),
+                    new MenuItem("Милые", host + $"{plugin}?sort={sort}&q={q}&c=cute"),
+                    new MenuItem("Минет", host + $"{plugin}?sort={sort}&q={q}&c=blowjob"),
+                    new MenuItem("Миниатюрная", host + $"{plugin}?sort={sort}&q={q}&c=petite"),
+                    new MenuItem("Миссионерская поза", host + $"{plugin}?sort={sort}&q={q}&c=missionary"),
+                    new MenuItem("Монахиня", host + $"{plugin}?sort={sort}&q={q}&c=nun"),
+                    new MenuItem("Мультфильмы", host + $"{plugin}?sort={sort}&q={q}&c=cartoon"),
+                    new MenuItem("Негритянки", host + $"{plugin}?sort={sort}&q={q}&c=black"),
+                    new MenuItem("Немецкое", host + $"{plugin}?sort={sort}&q={q}&c=german"),
+                    new MenuItem("Офис", host + $"{plugin}?sort={sort}&q={q}&c=office"),
+                    new MenuItem("Первый раз", host + $"{plugin}?sort={sort}&q={q}&c=first-time"),
+                    new MenuItem("Пляж", host + $"{plugin}?sort={sort}&q={q}&c=beach"),
+                    new MenuItem("Порно для женщин", host + $"{plugin}?sort={sort}&q={q}&c=porn-for-women"),
+                    new MenuItem("Реслинг", host + $"{plugin}?sort={sort}&q={q}&c=wrestling"),
+                    new MenuItem("Рогоносцы", host + $"{plugin}?sort={sort}&q={q}&c=cuckold"),
+                    new MenuItem("Романтический", host + $"{plugin}?sort={sort}&q={q}&c=romantic"),
+                    new MenuItem("Свингеры", host + $"{plugin}?sort={sort}&q={q}&c=swingers"),
+                    new MenuItem("Сквирт", host + $"{plugin}?sort={sort}&q={q}&c=squirting"),
+                    new MenuItem("Старик", host + $"{plugin}?sort={sort}&q={q}&c=old-man"),
+                    new MenuItem("Старые с молодыми", host + $"{plugin}?sort={sort}&q={q}&c=old-young"),
+                    new MenuItem("Тинейджеры (18+)", host + $"{plugin}?sort={sort}&q={q}&c=teen"),
+                    new MenuItem("Толстушки", host + $"{plugin}?sort={sort}&q={q}&c=bbw"),
+                    new MenuItem("Тренажерный зал", host + $"{plugin}?sort={sort}&q={q}&c=gym"),
+                    new MenuItem("Узкая киска", host + $"{plugin}?sort={sort}&q={q}&c=tight-pussy"),
+                    new MenuItem("Французское", host + $"{plugin}?sort={sort}&q={q}&c=french"),
+                    new MenuItem("Футанари", host + $"{plugin}?sort={sort}&q={q}&c=futanari"),
+                    new MenuItem("Хардкор", host + $"{plugin}?sort={sort}&q={q}&c=hardcore"),
+                    new MenuItem("Хенджоб", host + $"{plugin}?sort={sort}&q={q}&c=handjob"),
+                    new MenuItem("Хентай", host + $"{plugin}?sort={sort}&q={q}&c=hentai"),
+                    new MenuItem("Японское", host + $"{plugin}?sort={sort}&q={q}&c=japanese")
                 };
 
                 menu.Add(new MenuItem()
@@ -589,236 +265,52 @@ namespace Shared.Engine.SISI
             {
                 var submenu = new List<MenuItem>()
                 {
-                    new MenuItem()
-                    {
-                        title = "Все",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Russian",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=russian"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Threesome",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=threesome"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Азиатское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=asian"
-                    },
-                    new MenuItem()
-                    {
-                        title = "БДСМ",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bdsm"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Без презерватива",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bareback"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большие дырки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=gaping"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большой член",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=big-cock"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Буккаке",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bukkake"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Вебкамера",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=webcam"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Винтаж",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=vintage"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Глорихол",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=glory-hole"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Групповой секс",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=group-sex"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Гэнгбэнг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=gangbang"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Дедушка",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=grandpa"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Дилдо",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=dildo"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Кончать на фотографии",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cum-tribute"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Кончина",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cumshot"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Красавчик",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=hunk"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Кремовый пирог",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=creampie"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Маленький член",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=small-cock"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Массаж",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=massage"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Мастурбация",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=masturbation"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Медведь",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bear"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Межрасовый секс",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=interracial"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Минет",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=blowjob"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Молодые",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=young"
-                    },
-                    new MenuItem()
-                    {
-                        title = "На природе",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=outdoor"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Негры",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=black"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Папочка",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=daddy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Пляж",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=beach"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Пухляш",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=chubby"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Раздевалка",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=locker-room"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Рестлинг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=wrestling"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Секс игрушки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=sex-toy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Сладкий мальчик",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=twink"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Соло",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=solo"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Спанкинг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=spanking"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Старые с молодыми",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=old-young"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Стриптиз",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=striptease"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Толстые",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=fat"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Трансвеститы",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=crossdresser"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Фистинг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=fisting"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хенджоб",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=handjob"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хентай",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=hentai"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Эмобой",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=emo"
-                    }
+                    new MenuItem("Все", host + $"{plugin}?sort={sort}&q={q}"),
+                    new MenuItem("Russian", host + $"{plugin}?sort={sort}&q={q}&c=russian"),
+                    new MenuItem("Threesome", host + $"{plugin}?sort={sort}&q={q}&c=threesome"),
+                    new MenuItem("Азиатское", host + $"{plugin}?sort={sort}&q={q}&c=asian"),
+                    new MenuItem("БДСМ", host + $"{plugin}?sort={sort}&q={q}&c=bdsm"),
+                    new MenuItem("Без презерватива", host + $"{plugin}?sort={sort}&q={q}&c=bareback"),
+                    new MenuItem("Большие дырки", host + $"{plugin}?sort={sort}&q={q}&c=gaping"),
+                    new MenuItem("Большой член", host + $"{plugin}?sort={sort}&q={q}&c=big-cock"),
+                    new MenuItem("Буккаке", host + $"{plugin}?sort={sort}&q={q}&c=bukkake"),
+                    new MenuItem("Вебкамера", host + $"{plugin}?sort={sort}&q={q}&c=webcam"),
+                    new MenuItem("Винтаж", host + $"{plugin}?sort={sort}&q={q}&c=vintage"),
+                    new MenuItem("Глорихол", host + $"{plugin}?sort={sort}&q={q}&c=glory-hole"),
+                    new MenuItem("Групповой секс", host + $"{plugin}?sort={sort}&q={q}&c=group-sex"),
+                    new MenuItem("Гэнгбэнг", host + $"{plugin}?sort={sort}&q={q}&c=gangbang"),
+                    new MenuItem("Дедушка", host + $"{plugin}?sort={sort}&q={q}&c=grandpa"),
+                    new MenuItem("Дилдо", host + $"{plugin}?sort={sort}&q={q}&c=dildo"),
+                    new MenuItem("Кончать на фотографии", host + $"{plugin}?sort={sort}&q={q}&c=cum-tribute"),
+                    new MenuItem("Кончина", host + $"{plugin}?sort={sort}&q={q}&c=cumshot"),
+                    new MenuItem("Красавчик", host + $"{plugin}?sort={sort}&q={q}&c=hunk"),
+                    new MenuItem("Кремовый пирог", host + $"{plugin}?sort={sort}&q={q}&c=creampie"),
+                    new MenuItem("Маленький член", host + $"{plugin}?sort={sort}&q={q}&c=small-cock"),
+                    new MenuItem("Массаж", host + $"{plugin}?sort={sort}&q={q}&c=massage"),
+                    new MenuItem("Мастурбация", host + $"{plugin}?sort={sort}&q={q}&c=masturbation"),
+                    new MenuItem("Медведь", host + $"{plugin}?sort={sort}&q={q}&c=bear"),
+                    new MenuItem("Межрасовый секс", host + $"{plugin}?sort={sort}&q={q}&c=interracial"),
+                    new MenuItem("Минет", host + $"{plugin}?sort={sort}&q={q}&c=blowjob"),
+                    new MenuItem("Молодые", host + $"{plugin}?sort={sort}&q={q}&c=young"),
+                    new MenuItem("На природе", host + $"{plugin}?sort={sort}&q={q}&c=outdoor"),
+                    new MenuItem("Негры", host + $"{plugin}?sort={sort}&q={q}&c=black"),
+                    new MenuItem("Папочка", host + $"{plugin}?sort={sort}&q={q}&c=daddy"),
+                    new MenuItem("Пляж", host + $"{plugin}?sort={sort}&q={q}&c=beach"),
+                    new MenuItem("Пухляш", host + $"{plugin}?sort={sort}&q={q}&c=chubby"),
+                    new MenuItem("Раздевалка", host + $"{plugin}?sort={sort}&q={q}&c=locker-room"),
+                    new MenuItem("Рестлинг", host + $"{plugin}?sort={sort}&q={q}&c=wrestling"),
+                    new MenuItem("Секс игрушки", host + $"{plugin}?sort={sort}&q={q}&c=sex-toy"),
+                    new MenuItem("Сладкий мальчик", host + $"{plugin}?sort={sort}&q={q}&c=twink"),
+                    new MenuItem("Соло", host + $"{plugin}?sort={sort}&q={q}&c=solo"),
+                    new MenuItem("Спанкинг", host + $"{plugin}?sort={sort}&q={q}&c=spanking"),
+                    new MenuItem("Старые с молодыми", host + $"{plugin}?sort={sort}&q={q}&c=old-young"),
+                    new MenuItem("Стриптиз", host + $"{plugin}?sort={sort}&q={q}&c=striptease"),
+                    new MenuItem("Толстые", host + $"{plugin}?sort={sort}&q={q}&c=fat"),
+                    new MenuItem("Трансвеститы", host + $"{plugin}?sort={sort}&q={q}&c=crossdresser"),
+                    new MenuItem("Фистинг", host + $"{plugin}?sort={sort}&q={q}&c=fisting"),
+                    new MenuItem("Хенджоб", host + $"{plugin}?sort={sort}&q={q}&c=handjob"),
+                    new MenuItem("Хентай", host + $"{plugin}?sort={sort}&q={q}&c=hentai"),
+                    new MenuItem("Эмобой", host + $"{plugin}?sort={sort}&q={q}&c=emo")
                 };
 
                 menu.Add(new MenuItem()
@@ -832,251 +324,55 @@ namespace Shared.Engine.SISI
             {
                 var submenu = new List<MenuItem>()
                 {
-                    new MenuItem()
-                    {
-                        title = "Все",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Russian",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=russian"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Cuckold",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=cuckold"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Азиатское",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=asian"
-                    },
-                    new MenuItem()
-                    {
-                        title = "БДСМ",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bdsm"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Без презерватива",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bareback"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Блондинки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=blonde"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большие жопы",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=big-ass"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Большой член",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=big-cock"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Вебкамера",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=webcam"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Винтаж",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=vintage"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Групповой секс",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=group-sex"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Гэнгбэнг",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=gangbang"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Домашнее",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=homemade"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Золотой дождь",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=pissing"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Кремовый пирог",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=creampie"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Латекс",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=latex"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Латина",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=latina"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Ледибой",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=ladyboy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Ловушка",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=trap"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Любительское порно",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=amateur"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Маленькие сиськи",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=small-tits"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Мастурбация",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=masturbation"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Межрасовый секс",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=interracial"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Минет",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=blowjob"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Миниатюрная",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=petite"
-                    },
-                    new MenuItem()
-                    {
-                        title = "На природе",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=outdoor"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Нижнее белье",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=lingerie"
-                    },
-                    new MenuItem()
-                    {
-                        title = "От первого лица",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=pov"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Парень трахает транса",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=guy-fucks-shemale"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Подростки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=teen"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Рыжие",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=redhead"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Секс втроем",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=threesome"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Секс игрушки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=sex-toy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Соло",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=solo"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Татуировки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=tattoo"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Толстушки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=bbw"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Транс трахает девушку",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=shemale-fucks-girl"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Транс трахает парня",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=shemale-fucks-guy"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Транс трахает транса",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=shemale-fucks-shemale"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Трансвестит",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=transgender"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Фетиш",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=fetish"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хардкор",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=hardcore"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хенджоб",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=handjob"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хентай",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=hentai"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Хорошенькая",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=pretty"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Чернокожие",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=black"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Чулки",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=stockings"
-                    },
-                    new MenuItem()
-                    {
-                        title = "Японское порно",
-                        playlist_url = host + $"{plugin}?sort={sort}&q={q}&c=japanese"
-                    }
+                    new MenuItem("Все", host + $"{plugin}?sort={sort}&q={q}"),
+                    new MenuItem("Russian", host + $"{plugin}?sort={sort}&q={q}&c=russian"),
+                    new MenuItem("Cuckold", host + $"{plugin}?sort={sort}&q={q}&c=cuckold"),
+                    new MenuItem("Азиатское", host + $"{plugin}?sort={sort}&q={q}&c=asian"),
+                    new MenuItem("БДСМ", host + $"{plugin}?sort={sort}&q={q}&c=bdsm"),
+                    new MenuItem("Без презерватива", host + $"{plugin}?sort={sort}&q={q}&c=bareback"),
+                    new MenuItem("Блондинки", host + $"{plugin}?sort={sort}&q={q}&c=blonde"),
+                    new MenuItem("Большие жопы", host + $"{plugin}?sort={sort}&q={q}&c=big-ass"),
+                    new MenuItem("Большой член", host + $"{plugin}?sort={sort}&q={q}&c=big-cock"),
+                    new MenuItem("Вебкамера", host + $"{plugin}?sort={sort}&q={q}&c=webcam"),
+                    new MenuItem("Винтаж", host + $"{plugin}?sort={sort}&q={q}&c=vintage"),
+                    new MenuItem("Групповой секс", host + $"{plugin}?sort={sort}&q={q}&c=group-sex"),
+                    new MenuItem("Гэнгбэнг", host + $"{plugin}?sort={sort}&q={q}&c=gangbang"),
+                    new MenuItem("Домашнее", host + $"{plugin}?sort={sort}&q={q}&c=homemade"),
+                    new MenuItem("Золотой дождь", host + $"{plugin}?sort={sort}&q={q}&c=pissing"),
+                    new MenuItem("Кремовый пирог", host + $"{plugin}?sort={sort}&q={q}&c=creampie"),
+                    new MenuItem("Латекс", host + $"{plugin}?sort={sort}&q={q}&c=latex"),
+                    new MenuItem("Латина", host + $"{plugin}?sort={sort}&q={q}&c=latina"),
+                    new MenuItem("Ледибой", host + $"{plugin}?sort={sort}&q={q}&c=ladyboy"),
+                    new MenuItem("Ловушка", host + $"{plugin}?sort={sort}&q={q}&c=trap"),
+                    new MenuItem("Любительское порно", host + $"{plugin}?sort={sort}&q={q}&c=amateur"),
+                    new MenuItem("Маленькие сиськи", host + $"{plugin}?sort={sort}&q={q}&c=small-tits"),
+                    new MenuItem("Мастурбация", host + $"{plugin}?sort={sort}&q={q}&c=masturbation"),
+                    new MenuItem("Межрасовый секс", host + $"{plugin}?sort={sort}&q={q}&c=interracial"),
+                    new MenuItem("Минет", host + $"{plugin}?sort={sort}&q={q}&c=blowjob"),
+                    new MenuItem("Миниатюрная", host + $"{plugin}?sort={sort}&q={q}&c=petite"),
+                    new MenuItem("На природе", host + $"{plugin}?sort={sort}&q={q}&c=outdoor"),
+                    new MenuItem("Нижнее белье", host + $"{plugin}?sort={sort}&q={q}&c=lingerie"),
+                    new MenuItem("От первого лица", host + $"{plugin}?sort={sort}&q={q}&c=pov"),
+                    new MenuItem("Парень трахает транса", host + $"{plugin}?sort={sort}&q={q}&c=guy-fucks-shemale"),
+                    new MenuItem("Подростки", host + $"{plugin}?sort={sort}&q={q}&c=teen"),
+                    new MenuItem("Рыжие", host + $"{plugin}?sort={sort}&q={q}&c=redhead"),
+                    new MenuItem("Секс втроем", host + $"{plugin}?sort={sort}&q={q}&c=threesome"),
+                    new MenuItem("Секс игрушки", host + $"{plugin}?sort={sort}&q={q}&c=sex-toy"),
+                    new MenuItem("Соло", host + $"{plugin}?sort={sort}&q={q}&c=solo"),
+                    new MenuItem("Татуировки", host + $"{plugin}?sort={sort}&q={q}&c=tattoo"),
+                    new MenuItem("Толстушки", host + $"{plugin}?sort={sort}&q={q}&c=bbw"),
+                    new MenuItem("Транс трахает девушку", host + $"{plugin}?sort={sort}&q={q}&c=shemale-fucks-girl"),
+                    new MenuItem("Транс трахает парня", host + $"{plugin}?sort={sort}&q={q}&c=shemale-fucks-guy"),
+                    new MenuItem("Транс трахает транса", host + $"{plugin}?sort={sort}&q={q}&c=shemale-fucks-shemale"),
+                    new MenuItem("Трансвестит", host + $"{plugin}?sort={sort}&q={q}&c=transgender"),
+                    new MenuItem("Фетиш", host + $"{plugin}?sort={sort}&q={q}&c=fetish"),
+                    new MenuItem("Хардкор", host + $"{plugin}?sort={sort}&q={q}&c=hardcore"),
+                    new MenuItem("Хенджоб", host + $"{plugin}?sort={sort}&q={q}&c=handjob"),
+                    new MenuItem("Хентай", host + $"{plugin}?sort={sort}&q={q}&c=hentai"),
+                    new MenuItem("Хорошенькая", host + $"{plugin}?sort={sort}&q={q}&c=pretty"),
+                    new MenuItem("Чернокожие", host + $"{plugin}?sort={sort}&q={q}&c=black"),
+                    new MenuItem("Чулки", host + $"{plugin}?sort={sort}&q={q}&c=stockings"),
+                    new MenuItem("Японское порно", host + $"{plugin}?sort={sort}&q={q}&c=japanese")
                 };
 
                 menu.Add(new MenuItem()
@@ -1101,7 +397,11 @@ namespace Shared.Engine.SISI
 
             string stream_link = Regex.Match(html, "\"h264\":\\[\\{\"url\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
             if (!stream_link.Contains(".m3u"))
-                return null;
+            {
+                stream_link = Regex.Match(html, "rel=\"preload\" href=\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                if (!stream_link.Contains(".m3u"))
+                    return null;
+            }
 
             if (stream_link.StartsWith("/"))
                 stream_link = host + stream_link;
