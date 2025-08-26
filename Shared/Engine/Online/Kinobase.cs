@@ -1,5 +1,6 @@
 ﻿using Shared.Models.Base;
 using Shared.Models.Online.Kinobase;
+using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;

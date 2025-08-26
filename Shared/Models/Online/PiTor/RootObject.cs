@@ -2,6 +2,6 @@
 {
     public class RootObject
     {
-        public List<Result> Results { get; set; }
+        public Result[] Results { get; set; }
     }
 }

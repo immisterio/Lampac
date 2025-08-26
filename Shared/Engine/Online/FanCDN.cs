@@ -114,16 +114,16 @@ namespace Shared.Engine.Online
             {
                 if (iframe.Contains("\"folder\""))
                 {
-                    var serial = JsonSerializer.Deserialize<List<Voice>>(playlist);
-                    if (serial == null || serial.Count == 0)
+                    var serial = JsonSerializer.Deserialize<Voice[]>(playlist);
+                    if (serial == null || serial.Length == 0)
                         return null;
 
                     return new EmbedModel() { serial = serial };
                 }
                 else
                 {
-                    var movies = JsonSerializer.Deserialize<List<Episode>>(playlist);
-                    if (movies == null || movies.Count == 0)
+                    var movies = JsonSerializer.Deserialize<Episode[]>(playlist);
+                    if (movies == null || movies.Length == 0)
                         return null;
 
                     return new EmbedModel() { movies = movies };
@@ -143,7 +143,7 @@ namespace Shared.Engine.Online
 
             if (root.movies != null)
             {
-                var mtpl = new MovieTpl(title, original_title, root.movies.Count);
+                var mtpl = new MovieTpl(title, original_title, root.movies.Length);
 
                 foreach (var m in root.movies)
                 {

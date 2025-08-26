@@ -28,7 +28,7 @@ namespace Online.Controllers
                 if (movie == null)
                     return Spider(clarification == 1 ? title : (original_title ?? title));
 
-                movieid = movie.id;
+                movieid = movie.Value.id;
             }
 
             #region media
@@ -138,12 +138,12 @@ namespace Online.Controllers
         #region search
         public static List<Movie> database = JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
 
-        Movie search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
+        Movie? search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
         {
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
 
-            Movie goSearch(bool searchToId)
+            Movie? goSearch(bool searchToId)
             {
                 if (searchToId && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                     return null;

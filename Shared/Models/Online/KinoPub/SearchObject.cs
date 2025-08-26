@@ -2,6 +2,6 @@
 {
     public class SearchObject
     {
-        public List<SearchItem> items { get; set; }
+        public SearchItem[] items { get; set; }
     }
 }

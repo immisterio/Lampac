@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.FanCDN
 {
-    public class Voice
+    public struct Voice
     {
         public int id { get; set; }
 

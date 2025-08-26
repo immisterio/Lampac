@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.KinoPub
 {
-    public class Subtitle
+    public struct Subtitle
     {
         public string lang { get; set; }
 

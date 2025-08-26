@@ -181,11 +181,11 @@ namespace Shared.Engine.Online
 
                     foreach (var episode in root.pl.AsEnumerable().Reverse())
                     {
-                        var episodes = episode?.folder;
-                        if (episodes == null || episodes.Count == 0)
+                        var episodes = episode.folder;
+                        if (episodes == null || episodes.Length == 0)
                             continue;
 
-                        string perevod = episode?.title;
+                        string perevod = episode.title;
                         if (perevod != null && string.IsNullOrEmpty(t))
                             t = perevod;
 
@@ -204,8 +204,8 @@ namespace Shared.Engine.Online
 
                         foreach (var pl in episodes)
                         {
-                            string name = pl?.comment;
-                            string file = pl?.file;
+                            string name = pl.comment;
+                            string file = pl.file;
 
                             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                                 continue;

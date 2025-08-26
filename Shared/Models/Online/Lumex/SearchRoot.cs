@@ -2,6 +2,6 @@
 {
     public class SearchRoot
     {
-        public List<Datum> data { get; set; }
+        public Datum[] data { get; set; }
     }
 }

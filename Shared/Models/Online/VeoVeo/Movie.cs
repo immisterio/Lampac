@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.VeoVeo
 {
-    public class Movie
+    public struct Movie
     {
         public long id { get; set; }
 

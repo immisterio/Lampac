@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.VDBmovies
 {
-    public class MovieDB
+    public struct MovieDB
     {
         public string id { get; set; }
         public string ru_title { get; set; }

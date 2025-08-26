@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Kinobase
 {
-    public class Playlist
+    public struct Playlist
     {
         public int id { get; set; }
         public string file { get; set; }

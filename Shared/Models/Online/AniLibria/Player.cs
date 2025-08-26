@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.AniLibria
 {
-    public class Player
+    public struct Player
     {
         public string host { get; set; }
 

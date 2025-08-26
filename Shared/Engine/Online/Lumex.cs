@@ -68,12 +68,12 @@ namespace Shared.Engine.Online
                 try
                 {
                     root = JsonSerializer.Deserialize<SearchRoot>(json);
-                    if (root?.data == null || root.data.Count == 0)
+                    if (root?.data == null || root.data.Length == 0)
                         return default;
                 }
                 catch { return default; }
 
-                var stpl = new SimilarTpl(root.data.Count);
+                var stpl = new SimilarTpl(root.data.Length);
 
                 foreach (var item in root.data)
                 {
@@ -173,7 +173,7 @@ namespace Shared.Engine.Online
         #region Html
         public string Html(EmbedModel result, string args, long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
         {
-            if (result?.media == null || result.media.Count == 0)
+            if (result?.media == null || result.media.Length == 0)
                 return string.Empty;
 
             if (!string.IsNullOrEmpty(args))
@@ -182,12 +182,12 @@ namespace Shared.Engine.Online
             if (result.content_type is "movie" or "anime")
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title, result.media.Count);
+                var mtpl = new MovieTpl(title, original_title, result.media.Length);
 
                 foreach (var media in result.media)
                 {
-                    var subtitles = new SubtitleTpl(media.subtitles?.Count ?? 0);
-                    if (media.subtitles != null && media.subtitles.Count > 0)
+                    var subtitles = new SubtitleTpl(media.subtitles?.Length ?? 0);
+                    if (media.subtitles != null && media.subtitles.Length > 0)
                     {
                         foreach (string srt in media.subtitles)
                         {
@@ -221,7 +221,7 @@ namespace Shared.Engine.Online
                 {
                     if (s == -1)
                     {
-                        var tpl = new SeasonTpl(result.media.Count);
+                        var tpl = new SeasonTpl(result.media.Length);
 
                         foreach (var media in result.media.OrderBy(s => s.season_id))
                         {
@@ -279,8 +279,8 @@ namespace Shared.Engine.Online
                                     if (voice.translation_id.ToString() != t)
                                         continue;
 
-                                    var subtitles = new SubtitleTpl(media.subtitles?.Count ?? 0);
-                                    if (media.subtitles != null && media.subtitles.Count > 0)
+                                    var subtitles = new SubtitleTpl(media.subtitles?.Length ?? 0);
+                                    if (media.subtitles != null && media.subtitles.Length > 0)
                                     {
                                         foreach (string srt in media.subtitles)
                                         {

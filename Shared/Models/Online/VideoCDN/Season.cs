@@ -1,9 +1,9 @@
 ﻿namespace Shared.Models.Online.VideoCDN
 {
-    public class Season
+    public struct Season
     {
         public int id { get; set; }
 
-        public List<Folder> folder { get; set; }
+        public Folder[] folder { get; set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.AniLibria
 {
-    public class RootObject
+    public struct RootObject
     {
         public Names names { get; set; }
 

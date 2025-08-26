@@ -1,9 +1,9 @@
 ﻿namespace Shared.Models.Online.KinoPub
 {
-    public class Season
+    public struct Season
     {
         public int number { get; set; }
 
-        public List<Episode> episodes { get; set; }
+        public Episode[] episodes { get; set; }
     }
 }

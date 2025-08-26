@@ -179,7 +179,7 @@ namespace Shared.Engine.Online
 
                 try
                 {
-                    foreach (var item in JsonSerializer.Deserialize<List<BobrKurwa>>(json))
+                    foreach (var item in JsonSerializer.Deserialize<BobrKurwa[]>(json))
                     {
                         result.similars.Add(new Similar()
                         {

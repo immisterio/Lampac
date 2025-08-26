@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Alloha
 {
-    public class Translation
+    public struct Translation
     {
         public string translation { get; set; }
     }

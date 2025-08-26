@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Kodik
 {
-    public class MaterialData
+    public struct MaterialData
     {
         public string poster_url { get; set; }
 

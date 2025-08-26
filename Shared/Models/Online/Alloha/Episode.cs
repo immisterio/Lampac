@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Alloha
 {
-    public class Episode
+    public struct Episode
     {
         public int episode { get; set; }
 

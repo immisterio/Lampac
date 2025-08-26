@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Lumex
 {
-    public class Track
+    public struct Track
     {
         public string src { get; set; }
         public string srlang { get; set; }

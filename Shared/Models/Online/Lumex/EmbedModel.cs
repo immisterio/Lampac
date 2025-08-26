@@ -8,6 +8,6 @@
 
         public string content_type { get; set; }
 
-        public List<Medium> media { get; set; }
+        public Medium[] media { get; set; }
     }
 }

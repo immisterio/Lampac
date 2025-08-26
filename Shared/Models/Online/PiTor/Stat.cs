@@ -2,6 +2,6 @@
 {
     public class Stat
     {
-        public List<FileStat> file_stats { get; set; }
+        public FileStat[] file_stats { get; set; }
     }
 }

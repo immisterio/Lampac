@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.KinoPub
 {
-    public class Url
+    public struct Url
     {
         public string http { get; set; }
 

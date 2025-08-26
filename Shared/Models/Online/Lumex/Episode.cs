@@ -1,9 +1,9 @@
 ﻿namespace Shared.Models.Online.Lumex
 {
-    public class Episode
+    public struct Episode
     {
         public int episode_id { get; set; }
 
-        public List<Medium> media { get; set; }
+        public Medium[] media { get; set; }
     }
 }

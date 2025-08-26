@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.FanCDN
 {
-    public class Episode
+    public struct Episode
     {
         public string title { get; set; }
 

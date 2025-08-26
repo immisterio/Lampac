@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.KinoPub
 {
-    public class Episode
+    public struct Episode
     {
         public long id { get; set; }
 
@@ -8,10 +8,10 @@
 
         public string title { get; set; }
 
-        public List<Subtitle> subtitles { get; set; }
+        public Subtitle[] subtitles { get; set; }
 
-        public List<File> files { get; set; }
+        public File[] files { get; set; }
 
-        public List<Audio> audios { get; set; }
+        public Audio[] audios { get; set; }
     }
 }

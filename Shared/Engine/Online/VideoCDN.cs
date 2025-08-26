@@ -64,12 +64,12 @@ namespace Shared.Engine.Online
             try
             {
                 root = JsonSerializer.Deserialize<SearchRoot>(json);
-                if (root?.data == null || root.data.Count == 0)
+                if (root?.data == null || root.data.Length == 0)
                     return null;
             }
             catch { return null; }
 
-            var stpl = new SimilarTpl(root.data.Count);
+            var stpl = new SimilarTpl(root.data.Length);
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -346,7 +346,7 @@ namespace Shared.Engine.Online
                             return string.Empty;
 
                         string sArhc = s.ToString();
-                        var etpl = new EpisodeTpl(season.folder.Count);
+                        var etpl = new EpisodeTpl(season.folder.Length);
 
                         foreach (var episode in season.folder)
                         {

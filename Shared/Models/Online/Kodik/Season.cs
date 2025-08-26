@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Kodik
 {
-    public class Season
+    public struct Season
     {
         public string link { get; set; }
 

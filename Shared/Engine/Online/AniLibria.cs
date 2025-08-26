@@ -115,7 +115,7 @@ namespace Shared.Engine.Online
                 {
                     string name = !string.IsNullOrEmpty(root.names.ru) && !string.IsNullOrEmpty(root.names.en) ? $"{root.names.ru} / {root.names.en}" : (root.names.ru ?? root.names.en);
 
-                    string img = root?.posters?.original?.url;
+                    string img = root.posters.original.url;
                     if (!string.IsNullOrEmpty(img))
                         img = "https://anilibria.tv" + img;
 

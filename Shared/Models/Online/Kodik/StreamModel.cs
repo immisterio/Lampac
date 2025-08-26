@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Kodik
 {
-    public class StreamModel
+    public struct StreamModel
     {
         public string q { get; set; }
 

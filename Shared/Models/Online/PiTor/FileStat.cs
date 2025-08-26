@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.PiTor
 {
-    public class FileStat
+    public struct FileStat
     {
         public int Id { get; set; }
 

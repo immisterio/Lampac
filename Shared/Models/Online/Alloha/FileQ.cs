@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Alloha
 {
-    public class FileQ
+    public struct FileQ
     {
         public string h264 { get; set; }
 

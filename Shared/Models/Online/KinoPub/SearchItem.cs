@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.KinoPub
 {
-    public class SearchItem
+    public struct SearchItem
     {
         public int id { get; set; }
 

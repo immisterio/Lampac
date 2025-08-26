@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.KinoPub
 {
-    public class File
+    public struct File
     {
         public string quality { get; set; }
 

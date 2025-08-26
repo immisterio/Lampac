@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.VideoCDN
 {
-    public class Folder
+    public struct Folder
     {
         public string id { get; set; }
 

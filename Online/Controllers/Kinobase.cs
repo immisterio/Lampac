@@ -2,6 +2,7 @@
 using Microsoft.Playwright;
 using Shared.PlaywrightCore;
 using Shared.Models.Online.Kinobase;
+using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
 {

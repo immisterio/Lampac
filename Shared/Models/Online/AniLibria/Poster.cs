@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.AniLibria
 {
-    public class Poster
+    public struct Poster
     {
         public Poster_url small { get; set; }
 
@@ -9,7 +9,7 @@
         public Poster_url original { get; set; }
     }
 
-    public class Poster_url
+    public struct Poster_url
     {
         public string url { get; set; }
     }

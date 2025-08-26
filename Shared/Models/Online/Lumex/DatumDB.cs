@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Lumex
 {
-    public class DatumDB
+    public struct DatumDB
     {
         public long id { get; set; }
 

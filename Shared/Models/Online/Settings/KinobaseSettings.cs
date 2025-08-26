@@ -1,6 +1,6 @@
 ﻿using Shared.Models.Base;
 
-namespace Shared.Models.Online.Kinobase
+namespace Shared.Models.Online.Settings
 {
     public class KinobaseSettings : BaseSettings
     {

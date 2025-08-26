@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Kodik
 {
-    public class Result
+    public struct Result
     {
         public string id { get; set; }
 

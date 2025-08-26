@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Lumex
 {
-    public class Datum
+    public struct Datum
     {
         public long kp_id { get; set; }
 

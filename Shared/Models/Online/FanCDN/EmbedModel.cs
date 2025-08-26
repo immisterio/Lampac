@@ -2,8 +2,8 @@
 {
     public class EmbedModel
     {
-        public List<Episode> movies { get; set; }
+        public Episode[] movies { get; set; }
 
-        public List<Voice> serial { get; set; }
+        public Voice[] serial { get; set; }
     }
 }

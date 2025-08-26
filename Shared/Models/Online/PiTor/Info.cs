@@ -1,11 +1,11 @@
 ﻿namespace Shared.Models.Online.PiTor
 {
-    public class Info
+    public struct Info
     {
-        public List<string> voices { get; set; }
+        public string[] voices { get; set; }
 
         public string sizeName { get; set; }
 
-        public List<int> seasons { get; set; }
+        public int[] seasons { get; set; }
     }
 }

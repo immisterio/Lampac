@@ -1,12 +1,12 @@
 ﻿namespace Shared.Models.Online.HDVB
 {
-    public class Folder
+    public struct Folder
     {
         public string id { get; set; }
 
         public string episode { get; set; }
 
-        public List<Folder> folder { get; set; }
+        public Folder[] folder { get; set; }
 
         public string title { get; set; }
 

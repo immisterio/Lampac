@@ -28,7 +28,7 @@ namespace Online.Controllers
 
                 torrents = new List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)>();
                 var results = root?.Results;
-                if (results != null && results.Count > 0)
+                if (results != null && results.Length > 0)
                 {
                     foreach (var torrent in results)
                     {
@@ -68,15 +68,15 @@ namespace Online.Controllers
 
                             if (sid >= init.min_sid)
                             {
-                                string mediainfo = torrent.info?.sizeName ?? string.Empty;
+                                string mediainfo = torrent.info.sizeName ?? string.Empty;
                                 if (!string.IsNullOrEmpty(mediainfo))
                                     mediainfo += " / ";
 
                                 #region Перевод
                                 string voicename = string.Empty;
 
-                                var voices = torrent.info?.voices;
-                                if (voices != null && voices.Count > 0)
+                                var voices = torrent.info.voices;
+                                if (voices != null && voices.Length > 0)
                                     voicename = string.Join(", ", voices);
                                 #endregion
 
@@ -273,7 +273,7 @@ namespace Online.Controllers
 
                     foreach (var t in movies)
                     {
-                        if (t.torrent?.info?.seasons == null || t.torrent.info.seasons.Count == 0)
+                        if (t.torrent.info.seasons == null || t.torrent.info.seasons.Length == 0)
                             continue;
 
                         foreach (var item in t.torrent.info.seasons)
@@ -291,10 +291,10 @@ namespace Online.Controllers
 
                     foreach (var torrent in movies)
                     {
-                        if (torrent.torrent?.info?.seasons == null || torrent.torrent.info.seasons.Count == 0)
+                        if (torrent.torrent.info.seasons == null || torrent.torrent.info.seasons.Length == 0)
                             continue;
 
-                        if (!torrent.torrent.info.seasons.Contains(s) || torrent.torrent.info.seasons.Count != 1) // многосезонный 
+                        if (!torrent.torrent.info.seasons.Contains(s) || torrent.torrent.info.seasons.Length != 1) // многосезонный 
                             continue;
 
                         string hashmagnet = Regex.Match(torrent.magnet, "magnet:\\?xt=urn:btih:([a-zA-Z0-9]+)").Groups[1].Value.ToLower();
@@ -397,7 +397,7 @@ namespace Online.Controllers
             DateTime startGotInfoTime = DateTime.Now;
 
             resetgotingo: stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
-            if (stat?.file_stats == null || stat.file_stats.Count == 0)
+            if (stat?.file_stats == null || stat.file_stats.Length == 0)
             {
                 if (DateTime.Now > startGotInfoTime.AddSeconds(20))
                 {

@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.AniLibria
 {
-    public class Hls
+    public struct Hls
     {
         public string fhd { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.PiTor
 {
-    public class Result
+    public struct Result
     {
         public string Tracker { get; set; }
         public string Title { get; set; }

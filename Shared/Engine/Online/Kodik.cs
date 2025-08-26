@@ -117,7 +117,7 @@ namespace Shared.Engine.Online
                         details += $"{stpl.OnlineSplit} {similar.last_season}й сезон";
 
                     var matd = similar.material_data;
-                    string img = PosterApi.Size(matd?.anime_poster_url ?? matd?.drama_poster_url ?? matd?.poster_url);
+                    string img = PosterApi.Size(matd.anime_poster_url ?? matd.drama_poster_url ?? matd.poster_url);
                     stpl.Append(name, similar.year.ToString(), details, host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}", img);
                 }
 
@@ -212,7 +212,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrWhiteSpace(id))
                             continue;
 
-                        string name = item.translation?.title ?? "оригинал";
+                        string name = item.translation.title ?? "оригинал";
                         if (hash.Contains(name) || !results.First(i => i.id == id).seasons.ContainsKey(s.ToString()))
                             continue;
 

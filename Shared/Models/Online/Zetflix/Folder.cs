@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Zetflix
 {
-    public class Folder
+    public struct Folder
     {
         public string comment { get; set; }
 

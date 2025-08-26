@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Lumex
 {
-    public class Medium
+    public struct Medium
     {
         public int translation_id { get; set; }
 
@@ -10,14 +10,14 @@
 
         public string playlist { get; set; }
 
-        public List<string> subtitles { get; set; }
+        public string[] subtitles { get; set; }
 
-        public List<Track> tracks { get; set; }
+        public Track[] tracks { get; set; }
 
 
 
         public int season_id { get; set; }
 
-        public List<Episode> episodes { get; set; }
+        public Episode[] episodes { get; set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.AniLibria
 {
-    public class Series
+    public struct Series
     {
         public int serie { get; set; }
 

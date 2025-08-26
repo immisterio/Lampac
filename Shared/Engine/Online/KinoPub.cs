@@ -56,14 +56,14 @@ namespace Shared.Engine.Online
                     var items = JsonSerializer.Deserialize<SearchObject>(json)?.items;
                     if (items != null)
                     {
-                        var ids = new List<int>(items.Count);
-                        var result = new SearchResult() { similars = new SimilarTpl(items.Count) };
+                        var ids = new List<int>(items.Length);
+                        var result = new SearchResult() { similars = new SimilarTpl(items.Length) };
 
                         string _q = StringConvert.SearchName(q);
 
                         foreach (var item in items)
                         {
-                            string img = PosterApi.Size(item?.posters?.Skip(1).First().Value);
+                            string img = PosterApi.Size(item.posters?.Skip(1)?.First().Value);
                             result.similars.Value.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", img);
 
                             if (item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id || $"tt{item.imdb}" == imdb_id)
@@ -155,7 +155,7 @@ namespace Shared.Engine.Online
                             voice += $" ({a.author.title})";
 
                         #region subtitle
-                        var subtitles = new SubtitleTpl(root.item.videos[0]?.subtitles?.Count ?? 0);
+                        var subtitles = new SubtitleTpl(root.item.videos[0]?.subtitles?.Length ?? 0);
 
                         if (root.item.videos[0].subtitles != null)
                         {
@@ -213,7 +213,7 @@ namespace Shared.Engine.Online
                                 continue;
 
                             #region subtitle
-                            var subtitles = new SubtitleTpl(v.subtitles?.Count ?? 0);
+                            var subtitles = new SubtitleTpl(v.subtitles?.Length ?? 0);
 
                             if (v.subtitles != null)
                             {
@@ -353,7 +353,7 @@ namespace Shared.Engine.Online
                                 continue;
 
                             #region subtitle
-                            var subtitles = new SubtitleTpl(episode.subtitles?.Count ?? 0);
+                            var subtitles = new SubtitleTpl(episode.subtitles?.Length ?? 0);
 
                             if (episode.subtitles != null)
                             {
@@ -378,7 +378,7 @@ namespace Shared.Engine.Online
                     {
                         var episodes = root.item.seasons.First(i => i.number == s).episodes;
 
-                        var etpl = new EpisodeTpl(episodes.Count);
+                        var etpl = new EpisodeTpl(episodes.Length);
 
                         foreach (var episode in episodes)
                         {
@@ -411,7 +411,7 @@ namespace Shared.Engine.Online
                                     continue;
 
                                 #region subtitle
-                                var subtitles = new SubtitleTpl(episode.subtitles?.Count ?? 0);
+                                var subtitles = new SubtitleTpl(episode.subtitles?.Length ?? 0);
 
                                 if (episode.subtitles != null)
                                 {
@@ -424,7 +424,7 @@ namespace Shared.Engine.Online
                                 #endregion
 
                                 #region streams
-                                var streams = new List<(string link, string quality)>(episode.files.Count);
+                                var streams = new List<(string link, string quality)>(episode.files.Length);
 
                                 foreach (var f in episode.files)
                                 {

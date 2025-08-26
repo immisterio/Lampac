@@ -87,7 +87,7 @@ namespace Online.Controllers
             if (player.content_type is "movie" or "anime")
             {
                 #region Фильм
-                var mtpl = new MovieTpl(title, original_title, player.media.Count);
+                var mtpl = new MovieTpl(title, original_title, player.media.Length);
 
                 foreach (var media in player.media)
                 {
@@ -109,7 +109,7 @@ namespace Online.Controllers
 
                 if (s == -1)
                 {
-                    var tpl = new SeasonTpl(player.media.First()?.max_quality?.ToString(), player.media.Count);
+                    var tpl = new SeasonTpl(player.media.First().max_quality?.ToString(), player.media.Length);
 
                     foreach (var media in player.media.OrderBy(s => s.season_id))
                     {
@@ -303,7 +303,7 @@ namespace Online.Controllers
                     }
                     else
                     {
-                        var tracks = player.media.FirstOrDefault(i => i.translation_id == translation_id)?.tracks;
+                        var tracks = player.media.FirstOrDefault(i => i.translation_id == translation_id).tracks;
                         if (tracks != null)
                         {
                             foreach (var t in tracks)
@@ -453,12 +453,12 @@ namespace Online.Controllers
                 try
                 {
                     root = JsonConvert.DeserializeObject<SearchRoot>(json);
-                    if (root?.data == null || root.data.Count == 0)
+                    if (root?.data == null || root.data.Length == 0)
                         return default;
                 }
                 catch { return default; }
 
-                var stpl = new SimilarTpl(root.data.Count);
+                var stpl = new SimilarTpl(root.data.Length);
 
                 string enc_title = HttpUtility.UrlEncode(title);
                 string enc_original_title = HttpUtility.UrlEncode(original_title);

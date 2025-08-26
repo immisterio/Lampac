@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.VideoCDN
 {
-    public class Datum
+    public struct Datum
     {
         public int kp_id { get; set; }
 

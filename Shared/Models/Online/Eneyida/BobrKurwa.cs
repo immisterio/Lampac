@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Online.Eneyida
 {
-    public class BobrKurwa
+    public struct BobrKurwa
     {
         public string name { get; set; }
 
