@@ -6,7 +6,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using IO = System.IO;
 using Shared;
@@ -124,13 +123,6 @@ namespace Lampac.Controllers
 			catch (Exception ex) { return Json(new { error = true, ex = ex.Message }); }
 
             var jo = JsonConvert.DeserializeObject<JObject>(json);
-
-			try
-			{
-				Directory.CreateDirectory("data/backup/init");
-                IO.File.WriteAllText($"data/backup/init/{DateTime.Now.ToString("dd-MM-yyyy.HH")}.conf", JsonConvert.SerializeObject(jo, Formatting.Indented));
-            }
-			catch { }
 
 			JToken users = null;
             var accsdbNode = jo["accsdb"] as JObject;

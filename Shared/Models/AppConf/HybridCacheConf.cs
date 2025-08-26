@@ -5,7 +5,5 @@
         public string type { get; set; }
 
         public int extend { get; set; }
-
-        public int rebuild_time { get; set; }
     }
 }

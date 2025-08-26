@@ -5,20 +5,22 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared;
+using Shared.Engine;
 using Shared.Models.Base;
+using Shared.Models.SISI;
+using Shared.Models.SISI.Base;
+using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Shared;
-using Shared.PlaywrightCore;
-using Shared.Engine;
-using System.Runtime.Loader;
 
 namespace Lampac
 {
@@ -48,6 +50,70 @@ namespace Lampac
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             CollectionDb.Configure();
+
+            #region migration
+            if (File.Exists("vers.txt"))
+            {
+                Console.WriteLine("run migration");
+
+                #region cache/storage
+                if (Directory.Exists("cache/storage"))
+                {
+                    string sourceDir = "cache/storage";
+                    string targetDir = "database/storage";
+
+                    void CopyAll(string source, string target)
+                    {
+                        Directory.CreateDirectory(target);
+
+                        foreach (string file in Directory.GetFiles(source))
+                        {
+                            string destFile = Path.Combine(target, Path.GetFileName(file));
+                            File.Copy(file, destFile, true);
+                        }
+
+                        foreach (string dir in Directory.GetDirectories(source))
+                        {
+                            string destDir = Path.Combine(target, Path.GetFileName(dir));
+                            CopyAll(dir, destDir);
+                        }
+                    }
+
+                    CopyAll(sourceDir, targetDir);
+                }
+                #endregion
+
+                #region cache/bookmarks/sisi
+                if (Directory.Exists("cache/bookmarks/sisi"))
+                {
+                    foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                    {
+                        string folderName = Path.GetFileName(folder);
+                        foreach (string file in Directory.GetFiles(folder))
+                        {
+                            try
+                            {
+                                string md5user = folderName + Path.GetFileName(file);
+                                var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
+
+                                if (bookmarks.Count > 0)
+                                {
+                                    CollectionDb.sisi_users.Insert(new User
+                                    {
+                                        Id = md5user,
+                                        Bookmarks = bookmarks
+                                    });
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                #endregion
+
+                File.Delete("vers.txt");
+            }
+            #endregion
 
             Http.onlog += (e, log) => soks.SendLog(log, "http");
             RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);

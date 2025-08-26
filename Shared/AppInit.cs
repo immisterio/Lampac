@@ -77,6 +77,13 @@ namespace Shared
                                 {
                                     updateConf();
                                     lastUpdateConf = lwt;
+
+                                    try
+                                    {
+                                        Directory.CreateDirectory("database/backup/init");
+                                        File.WriteAllText($"database/backup/init/{DateTime.Now.ToString("dd-MM-yyyy.HH")}.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
+                                    }
+                                    catch { }
                                 }
                             }
                         }
