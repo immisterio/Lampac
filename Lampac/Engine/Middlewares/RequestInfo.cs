@@ -198,10 +198,14 @@ namespace Lampac.Engine.Middlewares
                 <h5 class='card-title'>Укажите frontend для правильной обработки запроса</h5>
 				<br>
                 <p class='card-text'>Добавьте в init.conf следующий код:</p>
-                <pre style='background: #e9ecef;'><code>""frontend"": ""cloudflare""</code></pre>
+                <pre style='background: #e9ecef;'><code>""listen"": {
+  ""frontend"": ""cloudflare""
+}</code></pre>
 				<br>
                 <p class='card-text'>Либо отключите проверку CF-Connecting-IP:</p>
-                <pre style='background: #e9ecef;'><code>""frontend"": ""off""</code></pre>
+                <pre style='background: #e9ecef;'><code>""listen"": {
+  ""frontend"": ""off""
+}</code></pre>
 				<br>
                 <p class='card-text'>Так же параметр можно изменить в <a href='/admin' target='_blank'>админке</a>: Остальное, base, frontend</p>
             </div>

@@ -426,7 +426,7 @@ namespace Shared
         {
             NextHUB = true, spider = true,
             component = "sisi", iconame = "", push_all = true,
-            heightPicture = 240, rsize = true, rsize_disable = new string[] { "BongaCams", "Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx" },
+            heightPicture = 240, rsize = true, rsize_disable = ["Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx", "Porndig", "Youjizz", "Veporn", "Pornk"],
             bookmarks = new BookmarksConf() { saveimage = true, savepreview = true }
         };
 
