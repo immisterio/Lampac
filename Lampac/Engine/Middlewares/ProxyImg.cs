@@ -318,7 +318,7 @@ namespace Lampac.Engine.Middlewares
             {
                 using (var image = NetVips.Image.NewFromBuffer(array))
                 {
-                    if (image.Width > width || image.Height > height)
+                    if ((width != 0 && image.Width > width) || (height != 0 && image.Height > height))
                     {
                         using (var res = image.ThumbnailImage(width == 0 ? image.Width : width, height == 0 ? image.Height : height, crop: NetVips.Enums.Interesting.None))
                         {
