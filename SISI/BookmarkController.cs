@@ -1,5 +1,6 @@
 ﻿using LiteDB;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Models.SISI;
 using System.Web;
 
 namespace SISI
@@ -103,7 +104,17 @@ namespace SISI
             var collection = CollectionDb.sisi_users;
             var user = collection.FindById(md5user);
             if (user == null)
-                return OnError("user not found");
+            {
+                CollectionDb.sisi_users.Insert(new User
+                {
+                    Id = md5user,
+                    Bookmarks = new List<PlaylistItem>()
+                });
+
+                user = collection.FindById(md5user);
+                if (user == null)
+                    return OnError("user not found");
+            }
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
@@ -173,7 +184,7 @@ namespace SISI
 
             return Json(new
             {
-                result = true,
+                result = true
             });
         }
 
