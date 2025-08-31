@@ -1,8 +1,9 @@
 ﻿using Shared.Models.Base;
+using Shared.Models.SISI.Base;
 
 namespace Shared.Models.SISI.NextHUB
 {
-    public class NxtSettings : BaseSettings
+    public class NxtSettings : BaseSettings, ICloneable
     {
         public NxtSettings()
         {
@@ -38,5 +39,16 @@ namespace Shared.Models.SISI.NextHUB
         public ContentParseSettings contentParse { get; set; }
 
         public ViewSettings view { get; set; }
+
+
+        public NxtSettings Clone()
+        {
+            return (NxtSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
+        }
     }
 }

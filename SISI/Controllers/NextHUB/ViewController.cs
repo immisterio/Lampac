@@ -23,7 +23,7 @@ namespace SISI.Controllers.NextHUB
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
-            var init = Root.goInit(plugin);
+            var init = Root.goInit(plugin)?.Clone();
             if (init == null)
                 return OnError("init not found");
 

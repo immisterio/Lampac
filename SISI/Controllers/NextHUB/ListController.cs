@@ -18,7 +18,7 @@ namespace SISI.Controllers.NextHUB
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
 
-            var init = Root.goInit(plugin);
+            var init = Root.goInit(plugin)?.Clone();
             if (init == null)
                 return OnError("init not found", rcache: false);
 

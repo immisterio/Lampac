@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models.Base
 {
-    public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup , ICloneable
+    public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup, ICloneable
     {
         bool _enable;
 
