@@ -137,16 +137,25 @@ namespace Shared.Engine
 
         async public static Task Cron()
         {
+            var temp = new HashSet<string>();
+
             while (true)
             {
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                 try
                 {
+                    if (DateTime.Now.Minute == 1)
+                        temp.Clear();
+
                     foreach (var link in links)
                     {
-                        link.Value.Id = link.Key;
-                        CollectionDb.proxyLink.Upsert(link.Value);
+                        if (!temp.Contains(link.Key) || DateTime.Now.AddHours(1) > link.Value.ex)
+                        {
+                            link.Value.Id = link.Key;
+                            CollectionDb.proxyLink.Upsert(link.Value);
+                            temp.Add(link.Key);
+                        }
 
                         links.TryRemove(link.Key, out _);
                     }
