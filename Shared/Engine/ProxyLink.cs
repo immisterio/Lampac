@@ -139,7 +139,7 @@ namespace Shared.Engine
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromMinutes(5)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
 
                 try
                 {

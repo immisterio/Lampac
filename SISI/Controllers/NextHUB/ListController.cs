@@ -267,7 +267,7 @@ namespace SISI.Controllers.NextHUB
                 var options = ScriptOptions.Default
                     .AddReferences(typeof(PlaylistItem).Assembly)
                     .AddImports(typeof(PlaylistItem).Namespace)
-                    .AddImports("Shared.Model.SISI")
+                    .AddImports("Shared.Models.SISI")
                     .AddReferences(typeof(HtmlDocument).Assembly)
                     .AddImports(typeof(HtmlDocument).Namespace);
 
@@ -470,7 +470,7 @@ namespace SISI.Controllers.NextHUB
                         var options = ScriptOptions.Default
                             .AddReferences(typeof(PlaylistItem).Assembly)
                             .AddImports(typeof(PlaylistItem).Namespace)
-                            .AddImports("Shared.Model.SISI")
+                            .AddImports("Shared.Models.SISI")
                             .AddReferences(typeof(HtmlDocument).Assembly)
                             .AddImports(typeof(HtmlDocument).Namespace);
 

@@ -23,11 +23,11 @@ namespace SISI.Controllers.NextHUB
 
             .AddReferences(typeof(RchClient).Assembly)
             .AddReferences(typeof(Http).Assembly)
-            .AddImports("Lampac.Engine.CORE")
+            .AddImports("Shared.Engine")
 
             .AddReferences(typeof(PlaylistItem).Assembly)
             .AddImports(typeof(PlaylistItem).Namespace)
-            .AddImports("Shared.Model.SISI");
+            .AddImports("Shared.Models.SISI");
         #endregion
 
         public static NxtSettings goInit(string plugin)

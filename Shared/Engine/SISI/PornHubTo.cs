@@ -997,16 +997,12 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(hls))
             {
                 var qualitys = new Dictionary<string, string>();
-                string flashvars = StringConvert.FindLastText(html, "var flashvars", "player_mp4_seek");
 
-                if (flashvars != null)
+                foreach (string q in new string[] { "1080", "720", "480", "240" })
                 {
-                    foreach (string q in new string[] { "1080", "720", "480", "240" })
-                    {
-                        string video = Regex.Match(flashvars, $"\"hls\",\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"").Groups[1].Value;
-                        if (!string.IsNullOrEmpty(video))
-                            qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
-                    }
+                    string video = Regex.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"").Groups[1].Value;
+                    if (!string.IsNullOrEmpty(video))
+                        qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
                 }
 
                 if (qualitys.Count > 0)

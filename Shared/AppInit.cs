@@ -410,7 +410,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "4e69d324e3e5e8c0a4379b0f89a7ce6bd96173cf"
+            tree = "edd223653b4bcb1752faa5befce631bdba8a608a"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -927,10 +927,12 @@ namespace Shared
         };
 
         /// <summary>
-        /// kwwsv=22dsl1vuyns1frp
-        /// kwwsv=22nsdss1olqn2dsl
+        /// https://api.srvkp.com - стандартный 
+        /// https://kpapp.link/api - smart tv
+        /// https://cdn4t.store/api - apk
+        /// https://api.service-kp.com - старый 
         /// </summary>
-        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "kwwsv=22dsl1vuyns1frp")
+        public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "https://api.srvkp.com")
         {
             filetype = "hls",
             headers = HeadersModel.Init(
