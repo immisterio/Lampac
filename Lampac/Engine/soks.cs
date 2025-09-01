@@ -32,24 +32,13 @@ namespace Lampac.Engine
             RchClient.Registry(requestInfo.IP, Context.ConnectionId, AppInit.Host(httpContext), json);
         }
 
-        /// <summary>
-        /// Старые версии online.js
-        /// </summary>
-        public void Registry(string type)
+        public void RchResult(string id, string value)
         {
-            if (!AppInit.conf.rch.enable || string.IsNullOrEmpty(type))
+            if (!AppInit.conf.rch.enable)
                 return;
 
-            switch (type)
-            {
-                case "rch":
-                    if (AppInit.conf.rch.enable)
-                    {
-                        var requestInfo = Context.GetHttpContext().Features.Get<RequestModel>();
-                        RchClient.Registry(requestInfo.IP, Context.ConnectionId);
-                    }
-                    break;
-            }
+            if (!RchClient.rchIds.TryGetValue(id, out var tcs))
+                tcs.SetResult(value ?? string.Empty);
         }
         #endregion
 
