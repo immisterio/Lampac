@@ -13,7 +13,7 @@ apt-get install -y libicu72 curl unzip
 # Install .NET
 curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
 chmod 755 dotnet-install.sh
-./dotnet-install.sh --channel 9.0 --runtime aspnetcore --install-dir /usr/share/dotnet
+./dotnet-install.sh --channel 6.0 --runtime aspnetcore --install-dir /usr/share/dotnet
 ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 rm dotnet-install.sh
 
@@ -126,15 +126,15 @@ EOF
 cat <<EOF > Lampac.runtimeconfig.json
 {
   "runtimeOptions": {
-    "tfm": "net9.0",
+    "tfm": "net6.0",
     "frameworks": [
       {
         "name": "Microsoft.NETCore.App",
-        "version": "9.0.0"
+        "version": "6.0.0"
       },
       {
         "name": "Microsoft.AspNetCore.App",
-        "version": "9.0.0"
+        "version": "6.0.0"
       }
     ],
     "configProperties": {

@@ -1,5 +1,4 @@
 ﻿using Shared.Models.Base;
-using Shared.Models.SISI.Base;
 
 namespace Shared.Models.SISI.NextHUB
 {

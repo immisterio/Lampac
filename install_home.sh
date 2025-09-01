@@ -119,15 +119,15 @@ EOF
 cat <<EOF > $DEST/Lampac.runtimeconfig.json
 {
   "runtimeOptions": {
-    "tfm": "net9.0",
+    "tfm": "net6.0",
     "frameworks": [
       {
         "name": "Microsoft.NETCore.App",
-        "version": "9.0.0"
+        "version": "6.0.0"
       },
       {
         "name": "Microsoft.AspNetCore.App",
-        "version": "9.0.0"
+        "version": "6.0.0"
       }
     ],
     "configProperties": {
