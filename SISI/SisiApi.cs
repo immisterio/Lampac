@@ -162,7 +162,7 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null)
+            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null, int displayindex = -1)
             {
                 var init = loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
@@ -220,9 +220,12 @@ namespace SISI
                     if (string.IsNullOrEmpty(url))
                         url = $"{host}/{plugin ?? name.ToLower()}";
 
-                    int displayindex = init.displayindex;
-                    if (displayindex == 0)
-                        displayindex = 20 + channels.Count;
+                    if (displayindex == -1)
+                    {
+                        displayindex = init.displayindex;
+                        if (displayindex == 0)
+                            displayindex = 20 + channels.Count;
+                    }
 
                     channels.Add(new ChannelItem(init.displayname ?? name, url, displayindex));
                 }
@@ -240,6 +243,9 @@ namespace SISI
                             continue;
 
                         string plugin = Path.GetFileNameWithoutExtension(inFile);
+                        if (!conf.sisi.lgbt && plugin == "gayporntube")
+                            continue;
+
                         var init = Controllers.NextHUB.Root.goInit(plugin);
                         if (init == null)
                             continue;
@@ -292,6 +298,15 @@ namespace SISI
 
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
+            if (conf.sisi.lgbt)
+            {
+                send("phubgay", conf.PornHub, "phubgay", "apk,cors", 10_100);
+                send("phubtrans", conf.PornHub, "phubsml", "apk,cors", 10_101);
+                send("xdsgay", conf.Xvideos, "xdsgay", "apk,cors", 10_102);
+                send("xdstrans", conf.Xvideos, "xdssml", "apk,cors", 10_103);
+                send("xmrgay", conf.Xhamster, "xmrgay", "apk,cors", 10_104);
+                send("xmrtrans", conf.Xhamster, "xmrsml", "apk,cors", 10_105);
+            }
 
             if (conf.sisi.xdb)
             {

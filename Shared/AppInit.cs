@@ -410,7 +410,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "edd223653b4bcb1752faa5befce631bdba8a608a"
+            tree = "129db4a3142b6d042cfbff1eb7d2a0d019bf9e9c"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -424,7 +424,7 @@ namespace Shared
 
         public SisiConf sisi { get; set; } = new SisiConf()
         {
-            NextHUB = true, spider = true,
+            NextHUB = true, lgbt = true, spider = true,
             component = "sisi", iconame = "", push_all = true,
             heightPicture = 240, rsize = true, rsize_disable = ["Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx", "Porndig", "Youjizz", "Veporn", "Pornk"],
             bookmarks = new BookmarksConf() { saveimage = true, savepreview = true }
@@ -1091,34 +1091,35 @@ namespace Shared
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
-                ("origin", "kwwsv=22dqlphole1ruj"),
-                ("referer", "kwwsv=22dqlphole1ruj2"),
+                ("origin", "encrypt:kwwsv=22dqlphole1ruj"),
+                ("referer", "encrypt:kwwsv=22dqlphole1ruj2"),
                 ("pragma", "no-cache"),
                 ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
+                ("sec-ch-ua", "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
+                ("accept-encoding", "identity;q=1, *;q=0"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
-                ("origin", "kwwsv=22dqlphole1ruj"),
-                ("referer", "kwwsv=22dqlphole1ruj2"),
+                ("origin", "encrypt:kwwsv=22dqlphole1ruj"),
+                ("referer", "encrypt:kwwsv=22dqlphole1ruj2"),
                 ("pragma", "no-cache"),
                 ("priority", "i"),
-                ("sec-ch-ua", "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\""),
+                ("sec-ch-ua", "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "video"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
             ).ToDictionary()
         };
 

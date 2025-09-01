@@ -15,6 +15,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Shared.Models.Proxy;
 using Shared.Engine;
+using Newtonsoft.Json;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -496,7 +497,9 @@ namespace Lampac.Engine.Middlewares
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);
+
             //requestMessage.Version = new Version(2, 0);
+            //Console.WriteLine(JsonConvert.SerializeObject(requestMessage.Headers, Formatting.Indented));
 
             return requestMessage;
         }

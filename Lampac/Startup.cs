@@ -103,7 +103,7 @@ namespace Lampac
             {
                 services.AddResponseCompression(options =>
                 {
-                    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/vnd.apple.mpegurl", "image/svg+xml" });
+                    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/vnd.apple.mpegurl", "image/svg+xml"]);
                 });
             }
 

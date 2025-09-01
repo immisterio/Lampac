@@ -73,11 +73,7 @@ namespace SISI.Controllers.NextHUB
             if (related)
                 return OnResult(stream_links?.recomends, null, plugin: plugin, total_pages: 1);
 
-            var headers = video.headers;
-            if (init.headers_stream != null)
-                headers = httpHeaders(init.host, init.headers_stream);
-
-            return OnResult(stream_links, init, proxy.proxy, headers_stream: headers);
+            return OnResult(stream_links, init, proxy.proxy, headers_stream: httpHeaders(init.host, init.headers_stream != null ? init.headers_stream : init.headers_stream));
         }
 
 

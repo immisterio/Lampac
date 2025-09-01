@@ -4,6 +4,8 @@
     {
         public bool xdb { get; set; }
 
+        public bool lgbt { get; set; }
+
         public bool NextHUB { get; set; }
 
         public string[] NextHUB_sites_enabled { get; set; }

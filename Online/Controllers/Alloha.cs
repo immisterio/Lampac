@@ -284,7 +284,7 @@ namespace Online.Controllers
                                     return;
                                 }
 
-                                if (route.Request.Url.Contains("/api/movies/"))
+                                if (route.Request.Url.Contains("/apis/movies/"))
                                 {
                                     await route.ContinueAsync();
                                     var response = await page.WaitForResponseAsync(route.Request.Url);
