@@ -35,7 +35,7 @@ namespace Shared.Engine
                             if (clients.ContainsKey(client.Key))
                             {
                                 var rch = new RchClient(client.Key);
-                                string result = await rch.SendHub($"{client.Value.host}/ping");
+                                string result = await rch.SendHub("ping");
                                 if (result != "pong")
                                     OnDisconnected(client.Key);
                             }
@@ -112,10 +112,10 @@ namespace Shared.Engine
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {
                 rch = true,
-                keepalive = kplv,
-                result = $"{host}/rch/result",
                 ws = $"{host}/ws",
-                timeout = init.rhub_fallback ? 5 : 8
+                //keepalive = kplv,
+                //result = $"{host}/rch/result",
+                //timeout = init.rhub_fallback ? 5 : 8
             });
         }
 

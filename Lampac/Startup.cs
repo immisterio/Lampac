@@ -1,6 +1,5 @@
 using Lampac.Engine;
 using Lampac.Engine.Middlewares;
-using Shared.Models.Module;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -16,7 +15,10 @@ using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
 using Newtonsoft.Json;
+using Shared;
 using Shared.Engine;
+using Shared.Models.Module;
+using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,8 +27,6 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using Shared;
-using Shared.PlaywrightCore;
 
 namespace Lampac
 {
@@ -110,7 +110,9 @@ namespace Lampac
             services.AddSignalR(o =>
             {
                 o.EnableDetailedErrors = true;
-                o.MaximumParallelInvocationsPerClient = 5;
+                o.MaximumParallelInvocationsPerClient = 2;
+                o.MaximumReceiveMessageSize = 1024 * 1024 * 10; // 10MB
+                o.StreamBufferCapacity = 1024 * 1024;           // 1MB
             });
 
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();

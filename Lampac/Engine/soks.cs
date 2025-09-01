@@ -37,7 +37,7 @@ namespace Lampac.Engine
             if (!AppInit.conf.rch.enable)
                 return;
 
-            if (!RchClient.rchIds.TryGetValue(id, out var tcs))
+            if (RchClient.rchIds.TryGetValue(id, out var tcs))
                 tcs.SetResult(value ?? string.Empty);
         }
         #endregion
