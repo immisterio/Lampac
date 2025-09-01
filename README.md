@@ -69,8 +69,6 @@ ip:9118/admin
 # Источники онлайн
 Filmix, KinoPub, Alloha, Rezka, GetsTV, iptv.online, Kinobase, Zetflix, Collaps, Lumex, VDBmovies, VideoDB, Vibix, Videoseed, VeoVeo, HDVB, Kodik, Ashdi (Украинский), Eneyida (Украинский), KinoUKR (Украинский), FanCDN, Kinotochka, CDNmovies, Redheadsound, VoKino, Rutube, Plvideo, Anilibria, AniLiberty, AniMedia, AnimeLib, MoonAnime (Украинский), Animevost, Animebesst, AnimeGo, HydraFlix (ENG), VidSrc (ENG), MovPI (ENG), Videasy (ENG), 2Embed (ENG), VidLink (ENG), AutoEmbed (ENG), SmashyStream (ENG), PlayEmbed (ENG), RgShows (ENG)
 
-Для работы Lumex и ENG балансеров, нужно включить Firefox в init.conf
-
 # Источники 18+
 PornHub, PornHubPremium, Bongacams, Chaturbate, Cam4, Ebalovo, Eporner, HQporner, Porntrex, Spankbang, Xhamster, Xnxx, Xvideos, Lenporno, Porno365, Vtrahe, RUSporno, ProstoPorno, PornOne, Brazzrus, FilmAdult, Sosushka, Youjizz, NoodleMagazine, Veporn, XXXperevod, Huyamba, Pornk, PornoAkt, Porn4days, Beeg, Porndig, 24video, yaeby, trahkino, sex-studentki, hochu.tv, oxax.tv, Rusvideos, Porno666, Pornobolt, JopaOnline, Ebun, Pornobriz, 24rolika, SemBatsa, Lenkino, Ebasos, Vporno, BigBoss, GayPornTube
 

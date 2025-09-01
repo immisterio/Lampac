@@ -17,6 +17,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
@@ -35,17 +36,51 @@ namespace Lampac
 
         public static void Main(string[] args)
         {
-            #region load references
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+            bool IsAssemblyLoaded(AssemblyName assemblyName)
+            {
+                foreach (var assembly in assemblies)
+                {
+                    if (assembly.GetName().Name == assemblyName.Name)
+                        return true;
+                }
+
+                return false;
+            }
+
+            foreach (string dllPath in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "runtimes", "references"), "*.dll", SearchOption.AllDirectories))
+            {
+                try
+                {
+                    AssemblyName assemblyName = AssemblyName.GetAssemblyName(dllPath);
+                    if (!IsAssemblyLoaded(assemblyName))
+                        Assembly.LoadFrom(dllPath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to load {dllPath}: {ex.Message}");
+                }
+            }
+
+
             AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
             {
-                var assemblyPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "references", $"{assemblyName.Name}.dll");
-                if (File.Exists(assemblyPath))
-                    return context.LoadFromAssemblyPath(assemblyPath);
+                foreach (string name in new string[] { $"ru/{assemblyName.Name}", assemblyName.Name })
+                {
+                    string assemblyPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "references", name);
+                    if (File.Exists(assemblyPath))
+                        return context.LoadFromAssemblyPath(assemblyPath);
+                }
 
                 return null;
             };
-            #endregion
 
+            Run(args);
+        }
+
+        static void Run(string[] args)
+        {
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 

@@ -30,12 +30,12 @@ namespace Shared.Engine
 
                     try
                     {
-                        await Parallel.ForEachAsync(clients.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (client, cancellationToken) =>
+                        await Parallel.ForEachAsync(clients.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (client, cancellationToken) =>
                         {
                             if (clients.ContainsKey(client.Key))
                             {
                                 var rch = new RchClient(client.Key);
-                                string result = await rch.SendHub("ping");
+                                string result = await rch.SendHub("ping", useDefaultHeaders: false);
                                 if (result != "pong")
                                     OnDisconnected(client.Key);
                             }
@@ -136,7 +136,7 @@ namespace Shared.Engine
         {
             try
             {
-                string json = await SendHub("eval", data).ConfigureAwait(false);
+                string json = await SendHub("eval", data, useDefaultHeaders: false).ConfigureAwait(false);
                 if (json == null)
                     return default;
 

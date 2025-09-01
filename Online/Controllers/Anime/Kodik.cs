@@ -139,7 +139,7 @@ namespace Online.Controllers
 
                 var proxy = proxyManager.Get();
 
-                string memKey = $"kodik:view:stream:{link}:{init.secret_token}:{userIp}";
+                string memKey = $"kodik:view:stream:{link}:{init.secret_token}";
                 if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
                 {
                     string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");

@@ -35,10 +35,7 @@
 		<!-- Перемещаем зависимости -->
 		<Move SourceFiles="@(DependencyDlls)"
 			  DestinationFiles="@(DependencyDlls->'$(PublishDir)runtimes\references\%(Filename)%(Extension)')"
-			  Condition="'@(DependencyDlls)' != '' 
-						 AND '%(Filename)%(Extension)' != 'Microsoft.Playwright.dll'
-						 AND '%(Filename)%(Extension)' != 'Newtonsoft.Json.dll'
-						 AND '%(Filename)%(Extension)' != 'Shared.dll'" />
+			  Condition="'@(DependencyDlls)' != '' />
 	</Target>
 	
 </Project>
