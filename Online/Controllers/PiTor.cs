@@ -327,7 +327,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/pidtor/serial/{id}")]
-        async public ValueTask<ActionResult> Serial(string account_email, string id, string title, string original_title, int s, bool rjson = false)
+        async public ValueTask<ActionResult> Serial(string id, string account_email, string title, string original_title, int s, bool rjson = false)
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
@@ -336,83 +336,89 @@ namespace Online.Controllers
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            string tr = Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(title|account_email|original_title)=[^&]+", "");
-            string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
+            string tr = Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|title|original_title|rjson|s)=[^&]+", "");
 
-            (List<HeadersModel> header, string host) gots()
+            #region Кеш запроса
+            string memKey = $"pidtor:serial:{id}";
+            if (!hybridCache.TryGetValue(memKey, out FileStat[] file_stats))
             {
-                if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
+                #region gots
+                (List<HeadersModel> header, string host) gots()
                 {
-                    if (System.IO.File.Exists("torrserver/accs.db"))
+                    if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
                     {
-                        string accs = System.IO.File.ReadAllText("torrserver/accs.db");
-                        string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
+                        if (System.IO.File.Exists("torrserver/accs.db"))
+                        {
+                            string accs = System.IO.File.ReadAllText("torrserver/accs.db");
+                            string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
 
-                        return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{AppInit.conf.listen.localhost}:9080");
+                            return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{AppInit.conf.listen.localhost}:9080");
+                        }
+
+                        return (null, $"http://{AppInit.conf.listen.localhost}:9080");
                     }
 
-                    return (null, $"http://{AppInit.conf.listen.localhost}:9080");
-                }
-
-                if (init.auth_torrs != null && init.auth_torrs.Count > 0)
-                {
-                    var ts = init.auth_torrs.First();
-                    string login = ts.login.Replace("{account_email}", account_email);
-                    var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}");
-
-                    return (httpHeaders(ts.host, HeadersModel.Join(auth, ts.headers)), ts.host);
-                }
-                else
-                {
-                    if (init.base_auth != null && init.base_auth.enable)
+                    if (init.auth_torrs != null && init.auth_torrs.Count > 0)
                     {
                         var ts = init.auth_torrs.First();
-                        string login = init.base_auth.login.Replace("{account_email}", account_email);
-                        var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}");
+                        string login = ts.login.Replace("{account_email}", account_email);
+                        var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}");
 
-                        return (httpHeaders(ts.host, HeadersModel.Join(auth, init.base_auth.headers)), ts.host);
+                        return (httpHeaders(ts.host, HeadersModel.Join(auth, ts.headers)), ts.host);
+                    }
+                    else
+                    {
+                        if (init.base_auth != null && init.base_auth.enable)
+                        {
+                            var ts = init.auth_torrs.First();
+                            string login = init.base_auth.login.Replace("{account_email}", account_email);
+                            var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}");
+
+                            return (httpHeaders(ts.host, HeadersModel.Join(auth, init.base_auth.headers)), ts.host);
+                        }
+
+                        return (null, init.torrs.First());
+                    }
+                }
+                #endregion
+
+                var ts = gots();
+
+                string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
+                string hash = await Http.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
+                if (hash == null)
+                    return OnError();
+
+                hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(hash))
+                    return OnError();
+
+                Stat stat = null;
+                var ex = DateTime.Now.AddSeconds(20);
+
+                resetgotingo: stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
+                if (stat?.file_stats == null || stat.file_stats.Length == 0)
+                {
+                    if (DateTime.Now > ex)
+                    {
+                        _ = Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", headers: ts.header);
+                        return OnError();
                     }
 
-                    return (null, init.torrs.First());
-                }
-            }
-
-
-            string tskey = $"pidtor:ts:{id}:{requestInfo.IP}";
-            if (!hybridCache.TryGetValue(tskey, out (List<HeadersModel> header, string host) ts))
-            {
-                ts = gots();
-                hybridCache.Set(tskey, ts, DateTime.Now.AddHours(4));
-            }
-
-            string hash = await Http.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
-            if (hash == null)
-                return OnError();
-
-            hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(hash))
-                return OnError();
-
-            Stat stat = null;
-            DateTime startGotInfoTime = DateTime.Now;
-
-            resetgotingo: stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
-            if (stat?.file_stats == null || stat.file_stats.Length == 0)
-            {
-                if (DateTime.Now > startGotInfoTime.AddSeconds(20))
-                {
-                    _ = await Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 2, headers: ts.header);
-                    return OnError();
+                    await Task.Delay(250);
+                    goto resetgotingo;
                 }
 
-                await Task.Delay(250);
-                goto resetgotingo;
-            }
+                _ = Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", headers: ts.header);
 
+                file_stats = stat.file_stats;
+                hybridCache.Set(memKey, file_stats, DateTime.Now.AddHours(36));
+            }
+            #endregion
 
             var mtpl = new EpisodeTpl();
 
-            foreach (var torrent in stat.file_stats)
+            foreach (var torrent in file_stats)
             {
                 if (Path.GetExtension(torrent.Path) is ".srt" or ".txt" or ".jpg" or ".png")
                     continue;
@@ -441,16 +447,28 @@ namespace Online.Controllers
             string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|tsid)=[^&]+", "");
 
             #region auth_stream
-            async ValueTask<RedirectResult> auth_stream(string host, string login, string passwd, string uhost = null, Dictionary<string, string> addheaders = null)
+            async ValueTask<ActionResult> auth_stream(string host, string login, string passwd, string uhost = null, Dictionary<string, string> addheaders = null)
             {
-                login = login.Replace("{account_email}", account_email ?? string.Empty);
+                string memKey = $"pidtor:auth_stream:{id}:{uhost ?? host}";
+                if (!hybridCache.TryGetValue(memKey, out string hash))
+                {
+                    login = login.Replace("{account_email}", account_email ?? string.Empty);
 
-                var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
-                    headers = HeadersModel.Join(headers, addheaders);
+                    var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
+                        headers = HeadersModel.Join(headers, addheaders);
 
-                await Http.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
+                    hash = await Http.Post($"{uhost ?? host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
+                    if (hash == null)
+                        return OnError();
 
-                return Redirect($"{uhost ?? host}/stream?link={HttpUtility.UrlEncode($"magnet:?xt=urn:btih:{id}")}&index={index}&play");
+                    hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
+                    if (string.IsNullOrEmpty(hash))
+                        return OnError();
+
+                    hybridCache.Set(memKey, hash, DateTime.Now.AddMinutes(5));
+                }
+
+                return Redirect($"{uhost ?? host}/stream?link={hash}&index={index}&play");
             }
             #endregion
 
