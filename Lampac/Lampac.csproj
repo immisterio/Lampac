@@ -35,7 +35,7 @@
 		<!-- Перемещаем зависимости -->
 		<Move SourceFiles="@(DependencyDlls)"
 			  DestinationFiles="@(DependencyDlls->'$(PublishDir)runtimes\references\%(Filename)%(Extension)')"
-			  Condition="'@(DependencyDlls)' != '' />
+			  Condition="'@(DependencyDlls)' != ''" />
 	</Target>
 	
 </Project>
