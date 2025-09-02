@@ -465,7 +465,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(hash))
                         return OnError();
 
-                    hybridCache.Set(memKey, hash, DateTime.Now.AddMinutes(5));
+                    hybridCache.Set(memKey, hash, DateTime.Now.AddMinutes(1));
                 }
 
                 return Redirect($"{uhost ?? host}/stream?link={hash}&index={index}&play");
