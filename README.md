@@ -13,7 +13,7 @@ curl -L -k -s https://lampac.sh | bash
 * Рекомендуемые требования: 1 CPU, 2GB RAM, 5GB SSD
 * Порт генерируется рандомно и выводится в конце установки скрипта
 * Изменить или посмотреть порт можно в init.conf - 
-```grep "listenport" /home/lampac/init.conf```
+```grep "port" /home/lampac/init.conf```
 
 # Домашняя (облегченная) - linux
 ```

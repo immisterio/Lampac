@@ -50,11 +50,6 @@ cat <<EOF > init.conf
   "weblog": {
     "enable": true
   },
-  "rch": {
-    "enable": true,
-    "keepalive": 300,
-    "permanent_connection": true
-  },
   "LampaWeb": {
     "initPlugins": {
       "dlna": false,
@@ -140,8 +135,8 @@ cat <<EOF > Lampac.runtimeconfig.json
       "System.GC.Server": true,
       "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
       "System.Reflection.NullabilityInfoContext.IsSupported": true,
-      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
-      "System.GC.HeapHardLimit": 50000000
+      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+      "System.GC.HeapHardLimit": 100000000
     }
   }
 }
