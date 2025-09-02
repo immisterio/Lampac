@@ -48,7 +48,7 @@ namespace TorrServer.Controllers
             {
                 Authorization = new AuthenticationHeaderValue("Basic", CrypTo.Base64($"ts:{ModInit.tspass}")),
             },
-            Timeout = TimeSpan.FromSeconds(10)
+            Timeout = TimeSpan.FromSeconds(30)
         };
         #endregion
 
@@ -276,7 +276,8 @@ namespace TorrServer.Controllers
                 if (!responseStream.CanRead || !response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnreadableStream");
 
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                int rent = responseMessage.Content.Headers.ContentLength > 100000000 ? 81920 : 4096;
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(rent);
 
                 try
                 {

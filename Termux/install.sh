@@ -27,7 +27,6 @@ echo -n "termux" > passwd
 # init.conf
 cat <<EOF > init.conf
 {
-  "listenport": 9118,
   "typecache": "mem",
   "mikrotik": true,
   "compression": false,

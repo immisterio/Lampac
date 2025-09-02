@@ -62,7 +62,9 @@ EOF
 if [ ! -f "$DEST/init.conf" ]; then
 random_port=$(shuf -i 9000-12999 -n 1)
 cat <<EOF > $DEST/init.conf
-"listenport": $random_port
+"listen": {
+  "port": $random_port
+}
 EOF
 fi
 
