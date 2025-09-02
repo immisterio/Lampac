@@ -19,7 +19,8 @@ curl -L -k -s https://lampac.sh | bash
 ```
 curl -L -k -s https://lampac.sh/home | bash
 ```
-* 200Mb RAM, 200Mb HDD, до 10 пользователей
+* Минимальные требования: 1 CPU, 500Mb RAM, 1GB HDD
+* Рекомендуемые требования: 1 CPU, 1GB RAM, 1GB SSD
 * DLNA/Chromium/Firefox по умолчанию отключен, включается в init.conf
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
