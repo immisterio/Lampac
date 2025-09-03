@@ -61,7 +61,7 @@ namespace Online.Controllers
 
             var cache = await InvokeCache<EmbedModel>($"kinobase:view:{href}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
             {
-                var content = await oninvk.Embed(href);
+                var content = await oninvk.Embed(href, init.playerjs);
                 if (content == null)
                     return res.Fail("embed");
 
@@ -131,7 +131,7 @@ namespace Online.Controllers
                                 return;
                             }
 
-                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, patterCache: "/js/(jquery|boot)\\.js"))
                                 return;
 
                             await route.ContinueAsync();

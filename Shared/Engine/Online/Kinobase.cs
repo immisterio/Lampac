@@ -92,7 +92,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public Task<EmbedModel> Embed(string link)
+        async public Task<EmbedModel> Embed(string link, bool playerjs)
         {
             if (string.IsNullOrEmpty(link))
                 return null;
@@ -104,17 +104,16 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (news.Contains("<div class=\"alert\""))
-                return new EmbedModel() { IsEmpty = true, errormsg = "Видео недоступно для просмотра в вашей стране" };
-
-            if (news.Contains("id=\"playerjsfile\""))
+            if (playerjs)
             {
                 try
                 {
                     string video = Regex.Match(news, "id=\"playerjsfile\">([^<]+)<").Groups[1].Value;
                     if (string.IsNullOrEmpty(video))
                     {
-                        requesterror?.Invoke();
+                        if (news.Contains("<div class=\"alert\""))
+                            return new EmbedModel() { IsEmpty = true, errormsg = "Видео недоступно для просмотра в вашей стране" };
+
                         return null;
                     }
 
@@ -192,36 +191,55 @@ namespace Shared.Engine.Online
 
                 if (init.playerjs)
                 {
-                    var voices = md.content.Split("{");
-                    var hash = new HashSet<string>();
-
-                    foreach (string line in voices)
+                    if (md.content.Contains("{"))
                     {
-                        string voice = Regex.Match(line, "([^\\}]+)\\}").Groups[1].Value.Trim();
-                        if (!string.IsNullOrEmpty(voice) && !hash.Contains(voice))
+                        var voices = md.content.Split("{");
+                        var hash = new HashSet<string>();
+
+                        foreach (string line in voices)
                         {
-                            hash.Add(voice);
-
-                            var streams = new List<(string link, string quality)>(6);
-
-                            foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
+                            string voice = Regex.Match(line, "([^\\}]+)\\}").Groups[1].Value.Trim();
+                            if (!string.IsNullOrEmpty(voice) && !hash.Contains(voice))
                             {
-                                foreach (var line2 in voices)
-                                {
-                                    if (line2.Contains(voice) && (line2.Contains($"_{q}") || line2.Contains($"_{q}")))
-                                    {
-                                        string links = Regex.Match(line2, "\\}([^\\[,;]+)").Groups[1].Value;
-                                        if (string.IsNullOrEmpty(links))
-                                            continue;
+                                hash.Add(voice);
 
-                                        streams.Add((onstreamfile.Invoke(links), $"{q}p"));
+                                var streams = new List<(string link, string quality)>(6);
+
+                                foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
+                                {
+                                    foreach (var line2 in voices)
+                                    {
+                                        if (line2.Contains(voice) && (line2.Contains($"_{q}") || line2.Contains($"_{q}")))
+                                        {
+                                            string links = Regex.Match(line2, "\\}([^\\[,;]+)").Groups[1].Value;
+                                            if (string.IsNullOrEmpty(links))
+                                                continue;
+
+                                            streams.Add((onstreamfile.Invoke(links), $"{q}p"));
+                                        }
                                     }
                                 }
-                            }
 
-                            if (streams.Count > 0)
-                                mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                                if (streams.Count > 0)
+                                    mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            }
                         }
+                    }
+                    else
+                    {
+                        var streams = new List<(string link, string quality)>(6);
+
+                        foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
+                        {
+                            string link = Regex.Match(md.content, $"\\[{q}p\\]([^\\[,; ]+)").Groups[1].Value;
+                            if (string.IsNullOrEmpty(link))
+                                continue;
+
+                            streams.Add((onstreamfile.Invoke(link), $"{q}p"));
+                        }
+
+                        if (streams.Count > 0)
+                            mtpl.Append("По умолчанию", streams[0].link, streamquality: new StreamQualityTpl(streams));
                     }
                 }
                 else
