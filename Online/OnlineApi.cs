@@ -53,7 +53,7 @@ namespace Online.Controllers
                 if (init.description != "Плагин для просмотра онлайн сериалов и фильмов")
                     cache.file = Regex.Replace(cache.file, "description: \\'([^\\']+)?\\'", $"description: '{init.description}'");
 
-                if (!string.IsNullOrEmpty(init.apn))
+                if (init.apn != null)
                     cache.file = Regex.Replace(cache.file, "apn: \\'([^\\']+)?\\'", $"apn: '{init.apn}'");
 
                 var bulder = new StringBuilder(cache.file);

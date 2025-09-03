@@ -148,22 +148,17 @@ namespace Shared.Engine
                     if (DateTime.Now.Minute == 1)
                         temp.Clear();
 
-                    var entities = new List<ProxyLinkModel>(links.Count);
-
                     foreach (var link in links)
                     {
                         if (!temp.Contains(link.Key) || DateTime.Now.AddHours(1) > link.Value.ex)
                         {
                             link.Value.Id = link.Key;
-                            entities.Add(link.Value);
-                            temp.Add(link.Key);
+                            if (CollectionDb.proxyLink.Upsert(link.Value))
+                                temp.Add(link.Key);
                         }
 
                         links.TryRemove(link.Key, out _);
                     }
-
-                    if (entities.Count > 0)
-                        CollectionDb.proxyLink.Upsert(entities);
                 }
                 catch { }
             }

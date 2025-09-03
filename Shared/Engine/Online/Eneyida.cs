@@ -153,7 +153,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, int clarification, string title, string original_title, int year, string t, int s, string href, VastConf vast = null, bool rjson = false)
+        public string Html(EmbedModel result, int clarification, string title, string original_title, int year, int t, int s, string href, VastConf vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -222,13 +222,24 @@ namespace Shared.Engine.Online
                     {
                         #region Сезоны
                         var tpl = new SeasonTpl();
+                        var hashseason = new HashSet<string>();
 
-                        foreach (var season in result.serial)
+                        foreach (var voice in result.serial)
                         {
-                            string sid = Regex.Match(season.title, "^([0-9]+)").Groups[1].Value;
-                            string link = host + $"lite/eneyida?clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={sid}";
+                            foreach (var season in voice.folder)
+                            {
+                                if (hashseason.Contains(season.title))
+                                    continue;
 
-                            tpl.Append(season.title, link, sid);
+                                hashseason.Add(season.title);
+                                string numberseason = Regex.Match(season.title, "^([0-9]+)").Groups[1].Value;
+                                if (string.IsNullOrEmpty(numberseason))
+                                    continue;
+
+                                string link = host + $"lite/eneyida?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
+
+                                tpl.Append(season.title, link, numberseason);
+                            }
                         }
 
                         return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -238,54 +249,46 @@ namespace Shared.Engine.Online
                     {
                         #region Перевод
                         var vtpl = new VoiceTpl();
-                        var hashVoice = new HashSet<string>();
 
-                        foreach (var season in result.serial)
+                        for (int i = 0; i < result.serial.Length; i++)
                         {
-                            foreach (var episode in season.folder)
-                            {
-                                foreach (var voice in episode.folder)
-                                {
-                                    if (hashVoice.Contains(voice.title))
-                                        continue;
-                                    hashVoice.Add(voice.title);
+                            if (result.serial[i].folder.FirstOrDefault(i => i.title.StartsWith($"{s} ")).title == null)
+                                continue;
 
-                                    if (string.IsNullOrEmpty(t))
-                                        t = voice.title;
+                            if (t == -1)
+                                t = i;
 
-                                    string link = host + $"lite/eneyida?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={voice.title}";
-                                    vtpl.Append(voice.title, t == voice.title, link);
-                                }
-                            }
+                            string link = host + $"lite/eneyida?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={i}";
+
+                            vtpl.Append(result.serial[i].title, t == i, link);
                         }
                         #endregion
 
-                        string sArhc = s.ToString();
-                        var episodes = result.serial.First(i => i.title.StartsWith($"{sArhc} ")).folder;
+                        string sArch = s.ToString();
+                        var episodes = result.serial[t].folder.First(i => i.title.StartsWith($"{s} ")).folder;
+
                         var etpl = new EpisodeTpl(episodes.Length);
 
                         foreach (var episode in episodes)
                         {
-                            var video = episode.folder.FirstOrDefault(i => i.title == t);
-                            if (video.file == null)
-                                continue;
-
                             #region subtitle
-                            var subtitles = new SubtitleTpl();
+                            SubtitleTpl? subtitles = null;
 
-                            if (!string.IsNullOrEmpty(video.subtitle))
+                            if (!string.IsNullOrEmpty(episode.subtitle))
                             {
-                                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(video.subtitle);
+                                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
+                                subtitles = new SubtitleTpl(match.Length);
+
                                 while (match.Success)
                                 {
-                                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
+                                    subtitles.Value.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
                                     match = match.NextMatch();
                                 }
                             }
                             #endregion
 
-                            string file = onstreamfile.Invoke(video.file);
-                            etpl.Append(episode.title, title ?? original_title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                            string file = onstreamfile.Invoke(episode.file);
+                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         if (rjson)

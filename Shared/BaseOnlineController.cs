@@ -168,6 +168,8 @@ namespace Shared
 
         public ActionResult ShowError(string msg) => Json(new { accsdb = true, msg });
 
+        public string ShowErrorString(string msg) => System.Text.Json.JsonSerializer.Serialize(new { accsdb = true, msg });
+
         #region IsRhubFallback
         public bool IsRhubFallback<T>(CacheResult<T> cache, BaseSettings init)
         {

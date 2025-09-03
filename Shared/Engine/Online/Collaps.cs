@@ -139,7 +139,7 @@ namespace Shared.Engine.Online
                     }
                     else
                     {
-                        var episodes = md.serial.First(i => i.season == s).episodes;
+                        var episodes = md.serial.FirstOrDefault(i => i.season == s).episodes;
                         if (episodes == null)
                             return string.Empty;
 
@@ -163,7 +163,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             #region subtitle
-                            var subtitles = new SubtitleTpl(episode.cc.Length);
+                            var subtitles = new SubtitleTpl(episode.cc?.Length ?? 0);
 
                             if (episode.cc != null && episode.cc.Length > 0)
                             {

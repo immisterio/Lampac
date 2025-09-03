@@ -104,6 +104,9 @@ namespace Shared.Engine.Online
                 return null;
             }
 
+            if (news.Contains("<div class=\"alert\""))
+                return new EmbedModel() { IsEmpty = true, errormsg = "Видео недоступно для просмотра в вашей стране" };
+
             if (news.Contains("id=\"playerjsfile\""))
             {
                 try

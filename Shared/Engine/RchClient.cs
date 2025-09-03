@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Base;
 using Shared.Models;
+using Shared.Models.Base;
 using System.Collections.Concurrent;
 using System.Threading;
 
@@ -51,14 +51,33 @@ namespace Shared.Engine
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        public static ConcurrentDictionary<string, (string ip, string host, string json, RchClientInfo info)> clients = new ConcurrentDictionary<string, (string, string, string, RchClientInfo)>();
+        public static ConcurrentDictionary<string, (string ip, string host, RchClientInfo info)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
         public static void Registry(string ip, string connectionId, string host = null, string json = null)
         {
-            clients.AddOrUpdate(connectionId, (ip, host, json, default), (i,j) => (ip, host, json, default));
+            RchClientInfo info = default;
+            if (json != null)
+            {
+                try
+                {
+                    info = System.Text.Json.JsonSerializer.Deserialize<RchClientInfo>(json);
+                }
+                catch { }
+            }
+
+            if (AppInit.conf.rch.blacklistHost != null && info.host != null)
+            {
+                foreach (string h in AppInit.conf.rch.blacklistHost)
+                {
+                    if (info.host.Contains(h))
+                        return;
+                }
+            }
+
+            clients.AddOrUpdate(connectionId, (ip, host, info), (i,j) => (ip, host, info));
         }
 
 
@@ -105,17 +124,10 @@ namespace Shared.Engine
                 }
             }
 
-            int kplv = AppInit.conf.rch.keepalive;
-            if (AppInit.conf.rch.permanent_connection && kplv != -1 && keepalive != null)
-                kplv = keepalive == -1 ? 36000 : (int)keepalive; // 10h
-
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {
                 rch = true,
-                ws = $"{host}/ws",
-                //keepalive = kplv,
-                //result = $"{host}/rch/result",
-                //timeout = init.rhub_fallback ? 5 : 8
+                ws = $"{host}/ws"
             });
         }
 
@@ -334,22 +346,10 @@ namespace Shared.Engine
         {
             string _ip = ip;
             var client = clients.FirstOrDefault(i => i.Value.ip == _ip);
-            if (client.Value.json == null && client.Value.info.rchtype == null)
+            if (client.Value.info.rchtype == null)
                 return default;
 
-            var info = client.Value.info;
-
-            if (info.rchtype == null)
-            {
-                try
-                {
-                    info = JsonConvert.DeserializeObject<RchClientInfo>(client.Value.json);
-                    clients[client.Key] = (client.Value.ip, client.Value.host, null, info);
-                }
-                catch { return default; }
-            }
-
-            return info;
+            return client.Value.info;
         }
         #endregion
     }

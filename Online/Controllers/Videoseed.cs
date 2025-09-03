@@ -176,13 +176,20 @@ namespace Online.Controllers
                             {
                                 try
                                 {
-                                    if (Regex.IsMatch(route.Request.Url, "/(embed|player)/"))
+                                    if (route.Request.Url.Contains("videoseedcdn"))
                                     {
-                                        if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                            return;
+                                        browser.SetPageResult(route.Request.Url);
+                                    }
+                                    else
+                                    {
+                                        if (Regex.IsMatch(route.Request.Url, "/(embed|player|get_cdn)/"))
+                                        {
+                                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                                return;
 
-                                        await route.ContinueAsync();
-                                        return;
+                                            await route.ContinueAsync();
+                                            return;
+                                        }
                                     }
 
                                     await route.AbortAsync();
@@ -191,12 +198,9 @@ namespace Online.Controllers
                             });
 
                             PlaywrightBase.GotoAsync(page, iframe);
-                            await page.WaitForSelectorAsync(".pjscssed").ConfigureAwait(false);
-                            string html = await page.ContentAsync().ConfigureAwait(false);
+                            location = await browser.WaitPageResult().ConfigureAwait(false);
 
-                            PlaywrightBase.WebLog("GET", iframe, html, proxy.data);
-
-                            location = Regex.Match(html ?? "", "<vide[^>]+ src=\"([^\"]+)").Groups[1].Value.Trim();
+                            PlaywrightBase.WebLog("SET", iframe, location, proxy.data);
                         }
                         #endregion
                     }

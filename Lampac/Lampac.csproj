@@ -17,24 +17,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
   </ItemGroup>
-
-	<Target Name="MoveDependenciesAfterPublish" AfterTargets="Publish">
-		<PropertyGroup>
-			<PublishDir>$(OutputPath)publish\</PublishDir>
-		</PropertyGroup>
-
-		<ItemGroup>
-			<DependencyDlls Include="$(PublishDir)*.dll" Exclude="$(PublishDir)$(AssemblyName).dll" />
-		</ItemGroup>
-
-		<!-- Создаем папку references -->
-		<MakeDir Directories="$(PublishDir)runtimes\references" Condition="!Exists('$(PublishDir)references')" />
-
-		<!-- Перемещаем зависимости -->
-		<Move SourceFiles="@(DependencyDlls)" DestinationFiles="@(DependencyDlls->'$(PublishDir)runtimes\references\%(Filename)%(Extension)')" Condition="'@(DependencyDlls)' != ''" />
-
-		<!-- Перемещаем только Shared.pdb -->
-		<Move SourceFiles="$(PublishDir)Shared.pdb" DestinationFiles="$(PublishDir)runtimes\references\Shared.pdb" Condition="Exists('$(PublishDir)Shared.pdb')" />
-	</Target>
 	
 </Project>

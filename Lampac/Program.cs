@@ -87,7 +87,7 @@ namespace Lampac
             CollectionDb.Configure();
 
             #region migration
-            if (File.Exists("vers.txt"))
+            if (File.Exists("vers.txt") || File.Exists("isdocker"))
             {
                 Console.WriteLine("run migration");
 
@@ -146,7 +146,8 @@ namespace Lampac
                 }
                 #endregion
 
-                File.Delete("vers.txt");
+                if (File.Exists("vers.txt"))
+                    File.Delete("vers.txt");
             }
             #endregion
 

@@ -122,6 +122,60 @@ namespace Shared.PlaywrightCore
         }
 
 
+        public Task WaitForAnySelectorAsync(IPage page, params string[] selectors)
+        {
+            var tasks = selectors.Select(selector =>
+                page.WaitForSelectorAsync(selector)
+            ).ToArray();
+
+            return Task.WhenAny(tasks);
+        }
+
+
+        async public Task ClearContinueAsync(IRoute route, IPage page)
+        {
+            var cookies = await page.Context.CookiesAsync();
+            if (cookies == null || cookies.Count == 0)
+            {
+                // нету куки, продолжаем
+                await route.ContinueAsync();
+                return;
+            }
+
+            var filteredCookies = cookies.Where(c => c.Name != "cf_clearance").Select(c => new Cookie
+            {
+                Name = c.Name,
+                Value = c.Value,
+                Domain = c.Domain,
+                Path = c.Path,
+                Expires = c.Expires,
+                HttpOnly = c.HttpOnly,
+                Secure = c.Secure,
+                SameSite = c.SameSite
+            }).ToList();
+
+            if (filteredCookies.Count == cookies.Count)
+            {
+                // Если куки не содержат cf_clearance, продолжаем
+                await route.ContinueAsync();
+                return;
+            }
+
+            if (filteredCookies.Count == 0)
+            {
+                // после удаления cf_clearance не осталось других куки
+                await page.Context.ClearCookiesAsync();
+                await route.ContinueAsync();
+                return;
+            }
+
+            await page.Context.ClearCookiesAsync();
+            await page.Context.AddCookiesAsync(filteredCookies);
+
+            await route.ContinueAsync();
+        }
+
+
         public void Dispose()
         {
             chromium?.Dispose();
@@ -167,51 +221,6 @@ namespace Shared.PlaywrightCore
             catch { }
 
             return null;
-        }
-
-
-
-        async public Task ClearContinueAsync(IRoute route, IPage page)
-        {
-            var cookies = await page.Context.CookiesAsync();
-            if (cookies == null || cookies.Count == 0)
-            {
-                // нету куки, продолжаем
-                await route.ContinueAsync();
-                return;
-            }
-
-            var filteredCookies = cookies.Where(c => c.Name != "cf_clearance").Select(c => new Cookie
-            {
-                Name = c.Name,
-                Value = c.Value,
-                Domain = c.Domain,
-                Path = c.Path,
-                Expires = c.Expires,
-                HttpOnly = c.HttpOnly,
-                Secure = c.Secure,
-                SameSite = c.SameSite
-            }).ToList();
-
-            if (filteredCookies.Count == cookies.Count)
-            {
-                // Если куки не содержат cf_clearance, продолжаем
-                await route.ContinueAsync();
-                return;
-            }
-
-            if (filteredCookies.Count == 0)
-            {
-                // после удаления cf_clearance не осталось других куки
-                await page.Context.ClearCookiesAsync();
-                await route.ContinueAsync();
-                return;
-            }
-
-            await page.Context.ClearCookiesAsync();
-            await page.Context.AddCookiesAsync(filteredCookies);
-
-            await route.ContinueAsync();
         }
     }
 }

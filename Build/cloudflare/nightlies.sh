@@ -1,5 +1,7 @@
 mkdir -p lpc/
 
+cat Build/cloudflare/Lampac.csproj > Lampac/Lampac.csproj
+
 # Публикация проекта
 ./dotnet/dotnet publish Lampac -c Release
 

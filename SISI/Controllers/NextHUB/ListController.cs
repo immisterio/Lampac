@@ -448,7 +448,7 @@ namespace SISI.Controllers.NextHUB
                     var pl = new PlaylistItem()
                     {
                         name = clearText(name),
-                        video = $"{host}/nexthub/vidosik?uri={HttpUtility.UrlEncode($"{plugin}_-:-_{href}")}" + args,
+                        video = $"nexthub/vidosik?uri={HttpUtility.UrlEncode($"{plugin}_-:-_{href}")}" + args,
                         preview = preview,
                         picture = img,
                         time = clearText(duration),

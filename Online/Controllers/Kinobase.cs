@@ -68,7 +68,13 @@ namespace Online.Controllers
                 return content;
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, href, s, t, rjson));
+            return OnResult(cache, () => 
+            {
+                if (cache.Value.IsEmpty)
+                    return ShowErrorString(cache.Value.errormsg);
+
+                return oninvk.Html(cache.Value, title, href, s, t, rjson);
+            });
         }
 
 
@@ -134,15 +140,7 @@ namespace Online.Controllers
                     });
 
                     PlaywrightBase.GotoAsync(page, uri);
-
-                    if (init.playerjs)
-                    {
-                        await page.WaitForSelectorAsync("#playerjsfile").ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await page.WaitForSelectorAsync(".uppod-media").ConfigureAwait(false);
-                    }
+                    await browser.WaitForAnySelectorAsync(page, "#playerjsfile", ".uppod-media", ".alert").ConfigureAwait(false);
 
                     string content = await page.ContentAsync().ConfigureAwait(false);
 

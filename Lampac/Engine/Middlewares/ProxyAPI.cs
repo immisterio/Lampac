@@ -103,7 +103,7 @@ namespace Lampac.Engine.Middlewares
                 #region DASH
                 servUri += Regex.Replace(httpContext.Request.Path.Value, "/[^/]+/[^/]+/", "") + httpContext.Request.QueryString.Value;
 
-                var client = FrendlyHttp.CreateClient("ProxyAPI:DASH", handler, "proxy");
+                var client = FrendlyHttp.CreateClient("ProxyAPI:DASH", handler, "proxy", timeoutSeconds: 20);
 
                 var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
@@ -176,7 +176,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                var client = FrendlyHttp.CreateClient("ProxyAPI", handler, "proxy");
+                var client = FrendlyHttp.CreateClient("ProxyAPI", handler, "proxy", timeoutSeconds: 20);
 
                 var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
 
