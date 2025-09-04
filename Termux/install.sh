@@ -40,8 +40,10 @@ cat <<EOF > init.conf
 {
   "typecache": "mem",
   "mikrotik": true,
-  "compression": false,
   "pirate_store": false,
+  "listen": {
+    "compression": false
+  },
   "chromium": {
     "enable": false
   },

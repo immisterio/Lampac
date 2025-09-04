@@ -120,7 +120,8 @@ namespace Shared.Engine
             {
                 try
                 {
-                    val = CollectionDb.proxyLink.FindById(hash);
+                    if (!AppInit.conf.mikrotik)
+                        val = CollectionDb.proxyLink.FindById(hash);
                 }
                 catch { }
             }
@@ -145,19 +146,30 @@ namespace Shared.Engine
 
                 try
                 {
-                    if (DateTime.Now.Minute == 1)
-                        temp.Clear();
-
-                    foreach (var link in links)
+                    if (AppInit.conf.mikrotik)
                     {
-                        if (!temp.Contains(link.Key) || DateTime.Now.AddHours(1) > link.Value.ex)
+                        foreach (var link in links)
                         {
-                            link.Value.Id = link.Key;
-                            if (CollectionDb.proxyLink.Upsert(link.Value))
-                                temp.Add(link.Key);
+                            if (DateTimeOffset.Now > link.Value.ex)
+                                links.TryRemove(link.Key, out _);
                         }
+                    }
+                    else
+                    {
+                        if (DateTime.Now.Minute == 1)
+                            temp.Clear();
 
-                        links.TryRemove(link.Key, out _);
+                        foreach (var link in links)
+                        {
+                            if (!temp.Contains(link.Key) || DateTime.Now.AddHours(1) > link.Value.ex)
+                            {
+                                link.Value.Id = link.Key;
+                                if (CollectionDb.proxyLink.Upsert(link.Value))
+                                    temp.Add(link.Key);
+                            }
+
+                            links.TryRemove(link.Key, out _);
+                        }
                     }
                 }
                 catch { }

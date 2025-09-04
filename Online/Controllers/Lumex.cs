@@ -25,6 +25,11 @@ namespace Online.Controllers
                 if (Firefox.Status == PlaywrightStatus.disabled)
                     return OnError();
             }
+            else if (init.priorityBrowser == "http")
+            {
+                if (kinopoisk_id == 0)
+                    return OnError();
+            }
             else
             {
                 if (Chromium.Status == PlaywrightStatus.disabled)
@@ -192,7 +197,7 @@ namespace Online.Controllers
                 if (content_uri == null)
                     return res.Fail("content_uri");
 
-                var result = await Http.BaseGetAsync(content_uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: content_headers);
+                var result = await Http.BaseGetAsync(content_uri, proxy: proxy.proxy, headers: content_headers);
 
                 if (string.IsNullOrEmpty(result.content))
                 {
