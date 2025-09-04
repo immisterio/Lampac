@@ -26,7 +26,7 @@ RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://git
     && chmod +x torrserver/TorrServer-linux
 
 RUN mkdir -p .playwright/node/linux-arm && curl -L -k -o .playwright/node/linux-arm/node https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l \
-    && chmod +x .playwright/node/linux-arm/node
+    && chmod +x .playwright/node/linux-arm/node && touch .playwright/node/linux-arm/node.ok
 
 RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"},"typecache":"mem","isarm":true,"mikrotik":true,"serverproxy":{"verifyip":false,"image":{"cache": false,"cache_rsize":false}}}' > /home/init.conf
 
