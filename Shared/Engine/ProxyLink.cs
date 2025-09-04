@@ -146,22 +146,19 @@ namespace Shared.Engine
 
                 try
                 {
-                    if (AppInit.conf.mikrotik)
+                    if (DateTime.Now.Minute == 1)
+                        temp.Clear();
+
+                    foreach (var link in links)
                     {
-                        foreach (var link in links)
+                        if (AppInit.conf.mikrotik || link.Value.proxy != null)
                         {
                             if (DateTimeOffset.Now > link.Value.ex)
                                 links.TryRemove(link.Key, out _);
                         }
-                    }
-                    else
-                    {
-                        if (DateTime.Now.Minute == 1)
-                            temp.Clear();
-
-                        foreach (var link in links)
+                        else
                         {
-                            if (!temp.Contains(link.Key) || DateTime.Now.AddHours(1) > link.Value.ex)
+                            if (!temp.Contains(link.Key) || DateTimeOffset.Now.AddHours(1) > link.Value.ex)
                             {
                                 link.Value.Id = link.Key;
                                 if (CollectionDb.proxyLink.Upsert(link.Value))

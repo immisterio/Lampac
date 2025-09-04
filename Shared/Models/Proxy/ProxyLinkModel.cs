@@ -33,6 +33,7 @@ namespace Shared.Models.Proxy
 
         public List<HeadersModel> headers { get; set; }
 
+        [BsonIgnore]
         public WebProxy proxy { get; set; }
 
         public string uri { get; set; }

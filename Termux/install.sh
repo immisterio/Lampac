@@ -22,7 +22,7 @@ rm -f *.dll
 rm -f *.pdb
 rm -f GeoLite2-Country.mmdb vers-minor.txt
 rm -rf runtimes nginx
-rm -rf .playwright/*
+rm -rf .playwright
 
 for lang in cs de es fr it ja ko pl pt-BR ru tr zh-Hans zh-Hant; do
     rm -rf $lang
@@ -70,7 +70,7 @@ cat <<EOF > init.conf
       "tmdbProxy": false,
       "online": true,
       "sisi": true,
-      "timecode": false,
+      "timecode": true,
       "torrserver": false,
       "backup": true,
       "sync": false

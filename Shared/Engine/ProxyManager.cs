@@ -32,7 +32,7 @@ namespace Shared.Engine
             this.plugin = plugin;
             this.conf = conf;
             this.refresh = refresh;
-            proxyKeys = new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" };
+            proxyKeys = [plugin, $"{plugin}:conf", $"{plugin}:globalname"];
         }
 
         public ProxyManager(BaseSettings conf, bool refresh = true)
@@ -40,7 +40,7 @@ namespace Shared.Engine
             plugin = !string.IsNullOrEmpty(conf.plugin) ? conf.plugin : conf.host ?? conf.apihost;
             this.conf = conf;
             this.refresh = refresh;
-            proxyKeys = new string[] { plugin, $"{plugin}:conf", $"{plugin}:globalname" };
+            proxyKeys = [plugin, $"{plugin}:conf", $"{plugin}:globalname"];
         }
         #endregion
 
