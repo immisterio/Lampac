@@ -55,7 +55,7 @@ namespace Online.Controllers
             if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (balancer is "filmix" or "ashdi" or "vibix" or "monframe" or "remux")
+            if (balancer is "filmix" or "ashdi" or "vibix" or "monframe")
                 init.streamproxy = false;
 
             if (checksearch && balancer != "vokino")

@@ -112,7 +112,10 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrEmpty(video))
                     {
                         if (news.Contains("<div class=\"alert\""))
-                            return new EmbedModel() { IsEmpty = true, errormsg = "Видео недоступно для просмотра в вашей стране" };
+                        {
+                            var h3Match = Regex.Match(news, "<div class=\"alert\">\\s*<h3>([^<]+)</h3>");
+                            return new EmbedModel() { IsEmpty = true, errormsg = h3Match.Success ? h3Match.Groups[1].Value.Trim() : "Ошибка alert" };
+                        }
 
                         return null;
                     }

@@ -876,7 +876,7 @@ namespace Shared
             geostreamproxy = ["ALL"]
         };
 
-        public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "http://vokino.org", streamproxy: true);
+        public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "http://api.vokino.org", streamproxy: true);
 
         public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("IframeVideo", "kwwsv=22liudph1ylghr", "kwwsv=22ylghriudph1vsdfh", enable: false);
 
