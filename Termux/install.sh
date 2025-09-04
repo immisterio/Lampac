@@ -75,7 +75,7 @@ cat <<EOF > init.conf
     }
   },
   "serverproxy": {
-    "enable": false,
+    "enable": true,
     "verifyip": false,
     "image": {
       "cache": false,
@@ -193,8 +193,7 @@ else
 fi
 
 rm -f data/GeoLite2-Country.mmdb
-rm -rf merchant torrserver wwwroot/bwa
-rm -f data/*.json
+rm -rf .playwright merchant torrserver wwwroot/bwa
 rm -rf data/widgets
 rm -rf runtimes/wi*
 rm -rf runtimes/os*
@@ -234,8 +233,7 @@ EOF
 
 # clear
 rm -f data/GeoLite2-Country.mmdb
-rm -rf merchant torrserver wwwroot/bwa
-rm -f data/*.json
+rm -rf .playwright merchant torrserver wwwroot/bwa
 rm -rf data/widgets
 rm -rf runtimes/wi*
 rm -rf runtimes/os*
