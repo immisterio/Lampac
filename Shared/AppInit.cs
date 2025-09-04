@@ -458,7 +458,7 @@ namespace Shared
             new ProxySettings()
             {
                 pattern = "\\.onion",
-                list = new string[] { "socks5://127.0.0.1:9050" }
+                list = ["socks5://127.0.0.1:9050"]
             }
         };
 
@@ -642,11 +642,14 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("Ashdi", "kwwsv=22edvh1dvkgl1yls") { geo_hide = new string[] { "RU", "BY" } };
+        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("Ashdi", "kwwsv=22edvh1dvkgl1yls") 
+        { 
+            geo_hide = ["RU", "BY"] 
+        };
 
         public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("Kinoukr", "kwwsv=22nlqrxnu1frp")
         {
-            geo_hide = new string[] { "RU", "BY" },
+            geo_hide = ["RU", "BY"],
             headers = HeadersModel.Init
             (
                 ("cache-control", "no-cache"),
@@ -731,7 +734,7 @@ namespace Shared
         public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22jr1}hw0iol{1rqolqh")
         {
             browser_keepopen = true,
-            geostreamproxy = new string[] { "ALL" },
+            geostreamproxy = ["ALL"],
             hls = true
         };
 
@@ -788,7 +791,7 @@ namespace Shared
 
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22fgqprylhv0vwuhdp1rqolqh")
         {
-            geostreamproxy = new string[] { "ALL" },
+            geostreamproxy = ["ALL"],
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
@@ -843,7 +846,7 @@ namespace Shared
 
         public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, hdr: true) 
         { 
-            geostreamproxy = new string[] { "ALL" } 
+            geostreamproxy = ["ALL"]
         };
 
         /// <summary>
@@ -858,7 +861,7 @@ namespace Shared
             log = false,
             verifyip = true, // ссылки привязаны к ip пользователя
             scheme = "http",
-            geostreamproxy = new string[] { "UA" },
+            geostreamproxy = ["UA"],
             hls = false, // false - mp4 / true - m3u8
             disable_protection = false, // true - отключить проверку на парсер
             disable_ads = false, // отключить рекламу
@@ -870,10 +873,10 @@ namespace Shared
             enable = true,
             hls = true, scheme = "http",
             priorityBrowser = "http",
-            geostreamproxy = new string[] { "ALL" }
+            geostreamproxy = ["ALL"]
         };
 
-        public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "kwws=22dsl1yrnlqr1wy", streamproxy: true);
+        public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "http://vokino.org", streamproxy: true);
 
         public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("IframeVideo", "kwwsv=22liudph1ylghr", "kwwsv=22ylghriudph1vsdfh", enable: false);
 
@@ -1065,7 +1068,7 @@ namespace Shared
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwwsv=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true)
         {
             cdn_is_working = true,
-            geostreamproxy = new string[] { "UA" },
+            geostreamproxy = ["UA"],
             headers = HeadersModel.Init(
                 ("referer", "encrypt:kwwsv=22dqlole1ph2")
             ).ToDictionary()
