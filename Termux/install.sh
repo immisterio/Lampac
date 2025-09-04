@@ -75,7 +75,7 @@ cat <<EOF > init.conf
     }
   },
   "serverproxy": {
-    "enable": false,
+    "enable": true,
     "verifyip": false,
     "image": {
       "cache": false,
