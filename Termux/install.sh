@@ -8,7 +8,9 @@ proot-distro login debian
 
 # Install packages
 apt-get update
-apt-get install -y libicu72 curl unzip
+apt-get install -y curl unzip
+apt-get install -y libicu72
+apt-get install -y libicu76
 
 # Install .NET 9
 curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh
