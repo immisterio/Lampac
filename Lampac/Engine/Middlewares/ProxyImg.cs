@@ -14,6 +14,7 @@ using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -24,6 +25,8 @@ namespace Lampac.Engine.Middlewares
         static FileSystemWatcher fileWatcher;
 
         static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
+
+        static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
         static ProxyImg()
         {
@@ -117,46 +120,147 @@ namespace Lampac.Engine.Middlewares
             if (width > 0 || height > 0)
                 contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
 
-            if (cacheimg && cacheFiles.ContainsKey(md5key))
+            var semaphore = _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1));
+
+            if (cacheimg)
+                await semaphore.WaitAsync();
+
+            bool semaphoreDispose = false;
+            void SemaphoreRelease()
             {
-                httpContext.Response.Headers["X-Cache-Status"] = "HIT";
-                httpContext.Response.ContentType = contentType;
-                await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
-                return;
+                semaphoreDispose = true;
+                semaphore.Release();
+                if (semaphore.CurrentCount == 1)
+                    _semaphoreLocks.TryRemove(href, out _);
             }
 
-            string memKeyErrorDownload = $"ProxyImg:ErrorDownload:{href}";
-            if (memoryCache.TryGetValue(memKeyErrorDownload, out _))
+            try
             {
-                httpContext.Response.Redirect(href);
-                return;
-            }
-
-            httpContext.Response.Headers["X-Cache-Status"] = cacheimg ? "MISS" : "bypass";
-
-            var proxyManager = decryptLink?.plugin == "posterapi" ? new ProxyManager("posterapi", AppInit.conf.posterApi) : new ProxyManager("proxyimg", init);
-            var proxy = proxyManager.Get();
-
-            if (width == 0 && height == 0)
-            {
-                #region bypass
-                bypass_reset: var handler = Shared.Engine.Http.Handler(href, proxy);
-                handler.AllowAutoRedirect = true;
-
-                var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
+                if (cacheimg && cacheFiles.ContainsKey(md5key))
                 {
-                    Shared.Engine.Http.DefaultRequestHeaders(uclient, 8, 0, null, null, decryptLink?.headers);
-                });
+                    SemaphoreRelease();
+                    httpContext.Response.Headers["X-Cache-Status"] = "HIT";
+                    httpContext.Response.ContentType = contentType;
+                    await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
+                    return;
+                }
 
-                using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
+                string memKeyErrorDownload = $"ProxyImg:ErrorDownload:{href}";
+                if (memoryCache.TryGetValue(memKeyErrorDownload, out _))
                 {
-                    if (response.StatusCode != HttpStatusCode.OK)
+                    httpContext.Response.Redirect(href);
+                    return;
+                }
+
+                httpContext.Response.Headers["X-Cache-Status"] = cacheimg ? "MISS" : "bypass";
+
+                var proxyManager = decryptLink?.plugin == "posterapi" ? new ProxyManager("posterapi", AppInit.conf.posterApi) : new ProxyManager("proxyimg", init);
+                var proxy = proxyManager.Get();
+
+                if (width == 0 && height == 0)
+                {
+                    #region bypass
+                    bypass_reset: 
+                    var handler = Http.Handler(href, proxy);
+                    handler.AllowAutoRedirect = true;
+
+                    var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
+                    {
+                        Http.DefaultRequestHeaders(uclient, 8, 0, null, null, decryptLink?.headers);
+                    });
+
+                    using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
+                    {
+                        if (response.StatusCode != HttpStatusCode.OK)
+                        {
+                            if (url_reserve != null)
+                            {
+                                href = url_reserve;
+                                url_reserve = null;
+                                goto bypass_reset;
+                            }
+
+                            if (cacheimg)
+                                memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddSeconds(5));
+
+                            proxyManager.Refresh();
+                            httpContext.Response.Redirect(href);
+                            return;
+                        }
+
+                        httpContext.Response.StatusCode = (int)response.StatusCode;
+
+                        if (response.Headers.TryGetValues("Content-Type", out var contype))
+                            httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
+
+                        if (cacheimg)
+                        {
+                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                (int)response.Content.Headers.ContentLength.Value :
+                                50_000; // 50kB
+
+                            using (var memoryStream = new MemoryStream(initialCapacity))
+                            {
+                                bool saveCache = true;
+
+                                using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                {
+                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                                    try
+                                    {
+                                        int bytesRead;
+                                        Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                        while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                        {
+                                            memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                            await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        saveCache = false;
+                                    }
+                                    finally
+                                    {
+                                        ArrayPool<byte>.Shared.Return(buffer);
+                                    }
+                                }
+
+                                if (saveCache && memoryStream.Length > 1000)
+                                {
+                                    try
+                                    {
+                                        if (!cacheFiles.ContainsKey(md5key))
+                                        {
+                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                            cacheFiles.TryAdd(md5key, 0);
+                                        }
+                                    }
+                                    catch { try { File.Delete(outFile); } catch { } }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            await response.Content.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                        }
+                    }
+                    #endregion
+                }
+                else
+                {
+                    #region rsize
+                    rsize_reset: 
+                    var array = await Download(href, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
+                    if (array == null)
                     {
                         if (url_reserve != null)
                         {
                             href = url_reserve;
                             url_reserve = null;
-                            goto bypass_reset;
+                            goto rsize_reset;
                         }
 
                         if (cacheimg)
@@ -167,111 +271,45 @@ namespace Lampac.Engine.Middlewares
                         return;
                     }
 
-                    httpContext.Response.StatusCode = (int)response.StatusCode;
-
-                    if (response.Headers.TryGetValues("Content-Type", out var contype))
-                        httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
-
-                    if (cacheimg)
+                    if (array.Length > 1000)
                     {
-                        int initialCapacity = response.Content.Headers.ContentLength.HasValue ? 
-                            (int)response.Content.Headers.ContentLength.Value : 
-                            50_000; // 50kB
-
-                        using (var memoryStream = new MemoryStream(initialCapacity))
+                        if (AppInit.conf.imagelibrary == "NetVips")
                         {
-                            bool saveCache = true;
-
-                            using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                            {
-                                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
-
-                                try
-                                {
-                                    int bytesRead;
-                                    Memory<byte> memoryBuffer = buffer.AsMemory();
-
-                                    while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
-                                    {
-                                        memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                        await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
-                                    }
-                                }
-                                catch 
-                                {
-                                    saveCache = false;
-                                }
-                                finally
-                                {
-                                    ArrayPool<byte>.Shared.Return(buffer);
-                                }
-                            }
-
-                            if (saveCache && memoryStream.Length > 1000)
-                            {
-                                try
-                                {
-                                    if (!cacheFiles.ContainsKey(md5key))
-                                        File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                }
-                                catch { try { File.Delete(outFile); } catch { } }
-                            }
+                            array = NetVipsImage(href, array, width, height);
+                        }
+                        else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                        {
+                            array = ImageMagick(array, width, height, cacheimg ? outFile : null);
                         }
                     }
-                    else
+
+                    if (array.Length > 1000 && cacheimg)
                     {
-                        await response.Content.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                        try
+                        {
+                            if (!cacheFiles.ContainsKey(md5key))
+                            {
+                                File.WriteAllBytes(outFile, array);
+                                cacheFiles.TryAdd(md5key, 0);
+                            }
+                        }
+                        catch { try { File.Delete(outFile); } catch { } }
                     }
+
+                    SemaphoreRelease();
+                    proxyManager.Success();
+                    httpContext.Response.ContentType = contentType;
+                    await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
+                    #endregion
                 }
-                #endregion
             }
-            else
+            finally
             {
-                #region rsize
-                rsize_reset: var array = await Download(href, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
-                if (array == null)
+                if (!semaphoreDispose)
                 {
-                    if (url_reserve != null)
-                    {
-                        href = url_reserve;
-                        url_reserve = null;
-                        goto rsize_reset;
-                    }
-
-                    if (cacheimg)
-                        memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddSeconds(5));
-
-                    proxyManager.Refresh();
-                    httpContext.Response.Redirect(href);
-                    return;
+                    if (cacheimg) SemaphoreRelease();
+                    else _semaphoreLocks.TryRemove(href, out _);
                 }
-
-                if (array.Length > 1000)
-                {
-                    if (AppInit.conf.imagelibrary == "NetVips")
-                    {
-                        array = NetVipsImage(href, array, width, height);
-                    }
-                    else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    {
-                        array = ImageMagick(array, width, height, cacheimg ? outFile : null);
-                    }
-                }
-
-                proxyManager.Success();
-                httpContext.Response.ContentType = contentType;
-                await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
-
-                if (array.Length > 1000 && cacheimg)
-                {
-                    try
-                    {
-                        if (!cacheFiles.ContainsKey(md5key))
-                            File.WriteAllBytes(outFile, array);
-                    }
-                    catch { try { File.Delete(outFile); } catch { } }
-                }
-                #endregion
             }
         }
 
@@ -281,12 +319,12 @@ namespace Lampac.Engine.Middlewares
         {
             try
             {
-                var handler = Shared.Engine.Http.Handler(url, proxy);
+                var handler = Http.Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
                 var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", headers?.ToDictionary(), updateClient: uclient => 
                 {
-                    Shared.Engine.Http.DefaultRequestHeaders(uclient, 8, 0, null, null, headers);
+                    Http.DefaultRequestHeaders(uclient, 8, 0, null, null, headers);
                 });
 
                 using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))

@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -25,6 +26,8 @@ namespace Lampac.Engine.Middlewares
         static FileSystemWatcher fileWatcher;
 
         static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
+
+        static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
         static ProxyTmdb()
         {
@@ -98,85 +101,123 @@ namespace Lampac.Engine.Middlewares
             string uri = "https://api.themoviedb.org" + path + query;
 
             string mkey = $"tmdb/api:{path}:{query}";
-            if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
+
+            var semaphore = _semaphoreLocks.GetOrAdd(mkey, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+
+            bool semaphoreDispose = false;
+            void SemaphoreRelease()
             {
-                httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                httpContex.Response.StatusCode = cache.statusCode;
-                httpContex.Response.ContentType = "application/json; charset=utf-8";
-                await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
+                semaphoreDispose = true;
+                semaphore.Release();
+                if (semaphore.CurrentCount == 1)
+                    _semaphoreLocks.TryRemove(mkey, out _);
             }
 
-            httpContex.Response.Headers["X-Cache-Status"] = "MISS";
-
-            string tmdb_ip = init.API_IP;
-
-            #region DNS QueryType.A
-            if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.API_Minor) && !string.IsNullOrEmpty(init.DNS))
+            try
             {
-                string dnskey = $"tmdb/api:dns:{init.DNS}";
-                if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
+                if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
                 {
-                    var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                    var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
-                    dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
-
-                    if (!string.IsNullOrEmpty(dns_ip))
-                        Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                    else
-                        Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                    SemaphoreRelease();
+                    httpContex.Response.Headers["X-Cache-Status"] = "HIT";
+                    httpContex.Response.StatusCode = cache.statusCode;
+                    httpContex.Response.ContentType = "application/json; charset=utf-8";
+                    await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
+                    return;
                 }
 
-                if (!string.IsNullOrEmpty(dns_ip))
-                    tmdb_ip = dns_ip;
-            }
-            #endregion
+                httpContex.Response.Headers["X-Cache-Status"] = "MISS";
 
-            var headers = new List<HeadersModel>();
-            var proxyManager = new ProxyManager("tmdb_api", init);
+                string tmdb_ip = init.API_IP;
 
-            if (!string.IsNullOrEmpty(init.API_Minor))
-            {
-                uri = uri.Replace("api.themoviedb.org", init.API_Minor);
-            }
-            else if (!string.IsNullOrEmpty(tmdb_ip))
-            {
-                headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
-                uri = uri.Replace("api.themoviedb.org", tmdb_ip);
-            }
+                #region DNS QueryType.A
+                if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.API_Minor) && !string.IsNullOrEmpty(init.DNS))
+                {
+                    string dnskey = $"tmdb/api:dns:{init.DNS}";
 
-            var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
-            if (result.content == null)
-            {
-                proxyManager.Refresh();
-                httpContex.Response.StatusCode = 401;
-                await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "json null" }, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
-            }
+                    var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
+                    await _spredns.WaitAsync();
 
-            cache.statusCode = (int)result.response.StatusCode;
-            httpContex.Response.StatusCode = cache.statusCode;
+                    try
+                    {
+                        if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
+                        {
+                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                            var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
+                            dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-            if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
-            {
-                proxyManager.Refresh();
+                            if (!string.IsNullOrEmpty(dns_ip))
+                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                            else
+                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                        }
+
+                        if (!string.IsNullOrEmpty(dns_ip))
+                            tmdb_ip = dns_ip;
+                    }
+                    finally
+                    {
+                        _spredns.Release();
+                        if (_spredns.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(dnskey, out _);
+                    }
+                }
+                #endregion
+
+                var headers = new List<HeadersModel>();
+                var proxyManager = new ProxyManager("tmdb_api", init);
+
+                if (!string.IsNullOrEmpty(init.API_Minor))
+                {
+                    uri = uri.Replace("api.themoviedb.org", init.API_Minor);
+                }
+                else if (!string.IsNullOrEmpty(tmdb_ip))
+                {
+                    headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
+                    uri = uri.Replace("api.themoviedb.org", tmdb_ip);
+                }
+
+                var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
+                if (result.content == null)
+                {
+                    SemaphoreRelease();
+                    proxyManager.Refresh();
+                    httpContex.Response.StatusCode = 401;
+                    await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "json null" }, httpContex.RequestAborted).ConfigureAwait(false);
+                    return;
+                }
+
+                cache.statusCode = (int)result.response.StatusCode;
+                httpContex.Response.StatusCode = cache.statusCode;
+
+                if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
+                {
+                    proxyManager.Refresh();
+                    cache.json = JsonConvert.SerializeObject(result.content);
+
+                    if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
+                        hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: false);
+
+                    SemaphoreRelease();
+                    await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
+                    return;
+                }
+
                 cache.json = JsonConvert.SerializeObject(result.content);
 
                 if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
-                    hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: false);
+                    hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
 
+                SemaphoreRelease();
+                proxyManager.Success();
+                httpContex.Response.ContentType = "application/json; charset=utf-8";
                 await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
             }
-
-            cache.json = JsonConvert.SerializeObject(result.content);
-
-            if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
-                hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
-
-            proxyManager.Success();
-            httpContex.Response.ContentType = "application/json; charset=utf-8";
-            await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
+            finally
+            {
+                if (!semaphoreDispose)
+                    SemaphoreRelease();
+            }
         }
         #endregion
 
@@ -202,154 +243,190 @@ namespace Lampac.Engine.Middlewares
 
             httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
-            if (cacheFiles.ContainsKey(md5key))
+            var semaphore = _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+
+            bool semaphoreDispose = false;
+            void SemaphoreRelease()
             {
-                httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
-                return;
-            }
-
-            string tmdb_ip = init.IMG_IP;
-
-            #region DNS QueryType.A
-            if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.IMG_Minor) && !string.IsNullOrEmpty(init.DNS))
-            {
-                string dnskey = $"tmdb/img:dns:{init.DNS}";
-                if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
-                {
-                    var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                    var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
-                    dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
-
-                    if (!string.IsNullOrEmpty(dns_ip))
-                        Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                    else
-                        Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
-                }
-
-                if (!string.IsNullOrEmpty(dns_ip))
-                    tmdb_ip = dns_ip;
-            }
-            #endregion
-
-            var headers = new List<HeadersModel>();
-            var proxyManager = new ProxyManager("tmdb_img", init);
-
-            if (!string.IsNullOrEmpty(init.IMG_Minor))
-            {
-                uri = uri.Replace("image.tmdb.org", init.IMG_Minor);
-            }
-            else if (!string.IsNullOrEmpty(tmdb_ip))
-            {
-                headers.Add(new HeadersModel("Host", "image.tmdb.org"));
-                uri = uri.Replace("image.tmdb.org", tmdb_ip);
+                semaphoreDispose = true;
+                semaphore.Release();
+                if (semaphore.CurrentCount == 1)
+                    _semaphoreLocks.TryRemove(md5key, out _);
             }
 
             try
             {
-                var handler = Http.Handler(uri, proxyManager.Get());
-                handler.AllowAutoRedirect = true;
-
-                var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
+                if (cacheFiles.ContainsKey(md5key))
                 {
-                    Http.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
-                });
+                    SemaphoreRelease();
+                    httpContex.Response.Headers["X-Cache-Status"] = "HIT";
+                    await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
+                    return;
+                }
 
-                using (var response = await client.GetAsync(uri).ConfigureAwait(false))
+                string tmdb_ip = init.IMG_IP;
+
+                #region DNS QueryType.A
+                if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.IMG_Minor) && !string.IsNullOrEmpty(init.DNS))
                 {
-                    if (response.StatusCode == HttpStatusCode.OK)
-                        proxyManager.Success();
-                    else
-                        proxyManager.Refresh();
+                    string dnskey = $"tmdb/img:dns:{init.DNS}";
 
-                    if (response.StatusCode == HttpStatusCode.OK && init.cache_img > 0 && AppInit.conf.mikrotik == false)
+                    var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
+                    await _spredns.WaitAsync();
+
+                    try
                     {
-                        #region cache
-                        httpContex.Response.Headers["X-Cache-Status"] = "MISS";
-
-                        int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                            (int)response.Content.Headers.ContentLength.Value :
-                            50_000; // 50kB
-
-                        using (var memoryStream = new MemoryStream(initialCapacity))
+                        if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
-                            bool saveCache = true;
+                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                            var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
+                            dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-                            using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                            {
-                                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
-
-                                try
-                                {
-                                    int bytesRead;
-                                    Memory<byte> memoryBuffer = buffer.AsMemory();
-
-                                    while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
-                                    {
-                                        memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                        await httpContex.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContex.RequestAborted).ConfigureAwait(false);
-                                    }
-                                }
-                                catch
-                                {
-                                    saveCache = false;
-                                }
-                                finally
-                                {
-                                    ArrayPool<byte>.Shared.Return(buffer);
-                                }
-                            }
-
-                            if (saveCache && memoryStream.Length > 1000)
-                            {
-                                try
-                                {
-                                    if (!cacheFiles.ContainsKey(md5key))
-                                    {
-                                        #region check_img
-                                        if (init.check_img && !path.Contains(".svg"))
-                                        {
-                                            using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
-                                            {
-                                                try
-                                                {
-                                                    // тестируем jpg/png на целостность
-                                                    byte[] temp = image.JpegsaveBuffer();
-                                                    if (temp == null || temp.Length == 0)
-                                                        return;
-                                                }
-                                                catch
-                                                {
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                        #endregion
-
-                                        File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                    }
-                                }
-                                catch { try { File.Delete(outFile); } catch { } }
-                            }
+                            if (!string.IsNullOrEmpty(dns_ip))
+                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                            else
+                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                         }
-                        #endregion
+
+                        if (!string.IsNullOrEmpty(dns_ip))
+                            tmdb_ip = dns_ip;
                     }
-                    else
+                    finally
                     {
-                        httpContex.Response.StatusCode = (int)response.StatusCode;
-                        httpContex.Response.Headers["X-Cache-Status"] = "bypass";
-                        await response.Content.CopyToAsync(httpContex.Response.Body, httpContex.RequestAborted).ConfigureAwait(false);
+                        _spredns.Release();
+                        if (_spredns.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(dnskey, out _);
                     }
                 }
-            }
-            catch
-            {
-                proxyManager.Refresh();
+                #endregion
 
-                if (!string.IsNullOrEmpty(tmdb_ip))
-                    httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
-                else
-                    httpContex.Response.Redirect(uri);
+                var headers = new List<HeadersModel>();
+                var proxyManager = new ProxyManager("tmdb_img", init);
+
+                if (!string.IsNullOrEmpty(init.IMG_Minor))
+                {
+                    uri = uri.Replace("image.tmdb.org", init.IMG_Minor);
+                }
+                else if (!string.IsNullOrEmpty(tmdb_ip))
+                {
+                    headers.Add(new HeadersModel("Host", "image.tmdb.org"));
+                    uri = uri.Replace("image.tmdb.org", tmdb_ip);
+                }
+
+                try
+                {
+                    var handler = Http.Handler(uri, proxyManager.Get());
+                    handler.AllowAutoRedirect = true;
+
+                    var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
+                    {
+                        Http.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
+                    });
+
+                    using (var response = await client.GetAsync(uri).ConfigureAwait(false))
+                    {
+                        if (response.StatusCode == HttpStatusCode.OK)
+                            proxyManager.Success();
+                        else
+                            proxyManager.Refresh();
+
+                        if (response.StatusCode == HttpStatusCode.OK && init.cache_img > 0 && AppInit.conf.mikrotik == false)
+                        {
+                            #region cache
+                            httpContex.Response.Headers["X-Cache-Status"] = "MISS";
+
+                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                (int)response.Content.Headers.ContentLength.Value :
+                                50_000; // 50kB
+
+                            using (var memoryStream = new MemoryStream(initialCapacity))
+                            {
+                                bool saveCache = true;
+
+                                using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                {
+                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                                    try
+                                    {
+                                        int bytesRead;
+                                        Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                        while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
+                                        {
+                                            memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                            await httpContex.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContex.RequestAborted).ConfigureAwait(false);
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        saveCache = false;
+                                    }
+                                    finally
+                                    {
+                                        ArrayPool<byte>.Shared.Return(buffer);
+                                    }
+                                }
+
+                                if (saveCache && memoryStream.Length > 1000)
+                                {
+                                    try
+                                    {
+                                        if (!cacheFiles.ContainsKey(md5key))
+                                        {
+                                            #region check_img
+                                            if (init.check_img && !path.Contains(".svg"))
+                                            {
+                                                using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
+                                                {
+                                                    try
+                                                    {
+                                                        // тестируем jpg/png на целостность
+                                                        byte[] temp = image.JpegsaveBuffer();
+                                                        if (temp == null || temp.Length == 0)
+                                                            return;
+                                                    }
+                                                    catch
+                                                    {
+                                                        return;
+                                                    }
+                                                }
+                                            }
+                                            #endregion
+
+                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                            cacheFiles.TryAdd(md5key, 0);
+                                        }
+                                    }
+                                    catch { try { File.Delete(outFile); } catch { } }
+                                }
+                            }
+                            #endregion
+                        }
+                        else
+                        {
+                            SemaphoreRelease();
+                            httpContex.Response.StatusCode = (int)response.StatusCode;
+                            httpContex.Response.Headers["X-Cache-Status"] = "bypass";
+                            await response.Content.CopyToAsync(httpContex.Response.Body, httpContex.RequestAborted).ConfigureAwait(false);
+                        }
+                    }
+                }
+                catch
+                {
+                    proxyManager.Refresh();
+
+                    if (!string.IsNullOrEmpty(tmdb_ip))
+                        httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
+                    else
+                        httpContex.Response.Redirect(uri);
+                }
+            }
+            finally
+            {
+                if (!semaphoreDispose)
+                    SemaphoreRelease();
             }
         }
         #endregion
