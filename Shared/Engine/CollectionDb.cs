@@ -33,7 +33,7 @@ namespace Shared.Engine
                 sync_users = dataDb.GetCollection<UserSync>("sync_users");
                 sisi_users = dataDb.GetCollection<Models.SISI.User>("sisi_users");
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine(ex); }
 
             try
             {
@@ -51,7 +51,7 @@ namespace Shared.Engine
                 playwrightRoute = cacheDb.GetCollection<PlaywrightRouteCache>("playwrightRoute");
                 playwrightRoute.EnsureIndex(x => x.ex);
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine(ex); }
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
@@ -60,9 +60,9 @@ namespace Shared.Engine
                     try
                     {
                         await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-                        hybrid_cache.DeleteMany(i => DateTimeOffset.Now > i.ex);
-                        proxyLink.DeleteMany(i => DateTimeOffset.Now > i.ex);
-                        playwrightRoute.DeleteMany(i => DateTimeOffset.Now > i.ex);
+                        hybrid_cache?.DeleteMany(i => DateTimeOffset.Now > i.ex);
+                        proxyLink?.DeleteMany(i => DateTimeOffset.Now > i.ex);
+                        playwrightRoute?.DeleteMany(i => DateTimeOffset.Now > i.ex);
                     }
                     catch { }
                 }

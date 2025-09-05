@@ -11,14 +11,14 @@ namespace Shared.Engine
 {
     public class ProxyLink : IProxyLink
     {
-        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
+        public string Encrypt(string uri, string plugin, DateTimeOffset ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
 
 
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
 
         public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, forceMd5: forceMd5);
 
-        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false)
+        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTimeOffset ex = default, bool forceMd5 = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
@@ -138,35 +138,61 @@ namespace Shared.Engine
 
         async public static Task Cron()
         {
-            var temp = new HashSet<string>();
+            int round = 0;
+            var hash = new HashSet<string>();
 
             while (true)
             {
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-
                 try
                 {
-                    if (DateTime.Now.Minute == 1)
-                        temp.Clear();
+                    if (round == 60)
+                    {
+                        round = 0;
+                        hash.Clear();
+                    }
+
+                    round++;
+                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
                     foreach (var link in links)
                     {
-                        if (AppInit.conf.mikrotik || link.Value.proxy != null)
+                        try
                         {
-                            if (DateTimeOffset.Now > link.Value.ex)
-                                links.TryRemove(link.Key, out _);
-                        }
-                        else
-                        {
-                            if (!temp.Contains(link.Key) || DateTimeOffset.Now.AddHours(1) > link.Value.ex)
+                            if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTimeOffset.Now.AddMinutes(5) > link.Value.ex)
                             {
-                                link.Value.Id = link.Key;
-                                if (CollectionDb.proxyLink.Upsert(link.Value))
-                                    temp.Add(link.Key);
+                                if (DateTimeOffset.Now > link.Value.ex)
+                                    links.TryRemove(link.Key, out _);
                             }
+                            else
+                            {
+                                if (hash.Contains(link.Key))
+                                    links.TryRemove(link.Key, out _);
+                                else
+                                {
+                                    link.Value.id = link.Key;
 
-                            links.TryRemove(link.Key, out _);
+                                    var doc = CollectionDb.proxyLink.FindById(link.Key);
+                                    if (doc != null)
+                                    {
+                                        doc.ex = link.Value.ex;
+                                        if (CollectionDb.proxyLink.Update(doc))
+                                        {
+                                            hash.Add(link.Key);
+                                            links.TryRemove(link.Key, out _);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (CollectionDb.proxyLink.Upsert(link.Value))
+                                        {
+                                            hash.Add(link.Key);
+                                            links.TryRemove(link.Key, out _);
+                                        }
+                                    }
+                                }
+                            }
                         }
+                        catch { }
                     }
                 }
                 catch { }

@@ -432,7 +432,7 @@ namespace SISI.Controllers.NextHUB
                             preview = $"{init.host}/{preview}";
 
                         if (init.streamproxy_preview)
-                            preview = $"{host}/proxy/{ProxyLink.Encrypt(preview, string.Empty, verifyip: false)}";
+                            preview = $"{host}/proxy/{ProxyLink.Encrypt(preview, string.Empty, verifyip: false, ex: DateTimeOffset.Now.AddHours(1))}";
                     }
                     #endregion
 

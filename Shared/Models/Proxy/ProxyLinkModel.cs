@@ -25,7 +25,7 @@ namespace Shared.Models.Proxy
         }
 
         [BsonId]
-        public string Id { get; set; }
+        public string id { get; set; }
 
         public DateTimeOffset ex { get; set; }
 

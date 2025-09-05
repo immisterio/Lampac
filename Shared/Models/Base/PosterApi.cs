@@ -40,9 +40,9 @@ namespace Shared.Models.Base
                 return uri?.Split(" or ")?[0];
 
             if (!string.IsNullOrEmpty(init.bypass) && Regex.IsMatch(uri, init.bypass, RegexOptions.IgnoreCase))
-                return $"{init.host}/proxyimg/{iproxy.Encrypt(uri, "posterapi", DateTime.Now.AddHours(1))}";
+                return $"{init.host}/proxyimg/{iproxy.Encrypt(uri, "posterapi", DateTimeOffset.Now.AddMinutes(20))}";
 
-            return $"{init.host}/proxyimg:{init.width}:{init.height}/{iproxy.Encrypt(uri, "posterapi", DateTime.Now.AddHours(1))}";
+            return $"{init.host}/proxyimg:{init.width}:{init.height}/{iproxy.Encrypt(uri, "posterapi", DateTimeOffset.Now.AddMinutes(20))}";
         }
     }
 }
