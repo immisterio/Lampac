@@ -49,7 +49,7 @@ namespace Lampac
                 return false;
             }
 
-            foreach (string dllPath in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "runtimes", "references"), "*.dll", SearchOption.AllDirectories))
+            foreach (string dllPath in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "runtimes", "references"), "*.dll"))
             {
                 try
                 {

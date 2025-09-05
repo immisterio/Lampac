@@ -95,7 +95,7 @@ namespace Shared.Engine
 
         bool enableRhub, rhub_fallback;
 
-        public bool enable => enableRhub;
+        public bool enable => init.rhub && enableRhub;
 
         public string connectionMsg { get; private set; }
 
