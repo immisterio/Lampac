@@ -9,6 +9,7 @@ proot-distro login debian
 # Install packages
 apt-get update
 apt-get install -y curl unzip
+apt-get install -y libicu-dev
 apt-get install -y libicu72
 apt-get install -y libicu76
 
