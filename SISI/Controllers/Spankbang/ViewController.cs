@@ -23,7 +23,7 @@ namespace SISI.Controllers.Spankbang
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                stream_links = await SpankbangTo.StreamLinks($"{host}/sbg/vidosik", init.corsHost(), uri, url =>
+                stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), uri, url =>
                 {
                     if (rch.enable)
                         return rch.Get(init.cors(url), httpHeaders(init));

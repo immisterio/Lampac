@@ -35,7 +35,7 @@ namespace SISI.Controllers.PornHub
                 );
 
                 cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);
-                cache.playlists = PornHubTo.Playlist($"{host}/phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
+                cache.playlists = PornHubTo.Playlist("phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
 
                 if (cache.playlists.Count == 0)
                 {
@@ -74,7 +74,7 @@ namespace SISI.Controllers.PornHub
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
                 cache.total_pages = PornHubTo.Pages(html);
-                cache.playlists = PornHubTo.Playlist($"{host}/phubprem/vidosik", "phubprem", html, prem: true);
+                cache.playlists = PornHubTo.Playlist("phubprem/vidosik", "phubprem", html, prem: true);
 
                 if (cache.playlists.Count == 0)
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));

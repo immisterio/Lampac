@@ -32,7 +32,7 @@ namespace SISI.Controllers.Chaturbate
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                playlists = ChaturbateTo.Playlist($"{host}/chu/potok", html);
+                playlists = ChaturbateTo.Playlist("chu/potok", html);
 
                 if (playlists.Count == 0)
                 {

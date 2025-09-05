@@ -39,7 +39,7 @@ namespace SISI.Controllers.Ebalovo
                     rch.enable ? rch.Get(init.cors(url), headers) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers)
                 );
 
-                playlists = EbalovoTo.Playlist($"{host}/elo/vidosik", html);
+                playlists = EbalovoTo.Playlist("elo/vidosik", html);
 
                 if (playlists.Count == 0)
                 {

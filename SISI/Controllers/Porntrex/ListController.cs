@@ -29,7 +29,7 @@ namespace SISI.Controllers.Porntrex
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                playlists = PorntrexTo.Playlist($"{host}/ptx/vidosik", html);
+                playlists = PorntrexTo.Playlist("ptx/vidosik", html);
 
                 if (playlists.Count == 0)
                 {

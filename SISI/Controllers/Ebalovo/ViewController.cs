@@ -34,7 +34,7 @@ namespace SISI.Controllers.Ebalovo
             {
                 string ehost = await RootController.goHost(init.corsHost());
 
-                stream_links = await EbalovoTo.StreamLinks($"{host}/elo/vidosik", ehost, uri,
+                stream_links = await EbalovoTo.StreamLinks("elo/vidosik", ehost, uri,
                     url => 
                     {
                         var headers = httpHeaders(init, HeadersModel.Init(

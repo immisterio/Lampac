@@ -50,7 +50,7 @@ namespace SISI.Controllers.XvideosRED
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
-                playlists = XvideosTo.Playlist($"{host}/xdsred/vidosik", $"{plugin}/stars", html, site: plugin);
+                playlists = XvideosTo.Playlist("xdsred/vidosik", $"{plugin}/stars", html, site: plugin);
 
                 if (playlists.Count == 0)
                     return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));

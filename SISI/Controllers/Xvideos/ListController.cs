@@ -33,7 +33,7 @@ namespace SISI.Controllers.Xvideos
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                playlists = XvideosTo.Playlist($"{host}/xds/vidosik", $"{plugin}/stars", html);
+                playlists = XvideosTo.Playlist("xds/vidosik", $"{plugin}/stars", html);
 
                 if (playlists.Count == 0)
                 {
@@ -78,7 +78,7 @@ namespace SISI.Controllers.Xvideos
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                playlists = await XvideosTo.Pornstars($"{host}/xds/vidosik", $"{plugin}/stars", init.corsHost(), plugin, uri, sort, pg, url =>
+                playlists = await XvideosTo.Pornstars("xds/vidosik", $"{plugin}/stars", init.corsHost(), plugin, uri, sort, pg, url =>
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 

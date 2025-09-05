@@ -29,7 +29,7 @@ namespace SISI.Controllers.HQporner
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                playlists = HQpornerTo.Playlist($"{host}/hqr/vidosik", html);
+                playlists = HQpornerTo.Playlist("hqr/vidosik", html);
 
                 if (playlists.Count == 0)
                 {

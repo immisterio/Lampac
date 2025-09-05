@@ -29,7 +29,7 @@ namespace SISI.Controllers.Eporner
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                var playlists = EpornerTo.Playlist($"{host}/epr/vidosik", html);
+                var playlists = EpornerTo.Playlist("epr/vidosik", html);
 
                 if (playlists.Count == 0)
                     return res.Fail("playlists");

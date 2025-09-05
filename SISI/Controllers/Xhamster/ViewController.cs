@@ -25,7 +25,7 @@ namespace SISI.Controllers.Xhamster
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                stream_links = await XhamsterTo.StreamLinks($"{host}/xmr/vidosik", init.corsHost(), uri, url =>
+                stream_links = await XhamsterTo.StreamLinks("xmr/vidosik", init.corsHost(), uri, url =>
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 

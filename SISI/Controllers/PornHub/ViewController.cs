@@ -25,7 +25,7 @@ namespace SISI.Controllers.PornHub
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                stream_links = await PornHubTo.StreamLinks($"{host}/phub/vidosik", "phub", init.corsHost(), vkey, url =>
+                stream_links = await PornHubTo.StreamLinks("phub/vidosik", "phub", init.corsHost(), vkey, url =>
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
                 );
 
@@ -64,7 +64,7 @@ namespace SISI.Controllers.PornHub
             string memKey = $"phubprem:vidosik:{vkey}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await PornHubTo.StreamLinks($"{host}/phubprem/vidosik", "phubprem", init.corsHost(), vkey, url => Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
+                stream_links = await PornHubTo.StreamLinks("phubprem/vidosik", "phubprem", init.corsHost(), vkey, url => Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", proxyManager);

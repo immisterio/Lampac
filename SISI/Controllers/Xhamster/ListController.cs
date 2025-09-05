@@ -34,7 +34,7 @@ namespace SISI.Controllers.Xhamster
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                playlists = XhamsterTo.Playlist($"{host}/xmr/vidosik", html);
+                playlists = XhamsterTo.Playlist("xmr/vidosik", html);
 
                 if (playlists.Count == 0)
                 {

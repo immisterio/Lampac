@@ -25,7 +25,7 @@ namespace SISI.Controllers.Eporner
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                stream_links = await EpornerTo.StreamLinks($"{host}/epr/vidosik", init.corsHost(), uri, 
+                stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), uri, 
                                htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)), 
                                jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : Http.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
 

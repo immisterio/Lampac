@@ -29,7 +29,7 @@ namespace SISI.Controllers.Xnxx
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 
-                playlists = XnxxTo.Playlist($"{host}/xnx/vidosik", html);
+                playlists = XnxxTo.Playlist("xnx/vidosik", html);
 
                 if (playlists.Count == 0)
                 {

@@ -25,7 +25,7 @@ namespace SISI.Controllers.Xvideos
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                stream_links = await XvideosTo.StreamLinks($"{host}/xds/vidosik", $"{host}/xds/stars", init.corsHost(), uri, url =>
+                stream_links = await XvideosTo.StreamLinks("xds/vidosik", $"{host}/xds/stars", init.corsHost(), uri, url =>
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(url, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 

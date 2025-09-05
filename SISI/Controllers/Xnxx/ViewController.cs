@@ -25,7 +25,7 @@ namespace SISI.Controllers.Xnxx
                 if (rch.IsNotConnected())
                     return ContentTo(rch.connectionMsg);
 
-                stream_links = await XnxxTo.StreamLinks($"{host}/xnx/vidosik", init.corsHost(), uri, url =>
+                stream_links = await XnxxTo.StreamLinks("xnx/vidosik", init.corsHost(), uri, url =>
                     rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                 );
 

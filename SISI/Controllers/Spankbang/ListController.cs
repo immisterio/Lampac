@@ -34,7 +34,7 @@ namespace SISI.Controllers.Spankbang
                     return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
                 });
 
-                playlists = SpankbangTo.Playlist($"{host}/sbg/vidosik", html);
+                playlists = SpankbangTo.Playlist("sbg/vidosik", html);
 
                 if (playlists.Count == 0)
                 {
