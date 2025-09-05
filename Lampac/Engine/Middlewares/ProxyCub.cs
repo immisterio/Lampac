@@ -228,7 +228,9 @@ namespace Lampac.Engine.Middlewares
                         }
                         else
                         {
-                            SemaphoreRelease(md5key, semaphore);
+                            if (isCacheRequest)
+                                SemaphoreRelease(md5key, semaphore);
+
                             httpContext.Response.Headers["X-Cache-Status"] = "bypass";
                             await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                         }

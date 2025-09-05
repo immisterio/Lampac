@@ -128,10 +128,14 @@ namespace Lampac.Engine.Middlewares
             bool semaphoreDispose = false;
             void SemaphoreRelease()
             {
-                semaphoreDispose = true;
-                semaphore.Release();
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(href, out _);
+                if (cacheimg && !semaphoreDispose)
+                {
+                    semaphoreDispose = true;
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(href, out _);
+                }
+                else _semaphoreLocks.TryRemove(href, out _);
             }
 
             try
@@ -305,11 +309,7 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (!semaphoreDispose)
-                {
-                    if (cacheimg) SemaphoreRelease();
-                    else _semaphoreLocks.TryRemove(href, out _);
-                }
+                SemaphoreRelease();
             }
         }
 
