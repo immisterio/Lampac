@@ -44,7 +44,7 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -54,6 +54,8 @@ namespace Online.Controllers
             string token = init.token;
             if (init.tokens != null && init.tokens.Length > 1)
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
+
+            reset:
 
             #region filmix.tv
             if (!rch.enable && !string.IsNullOrEmpty(init.user_apitv) && string.IsNullOrEmpty(init.token_apitv))

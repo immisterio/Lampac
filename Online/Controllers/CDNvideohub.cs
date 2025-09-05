@@ -13,13 +13,14 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
+            reset:
             var cache = await InvokeCache<JObject>(rch.ipkey($"cdnvideohub:view:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

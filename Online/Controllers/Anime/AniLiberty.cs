@@ -16,7 +16,6 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(AppInit.conf.AniLiberty);
             var proxy = proxyManager.Get();
 
-            reset: 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             if (releases == 0)
@@ -26,6 +25,7 @@ namespace Online.Controllers
                 if (string.IsNullOrEmpty(stitle))
                     return OnError();
 
+                reset:
                 var cache = await InvokeCache<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
@@ -96,6 +96,7 @@ namespace Online.Controllers
             else 
             {
                 #region Серии
+                reset: 
                 var cache = await InvokeCache<JObject>($"aniliberty:releases:{releases}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())

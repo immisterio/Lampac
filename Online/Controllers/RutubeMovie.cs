@@ -20,7 +20,7 @@ namespace Online.Controllers
 
             var proxyManager = new ProxyManager(init);
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -30,6 +30,7 @@ namespace Online.Controllers
             }
             else
             {
+                reset:
                 var cache = await InvokeCache<Result[]>($"rutubemovie:view:{searchTitle}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
@@ -95,10 +96,11 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
+            reset:
             var cache = await InvokeCache<string>($"rutubemovie:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string uri = $"api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp";

@@ -16,7 +16,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -33,6 +33,7 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
+            reset:
             var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

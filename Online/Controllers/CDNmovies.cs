@@ -16,7 +16,7 @@ namespace Online.Controllers
             if (kinopoisk_id == 0)
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -32,6 +32,7 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
+            reset:
             var cache = await InvokeCache<Voice[]>($"cdnmovies:view:{kinopoisk_id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

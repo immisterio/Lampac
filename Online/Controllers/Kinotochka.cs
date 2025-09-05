@@ -17,7 +17,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -32,6 +32,7 @@ namespace Online.Controllers
                 if (s == -1)
                 {
                     #region Сезоны
+                    reset:
                     var cache = await InvokeCache<List<(string name, string uri, string season)>>($"kinotochka:seasons:{title}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                     {
                         if (rch.IsNotConnected())
@@ -114,6 +115,7 @@ namespace Online.Controllers
                 else
                 {
                     #region Серии
+                    reset: 
                     var cache = await InvokeCache<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                     {
                         if (rch.IsNotConnected())
@@ -188,6 +190,7 @@ namespace Online.Controllers
                 if (kinopoisk_id == 0)
                     return OnError();
 
+                reset:
                 var cache = await InvokeCache<EmbedModel>($"kinotochka:view:{kinopoisk_id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())

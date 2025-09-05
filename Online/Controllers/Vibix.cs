@@ -24,12 +24,14 @@ namespace Online.Controllers
             if (data == null)
                 return OnError();
 
-            reset: var proxy = proxyManager.Get();
+            var proxy = proxyManager.Get();
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
             string iframe_url = data.iframe_url;
+
+            reset:
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

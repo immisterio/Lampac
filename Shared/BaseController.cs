@@ -307,45 +307,71 @@ namespace Shared
 
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager? proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
         {
-            if (hybridCache.TryGetValue(key, out T _val, memory))
+            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+
+            try
             {
-                HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "HIT");
-                return new CacheResult<T>() { IsSuccess = true, Value = _val };
+                if (hybridCache.TryGetValue(key, out T _val, memory))
+                {
+                    HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "HIT");
+                    return new CacheResult<T>() { IsSuccess = true, Value = _val };
+                }
+
+                HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "MISS");
+
+                var val = await onget.Invoke(new CacheResult<T>());
+
+                if (val == null)
+                    return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "null" };
+
+                if (val.GetType() == typeof(CacheResult<T>))
+                    return (CacheResult<T>)val;
+
+                if (val.Equals(default(T)))
+                    return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "default" };
+
+                if (typeof(T) == typeof(string) && string.IsNullOrEmpty(val.ToString()))
+                    return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "empty" };
+
+                proxyManager?.Success();
+                hybridCache.Set(key, val, time, memory);
+                return new CacheResult<T>() { IsSuccess = true, Value = val };
             }
+            finally
+            {
+                semaphore.Release();
 
-            HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "MISS");
-
-            var val = await onget.Invoke(new CacheResult<T>());
-
-            if (val == null)
-                return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "null" };
-
-            if (val.GetType() == typeof(CacheResult<T>))
-                return (CacheResult<T>)val;
-
-            if (val.Equals(default(T)))
-                return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "default" };
-
-            if (typeof(T) == typeof(string) && string.IsNullOrEmpty(val.ToString()))
-                return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "empty" };
-
-            proxyManager?.Success();
-            hybridCache.Set(key, val, time, memory);
-            return new CacheResult<T>() { IsSuccess = true, Value = val };
+                if (semaphore.CurrentCount == 1)
+                    _semaphoreLocks.TryRemove(key, out _);
+            }
         }
 
         async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager? proxyManager = null, bool? memory = null)
         {
-            if (hybridCache.TryGetValue(key, out T val, memory))
+            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+
+            try
+            {
+                if (hybridCache.TryGetValue(key, out T val, memory))
+                    return val;
+
+                val = await onget.Invoke();
+                if (val == null || val.Equals(default(T)))
+                    return default;
+
+                proxyManager?.Success();
+                hybridCache.Set(key, val, time, memory);
                 return val;
+            }
+            finally
+            {
+                semaphore.Release();
 
-            val = await onget.Invoke();
-            if (val == null || val.Equals(default(T)))
-                return default;
-
-            proxyManager?.Success();
-            hybridCache.Set(key, val, time, memory);
-            return val;
+                if (semaphore.CurrentCount == 1)
+                    _semaphoreLocks.TryRemove(key, out _);
+            }
         }
         #endregion
 

@@ -16,7 +16,7 @@ namespace Online.Controllers
             if (kinopoisk_id == 0)
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
@@ -29,6 +29,7 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
+            reset:
             var cache = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

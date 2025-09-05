@@ -22,7 +22,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token) && string.IsNullOrEmpty(init.cookie))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -104,6 +104,7 @@ namespace Online.Controllers
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
+            reset:
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"fancdn:{title}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

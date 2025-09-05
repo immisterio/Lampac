@@ -32,7 +32,7 @@ namespace Online.Controllers
             else if (init.two)
                 init.dash = false;
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -49,6 +49,7 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
+            reset:
             var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

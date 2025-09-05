@@ -62,8 +62,6 @@ namespace Online.Controllers
                 return Content("data-json="); // заглушка от 429
 
             var proxy = proxyManager.Get();
-
-            reset: 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             var oninvk = new VoKinoInvoke
@@ -76,6 +74,7 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
+            reset:
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

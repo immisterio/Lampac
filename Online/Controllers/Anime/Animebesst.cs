@@ -14,10 +14,11 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
+            reset:
             if (string.IsNullOrEmpty(uri))
             {
                 if (string.IsNullOrWhiteSpace(title))

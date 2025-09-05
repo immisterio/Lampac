@@ -19,7 +19,6 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            reset: 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             var oninvk = new AniLibriaInvoke
@@ -31,6 +30,7 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             );
 
+            reset:
             var cache = await InvokeCache<List<RootObject>>($"anilibriaonline:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

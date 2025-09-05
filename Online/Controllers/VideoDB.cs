@@ -23,7 +23,7 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -35,6 +35,7 @@ namespace Online.Controllers
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
+            reset: 
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"videodb:view:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
@@ -66,13 +67,15 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
             string memKey = rch.ipkey($"videodb:video:{link}", proxyManager);
             if (!hybridCache.TryGetValue(memKey, out string location))
             {
+                reset:
+
                 try
                 {
                     var headers = httpHeaders(init, HeadersModel.Init(
