@@ -5,7 +5,9 @@ DEST="/home/lampac"
 # sudo su -
 apt-get update
 apt-get install -y unzip curl libicu-dev
-apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2
+apt-get install -y libnss3-dev libgtk-3-dev libxss-dev libasound2
+apt-get install -y libgdk-pixbuf2.0-dev
+apt-get install -y libnspr4
 apt-get install -y xvfb
 apt-get install -y coreutils
 
