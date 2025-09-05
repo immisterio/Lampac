@@ -15,43 +15,47 @@ namespace SISI.Controllers.PornHub
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return OnError(rch_error);
+
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
-
             string memKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))
+
+            return await InvkSemaphore(memKey, async () =>
             {
-                var proxyManager = new ProxyManager(init);
-                var proxy = proxyManager.Get();
-
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-                if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error);
-
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
-
-                string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
-                );
-
-                cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);
-                cache.playlists = PornHubTo.Playlist("phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
-
-                if (cache.playlists.Count == 0)
+                if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))
                 {
-                    if (IsRhubFallback(init))
-                        goto reset;
+                    reset:
+                    string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url =>
+                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
+                    );
 
-                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                    cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);
+                    cache.playlists = PornHubTo.Playlist("phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
+
+                    if (cache.playlists.Count == 0)
+                    {
+                        if (IsRhubFallback(init))
+                            goto reset;
+
+                        return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                    }
+
+                    if (!rch.enable)
+                        proxyManager.Success();
+
+                    hybridCache.Set(memKey, cache, cacheTime(10, init: init), inmemory: false);
                 }
 
-                if (!rch.enable)
-                    proxyManager.Success();
-
-                hybridCache.Set(memKey, cache, cacheTime(10, init: init), inmemory: false);
-            }
-
-            return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, plugin: init.plugin, total_pages: cache.total_pages);
+                return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, plugin: init.plugin, total_pages: cache.total_pages);
+            });
         }
 
 

@@ -1,13 +1,14 @@
-﻿using Shared.Models.Module;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
+using Shared.Models;
 using Shared.Models.Base;
+using Shared.Models.Module;
+using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
 using System.Net;
 using System.Reflection;
-using Shared.Models.SISI.OnResult;
-using Shared.Models.SISI.Base;
-using Shared.Models;
+using System.Threading;
 
 namespace Shared
 {
@@ -30,14 +31,14 @@ namespace Shared
                         {
                             if (t.GetMethod("Invoke") is MethodInfo m2)
                             {
-                                badInitMsg = (ActionResult)m2.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                badInitMsg = (ActionResult)m2.Invoke(null, [HttpContext, memoryCache, requestInfo, host, args]);
                                 if (badInitMsg != null)
                                     return true;
                             }
 
                             if (t.GetMethod("InvokeAsync") is MethodInfo m)
                             {
-                                badInitMsg = await (Task<ActionResult>)m.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                badInitMsg = await (Task<ActionResult>)m.Invoke(null, [HttpContext, memoryCache, requestInfo, host, args]);
                                 if (badInitMsg != null)
                                     return true;
                             }
@@ -98,12 +99,12 @@ namespace Shared
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
 
-            var resultArray = new OnResultPlaylistItem[playlists.Count];
+            var result = new OnListResult(playlists.Count, total_pages, menu);
 
             for (int i = 0; i < playlists.Count; i++)
             {
                 var pl = playlists[i];
-                resultArray[i] = new OnResultPlaylistItem
+                result.list[i] = new OnResultPlaylistItem
                 {
                     name = pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy),
@@ -121,7 +122,7 @@ namespace Shared
                 };
             }
 
-            return new JsonResult(new OnListResult(resultArray, total_pages, menu));
+            return new JsonResult(result);
         }
 
         public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, List<HeadersModel> headers = null, int total_pages = 0, string plugin = null)
@@ -129,12 +130,12 @@ namespace Shared
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
 
-            var resultArray = new OnResultPlaylistItem[playlists.Count];
+            var result = new OnListResult(playlists.Count, total_pages, menu);
 
             for (int i = 0; i < playlists.Count; i++)
             {
                 var pl = playlists[i];
-                resultArray[i] = new OnResultPlaylistItem
+                result.list[i] = new OnResultPlaylistItem
                 {
                     name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
@@ -152,7 +153,7 @@ namespace Shared
                 };
             }
 
-            return new JsonResult(new OnListResult(resultArray, total_pages, menu));
+            return new JsonResult(result);
         }
 
         public JsonResult OnResult(Dictionary<string, string> stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers_stream = null)
@@ -162,21 +163,20 @@ namespace Shared
 
         public JsonResult OnResult(StreamItem stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers_img = null, List<HeadersModel> headers_stream = null)
         {
-            Dictionary<string, string> qualitys_proxy = null;
+            var result = new OnStreamResult(stream_links?.recomends?.Count ?? 0);
 
             if (!init.streamproxy && (init.geostreamproxy == null || init.geostreamproxy.Length == 0))
             {
                 if (init.qualitys_proxy)
-                    qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream, force_streamproxy: true));
+                    result.qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream, force_streamproxy: true));
             }
 
-            var recomendsArray = new OnResultPlaylistItem[stream_links?.recomends?.Count ?? 0];
-            if (recomendsArray.Length > 0)
+            if (stream_links.recomends != null && stream_links.recomends.Count > 0)
             {
                 for (int i = 0; i < stream_links.recomends.Count; i++)
                 {
                     var pl = stream_links.recomends[i];
-                    recomendsArray[i] = new OnResultPlaylistItem
+                    result.recomends[i] = new OnResultPlaylistItem
                     {
                         name = pl.name,
                         video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
@@ -186,13 +186,10 @@ namespace Shared
                 }
             }
 
-            return new JsonResult(new OnStreamResult
-            (
-                stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream)),
-                qualitys_proxy,
-                init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream),
-                recomendsArray
-            ));
+            result.qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream));
+            result.headers_stream = init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream);
+
+            return new JsonResult(result);
         }
         #endregion
 
@@ -206,6 +203,29 @@ namespace Shared
             }
 
             return false;
+        }
+        #endregion
+
+        #region InvkSemaphore
+        async public Task<ActionResult> InvkSemaphore(string key, Func<ValueTask<ActionResult>> func)
+        {
+            if (init.rhub && init.rhub_fallback == false)
+                return await func.Invoke();
+
+            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+
+            try
+            {
+                return await func.Invoke();
+            }
+            finally
+            {
+                semaphore.Release();
+
+                if (semaphore.CurrentCount == 1)
+                    _semaphoreLocks.TryRemove(key, out _);
+            }
         }
         #endregion
     }

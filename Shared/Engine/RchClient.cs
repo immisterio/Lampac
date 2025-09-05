@@ -106,14 +106,15 @@ namespace Shared.Engine
             this.connectionId = connectionId;
         }
 
-        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo, int? keepalive = null)
+        public RchClient(HttpContext context, string host, BaseSettings init, in RequestModel requestInfo, int? keepalive = null)
         {
             this.init = init;
             httpContext = context;
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
             ip = requestInfo.IP;
-            connectionId = clients.FirstOrDefault(i => i.Value.ip == requestInfo.IP).Key;
+            string _ip = ip = requestInfo.IP;
+            connectionId = clients.FirstOrDefault(i => i.Value.ip == _ip).Key;
 
             if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
             {

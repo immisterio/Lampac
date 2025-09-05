@@ -4,9 +4,9 @@ namespace Shared.Models.SISI.OnResult
 {
     public struct OnListResult
     {
-        public OnListResult(in OnResultPlaylistItem[] list, int total_pages, IList<MenuItem> menu)
+        public OnListResult(int listCount, int total_pages, IList<MenuItem> menu)
         {
-            this.list = list;
+            list = new OnResultPlaylistItem[listCount];
             this.total_pages = total_pages;
             this.menu = menu;
         }

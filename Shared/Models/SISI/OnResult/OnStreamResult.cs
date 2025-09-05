@@ -2,12 +2,9 @@
 {
     public struct OnStreamResult
     {
-        public OnStreamResult(Dictionary<string, string> qualitys, Dictionary<string, string> qualitys_proxy, Dictionary<string, string> headers_stream, IList<OnResultPlaylistItem> recomends)
+        public OnStreamResult(int recomendsCount) 
         {
-            this.qualitys = qualitys;
-            this.qualitys_proxy = qualitys_proxy;
-            this.headers_stream = headers_stream;
-            this.recomends = recomends;
+            recomends = new OnResultPlaylistItem[recomendsCount];
         }
 
         public Dictionary<string, string> qualitys { get; set; }
@@ -16,6 +13,6 @@
 
         public Dictionary<string, string> headers_stream { get; set; }
 
-        public IList<OnResultPlaylistItem> recomends { get; set; }
+        public OnResultPlaylistItem[] recomends { get; set; }
     }
 }

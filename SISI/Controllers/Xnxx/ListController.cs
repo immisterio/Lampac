@@ -12,40 +12,45 @@ namespace SISI.Controllers.Xnxx
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return OnError(rch_error);
+
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             string memKey = $"xnx:list:{search}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
+
+            return await InvkSemaphore(memKey, async () =>
             {
-                var proxyManager = new ProxyManager(init);
-                var proxy = proxyManager.Get();
-
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-                if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error);
-
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
-
-                string html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
-                );
-
-                playlists = XnxxTo.Playlist("xnx/vidosik", html);
-
-                if (playlists.Count == 0)
+                if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
                 {
-                    if (IsRhubFallback(init))
-                        goto reset;
+                    reset:
+                    string html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, url =>
+                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    );
 
-                    return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                    playlists = XnxxTo.Playlist("xnx/vidosik", html);
+
+                    if (playlists.Count == 0)
+                    {
+                        if (IsRhubFallback(init))
+                            goto reset;
+
+                        return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                    }
+
+                    if (!rch.enable)
+                        proxyManager.Success();
+
+                    hybridCache.Set(memKey, playlists, cacheTime(10), inmemory: false);
                 }
 
-                if (!rch.enable)
-                    proxyManager.Success();
-
-                hybridCache.Set(memKey, playlists, cacheTime(10), inmemory: false);
-            }
-
-            return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, plugin: init.plugin);
+                return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, plugin: init.plugin);
+            });
         }
     }
 }

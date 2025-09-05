@@ -15,45 +15,50 @@ namespace SISI.Controllers.Tizam
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return OnError(rch_error);
+
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             string memKey = $"tizam:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
+
+            return await InvkSemaphore(memKey, async () =>
             {
-                var proxyManager = new ProxyManager(init);
-                var proxy = proxyManager.Get();
-
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-                if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error);
-
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
-
-                string uri = $"{init.corsHost()}/fil_my_dlya_vzroslyh/s_russkim_perevodom/";
-
-                int page = pg - 1;
-                if (page > 0)
-                    uri += $"?p={page}";
-
-                string html = rch.enable ? await rch.Get(init.cors(uri), httpHeaders(init)) : 
-                                           await Http.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
-
-                playlists = Playlist(html);
-
-                if (playlists.Count == 0)
+                if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
                 {
-                    if (IsRhubFallback(init))
-                        goto reset;
+                    string uri = $"{init.corsHost()}/fil_my_dlya_vzroslyh/s_russkim_perevodom/";
 
-                    return OnError("playlists", proxyManager);
+                    int page = pg - 1;
+                    if (page > 0)
+                        uri += $"?p={page}";
+
+                    reset:
+                    string html = rch.enable ? await rch.Get(init.cors(uri), httpHeaders(init)) :
+                                               await Http.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+
+                    playlists = Playlist(html);
+
+                    if (playlists.Count == 0)
+                    {
+                        if (IsRhubFallback(init))
+                            goto reset;
+
+                        return OnError("playlists", proxyManager);
+                    }
+
+                    if (!rch.enable)
+                        proxyManager.Success();
+
+                    hybridCache.Set(memKey, playlists, cacheTime(60, init: init), inmemory: false);
                 }
 
-                if (!rch.enable)
-                    proxyManager.Success();
-
-                hybridCache.Set(memKey, playlists, cacheTime(60, init: init), inmemory: false);
-            }
-
-            return OnResult(playlists, null, plugin: init.plugin);
+                return OnResult(playlists, null, plugin: init.plugin);
+            });
         }
 
 

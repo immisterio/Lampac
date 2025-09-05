@@ -15,40 +15,44 @@ namespace SISI.Controllers.Eporner
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotSupport("web", out string rch_error))
                 return OnError(rch_error);
 
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             pg += 1;
-            var cache = await InvokeCache<List<PlaylistItem>>($"epr:{search}:{sort}:{c}:{pg}", cacheTime(10, init: init), proxyManager, async res => 
+
+            string memKey = $"epr:{search}:{sort}:{c}:{pg}";
+
+            return await InvkSemaphore(memKey, async () =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
+                if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
+                {
+                    reset:
+                    string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
+                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    );
 
-                string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url => 
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
-                );
+                    playlists = EpornerTo.Playlist("epr/vidosik", html);
 
-                var playlists = EpornerTo.Playlist("epr/vidosik", html);
+                    if (playlists.Count == 0)
+                    {
+                        if (IsRhubFallback(init))
+                            goto reset;
 
-                if (playlists.Count == 0)
-                    return res.Fail("playlists");
+                        return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                    }
 
-                return playlists;
-            }, memory: false);
+                    if (!rch.enable)
+                        proxyManager.Success();
 
-            if (!cache.IsSuccess)
-            {
-                if (cache.ErrorMsg == "playlists" && IsRhubFallback(init))
-                    goto reset;
+                    hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
+                }
 
-                if (cache.ErrorMsg != null && cache.ErrorMsg.StartsWith("{\"rch\":true,"))
-                    return ContentTo(cache.ErrorMsg);
-
-                return OnError(cache.ErrorMsg, proxyManager, string.IsNullOrEmpty(search));
-            }
-
-            return OnResult(cache.Value, EpornerTo.Menu(host, search, sort, c), plugin: init.plugin);
+                return OnResult(playlists, EpornerTo.Menu(host, search, sort, c), plugin: init.plugin);
+            });
         }
     }
 }

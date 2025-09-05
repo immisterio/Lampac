@@ -15,40 +15,44 @@ namespace SISI.Controllers.Chaturbate
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("web", out string rch_error))
+                return OnError(rch_error);
+
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             string memKey = $"Chaturbate:list:{sort}:{pg}";
-            if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
+
+            return await InvkSemaphore(memKey, async () =>
             {
-                var proxyManager = new ProxyManager(init);
-                var proxy = proxyManager.Get();
-
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-                if (rch.IsNotSupport("web", out string rch_error))
-                    return OnError(rch_error);
-
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
-
-                string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                    rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
-                );
-
-                playlists = ChaturbateTo.Playlist("chu/potok", html);
-
-                if (playlists.Count == 0)
+                if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
                 {
-                    if (IsRhubFallback(init))
-                        goto reset;
+                    reset: string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
+                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                    );
 
-                    return OnError("playlists", proxyManager);
+                    playlists = ChaturbateTo.Playlist("chu/potok", html);
+
+                    if (playlists.Count == 0)
+                    {
+                        if (IsRhubFallback(init))
+                            goto reset;
+
+                        return OnError("playlists", proxyManager);
+                    }
+
+                    if (!rch.enable)
+                        proxyManager.Success();
+
+                    hybridCache.Set(memKey, playlists, cacheTime(5, init: init), inmemory: false);
                 }
 
-                if (!rch.enable)
-                    proxyManager.Success();
-
-                hybridCache.Set(memKey, playlists, cacheTime(5, init: init), inmemory: false);
-            }
-
-            return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: init.plugin);
+                return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: init.plugin);
+            });
         }
     }
 }

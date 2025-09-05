@@ -33,47 +33,50 @@ namespace SISI.Controllers.NextHUB
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (init.view.initUrlEval != null)
                 url = CSharpEval.Execute<string>(init.view.initUrlEval, new NxtUrlRequest(init.host, plugin, url, HttpContext.Request.Query, related));
 
-            (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) video = default;
-            if ((init.view.priorityBrowser ?? init.priorityBrowser) == "http" && init.view.viewsource && 
-                (init.view.nodeFile != null || init.view.eval != null || init.view.regexMatch != null) &&
-                 init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
+            return await InvkSemaphore($"nexthub:InvkSemaphore:{url}", async () =>
             {
-                reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
-
-                video = await goVideoToHttp(rch, plugin, url, init, proxyManager, proxy.proxy);
-                if (string.IsNullOrEmpty(video.file))
+                (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) video = default;
+                if ((init.view.priorityBrowser ?? init.priorityBrowser) == "http" && init.view.viewsource &&
+                    (init.view.nodeFile != null || init.view.eval != null || init.view.regexMatch != null) &&
+                     init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
                 {
-                    if (IsRhubFallback(init))
-                        goto reset;
+                    reset: video = await goVideoToHttp(rch, plugin, url, init, proxyManager, proxy.proxy);
+                    if (string.IsNullOrEmpty(video.file))
+                    {
+                        if (IsRhubFallback(init))
+                            goto reset;
 
-                    return OnError("file", rcache: !rch.enable);
+                        return OnError("file", rcache: !rch.enable);
+                    }
                 }
-            }
-            else
-            {
-                video = await goVideoToBrowser(plugin, url, init, proxyManager, proxy.data);
-                if (string.IsNullOrEmpty(video.file))
-                    return OnError("file");
-            }
-
-            var stream_links = new StreamItem()
-            {
-                qualitys = new Dictionary<string, string>()
+                else
                 {
-                    ["auto"] = video.file
-                },
-                recomends = video.recomends
-            };
+                    video = await goVideoToBrowser(plugin, url, init, proxyManager, proxy.data);
+                    if (string.IsNullOrEmpty(video.file))
+                        return OnError("file");
+                }
 
-            if (related)
-                return OnResult(stream_links?.recomends, null, plugin: plugin, total_pages: 1);
+                var stream_links = new StreamItem()
+                {
+                    qualitys = new Dictionary<string, string>()
+                    {
+                        ["auto"] = video.file
+                    },
+                    recomends = video.recomends
+                };
 
-            return OnResult(stream_links, init, proxy.proxy, headers_stream: httpHeaders(init.host, init.headers_stream != null ? init.headers_stream : init.headers_stream));
+                if (related)
+                    return OnResult(stream_links?.recomends, null, plugin: plugin, total_pages: 1);
+
+                return OnResult(stream_links, init, proxy.proxy, headers_stream: httpHeaders(init.host, init.headers_stream != null ? init.headers_stream : init.headers_stream));
+            });
         }
 
 

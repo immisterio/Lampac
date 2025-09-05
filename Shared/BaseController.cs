@@ -4,17 +4,19 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Base;
+using Shared.Engine;
 using Shared.Models;
+using Shared.Models.Base;
+using Shared.Models.Online.Settings;
+using Shared.Models.SISI.OnResult;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 using IO = System.IO;
-using Shared.Models.Online.Settings;
-using Shared.Models.SISI.OnResult;
-using Shared.Engine;
 
 namespace Shared
 {
@@ -33,6 +35,8 @@ namespace Shared
         public RequestModel requestInfo => HttpContext.Features.Get<RequestModel>();
 
         public string host => AppInit.Host(HttpContext);
+
+        protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
         public ActionResult badInitMsg { get; set; }
 
