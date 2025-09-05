@@ -8,7 +8,6 @@ using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Net;
 using System.Reflection;
-using System.Threading;
 
 namespace Shared
 {
@@ -206,27 +205,6 @@ namespace Shared
         }
         #endregion
 
-        #region InvkSemaphore
-        async public Task<ActionResult> InvkSemaphore(string key, Func<ValueTask<ActionResult>> func)
-        {
-            if (init.rhub && init.rhub_fallback == false)
-                return await func.Invoke();
-
-            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync();
-
-            try
-            {
-                return await func.Invoke();
-            }
-            finally
-            {
-                semaphore.Release();
-
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(key, out _);
-            }
-        }
-        #endregion
+        public Task<ActionResult> InvkSemaphore(string key, Func<ValueTask<ActionResult>> func) => InvkSemaphore(init, key, func);
     }
 }

@@ -51,19 +51,23 @@ namespace Online.Controllers
             if (similar || (content_id == 0 && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
                 string memKey = $"lumex:search:{title}:{original_title}:{clarification}";
-                if (!hybridCache.TryGetValue(memKey, out SimilarTpl search))
+
+                return await InvkSemaphore(init, memKey, async () =>
                 {
-                    if (string.IsNullOrEmpty(init.token) && database == null && init.spider)
-                        database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
+                    if (!hybridCache.TryGetValue(memKey, out SimilarTpl search))
+                    {
+                        if (string.IsNullOrEmpty(init.token) && database == null && init.spider)
+                            database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
 
-                    search = await oninvk.Search(title, original_title, serial, clarification, database);
-                    if (search.data?.Count == 0)
-                        return OnError("search");
+                        search = await oninvk.Search(title, original_title, serial, clarification, database);
+                        if (search.data?.Count == 0)
+                            return OnError("search");
 
-                    hybridCache.Set(memKey, search, cacheTime(40, init: init));
-                }
+                        hybridCache.Set(memKey, search, cacheTime(40, init: init));
+                    }
 
-                return ContentTo(rjson ? search.ToJson() : search.ToHtml());
+                    return ContentTo(rjson ? search.ToJson() : search.ToHtml());
+                });
             }
 
             var cache = await InvokeCache<EmbedModel>($"videocdn:{content_id}:{content_type}:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", cacheTime(10, init: init), proxyManager,  async res =>
@@ -250,43 +254,47 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             string memkey = $"lumex/video:{playlist}:{csrf}";
-            if (!hybridCache.TryGetValue(memkey, out string hls))
+
+            return await InvkSemaphore(init, memkey, async () =>
             {
-                if (!hybridCache.TryGetValue(csrf, out List<HeadersModel> content_headers))
-                    return OnError();
-
-                var result = await Http.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
-
-                if (result == null || !result.ContainsKey("url"))
-                    return OnError();
-
-                string url = result.Value<string>("url");
-                if (string.IsNullOrEmpty(url))
-                    return OnError();
-
-                if (url.StartsWith("/"))
-                    hls = $"{init.scheme}:{url}";
-                else
-                    hls = url;
-
-                hybridCache.Set(memkey, hls, cacheTime(20, init: init));
-            }
-
-            string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy);
-
-            if (max_quality > 0 && !init.hls)
-            {
-                var streams = new List<(string link, string quality)>(5);
-                foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
+                if (!hybridCache.TryGetValue(memkey, out string hls))
                 {
-                    if (max_quality >= q)
-                        streams.Add((sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
+                    if (!hybridCache.TryGetValue(csrf, out List<HeadersModel> content_headers))
+                        return OnError();
+
+                    var result = await Http.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
+
+                    if (result == null || !result.ContainsKey("url"))
+                        return OnError();
+
+                    string url = result.Value<string>("url");
+                    if (string.IsNullOrEmpty(url))
+                        return OnError();
+
+                    if (url.StartsWith("/"))
+                        hls = $"{init.scheme}:{url}";
+                    else
+                        hls = url;
+
+                    hybridCache.Set(memkey, hls, cacheTime(20, init: init));
                 }
 
-                return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));
-            }
+                string sproxy(string uri) => HostStreamProxy(init, uri, proxy: proxy);
 
-            return Redirect(sproxy(hls));
+                if (max_quality > 0 && !init.hls)
+                {
+                    var streams = new List<(string link, string quality)>(5);
+                    foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
+                    {
+                        if (max_quality >= q)
+                            streams.Add((sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
+                    }
+
+                    return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));
+                }
+
+                return Redirect(sproxy(hls));
+            });
         }
         #endregion
     }

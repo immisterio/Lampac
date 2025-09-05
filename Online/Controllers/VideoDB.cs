@@ -72,100 +72,104 @@ namespace Online.Controllers
                 return ShowError(rch_error);
 
             string memKey = rch.ipkey($"videodb:video:{link}", proxyManager);
-            if (!hybridCache.TryGetValue(memKey, out string location))
+
+            return await InvkSemaphore(init, memKey, async () =>
             {
-                reset:
-
-                try
+                if (!hybridCache.TryGetValue(memKey, out string location))
                 {
-                    var headers = httpHeaders(init, HeadersModel.Init(
-                        ("sec-fetch-dest", "empty"),
-                        ("sec-fetch-mode", "cors"),
-                        ("sec-fetch-site", "same-site"),
-                        ("origin", "{host}"),
-                        ("referer", "{host}/")
-                    ));
+                    reset:
 
-                    if (rch.enable)
+                    try
                     {
-                        if (rch.IsNotConnected())
-                            return ContentTo(rch.connectionMsg);
+                        var headers = httpHeaders(init, HeadersModel.Init(
+                            ("sec-fetch-dest", "empty"),
+                            ("sec-fetch-mode", "cors"),
+                            ("sec-fetch-site", "same-site"),
+                            ("origin", "{host}"),
+                            ("referer", "{host}/")
+                        ));
 
-                        var res = await rch.Headers(link, null, headers);
-                        location = res.currentUrl;
-                    }
-                    else if (init.priorityBrowser == "http")
-                    {
-                        location = await Http.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
-                    }
-                    else
-                    {
-                        using (var browser = new PlaywrightBrowser(init.priorityBrowser))
+                        if (rch.enable)
                         {
-                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
-                            if (page == null)
-                                return null;
+                            if (rch.IsNotConnected())
+                                return ContentTo(rch.connectionMsg);
 
-                            browser.SetFailedUrl(link);
-
-                            await page.RouteAsync("**/*", async route =>
+                            var res = await rch.Headers(link, null, headers);
+                            location = res.currentUrl;
+                        }
+                        else if (init.priorityBrowser == "http")
+                        {
+                            location = await Http.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
+                        }
+                        else
+                        {
+                            using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                             {
-                                try
+                                var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
+                                if (page == null)
+                                    return null;
+
+                                browser.SetFailedUrl(link);
+
+                                await page.RouteAsync("**/*", async route =>
                                 {
-                                    if (route.Request.Url.Contains("api/chromium/iframe"))
+                                    try
                                     {
-                                        await route.ContinueAsync();
-                                        return;
+                                        if (route.Request.Url.Contains("api/chromium/iframe"))
+                                        {
+                                            await route.ContinueAsync();
+                                            return;
+                                        }
+
+                                        if (route.Request.Url == link)
+                                        {
+                                            await route.ContinueAsync(new RouteContinueOptions { Headers = headers.ToDictionary() });
+
+                                            var response = await page.WaitForResponseAsync(route.Request.Url);
+                                            if (response != null)
+                                                response.Headers.TryGetValue("location", out location);
+
+                                            browser.SetPageResult(location);
+                                            PlaywrightBase.WebLog(route.Request, response, location, proxy.data);
+                                            return;
+                                        }
+
+                                        await route.AbortAsync();
                                     }
+                                    catch { }
+                                });
 
-                                    if (route.Request.Url == link)
-                                    {
-                                        await route.ContinueAsync(new RouteContinueOptions { Headers = headers.ToDictionary() });
+                                PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(link));
 
-                                        var response = await page.WaitForResponseAsync(route.Request.Url);
-                                        if (response != null)
-                                            response.Headers.TryGetValue("location", out location);
-
-                                        browser.SetPageResult(location);
-                                        PlaywrightBase.WebLog(route.Request, response, location, proxy.data);
-                                        return;
-                                    }
-
-                                    await route.AbortAsync();
-                                }
-                                catch { }
-                            });
-
-                            PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(link));
-
-                            location = await browser.WaitPageResult();
+                                location = await browser.WaitPageResult();
+                            }
                         }
                     }
-                }
-                catch { }
+                    catch { }
 
-                if (string.IsNullOrEmpty(location) || link == location)
-                {
-                    if (init.rhub && init.rhub_fallback)
+                    if (string.IsNullOrEmpty(location) || link == location)
                     {
-                        init.rhub = false;
-                        goto reset;
+                        if (init.rhub && init.rhub_fallback)
+                        {
+                            init.rhub = false;
+                            goto reset;
+                        }
+                        return OnError();
                     }
-                    return OnError();
+
+                    if (!rch.enable)
+                        proxyManager.Success();
+
+                    hybridCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
                 }
 
-                if (!rch.enable)
-                    proxyManager.Success();
+                string hls = HostStreamProxy(init, location, proxy: proxy.proxy);
 
-                hybridCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
-            }
+                if (HttpContext.Request.Path.Value.Contains(".m3u8"))
+                    return Redirect(hls);
 
-            string hls = HostStreamProxy(init, location, proxy: proxy.proxy);
-
-            if (HttpContext.Request.Path.Value.Contains(".m3u8"))
-                return Redirect(hls);
-
-            return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast));
+                return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast));
+            });
         }
         #endregion
 

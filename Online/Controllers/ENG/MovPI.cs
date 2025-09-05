@@ -35,20 +35,23 @@ namespace Online.Controllers
             if (s > 0)
                 embed = $"{init.host}/tv/{id}-{s}-{e}?autoPlay=true&poster=false";
 
-            var cache = await black_magic(embed, init, proxyManager, proxy.data);
-            if (cache.m3u8 == null)
-                return StatusCode(502);
+            return await InvkSemaphore(init, embed, async () =>
+            {
+                var cache = await black_magic(embed, init, proxyManager, proxy.data);
+                if (cache.m3u8 == null)
+                    return StatusCode(502);
 
-            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
+                string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
 
-            if (play)
-                return Redirect(hls);
+                if (play)
+                    return Redirect(hls);
 
-            var headers_stream = httpHeaders(init.host, init.headers_stream);
-            if (headers_stream.Count == 0)
-                headers_stream = cache.headers;
+                var headers_stream = httpHeaders(init.host, init.headers_stream);
+                if (headers_stream.Count == 0)
+                    headers_stream = cache.headers;
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+                return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+            });
         }
         #endregion
 

@@ -118,63 +118,67 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             string memKey = $"video:view:video:{iframe}";
-            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
+
+            return await InvkSemaphore(init, memKey, async () =>
             {
-                string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
-                if (html == null)
-                    return OnError(proxyManager);
-
-                string vid = "vid1666694269";
-                string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
-                string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                file = Regex.Replace(file, "^/playlist/", "/");
-                file = Regex.Replace(file, "\\.txt$", "");
-
-                if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                    return OnError();
-
-                var header = httpHeaders(init, HeadersModel.Init(
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("origin", $"https://{vid}.{href}"),
-                    ("referer", iframe),
-                    ("sec-ch-ua", "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-origin"),
-                    ("x-csrf-token", csrftoken)
-                ));
-
-                urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
-                if (urim3u8 == null)
-                    return OnError(proxyManager);
-
-                if (!urim3u8.Contains("/index.m3u8"))
+                if (!hybridCache.TryGetValue(memKey, out string urim3u8))
                 {
-                    file = Regex.Match(urim3u8, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                    string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
+                    if (html == null)
+                        return OnError(proxyManager);
+
+                    string vid = "vid1666694269";
+                    string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
+                    string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                    string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                     file = Regex.Replace(file, "^/playlist/", "/");
                     file = Regex.Replace(file, "\\.txt$", "");
-                    if (string.IsNullOrWhiteSpace(file))
+
+                    if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
                         return OnError();
+
+                    var header = httpHeaders(init, HeadersModel.Init(
+                        ("cache-control", "no-cache"),
+                        ("dnt", "1"),
+                        ("origin", $"https://{vid}.{href}"),
+                        ("referer", iframe),
+                        ("sec-ch-ua", "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\""),
+                        ("sec-ch-ua-mobile", "?0"),
+                        ("sec-ch-ua-platform", "\"Windows\""),
+                        ("sec-fetch-dest", "empty"),
+                        ("sec-fetch-mode", "cors"),
+                        ("sec-fetch-site", "same-origin"),
+                        ("x-csrf-token", csrftoken)
+                    ));
 
                     urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
                     if (urim3u8 == null)
                         return OnError(proxyManager);
+
+                    if (!urim3u8.Contains("/index.m3u8"))
+                    {
+                        file = Regex.Match(urim3u8, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                        file = Regex.Replace(file, "^/playlist/", "/");
+                        file = Regex.Replace(file, "\\.txt$", "");
+                        if (string.IsNullOrWhiteSpace(file))
+                            return OnError();
+
+                        urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
+                        if (urim3u8 == null)
+                            return OnError(proxyManager);
+                    }
+
+                    proxyManager.Success();
+                    hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
                 }
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
-            }
+                string m3u8 = HostStreamProxy(init, urim3u8, proxy: proxy);
 
-            string m3u8 = HostStreamProxy(init, urim3u8, proxy: proxy);
+                if (play)
+                    return Redirect(m3u8);
 
-            if (play)
-                return Redirect(m3u8);
-
-            return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast));
+                return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast));
+            });
         }
         #endregion
 
@@ -191,61 +195,65 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
-            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
+
+            return await InvkSemaphore(init, memKey, async () =>
             {
-                string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
-                if (html == null)
-                    return OnError(proxyManager);
+                if (!hybridCache.TryGetValue(memKey, out string urim3u8))
+                {
+                    string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    if (html == null)
+                        return OnError(proxyManager);
 
-                #region playlist
-                string vid = "vid1666694269";
-                string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
-                string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                file = Regex.Replace(file, "^/playlist/", "/");
-                file = Regex.Replace(file, "\\.txt$", "");
+                    #region playlist
+                    string vid = "vid1666694269";
+                    string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
+                    string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                    string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                    file = Regex.Replace(file, "^/playlist/", "/");
+                    file = Regex.Replace(file, "\\.txt$", "");
 
-                if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                    return OnError();
+                    if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
+                        return OnError();
 
-                var headers = httpHeaders(init, HeadersModel.Init(
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("origin", $"https://{vid}.{href}"),
-                    ("referer", iframe),
-                    ("sec-ch-ua", "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-origin"),
-                    ("x-csrf-token", csrftoken)
-                ));
+                    var headers = httpHeaders(init, HeadersModel.Init(
+                        ("cache-control", "no-cache"),
+                        ("dnt", "1"),
+                        ("origin", $"https://{vid}.{href}"),
+                        ("referer", iframe),
+                        ("sec-ch-ua", "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\""),
+                        ("sec-ch-ua-mobile", "?0"),
+                        ("sec-ch-ua-platform", "\"Windows\""),
+                        ("sec-fetch-dest", "empty"),
+                        ("sec-fetch-mode", "cors"),
+                        ("sec-fetch-site", "same-origin"),
+                        ("x-csrf-token", csrftoken)
+                    ));
 
-                var playlist = await Http.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers, IgnoreDeserializeObject: true);
-                if (playlist == null || playlist.Count == 0)
-                    return OnError(proxyManager);
-                #endregion
+                    var playlist = await Http.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers, IgnoreDeserializeObject: true);
+                    if (playlist == null || playlist.Count == 0)
+                        return OnError(proxyManager);
+                    #endregion
 
-                file = playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
-                if (string.IsNullOrWhiteSpace(file))
-                    return OnError();
+                    file = playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
+                    if (string.IsNullOrWhiteSpace(file))
+                        return OnError();
 
-                file = Regex.Replace(file, "^/playlist/", "/");
-                file = Regex.Replace(file, "\\.txt$", "");
+                    file = Regex.Replace(file, "^/playlist/", "/");
+                    file = Regex.Replace(file, "\\.txt$", "");
 
-                urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers);
-                if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
-                    return OnError(proxyManager);
+                    urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers);
+                    if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
+                        return OnError(proxyManager);
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
-            }
+                    proxyManager.Success();
+                    hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
+                }
 
-            if (play)
-                return Redirect(HostStreamProxy(init, urim3u8, proxy: proxy));
+                if (play)
+                    return Redirect(HostStreamProxy(init, urim3u8, proxy: proxy));
 
-            return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+                return Content("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(init, urim3u8, proxy: proxy) + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
+            });
         }
         #endregion
 

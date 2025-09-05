@@ -171,52 +171,56 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             string memKey = $"getstv:view:stream:{id}";
-            if (!hybridCache.TryGetValue(memKey, out JObject root))
+
+            return await InvkSemaphore(init, memKey, async () =>
             {
-                var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
-                root = await Http.Get<JObject>($"{init.corsHost()}/api/media/{id}?format=m3u8&protocol=https", timeoutSeconds: 8, proxy: proxy, headers: headers);
-                if (root == null)
-                    return OnError("json", proxyManager);
+                if (!hybridCache.TryGetValue(memKey, out JObject root))
+                {
+                    var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
+                    root = await Http.Get<JObject>($"{init.corsHost()}/api/media/{id}?format=m3u8&protocol=https", timeoutSeconds: 8, proxy: proxy, headers: headers);
+                    if (root == null)
+                        return OnError("json", proxyManager);
 
-                if (!root.ContainsKey("resolutions"))
-                    return OnError("resolutions");
+                    if (!root.ContainsKey("resolutions"))
+                        return OnError("resolutions");
 
-                proxyManager.Success();
-                hybridCache.Set(memKey, root, cacheTime(10, init: init));
-            }
+                    proxyManager.Success();
+                    hybridCache.Set(memKey, root, cacheTime(10, init: init));
+                }
 
-            #region subtitle
-            var subtitles = new SubtitleTpl();
+                #region subtitle
+                var subtitles = new SubtitleTpl();
 
-            try
-            {
-                foreach (var sub in root["subtitles"])
-                    subtitles.Append(sub.Value<string>("lang"), sub.Value<string>("url"));
-            }
-            catch { }
-            #endregion
+                try
+                {
+                    foreach (var sub in root["subtitles"])
+                        subtitles.Append(sub.Value<string>("lang"), sub.Value<string>("url"));
+                }
+                catch { }
+                #endregion
 
-            var streams = new List<(string link, string quality)>(5);
+                var streams = new List<(string link, string quality)>(5);
 
-            foreach (var r in root["resolutions"])
-                streams.Add((HostStreamProxy(init, r.Value<string>("url"), proxy: proxy), $"{r.Value<int>("type")}p"));
+                foreach (var r in root["resolutions"])
+                    streams.Add((HostStreamProxy(init, r.Value<string>("url"), proxy: proxy), $"{r.Value<int>("type")}p"));
 
-            if (play)
-                return Redirect(streams[0].link);
+                if (play)
+                    return Redirect(streams[0].link);
 
-            var titleObj = root["media"]["movie"]["title"] as JObject;
-            string titleRu = titleObj?["ru"]?.ToString();
-            string titleEn = titleObj?["en"]?.ToString();
+                var titleObj = root["media"]["movie"]["title"] as JObject;
+                string titleRu = titleObj?["ru"]?.ToString();
+                string titleEn = titleObj?["en"]?.ToString();
 
-            string name = titleRu ?? titleEn;
-            if (titleRu != null && titleEn != null)
-                name = $"{titleRu} / {titleEn}";
+                string name = titleRu ?? titleEn;
+                if (titleRu != null && titleEn != null)
+                    name = $"{titleRu} / {titleEn}";
 
-            return ContentTo(VideoTpl.ToJson("play", streams[0].link, name,
-                streamquality: new StreamQualityTpl(streams),
-                vast: init.vast,
-                subtitles: subtitles
-            ));
+                return ContentTo(VideoTpl.ToJson("play", streams[0].link, name,
+                    streamquality: new StreamQualityTpl(streams),
+                    vast: init.vast,
+                    subtitles: subtitles
+                ));
+            });
         }
         #endregion
 

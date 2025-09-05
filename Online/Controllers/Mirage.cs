@@ -280,71 +280,75 @@ namespace Online.Controllers
                 return badInitMsg;
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
-            if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
+
+            return await InvkSemaphore(init, memKey, async () =>
             {
-                var data = new System.Net.Http.StringContent($"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", Encoding.UTF8, "application/x-www-form-urlencoded");
-                var result = await Http.BasePost($"{init.linkhost}/api/movie/{id_file}", data, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
-                    ("accept", "*/*"),
-                    (acceptsName, $"{acceptsControls}|{acceptsId}"),
-                    ("origin", init.linkhost),
-                    ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-origin"),
-                    ("x-requested-with", "XMLHttpRequest")
-                )));
-
-                if (result.content == null || !result.content.Contains("hlsSource"))
-                    return OnError();
-
-                if (data.Headers.TryGetValues("face-controls", out var newControls))
-                    acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), new AcDecode(newControls.ToString()));
-
-                var root = JsonConvert.DeserializeObject<JObject>(result.content);
-
-                foreach (var item in root["hlsSource"])
+                if (!hybridCache.TryGetValue(memKey, out JToken hlsSource))
                 {
-                    if (item?.Value<bool>("default") == true)
+                    var data = new System.Net.Http.StringContent($"token={init.token}{(init.m4s ? "&av1=true" : "")}&autoplay=0&audio=&subtitle=", Encoding.UTF8, "application/x-www-form-urlencoded");
+                    var result = await Http.BasePost($"{init.linkhost}/api/movie/{id_file}", data, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                        ("accept", "*/*"),
+                        (acceptsName, $"{acceptsControls}|{acceptsId}"),
+                        ("origin", init.linkhost),
+                        ("referer", $"{init.linkhost}/?token_movie={token_movie}&token={init.token}"),
+                        ("sec-fetch-dest", "empty"),
+                        ("sec-fetch-mode", "cors"),
+                        ("sec-fetch-site", "same-origin"),
+                        ("x-requested-with", "XMLHttpRequest")
+                    )));
+
+                    if (result.content == null || !result.content.Contains("hlsSource"))
+                        return OnError();
+
+                    if (data.Headers.TryGetValues("face-controls", out var newControls))
+                        acceptsControls = CSharpEval.Execute<string>(FileCache.ReadAllText("data/mirage/ac_decode.cs"), new AcDecode(newControls.ToString()));
+
+                    var root = JsonConvert.DeserializeObject<JObject>(result.content);
+
+                    foreach (var item in root["hlsSource"])
                     {
-                        hlsSource = item;
-                        break;
+                        if (item?.Value<bool>("default") == true)
+                        {
+                            hlsSource = item;
+                            break;
+                        }
                     }
+
+                    if (hlsSource == null)
+                        hlsSource = root["hlsSource"].First;
+
+                    hybridCache.Set(memKey, hlsSource, cacheTime(15));
                 }
 
-                if (hlsSource == null)
-                    hlsSource = root["hlsSource"].First;
+                var streamHeaders = httpHeaders(init, HeadersModel.Init(
+                    ("origin", init.linkhost),
+                    ("referer", $"{init.linkhost}/"),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "cross-site")
+                ));
 
-                hybridCache.Set(memKey, hlsSource, cacheTime(15));
-            }
+                var streamquality = new StreamQualityTpl();
 
-            var streamHeaders = httpHeaders(init, HeadersModel.Init(
-                ("origin", init.linkhost),
-                ("referer", $"{init.linkhost}/"),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site")
-            ));
+                foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
+                {
+                    if (!init.m4s && (q.Key is "2160" or "1440"))
+                        continue;
 
-            var streamquality = new StreamQualityTpl();
+                    string link = init.reserve ? q.Value : Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
+                    streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders), $"{q.Key}p");
+                }
 
-            foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
-            {
-                if (!init.m4s && (q.Key is "2160" or "1440"))
-                    continue;
+                if (play)
+                    return Redirect(streamquality.Firts().link);
 
-                string link = init.reserve ? q.Value : Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
-                streamquality.Append(HostStreamProxy(init, link, headers: streamHeaders), $"{q.Key}p");
-            }
-
-            if (play)
-                return Redirect(streamquality.Firts().link);
-
-            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, hlsSource.Value<string>("label"), 
-                   streamquality: streamquality, 
-                   vast: init.vast, 
-                   headers: streamHeaders, 
-                   hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
-            ));
+                return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, hlsSource.Value<string>("label"),
+                       streamquality: streamquality,
+                       vast: init.vast,
+                       headers: streamHeaders,
+                       hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+                ));
+            });
         }
         #endregion
 

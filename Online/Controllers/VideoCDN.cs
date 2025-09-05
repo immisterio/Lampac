@@ -239,95 +239,98 @@ namespace Online.Controllers
             string clientIP = init.verifyip ? requestInfo.IP : "::1";
             string memkey = $"videocdn/video:{playlist}:{(init.streamproxy ? "" : clientIP)}";
 
-            if (!hybridCache.TryGetValue(memkey, out string hls))
+            return await InvkSemaphore(init, memkey, async () =>
             {
-                var headers = HeadersModel.Init("Authorization", $"Bearer {accessToken}");
-
-                if (!init.streamproxy)
-                    headers.Add(new ("X-LAMPA-CLIENT-IP", clientIP));
-
-                var result = rch.enable ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) : 
-                                          await Http.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
-
-                if (result == null || !result.ContainsKey("url"))
-                    return OnError(null, gbcache: false);
-
-                string url = result.Value<string>("url");
-                if (string.IsNullOrEmpty(url))
-                    return OnError(null, gbcache: false);
-
-                if (url.StartsWith("/"))
-                    hls = $"{init.scheme}:{url}";
-                else
-                    hls = url;
-
-                hybridCache.Set(memkey, hls, DateTime.Now.AddMinutes(10));
-            }
-
-            if (play)
-                return Redirect(HostStreamProxy(init, hls));
-
-            var player = await getPlayer(content_id, content_type, accessToken, proxy);
-            VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
-            if (init.disable_ads)
-                vast = null;
-
-            #region subtitle
-            var subtitles = new SubtitleTpl();
-
-            try
-            {
-                if (translation_id > 0)
+                if (!hybridCache.TryGetValue(memkey, out string hls))
                 {
-                    if (serial)
-                    {
-                        if (e > 0 && s > 0)
-                        {
-                            foreach (var media in player.media.Where(i => i.season_id == s))
-                            {
-                                foreach (var episode in media.episodes.Where(i => i.episode_id == e))
-                                {
-                                    foreach (var voice in episode.media.Where(i => i.translation_id == translation_id))
-                                    {
-                                        if (voice.tracks != null)
-                                        {
-                                            foreach (var t in voice.tracks)
-                                                subtitles.Append(t.label ?? t.srlang, $"{init.scheme}:{t.src}");
+                    var headers = HeadersModel.Init("Authorization", $"Bearer {accessToken}");
 
-                                            break;
+                    if (!init.streamproxy)
+                        headers.Add(new("X-LAMPA-CLIENT-IP", clientIP));
+
+                    var result = rch.enable ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) :
+                                              await Http.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
+
+                    if (result == null || !result.ContainsKey("url"))
+                        return OnError(null, gbcache: false);
+
+                    string url = result.Value<string>("url");
+                    if (string.IsNullOrEmpty(url))
+                        return OnError(null, gbcache: false);
+
+                    if (url.StartsWith("/"))
+                        hls = $"{init.scheme}:{url}";
+                    else
+                        hls = url;
+
+                    hybridCache.Set(memkey, hls, DateTime.Now.AddMinutes(10));
+                }
+
+                if (play)
+                    return Redirect(HostStreamProxy(init, hls));
+
+                var player = await getPlayer(content_id, content_type, accessToken, proxy);
+                VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
+                if (init.disable_ads)
+                    vast = null;
+
+                #region subtitle
+                var subtitles = new SubtitleTpl();
+
+                try
+                {
+                    if (translation_id > 0)
+                    {
+                        if (serial)
+                        {
+                            if (e > 0 && s > 0)
+                            {
+                                foreach (var media in player.media.Where(i => i.season_id == s))
+                                {
+                                    foreach (var episode in media.episodes.Where(i => i.episode_id == e))
+                                    {
+                                        foreach (var voice in episode.media.Where(i => i.translation_id == translation_id))
+                                        {
+                                            if (voice.tracks != null)
+                                            {
+                                                foreach (var t in voice.tracks)
+                                                    subtitles.Append(t.label ?? t.srlang, $"{init.scheme}:{t.src}");
+
+                                                break;
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        var tracks = player.media.FirstOrDefault(i => i.translation_id == translation_id).tracks;
-                        if (tracks != null)
+                        else
                         {
-                            foreach (var t in tracks)
-                                subtitles.Append(t.label ?? t.srlang, $"{init.scheme}:{t.src}");
+                            var tracks = player.media.FirstOrDefault(i => i.translation_id == translation_id).tracks;
+                            if (tracks != null)
+                            {
+                                foreach (var t in tracks)
+                                    subtitles.Append(t.label ?? t.srlang, $"{init.scheme}:{t.src}");
+                            }
                         }
                     }
                 }
-            }
-            catch { }
-            #endregion
+                catch { }
+                #endregion
 
-            if (max_quality > 0 && !init.hls)
-            {
-                var streams = new List<(string link, string quality)>(5);
-                foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
+                if (max_quality > 0 && !init.hls)
                 {
-                    if (max_quality >= q)
-                        streams.Add((HostStreamProxy(init, Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
+                    var streams = new List<(string link, string quality)>(5);
+                    foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
+                    {
+                        if (max_quality >= q)
+                            streams.Add((HostStreamProxy(init, Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
+                    }
+
+                    return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast));
                 }
 
-                return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast));
-            }
-
-            return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, hls), "auto", subtitles: subtitles, vast: vast));
+                return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, hls), "auto", subtitles: subtitles, vast: vast));
+            });
         }
         #endregion
 

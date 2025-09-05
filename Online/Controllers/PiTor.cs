@@ -18,88 +18,91 @@ namespace Online.Controllers
             if (NoAccessGroup(init, out string error_msg))
                 return ShowError(error_msg);
 
-            #region Кеш запроса
             string memKey = $"pidtor:{title}:{original_title}:{year}";
-            if (!hybridCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
+
+            return await InvkSemaphore(null, memKey, async () =>
             {
-                var root = await Http.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}&apikey={init.apikey}", timeoutSeconds: 8);
-                if (root == null)
-                    return Content(string.Empty, "text/html; charset=utf-8");
-
-                torrents = new List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)>();
-                var results = root?.Results;
-                if (results != null && results.Length > 0)
+                #region Кеш запроса
+                if (!hybridCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
                 {
-                    foreach (var torrent in results)
+                    var root = await Http.Get<RootObject>($"{init.redapi}/api/v2.0/indexers/all/results?title={HttpUtility.UrlEncode(title)}&title_original={HttpUtility.UrlEncode(original_title)}&year={year}&is_serial={(original_language == "ja" ? 5 : (serial + 1))}&apikey={init.apikey}", timeoutSeconds: 8);
+                    if (root == null)
+                        return Content(string.Empty, "text/html; charset=utf-8");
+
+                    torrents = new List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)>();
+                    var results = root?.Results;
+                    if (results != null && results.Length > 0)
                     {
-                        string magnet = torrent.MagnetUri;
-                        string name = torrent.Title;
-
-                        if (string.IsNullOrWhiteSpace(magnet) || !magnet.Contains("&tr=") || string.IsNullOrWhiteSpace(name))
-                            continue;
-
-                        string tracker = torrent.Tracker;
-                        if (tracker == "selezen")
-                            continue;
-
-                        if (init.max_serial_size > 0 && init.max_size > 0)
+                        foreach (var torrent in results)
                         {
-                            if (serial == 1)
+                            string magnet = torrent.MagnetUri;
+                            string name = torrent.Title;
+
+                            if (string.IsNullOrWhiteSpace(magnet) || !magnet.Contains("&tr=") || string.IsNullOrWhiteSpace(name))
+                                continue;
+
+                            string tracker = torrent.Tracker;
+                            if (tracker == "selezen")
+                                continue;
+
+                            if (init.max_serial_size > 0 && init.max_size > 0)
                             {
-                                if (torrent.Size > init.max_serial_size)
-                                    continue;
+                                if (serial == 1)
+                                {
+                                    if (torrent.Size > init.max_serial_size)
+                                        continue;
+                                }
+                                else
+                                {
+                                    if (torrent.Size > init.max_size)
+                                        continue;
+                                }
                             }
                             else
                             {
-                                if (torrent.Size > init.max_size)
+                                if (init.max_size > 0 && torrent.Size > init.max_size)
                                     continue;
                             }
-                        }
-                        else
-                        {
-                            if (init.max_size > 0 && torrent.Size > init.max_size)
-                                continue;
-                        }
 
-                        if (Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
-                        {
-                            int sid = torrent.Seeders;
-                            long? size = torrent.Size;
-
-                            if (sid >= init.min_sid)
+                            if (Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
                             {
-                                string mediainfo = torrent.info.sizeName ?? string.Empty;
-                                if (!string.IsNullOrEmpty(mediainfo))
-                                    mediainfo += " / ";
+                                int sid = torrent.Seeders;
+                                long? size = torrent.Size;
 
-                                #region Перевод
-                                string voicename = string.Empty;
-
-                                var voices = torrent.info.voices;
-                                if (voices != null && voices.Length > 0)
-                                    voicename = string.Join(", ", voices);
-                                #endregion
-
-                                #region Перевод 2
-                                if (string.IsNullOrWhiteSpace(voicename))
+                                if (sid >= init.min_sid)
                                 {
-                                    if (Regex.IsMatch(name.ToLower(), "( дб| d|дубляж)", RegexOptions.IgnoreCase))
-                                        voicename += "Дубляж, ";
+                                    string mediainfo = torrent.info.sizeName ?? string.Empty;
+                                    if (!string.IsNullOrEmpty(mediainfo))
+                                        mediainfo += " / ";
 
-                                    if (Regex.IsMatch(name.ToLower(), "( ст| пм)", RegexOptions.IgnoreCase))
-                                        voicename += "Многоголосый, ";
+                                    #region Перевод
+                                    string voicename = string.Empty;
 
-                                    if (torrent.Tracker.ToLower() == "lostfilm")
+                                    var voices = torrent.info.voices;
+                                    if (voices != null && voices.Length > 0)
+                                        voicename = string.Join(", ", voices);
+                                    #endregion
+
+                                    #region Перевод 2
+                                    if (string.IsNullOrWhiteSpace(voicename))
                                     {
-                                        voicename += "LostFilm, ";
-                                    }
-                                    else if (torrent.Tracker.ToLower() == "toloka")
-                                    {
-                                        voicename += "Украинский, ";
-                                    }
-                                    else
-                                    {
-                                        var allVoices = new HashSet<string>
+                                        if (Regex.IsMatch(name.ToLower(), "( дб| d|дубляж)", RegexOptions.IgnoreCase))
+                                            voicename += "Дубляж, ";
+
+                                        if (Regex.IsMatch(name.ToLower(), "( ст| пм)", RegexOptions.IgnoreCase))
+                                            voicename += "Многоголосый, ";
+
+                                        if (torrent.Tracker.ToLower() == "lostfilm")
+                                        {
+                                            voicename += "LostFilm, ";
+                                        }
+                                        else if (torrent.Tracker.ToLower() == "toloka")
+                                        {
+                                            voicename += "Украинский, ";
+                                        }
+                                        else
+                                        {
+                                            var allVoices = new HashSet<string>
                                         {
                                             "Ozz", "Laci", "Kerob", "LE-Production",  "Parovoz Production", "Paradox", "Omskbird", "LostFilm", "Причудики", "BaibaKo", "NewStudio", "AlexFilm", "FocusStudio", "Gears Media", "Jaskier", "ViruseProject",
                                             "Кубик в Кубе", "IdeaFilm", "Sunshine Studio", "Ozz.tv", "Hamster Studio", "Сербин", "To4ka", "Кравец", "Victory-Films", "SNK-TV", "GladiolusTV", "Jetvis Studio", "ApofysTeam", "ColdFilm",
@@ -187,141 +190,142 @@ namespace Online.Controllers
                                             "Штамп", "Штейн", "Ю. Живов", "Ю. Немахов", "Ю. Сербин", "Ю. Товбин", "Я. Беллманн", "Украинский"
                                         };
 
-                                        foreach (string v in allVoices)
-                                        {
-                                            if (v.Length > 4 && name.ToLower().Contains(v.ToLower()))
-                                                voicename += $"{v}, ";
+                                            foreach (string v in allVoices)
+                                            {
+                                                if (v.Length > 4 && name.ToLower().Contains(v.ToLower()))
+                                                    voicename += $"{v}, ";
+                                            }
                                         }
+
+                                        voicename = Regex.Replace(voicename, ", +$", "");
+                                    }
+                                    #endregion
+
+                                    if (string.IsNullOrWhiteSpace(voicename))
+                                        continue;
+
+                                    #region HDR / HEVC / Dolby Vision
+                                    if (Regex.IsMatch(name, "HDR10", RegexOptions.IgnoreCase) || Regex.IsMatch(name, "10-?bit", RegexOptions.IgnoreCase))
+                                        mediainfo += " HDR10 ";
+                                    else if (Regex.IsMatch(name, "HDR", RegexOptions.IgnoreCase))
+                                        mediainfo += " HDR ";
+                                    else
+                                    {
+                                        mediainfo += " SDR ";
                                     }
 
-                                    voicename = Regex.Replace(voicename, ", +$", "");
+                                    if (Regex.IsMatch(name, "HEVC", RegexOptions.IgnoreCase) || Regex.IsMatch(name, "H.265", RegexOptions.IgnoreCase))
+                                        mediainfo += " / H.265 ";
+
+                                    if (Regex.IsMatch(name, "Dolby Vision", RegexOptions.IgnoreCase))
+                                        mediainfo += " / Dolby Vision ";
+                                    #endregion
+
+                                    #region tr arg
+                                    string tr = string.Empty;
+                                    var match = Regex.Match(magnet, "(&|\\?)tr=([^&\\?]+)");
+                                    while (match.Success)
+                                    {
+                                        string t = match.Groups[2].Value.Trim().ToLower();
+                                        if (!string.IsNullOrWhiteSpace(t))
+                                            tr += t.Contains("/") || t.Contains(":") ? $"&tr={HttpUtility.UrlEncode(t)}" : $"&tr={t}";
+
+                                        match = match.NextMatch();
+                                    }
+
+                                    if (string.IsNullOrWhiteSpace(tr))
+                                        continue;
+                                    #endregion
+
+                                    if (!string.IsNullOrEmpty(init.filter) && !Regex.IsMatch($"{name}:{voicename}", init.filter, RegexOptions.IgnoreCase))
+                                        continue;
+
+                                    if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch($"{name}:{voicename}", init.filter_ignore, RegexOptions.IgnoreCase))
+                                        continue;
+
+                                    torrents.Add((name, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : "1080p"), (torrent.Size ?? 0), mediainfo, torrent));
                                 }
-                                #endregion
-
-                                if (string.IsNullOrWhiteSpace(voicename))
-                                    continue;
-
-                                #region HDR / HEVC / Dolby Vision
-                                if (Regex.IsMatch(name, "HDR10", RegexOptions.IgnoreCase) || Regex.IsMatch(name, "10-?bit", RegexOptions.IgnoreCase))
-                                    mediainfo += " HDR10 ";
-                                else if (Regex.IsMatch(name, "HDR", RegexOptions.IgnoreCase))
-                                    mediainfo += " HDR ";
-                                else
-                                {
-                                    mediainfo += " SDR ";
-                                }
-
-                                if (Regex.IsMatch(name, "HEVC", RegexOptions.IgnoreCase) || Regex.IsMatch(name, "H.265", RegexOptions.IgnoreCase))
-                                    mediainfo += " / H.265 ";
-
-                                if (Regex.IsMatch(name, "Dolby Vision", RegexOptions.IgnoreCase))
-                                    mediainfo += " / Dolby Vision ";
-                                #endregion
-
-                                #region tr arg
-                                string tr = string.Empty;
-                                var match = Regex.Match(magnet, "(&|\\?)tr=([^&\\?]+)");
-                                while (match.Success)
-                                {
-                                    string t = match.Groups[2].Value.Trim().ToLower();
-                                    if (!string.IsNullOrWhiteSpace(t))
-                                        tr += t.Contains("/") || t.Contains(":") ? $"&tr={HttpUtility.UrlEncode(t)}" : $"&tr={t}";
-
-                                    match = match.NextMatch();
-                                }
-
-                                if (string.IsNullOrWhiteSpace(tr))
-                                    continue;
-                                #endregion
-
-                                if (!string.IsNullOrEmpty(init.filter) && !Regex.IsMatch($"{name}:{voicename}", init.filter, RegexOptions.IgnoreCase))
-                                    continue;
-
-                                if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch($"{name}:{voicename}", init.filter_ignore, RegexOptions.IgnoreCase))
-                                    continue;
-
-                                torrents.Add((name, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : "1080p"), (torrent.Size ?? 0), mediainfo, torrent));
                             }
                         }
                     }
+
+                    hybridCache.Set(memKey, torrents, DateTime.Now.AddMinutes(5));
                 }
 
-                hybridCache.Set(memKey, torrents, DateTime.Now.AddMinutes(5));
-            }
+                if (torrents.Count == 0)
+                    return Content(string.Empty);
+                #endregion
 
-            if (torrents.Count == 0)
-                return Content(string.Empty);
-            #endregion
-             
-            string en_title = HttpUtility.UrlEncode(title);
-            string en_original_title = HttpUtility.UrlEncode(original_title);
+                string en_title = HttpUtility.UrlEncode(title);
+                string en_original_title = HttpUtility.UrlEncode(original_title);
 
-            var movies = torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice));
-            movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : init.sort == "sid" ? movies.ThenByDescending(i => i.sid) : movies.ThenByDescending(i => i.torrent.PublishDate);
+                var movies = torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice));
+                movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : init.sort == "sid" ? movies.ThenByDescending(i => i.sid) : movies.ThenByDescending(i => i.torrent.PublishDate);
 
-            if (serial == 1)
-            {
-                if (s == -1)
+                if (serial == 1)
                 {
-                    HashSet<int> seasons = new HashSet<int>();
-
-                    var tpl = new SeasonTpl(quality: movies.FirstOrDefault
-                    (
-                        i => Regex.IsMatch(i.name, "(4k|uhd)( |\\]|,|$)", RegexOptions.IgnoreCase) || i.name.Contains("2160p")).name != null ? "2160p" :
-                             movies.FirstOrDefault(i => i.name.Contains("1080p")).name != null ? "1080p" : "720p"
-                    ); 
-
-                    foreach (var t in movies)
+                    if (s == -1)
                     {
-                        if (t.torrent.info.seasons == null || t.torrent.info.seasons.Length == 0)
-                            continue;
+                        HashSet<int> seasons = new HashSet<int>();
 
-                        foreach (var item in t.torrent.info.seasons)
-                            seasons.Add(item);
+                        var tpl = new SeasonTpl(quality: movies.FirstOrDefault
+                        (
+                            i => Regex.IsMatch(i.name, "(4k|uhd)( |\\]|,|$)", RegexOptions.IgnoreCase) || i.name.Contains("2160p")).name != null ? "2160p" :
+                                 movies.FirstOrDefault(i => i.name.Contains("1080p")).name != null ? "1080p" : "720p"
+                        );
+
+                        foreach (var t in movies)
+                        {
+                            if (t.torrent.info.seasons == null || t.torrent.info.seasons.Length == 0)
+                                continue;
+
+                            foreach (var item in t.torrent.info.seasons)
+                                seasons.Add(item);
+                        }
+
+                        foreach (int season in seasons.OrderBy(i => i))
+                            tpl.Append($"{season} сезон", $"{host}/lite/pidtor?rjson={rjson}&title={en_title}&original_title={en_original_title}&year={year}&original_language={original_language}&serial=1&s={season}", season);
+
+                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
                     }
+                    else
+                    {
+                        var stpl = new SimilarTpl();
 
-                    foreach (int season in seasons.OrderBy(i => i))
-                        tpl.Append($"{season} сезон", $"{host}/lite/pidtor?rjson={rjson}&title={en_title}&original_title={en_original_title}&year={year}&original_language={original_language}&serial=1&s={season}", season);
+                        foreach (var torrent in movies)
+                        {
+                            if (torrent.torrent.info.seasons == null || torrent.torrent.info.seasons.Length == 0)
+                                continue;
 
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                            if (!torrent.torrent.info.seasons.Contains(s) || torrent.torrent.info.seasons.Length != 1) // многосезонный 
+                                continue;
+
+                            string hashmagnet = Regex.Match(torrent.magnet, "magnet:\\?xt=urn:btih:([a-zA-Z0-9]+)").Groups[1].Value.ToLower();
+                            if (string.IsNullOrWhiteSpace(hashmagnet))
+                                continue;
+
+                            stpl.Append(torrent.voice, null, $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", accsArgs($"{host}/lite/pidtor/serial/{hashmagnet}?{torrent.tr}&rjson={rjson}&title={en_title}&original_title={en_original_title}&s={s}"));
+                        }
+
+                        return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    }
                 }
                 else
                 {
-                    var stpl = new SimilarTpl();
+                    var mtpl = new MovieTpl(title, original_title);
 
                     foreach (var torrent in movies)
                     {
-                        if (torrent.torrent.info.seasons == null || torrent.torrent.info.seasons.Length == 0)
-                            continue;
-
-                        if (!torrent.torrent.info.seasons.Contains(s) || torrent.torrent.info.seasons.Length != 1) // многосезонный 
-                            continue;
-
                         string hashmagnet = Regex.Match(torrent.magnet, "magnet:\\?xt=urn:btih:([a-zA-Z0-9]+)").Groups[1].Value.ToLower();
                         if (string.IsNullOrWhiteSpace(hashmagnet))
                             continue;
 
-                        stpl.Append(torrent.voice, null, $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", accsArgs($"{host}/lite/pidtor/serial/{hashmagnet}?{torrent.tr}&rjson={rjson}&title={en_title}&original_title={en_original_title}&s={s}"));
+                        mtpl.Append(torrent.voice, accsArgs($"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}"), voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
                     }
 
-                    return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 }
-            }
-            else
-            {
-                var mtpl = new MovieTpl(title, original_title);
-
-                foreach (var torrent in movies)
-                {
-                    string hashmagnet = Regex.Match(torrent.magnet, "magnet:\\?xt=urn:btih:([a-zA-Z0-9]+)").Groups[1].Value.ToLower();
-                    if (string.IsNullOrWhiteSpace(hashmagnet))
-                        continue;
-
-                    mtpl.Append(torrent.voice, accsArgs($"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}"), voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
-                }
-
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
-            }
+            });
         }
 
 
@@ -338,95 +342,99 @@ namespace Online.Controllers
 
             string tr = Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|title|original_title|rjson|s)=[^&]+", "");
 
-            #region Кеш запроса
             string memKey = $"pidtor:serial:{id}";
-            if (!hybridCache.TryGetValue(memKey, out FileStat[] file_stats))
-            {
-                #region gots
-                (List<HeadersModel> header, string host) gots()
-                {
-                    if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
-                    {
-                        if (System.IO.File.Exists("torrserver/accs.db"))
-                        {
-                            string accs = System.IO.File.ReadAllText("torrserver/accs.db");
-                            string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
 
-                            return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{AppInit.conf.listen.localhost}:9080");
+            return await InvkSemaphore(null, memKey, async () =>
+            {
+                #region Кеш запроса
+                if (!hybridCache.TryGetValue(memKey, out FileStat[] file_stats))
+                {
+                    #region gots
+                    (List<HeadersModel> header, string host) gots()
+                    {
+                        if ((init.torrs == null || init.torrs.Length == 0) && (init.auth_torrs == null || init.auth_torrs.Count == 0))
+                        {
+                            if (System.IO.File.Exists("torrserver/accs.db"))
+                            {
+                                string accs = System.IO.File.ReadAllText("torrserver/accs.db");
+                                string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
+
+                                return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{AppInit.conf.listen.localhost}:9080");
+                            }
+
+                            return (null, $"http://{AppInit.conf.listen.localhost}:9080");
                         }
 
-                        return (null, $"http://{AppInit.conf.listen.localhost}:9080");
-                    }
-
-                    if (init.auth_torrs != null && init.auth_torrs.Count > 0)
-                    {
-                        var ts = init.auth_torrs.First();
-                        string login = ts.login.Replace("{account_email}", account_email);
-                        var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}");
-
-                        return (httpHeaders(ts.host, HeadersModel.Join(auth, ts.headers)), ts.host);
-                    }
-                    else
-                    {
-                        if (init.base_auth != null && init.base_auth.enable)
+                        if (init.auth_torrs != null && init.auth_torrs.Count > 0)
                         {
                             var ts = init.auth_torrs.First();
-                            string login = init.base_auth.login.Replace("{account_email}", account_email);
-                            var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}");
+                            string login = ts.login.Replace("{account_email}", account_email);
+                            var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}");
 
-                            return (httpHeaders(ts.host, HeadersModel.Join(auth, init.base_auth.headers)), ts.host);
+                            return (httpHeaders(ts.host, HeadersModel.Join(auth, ts.headers)), ts.host);
+                        }
+                        else
+                        {
+                            if (init.base_auth != null && init.base_auth.enable)
+                            {
+                                var ts = init.auth_torrs.First();
+                                string login = init.base_auth.login.Replace("{account_email}", account_email);
+                                var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}");
+
+                                return (httpHeaders(ts.host, HeadersModel.Join(auth, init.base_auth.headers)), ts.host);
+                            }
+
+                            return (null, init.torrs.First());
+                        }
+                    }
+                    #endregion
+
+                    var ts = gots();
+
+                    string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
+                    string hash = await Http.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
+                    if (hash == null)
+                        return OnError();
+
+                    hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
+                    if (string.IsNullOrEmpty(hash))
+                        return OnError();
+
+                    Stat stat = null;
+                    var ex = DateTime.Now.AddSeconds(20);
+
+                resetgotingo: stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
+                    if (stat?.file_stats == null || stat.file_stats.Length == 0)
+                    {
+                        if (DateTime.Now > ex)
+                        {
+                            _ = Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", headers: ts.header);
+                            return OnError();
                         }
 
-                        return (null, init.torrs.First());
+                        await Task.Delay(250);
+                        goto resetgotingo;
                     }
+
+                    _ = Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", headers: ts.header);
+
+                    file_stats = stat.file_stats;
+                    hybridCache.Set(memKey, file_stats, DateTime.Now.AddHours(36));
                 }
                 #endregion
 
-                var ts = gots();
+                var mtpl = new EpisodeTpl();
 
-                string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
-                string hash = await Http.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
-                if (hash == null)
-                    return OnError();
-
-                hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(hash))
-                    return OnError();
-
-                Stat stat = null;
-                var ex = DateTime.Now.AddSeconds(20);
-
-                resetgotingo: stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
-                if (stat?.file_stats == null || stat.file_stats.Length == 0)
+                foreach (var torrent in file_stats)
                 {
-                    if (DateTime.Now > ex)
-                    {
-                        _ = Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", headers: ts.header);
-                        return OnError();
-                    }
+                    if (Path.GetExtension(torrent.Path) is ".srt" or ".txt" or ".jpg" or ".png")
+                        continue;
 
-                    await Task.Delay(250);
-                    goto resetgotingo;
+                    mtpl.Append(Path.GetFileName(torrent.Path), title ?? original_title, s.ToString(), torrent.Id.ToString(), accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.Id}"));
                 }
 
-                _ = Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", headers: ts.header);
-
-                file_stats = stat.file_stats;
-                hybridCache.Set(memKey, file_stats, DateTime.Now.AddHours(36));
-            }
-            #endregion
-
-            var mtpl = new EpisodeTpl();
-
-            foreach (var torrent in file_stats)
-            {
-                if (Path.GetExtension(torrent.Path) is ".srt" or ".txt" or ".jpg" or ".png")
-                    continue;
-
-                mtpl.Append(Path.GetFileName(torrent.Path), title ?? original_title, s.ToString(), torrent.Id.ToString(), accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.Id}"));
-            }
-
-            return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+            });
         }
 
 

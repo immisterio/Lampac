@@ -140,47 +140,51 @@ namespace Online.Controllers
                 var proxy = proxyManager.Get();
 
                 string memKey = $"kodik:view:stream:{link}:{init.secret_token}";
-                if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
+
+                return await InvkSemaphore(init, memKey, async () =>
                 {
-                    string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
-                    string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
-
-                    string json = await Http.Get($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
-
-                    streams = new List<(string q, string url)>(4);
-                    var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
-                    while (match.Success)
+                    if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
                     {
-                        if (!string.IsNullOrWhiteSpace(match.Groups[3].Value))
-                            streams.Add(($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
+                        string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
+                        string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                        match = match.NextMatch();
+                        string json = await Http.Get($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
+
+                        streams = new List<(string q, string url)>(4);
+                        var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
+                        while (match.Success)
+                        {
+                            if (!string.IsNullOrWhiteSpace(match.Groups[3].Value))
+                                streams.Add(($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
+
+                            match = match.NextMatch();
+                        }
+
+                        if (streams.Count == 0)
+                        {
+                            proxyManager.Refresh();
+                            return Content(string.Empty);
+                        }
+
+                        streams.Reverse();
+
+                        proxyManager.Success();
+                        hybridCache.Set(memKey, streams, cacheTime(20, init: init));
                     }
 
-                    if (streams.Count == 0)
-                    {
-                        proxyManager.Refresh();
-                        return Content(string.Empty);
-                    }
+                    var streamquality = new StreamQualityTpl();
+                    foreach (var l in streams)
+                        streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy), l.q);
 
-                    streams.Reverse();
+                    if (play)
+                        return Redirect(streamquality.Firts().link);
 
-                    proxyManager.Success();
-                    hybridCache.Set(memKey, streams, cacheTime(20, init: init));
-                }
+                    string name = title ?? original_title;
+                    if (episode > 0)
+                        name += $" ({episode} серия)";
 
-                var streamquality = new StreamQualityTpl();
-                foreach (var l in streams)
-                    streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy), l.q);
-
-                if (play)
-                    return Redirect(streamquality.Firts().link);
-
-                string name = title ?? original_title;
-                if (episode > 0)
-                    name += $" ({episode} серия)";
-
-                return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name, streamquality: streamquality, vast: init.vast));
+                    return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name, streamquality: streamquality, vast: init.vast));
+                });
             }
         }
         #endregion

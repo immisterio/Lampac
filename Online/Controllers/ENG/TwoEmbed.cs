@@ -34,16 +34,19 @@ namespace Online.Controllers
             if (s > 0)
                 embed = $"{init.host}/embed/tv/{id}/{s}/{e}";
 
-            var hls = await black_magic(embed, init, proxyManager, proxy.data);
-            if (hls == null)
-                return StatusCode(502);
+            return await InvkSemaphore(init, embed, async () =>
+            {
+                var hls = await black_magic(embed, init, proxyManager, proxy.data);
+                if (hls == null)
+                    return StatusCode(502);
 
-            hls = HostStreamProxy(init, hls, proxy: proxy.proxy);
+                hls = HostStreamProxy(init, hls, proxy: proxy.proxy);
 
-            if (play)
-                return Redirect(hls);
+                if (play)
+                    return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream)));
+                return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream)));
+            });
         }
         #endregion
 

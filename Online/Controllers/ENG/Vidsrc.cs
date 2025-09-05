@@ -40,66 +40,69 @@ namespace Online.Controllers
             if (s > 0)
                 embed = $"{init.host}/v2/embed/tv/{id}/{s}/{e}?autoPlay=true&poster=false";
 
-            #region api servers
-            if (lastvrf.ContainsKey(id) && s > 0)
+            return await InvkSemaphore(init, embed, async () =>
             {
-                string uri = $"{init.host}/api/{id}/servers?id={id}&type=tv&season={s}&episode={e}&vrf={lastvrf[id]}&imdbId={imdb_id}";
-                if (!hybridCache.TryGetValue(uri, out JToken data))
+                #region api servers
+                if (lastvrf.ContainsKey(id) && s > 0)
                 {
-                    try
+                    string uri = $"{init.host}/api/{id}/servers?id={id}&type=tv&season={s}&episode={e}&vrf={lastvrf[id]}&imdbId={imdb_id}";
+                    if (!hybridCache.TryGetValue(uri, out JToken data))
                     {
-                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8);
-                        if (root != null && root.ContainsKey("data"))
+                        try
                         {
-                            string hash = root["data"].First.Value<string>("hash");
-                            var source = await Http.Get<JObject>($"{init.host}/api/source/{hash}", timeoutSeconds: 8);
-                            if (source != null && source.ContainsKey("data"))
+                            var root = await Http.Get<JObject>(uri, timeoutSeconds: 8);
+                            if (root != null && root.ContainsKey("data"))
                             {
-                                data = source["data"];
-                                hybridCache.Set(uri, data, cacheTime(20));
+                                string hash = root["data"].First.Value<string>("hash");
+                                var source = await Http.Get<JObject>($"{init.host}/api/source/{hash}", timeoutSeconds: 8);
+                                if (source != null && source.ContainsKey("data"))
+                                {
+                                    data = source["data"];
+                                    hybridCache.Set(uri, data, cacheTime(20));
+                                }
                             }
                         }
+                        catch { }
                     }
-                    catch { }
-                }
 
-                if (data != null)
-                {
-                    var subtitles = new SubtitleTpl();
-                    try
+                    if (data != null)
                     {
-                        foreach (var sub in data["subtitles"])
-                            subtitles.Append(sub.Value<string>("label"), HostStreamProxy(init, sub.Value<string>("file"), proxy: proxy.proxy));
+                        var subtitles = new SubtitleTpl();
+                        try
+                        {
+                            foreach (var sub in data["subtitles"])
+                                subtitles.Append(sub.Value<string>("label"), HostStreamProxy(init, sub.Value<string>("file"), proxy: proxy.proxy));
+                        }
+                        catch { }
+
+                        var lastHeaders_headers = httpHeaders(init.host, init.headers_stream);
+                        if (lastHeaders_headers.Count == 0)
+                            lastHeaders_headers = lastHeaders;
+
+                        string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders_headers);
+                        if (play)
+                            return Redirect(file);
+
+                        return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: lastHeaders_headers));
                     }
-                    catch { }
-
-                    var lastHeaders_headers = httpHeaders(init.host, init.headers_stream);
-                    if (lastHeaders_headers.Count == 0)
-                        lastHeaders_headers = lastHeaders;
-
-                    string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders_headers);
-                    if (play)
-                        return Redirect(file);
-
-                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: lastHeaders_headers));
                 }
-            }
-            #endregion
+                #endregion
 
-            var cache = await black_magic(id, embed, init, proxyManager, proxy.data);
-            if (cache.m3u8 == null)
-                return StatusCode(502);
+                var cache = await black_magic(id, embed, init, proxyManager, proxy.data);
+                if (cache.m3u8 == null)
+                    return StatusCode(502);
 
-            var headers_stream = httpHeaders(init.host, init.headers_stream);
-            if (headers_stream.Count == 0)
-                headers_stream = cache.headers;
+                var headers_stream = httpHeaders(init.host, init.headers_stream);
+                if (headers_stream.Count == 0)
+                    headers_stream = cache.headers;
 
-            string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
+                string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
 
-            if (play)
-                return Redirect(hls);
+                if (play)
+                    return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+                return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+            });
         }
         #endregion
 

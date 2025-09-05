@@ -37,11 +37,14 @@ namespace Online.Controllers
             if (s > 0)
                 embed = $"{init.host}/tv/{id}?s={s}&e={e}";
 
-            var cache = await black_magic(embed, init, proxyManager, proxy.data);
-            if (cache.m3u8 == null)
-                return StatusCode(502);
+            return await InvkSemaphore(init, embed, async () =>
+            {
+                var cache = await black_magic(embed, init, proxyManager, proxy.data);
+                if (cache.m3u8 == null)
+                    return StatusCode(502);
 
-            return Redirect(HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers));
+                return Redirect(HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers));
+            });
         }
         #endregion
 

@@ -43,129 +43,51 @@ namespace Online.Controllers
             string hashKey = $"fxapi:hashfimix:{requestInfo.IP}";
             hybridCache.TryGetValue(hashKey, out string hashfimix);
 
-            #region video_links
             string videoKey = $"fxapi:{postid}:{(string.IsNullOrEmpty(hashfimix) ? requestInfo.IP : "")}";
-            if (!hybridCache.TryGetValue(videoKey, out JArray root))
+
+            return await InvkSemaphore(init, videoKey, async () =>
             {
-                string XFXTOKEN = await getXFXTOKEN(requestInfo.user_uid);
-                if (string.IsNullOrWhiteSpace(XFXTOKEN))
-                    return OnError();
-
-                root = await Http.Get<JArray>($"{init.corsHost()}/video_links/{postid}", headers: httpHeaders(init, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
-
-                if (root == null || root.Count == 0)
-                    return OnError();
-
-                var first = root.First.ToObject<JObject>();
-                if (!first.ContainsKey("files") && !first.ContainsKey("seasons"))
-                    return OnError();
-
-                if (string.IsNullOrEmpty(hashfimix))
+                #region video_links
+                if (!hybridCache.TryGetValue(videoKey, out JArray root))
                 {
-                    hashfimix = Regex.Match(root.First.ToString().Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
+                    string XFXTOKEN = await getXFXTOKEN(requestInfo.user_uid);
+                    if (string.IsNullOrWhiteSpace(XFXTOKEN))
+                        return OnError();
 
-                    if (!string.IsNullOrEmpty(hashfimix))
+                    root = await Http.Get<JArray>($"{init.corsHost()}/video_links/{postid}", headers: httpHeaders(init, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
+
+                    if (root == null || root.Count == 0)
+                        return OnError();
+
+                    var first = root.First.ToObject<JObject>();
+                    if (!first.ContainsKey("files") && !first.ContainsKey("seasons"))
+                        return OnError();
+
+                    if (string.IsNullOrEmpty(hashfimix))
                     {
-                        videoKey = $"fxapi:{postid}";
-                        hybridCache.Set(hashKey, hashfimix, DateTime.Now.AddHours(1));
-                    }
-                }
+                        hashfimix = Regex.Match(root.First.ToString().Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
 
-                hybridCache.Set(videoKey, root, DateTime.Now.AddHours(2));
-            }
-            #endregion
-
-            if (root.First.ToObject<JObject>().ContainsKey("files"))
-            {
-                #region Фильм
-                var mtpl = new MovieTpl(title, original_title, root.Count);
-
-                foreach (var movie in root)
-                {
-                    var streams = new List<(string link, string quality)>();
-
-                    foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
-                    {
-                        int q = file.Value<int>("quality");
-                        string url = file.Value<string>("url");
                         if (!string.IsNullOrEmpty(hashfimix))
-                            url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
-
-                        string l = HostStreamProxy(init, url);
-
-                        streams.Add((l, $"{q}p"));
+                        {
+                            videoKey = $"fxapi:{postid}";
+                            hybridCache.Set(hashKey, hashfimix, DateTime.Now.AddHours(1));
+                        }
                     }
 
-                    mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                    hybridCache.Set(videoKey, root, DateTime.Now.AddHours(2));
                 }
-
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                 #endregion
-            }
-            else
-            {
-                #region Сериал
-                if (s == -1)
+
+                if (root.First.ToObject<JObject>().ContainsKey("files"))
                 {
-                    #region Сезоны
-                    var tpl = new SeasonTpl(root.Count);
-                    var temp_season = new HashSet<int>();
+                    #region Фильм
+                    var mtpl = new MovieTpl(title, original_title, root.Count);
 
-                    foreach (var translation in root)
+                    foreach (var movie in root)
                     {
-                        foreach (var season in translation.Value<JArray>("seasons"))
-                        {
-                            int sid = season.Value<int>("season");
-                            string sname = $"{sid} сезон";
+                        var streams = new List<(string link, string quality)>();
 
-                            if (!temp_season.Contains(sid))
-                            {
-                                temp_season.Add(sid);
-                                string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={sid}";
-                                tpl.Append(sname, link, sid);
-                            }
-                        }
-                    }
-
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
-                    #endregion
-                }
-                else
-                {
-                    #region Перевод
-                    int indexTranslate = 0;
-                    var vtpl = new VoiceTpl();
-
-                    foreach (var translation in root)
-                    {
-                        foreach (var season in translation.Value<JArray>("seasons"))
-                        {
-                            if (season.Value<int>("season") == s)
-                            {
-                                string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
-                                bool active = t == indexTranslate;
-
-                                if (t == -1)
-                                    t = indexTranslate;
-
-                                vtpl.Append(translation.Value<string>("name"), active, link);
-                                break;
-                            }
-                        }
-
-                        indexTranslate++;
-                    }
-                    #endregion
-
-                    #region Серии
-                    var etpl = new EpisodeTpl();
-                    string sArhc = s.ToString();
-
-                    foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
-                    {
-                        List<(string link, string quality)> streams = new List<(string, string)>();
-
-                        foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
+                        foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                         {
                             int q = file.Value<int>("quality");
                             string url = file.Value<string>("url");
@@ -177,18 +99,100 @@ namespace Online.Controllers
                             streams.Add((l, $"{q}p"));
                         }
 
-                        int e = episode.Value<int>("episode");
-                        etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                        mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                    }
+
+                    return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                    #endregion
+                }
+                else
+                {
+                    #region Сериал
+                    if (s == -1)
+                    {
+                        #region Сезоны
+                        var tpl = new SeasonTpl(root.Count);
+                        var temp_season = new HashSet<int>();
+
+                        foreach (var translation in root)
+                        {
+                            foreach (var season in translation.Value<JArray>("seasons"))
+                            {
+                                int sid = season.Value<int>("season");
+                                string sname = $"{sid} сезон";
+
+                                if (!temp_season.Contains(sid))
+                                {
+                                    temp_season.Add(sid);
+                                    string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={sid}";
+                                    tpl.Append(sname, link, sid);
+                                }
+                            }
+                        }
+
+                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        #endregion
+                    }
+                    else
+                    {
+                        #region Перевод
+                        int indexTranslate = 0;
+                        var vtpl = new VoiceTpl();
+
+                        foreach (var translation in root)
+                        {
+                            foreach (var season in translation.Value<JArray>("seasons"))
+                            {
+                                if (season.Value<int>("season") == s)
+                                {
+                                    string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&s={s}&t={indexTranslate}";
+                                    bool active = t == indexTranslate;
+
+                                    if (t == -1)
+                                        t = indexTranslate;
+
+                                    vtpl.Append(translation.Value<string>("name"), active, link);
+                                    break;
+                                }
+                            }
+
+                            indexTranslate++;
+                        }
+                        #endregion
+
+                        #region Серии
+                        var etpl = new EpisodeTpl();
+                        string sArhc = s.ToString();
+
+                        foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
+                        {
+                            List<(string link, string quality)> streams = new List<(string, string)>();
+
+                            foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
+                            {
+                                int q = file.Value<int>("quality");
+                                string url = file.Value<string>("url");
+                                if (!string.IsNullOrEmpty(hashfimix))
+                                    url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
+
+                                string l = HostStreamProxy(init, url);
+
+                                streams.Add((l, $"{q}p"));
+                            }
+
+                            int e = episode.Value<int>("episode");
+                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                        }
+                        #endregion
+
+                        if (rjson)
+                            return ContentTo(etpl.ToJson(vtpl));
+
+                        return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
                     }
                     #endregion
-
-                    if (rjson)
-                        return ContentTo(etpl.ToJson(vtpl));
-
-                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
                 }
-                #endregion
-            }
+            });
         }
 
 

@@ -375,6 +375,32 @@ namespace Shared
         }
         #endregion
 
+        #region InvkSemaphore
+        async public Task<ActionResult> InvkSemaphore(BaseSettings init, string key, Func<ValueTask<ActionResult>> func)
+        {
+            if (init != null)
+            {
+                if (init.rhub && init.rhub_fallback == false)
+                    return await func.Invoke();
+            }
+
+            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+
+            try
+            {
+                return await func.Invoke();
+            }
+            finally
+            {
+                semaphore.Release();
+
+                if (semaphore.CurrentCount == 1)
+                    _semaphoreLocks.TryRemove(key, out _);
+            }
+        }
+        #endregion
+
         #region cacheTime
         public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null, int rhub = -1)
         {
