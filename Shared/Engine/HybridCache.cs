@@ -147,12 +147,25 @@ namespace Shared.Engine
                 if (absoluteExpiration == default)
                     absoluteExpiration = DateTimeOffset.Now.Add(absoluteExpirationRelativeToNow);
 
-                CollectionDb.hybrid_cache.Upsert(new HybridCacheModel() 
+                try
                 {
-                    id = CrypTo.md5(key),
-                    ex = absoluteExpiration,
-                    value = result
-                });
+                    CollectionDb.hybrid_cache.Insert(new HybridCacheModel()
+                    {
+                        id = CrypTo.md5(key),
+                        ex = absoluteExpiration,
+                        value = result
+                    });
+                }
+                catch 
+                {
+                    var doc = CollectionDb.hybrid_cache.FindById(CrypTo.md5(key));
+                    if (doc.id != null)
+                    {
+                        doc.ex = absoluteExpiration;
+                        doc.value = result;
+                        CollectionDb.hybrid_cache.Update(doc);
+                    }
+                }
 
                 return true;
             }

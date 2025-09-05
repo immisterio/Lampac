@@ -378,21 +378,26 @@ namespace Shared.PlaywrightCore
                                 Console.WriteLine($"Playwright: MISS {route.Request.Url}");
 
                             await route.ContinueAsync();
-                            var response = await page.WaitForResponseAsync(route.Request.Url);
-                            if (response != null)
+
+                            try
                             {
-                                var content = await response.BodyAsync();
-                                if (content != null)
+                                var response = await page.WaitForResponseAsync(route.Request.Url);
+                                if (response != null)
                                 {
-                                    CollectionDb.playwrightRoute.Upsert(new PlaywrightRouteCache()
+                                    var content = await response.BodyAsync();
+                                    if (content != null)
                                     {
-                                        id = memkey,
-                                        ex = DateTimeOffset.Now.AddDays(1),
-                                        headers = response.Headers,
-                                        content = content
-                                    });
+                                        CollectionDb.playwrightRoute.Insert(new PlaywrightRouteCache()
+                                        {
+                                            id = memkey,
+                                            ex = DateTimeOffset.Now.AddHours(1),
+                                            headers = response.Headers,
+                                            content = content
+                                        });
+                                    }
                                 }
                             }
+                            catch { }
                         }
 
                         return true;

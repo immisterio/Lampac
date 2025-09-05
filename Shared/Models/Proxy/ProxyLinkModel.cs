@@ -7,7 +7,7 @@ namespace Shared.Models.Proxy
     {
         public ProxyLinkModel() 
         { 
-            ex = DateTimeOffset.Now.AddHours(AppInit.conf.mikrotik ? 4 : 36);
+            ex = DateTimeOffset.Now.AddHours(AppInit.conf.mikrotik ? 4 : 20);
         }
 
         public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTimeOffset ex = default)
@@ -21,7 +21,7 @@ namespace Shared.Models.Proxy
             this.verifyip = verifyip;
 
             if (this.ex == default)
-                this.ex = DateTimeOffset.Now.AddHours(AppInit.conf.mikrotik ? 4 : 36);
+                this.ex = DateTimeOffset.Now.AddHours(AppInit.conf.mikrotik ? 4 : 20);
         }
 
         [BsonId]

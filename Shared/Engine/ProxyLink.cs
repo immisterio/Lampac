@@ -183,7 +183,7 @@ namespace Shared.Engine
                                     }
                                     else
                                     {
-                                        if (CollectionDb.proxyLink.Upsert(link.Value))
+                                        if (CollectionDb.proxyLink.Insert(link.Value))
                                         {
                                             hash.Add(link.Key);
                                             links.TryRemove(link.Key, out _);
