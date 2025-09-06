@@ -661,6 +661,8 @@ namespace Shared
             if (func != null)
                 return func.Invoke(conf, init, conf.ToObject<T>());
 
+            InvkEvent.LoadKit(init, conf);
+
             return init;
         }
         #endregion

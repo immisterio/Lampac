@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Base;
+using Shared.Models.Events;
 using Shared.Models.Module;
 using System.Reflection;
 
@@ -14,6 +15,7 @@ namespace Shared
         #region IsBadInitialization
         async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null)
         {
+            #region module initialization
             if (AppInit.modules != null)
             {
                 var args = new InitializationModel(init, rch);
@@ -26,14 +28,14 @@ namespace Shared
                         {
                             if (t.GetMethod("Invoke") is MethodInfo m2)
                             {
-                                badInitMsg = (ActionResult)m2.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                badInitMsg = (ActionResult)m2.Invoke(null, [HttpContext, memoryCache, requestInfo, host, args]);
                                 if (badInitMsg != null)
                                     return true;
                             }
 
                             if (t.GetMethod("InvokeAsync") is MethodInfo m)
                             {
-                                badInitMsg = await (Task<ActionResult>)m.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
+                                badInitMsg = await (Task<ActionResult>)m.Invoke(null, [HttpContext, memoryCache, requestInfo, host, args]);
                                 if (badInitMsg != null)
                                     return true;
                             }
@@ -42,6 +44,11 @@ namespace Shared
                     catch { }
                 }
             }
+            #endregion
+
+            badInitMsg = await InvkEvent.BadInitialization(new EventBadInitialization(init, rch, requestInfo, host, HttpContext, memoryCache));
+            if (badInitMsg != null)
+                return true;
 
             if (!init.enable || init.rip)
             {

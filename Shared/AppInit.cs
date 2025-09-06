@@ -8,7 +8,6 @@ using Newtonsoft.Json;
 using Shared.Models.Base;
 using Shared.Models.Online.Settings;
 using Shared.Models.Browser;
-using Shared.Models.Online.Kinobase;
 using Shared.Models.ServerProxy;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -352,14 +351,14 @@ namespace Shared
             enable = false, viewru = true,
             domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "http",
             mirror = "mirror-kurwa.men",
-            cache_api = 20, cache_img = 120,
+            cache_api = 180, cache_img = 120,
         };
 
         public TmdbConf tmdb { get; set; } = new TmdbConf()
         {
             enable = true,
             httpversion = 2, DNS_TTL = 20,
-            cache_api = 20, cache_img = 60, check_img = false,
+            cache_api = 240, cache_img = 60, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 

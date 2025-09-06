@@ -17,7 +17,7 @@ namespace Shared.Engine
         static InteractiveAssemblyLoader assemblyLoader = new InteractiveAssemblyLoader();
         static ConcurrentDictionary<string, dynamic> scripts = new ConcurrentDictionary<string, dynamic>();
 
-        #region Execute
+        #region Execute<T>
         public static T Execute<T>(in string cs, object model, ScriptOptions options = null)
         {
             return ExecuteAsync<T>(cs, model, options).GetAwaiter().GetResult();
@@ -48,7 +48,7 @@ namespace Shared.Engine
         }
         #endregion
 
-        #region BaseExecute
+        #region BaseExecute<T>
         public static T BaseExecute<T>(in string cs, object model, ScriptOptions options = null, InteractiveAssemblyLoader loader = null)
         {
             return BaseExecuteAsync<T>(cs, model, options, loader).GetAwaiter().GetResult();
@@ -63,6 +63,38 @@ namespace Shared.Engine
                     options,
                     globalsType: model.GetType(),
                     assemblyLoader: loader
+                ).CreateDelegate();
+            });
+
+            return script(model);
+        }
+        #endregion
+
+
+        #region Execute
+        public static void Execute(in string cs, object model, ScriptOptions options = null)
+        {
+            ExecuteAsync(cs, model, options).GetAwaiter().GetResult();
+        }
+
+        public static Task ExecuteAsync(string cs, object model, ScriptOptions options = null)
+        {
+            var script = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+            {
+                if (options == null)
+                    options = ScriptOptions.Default;
+
+                options = options.AddReferences(typeof(Console).Assembly).AddImports("System")
+                                 .AddReferences(typeof(HttpUtility).Assembly).AddImports("System.Web")
+                                 .AddReferences(typeof(Enumerable).Assembly).AddImports("System.Linq")
+                                 .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
+                                 .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
+
+                return CSharpScript.Create(
+                    cs,
+                    options,
+                    globalsType: model.GetType(),
+                    assemblyLoader: assemblyLoader
                 ).CreateDelegate();
             });
 

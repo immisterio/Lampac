@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Base;
+using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
@@ -18,6 +19,7 @@ namespace Shared
         #region IsBadInitialization
         async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null)
         {
+            #region module initialization
             if (AppInit.modules != null)
             {
                 var args = new InitializationModel(init, rch);
@@ -46,6 +48,11 @@ namespace Shared
                     catch { }
                 }
             }
+            #endregion
+
+            badInitMsg = await InvkEvent.BadInitialization(new EventBadInitialization(init, rch, requestInfo, host, HttpContext, memoryCache));
+            if (badInitMsg != null)
+                return true;
 
             this.init = init;
 
