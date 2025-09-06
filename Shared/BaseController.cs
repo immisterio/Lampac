@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Base;
+using Shared.Models.Events;
 using Shared.Models.Online.Settings;
 using Shared.Models.SISI.OnResult;
 using System.Collections.Concurrent;
@@ -590,6 +591,7 @@ namespace Shared
             if (appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
                 return init;
 
+            var defaultinit = clone ? init : (T)_init.Clone();
             var conf = appinit.Value<JObject>(init.plugin);
 
             void update<T2>(string key, Action<T2> updateAction)
@@ -654,14 +656,15 @@ namespace Shared
                 init.rhub_fallback = true;
             }
 
-            init.cache_time = _init.cache_time;
+            if (init.rhub)
+                update<int>("cache_time", v => init.cache_time = v);
 
             IsKitConf = true;
 
             if (func != null)
                 return func.Invoke(conf, init, conf.ToObject<T>());
 
-            InvkEvent.LoadKit(init, conf);
+            InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, conf, requestInfo, hybridCache));
 
             return init;
         }

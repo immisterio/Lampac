@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Models.CSharpGlobals;
+using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Online.Lumex;
 using Shared.PlaywrightCore;
@@ -24,25 +24,40 @@ namespace Online.Controllers
         public ContentResult Online(string token)
         {
             var init = AppInit.conf.online;
+            var apr = init.appReplace ?? InvkEvent.conf?.Controller?.AppReplace?.online?.regex;
 
-            string memKey = $"online.js:{init.appReplace?.Count ?? 0}:{init.version}:{init.description}:{init.apn}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
+            string memKey = $"online.js:{apr?.Count ?? 0}:{InvkEvent.conf?.Controller?.AppReplace?.online?.list?.Count ?? 0}:{init.version}:{init.description}:{init.apn}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
                 cache.file = FileCache.ReadAllText("plugins/online.js", saveCache: false);
                 string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false);
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
-                if (init.appReplace != null)
+                #region appReplace
+                if (apr != null)
                 {
-                    foreach (var r in init.appReplace)
+                    foreach (var r in apr)
                     {
                         string val = r.Value;
                         if (val.StartsWith("file:"))
-                            val = IO.File.ReadAllText(val.AsSpan(5).ToString());
+                            val = IO.File.ReadAllText(val.Substring(5));
 
                         cache.file = Regex.Replace(cache.file, r.Key, val, RegexOptions.IgnoreCase);
                     }
                 }
+
+                if (InvkEvent.conf?.Controller?.AppReplace?.online?.list != null)
+                {
+                    foreach (var r in InvkEvent.conf.Controller.AppReplace.online.list)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = IO.File.ReadAllText(val.Substring(5));
+
+                        cache.file = cache.file.Replace(r.Key, val);
+                    }
+                }
+                #endregion
 
                 if (!init.version)
                 {
@@ -90,24 +105,13 @@ namespace Online.Controllers
                     memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(1));
             }
 
-            if (!string.IsNullOrEmpty(token))
+            if (InvkEvent.conf?.Controller?.AppReplace?.online?.eval != null)
             {
-                if (!string.IsNullOrEmpty(init.eval))
-                {
-                    string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.file, host, token, requestInfo));
-                    return Content(file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
-                }
-
-                return Content(cache.file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
+                string source = InvkEvent.AppReplace("online", new EventAppReplace(cache.file, token, null, host, requestInfo, HttpContext.Request, hybridCache));
+                return Content(source.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
             }
 
-            if (!string.IsNullOrEmpty(init.eval))
-            {
-                string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
-                return Content(file, "application/javascript; charset=utf-8");
-            }
-
-            return Content(cache.filecleaer, "application/javascript; charset=utf-8");
+            return Content(token != null ? cache.file.Replace("{token}", HttpUtility.UrlEncode(token)) : cache.filecleaer, "application/javascript; charset=utf-8");
         }
         #endregion
 

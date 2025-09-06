@@ -1,10 +1,12 @@
-﻿using Shared;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using NetVips;
 using Newtonsoft.Json;
+using Shared;
 using Shared.Engine;
 using Shared.Models.CSharpGlobals;
+using Shared.Models.Events;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,6 +16,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using YamlDotNet.Core.Tokens;
 using IO = System.IO;
 
 namespace Lampac.Controllers
@@ -152,24 +155,40 @@ namespace Lampac.Controllers
             }
 
             bool usecubproxy = AppInit.conf.cub.enabled(requestInfo.Country);
+            var apr = AppInit.conf.LampaWeb.appReplace ?? InvkEvent.conf?.Controller?.AppReplace?.appjs?.regex;
 
-            string memKey = $"ApiController:{type}:{host}:{usecubproxy}:app.min.js";
+            string memKey = $"ApiController:{type}:{host}:{usecubproxy}:{apr?.Count ?? 0}:app.min.js";
             if (!memoryCache.TryGetValue(memKey, out string file))
             {
                 file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
 
-                if (AppInit.conf.LampaWeb.appReplace != null)
+                #region appReplace
+                if (apr != null)
                 {
-                    foreach (var r in AppInit.conf.LampaWeb.appReplace)
+                    foreach (var r in apr)
                     {
                         string val = r.Value;
                         if (val.StartsWith("file:"))
-                            val = IO.File.ReadAllText(val.AsSpan(5).ToString());
+                            val = IO.File.ReadAllText(val.Substring(5));
 
                         val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
                         file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
                     }
                 }
+
+                if (InvkEvent.conf?.Controller?.AppReplace?.appjs?.list != null)
+                {
+                    foreach (var r in InvkEvent.conf.Controller.AppReplace.appjs.list)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = IO.File.ReadAllText(val.Substring(5));
+
+                        val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                        file = file.Replace(r.Key, val);
+                    }
+                }
+                #endregion
 
                 string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false);
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
@@ -206,8 +225,8 @@ namespace Lampac.Controllers
                     memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(1));
             }
 
-            if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.eval))
-                file = CSharpEval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.eval), new appReplaceGlobals(file, host, null, requestInfo, type));
+            if (InvkEvent.conf?.Controller?.AppReplace?.appjs?.eval != null)
+                file = InvkEvent.AppReplace("appjs", new EventAppReplace(file, null, type, host, requestInfo, HttpContext.Request, hybridCache));
 
             return Content(file, "application/javascript; charset=utf-8");
         }
@@ -233,30 +252,46 @@ namespace Lampac.Controllers
                 }
             }
 
-            string memKey = $"ApiController:css/app.css:{type}:{host}";
+            var apr = AppInit.conf.LampaWeb.cssReplace ?? InvkEvent.conf?.Controller?.AppReplace?.appcss?.regex;
+
+            string memKey = $"ApiController:css/app.css:{type}:{host}:{apr?.Count ?? 0}";
             if (!memoryCache.TryGetValue(memKey, out string css))
             {
                 css = IO.File.ReadAllText($"wwwroot/{type}/css/app.css");
 
-                if (AppInit.conf.LampaWeb.cssReplace != null)
+                #region appReplace
+                if (apr != null)
                 {
-                    foreach (var r in AppInit.conf.LampaWeb.cssReplace)
+                    foreach (var r in apr)
                     {
                         string val = r.Value;
                         if (val.StartsWith("file:"))
-                            val = IO.File.ReadAllText(val.AsSpan(5).ToString());
+                            val = IO.File.ReadAllText(val.Substring(5));
 
                         val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
-
                         css = Regex.Replace(css, r.Key, val, RegexOptions.IgnoreCase);
                     }
                 }
 
+                if (InvkEvent.conf?.Controller?.AppReplace?.appcss?.list != null)
+                {
+                    foreach (var r in InvkEvent.conf.Controller.AppReplace.appcss.list)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = IO.File.ReadAllText(val.Substring(5));
+
+                        val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                        css = css.Replace(r.Key, val);
+                    }
+                }
+                #endregion
+
                 memoryCache.Set(memKey, css, DateTime.Now.AddMinutes(AppInit.conf.multiaccess ? 5 : 1));
             }
 
-            if (!string.IsNullOrEmpty(AppInit.conf.LampaWeb.cssEval))
-                css = CSharpEval.Execute<string>(FileCache.ReadAllText(AppInit.conf.LampaWeb.cssEval), new appReplaceGlobals(css, host, null, requestInfo, type));
+            if (InvkEvent.conf?.Controller?.AppReplace?.appcss?.eval != null)
+                css = InvkEvent.AppReplace("appcss", new EventAppReplace(css, null, type, host, requestInfo, HttpContext.Request, hybridCache));
 
             return Content(css, "text/css; charset=utf-8");
         }

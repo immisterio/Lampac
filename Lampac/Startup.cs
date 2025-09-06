@@ -339,13 +339,13 @@ namespace Lampac
                         {
                             if (mod.version >= 2)
                             {
-                                m.Invoke(null, new object[] { new InitspaceModel()
+                                m.Invoke(null, [ new InitspaceModel()
                                 {
                                     path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app
-                                }});
+                                }]);
                             }
                             else
-                                m.Invoke(null, new object[] { });
+                                m.Invoke(null, []);
                         }
                     }
                     catch (Exception ex) { Console.WriteLine($"Module {mod.NamespacePath(mod.initspace)}: {ex.Message}\n\n"); }
@@ -383,6 +383,7 @@ namespace Lampac
                 app.UseResponseCompression();
 
             app.UseModHeaders();
+            app.UseModule(first: true);
             app.UseOverrideResponse(first: true);
             app.UseStaticFiles();
             app.UseRequestInfo();
@@ -410,8 +411,7 @@ namespace Lampac
                 proxyApp.UseProxyTmdb();
             });
 
-            if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.middlewares != null) != null)
-                app.UseModule();
+            app.UseModule(first: false);
 
             app.UseEndpoints(endpoints =>
             {

@@ -49,9 +49,9 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<ProxyTmdb>();
         }
 
-        public static IApplicationBuilder UseModule(this IApplicationBuilder builder)
+        public static IApplicationBuilder UseModule(this IApplicationBuilder builder, bool first)
         {
-            return builder.UseMiddleware<Module>();
+            return builder.UseMiddleware<Module>(first);
         }
     }
 }

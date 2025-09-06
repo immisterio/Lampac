@@ -40,8 +40,6 @@
         public BookmarksConf bookmarks { get; set; }
 
 
-        public Dictionary<string, string> appReplace { get; set; } = new Dictionary<string, string>();
-
-        public string eval { get; set; }
+        public Dictionary<string, string> appReplace { get; set; }
     }
 }

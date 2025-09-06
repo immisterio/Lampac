@@ -2,13 +2,14 @@
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Models.CSharpGlobals;
+using Shared.Models.Base;
+using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.PlaywrightCore;
 using System.Reflection;
 using System.Text;
 using System.Web;
-using Shared.Models.Base;
+using IO = System.IO;
 
 namespace SISI
 {
@@ -24,23 +25,38 @@ namespace SISI
                 return Content(FileCache.ReadAllText("plugins/sisi.lite.js").Replace("{localhost}", host), "application/javascript; charset=utf-8");
 
             var init = AppInit.conf.sisi;
+            var apr = init.appReplace ?? InvkEvent.conf?.Controller?.AppReplace?.sisi?.regex;
 
-            string memKey = $"sisi.js:{init.appReplace?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
+            string memKey = $"sisi.js:{apr?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
                 cache.file = FileCache.ReadAllText("plugins/sisi.js", saveCache: false);
 
-                if (init.appReplace != null)
+                #region appReplace
+                if (apr != null)
                 {
-                    foreach (var r in init.appReplace)
+                    foreach (var r in apr)
                     {
                         string val = r.Value;
                         if (val.StartsWith("file:"))
-                            val = System.IO.File.ReadAllText(val.AsSpan(5).ToString());
+                            val = IO.File.ReadAllText(val.Substring(5));
 
                         cache.file = Regex.Replace(cache.file, r.Key, val, RegexOptions.IgnoreCase);
                     }
                 }
+
+                if (InvkEvent.conf?.Controller?.AppReplace?.sisi?.list != null)
+                {
+                    foreach (var r in InvkEvent.conf.Controller.AppReplace.sisi.list)
+                    {
+                        string val = r.Value;
+                        if (val.StartsWith("file:"))
+                            val = IO.File.ReadAllText(val.Substring(5));
+
+                        cache.file = cache.file.Replace(r.Key, val);
+                    }
+                }
+                #endregion
 
                 var bulder = new StringBuilder(cache.file);
 
@@ -70,24 +86,13 @@ namespace SISI
                     memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(1));
             }
 
-            if (!string.IsNullOrEmpty(token))
+            if (InvkEvent.conf?.Controller?.AppReplace?.sisi?.eval != null)
             {
-                if (!string.IsNullOrEmpty(init.eval))
-                {
-                    string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.file, host, token, requestInfo));
-                    return Content(file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
-                }
-
-                return Content(cache.file.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
+                string source = InvkEvent.AppReplace("sisi", new EventAppReplace(cache.file, token, null, host, requestInfo, HttpContext.Request, hybridCache));
+                return Content(source.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
             }
 
-            if (!string.IsNullOrEmpty(init.eval))
-            {
-                string file = CSharpEval.Execute<string>(FileCache.ReadAllText(init.eval), new appReplaceGlobals(cache.filecleaer, host, token, requestInfo));
-                return Content(file, "application/javascript; charset=utf-8");
-            }
-
-            return Content(cache.filecleaer, "application/javascript; charset=utf-8");
+            return Content(token != null ? cache.file.Replace("{token}", HttpUtility.UrlEncode(token)) : cache.filecleaer, "application/javascript; charset=utf-8");
         }
         #endregion
 

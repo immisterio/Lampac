@@ -26,9 +26,7 @@
 
         public string apn { get; set; }
 
-        public Dictionary<string, string> appReplace { get; set; } = new Dictionary<string, string>();
-
-        public string eval { get; set; }
+        public Dictionary<string, string> appReplace { get; set; }
 
 
         public List<string> with_search { get; set; }

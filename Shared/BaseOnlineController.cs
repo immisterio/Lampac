@@ -46,7 +46,7 @@ namespace Shared
             }
             #endregion
 
-            badInitMsg = await InvkEvent.BadInitialization(new EventBadInitialization(init, rch, requestInfo, host, HttpContext, memoryCache));
+            badInitMsg = await InvkEvent.BadInitialization(new EventBadInitialization(init, rch, requestInfo, host, HttpContext.Request, hybridCache));
             if (badInitMsg != null)
                 return true;
 

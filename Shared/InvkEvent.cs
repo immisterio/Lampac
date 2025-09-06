@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
@@ -168,9 +169,24 @@ namespace Shared
         }
         #endregion
 
+        #region InvokeAsync
+        static Task InvokeAsync(string cs, object model, ScriptOptions options = null)
+        {
+            try
+            {
+                if (cs != null)
+                    return CSharpEval.ExecuteAsync(FileOrCode(cs), model, options);
+            }
+            catch { }
 
-        public static void LoadKit(BaseSettings init, JObject userconf) => Invoke(conf?.LoadKit, new EventLoadKit(init, userconf));
+            return Task.CompletedTask;
+        }
+        #endregion
 
+
+        public static void LoadKit(EventLoadKit model) => Invoke(conf?.LoadKit, model);
+
+        #region BadInitialization
         public static Task<ActionResult> BadInitialization(EventBadInitialization model)
         {
             var option = ScriptOptions.Default.AddReferences(typeof(ActionResult).Assembly).AddImports("Microsoft.AspNetCore.Mvc")
@@ -178,5 +194,44 @@ namespace Shared
 
             return InvokeAsync<ActionResult>(conf?.Controller?.BadInitialization, model, option);
         }
+        #endregion
+
+        #region Middleware
+        public static Task Middleware(bool first, EventMiddleware model)
+        {
+            var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                                              .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks");
+
+            return InvokeAsync(first ? conf?.Middleware?.first : conf?.Middleware?.end, model, option);
+        }
+        #endregion
+
+        #region AppReplace
+        public static string AppReplace(string e, EventAppReplace model)
+        {
+            string code = null;
+
+            switch (e)
+            {
+                case "online":
+                    code = conf?.Controller?.AppReplace?.online?.eval;
+                    break;
+
+                case "sisi":
+                    code = conf?.Controller?.AppReplace?.sisi?.eval;
+                    break;
+
+                case "appjs":
+                    code = conf?.Controller?.AppReplace?.appjs?.eval;
+                    break;
+
+                case "appcss":
+                    code = conf?.Controller?.AppReplace?.appcss?.eval;
+                    break;
+            }
+
+            return Invoke<string>(code, model);
+        }
+        #endregion
     }
 }
