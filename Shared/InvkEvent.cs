@@ -262,5 +262,21 @@ namespace Shared
             Invoke(code, model, option);
         }
         #endregion
+
+        #region RedApi
+        public static bool RedApi(string e, object model)
+        {
+            string code = null;
+
+            switch (e)
+            {
+                case "addtorrent":
+                    code = conf?.RedApi?.AddTorrents;
+                    break;
+            }
+
+            return Invoke<bool>(code, model);
+        }
+        #endregion
     }
 }

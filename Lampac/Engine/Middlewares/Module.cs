@@ -100,7 +100,7 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (InvkEvent.conf?.Middleware != null)
+            if ((first && InvkEvent.conf?.Middleware?.first != null) || (!first && InvkEvent.conf?.Middleware?.end != null))
             {
                 var rqinfo = first ? new RequestModel() : httpContext.Features.Get<RequestModel>();
                 bool next = await InvkEvent.Middleware(first, new EventMiddleware(_next, rqinfo, httpContext.Request, httpContext, new HybridCache(), memoryCache));

@@ -49,6 +49,12 @@ namespace JacRed.Engine
                 if (!string.IsNullOrEmpty(ModInit.conf.filter_ignore) && Regex.IsMatch(t.title, ModInit.conf.filter_ignore, RegexOptions.IgnoreCase))
                     return;
 
+                if (InvkEvent.conf.RedApi?.AddTorrents != null)
+                {
+                    if (!InvkEvent.RedApi("addtorrent", t))
+                        return;
+                }
+
                 if (torrents.TryGetValue(t.url, out TorrentDetails val))
                 {
                     if (t.updateTime > val.updateTime)
@@ -286,7 +292,10 @@ namespace JacRed.Engine
             {
                 var temp = new Dictionary<string, (TorrentDetails torrent, string title, string Name, List<string> AnnounceUrls)>();
 
-                foreach (var torrent in torrents.Values.Where(i => red.trackers == null || red.trackers.Contains(i.trackerName)).ToList())
+                foreach (var torrent in torrents.Values
+                                                .Where(i => red.trackers == null || red.trackers.Contains(i.trackerName))
+                                                .OrderByDescending(i => i.createTime)
+                                                .ThenBy(i => i.trackerName == "selezen").ToList())
                 {
                     if (torrent.magnet == null)
                         continue;
@@ -383,11 +392,14 @@ namespace JacRed.Engine
                         }
                         #endregion
 
-                        if (torrent.sid > t.torrent.sid)
-                            t.torrent.sid = torrent.sid;
+                        if (torrent.trackerName != "selezen")
+                        {
+                            if (torrent.sid > t.torrent.sid)
+                                t.torrent.sid = torrent.sid;
 
-                        if (torrent.pir > t.torrent.pir)
-                            t.torrent.pir = torrent.pir;
+                            if (torrent.pir > t.torrent.pir)
+                                t.torrent.pir = torrent.pir;
+                        }
 
                         if (torrent.createTime > t.torrent.createTime)
                             t.torrent.createTime = torrent.createTime;

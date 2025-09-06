@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models.Base;
+using Shared.Models.JacRed;
 using System.Net;
 using System.Net.Http;
 
@@ -15,6 +16,8 @@ namespace Shared.Models.Events
     public record EventBadInitialization(BaseSettings init, bool? rch, RequestModel requestInfo, string host, HttpRequest request, HybridCache hybridCache);
 
     public record EventAppReplace(string source, string token, string arg, string host, RequestModel requestInfo, HttpRequest request, HybridCache hybridCache);
+
+    public record EventRedApi(TorrentDetails torrent);
 
 
     public record EventHttpHandler(string url, HttpClientHandler handler, WebProxy proxy, CookieContainer cookieContainer, IMemoryCache memoryCache);
