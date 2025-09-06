@@ -7,6 +7,8 @@
         public EventModelMiddleware Middleware { get; set; }
 
         public EventModelController Controller { get; set; }
+
+        public EventHttp Http { get; set; }
     }
 
     public class EventModelController()
@@ -41,5 +43,14 @@
         public string first { get; set; }
 
         public string end { get; set; }
+    }
+
+    public class EventHttp()
+    {
+        public string Handler { get; set; }
+
+        public string Headers { get; set; }
+
+        public string Response { get; set; }
     }
 }

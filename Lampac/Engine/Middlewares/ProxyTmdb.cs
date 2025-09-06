@@ -321,7 +321,7 @@ namespace Lampac.Engine.Middlewares
 
                     var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
                     {
-                        Http.DefaultRequestHeaders(uclient, 10, 0, null, null, headers);
+                        Http.DefaultRequestHeaders(uri, uclient, 10, 0, null, null, headers);
                     });
 
                     using (var response = await client.GetAsync(uri).ConfigureAwait(false))

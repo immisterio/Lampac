@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
-using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.Events;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using YamlDotNet.Serialization;
 
@@ -197,12 +198,13 @@ namespace Shared
         #endregion
 
         #region Middleware
-        public static Task Middleware(bool first, EventMiddleware model)
+        public static Task<bool> Middleware(bool first, EventMiddleware model)
         {
             var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
-                                              .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks");
+                                              .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks")
+                                              .AddReferences(typeof(TimeSpan).Assembly).AddImports("System");
 
-            return InvokeAsync(first ? conf?.Middleware?.first : conf?.Middleware?.end, model, option);
+            return InvokeAsync<bool>(first ? conf?.Middleware?.first : conf?.Middleware?.end, model, option);
         }
         #endregion
 
@@ -231,6 +233,33 @@ namespace Shared
             }
 
             return Invoke<string>(code, model);
+        }
+        #endregion
+
+        #region Http
+        public static void Http(string e, object model)
+        {
+            string code = null;
+
+            switch (e)
+            {
+                case "handler":
+                    code = conf?.Http?.Handler;
+                    break;
+
+                case "headers":
+                    code = conf?.Http?.Headers;
+                    break;
+
+                case "response":
+                    code = conf?.Http?.Response;
+                    break;
+            }
+
+            var option = ScriptOptions.Default.AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
+                                              .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http");
+
+            Invoke(code, model, option);
         }
         #endregion
     }

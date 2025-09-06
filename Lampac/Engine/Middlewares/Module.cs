@@ -25,7 +25,6 @@ namespace Lampac.Engine.Middlewares
             this.first = first;
         }
 
-
         async public Task InvokeAsync(HttpContext httpContext)
         {
             #region modules
@@ -104,8 +103,9 @@ namespace Lampac.Engine.Middlewares
             if (InvkEvent.conf?.Middleware != null)
             {
                 var rqinfo = first ? new RequestModel() : httpContext.Features.Get<RequestModel>();
-                await InvkEvent.Middleware(first, new EventMiddleware(_next, rqinfo, httpContext.Request, httpContext, new HybridCache(), memoryCache));
-                return;
+                bool next = await InvkEvent.Middleware(first, new EventMiddleware(_next, rqinfo, httpContext.Request, httpContext, new HybridCache(), memoryCache));
+                if (!next)
+                    return;
             }
 
             await _next(httpContext);

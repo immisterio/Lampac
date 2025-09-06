@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Shared.Models;
+using Shared.Models.Events;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -73,18 +74,20 @@ namespace Shared.Engine
                 }
             }
 
+            InvkEvent.Http("handler", new EventHttpHandler(url, handler, proxy, cookieContainer, Startup.memoryCache));
+
             return handler;
         }
         #endregion
 
         #region DefaultRequestHeaders
-        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(string url, System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
         {
             string loglines = string.Empty;
-            DefaultRequestHeaders(client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
+            DefaultRequestHeaders(url, client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
         }
 
-        public static void DefaultRequestHeaders(System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(string url, System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
         {
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
@@ -131,6 +134,8 @@ namespace Shared.Engine
                 client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
                 loglines += $"User-Agent: {client.DefaultRequestHeaders.UserAgent}\n";
             }
+
+            InvkEvent.Http("headers", new EventHttpHeaders(url, client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, useDefaultHeaders, Startup.memoryCache));
         }
         #endregion
 
@@ -145,7 +150,7 @@ namespace Shared.Engine
 
                 using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, referer, headers);
+                    DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, referer, headers);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
@@ -178,7 +183,7 @@ namespace Shared.Engine
 
                 using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, 2000000, null, null, headers);
+                    DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, null, headers);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, url)
                     {
@@ -260,7 +265,7 @@ namespace Shared.Engine
 
                 var client = FrendlyHttp.CreateClient("http:BaseGetAsync", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
                 {
-                    DefaultRequestHeaders(uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
+                    DefaultRequestHeaders(url, uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
                 });
 
                 if (cookieContainer != null)
@@ -298,25 +303,43 @@ namespace Shared.Engine
                         if (encoding != default)
                         {
                             string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
+                            var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
+
                             if (string.IsNullOrWhiteSpace(res))
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
+                            InvkEvent.Http("response", model);
                             return (res, response);
                         }
                         else
                         {
                             string res = await content.ReadAsStringAsync().ConfigureAwait(false);
+                            var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
+
                             if (string.IsNullOrWhiteSpace(res))
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
+                            InvkEvent.Http("response", model);
                             return (res, response);
                         }
                     }
@@ -325,6 +348,12 @@ namespace Shared.Engine
             catch (Exception ex)
             {
                 loglines = ex.ToString();
+
+                InvkEvent.Http("response", new EventHttpResponse(url, null, null, ex.ToString(), new HttpResponseMessage()
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    RequestMessage = new HttpRequestMessage()
+                }, Startup.memoryCache));
 
                 return (null, new HttpResponseMessage()
                 {
@@ -390,7 +419,7 @@ namespace Shared.Engine
 
                 var client = FrendlyHttp.CreateClient("http:BasePost", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, null, useDefaultHeaders, uclient =>
                 {
-                    DefaultRequestHeaders(uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, headers, ref loglines, useDefaultHeaders);
+                    DefaultRequestHeaders(url, uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, headers, ref loglines, useDefaultHeaders);
                 });
 
                 if (cookieContainer != null)
@@ -431,25 +460,43 @@ namespace Shared.Engine
                         if (encoding != default)
                         {
                             string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
+                            var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
+
                             if (string.IsNullOrWhiteSpace(res))
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
+                            InvkEvent.Http("response", model);
                             return (res, response);
                         }
                         else
                         {
                             string res = await content.ReadAsStringAsync().ConfigureAwait(false);
+                            var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
+
                             if (string.IsNullOrWhiteSpace(res))
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            {
+                                InvkEvent.Http("response", model);
                                 return (null, response);
+                            }
 
+                            InvkEvent.Http("response", model);
                             return (res, response);
                         }
                     }
@@ -458,6 +505,13 @@ namespace Shared.Engine
             catch (Exception ex)
             {
                 loglines = ex.ToString();
+
+                InvkEvent.Http("response", new EventHttpResponse(url, data, null, ex.ToString(), new HttpResponseMessage()
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    RequestMessage = new HttpRequestMessage()
+                }, Startup.memoryCache));
+
                 return (null, new HttpResponseMessage()
                 {
                     StatusCode = HttpStatusCode.InternalServerError,
@@ -489,7 +543,7 @@ namespace Shared.Engine
 
                 var client = FrendlyHttp.CreateClient("http:BaseDownload", handler, factoryClient ?? "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
                 {
-                    DefaultRequestHeaders(uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, useDefaultHeaders: useDefaultHeaders);
+                    DefaultRequestHeaders(url, uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, useDefaultHeaders: useDefaultHeaders);
                 });
 
                 using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
@@ -528,7 +582,7 @@ namespace Shared.Engine
 
                 using (var client = new System.Net.Http.HttpClient(handler))
                 {
-                    DefaultRequestHeaders(client, timeoutSeconds, -1, null, null, headers);
+                    DefaultRequestHeaders(url, client, timeoutSeconds, -1, null, null, headers);
 
                     using (var stream = await client.GetStreamAsync(url))
                     {
