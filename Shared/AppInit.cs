@@ -1,19 +1,19 @@
-﻿using Shared.Engine;
+﻿using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Shared.Engine;
+using Shared.Models;
 using Shared.Models.AppConf;
+using Shared.Models.Base;
+using Shared.Models.Browser;
 using Shared.Models.DLNA;
 using Shared.Models.Merchant;
 using Shared.Models.Module;
-using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
-using Shared.Models.Base;
 using Shared.Models.Online.Settings;
-using Shared.Models.Browser;
 using Shared.Models.ServerProxy;
+using Shared.Models.SISI.Base;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Shared.Models.SISI.Base;
-using Shared.Models;
 
 namespace Shared
 {
@@ -409,7 +409,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "afe904519750fc470801838d03aa8ebf21f4b998"
+            tree = "9ab58cc7341b7ec1ca4cdfcabb3df69b16c5587e"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -882,7 +882,19 @@ namespace Shared
         /// <summary>
         /// aHR0cHM6Ly92aWQxNzMwODAxMzcwLmZvdHBybzEzNWFsdG8uY29tL2FwaS9pZGtwP2twX2lkPTEzOTI1NTAmZD1raW5vZ28uaW5j
         /// </summary>
-        public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5");
+        public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5")
+        {
+            headers = HeadersModel.Init(
+                ("dnt", "1"),
+                ("cache-control", "no-cache"),
+                ("pragma", "no-cache"),
+                ("priority", "u=0, i"),
+                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+            ).ToDictionary(),
+        };
 
         /// <summary>
         /// aHR0cHM6Ly92aWJpeC5vcmcvYXBpL2V4dGVybmFsL2RvY3VtZW50YXRpb24=
@@ -896,7 +908,6 @@ namespace Shared
         {
             headers = HeadersModel.Init(
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("dnt", "1"),
                 ("cache-control", "no-cache"),
                 ("pragma", "no-cache"),
@@ -910,7 +921,6 @@ namespace Shared
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("dnt", "1"),
                 ("cache-control", "no-cache"),
                 ("pragma", "no-cache"),

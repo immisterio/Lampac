@@ -911,7 +911,7 @@ namespace Online.Controllers
             if (serial == -1 || serial == 0)
                 send(conf.Redheadsound, rch_access: "apk");
 
-            send(conf.HDVB);
+            send(conf.HDVB, rch_access: "apk");
             send(conf.Kinotochka, rch_access: "apk,cors");
 
             if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)

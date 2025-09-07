@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.HDVB;
 
@@ -13,15 +14,33 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (similar || kinopoisk_id == 0)
                 return await SpiderSearch(title, origsource, rjson);
 
-            JArray data = await search(kinopoisk_id);
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
+
+            if (rch.IsNotConnected())
+                return ContentTo(rch.connectionMsg);
+
+            #region search
+            reset:
+            JArray data = await search(rch, kinopoisk_id);
             if (data == null)
+            {
+                if(init.rhub && init.rhub_fallback)
+                {
+                    init.rhub = false;
+                    goto reset;
+                }
+
                 return OnError();
+            }
+            #endregion
 
             if (data.First.Value<string>("type") == "movie")
             {
@@ -112,7 +131,7 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();
@@ -121,54 +140,87 @@ namespace Online.Controllers
 
             return await InvkSemaphore(init, memKey, async () =>
             {
-                if (!hybridCache.TryGetValue(memKey, out string urim3u8))
-                {
-                    string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy);
-                    if (html == null)
-                        return OnError(proxyManager);
+            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
+            {
+                var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+                if (rch.IsNotSupport("web,cors", out string rch_error))
+                    return ShowError(rch_error);
 
-                    string vid = "vid1666694269";
+                if (rch.IsNotConnected())
+                    return ContentTo(rch.connectionMsg);
+
+                var header = httpHeaders(init, HeadersModel.Init(
+                    ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                    ("sec-fetch-dest", "document"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "none")
+                ));
+
+                reset:
+                string html = rch.enable ? await rch.Get(iframe, header) :
+                                           await Http.Get(iframe, timeoutSeconds: 8, proxy: proxy, headers: header);
+
+                if (html != null)
+                {
+                    string vid = "vid11";
                     string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
                     string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                     string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                     file = Regex.Replace(file, "^/playlist/", "/");
                     file = Regex.Replace(file, "\\.txt$", "");
 
-                    if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                        return OnError();
-
-                    var header = httpHeaders(init, HeadersModel.Init(
-                        ("cache-control", "no-cache"),
-                        ("dnt", "1"),
-                        ("origin", $"https://{vid}.{href}"),
-                        ("referer", iframe),
-                        ("sec-ch-ua", "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\""),
-                        ("sec-ch-ua-mobile", "?0"),
-                        ("sec-ch-ua-platform", "\"Windows\""),
-                        ("sec-fetch-dest", "empty"),
-                        ("sec-fetch-mode", "cors"),
-                        ("sec-fetch-site", "same-origin"),
-                        ("x-csrf-token", csrftoken)
-                    ));
-
-                    urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
-                    if (urim3u8 == null)
-                        return OnError(proxyManager);
-
-                    if (!urim3u8.Contains("/index.m3u8"))
+                    if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(csrftoken))
                     {
-                        file = Regex.Match(urim3u8, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                        file = Regex.Replace(file, "^/playlist/", "/");
-                        file = Regex.Replace(file, "\\.txt$", "");
-                        if (string.IsNullOrWhiteSpace(file))
-                            return OnError();
+                            string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
 
-                        urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
-                        if (urim3u8 == null)
-                            return OnError(proxyManager);
+                            header = httpHeaders(init, HeadersModel.Init(
+                                ("accept", "*/*"),
+                                ("origin", origin),
+                                ("referer", $"{origin}/"),
+                                ("sec-fetch-dest", "empty"),
+                                ("sec-fetch-mode", "cors"),
+                                ("sec-fetch-site", "same-site"),
+                                ("x-csrf-token", csrftoken)
+                            ));
+
+                            urim3u8 = rch.enable ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) : 
+                                                   await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
+
+                            if (urim3u8 != null)
+                            {
+                                if (!urim3u8.Contains("/index.m3u8"))
+                                {
+                                    file = Regex.Match(urim3u8, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                                    file = Regex.Replace(file, "^/playlist/", "/");
+                                    file = Regex.Replace(file, "\\.txt$", "");
+
+                                    if (!string.IsNullOrEmpty(file))
+                                    {
+                                        urim3u8 = rch.enable ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) : 
+                                                               await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    proxyManager.Success();
+                    if (string.IsNullOrEmpty(urim3u8))
+                    {
+                        if (!rch.enable)
+                            proxyManager.Refresh();
+
+                        if (init.rhub && init.rhub_fallback)
+                        {
+                            init.rhub = false;
+                            goto reset;
+                        }
+
+                        return OnError();
+                    }
+
+                    if (!rch.enable)
+                        proxyManager.Success();
+
                     hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
                 }
 
@@ -189,7 +241,7 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxy = proxyManager.Get();
@@ -200,53 +252,115 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(memKey, out string urim3u8))
                 {
-                    string html = await Http.Get(iframe, referer: $"{init.host}/", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
-                    if (html == null)
-                        return OnError(proxyManager);
+                    var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+                    if (rch.IsNotSupport("web,cors", out string rch_error))
+                        return ShowError(rch_error);
+
+                    if (rch.IsNotConnected())
+                    {
+                        if (init.rhub_fallback && play)
+                            rch.Disabled();
+                        else
+                            return ContentTo(rch.connectionMsg);
+                    }
+
+                    string vid = "vid11";
 
                     #region playlist
-                    string vid = "vid1666694269";
-                    string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
-                    string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                    string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                    file = Regex.Replace(file, "^/playlist/", "/");
-                    file = Regex.Replace(file, "\\.txt$", "");
+                    string mkey_playlist = $"video:view:playlist:{iframe}";
+                    if (!hybridCache.TryGetValue(mkey_playlist, out (List<Folder> playlist, string href, List<HeadersModel> header) cache))
+                    {
+                        cache.header = httpHeaders(init, HeadersModel.Init(
+                            ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                            ("sec-fetch-dest", "iframe"),
+                            ("sec-fetch-mode", "navigate"),
+                            ("sec-fetch-site", "cross-site"),
+                            ("referer", $"{init.host}/")
+                        ));
 
-                    if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
-                        return OnError();
+                        reset_playlist:
+                        string html = rch.enable ? await rch.Get(iframe, cache.header) :
+                                                   await Http.Get(iframe, timeoutSeconds: 8, proxy: proxy, headers: cache.header);
 
-                    var headers = httpHeaders(init, HeadersModel.Init(
-                        ("cache-control", "no-cache"),
-                        ("dnt", "1"),
-                        ("origin", $"https://{vid}.{href}"),
-                        ("referer", iframe),
-                        ("sec-ch-ua", "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\""),
-                        ("sec-ch-ua-mobile", "?0"),
-                        ("sec-ch-ua-platform", "\"Windows\""),
-                        ("sec-fetch-dest", "empty"),
-                        ("sec-fetch-mode", "cors"),
-                        ("sec-fetch-site", "same-origin"),
-                        ("x-csrf-token", csrftoken)
-                    ));
+                        if (html != null)
+                        {
+                            string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
+                            string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                            string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                            file = Regex.Replace(file, "^/playlist/", "/");
+                            file = Regex.Replace(file, "\\.txt$", "");
 
-                    var playlist = await Http.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers, IgnoreDeserializeObject: true);
-                    if (playlist == null || playlist.Count == 0)
-                        return OnError(proxyManager);
+                            if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(csrftoken))
+                            {
+                                string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
+
+                                cache.header = httpHeaders(init, HeadersModel.Init(
+                                    ("accept", "*/*"),
+                                    ("origin", origin),
+                                    ("referer", $"{origin}/"),
+                                    ("sec-fetch-dest", "empty"),
+                                    ("sec-fetch-mode", "cors"),
+                                    ("sec-fetch-site", "same-site"),
+                                    ("x-csrf-token", csrftoken)
+                                ));
+
+                                cache.playlist = rch.enable ? await rch.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", cache.header) :
+                                                              await Http.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: cache.header, IgnoreDeserializeObject: true);
+
+                                if (cache.playlist != null && cache.playlist.Count > 0)
+                                {
+                                    cache.href = href;
+                                    memoryCache.Set(mkey_playlist, cache, cacheTime(40, init: init));
+                                }
+                                else
+                                {
+                                    if (!rch.enable)
+                                        proxyManager.Refresh();
+
+                                    if (init.rhub && init.rhub_fallback)
+                                    {
+                                        init.rhub = false;
+                                        goto reset_playlist;
+                                    }
+
+                                    return OnError();
+                                }
+                            }
+                        }
+                    }
                     #endregion
 
-                    file = playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
-                    if (string.IsNullOrWhiteSpace(file))
+                    #region episode
+                    reset_episode:
+                    string episode = cache.playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
+                    if (!string.IsNullOrEmpty(episode))
+                    {
+                        episode = Regex.Replace(episode, "^/playlist/", "/");
+                        episode = Regex.Replace(episode, "\\.txt$", "");
+
+                        urim3u8 = rch.enable ? await rch.Post($"https://{vid}.{cache.href}/playlist/{episode}.txt", "", cache.header) :
+                                               await Http.Post($"https://{vid}.{cache.href}/playlist/{episode}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: cache.header);
+                    }
+
+                    if (string.IsNullOrEmpty(urim3u8) || !urim3u8.Contains("/index.m3u8"))
+                    {
+                        if (!rch.enable)
+                            proxyManager.Refresh();
+
+                        if (init.rhub && init.rhub_fallback)
+                        {
+                            init.rhub = false;
+                            goto reset_episode;
+                        }
+
                         return OnError();
+                    }
 
-                    file = Regex.Replace(file, "^/playlist/", "/");
-                    file = Regex.Replace(file, "\\.txt$", "");
+                    if (!rch.enable)
+                        proxyManager.Success();
 
-                    urim3u8 = await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: headers);
-                    if (urim3u8 == null || !urim3u8.Contains("/index.m3u8"))
-                        return OnError(proxyManager);
-
-                    proxyManager.Success();
                     hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
+                    #endregion
                 }
 
                 if (play)
@@ -263,23 +377,37 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
             var init = await loadKit(AppInit.conf.HDVB);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            var cache = await InvokeCache<JArray>($"hdvb:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
+            reset:
+            var cache = await InvokeCache<JArray>($"hdvb:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                var root = await Http.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                if (rch.IsNotConnected())
+                    return res.Fail(rch.connectionMsg);
+
+                string uri = $"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}";
+                var root = rch.enable ? await rch.Get<JArray>(uri) :
+                                        await Http.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
+
                 if (root == null)
                     return res.Fail("results");
 
                 return root;
             });
+
+            if (IsRhubFallback(cache, init))
+                goto reset;
 
             return OnResult(cache, () =>
             {
@@ -305,22 +433,27 @@ namespace Online.Controllers
 
 
         #region search
-        async ValueTask<JArray> search(long kinopoisk_id)
+        async ValueTask<JArray> search(RchClient rch, long kinopoisk_id)
         {
             string memKey = $"hdvb:view:{kinopoisk_id}";
 
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
                 var init = await loadKit(AppInit.conf.HDVB);
+                string uri = $"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}";
 
-                root = await Http.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", timeoutSeconds: 8, proxy: proxyManager.Get());
+                root = rch.enable ? await rch.Get<JArray>(uri) :
+                                    await Http.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
+
                 if (root == null)
                 {
-                    proxyManager.Refresh();
+                    if (!rch.enable)
+                        proxyManager.Refresh();
                     return null;
                 }
 
-                proxyManager.Success();
+                if (!rch.enable)
+                    proxyManager.Success();
                 hybridCache.Set(memKey, root, cacheTime(40, init: init));
             }
 
