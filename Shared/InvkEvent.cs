@@ -185,13 +185,18 @@ namespace Shared
         #endregion
 
 
-        public static void LoadKit(EventLoadKit model) => Invoke(conf?.LoadKit, model);
+        #region LoadKit
+        public static void LoadKit(EventLoadKit model) => 
+            Invoke(conf?.LoadKit, model, ScriptOptions.Default.AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base"));
+        #endregion
 
         #region BadInitialization
         public static Task<ActionResult> BadInitialization(EventBadInitialization model)
         {
             var option = ScriptOptions.Default.AddReferences(typeof(ActionResult).Assembly).AddImports("Microsoft.AspNetCore.Mvc")
-                                              .AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base");
+                                              .AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base")
+                                              .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                                              .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine");
 
             return InvokeAsync<ActionResult>(conf?.Controller?.BadInitialization, model, option);
         }
@@ -202,7 +207,8 @@ namespace Shared
         {
             var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
                                               .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks")
-                                              .AddReferences(typeof(TimeSpan).Assembly).AddImports("System");
+                                              .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                                              .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine");
 
             return InvokeAsync<bool>(first ? conf?.Middleware?.first : conf?.Middleware?.end, model, option);
         }
@@ -250,7 +256,20 @@ namespace Shared
                 case "headers":
                     code = conf?.Http?.Headers;
                     break;
+            }
 
+            var option = ScriptOptions.Default.AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
+                                              .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http");
+
+            Invoke(code, model, option);
+        }
+
+        public static Task HttpAsync(string e, object model)
+        {
+            string code = null;
+
+            switch (e)
+            {
                 case "response":
                     code = conf?.Http?.Response;
                     break;
@@ -259,7 +278,13 @@ namespace Shared
             var option = ScriptOptions.Default.AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
                                               .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http");
 
-            Invoke(code, model, option);
+            if (e == "response")
+            {
+                option.AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                      .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine");
+            }
+
+            return InvokeAsync(code, model, option);
         }
         #endregion
 

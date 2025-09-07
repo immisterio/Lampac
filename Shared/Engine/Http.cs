@@ -307,18 +307,18 @@ namespace Shared.Engine
 
                             if (string.IsNullOrWhiteSpace(res))
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
-                            InvkEvent.Http("response", model);
+                            await InvkEvent.HttpAsync("response", model);
                             return (res, response);
                         }
                         else
@@ -328,18 +328,18 @@ namespace Shared.Engine
 
                             if (string.IsNullOrWhiteSpace(res))
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
-                            InvkEvent.Http("response", model);
+                            await InvkEvent.HttpAsync("response", model);
                             return (res, response);
                         }
                     }
@@ -349,7 +349,7 @@ namespace Shared.Engine
             {
                 loglines = ex.ToString();
 
-                InvkEvent.Http("response", new EventHttpResponse(url, null, null, ex.ToString(), new HttpResponseMessage()
+                await InvkEvent.HttpAsync("response", new EventHttpResponse(url, null, null, ex.ToString(), new HttpResponseMessage()
                 {
                     StatusCode = HttpStatusCode.InternalServerError,
                     RequestMessage = new HttpRequestMessage()
@@ -464,18 +464,18 @@ namespace Shared.Engine
 
                             if (string.IsNullOrWhiteSpace(res))
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
-                            InvkEvent.Http("response", model);
+                            await InvkEvent.HttpAsync("response", model);
                             return (res, response);
                         }
                         else
@@ -485,18 +485,18 @@ namespace Shared.Engine
 
                             if (string.IsNullOrWhiteSpace(res))
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
                             loglines += "\n" + res;
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                             {
-                                InvkEvent.Http("response", model);
+                                await InvkEvent.HttpAsync("response", model);
                                 return (null, response);
                             }
 
-                            InvkEvent.Http("response", model);
+                            await InvkEvent.HttpAsync("response", model);
                             return (res, response);
                         }
                     }
@@ -506,7 +506,7 @@ namespace Shared.Engine
             {
                 loglines = ex.ToString();
 
-                InvkEvent.Http("response", new EventHttpResponse(url, data, null, ex.ToString(), new HttpResponseMessage()
+                await InvkEvent.HttpAsync("response", new EventHttpResponse(url, data, null, ex.ToString(), new HttpResponseMessage()
                 {
                     StatusCode = HttpStatusCode.InternalServerError,
                     RequestMessage = new HttpRequestMessage()

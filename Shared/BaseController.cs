@@ -591,7 +591,7 @@ namespace Shared
             if (appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
                 return init;
 
-            var defaultinit = clone ? init : (T)_init.Clone();
+            var defaultinit = (T)_init.Clone();
             var conf = appinit.Value<JObject>(init.plugin);
 
             void update<T2>(string key, Action<T2> updateAction)
