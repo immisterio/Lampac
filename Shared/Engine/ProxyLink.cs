@@ -16,7 +16,7 @@ namespace Shared.Engine
 
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
 
-        public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, forceMd5: forceMd5);
+        public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, p.verifyip, forceMd5: forceMd5);
 
         public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTimeOffset ex = default, bool forceMd5 = false)
         {
@@ -81,6 +81,7 @@ namespace Shared.Engine
 
             if (IsMd5)
             {
+                Console.WriteLine("hash: " + verifyip);
                 var md = new ProxyLinkModel(verifyip ? reqip : null, headers, proxy, uri_clear, plugin, verifyip, ex: ex);
                 links.AddOrUpdate(hash, md, (d, u) => md);
             }
@@ -125,6 +126,8 @@ namespace Shared.Engine
                 }
                 catch { }
             }
+
+            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(val, Newtonsoft.Json.Formatting.Indented));
 
             if (val != null)
             {

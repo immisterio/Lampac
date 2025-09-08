@@ -26,7 +26,7 @@ namespace Lampac.Engine.CRON
 
                 try
                 {
-                    var init = await Http.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd)).ConfigureAwait(false);
+                    var init = await Http.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd), weblog: false).ConfigureAwait(false);
                     if (init != null)
                     {
                         if (sync.sync_full)
