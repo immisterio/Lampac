@@ -84,7 +84,7 @@ namespace Shared
             {
                 try
                 {
-                    if (Path.GetFileName(file) == "example.yaml")
+                    if (Path.GetFileName(file) is "example.yaml" or "interceptors.yaml")
                         continue;
 
                     var yaml = File.ReadAllText(file);

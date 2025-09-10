@@ -278,8 +278,6 @@ namespace Lampac
             #region users.json
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-
                 while (true)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);

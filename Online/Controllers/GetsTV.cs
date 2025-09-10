@@ -25,7 +25,7 @@ namespace Online.Controllers
                 var result =  await Http.Post<JObject>($"{AppInit.conf.GetsTV.corsHost()}/api/login", new System.Net.Http.StringContent(postdata, Encoding.UTF8, "application/json"), headers: httpHeaders(AppInit.conf.GetsTV));
 
                 if (result == null)
-                    ContentTo("Ошибка авторизации ;(");
+                    return ContentTo("Ошибка авторизации ;(");
 
                 string token = result.Value<string>("token");
                 if (string.IsNullOrEmpty(token))

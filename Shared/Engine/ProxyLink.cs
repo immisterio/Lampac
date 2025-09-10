@@ -81,7 +81,6 @@ namespace Shared.Engine
 
             if (IsMd5)
             {
-                Console.WriteLine("hash: " + verifyip);
                 var md = new ProxyLinkModel(verifyip ? reqip : null, headers, proxy, uri_clear, plugin, verifyip, ex: ex);
                 links.AddOrUpdate(hash, md, (d, u) => md);
             }
