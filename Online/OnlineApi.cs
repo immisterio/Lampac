@@ -363,7 +363,10 @@ namespace Online.Controllers
             }
             #endregion
 
-            return Content($"{{\"imdb_id\":\"{imdb_id}\",\"kinopoisk_id\":\"{(kpid != null ? kpid : kinopoisk_id)}\"}}", "application/json; charset=utf-8");
+            kpid = kpid != null ? kpid : kinopoisk_id.ToString();
+            InvkEvent.Externalids(id, ref imdb_id, ref kpid, serial);
+
+            return Content($"{{\"imdb_id\":\"{imdb_id}\",\"kinopoisk_id\":\"{kpid}\"}}", "application/json; charset=utf-8");
         }
         #endregion
 

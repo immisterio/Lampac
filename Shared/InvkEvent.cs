@@ -308,5 +308,21 @@ namespace Shared
             return Invoke<bool>(code, model);
         }
         #endregion
+
+        #region Externalids
+        public static void Externalids(string id, ref string imdb_id, ref string kinopoisk_id, int serial)
+        {
+            if (conf?.Controller?.Externalids == null)
+                return;
+
+            var md = new EventExternalids(id, imdb_id, kinopoisk_id, serial);
+            var result = Invoke<(string imdb_id, string kinopoisk_id)>(conf.Controller.Externalids, md);
+            if (result == default || (result.imdb_id == null && result.kinopoisk_id == null))
+                return;
+
+            imdb_id = result.imdb_id;
+            kinopoisk_id = result.kinopoisk_id;
+        }
+        #endregion
     }
 }

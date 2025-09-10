@@ -18,6 +18,8 @@
         public string BadInitialization { get; set; }
 
         public EventModelAppReplace AppReplace { get; set; }
+
+        public string Externalids { get; set; }
     }
 
     public class EventModelAppReplace()

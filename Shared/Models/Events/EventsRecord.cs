@@ -17,6 +17,8 @@ namespace Shared.Models.Events
 
     public record EventAppReplace(string source, string token, string arg, string host, RequestModel requestInfo, HttpRequest request, HybridCache hybridCache);
 
+    public record EventExternalids(string id, string imdb_id, string kinopoisk_id, int serial);
+
     public record EventRedApi(TorrentDetails torrent);
 
 
