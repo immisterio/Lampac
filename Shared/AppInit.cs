@@ -706,7 +706,11 @@ namespace Shared
 
         public OnlinesSettings iRemux { get; set; } = new OnlinesSettings("iRemux", "kwwsv=22phjdreodnr1frp", streamproxy: true) { corseu = true };
 
-        public PidTorSettings PidTor { get; set; } = new PidTorSettings() { enable = true, redapi = "http://redapi.cfhttp.top", min_sid = 15 };
+        public PidTorSettings PidTor { get; set; } = new PidTorSettings() 
+        { 
+            enable = true, redapi = "http://redapi.cfhttp.top", 
+            min_sid = 15, emptyVoice = true 
+        };
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("Filmix", "kwws=22ilopl{dss1f|rx")
         {

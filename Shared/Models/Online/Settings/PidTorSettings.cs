@@ -38,6 +38,10 @@ namespace Shared.Models.Online.Settings
 
         public long max_serial_size { get; set; }
 
+        public bool emptyVoice { get; set; }
+
+        public bool forceAll { get; set; }
+
         public string filter { get; set; }
 
         public string filter_ignore { get; set; }

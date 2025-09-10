@@ -64,7 +64,7 @@ namespace Online.Controllers
                                     continue;
                             }
 
-                            if (Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
+                            if (init.forceAll && Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
                             {
                                 int sid = torrent.Seeders;
                                 long? size = torrent.Size;
@@ -201,8 +201,10 @@ namespace Online.Controllers
                                     }
                                     #endregion
 
-                                    if (string.IsNullOrWhiteSpace(voicename))
+                                    if (init.emptyVoice == false && string.IsNullOrEmpty(voicename))
                                         continue;
+
+                                    voicename  = voicename ?? string.Empty;
 
                                     #region HDR / HEVC / Dolby Vision
                                     if (Regex.IsMatch(name, "HDR10", RegexOptions.IgnoreCase) || Regex.IsMatch(name, "10-?bit", RegexOptions.IgnoreCase))
