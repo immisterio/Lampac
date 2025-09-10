@@ -11,6 +11,8 @@
         public EventModelHttp Http { get; set; }
 
         public EventModelRedApi RedApi { get; set; }
+
+        public EventModelHybridCache HybridCache { get; set; }
     }
 
     public class EventModelController()
@@ -61,5 +63,12 @@
     public class EventModelRedApi()
     {
         public string AddTorrents { get; set; }
+    }
+
+    public class EventModelHybridCache()
+    {
+        public string Read { get; set; }
+
+        public string Write { get; set; }
     }
 }

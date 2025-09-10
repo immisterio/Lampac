@@ -324,5 +324,32 @@ namespace Shared
             kinopoisk_id = result.kinopoisk_id;
         }
         #endregion
+
+        #region HybridCache
+        public static (DateTimeOffset ex, string value) HybridCache(string e, string key, string value, DateTimeOffset ex)
+        {
+            string code = null;
+
+            switch (e)
+            {
+                case "read":
+                    code = conf?.HybridCache?.Read;
+                    break;
+
+                case "write":
+                    code = conf?.HybridCache?.Write;
+                    break;
+            }
+
+            if (string.IsNullOrEmpty(code))
+                return default;
+
+            var option = ScriptOptions.Default.AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                                              .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine")
+                                              .AddReferences(typeof(File).Assembly).AddImports("System.IO");
+
+            return Invoke<(DateTimeOffset ex, string value)>(code, new EventHybridCache(key, value, ex), option);
+        }
+        #endregion
     }
 }

@@ -19,6 +19,8 @@ namespace Shared.Models.Events
 
     public record EventExternalids(string id, string imdb_id, string kinopoisk_id, int serial);
 
+    public record EventHybridCache(string key, string value, DateTimeOffset ex);
+
     public record EventRedApi(TorrentDetails torrent);
 
 

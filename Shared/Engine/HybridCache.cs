@@ -75,10 +75,12 @@ namespace Shared.Engine
                 if (doc.id == null || DateTimeOffset.Now > doc.ex)
                     return false;
 
+                var eventResult = InvkEvent.HybridCache("read", key, doc.value, doc.ex);
+
                 if (isConstructor || isValueType)
-                    value = JsonConvert.DeserializeObject<TItem>(doc.value);
+                    value = JsonConvert.DeserializeObject<TItem>(eventResult.value ?? doc.value);
                 else
-                    value = (TItem)Convert.ChangeType(doc.value, type);
+                    value = (TItem)Convert.ChangeType(eventResult.value ?? doc.value, type);
 
                 return true;
             }
@@ -146,6 +148,13 @@ namespace Shared.Engine
 
                 if (absoluteExpiration == default)
                     absoluteExpiration = DateTimeOffset.Now.Add(absoluteExpirationRelativeToNow);
+
+                var eventResult = InvkEvent.HybridCache("write", key, result, absoluteExpiration);
+                if (eventResult != default)
+                {
+                    result = eventResult.value;
+                    absoluteExpiration = eventResult.ex;
+                }
 
                 try
                 {
