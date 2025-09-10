@@ -44,9 +44,8 @@ namespace Shared.Models.Templates
                     quality = i.streamquality?.ToObject(),
                     subtitles = i.subtitles?.ToObject(),
                     i.voice_name,
-                    vast_url = i.vast?.url ?? AppInit.conf.vast?.url,
-                    vast_msg = i.vast?.msg ?? AppInit.conf.vast?.msg,
-                    i.hls_manifest_timeout
+                    i.hls_manifest_timeout,
+                    vast = i.vast ?? AppInit.conf.vast
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -77,11 +76,10 @@ namespace Shared.Models.Templates
                     s = int.TryParse(i.s, out int _s) ? _s : 0,
                     e = int.TryParse(i.e, out int _e) ? _e : 0,
                     details = i.voice_name,
-                    vast_url = (i.vast?.url ?? AppInit.conf.vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
-                    vast_msg = i.vast?.msg ?? AppInit.conf.vast?.msg,
                     i.name,
                     i.title,
-                    i.hls_manifest_timeout
+                    i.hls_manifest_timeout,
+                    vast = i.vast ?? AppInit.conf.vast
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
         }

@@ -59,11 +59,10 @@ namespace Shared.Models.Templates
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     i.voice_name,
                     i.details,
-                    vast_url = (i.vast?.url ?? AppInit.conf.vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
-                    vast_msg = i.vast?.msg ?? AppInit.conf.vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})",
-                    i.hls_manifest_timeout
+                    i.hls_manifest_timeout,
+                    vast = i.vast ?? AppInit.conf.vast
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -102,11 +101,10 @@ namespace Shared.Models.Templates
                     translate = i.voiceOrQuality,
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
-                    vast_url = (i.vast?.url ?? AppInit.conf.vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
-                    vast_msg = i.vast?.msg ?? AppInit.conf.vast?.msg,
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{name} ({i.voiceOrQuality})",
-                    i.hls_manifest_timeout
+                    i.hls_manifest_timeout,
+                    vast = i.vast ?? AppInit.conf.vast
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }

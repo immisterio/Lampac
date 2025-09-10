@@ -16,9 +16,8 @@ namespace Shared.Models.Templates
                 headers = headers != null ? headers.ToDictionary(k => k.name, v => v.val) : null,
                 quality = streamquality?.ToObject() ?? new StreamQualityTpl(new List<(string, string)>() { (url, quality??"auto") }).ToObject(),
                 subtitles = subtitles?.ToObject(),
-                vast_url = (vast?.url ?? AppInit.conf.vast?.url)?.Replace("{random}", DateTime.Now.ToFileTime().ToString()),
-                vast_msg = vast?.msg ?? AppInit.conf.vast?.msg,
-                hls_manifest_timeout
+                hls_manifest_timeout,
+                vast = vast ?? AppInit.conf.vast
 
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }
