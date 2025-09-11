@@ -6,7 +6,7 @@ https://t.me/+TIXtgvGBBOc3ZTUy
 
 # Установка на linux
 спасибо @nikk, @Denis
-```
+```bash
 curl -L -k -s https://lampac.sh | bash
 ```
 * Минимальные требования: 1 CPU, 1GB RAM, 2GB HDD
@@ -16,7 +16,7 @@ curl -L -k -s https://lampac.sh | bash
 ```grep "port" /home/lampac/init.conf```
 
 # Домашняя (облегченная) - linux
-```
+```bash
 curl -L -k -s https://lampac.sh/home | bash
 ```
 * Минимальные требования: 1 CPU, 500Mb RAM, 1GB HDD
@@ -30,7 +30,7 @@ curl -L -k -s https://lampac.sh/home | bash
 3. Запустить Lampac.exe
 
 # Запуск в Docker
-```
+```bash
 docker run -d -p 9118:9118 --restart always --name lampac immisterio/lampac
 ```
 __tags__: latest (linux/amd64) / arm32 (linux/arm/v7) / arm64 (linux/arm64/v8)
@@ -89,7 +89,7 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 
 # Remote Control Hub
 Для балансеров которые недоступны на VPS но доступны в вашей сети, можно включить rhub и парсить данные на самом устройстве android/smart
-```
+```json
 "Ashdi": {
   "rhub": true
 },
@@ -161,7 +161,7 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 * В init.conf нужно указывать только те параметры, которые хотите изменить
 * Редактировать init.conf можно так же через ip:9118/admin
 
-```
+```json
 {
   "listenport": 9120, // изменили порт
   "dlna": {
@@ -221,16 +221,16 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 Процессор не поддерживает инструкции AVX
 
 1. Установите ImageMagick
-```
+```bash
 apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
 ```
 
 2. В init.conf добавьте
-```
+```json
 "imagelibrary": "ImageMagick"
 ```
 
 3. Если проблема сохраняется, замените на
-```
+```json
 "imagelibrary": "none"
 ```
