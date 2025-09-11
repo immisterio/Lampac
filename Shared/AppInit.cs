@@ -712,7 +712,7 @@ namespace Shared
             min_sid = 15, emptyVoice = true 
         };
 
-        public FilmixSettings Filmix { get; set; } = new FilmixSettings("Filmix", "kwws=22ilopl{dss1f|rx")
+        public FilmixSettings Filmix { get; set; } = new FilmixSettings("Filmix", "http://filmixapp.vip")
         {
             headers = HeadersModel.Init(
                 ("Accept-Encoding", "gzip")

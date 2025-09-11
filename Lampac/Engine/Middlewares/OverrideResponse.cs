@@ -27,6 +27,9 @@ namespace Lampac.Engine.Middlewares
             if (AppInit.conf.overrideResponse != null && AppInit.conf.overrideResponse.Count > 0)
             {
                 var requestInfo = first ? new RequestModel() : httpContext.Features.Get<RequestModel>();
+                if (requestInfo.IsLocalRequest)
+                    return _next(httpContext);
+
                 string url = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
 
                 foreach (var over in AppInit.conf.overrideResponse.Where(i => i.firstEndpoint == first))
