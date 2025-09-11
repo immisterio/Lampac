@@ -161,7 +161,7 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 * В init.conf нужно указывать только те параметры, которые хотите изменить
 * Редактировать init.conf можно так же через ip:9118/admin
 
-```json
+```
 {
   "listenport": 9120, // изменили порт
   "dlna": {
@@ -173,7 +173,7 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
   "Zetflix": {
     "displayname": "Zetflix - 1080p", // изменили название
     "geostreamproxy": ["UA"], // поток для UA будет идти через "http://IP:9118/proxy/{uri}" 
-    "apn": "http://apn.cfhttp.top", // заменяем прокси "http://IP:9118/proxy/{uri}" на "http://apn.cfhttp.top/{uri}"
+    "apn": "http://apn.cfhttp.top" // заменяем прокси "http://IP:9118/proxy/{uri}" на "http://apn.cfhttp.top/{uri}"
   },
   "Kodik": {
     "useproxy": true, // использовать прокси
