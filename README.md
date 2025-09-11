@@ -87,6 +87,17 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 * GetsTV - http://IP:9118/lite/getstv/bind
 * iptv.online - http://IP:9118/lite/iptvonline/bind
 
+# Remote Control Hub
+Для балансеров которые недоступны на VPS но доступны в вашей сети, можно включить rhub и парсить данные на самом устройстве android/smart
+```
+"Ashdi": {
+  "rhub": true
+},
+"BongaCams": {
+  "rhub": true
+}
+```
+
 # Плагин DLNA.js
 * Просмотр медиа файлов с папки dlna
 * Возможность удалять просмотренные папки/файлы
