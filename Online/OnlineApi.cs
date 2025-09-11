@@ -881,7 +881,7 @@ namespace Online.Controllers
                 send(conf.RutubeMovie, "rutubemovie", "Rutube", rch_access: "apk,cors");
             }
 
-            if (conf.Videoseed.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videoseed.overridehost) || conf.Videoseed.overridehosts?.Length > 0)
+            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videoseed.overridehost) || conf.Videoseed.overridehosts?.Length > 0)
                 send(conf.Videoseed);
 
             send(conf.Vibix, rch_access: "apk,cors");

@@ -17,12 +17,11 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled && init.priorityBrowser != "http")
+            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
-
 
             string memKey = $"videoseed:view:{kinopoisk_id}:{imdb_id}:{original_title}";
 
@@ -80,7 +79,7 @@ namespace Online.Controllers
                 {
                     #region Фильм
                     var mtpl = new MovieTpl(title, original_title, 1);
-                    mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}") + "#.m3u8", vast: init.vast);
+                    mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}") + "#.m3u8", "call", vast: init.vast);
 
                     return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
                     #endregion
@@ -113,7 +112,7 @@ namespace Online.Controllers
                         foreach (var video in videos)
                         {
                             string iframe = video.Value.Value<string>("iframe");
-                            etpl.Append($"{video.Key} серия", title ?? original_title, sArhc, video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}"), vast: init.vast);
+                            etpl.Append($"{video.Key} серия", title ?? original_title, sArhc, video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}"), "call", vast: init.vast);
                         }
 
                         return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
@@ -150,67 +149,39 @@ namespace Online.Controllers
 
                     try
                     {
-                        if (init.priorityBrowser == "http")
+                        using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
-                            string html = await Http.Get(iframe, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
-                            if (html == null)
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers?.ToDictionary()).ConfigureAwait(false);
+                            if (page == null)
+                                return null;
+
+                            await page.AddInitScriptAsync("localStorage.setItem('pljsquality', '1080p');").ConfigureAwait(false);
+
+                            await page.RouteAsync("**/*", async route =>
                             {
-                                proxyManager.Refresh();
-                                return OnError();
-                            }
-
-                            foreach (string q in new string[] { "1080p", "720p", "480p" })
-                            {
-                                location = Regex.Match(html, $"\\[{q}]({{[^}}]+}} )?(https?://[^,;\t\n\r ]+\\.mp4/)").Groups[2].Value.Trim();
-                                if (!string.IsNullOrEmpty(location))
-                                    break;
-                            }
-
-                            if (string.IsNullOrEmpty(location))
-                                location = Regex.Match(html, "\"file\":\"([^,\"]+)").Groups[1].Value.Trim();
-                        }
-                        else
-                        {
-                            #region PlaywrightBrowser
-                            using (var browser = new PlaywrightBrowser(init.priorityBrowser))
-                            {
-                                var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers?.ToDictionary()).ConfigureAwait(false);
-                                if (page == null)
-                                    return null;
-
-                                await page.AddInitScriptAsync("localStorage.setItem('pljsquality', '1080p');").ConfigureAwait(false);
-
-                                await page.RouteAsync("**/*", async route =>
+                                try
                                 {
-                                    try
-                                    {
-                                        if (route.Request.Url.Contains("videoseedcdn"))
-                                        {
-                                            browser.SetPageResult(route.Request.Url);
-                                        }
-                                        else
-                                        {
-                                            if (Regex.IsMatch(route.Request.Url, "/(embed|player|get_cdn)/"))
-                                            {
-                                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                                    return;
+                                    if (route.Request.Url.Contains(".m3u8") || route.Request.Url.Contains(".mp4"))
+                                        location = route.Request.Url;
 
-                                                await route.ContinueAsync();
-                                                return;
-                                            }
-                                        }
+                                    if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                        return;
 
-                                        await route.AbortAsync();
-                                    }
-                                    catch { }
-                                });
+                                    await route.ContinueAsync();
+                                }
+                                catch { }
+                            });
 
-                                PlaywrightBase.GotoAsync(page, iframe);
-                                location = await browser.WaitPageResult().ConfigureAwait(false);
-
-                                PlaywrightBase.WebLog("SET", iframe, location, proxy.data);
+                            var result = await page.GotoAsync(iframe).ConfigureAwait(false);
+                            if (result != null && string.IsNullOrEmpty(location))
+                            {
+                                string html = await page.ContentAsync().ConfigureAwait(false);
+                                location = Regex.Match(html, "<video preload=\"none\" src=\"(https?://[^\"]+)\"").Groups[1].Value;
+                                if (!location.Contains(".m3u") && !location.Contains(".mp4"))
+                                    location = null;
                             }
-                            #endregion
+
+                            PlaywrightBase.WebLog("SET", iframe, location, proxy.data);
                         }
 
                         if (string.IsNullOrEmpty(location))
@@ -228,7 +199,8 @@ namespace Online.Controllers
                     hybridCache.Set(memKey, location, cacheTime(20));
                 }
 
-                return Redirect(HostStreamProxy(init, location, proxy: proxy.proxy, headers: HeadersModel.Init("referer", iframe)));
+                string link = HostStreamProxy(init, location, proxy: proxy.proxy, headers: HeadersModel.Init("referer", iframe));
+                return ContentTo(VideoTpl.ToJson("play", link, "auto", vast: init.vast));
             });
         }
         #endregion

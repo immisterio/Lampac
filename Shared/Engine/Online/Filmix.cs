@@ -173,6 +173,8 @@ namespace Shared.Engine.Online
         #region Search3
         async Task<SearchResult> Search3(string title, string original_title, int clarification, int year)
         {
+            return null;
+
             if (disableSphinxSearch)
             {
                 requesterror?.Invoke();
