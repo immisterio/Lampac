@@ -30,6 +30,9 @@ namespace Lampac.Engine.Middlewares
             if (requestInfo.IsLocalRequest)
                 return _next(httpContext);
 
+            if (waf.whiteIps != null && waf.whiteIps.Contains(requestInfo.IP))
+                return _next(httpContext);
+
             #region country
             if (waf.countryAllow != null)
             {

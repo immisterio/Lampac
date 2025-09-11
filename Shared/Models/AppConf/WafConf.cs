@@ -4,6 +4,8 @@
     {
         public bool enable { get; set; }
 
+        public string[] whiteIps { get; set; }
+
         public int limit_req { get; set; }
 
         public string[] ipsDeny { get; set; }
