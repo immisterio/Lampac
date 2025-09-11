@@ -126,8 +126,6 @@ namespace Shared.Engine
                 catch { }
             }
 
-            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(val, Newtonsoft.Json.Formatting.Indented));
-
             if (val != null)
             {
                 if (val.verifyip == false || AppInit.conf.serverproxy.verifyip == false || val.reqip == string.Empty || reqip == null || reqip == val.reqip)

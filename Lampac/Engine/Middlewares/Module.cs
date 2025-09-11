@@ -34,7 +34,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     try
                     {
-                        if (first && mod.version != 2)
+                        if (first && (mod.version == 0 || mod.version == 1))
                             continue;
 
                         Assembly assembly = null;
@@ -61,18 +61,18 @@ namespace Lampac.Engine.Middlewares
 
                         if (assembly != null && assembly.GetType(mod.NamespacePath(mod.middlewares)) is Type t)
                         {
-                            if (mod.version == 2)
+                            if (mod.version >= 2)
                             {
                                 if (t.GetMethod("Invoke") is MethodInfo m2)
                                 {
-                                    bool next = (bool)m2.Invoke(null, [first, _next, httpContext, memoryCache]);
+                                    bool next = (bool)m2.Invoke(null, [first, httpContext, memoryCache]);
                                     if (!next)
                                         return;
                                 }
 
                                 if (t.GetMethod("InvokeAsync") is MethodInfo m)
                                 {
-                                    bool next = await (Task<bool>)m.Invoke(null, [first, _next, httpContext, memoryCache]);
+                                    bool next = await (Task<bool>)m.Invoke(null, [first, httpContext, memoryCache]);
                                     if (!next)
                                         return;
                                 }
