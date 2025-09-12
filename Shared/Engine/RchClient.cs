@@ -299,7 +299,7 @@ namespace Shared.Engine
             if (!enableRhub)
                 return false; // rch не используется
 
-            if (httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+            if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return true; // заглушка для checksearch
 
             return !clients.Select(i => i.Value.ip).ToList().Contains(ip);
@@ -314,7 +314,7 @@ namespace Shared.Engine
             if (!enableRhub)
                 return false; // rch не используется
 
-            if (httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+            if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return false; // заглушка для checksearch
 
             var info = InfoConnected();
