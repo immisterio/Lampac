@@ -152,6 +152,9 @@ namespace Online.Controllers
                 if (j.ContainsKey("forceua"))
                     i.forceua = c.forceua;
 
+                if (j.ContainsKey("reserve"))
+                    i.reserve = c.reserve;
+
                 return i;
             });
         }

@@ -620,9 +620,13 @@ namespace Shared
         /// </summary>
         public OnlinesSettings VeoVeo { get; set; } = new OnlinesSettings("VeoVeo", "kwwsv=22dsl1uvwsujdslsw1frp");
 
-        public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) { hls = true, scheme = "http" };
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) { hls = true, reserve = true, scheme = "http" };
 
-        public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) { enable = false, hls = true, scheme = "http" };
+        public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) 
+        { 
+            enable = false,
+            reserve = true, hls = true, scheme = "http" 
+        };
 
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1ox{hpeg1zv", streamproxy: true, two: false)
         {
@@ -714,6 +718,7 @@ namespace Shared
 
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("Filmix", "http://filmixapp.vip")
         {
+            reserve = true,
             headers = HeadersModel.Init(
                 ("Accept-Encoding", "gzip")
             ).ToDictionary()
@@ -966,7 +971,7 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1vwordgl1olyh", "", "", true, true);
+        public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1vwordgl1olyh", "", "", true, true) { reserve = true };
 
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22txdguloolrq0dv1doodunqrz1rqolqh", "6892d506bbdd5790e0ca047ff39462", "", true, true)
         {

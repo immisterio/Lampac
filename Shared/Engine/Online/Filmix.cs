@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online.Filmix;
+using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -11,8 +12,10 @@ namespace Shared.Engine.Online
 {
     public class FilmixInvoke
     {
+        static string user_dev_id = UnicTo.Code(16);
+
         #region FilmixInvoke
-        public bool disableSphinxSearch;
+        public bool disableSphinxSearch, reserve;
 
         public string token;
         string host, args;
@@ -24,11 +27,12 @@ namespace Shared.Engine.Online
         Action requesterror;
         bool rjson;
 
-        public FilmixInvoke(string host, string apihost, string token, Func<string, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
+        public FilmixInvoke(FilmixSettings init, string host, string token, Func<string, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
-            this.host = host != null ? $"{host}/" : null;
-            this.apihost = apihost;
+            apihost = init.corsHost();
+            reserve = init.reserve;
             this.token = token;
+            this.host = host != null ? $"{host}/" : null;
             this.onget = onget;
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
@@ -36,7 +40,7 @@ namespace Shared.Engine.Online
             this.requesterror = requesterror;
             this.rjson = rjson;
 
-            args = $"app_lang=ru_RU&user_dev_apk=2.2.0&user_dev_id={UnicTo.Code(16)}&user_dev_name=Xiaomi+24069PC21G&user_dev_os=14&user_dev_token={token}&user_dev_vendor=Xiaomi";
+            args = $"app_lang=ru_RU&user_dev_apk=2.2.0&user_dev_id={user_dev_id}&user_dev_name=Xiaomi+24069PC21G&user_dev_os=14&user_dev_token={token}&user_dev_vendor=Xiaomi";
         }
         #endregion
 
@@ -256,7 +260,7 @@ namespace Shared.Engine.Online
 
             try
             {
-                var root = JsonConvert.DeserializeObject<RootObject>(json.Replace("\"playlist\":[],", "\"playlist\":null,"));
+                var root = JsonConvert.DeserializeObject<RootObject>(json.Replace("\"playlist\":[],", "\"playlist\":null,"), new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
 
                 if (root?.player_links == null)
                     return null;
@@ -274,20 +278,19 @@ namespace Shared.Engine.Online
             if (player_links.movie == null && player_links.playlist == null)
                 return string.Empty;
 
-            onlog?.Invoke("html reder");
-
             int filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
             bool hidefree720 = string.IsNullOrEmpty(token) /*&& filmixservtime >= 19 && filmixservtime <= 23*/;
 
             if (player_links.movie != null && player_links.movie.Length > 0)
             {
                 #region Фильм
-                onlog?.Invoke("movie 1");
-
                 if (player_links.movie.Length == 1 && player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
                     return string.Empty;
 
-                onlog?.Invoke("movie 2");
+                var cdns = player_links.movie
+                        .Select(e => Regex.Match(e.link, "^(https?://[^/]+)").Groups[1].Value)
+                        .ToHashSet();
+
                 var mtpl = new MovieTpl(title, original_title, player_links.movie.Length);
 
                 foreach (var v in player_links.movie)
@@ -309,6 +312,19 @@ namespace Shared.Engine.Online
                             continue;
 
                         string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
+
+                        if (reserve)
+                        {
+                            foreach (string cdn in cdns)
+                            {
+                                if (!l.Contains(cdn))
+                                {
+                                    l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn);
+                                    break;
+                                }
+                            }
+                        }
+
                         streams.Add((onstreamfile.Invoke(l), $"{q}p"));
                     }
 
@@ -394,6 +410,10 @@ namespace Shared.Engine.Online
                         return string.Empty;
                     #endregion
 
+                    var cdns = episodes
+                        .Select(e => Regex.Match(e.Value.link, "^(https?://[^/]+)").Groups[1].Value)
+                        .ToHashSet();
+
                     #region Серии
                     var etpl = new EpisodeTpl(episodes.Count);
 
@@ -413,6 +433,19 @@ namespace Shared.Engine.Online
                             }
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
+
+                            if (reserve)
+                            {
+                                foreach (string cdn in cdns)
+                                {
+                                    if (!l.Contains(cdn))
+                                    {
+                                        l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn);
+                                        break;
+                                    }
+                                }
+                            }
+
                             streams.Add((onstreamfile.Invoke(l), $"{lq}p"));
                         }
 

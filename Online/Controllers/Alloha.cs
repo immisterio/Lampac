@@ -22,6 +22,9 @@ namespace Online.Controllers
                 if (j.ContainsKey("linkhost"))
                     i.linkhost = c.linkhost;
 
+                if (j.ContainsKey("reserve"))
+                    i.reserve = c.reserve;
+
                 i.secret_token = c.secret_token;
                 i.token = c.token;
                 return i;

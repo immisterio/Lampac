@@ -17,6 +17,8 @@ namespace Shared.Models.Online.Settings
 
         public string[] tokens { get; set; }
 
+        public bool reserve { get; set; }
+
         public bool pro { get; set; }
 
         public bool livehash { get; set; }

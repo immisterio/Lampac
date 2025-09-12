@@ -19,6 +19,8 @@ namespace Online.Controllers
             {
                 if (j.ContainsKey("m4s"))
                     i.m4s = c.m4s;
+                if (j.ContainsKey("reserve"))
+                    i.reserve = c.reserve;
                 return i;
             });
         }

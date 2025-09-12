@@ -33,6 +33,9 @@ namespace Online.Controllers
         {
             var init = await loadKit(AppInit.conf.Filmix, (j, i, c) =>
             {
+                if (j.ContainsKey("reserve"))
+                    i.reserve = c.reserve;
+
                 i.pro = c.pro;
                 i.tokens = c.tokens;
                 i.user_apitv = c.user_apitv;
@@ -81,8 +84,8 @@ namespace Online.Controllers
 
             var oninvk = new FilmixInvoke
             (
+               init,
                host,
-               init.corsHost(),
                token,
                ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init), useDefaultHeaders: false) : 
                                           Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
