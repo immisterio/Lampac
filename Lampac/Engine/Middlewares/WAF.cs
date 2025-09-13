@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Models;
+using Shared.Models.AppConf;
 using System;
 using System.Linq;
 using System.Net;
@@ -131,9 +132,10 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             #region limit_req
-            if (waf.limit_req > 0)
+            var (limit, pattern) = MapLimited(waf, httpContext.Request.Path.Value);
+            if (limit > 0)
             {
-                if (RateLimited(requestInfo.IP, waf.limit_req))
+                if (RateLimited(requestInfo.IP, limit, pattern))
                 {
                     httpContext.Response.StatusCode = 429;
                     return Task.CompletedTask;
@@ -145,9 +147,26 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        bool RateLimited(string userip, int limit_req)
+        #region MapLimited
+        static (int limit, string pattern) MapLimited(WafConf waf, string path)
         {
-            string memKeyLocIP = $"WAF:RateLimited:{userip}:{DateTime.Now.Minute}";
+            if (waf.limit_map != null)
+            {
+                foreach (var pathLimit in waf.limit_map)
+                {
+                    if (Regex.IsMatch(path, pathLimit.Key, RegexOptions.IgnoreCase))
+                        return (pathLimit.Value, pathLimit.Key);
+                }
+            }
+
+            return (waf.limit_req, "default");
+        }
+        #endregion
+
+        #region RateLimited
+        bool RateLimited(string userip, int limit_req, string pattern)
+        {
+            string memKeyLocIP = $"WAF:RateLimited:{userip}:{pattern}:{DateTime.Now.Minute}";
 
             if (memoryCache.TryGetValue(memKeyLocIP, out int req))
             {
@@ -163,5 +182,6 @@ namespace Lampac.Engine.Middlewares
 
             return false;
         }
+        #endregion
     }
 }

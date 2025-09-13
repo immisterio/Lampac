@@ -40,7 +40,7 @@ namespace Shared.Engine.Online
             this.requesterror = requesterror;
             this.rjson = rjson;
 
-            args = $"app_lang=ru_RU&user_dev_apk=2.2.0&user_dev_id={user_dev_id}&user_dev_name=Xiaomi+24069PC21G&user_dev_os=14&user_dev_token={token}&user_dev_vendor=Xiaomi";
+            args = $"app_lang=ru_RU&user_dev_apk=2.2.10.0&user_dev_id={user_dev_id}&user_dev_name=Xiaomi+24069PC21G&user_dev_os=14&user_dev_token={token}&user_dev_vendor=Xiaomi";
         }
         #endregion
 

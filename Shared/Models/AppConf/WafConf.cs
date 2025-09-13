@@ -8,6 +8,11 @@
 
         public int limit_req { get; set; }
 
+        /// <summary>
+        /// uri_pattern: limit_req
+        /// </summary>
+        public Dictionary<string, int> limit_map { get; set; }
+
         public string[] ipsDeny { get; set; }
 
         public string[] ipsAllow { get; set; }

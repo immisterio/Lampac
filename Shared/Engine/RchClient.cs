@@ -12,9 +12,9 @@ namespace Shared.Engine
     {
         public int version { get; set; }
         public string host { get; set; }
-        public string href { get; set; }
         public string rchtype { get; set; }
         public int apkVersion { get; set; }
+        public string player { get; set; }
     }
 
     public struct RchClient

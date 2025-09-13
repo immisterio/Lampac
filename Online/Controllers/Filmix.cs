@@ -142,7 +142,7 @@ namespace Online.Controllers
                 }
                 else if (!string.IsNullOrEmpty(init.token))
                 {
-                    string json = await Http.Get($"{init.corsHost()}/api/v2/post/171042?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
+                    string json = await Http.Get($"{init.corsHost()}/api/v2/post/171042?user_dev_apk=2.2.10.0&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
                     hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
                 }
                 else

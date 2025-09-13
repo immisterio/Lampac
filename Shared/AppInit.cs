@@ -716,7 +716,12 @@ namespace Shared
             min_sid = 15, emptyVoice = true 
         };
 
-        public FilmixSettings Filmix { get; set; } = new FilmixSettings("Filmix", "http://filmixapp.vip")
+        /// <summary>
+        /// http://filmixapp.cyou
+        /// http://filmixapp.vip
+        /// http://fxapp.biz
+        /// </summary>
+        public FilmixSettings Filmix { get; set; } = new FilmixSettings("Filmix", "http://filmixapp.cyou")
         {
             reserve = true,
             headers = HeadersModel.Init(
@@ -946,8 +951,9 @@ namespace Shared
 
         /// <summary>
         /// https://api.srvkp.com - стандартный 
-        /// https://kpapp.link/api - smart tv
+        /// https://cdn32.lol/api- apk
         /// https://cdn4t.store/api - apk
+        /// https://kpapp.link/api - smart tv
         /// https://api.service-kp.com - старый 
         /// </summary>
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "https://api.srvkp.com")
