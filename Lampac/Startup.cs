@@ -242,7 +242,10 @@ namespace Lampac
                         {
                             foreach (string refns in mod.references)
                             {
-                                string dlrns = Path.Combine(Environment.CurrentDirectory, "module", mod.dll, refns);
+                                string dlrns = Path.Combine(Environment.CurrentDirectory, "module", "references", refns);
+                                if (!File.Exists(dlrns))
+                                    dlrns = Path.Combine(Environment.CurrentDirectory, "module", mod.dll, refns);
+
                                 if (File.Exists(dlrns) && references.FirstOrDefault(a => Path.GetFileName(a.FilePath) == refns) == null)
                                 {
                                     var assembly = Assembly.LoadFrom(dlrns);
