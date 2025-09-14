@@ -46,46 +46,53 @@ namespace TorrServer
 
         static (ModInit, DateTime) cacheconf = default;
 
-        public static ModInit conf
+        public static ModInit conf => cacheconf.Item1;
+
+        static void cron_UpdateSettings()
         {
-            get
+            void update()
             {
-                if (cacheconf.Item1 == null)
+                try
                 {
-                    if (!File.Exists("module/TorrServer.conf"))
-                        return new ModInit();
-                }
+                    string path = "module/TorrServer.conf";
 
-                var lastWriteTime = File.GetLastWriteTime("module/TorrServer.conf");
-
-                if (cacheconf.Item2 != lastWriteTime)
-                {
-                    var jss = new JsonSerializerSettings
+                    if (!File.Exists(path))
                     {
-                        Error = (se, ev) =>
-                        {
-                            ev.ErrorContext.Handled = true;
-                            Console.WriteLine("module/TorrServer.conf - " + ev.ErrorContext.Error + "\n\n");
-                        }
-                    };
+                        if (cacheconf.Item1 == null)
+                            cacheconf.Item1 = new ModInit();
 
-                    string json = File.ReadAllText("module/TorrServer.conf");
-                    cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(json, jss);
+                        return;
+                    }
 
-                    if (cacheconf.Item1 == null)
-                        cacheconf.Item1 = new ModInit();
+                    var lastWriteTime = File.GetLastWriteTime(path);
 
-                    cacheconf.Item2 = lastWriteTime;
+                    if (cacheconf.Item2 != lastWriteTime)
+                    {
+                        cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(File.ReadAllText(path));
+                        cacheconf.Item2 = lastWriteTime;
+                    }
                 }
-
-                return cacheconf.Item1;
+                catch { }
             }
+
+            update();
+
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                    update();
+                }
+            });
         }
         #endregion
 
         #region loaded
         public static void loaded()
         {
+            cron_UpdateSettings();
+
             dataDb = new LiteDatabase("cache/ts.db");
             whosehash = dataDb.GetCollection<WhoseHashModel>("whosehash");
 
