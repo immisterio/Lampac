@@ -39,7 +39,12 @@ namespace TorrServer
 
         public int group { get; set; }
 
-        public bool multiaccess { get; set; }
+        /// <summary>
+        /// auth
+        /// full
+        /// null - desable
+        /// </summary>
+        public string multiaccess { get; set; } = "auth";
 
         public bool checkfile { get; set; } = true;
 

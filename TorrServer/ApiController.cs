@@ -212,97 +212,100 @@ namespace TorrServer.Controllers
             #endregion
 
             #region multiaccess
-            if (ModInit.conf.multiaccess && HttpContext.Request.Method == "POST" && pathRequest == "/torrents" && user?.group != 666)
+            if (ModInit.conf.multiaccess == "full" || (ModInit.conf.multiaccess == "auth" && user != null))
             {
-                HttpContext.Request.EnableBuffering();
-                using (var readerBody = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, leaveOpen: true)) // Оставляем поток открытым
+                if (HttpContext.Request.Method == "POST" && pathRequest == "/torrents" && user?.group != 666)
                 {
-                    string requestJson = await readerBody.ReadToEndAsync().ConfigureAwait(false);
-
-                    if (requestJson.Contains("\"action\":\"add\"") || requestJson.Contains("\"action\":\"list\""))
+                    HttpContext.Request.EnableBuffering();
+                    using (var readerBody = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, leaveOpen: true)) // Оставляем поток открытым
                     {
-                        try
+                        string requestJson = await readerBody.ReadToEndAsync().ConfigureAwait(false);
+
+                        if (requestJson.Contains("\"action\":\"add\"") || requestJson.Contains("\"action\":\"list\""))
                         {
-                            var rs = await httpClient.PostAsync(pathRequest, new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
-                            string json = await rs.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                            HttpContext.Response.ContentType = "application/json; charset=utf-8";
-
-                            if (requestJson.Contains("\"action\":\"add\""))
+                            try
                             {
-                                #region add
-                                if (requestJson.Contains("\"save_to_db\":false")) { }
+                                var rs = await httpClient.PostAsync(pathRequest, new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+                                string json = await rs.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                                string uid = user?.id ?? user?.ids?.FirstOrDefault();
+                                HttpContext.Response.ContentType = "application/json; charset=utf-8";
+
+                                if (requestJson.Contains("\"action\":\"add\""))
+                                {
+                                    #region add
+                                    if (requestJson.Contains("\"save_to_db\":false")) { }
+                                    else
+                                    {
+                                        string hash = Regex.Match(json, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
+                                        if (!string.IsNullOrEmpty(hash))
+                                        {
+                                            var doc = ModInit.whosehash.FindById(hash);
+
+                                            if (doc != null)
+                                            {
+                                                doc.ip = requestInfo.IP;
+                                                doc.uid = uid;
+                                                ModInit.whosehash.Update(doc);
+                                            }
+                                            else
+                                            {
+                                                ModInit.whosehash.Insert(new WhoseHashModel
+                                                {
+                                                    id = hash,
+                                                    ip = requestInfo.IP,
+                                                    uid = uid
+                                                });
+                                            }
+                                        }
+                                    }
+
+                                    await HttpContext.Response.WriteAsync(json, HttpContext.RequestAborted).ConfigureAwait(false);
+                                    return;
+                                    #endregion
+                                }
                                 else
                                 {
-                                    string hash = Regex.Match(json, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
-                                    if (!string.IsNullOrEmpty(hash))
-                                    {
-                                        var doc = ModInit.whosehash.FindById(hash);
-                                        string uid = user?.id ?? user?.ids?.FirstOrDefault();
+                                    #region list
+                                    var torrents = JArray.Parse(json);
 
-                                        if (doc != null)
+                                    for (int i = torrents.Count - 1; i >= 0; i--)
+                                    {
+                                        var hash = torrents[i]["hash"]?.ToString();
+
+                                        if (!string.IsNullOrEmpty(hash))
                                         {
-                                            doc.ip = requestInfo.IP;
-                                            doc.uid = uid;
-                                            ModInit.whosehash.Update(doc);
-                                        }
-                                        else
-                                        {
-                                            ModInit.whosehash.Insert(new WhoseHashModel
+                                            var doc = ModInit.whosehash.FindById(hash);
+
+                                            if (doc == null)
                                             {
-                                                id = hash,
-                                                ip = requestInfo.IP,
-                                                uid = uid
-                                            });
-                                        }
-                                    }
-                                }
-
-                                await HttpContext.Response.WriteAsync(json, HttpContext.RequestAborted).ConfigureAwait(false);
-                                return;
-                                #endregion
-                            }
-                            else
-                            {
-                                #region list
-                                var torrents = JArray.Parse(json);
-
-                                for (int i = torrents.Count - 1; i >= 0; i--)
-                                {
-                                    var hash = torrents[i]["hash"]?.ToString();
-
-                                    if (!string.IsNullOrEmpty(hash))
-                                    {
-                                        var doc = ModInit.whosehash.FindById(hash);
-
-                                        if (doc == null)
-                                        {
-                                            torrents.RemoveAt(i);
-                                        }
-                                        else
-                                        {
-                                            if (doc.ip == requestInfo.IP || (doc.uid != null && doc.uid == (user?.id ?? user?.ids?.FirstOrDefault()))) { }
-                                            else
                                                 torrents.RemoveAt(i);
+                                            }
+                                            else
+                                            {
+                                                if (doc.ip == requestInfo.IP || (doc.uid != null && doc.uid == uid)) { }
+                                                else
+                                                    torrents.RemoveAt(i);
+                                            }
                                         }
                                     }
+
+                                    await HttpContext.Response.WriteAsync(torrents.ToString(), HttpContext.RequestAborted).ConfigureAwait(false);
+                                    return;
+                                    #endregion
                                 }
-
-                                await HttpContext.Response.WriteAsync(torrents.ToString(), HttpContext.RequestAborted).ConfigureAwait(false);
-                                return;
-                                #endregion
                             }
+                            catch { }
+
+                            HttpContext.Response.StatusCode = 500;
+                            await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
+                            return;
                         }
-                        catch { }
-
-                        HttpContext.Response.StatusCode = 500;
-                        await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
-                        return;
                     }
-                }
 
-                // Сбрасываем позицию
-                HttpContext.Request.Body.Position = 0;
+                    // Сбрасываем позицию
+                    HttpContext.Request.Body.Position = 0;
+                }
             }
             #endregion
 
