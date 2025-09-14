@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
 using Shared.Models.Base;
 using System;
 using System.Buffers;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -141,7 +143,7 @@ namespace TorrServer.Controllers
                             return;
                         }
 
-                        await TorAPI().ConfigureAwait(false);
+                        await TorAPI(user).ConfigureAwait(false);
                         return;
                     }
                 }
@@ -163,13 +165,13 @@ namespace TorrServer.Controllers
             }
         }
 
-        async public Task TorAPI()
+        async public Task TorAPI(AccsUser user = null)
         {
             string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
             string servUri = $"http://{AppInit.conf.listen.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
 
             #region settings
-            if (HttpContext.Request.Path.Value.StartsWith("/ts/settings"))
+            if (pathRequest.StartsWith("/settings"))
             {
                 if (HttpContext.Request.Method != "POST")
                 {
@@ -178,32 +180,129 @@ namespace TorrServer.Controllers
                     return;
                 }
 
-                MemoryStream mem = new MemoryStream();
-                await HttpContext.Request.Body.CopyToAsync(mem, HttpContext.RequestAborted).ConfigureAwait(false);
-                string requestJson = Encoding.UTF8.GetString(mem.ToArray());
-
-                if (requestJson.Contains("\"get\""))
+                using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8))
                 {
-                    var rs = await httpClient.PostAsync("/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json")).ConfigureAwait(false);
-                    await rs.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
-                }
-                else if (!ModInit.conf.rdb || requestInfo.IP == "127.0.0.1" || requestInfo.IP.StartsWith("192.168."))
-                {
-                    await httpClient.PostAsync("/settings", new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
-                }
+                    string requestJson = await reader.ReadToEndAsync().ConfigureAwait(false);
 
-                await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
-                return;
+                    if (requestJson.Contains("\"get\""))
+                    {
+                        var rs = await httpClient.PostAsync("/settings", new StringContent("{\"action\":\"get\"}", Encoding.UTF8, "application/json")).ConfigureAwait(false);
+                        await rs.Content.CopyToAsync(HttpContext.Response.Body, HttpContext.RequestAborted).ConfigureAwait(false);
+                        return;
+                    }
+                    else if (!ModInit.conf.rdb || requestInfo.IP == "127.0.0.1" || requestInfo.IP.StartsWith("192.168."))
+                    {
+                        await httpClient.PostAsync("/settings", new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+                    }
+
+                    await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
+                    return;
+                }
             }
             #endregion
 
             #region playlist
-            if (HttpContext.Request.Path.Value.StartsWith("/ts/stream/") && HttpContext.Request.QueryString.Value.Contains("&m3u"))
+            if (pathRequest.StartsWith("/stream/") && HttpContext.Request.QueryString.Value.Contains("&m3u"))
             {
                 string m3u = await httpClient.GetStringAsync(servUri).ConfigureAwait(false);
                 HttpContext.Response.ContentType = "audio/x-mpegurl; charset=utf-8";
                 await HttpContext.Response.WriteAsync((m3u ?? string.Empty).Replace("/stream/", "/ts/stream/"), HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
+            }
+            #endregion
+
+            #region multiaccess
+            if (ModInit.conf.multiaccess && HttpContext.Request.Method == "POST" && pathRequest == "/torrents" && user?.group != 666)
+            {
+                HttpContext.Request.EnableBuffering();
+                using (var readerBody = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, leaveOpen: true)) // Оставляем поток открытым
+                {
+                    string requestJson = await readerBody.ReadToEndAsync().ConfigureAwait(false);
+
+                    if (requestJson.Contains("\"action\":\"add\"") || requestJson.Contains("\"action\":\"list\""))
+                    {
+                        try
+                        {
+                            var rs = await httpClient.PostAsync(pathRequest, new StringContent(requestJson, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+                            string json = await rs.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                            HttpContext.Response.ContentType = "application/json; charset=utf-8";
+
+                            if (requestJson.Contains("\"action\":\"add\""))
+                            {
+                                #region add
+                                if (requestJson.Contains("\"save_to_db\":false")) { }
+                                else
+                                {
+                                    string hash = Regex.Match(json, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
+                                    if (!string.IsNullOrEmpty(hash))
+                                    {
+                                        var doc = ModInit.whosehash.FindById(hash);
+                                        string uid = user?.id ?? user?.ids?.FirstOrDefault();
+
+                                        if (doc != null)
+                                        {
+                                            doc.ip = requestInfo.IP;
+                                            doc.uid = uid;
+                                            ModInit.whosehash.Update(doc);
+                                        }
+                                        else
+                                        {
+                                            ModInit.whosehash.Insert(new WhoseHashModel
+                                            {
+                                                id = hash,
+                                                ip = requestInfo.IP,
+                                                uid = uid
+                                            });
+                                        }
+                                    }
+                                }
+
+                                await HttpContext.Response.WriteAsync(json, HttpContext.RequestAborted).ConfigureAwait(false);
+                                return;
+                                #endregion
+                            }
+                            else
+                            {
+                                #region list
+                                var torrents = JArray.Parse(json);
+
+                                for (int i = torrents.Count - 1; i >= 0; i--)
+                                {
+                                    var hash = torrents[i]["hash"]?.ToString();
+
+                                    if (!string.IsNullOrEmpty(hash))
+                                    {
+                                        var doc = ModInit.whosehash.FindById(hash);
+
+                                        if (doc == null)
+                                        {
+                                            torrents.RemoveAt(i);
+                                        }
+                                        else
+                                        {
+                                            if (doc.ip == requestInfo.IP || (doc.uid != null && doc.uid == (user?.id ?? user?.ids?.FirstOrDefault()))) { }
+                                            else
+                                                torrents.RemoveAt(i);
+                                        }
+                                    }
+                                }
+
+                                await HttpContext.Response.WriteAsync(torrents.ToString(), HttpContext.RequestAborted).ConfigureAwait(false);
+                                return;
+                                #endregion
+                            }
+                        }
+                        catch { }
+
+                        HttpContext.Response.StatusCode = 500;
+                        await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
+                        return;
+                    }
+                }
+
+                // Сбрасываем позицию
+                HttpContext.Request.Body.Position = 0;
             }
             #endregion
 

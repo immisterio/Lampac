@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using LiteDB;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using System;
@@ -23,6 +24,12 @@ namespace TorrServer
         public static Process tsprocess;
         #endregion
 
+        #region dataDb
+        static LiteDatabase dataDb;
+
+        public static ILiteCollection<WhoseHashModel> whosehash { get; set; }
+        #endregion
+
         #region ModInit
         public string releases { get; set; } = "MatriX.135";
 
@@ -31,6 +38,8 @@ namespace TorrServer
         public string defaultPasswd { get; set; } = "ts";
 
         public int group { get; set; }
+
+        public bool multiaccess { get; set; }
 
         public bool checkfile { get; set; } = true;
 
@@ -77,6 +86,9 @@ namespace TorrServer
         #region loaded
         public static void loaded()
         {
+            dataDb = new LiteDatabase("cache/ts.db");
+            whosehash = dataDb.GetCollection<WhoseHashModel>("whosehash");
+
             #region homedir
             homedir = Directory.GetCurrentDirectory();
             if (string.IsNullOrWhiteSpace(homedir) || homedir == "/")
