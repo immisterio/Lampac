@@ -1,18 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.IO;
-using System.Threading.Tasks;
-using System;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Http;
-using System.Text;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Buffers;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Shared;
 using Shared.Engine;
 using Shared.Models.Base;
-using System.Web;
+using System;
+using System.Buffers;
+using System.IO;
 using System.Net;
-using Shared;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace TorrServer.Controllers
 {
@@ -165,6 +165,9 @@ namespace TorrServer.Controllers
 
         async public Task TorAPI()
         {
+            string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
+            string servUri = $"http://{AppInit.conf.listen.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+
             #region settings
             if (HttpContext.Request.Path.Value.StartsWith("/ts/settings"))
             {
@@ -194,8 +197,15 @@ namespace TorrServer.Controllers
             }
             #endregion
 
-            string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
-            string servUri = $"http://{AppInit.conf.listen.localhost}:{ModInit.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+            #region playlist
+            if (HttpContext.Request.Path.Value.StartsWith("/ts/stream/") && HttpContext.Request.QueryString.Value.Contains("&m3u"))
+            {
+                string m3u = await httpClient.GetStringAsync(servUri).ConfigureAwait(false);
+                HttpContext.Response.ContentType = "audio/x-mpegurl; charset=utf-8";
+                await HttpContext.Response.WriteAsync((m3u ?? string.Empty).Replace("/stream/", "/ts/stream/"), HttpContext.RequestAborted).ConfigureAwait(false);
+                return;
+            }
+            #endregion
 
             var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
 

@@ -467,13 +467,13 @@ namespace Online.Controllers
                     var headers = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{passwd}")}");
                         headers = HeadersModel.Join(headers, addheaders);
 
-                    hash = await Http.Post($"{uhost ?? host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
+                    hash = await Http.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
                     if (hash == null)
-                        return OnError();
+                        return OnError($"{host} unavailable");
 
                     hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(hash))
-                        return OnError();
+                        return OnError("hash null");
 
                     hybridCache.Set(memKey, hash, DateTime.Now.AddMinutes(1));
                 }
