@@ -234,29 +234,25 @@ namespace TorrServer.Controllers
                                 if (requestJson.Contains("\"action\":\"add\""))
                                 {
                                     #region add
-                                    if (requestJson.Contains("\"save_to_db\":false")) { }
-                                    else
+                                    string hash = Regex.Match(json, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
+                                    if (!string.IsNullOrEmpty(hash))
                                     {
-                                        string hash = Regex.Match(json, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
-                                        if (!string.IsNullOrEmpty(hash))
-                                        {
-                                            var doc = ModInit.whosehash.FindById(hash);
+                                        var doc = ModInit.whosehash.FindById(hash);
 
-                                            if (doc != null)
+                                        if (doc != null)
+                                        {
+                                            doc.ip = requestInfo.IP;
+                                            doc.uid = uid;
+                                            ModInit.whosehash.Update(doc);
+                                        }
+                                        else
+                                        {
+                                            ModInit.whosehash.Insert(new WhoseHashModel
                                             {
-                                                doc.ip = requestInfo.IP;
-                                                doc.uid = uid;
-                                                ModInit.whosehash.Update(doc);
-                                            }
-                                            else
-                                            {
-                                                ModInit.whosehash.Insert(new WhoseHashModel
-                                                {
-                                                    id = hash,
-                                                    ip = requestInfo.IP,
-                                                    uid = uid
-                                                });
-                                            }
+                                                id = hash,
+                                                ip = requestInfo.IP,
+                                                uid = uid
+                                            });
                                         }
                                     }
 

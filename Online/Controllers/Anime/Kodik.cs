@@ -139,13 +139,13 @@ namespace Online.Controllers
 
                 var proxy = proxyManager.Get();
 
-                string memKey = $"kodik:view:stream:{link}:{init.secret_token}";
+                string memKey = $"kodik:view:stream:{link}:{init.secret_token}:{requestInfo.Country == "UA"}";
 
                 return await InvkSemaphore(init, memKey, async () =>
                 {
                     if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
                     {
-                        string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
+                        string deadline = DateTime.Now.AddHours(2).ToString("yyyy MM dd HH").Replace(" ", "");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
                         string json = await Http.Get($"http://kodik.biz/api/video-links?auto_proxy=true&link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
