@@ -312,6 +312,8 @@ namespace Shared.PlaywrightCore
 
         bool imitationHuman { get; set; }
 
+        bool deferredDispose { get; set; }
+
         public string failedUrl { get; set; }
 
         IPage page { get; set; }
@@ -321,7 +323,7 @@ namespace Shared.PlaywrightCore
         KeepopenPage keepopen_page { get; set; }
 
 
-        async public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false)
+        async public Task<IPage> NewPageAsync(string plugin, Dictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false, bool deferredDispose = false)
         {
             try
             {
@@ -329,6 +331,7 @@ namespace Shared.PlaywrightCore
                     return null;
 
                 this.imitationHuman = imitationHuman;
+                this.deferredDispose = deferredDispose;
 
                 if (proxy != default)
                 {
@@ -502,7 +505,6 @@ namespace Shared.PlaywrightCore
             if (browser == null || AppInit.conf.chromium.DEV)
                 return;
 
-
             try
             {
                 void close()
@@ -530,6 +532,13 @@ namespace Shared.PlaywrightCore
                 {
                     var timer = new Timer(10_000);
                     timer.Elapsed += (s,e) => { close(); };
+                    timer.AutoReset = false;
+                    timer.Start();
+                }
+                else if (deferredDispose)
+                {
+                    var timer = new Timer(2_000);
+                    timer.Elapsed += (s, e) => { close(); };
                     timer.AutoReset = false;
                     timer.Start();
                 }

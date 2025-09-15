@@ -944,8 +944,8 @@ namespace Online.Controllers
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
                     send(conf.MovPI, "movpi", "MovPI (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
-                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
+                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
                     send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");

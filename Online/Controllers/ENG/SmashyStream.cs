@@ -59,9 +59,11 @@ namespace Online.Controllers
                 string memKey = $"smashystream:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    DateTime routeActiveTime = default;
+
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, deferredDispose: true).ConfigureAwait(false);
                         if (page == null)
                             return default;
 
@@ -69,7 +71,9 @@ namespace Online.Controllers
                         {
                             try
                             {
-                                if (browser.IsCompleted || route.Request.Url.Contains(".m3u") || Regex.IsMatch(route.Request.Url, "(\\.vtt|histats.com|solid.gif|poster.png|inkblotconusor\\.|jrbbavbvqmrjw\\.)"))
+                                routeActiveTime = DateTime.Now;
+
+                                if (browser.IsCompleted || route.Request.Url.Contains(".m3u") || Regex.IsMatch(route.Request.Url, "(\\.vtt|histats.com|solid.gif|poster.png|doubleclick\\.|inkblotconusor\\.|jrbbavbvqmrjw\\.)"))
                                 {
                                     PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
@@ -91,7 +95,7 @@ namespace Online.Controllers
                                     }
 
                                     PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.IsCompleted = true;
+                                    browser.SetPageResult(route.Request.Url);
                                     cache.m3u8 = route.Request.Url;
                                     await route.AbortAsync();
                                     return;
@@ -102,22 +106,37 @@ namespace Online.Controllers
                             catch { }
                         });
 
-                        PlaywrightBase.GotoAsync(page, uri);
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                        await page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
 
-                        var viewportSize = await page.EvaluateAsync<ViewportSize>("() => ({ width: window.innerWidth, height: window.innerHeight })");
+                        var frameElement = await page.WaitForSelectorAsync("iframe[src*='smashyplayer.top']", new PageWaitForSelectorOptions 
+                        { 
+                            Timeout = 10000, 
+                            State = WaitForSelectorState.Visible 
+                        }).ConfigureAwait(false);
 
-                        var endTime = DateTime.Now.AddSeconds(20);
+                        var frame = await frameElement.ContentFrameAsync().ConfigureAwait(false);
+
+                        // невьебенная магия обхода защиты =)
+                        await Task.Delay(1000).ConfigureAwait(false);
+                        while (routeActiveTime.AddSeconds(1) > DateTime.Now)
+                            await Task.Delay(100).ConfigureAwait(false);
+
+                        await frame.WaitForSelectorAsync("#player-button", new FrameWaitForSelectorOptions() { Timeout = 5000 }).ConfigureAwait(false);
+
+                        var endTime = DateTime.Now.AddSeconds(5);
                         while (endTime > DateTime.Now && cache.m3u8 == null)
                         {
-                            int vS(int center)
+                            try
                             {
-                                var centerX = center / 2;
-                                return Random.Shared.Next(0, 3) == 1 ? (centerX + Random.Shared.Next(1, 20)) : (centerX - Random.Shared.Next(1, 20));
-                            }
+                                await frame.ClickAsync("#player-button", new FrameClickOptions
+                                {
+                                    Timeout = 400,
+                                    Force = true
+                                }).ConfigureAwait(false);
 
-                            await Task.Delay(100);
-                            await page.Mouse.ClickAsync(vS(viewportSize.Width), vS(viewportSize.Height));
+                                await Task.Delay(200).ConfigureAwait(false);
+                            }
+                            catch { }
                         }
                     }
 
