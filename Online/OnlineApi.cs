@@ -947,14 +947,14 @@ namespace Online.Controllers
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
                     send(conf.Smashystream, "smashystream", "SmashyStream (ENG)"); // low
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled)
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
                     send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+
+                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost) || conf.Playembed.overridehosts?.Length > 0)
+                    send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
 
                 if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost) || conf.Twoembed.overridehosts?.Length > 0)
                     send(conf.Twoembed, "twoembed", "2Embed (ENG)");
-
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost) || conf.Playembed.overridehosts?.Length > 0)
-                    send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
 
                 send(conf.Rgshows, "rgshows", "RgShows (ENG)");
             }

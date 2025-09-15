@@ -65,7 +65,7 @@ namespace Online.Controllers
                 string memKey = $"autoembed:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new PlaywrightBrowser())
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)

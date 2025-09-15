@@ -65,7 +65,7 @@ namespace Online.Controllers
                 string memKey = $"playembed:black_magic:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out (string m3u8, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
@@ -87,17 +87,23 @@ namespace Online.Controllers
 
                                 if (route.Request.Url.Contains(".m3u8") || route.Request.Url.Contains("/playlist/"))
                                 {
-                                    cache.headers = new List<HeadersModel>();
+                                    cache.headers = HeadersModel.Init(
+                                        ("sec-fetch-dest", "empty"),
+                                        ("sec-fetch-mode", "cors"),
+                                        ("sec-fetch-site", "cross-site")
+                                    );
+
                                     foreach (var item in route.Request.Headers)
                                     {
                                         if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
                                             continue;
 
-                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        if (cache.headers.FirstOrDefault(k => k.name == item.Key) == null)
+                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                     }
 
                                     PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
-                                    browser.completionSource.SetResult(route.Request.Url);
+                                    browser.SetPageResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;
                                 }

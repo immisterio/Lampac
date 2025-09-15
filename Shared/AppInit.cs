@@ -1036,7 +1036,16 @@ namespace Shared
 
         public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true);
 
-        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true, enable: false)
+        /// <summary>
+        /// Omega
+        /// </summary>
+        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su", streamproxy: true);
+
+
+        /// <summary>
+        /// EmbedSu
+        /// </summary>
+        public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "https://embed.su", streamproxy: true, enable: false)
         {
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
@@ -1072,8 +1081,6 @@ namespace Shared
                 ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
-
-        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su", enable: false);
         #endregion
 
         #region Anime
