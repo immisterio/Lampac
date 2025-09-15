@@ -85,7 +85,7 @@ namespace Shared
 
         public List<HeadersModel> httpHeaders(string site, List<HeadersModel> _headers)
         {
-            if (_headers == null)
+            if (_headers == null || _headers.Count == 0)
                 return _headers;
 
             var headers = new List<HeadersModel>(_headers.Count);

@@ -1034,22 +1034,10 @@ namespace Shared
         /// </summary>
         public OnlinesSettings Smashystream { get; set; } = new OnlinesSettings("Smashystream", "kwwsv=22sod|hu1vpdvk|vwuhdp1frp", streamproxy: true);
 
+        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true);
+
         public OnlinesSettings Twoembed { get; set; } = new OnlinesSettings("Twoembed", "kwwsv=22hpehg1vx", streamproxy: true, enable: false)
         {
-            headers_stream = HeadersModel.Init(
-                ("accept", "*/*"),
-                ("accept-language", "en-US,en;q=0.5"),
-                ("referer", "{host}/"),
-                ("origin", "{host}"),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site")
-            ).ToDictionary()
-        };
-
-        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", enable: false)
-        {
-            priorityBrowser = "http",
             headers_stream = HeadersModel.Init(
                 ("accept", "*/*"),
                 ("accept-language", "en-US,en;q=0.5"),

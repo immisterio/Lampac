@@ -44,14 +44,14 @@ namespace Online.Controllers
                 if (cache.m3u8 == null)
                     return StatusCode(502);
 
-                string file = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: cache.headers);
-
-                if (play)
-                    return Redirect(file);
-
                 var headers_stream = httpHeaders(init.host, init.headers_stream);
                 if (headers_stream.Count == 0)
                     headers_stream = cache.headers;
+
+                string file = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
+
+                if (play)
+                    return Redirect(file);
 
                 return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
             });

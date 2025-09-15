@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
-using System.Text;
 
 namespace Online.Controllers
 {
@@ -32,112 +30,46 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
-            string embed = $"{init.host}/embed/movie/{id}?server=1";
+            string embed = $"{init.host}/embed/movie/{id}";
             if (s > 0)
-                embed = $"{init.host}/embed/tv/{id}/{s}/{e}?server=1";
+                embed = $"{init.host}/embed/tv/{id}/{s}/{e}";
 
             return await InvkSemaphore(init, embed, async () =>
             {
-                if (init.priorityBrowser == "http")
-                {
-                    string apihost = "https://nono.autoembed.cc";
-                    string uri = $"{apihost}/api/getVideoSource?type=movie&id={id}";
-                    if (s > 0)
-                        uri = $"{apihost}/api/getVideoSource?type=tv&id={id}%2F{s}%2F{e}";
+                var cache = await black_magic(embed, init, proxyManager, proxy.data);
+                if (cache.file == null)
+                    return StatusCode(502);
 
-                    if (!hybridCache.TryGetValue(uri, out JObject data))
-                    {
-                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
-                            ("Accept-Language", "en-US,en;q=0.5"),
-                            ("Alt-Used", "nono.autoembed.cc"),
-                            ("Priority", "u=4"),
-                            ("Referer", $"{apihost}/tv/{id}/{s}/{e}"),
-                            ("Sec-Fetch-Dest", "empty"),
-                            ("Sec-Fetch-Mode", "cors"),
-                            ("Sec-Fetch-Site", "same-origin"),
-                            ("TE", "trailers"),
-                            ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0")
-                        ));
+                var headers_stream = httpHeaders(init.host, init.headers_stream);
+                if (headers_stream.Count == 0)
+                    headers_stream = cache.headers;
 
-                        if (root == null && !root.ContainsKey("encryptedData"))
-                        {
-                            proxyManager.Refresh();
-                            return OnError();
-                        }
+                string file = HostStreamProxy(init, cache.file, proxy: proxy.proxy, headers: headers_stream);
 
-                        string encryptedData = root.Value<string>("encryptedData");
-                        if (string.IsNullOrEmpty(encryptedData))
-                            return OnError();
+                if (play)
+                    return Redirect(file);
 
-                        var postdata = new System.Net.Http.StringContent("{\"encryptedData\":\"" + encryptedData + "\"}", Encoding.UTF8, "application/json");
-                        var videoSource = await Http.Post<JObject>($"{apihost}/api/decryptVideoSource", postdata, timeoutSeconds: 8, proxy: proxy.proxy, headers: HeadersModel.Init(
-                            ("Accept-Language", "en-US,en;q=0.5"),
-                            ("Alt-Used", "nono.autoembed.cc"),
-                            ("Origin", apihost),
-                            ("Priority", "u=4"),
-                            ("Referer", $"{apihost}/tv/{id}/{s}/{e}"),
-                            ("Sec-Fetch-Dest", "empty"),
-                            ("Sec-Fetch-Mode", "cors"),
-                            ("Sec-Fetch-Site", "same-origin"),
-                            ("TE", "trailers"),
-                            ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0")
-                        ));
-
-                        if (videoSource == null && !root.ContainsKey("videoSource"))
-                            return OnError();
-
-                        data = videoSource;
-                        proxyManager.Success();
-                        hybridCache.Set(uri, data, cacheTime(20));
-                    }
-
-                    var subtitles = new SubtitleTpl();
-                    try
-                    {
-                        foreach (var sub in data["subtitles"])
-                            subtitles.Append(sub.Value<string>("label"), HostStreamProxy(init, sub.Value<string>("file"), proxy: proxy.proxy));
-                    }
-                    catch { }
-
-                    string file = HostStreamProxy(init, data.Value<string>("videoSource"), proxy: proxy.proxy);
-                    if (play)
-                        return Redirect(file);
-
-                    return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: httpHeaders(init.host, init.headers_stream)));
-                }
-                else
-                {
-                    string file = await black_magic(embed, init, proxyManager, proxy.data);
-                    if (file == null)
-                        return StatusCode(502);
-
-                    file = HostStreamProxy(init, file, proxy: proxy.proxy);
-
-                    if (play)
-                        return Redirect(file);
-
-                    return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: httpHeaders(init.host, init.headers_stream)));
-                }
+                return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
             });
         }
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
+        async ValueTask<(string file, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
         {
             if (string.IsNullOrEmpty(uri))
-                return uri;
+                return default;
 
             try
             {
                 string memKey = $"autoembed:black_magic:{uri}";
-                if (!hybridCache.TryGetValue(memKey, out string mp4))
+                if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers) cache))
                 {
-                    using (var browser = new Firefox())
+                    using (var browser = new PlaywrightBrowser())
                     {
                         var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
                         if (page == null)
-                            return null;
+                            return default;
 
                         await page.RouteAsync("**/*", async route =>
                         {
@@ -146,18 +78,35 @@ namespace Online.Controllers
                                 if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
                                     return;
 
-                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|fonts.googleapis\\.)"))
+                                if ((route.Request.Url.Contains("hakunaymatata.") && (route.Request.Url.Contains(".mp4") || route.Request.Url.Contains(".m3u"))) ||
+                                    route.Request.Url.Contains("/embed-proxy?url="))
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    cache.headers = HeadersModel.Init(
+                                        ("sec-fetch-dest", "empty"),
+                                        ("sec-fetch-mode", "cors"),
+                                        ("sec-fetch-site", "cross-site"), 
+                                        ("referer", $"{init.host}/"),
+                                        ("origin", init.host)
+                                    );
+
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                            continue;
+
+                                        if (cache.headers.FirstOrDefault(k => k.name == item.Key) == null)
+                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                    }
+
+                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
+                                    browser.SetPageResult(route.Request.Url);
                                     await route.AbortAsync();
                                     return;
                                 }
 
-                                if (/*route.Request.Url.Contains("hakunaymatata.") &&*/ route.Request.Url.Contains(".mp4"))
+                                if (browser.IsCompleted || Regex.IsMatch(route.Request.Url, "(/ads/|vast.xml|ping.gif|silent.mp4)"))
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}");
-                                    browser.IsCompleted = true;
-                                    browser.completionSource.SetResult(route.Request.Url);
+                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -168,22 +117,22 @@ namespace Online.Controllers
                         });
 
                         PlaywrightBase.GotoAsync(page, uri);
-                        mp4 = await browser.WaitPageResult();
+                        cache.file = await browser.WaitPageResult();
                     }
 
-                    if (mp4 == null)
+                    if (cache.file == null)
                     {
                         proxyManager.Refresh();
-                        return null;
+                        return default;
                     }
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, mp4, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                 }
 
-                return mp4;
+                return cache;
             }
-            catch { return null; }
+            catch { return default; }
         }
         #endregion
     }
