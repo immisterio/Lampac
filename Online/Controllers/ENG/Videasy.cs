@@ -67,7 +67,7 @@ namespace Online.Controllers
                 {
                     using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, deferredDispose: true);
                         if (page == null)
                             return default;
 

@@ -96,7 +96,7 @@ namespace SISI.Controllers.NextHUB
                 {
                     using (var browser = new PlaywrightBrowser(init.view.priorityBrowser ?? init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen).ConfigureAwait(false);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen, deferredDispose: init.view.playbtn != null).ConfigureAwait(false);
                         if (page == default)
                             return default;
 

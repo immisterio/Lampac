@@ -277,11 +277,7 @@ namespace TorrServer.Controllers
                                         {
                                             var doc = ModInit.whosehash.FindById(hash);
 
-                                            if (doc == null)
-                                            {
-                                                torrents.RemoveAt(i);
-                                            }
-                                            else
+                                            if (doc != null)
                                             {
                                                 if (doc.ip == requestInfo.IP || (doc.uid != null && doc.uid == uid)) { }
                                                 else
