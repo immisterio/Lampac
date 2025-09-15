@@ -18,6 +18,8 @@ namespace Shared.Models.Online.Settings
             this.token = token.Contains(":") ? Decrypt(token)! : token;
         }
 
+        public bool auto_proxy { get; set; }
+
         public bool cdn_is_working { get; set; }
 
         public string secret_token { get; set; }

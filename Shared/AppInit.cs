@@ -1086,7 +1086,8 @@ namespace Shared
         #region Anime
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwwsv=22nrgln1lqir", "hh438g49<d<7g87dhe7hgh<6f6f4935:", "", true)
         {
-            cdn_is_working = true,
+            auto_proxy = true,      // прокси UA в api 
+            cdn_is_working = true,  // прокси UA в обычном 
             geostreamproxy = ["UA"],
             headers = HeadersModel.Init(
                 ("referer", "encrypt:kwwsv=22dqlole1ph2")
