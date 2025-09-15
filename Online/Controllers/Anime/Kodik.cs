@@ -148,7 +148,7 @@ namespace Online.Controllers
                         string deadline = DateTime.Now.AddHours(1).ToString("yyyy MM dd HH").Replace(" ", "");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                        string json = await Http.Get($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
+                        string json = await Http.Get($"http://kodik.biz/api/video-links?auto_proxy=true&link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}", timeoutSeconds: 8, proxy: proxy);
 
                         streams = new List<(string q, string url)>(4);
                         var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
