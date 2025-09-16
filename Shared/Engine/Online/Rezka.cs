@@ -700,32 +700,41 @@ namespace Shared.Engine.Online
         {
             if (data.Contains("#"))
             {
-                string[] trashList = new string[] { "QEA=", "QCM=", "QCE=", "QF4=", "QCQ=", "I0A=", "IyM=", "IyE=", "I14=", "IyQ=", "IUA=", "ISM=", "ISE=", "IV4=", "ISQ=", "XkA=", "XiM=", "XiE=", "Xl4=", "XiQ=", "JEA=", "JCM=", "JCE=", "JF4=", "JCQ=", "QEBA", "QEAj", "QEAh", "QEBe", "QEAk", "QCNA", "QCMj", "QCMh", "QCNe", "QCMk", "QCFA", "QCEj", "QCEh", "QCFe", "QCEk", "QF5A", "QF4j", "QF4h", "QF5e", "QF4k", "QCRA", "QCQj", "QCQh", "QCRe", "QCQk", "I0BA", "I0Aj", "I0Ah", "I0Be", "I0Ak", "IyNA", "IyMj", "IyMh", "IyNe", "IyMk", "IyFA", "IyEj", "IyEh", "IyFe", "IyEk", "I15A", "I14j", "I14h", "I15e", "I14k", "IyRA", "IyQj", "IyQh", "IyRe", "IyQk", "IUBA", "IUAj", "IUAh", "IUBe", "IUAk", "ISNA", "ISMj", "ISMh", "ISNe", "ISMk", "ISFA", "ISEj", "ISEh", "ISFe", "ISEk", "IV5A", "IV4j", "IV4h", "IV5e", "IV4k", "ISRA", "ISQj", "ISQh", "ISRe", "ISQk", "XkBA", "XkAj", "XkAh", "XkBe", "XkAk", "XiNA", "XiMj", "XiMh", "XiNe", "XiMk", "XiFA", "XiEj", "XiEh", "XiFe", "XiEk", "Xl5A", "Xl4j", "Xl4h", "Xl5e", "Xl4k", "XiRA", "XiQj", "XiQh", "XiRe", "XiQk", "JEBA", "JEAj", "JEAh", "JEBe", "JEAk", "JCNA", "JCMj", "JCMh", "JCNe", "JCMk", "JCFA", "JCEj", "JCEh", "JCFe", "JCEk", "JF5A", "JF4j", "JF4h", "JF5e", "JF4k", "JCRA", "JCQj", "JCQh", "JCRe", "JCQk" };
+                try
+                {
+                    string[] trashList = ["JCQhIUAkJEBeIUAjJCRA", "QEBAQEAhIyMhXl5e", "IyMjI14hISMjIUBA", "Xl5eIUAjIyEhIyM=", "JCQjISFAIyFAIyM="];
 
-                string _data = data.Remove(0, 2).Replace("//_//", "");
+                    string _data = data.Remove(0, 2);
 
-                foreach (string trash in trashList)
-                    _data = _data.Replace(trash, "");
+                    foreach (string trash in trashList)
+                        _data = _data.Replace($"//_//{trash}", "");
 
-                _data = Regex.Replace(_data, "//[^/]+_//", "").Replace("//_//", "");
-                _data = Encoding.UTF8.GetString(Convert.FromBase64String(_data));
+                    try
+                    {
+                        return Encoding.UTF8.GetString(Convert.FromBase64String(_data));
+                    }
+                    catch
+                    {
+                        _data = Regex.Replace(_data, "//[^/]+_//", "").Replace("//_//", "");
+                        _data = Encoding.UTF8.GetString(Convert.FromBase64String(_data));
 
-                return _data;
+                        return _data;
+                    }
+                }
+                catch
+                {
+                    string[] trashList = ["QEA=", "QCM=", "QCE=", "QF4=", "QCQ=", "I0A=", "IyM=", "IyE=", "I14=", "IyQ=", "IUA=", "ISM=", "ISE=", "IV4=", "ISQ=", "XkA=", "XiM=", "XiE=", "Xl4=", "XiQ=", "JEA=", "JCM=", "JCE=", "JF4=", "JCQ=", "QEBA", "QEAj", "QEAh", "QEBe", "QEAk", "QCNA", "QCMj", "QCMh", "QCNe", "QCMk", "QCFA", "QCEj", "QCEh", "QCFe", "QCEk", "QF5A", "QF4j", "QF4h", "QF5e", "QF4k", "QCRA", "QCQj", "QCQh", "QCRe", "QCQk", "I0BA", "I0Aj", "I0Ah", "I0Be", "I0Ak", "IyNA", "IyMj", "IyMh", "IyNe", "IyMk", "IyFA", "IyEj", "IyEh", "IyFe", "IyEk", "I15A", "I14j", "I14h", "I15e", "I14k", "IyRA", "IyQj", "IyQh", "IyRe", "IyQk", "IUBA", "IUAj", "IUAh", "IUBe", "IUAk", "ISNA", "ISMj", "ISMh", "ISNe", "ISMk", "ISFA", "ISEj", "ISEh", "ISFe", "ISEk", "IV5A", "IV4j", "IV4h", "IV5e", "IV4k", "ISRA", "ISQj", "ISQh", "ISRe", "ISQk", "XkBA", "XkAj", "XkAh", "XkBe", "XkAk", "XiNA", "XiMj", "XiMh", "XiNe", "XiMk", "XiFA", "XiEj", "XiEh", "XiFe", "XiEk", "Xl5A", "Xl4j", "Xl4h", "Xl5e", "Xl4k", "XiRA", "XiQj", "XiQh", "XiRe", "XiQk", "JEBA", "JEAj", "JEAh", "JEBe", "JEAk", "JCNA", "JCMj", "JCMh", "JCNe", "JCMk", "JCFA", "JCEj", "JCEh", "JCFe", "JCEk", "JF5A", "JF4j", "JF4h", "JF5e", "JF4k", "JCRA", "JCQj", "JCQh", "JCRe", "JCQk"];
 
+                    string _data = data.Remove(0, 2).Replace("//_//", "");
 
-                //_data = Regex.Replace(_data, "/[^/=]+=([^\n\r\t= ])", "/$1");
-                //_data = _data.Replace("//_//", "");
-                //_data = Regex.Replace(_data, "//[^/]+_//", "");
-                //_data = _data.Replace("QEBAQEAhIyMhXl5e", "");
-                //_data = _data.Replace("IyMjI14hISMjIUBA", "");
-                //_data = Regex.Replace(_data, "CQhIUAkJEBeIUAjJCRA.", "");
-                //_data = _data.Replace("QCMhQEBAIyMkJXl5eXl5eIyNAEBA", "");
+                    foreach (string trash in trashList)
+                        _data = _data.Replace(trash, "");
 
-                //// Lampa
-                //_data = _data.Replace("QCMhQEBAIyMkJEBA", "");
-                //_data = _data.Replace("Xl5eXl5eIyNAzN2FkZmRm", "");
+                    _data = Regex.Replace(_data, "//[^/]+_//", "").Replace("//_//", "");
+                    _data = Encoding.UTF8.GetString(Convert.FromBase64String(_data));
 
-                //_data = Encoding.UTF8.GetString(Convert.FromBase64String(_data.Remove(0, 2)));
+                    return _data;
+                }
             }
 
             return data;
