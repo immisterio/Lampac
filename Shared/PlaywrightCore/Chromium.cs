@@ -11,14 +11,10 @@ namespace Shared.PlaywrightCore
         #region static
         public static BrowserNewContextOptions baseContextOptions = new BrowserNewContextOptions
         {
-            UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-            ExtraHTTPHeaders = new Dictionary<string, string>
+            UserAgent = Http.UserAgent,
+            ExtraHTTPHeaders = new Dictionary<string, string>(Http.defaultHeaders)
             {
-                ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5",
-                ["sec-ch-ua"] = "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
-                ["sec-ch-ua-mobile"] = "?0",
-                ["sec-ch-ua-platform"] = "\"Windows\"",
-                ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+                ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
             }
         };
 

@@ -512,32 +512,16 @@ namespace Shared
 
         public SisiSettings Ebalovo { get; set; } = new SisiSettings("Ebalovo", "kwwsv=22zzz1hedoryr1sur")
         {
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5")
             ).ToDictionary(),
-            headers_stream = HeadersModel.Init(
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "video"),
                 ("sec-fetch-mode", "no-cors"),
-                ("sec-fetch-site", "same-origin"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "same-origin")
             ).ToDictionary()
         };
 
@@ -560,19 +544,11 @@ namespace Shared
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp")
         {
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/plain, */*; q=0.0"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Not(A: Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
@@ -653,22 +629,15 @@ namespace Shared
         public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("Kinoukr", "kwwsv=22nlqrxnu1frp")
         {
             geo_hide = ["RU", "BY"],
-            headers = HeadersModel.Init
-            (
-                ("cache-control", "no-cache"),
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("cookie", "legit_user=1;"),
-                ("dnt", "1"),
                 ("origin", "{host}"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
                 ("referer", "{host}/"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "same-origin"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             ).ToDictionary()
         };
 
@@ -687,19 +656,12 @@ namespace Shared
 
         public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sodsl1fgqylghrkxe1frp", streamproxy: true, enable: false)
         {
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("cache-control", "no-cache"),
                 ("referer", "encrypt:kwwsv=22kgnlqr1sxe2"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("sec-ch-ua", "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
@@ -759,35 +721,20 @@ namespace Shared
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=22nlqrjr1phgld", "kwwsv=2263ei6:<31reuxw1vkrz", streamproxy: true)
         {
             imitationHuman = true,
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             ).ToDictionary(),
-            headers_stream = HeadersModel.Init(
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "*/*"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
                 ("origin", "{host}"),
                 ("referer", "{host}/"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "same-site")
             ).ToDictionary()
         };
 
@@ -805,19 +752,11 @@ namespace Shared
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22fgqprylhv0vwuhdp1rqolqh")
         {
             geostreamproxy = ["ALL"],
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             ).ToDictionary()
         };
 
@@ -825,35 +764,20 @@ namespace Shared
         {
             enable = false,
             imitationHuman = true,
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             ).ToDictionary(),
-            headers_stream = HeadersModel.Init(
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "*/*"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
                 ("origin", "encrypt:kwwsv=22idqfgq1qhw"),
                 ("referer", "encrypt:kwwsv=22idqfgq1qhw2"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "same-site")
             ).ToDictionary()
         };
 
@@ -898,16 +822,7 @@ namespace Shared
         /// </summary>
         public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5")
         {
-            headers = HeadersModel.Init(
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
-            ).ToDictionary(),
+            headers = Http.defaultFullHeaders
         };
 
         /// <summary>
@@ -920,32 +835,17 @@ namespace Shared
         /// </summary>
         public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", streamproxy: true, enable: false)
         {
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             ).ToDictionary(),
-            headers_stream = HeadersModel.Init(
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "*/*"),
-                ("dnt", "1"),
-                ("cache-control", "no-cache"),
-                ("pragma", "no-cache"),
                 ("referer", "encrypt:kwwsv=22wy040nlqrvhuldo1qhw2"),
-                ("sec-ch-ua", "Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135"),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "video"),
                 ("sec-fetch-mode", "no-cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
@@ -959,21 +859,13 @@ namespace Shared
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "https://api.srvkp.com")
         {
             filetype = "hls",
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             ).ToDictionary()
         };
 
@@ -983,17 +875,7 @@ namespace Shared
         {
             streamproxy = true,
             reserve = true,
-            headers = HeadersModel.Init(
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
-                ("pragma", "no-cache"),
-                ("priority", "u=1, i"),
-                ("sec-ch-ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-storage-access", "active"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
-            ).ToDictionary()
+            headers = Http.defaultFullHeaders
         };
 
         public OnlinesSettings GetsTV { get; set; } = new OnlinesSettings("GetsTV", "https://getstv.com", enable: false) 
@@ -1107,39 +989,24 @@ namespace Shared
         public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj", streamproxy: true)
         {
             enable = false,
-            headers = HeadersModel.Init(
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("origin", "encrypt:kwwsv=22dqlphole1ruj"),
                 ("referer", "encrypt:kwwsv=22dqlphole1ruj2"),
-                ("pragma", "no-cache"),
-                ("priority", "u=0, i"),
-                ("sec-ch-ua", "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary(),
-            headers_stream = HeadersModel.Init(
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "*/*"),
                 ("accept-encoding", "identity;q=1, *;q=0"),
                 ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
-                ("cache-control", "no-cache"),
-                ("dnt", "1"),
                 ("origin", "encrypt:kwwsv=22dqlphole1ruj"),
                 ("referer", "encrypt:kwwsv=22dqlphole1ruj2"),
-                ("pragma", "no-cache"),
-                ("priority", "i"),
-                ("sec-ch-ua", "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "video"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-site"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
+                ("sec-fetch-site", "same-site")
             ).ToDictionary()
         };
 

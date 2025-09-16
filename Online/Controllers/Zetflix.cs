@@ -44,7 +44,8 @@ namespace Online.Controllers
             {
                 string uri = $"{ztfhost}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
-                var headers = HeadersModel.Init(("Referer", "https://www.google.com/"), ("User-Agent", Chromium.baseContextOptions.UserAgent));
+                var headers = HeadersModel.Init(Chromium.baseContextOptions.ExtraHTTPHeaders.ToDictionary(), ("Referer", "https://www.google.com/"));
+
                 string result = string.IsNullOrEmpty(PHPSESSID) ? null : await Http.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: headers);
                 if (result != null && !result.StartsWith("<script>(function"))
                 {

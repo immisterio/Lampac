@@ -34,6 +34,11 @@
             return h;
         }
 
+        public static List<HeadersModel> Init(Dictionary<string, string> defaultHeaders, params (string name, string val)[] headers)
+        {
+            return Join(Init(headers), defaultHeaders);
+        }
+
         public static List<HeadersModel> Init(IEnumerable<KeyValuePair<string, string>> headers)
         {
             if (headers == null || headers.Count() == 0)

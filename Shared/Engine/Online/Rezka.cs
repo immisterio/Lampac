@@ -67,20 +67,16 @@ namespace Shared.Engine.Online
             var result = new SearchModel();
             string reservedlink = null;
 
-            var base_headers = HeadersModel.Init(
+            var base_headers = HeadersModel.Init(Http.defaultHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "same-origin"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             );
 
             result.search_uri = $"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
@@ -164,20 +160,16 @@ namespace Shared.Engine.Online
         {
             var result = new EmbedModel();
 
-            var base_headers = HeadersModel.Init(
+            var base_headers = HeadersModel.Init(Http.defaultHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
                 ("pragma", "no-cache"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "same-origin"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+                ("upgrade-insecure-requests", "1")
             );
 
             result.id = Regex.Match(href, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
@@ -432,19 +424,15 @@ namespace Shared.Engine.Online
 
             try
             {
-                var headers = HeadersModel.Init(
+                var headers = HeadersModel.Init(Http.defaultHeaders,
                     ("accept", "application/json, text/javascript, */*; q=0.01"),
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
                     ("origin", apihost),
                     ("pragma", "no-cache"),
-                    ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
-                    ("sec-ch-ua-mobile", "?0"),
-                    ("sec-ch-ua-platform", "\"Windows\""),
                     ("sec-fetch-dest", "empty"),
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
-                    ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"),
                     ("x-requested-with", "XMLHttpRequest")
                 );
 
@@ -588,19 +576,15 @@ namespace Shared.Engine.Online
                 data = $"id={id}&translator_id={t}&season={s}&episode={e}&favs={favs}&action=get_stream";
             }
 
-            var headers = HeadersModel.Init(
+            var headers = HeadersModel.Init(Http.defaultHeaders,
                 ("accept", "application/json, text/javascript, */*; q=0.01"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
                 ("origin", apihost),
                 ("pragma", "no-cache"),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "same-origin"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"),
                 ("x-requested-with", "XMLHttpRequest")
             );
 
@@ -848,20 +832,16 @@ namespace Shared.Engine.Online
         #endregion
 
         #region StreamProxyHeaders
-        public static List<HeadersModel> StreamProxyHeaders(string host) => HeadersModel.Init(
+        public static List<HeadersModel> StreamProxyHeaders(string host) => HeadersModel.Init(Http.defaultHeaders,
             ("accept", "*/*"),
             ("cache-control", "no-cache"),
             ("dnt", "1"),
             ("origin", host),
             ("pragma", "no-cache"),
             ("referer", $"{host}/"),
-            ("sec-ch-ua", "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""),
-            ("sec-ch-ua-mobile", "?0"),
-            ("sec-ch-ua-platform", "\"Windows\""),
             ("sec-fetch-dest", "empty"),
             ("sec-fetch-mode", "cors"),
-            ("sec-fetch-site", "cross-site"),
-            ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+            ("sec-fetch-site", "cross-site")
         );
         #endregion
     }

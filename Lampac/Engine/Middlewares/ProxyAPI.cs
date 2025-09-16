@@ -491,7 +491,7 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (!requestMessage.Headers.Contains("User-Agent"))
-                requestMessage.Headers.TryAddWithoutValidation("User-Agent", Shared.Engine.Http.UserAgent);
+                requestMessage.Headers.TryAddWithoutValidation("User-Agent", Http.UserAgent);
             #endregion
 
             requestMessage.Headers.Host = uri.Authority;

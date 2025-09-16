@@ -248,17 +248,6 @@ namespace Online.Controllers
                     #region Playwright
                     init.streamproxy = true; // force streamproxy
 
-                    var baseheaders = HeadersModel.Init(
-                        ("cache-control", "no-cache"),
-                        ("dnt", "1"),
-                        ("pragma", "no-cache"),
-                        ("priority", "u=1, i"),
-                        ("sec-ch-ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\""),
-                        ("sec-ch-ua-mobile", "?0"),
-                        ("sec-ch-ua-platform", "\"Windows\""),
-                        ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
-                    );
-
                     string memKey = $"alloha:black_magic:{proxy.data.ip}:{token_movie}:{t}:{s}:{e}";
                     if (!hybridCache.TryGetValue(memKey, out (JToken hlsSource, JToken tracks, List<HeadersModel> streamHeaders) cache))
                     {
@@ -267,12 +256,12 @@ namespace Online.Controllers
 
                         using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
-                            var headers = HeadersModel.Join(baseheaders, HeadersModel.Init(
+                            var headers = HeadersModel.Init(Http.defaultFullHeaders,
                                 ("sec-fetch-dest", "iframe"),
                                 ("sec-fetch-mode", "navigate"),
                                 ("sec-fetch-site", "cross-site"),
                                 ("referer", $"https://alloha.tv/")
-                            ));
+                            );
 
                             var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers.ToDictionary()).ConfigureAwait(false);
                             if (page == null)
@@ -338,13 +327,13 @@ namespace Online.Controllers
                         if (cache.hlsSource == null)
                             return OnError();
 
-                        cache.streamHeaders = HeadersModel.Join(baseheaders, HeadersModel.Init(
+                        cache.streamHeaders = HeadersModel.Init(Http.defaultFullHeaders,
                             ("origin", init.linkhost),
                             ("referer", $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}"),
                             ("sec-fetch-dest", "empty"),
                             ("sec-fetch-mode", "cors"),
                             ("sec-fetch-site", "cross-site")
-                        ));
+                        );
 
                         hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                     }

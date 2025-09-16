@@ -27,7 +27,7 @@ namespace Online.Controllers
             if (id == 0)
                 return OnError();
 
-            if (Firefox.Status == PlaywrightStatus.disabled)
+            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
