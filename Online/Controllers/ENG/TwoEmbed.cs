@@ -96,7 +96,7 @@ namespace Online.Controllers
                         });
 
                         PlaywrightBase.GotoAsync(page, uri);
-                        m3u8 = await browser.WaitPageResult();
+                        m3u8 = await browser.WaitPageResult(20);
                     }
 
                     if (m3u8 == null)

@@ -110,7 +110,7 @@ namespace Online.Controllers
 
                         var frameElement = await page.WaitForSelectorAsync("iframe[src*='smashyplayer.top']", new PageWaitForSelectorOptions 
                         { 
-                            Timeout = 10000, 
+                            Timeout = 15_000, 
                             State = WaitForSelectorState.Visible 
                         }).ConfigureAwait(false);
 
@@ -121,7 +121,7 @@ namespace Online.Controllers
                         while (routeActiveTime.AddSeconds(1) > DateTime.Now)
                             await Task.Delay(100).ConfigureAwait(false);
 
-                        await frame.WaitForSelectorAsync("#player-button", new FrameWaitForSelectorOptions() { Timeout = 5000 }).ConfigureAwait(false);
+                        await frame.WaitForSelectorAsync("#player-button", new FrameWaitForSelectorOptions() { Timeout = 10_000 }).ConfigureAwait(false);
 
                         var endTime = DateTime.Now.AddSeconds(5);
                         while (endTime > DateTime.Now && cache.m3u8 == null)

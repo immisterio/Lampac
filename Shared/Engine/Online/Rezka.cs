@@ -729,7 +729,7 @@ namespace Shared.Engine.Online
         List<ApiModel> getStreamLink(in string _data)
         {
             string data = decodeBase64(_data);
-            var links = new List<ApiModel>() { Capacity = 6 };
+            var links = new List<ApiModel>(6);
 
             #region getLink
             string getLink(string _q)
@@ -740,24 +740,32 @@ namespace Shared.Engine.Online
 
                 if (usereserve && qline.Contains(" or "))
                 {
-                    var links = qline.Split(" or ").Where(i => usehls ? i.EndsWith(".m3u8") : i.EndsWith(".mp4"));
-                    return string.Join(" or ", links);
+                    return string.Join(" or ", qline.Split(" or ").Select(i =>
+                    {
+                        string l = Regex.Match(i, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
+                        if (usehls)
+                        {
+                            if (l.EndsWith(".m3u8"))
+                                return l;
+
+                            return l + ":hls:manifest.m3u8";
+                        }
+
+                        return l.Replace(":hls:manifest.m3u8", "");
+                    }));
                 }
                 else
                 {
-                    string link = usehls ? Regex.Match(qline, "(https?://[^\\[\n\r, ]+:manifest.m3u8)").Groups[1].Value : string.Empty;
-
-                    if (string.IsNullOrEmpty(link))
-                        link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+\\.mp4)(,| |$)").Groups[1].Value;
-
-                    if (string.IsNullOrEmpty(link))
+                    string link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
+                    if (usehls)
                     {
-                        link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
-                        if (string.IsNullOrEmpty(link))
-                            return null;
+                        if (link.EndsWith(".m3u8"))
+                            return link;
+
+                        return link + ":hls:manifest.m3u8";
                     }
 
-                    return link;
+                    return link.Replace(":hls:manifest.m3u8", "");
                 }
             }
             #endregion

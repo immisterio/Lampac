@@ -77,7 +77,7 @@ namespace Online.Controllers
                                     e.HttpClient.Request.Headers.AddHeader("Referer", CrypTo.DecodeBase64("aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcC8="));
                             };
 
-                            var scrap = await browser.WaitPageResult();
+                            var scrap = await browser.WaitPageResult(20);
 
                             if (scrap != null)
                             {
@@ -157,7 +157,7 @@ namespace Online.Controllers
 
                             PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(uri));
 
-                            cache.m3u8 = await browser.WaitPageResult();
+                            cache.m3u8 = await browser.WaitPageResult(20);
                         }
                         #endregion
                     }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Settings;
-using Shared.Models.Templates;
 
 namespace Online.Controllers
 {

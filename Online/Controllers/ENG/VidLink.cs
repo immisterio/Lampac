@@ -75,7 +75,7 @@ namespace Online.Controllers
                                     e.Ok(string.Empty);
                             };
 
-                            var scrap = await browser.WaitPageResult();
+                            var scrap = await browser.WaitPageResult(20);
 
                             if (scrap != null)
                             {
@@ -146,7 +146,7 @@ namespace Online.Controllers
                             });
 
                             PlaywrightBase.GotoAsync(page, uri);
-                            cache.m3u8 = await browser.WaitPageResult();
+                            cache.m3u8 = await browser.WaitPageResult(20);
                         }
                         #endregion
                     }

@@ -117,7 +117,7 @@ namespace Online.Controllers
                         });
 
                         PlaywrightBase.GotoAsync(page, uri);
-                        cache.file = await browser.WaitPageResult();
+                        cache.file = await browser.WaitPageResult(20);
                     }
 
                     if (cache.file == null)
