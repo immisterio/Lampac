@@ -903,7 +903,7 @@ namespace Online.Controllers
                                 return;
                         }
 
-                        online.Add((null, $"{conf.PidTor.displayname ?? "Pid̶Tor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                        online.Add((null, $"{conf.PidTor.displayname ?? "PidŦor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
                     }
 
                     psend();

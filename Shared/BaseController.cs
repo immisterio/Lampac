@@ -27,7 +27,7 @@ namespace Shared
 
         public static string appversion => "147";
 
-        public static string minorversion => "11";
+        public static string minorversion => "12";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -577,21 +577,22 @@ namespace Shared
         async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
         {
             if (_init.kit == false && _init.rhub_fallback == false)
-                return _init;
+                return (T)_init.Clone();
 
-            return loadKit((T)_init.Clone(), await loadKitConf(), func, clone: false);
+            return loadKit(_init, await loadKitConf(), func);
         }
 
         public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable
         {
             var init = clone ? (T)_init.Clone() : _init;
-            if (init == null || !init.kit)
-                return init;
+            var defaultinit = clone ? _init : (T)_init.Clone();
 
-            if (appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
+            if (init == null || !init.kit || appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
+            {
+                InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));
                 return init;
+            }
 
-            var defaultinit = (T)_init.Clone();
             var conf = appinit.Value<JObject>(init.plugin);
 
             void update<T2>(string key, Action<T2> updateAction)
