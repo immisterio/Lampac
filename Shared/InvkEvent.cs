@@ -351,5 +351,7 @@ namespace Shared
             return Invoke<(DateTimeOffset ex, string value)>(code, new EventHybridCache(key, value, ex), option);
         }
         #endregion
+
+        public static void PidTor(EventPidTor model) => Invoke(conf?.PidTor, model);
     }
 }

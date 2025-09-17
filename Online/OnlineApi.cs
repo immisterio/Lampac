@@ -897,13 +897,20 @@ namespace Online.Controllers
                 {
                     void psend()
                     {
-                        if (conf.PidTor.group > 0 && conf.PidTor.group_hide)
+                        var _conf = conf.PidTor.Clone();
+
+                        InvkEvent.PidTor(new EventPidTor(_conf, requestInfo, hybridCache));
+
+                        if (!_conf.enable)
+                            return;
+
+                        if (_conf.group > 0 && _conf.group_hide)
                         {
-                            if (user == null || conf.PidTor.group > user.group)
+                            if (user == null || _conf.group > user.group)
                                 return;
                         }
 
-                        online.Add((null, $"{conf.PidTor.displayname ?? "PidŦor"}", "{localhost}/lite/pidtor", "pidtor", conf.PidTor.displayindex > 0 ? conf.PidTor.displayindex : online.Count));
+                        online.Add((null, $"{_conf.displayname ?? "PidŦor"}", "{localhost}/lite/pidtor", "pidtor", _conf.displayindex > 0 ? _conf.displayindex : online.Count));
                     }
 
                     psend();

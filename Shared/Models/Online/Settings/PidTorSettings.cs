@@ -2,7 +2,7 @@
 
 namespace Shared.Models.Online.Settings
 {
-    public class PidTorSettings : Igroup
+    public class PidTorSettings : Igroup, ICloneable
     {
         bool _enable;
 
@@ -57,6 +57,17 @@ namespace Shared.Models.Online.Settings
         public int group { get; set; }
 
         public bool group_hide { get; set; } = true;
+
+
+        public PidTorSettings Clone()
+        {
+            return (PidTorSettings)MemberwiseClone();
+        }
+
+        object ICloneable.Clone()
+        {
+            return MemberwiseClone();
+        }
     }
 
     public class PidTorAuthTS

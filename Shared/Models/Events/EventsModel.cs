@@ -4,6 +4,8 @@
     {
         public string LoadKit { get; set; }
 
+        public string PidTor { get; set; }
+
         public EventModelMiddleware Middleware { get; set; }
 
         public EventModelController Controller { get; set; }
