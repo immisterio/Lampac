@@ -15,7 +15,6 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Shared.Models.Proxy;
 using Shared.Engine;
-using Newtonsoft.Json;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -51,7 +50,8 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             #region decryptLink
-            var decryptLink = ProxyLink.Decrypt(Regex.Replace(servUri.Contains("aes:") ? servUri : servUri.Split("/")[0], "(\\?|&).*", ""), reqip);
+            string _servUri = ProxyLink.IsAes(servUri) ? servUri : servUri.Split("/")[0];
+            var decryptLink = ProxyLink.Decrypt(Regex.Replace(_servUri, "(\\?|&).*", ""), reqip);
 
             if (init.encrypt || decryptLink?.uri != null || httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {

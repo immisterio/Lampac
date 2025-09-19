@@ -430,6 +430,7 @@ namespace Lampac
         {
             Chromium.FullDispose();
             Firefox.FullDispose();
+            CollectionDb.Dispose();
         }
     }
 }

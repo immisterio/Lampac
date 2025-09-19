@@ -250,7 +250,7 @@ namespace Shared
                     }
                     else if (apn.secure == "lampac")
                     {
-                        string aes = "aes:" + AesTo.Encrypt(System.Text.Json.JsonSerializer.Serialize(new 
+                        string aes = AesTo.Encrypt(System.Text.Json.JsonSerializer.Serialize(new 
                         {
                             u = link,
                             i = requestInfo.IP,

@@ -14,56 +14,63 @@ namespace Lampac.Engine.CRON
 {
     public static class TrackersCron
     {
-        async public static Task Run()
+        public static void Run()
         {
-            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(AppInit.conf.dlna.intervalUpdateTrackers));
+        }
 
-            while (true)
+        static Timer _cronTimer;
+
+        static bool _cronWork = false;
+
+        async static void cron(object state)
+        {
+            if (_cronWork)
+                return;
+
+            _cronWork = true;
+
+            try
             {
-                try
+                if (AppInit.modules == null || AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) == null)
+                    return;
+
+                if (AppInit.conf.dlna.enable && AppInit.conf.dlna.autoupdatetrackers)
                 {
-                    if (AppInit.modules == null || AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) == null)
-                    {
-                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-                        continue;
-                    }
+                    HashSet<string> trackers = new HashSet<string>(), trackers_bad = new HashSet<string>(), temp = new HashSet<string>();
 
-                    if (AppInit.conf.dlna.enable && AppInit.conf.dlna.autoupdatetrackers)
+                    foreach (string uri in new string[]
                     {
-                        HashSet<string> trackers = new HashSet<string>(), trackers_bad = new HashSet<string>(), temp = new HashSet<string>();
-
-                        foreach (string uri in new string[]
-                        {
                             "http://redapi.cfhttp.top/trackers.txt",
                             "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
                             "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt",
                             "https://newtrackon.com/api/all"
-                        })
-                        {
-                            string plain = await Http.Get(uri, weblog: false).ConfigureAwait(false);
-                            if (plain == null)
-                                continue;
+                    })
+                    {
+                        string plain = await Http.Get(uri, weblog: false).ConfigureAwait(false);
+                        if (plain == null)
+                            continue;
 
-                            foreach (string line in plain.Replace("\r", "").Replace("\t", "").Split("\n"))
-                                if (!string.IsNullOrEmpty(line))
-                                    temp.Add(line.Trim());
-                        }
-
-                        foreach (string url in temp)
-                        {
-                            if (await ckeck(url).ConfigureAwait(false))
-                                trackers.Add(url);
-                            else
-                                trackers_bad.Add(url);
-                        }
-
-                        File.WriteAllLines("cache/trackers_bad.txt", trackers_bad);
-                        File.WriteAllLines("cache/trackers.txt", trackers.OrderByDescending(i => Regex.IsMatch(i, "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")).ThenByDescending(i => i.StartsWith("http")));
+                        foreach (string line in plain.Replace("\r", "").Replace("\t", "").Split("\n"))
+                            if (!string.IsNullOrEmpty(line))
+                                temp.Add(line.Trim());
                     }
-                }
-                catch { }
 
-                await Task.Delay(TimeSpan.FromMinutes(AppInit.conf.dlna.intervalUpdateTrackers)).ConfigureAwait(false);
+                    foreach (string url in temp)
+                    {
+                        if (await ckeck(url).ConfigureAwait(false))
+                            trackers.Add(url);
+                        else
+                            trackers_bad.Add(url);
+                    }
+
+                    File.WriteAllLines("cache/trackers_bad.txt", trackers_bad);
+                    File.WriteAllLines("cache/trackers.txt", trackers.OrderByDescending(i => Regex.IsMatch(i, "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")).ThenByDescending(i => i.StartsWith("http")));
+                }
+            }
+            finally
+            {
+                _cronWork = false;
             }
         }
 

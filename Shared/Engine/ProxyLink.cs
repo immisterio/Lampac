@@ -8,15 +8,26 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Shared.Engine
 {
     public class ProxyLink : IProxyLink
     {
-        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
-
-
+        #region ProxyLink
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
+
+        static Timer _cronTimer;
+
+        static ProxyLink()
+        {
+            _cronTimer = new Timer(Cron, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }
+        #endregion
+
+
+        #region Encrypt
+        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
 
         public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, p.verifyip, forceMd5: forceMd5);
 
@@ -33,7 +44,7 @@ namespace Shared.Engine
             {
                 if (verifyip && AppInit.conf.serverproxy.verifyip)
                 {
-                    hash = "aes:" + AesTo.Encrypt(JsonSerializer.Serialize(new
+                    hash = AesTo.Encrypt(JsonSerializer.Serialize(new
                     {
                         u = uri_clear,
                         i = reqip,
@@ -43,7 +54,7 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    hash = "aes:" + AesTo.Encrypt(JsonSerializer.Serialize(new { u = uri_clear }));
+                    hash = AesTo.Encrypt(JsonSerializer.Serialize(new { u = uri_clear }));
                 }
             }
             else
@@ -89,17 +100,19 @@ namespace Shared.Engine
 
             return hash;
         }
+        #endregion
 
+        #region Decrypt
         public static ProxyLinkModel Decrypt(string hash, string reqip)
         {
             if (string.IsNullOrEmpty(hash))
                 return null;
 
-            if (hash.StartsWith("aes:"))
+            if (IsAes(hash))
             {
                 hash = Regex.Replace(hash, "\\.[a-z0-9]+$", "", RegexOptions.IgnoreCase);
 
-                string dec = AesTo.Decrypt(hash.Replace("aes:", ""));
+                string dec = AesTo.Decrypt(hash);
                 if (string.IsNullOrEmpty(dec))
                     return null;
 
@@ -147,43 +160,63 @@ namespace Shared.Engine
 
             return null;
         }
+        #endregion
 
+        #region IsAes
+        public static bool IsAes(string hash)
+        {
+            if (hash.StartsWith("http"))
+                return false;
+
+            if (hash.Split('?', '&', '/', '.')[0].Length == 32)
+                return false;
+
+            return true;
+        }
+        #endregion
+
+
+        #region Cron
+        static HashSet<string> tempLinks = new();
+
+        static int cronRound = 0;
 
         static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
-        async public static Task Cron()
+        static bool _cronWork = false;
+
+        static void Cron(object state)
         {
-            int round = 0;
-            var hash = new HashSet<string>();
+            if (_cronWork)
+                return;
 
-            while (true)
+            _cronWork = true;
+
+            try
             {
-                try
+                if (cronRound == 60)
                 {
-                    if (round == 60)
+                    cronRound = 0;
+                    tempLinks.Clear();
+                }
+
+                cronRound++;
+
+                using (var sqlDb = new ProxyLinkContext())
+                {
+                    if (DateTime.Now > _nextClearDb)
                     {
-                        round = 0;
-                        hash.Clear();
+                        var now = DateTime.Now;
+
+                        sqlDb.links
+                             .AsNoTracking()
+                             .Where(i => now > i.ex)
+                             .ExecuteDelete();
+
+                        _nextClearDb = DateTime.Now.AddHours(1);
                     }
-
-                    round++;
-                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-
-                    using (var sqlDb = new ProxyLinkContext())
+                    else
                     {
-                        if (DateTime.Now > _nextClearDb)
-                        {
-                            var now = DateTime.Now;
-
-                            sqlDb.links
-                                 .AsNoTracking()
-                                 .Where(i => now > i.ex)
-                                 .ExecuteDelete();
-
-                            _nextClearDb = DateTime.Now.AddHours(1);
-                            continue;
-                        }
-
                         foreach (var link in links)
                         {
                             try
@@ -195,7 +228,7 @@ namespace Shared.Engine
                                 }
                                 else
                                 {
-                                    if (hash.Contains(link.Key))
+                                    if (tempLinks.Contains(link.Key))
                                         links.TryRemove(link.Key, out _);
                                     else
                                     {
@@ -209,7 +242,7 @@ namespace Shared.Engine
                                         }
                                         else
                                         {
-                                            sqlDb.links.Add(new ProxyLinkSqlModel() 
+                                            sqlDb.links.Add(new ProxyLinkSqlModel()
                                             {
                                                 Id = link.Key,
                                                 ex = link.Value.ex,
@@ -219,7 +252,7 @@ namespace Shared.Engine
 
                                         if (sqlDb.SaveChanges() > 0)
                                         {
-                                            hash.Add(link.Key);
+                                            tempLinks.Add(link.Key);
                                             links.TryRemove(link.Key, out _);
                                         }
                                     }
@@ -229,8 +262,12 @@ namespace Shared.Engine
                         }
                     }
                 }
-                catch { }
+            }
+            finally 
+            {
+                _cronWork = false;
             }
         }
+        #endregion
     }
 }

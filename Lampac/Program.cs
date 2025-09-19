@@ -8,7 +8,6 @@ using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
 using Shared.Models.Base;
-using Shared.Models.Online.Lumex;
 using Shared.Models.SISI;
 using Shared.Models.SISI.Base;
 using Shared.Models.SQL;
@@ -23,19 +22,22 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Lampac
 {
     public class Program
     {
+        #region static
         static bool _reload = true;
 
         static IHost _host;
 
         public static List<(IPAddress prefix, int prefixLength)> cloudflare_ips = new List<(IPAddress prefix, int prefixLength)>();
 
+        static Timer _usersTimer, _kitTimer;
+        #endregion
 
+        #region Main
         public static void Main(string[] args)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -80,7 +82,9 @@ namespace Lampac
 
             Run(args);
         }
+        #endregion
 
+        #region Run
         static void Run(string[] args)
         {
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
@@ -127,31 +131,28 @@ namespace Lampac
                 #region cache/bookmarks/sisi
                 if (Directory.Exists("cache/bookmarks/sisi"))
                 {
-                    using (var db = CollectionDb.Get())
+                    var sisiDb = CollectionDb.sisi_users;
+
+                    foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
                     {
-                        var sisiDb = db.GetCollection<Shared.Models.SISI.User>("sisi_users");
-
-                        foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                        string folderName = Path.GetFileName(folder);
+                        foreach (string file in Directory.GetFiles(folder))
                         {
-                            string folderName = Path.GetFileName(folder);
-                            foreach (string file in Directory.GetFiles(folder))
+                            try
                             {
-                                try
-                                {
-                                    string md5user = folderName + Path.GetFileName(file);
-                                    var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
+                                string md5user = folderName + Path.GetFileName(file);
+                                var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
 
-                                    if (bookmarks.Count > 0)
+                                if (bookmarks.Count > 0)
+                                {
+                                    sisiDb.Insert(new User
                                     {
-                                        sisiDb.Insert(new User
-                                        {
-                                            Id = md5user,
-                                            Bookmarks = bookmarks
-                                        });
-                                    }
+                                        Id = md5user,
+                                        Bookmarks = bookmarks
+                                    });
                                 }
-                                catch { }
                             }
+                            catch { }
                         }
                     }
                 }
@@ -223,35 +224,6 @@ namespace Lampac
             if (!File.Exists("data/vers-minor.txt"))
                 File.WriteAllText("data/vers-minor.txt", "1");
 
-            ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await LampaCron.Run().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await CacheCron.Run().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await TrackersCron.Run().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await ProxyLink.Cron().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await PluginsCron.Run().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await KurwaCron.Run().ConfigureAwait(false));
-
-            #region kitAllUsers
-            ThreadPool.QueueUserWorkItem(async _ => 
-            {
-                while (true)
-                {
-                    try
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds))).ConfigureAwait(false);
-
-                        if (AppInit.conf.kit.enable && AppInit.conf.kit.IsAllUsersPath && !string.IsNullOrEmpty(AppInit.conf.kit.path))
-                        {
-                            var users = await Http.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path).ConfigureAwait(false);
-                            if (users != null)
-                                AppInit.conf.kit.allUsers = users;
-                        }
-                    }
-                    catch { }
-                }
-            });
-            #endregion
-
             #region cloudflare_ips
             ThreadPool.QueueUserWorkItem(async _ => 
             {
@@ -283,48 +255,6 @@ namespace Lampac
                 }
 
                 Console.WriteLine($"cloudflare_ips: {cloudflare_ips.Count}");
-            });
-            #endregion
-
-            #region users.json
-            ThreadPool.QueueUserWorkItem(async _ =>
-            {
-                while (true)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-
-                    try
-                    {
-                        if (File.Exists("users.json"))
-                        {
-                            foreach (var user in JsonConvert.DeserializeObject<List<AccsUser>>(File.ReadAllText("users.json")))
-                            {
-                                try
-                                {
-                                    var find = AppInit.conf.accsdb.findUser(user.id ?? user.ids?.First());
-                                    if (find != null)
-                                    {
-                                        find.id = user.id;
-                                        find.ids = user.ids;
-                                        find.group = user.group;
-                                        find.IsPasswd = user.IsPasswd;
-                                        find.expires = user.expires;
-                                        find.ban = user.ban;
-                                        find.ban_msg = user.ban_msg;
-                                        find.comment = user.comment;
-                                        find.@params = user.@params;
-                                    }
-                                    else
-                                    {
-                                        AppInit.conf.accsdb.users.Add(user);
-                                    }
-                                }
-                                catch { }
-                            }
-                        }
-                    }
-                    catch { }
-                }
             });
             #endregion
 
@@ -368,6 +298,16 @@ namespace Lampac
             }
             #endregion
 
+            CacheCron.Run();
+            KurwaCron.Run();
+            PluginsCron.Run();
+            SyncCron.Run();
+            TrackersCron.Run();
+            LampaCron.Run();
+
+            _usersTimer = new Timer(UpdateUsersDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            _kitTimer = new Timer(UpdateKitDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
+
             while (_reload)
             {
                 _reload = false;
@@ -375,7 +315,9 @@ namespace Lampac
                 _host.Run();
             }
         }
+        #endregion
 
+        #region Reload
         public static void Reload()
         {
             _reload = true;
@@ -383,7 +325,9 @@ namespace Lampac
             AppInit.LoadModules();
             _host.StopAsync();
         }
+        #endregion
 
+        #region CreateHostBuilder
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
@@ -410,5 +354,89 @@ namespace Lampac
                     })
                     .UseStartup<Startup>();
                 });
+        #endregion
+
+
+        #region UpdateUsersDb
+        static bool _updateUsersDb = false;
+        static DateTime _usersLastWrite = DateTime.MinValue;
+
+        static void UpdateUsersDb(object state)
+        {
+            if (_updateUsersDb)
+                return;
+
+            try
+            {
+                _updateUsersDb = true;
+
+                if (File.Exists("users.json"))
+                {
+                    var lastWriteTime = File.GetLastWriteTime("users.json");
+                    var lastWriteTimeInit = File.Exists("init.conf") ? File.GetLastWriteTime("init.conf") : DateTime.MinValue;
+
+                    if (_usersLastWrite >= lastWriteTime && _usersLastWrite >= lastWriteTimeInit)
+                        return;
+
+                    foreach (var user in JsonConvert.DeserializeObject<List<AccsUser>>(File.ReadAllText("users.json")))
+                    {
+                        try
+                        {
+                            var find = AppInit.conf.accsdb.findUser(user.id ?? user.ids?.First());
+                            if (find != null)
+                            {
+                                find.id = user.id;
+                                find.ids = user.ids;
+                                find.group = user.group;
+                                find.IsPasswd = user.IsPasswd;
+                                find.expires = user.expires;
+                                find.ban = user.ban;
+                                find.ban_msg = user.ban_msg;
+                                find.comment = user.comment;
+                                find.@params = user.@params;
+                            }
+                            else
+                            {
+                                AppInit.conf.accsdb.users.Add(user);
+                            }
+                        }
+                        catch { }
+                    }
+
+                    _usersLastWrite = lastWriteTime > lastWriteTimeInit ? lastWriteTime : lastWriteTimeInit;
+                }
+            }
+            finally 
+            {
+                _updateUsersDb = false;
+            }
+        }
+        #endregion
+
+        #region UpdateKitDb
+        static bool _updateKitDb = false;
+
+        async static void UpdateKitDb(object state)
+        {
+            if (_updateKitDb)
+                return;
+
+            try
+            {
+                _updateKitDb = true;
+
+                if (AppInit.conf.kit.enable && AppInit.conf.kit.IsAllUsersPath && !string.IsNullOrEmpty(AppInit.conf.kit.path))
+                {
+                    var users = await Http.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path).ConfigureAwait(false);
+                    if (users != null)
+                        AppInit.conf.kit.allUsers = users;
+                }
+            }
+            finally
+            {
+                _updateKitDb = false;
+            }
+        }
+        #endregion
     }
 }
