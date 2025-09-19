@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Online.Lumex;
+using Shared.Models.SQL;
 using Shared.PlaywrightCore;
 using System.Data;
 using System.Reflection;
@@ -267,10 +268,9 @@ namespace Online.Controllers
 
                 if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
                 {
-                    using (var db = CollectionDb.Get())
+                    using (var sqlDb = new ExternalidsContext())
                     {
-                        var collection = db.GetCollection("externalids_imdb");
-                        imdb_id = collection.FindById($"{id}_{serial}")?["value"]?.AsString;
+                        imdb_id = sqlDb.imdb.Find($"{id}_{serial}")?.value;
 
                         if (string.IsNullOrEmpty(imdb_id))
                         {
@@ -285,13 +285,15 @@ namespace Online.Controllers
                                 if (!string.IsNullOrWhiteSpace(json))
                                 {
                                     imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
-                                    if (!string.IsNullOrWhiteSpace(imdb_id))
+                                    if (!string.IsNullOrEmpty(imdb_id))
                                     {
-                                        collection.Insert(new BsonDocument()
+                                        sqlDb.Add(new ExternalidsSqlModel()
                                         {
-                                            ["_id"] = $"{id}_{serial}",
-                                            ["value"] = imdb_id
+                                            Id = $"{id}_{serial}",
+                                            value = imdb_id
                                         });
+
+                                        sqlDb.SaveChanges();
                                     }
                                 }
                             }
@@ -310,10 +312,9 @@ namespace Online.Controllers
 
                 if (string.IsNullOrEmpty(kpid) || kpid == "0")
                 {
-                    using (var db = CollectionDb.Get())
+                    using (var sqlDb = new ExternalidsContext())
                     {
-                        var collection = db.GetCollection("externalids_kp");
-                        kpid = collection.FindById(imdb_id)?["value"]?.AsString;
+                        kpid = sqlDb.kinopoisk.Find(imdb_id)?.value;
 
                         if (string.IsNullOrEmpty(kpid) && kinopoisk_id == 0)
                         {
@@ -356,11 +357,13 @@ namespace Online.Controllers
 
                                 if (!string.IsNullOrEmpty(kpid) && kpid != "0")
                                 {
-                                    collection.Insert(new BsonDocument()
+                                    sqlDb.Add(new ExternalidsSqlModel()
                                     {
-                                        ["_id"] = imdb_id,
-                                        ["value"] = kpid
+                                        Id = imdb_id,
+                                        value = kpid
                                     });
+
+                                    sqlDb.SaveChanges();
                                 }
                             }
                         }

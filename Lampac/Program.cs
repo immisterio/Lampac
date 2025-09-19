@@ -90,6 +90,7 @@ namespace Lampac
             ProxyLinkContext.Configure();
             PlaywrightContext.Configure();
             HybridCacheContext.Configure();
+            ExternalidsContext.Configure();
 
             #region migration
             if (File.Exists("vers.txt") || File.Exists("isdocker"))
@@ -148,8 +149,6 @@ namespace Lampac
                                             Bookmarks = bookmarks
                                         });
                                     }
-
-                                    File.Delete(file);
                                 }
                                 catch { }
                             }

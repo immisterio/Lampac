@@ -104,94 +104,101 @@ namespace SISI
             if (md5user == null || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
                 return OnError("access denied");
 
+            User user = null;
+
             using (var db = CollectionDb.Get())
             {
                 var collection = db.GetCollection<User>("sisi_users");
-                var user = collection.FindById(md5user);
+                user = collection.FindById(md5user);
+
                 if (user == null)
                 {
-                    collection.Insert(new User
+                    user = new User
                     {
                         Id = md5user,
                         Bookmarks = new List<PlaylistItem>()
-                    });
+                    };
 
-                    user = collection.FindById(md5user);
-                    if (user == null)
-                        return OnError("user not found");
+                    collection.Insert(user);
                 }
+            }
 
-                string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
+            string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-                if (user.Bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
+            if (user.Bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
+            {
+                string newimage = null;
+
+                #region download image
+                if (AppInit.conf.sisi.bookmarks.saveimage)
                 {
-                    string newimage = null;
+                    string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
 
-                    #region download image
-                    if (AppInit.conf.sisi.bookmarks.saveimage)
+                    if (System.IO.File.Exists($"wwwroot/{pimg}"))
                     {
-                        string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
-
-                        if (System.IO.File.Exists($"wwwroot/{pimg}"))
+                        newimage = pimg;
+                    }
+                    else
+                    {
+                        var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
+                        if (image != null)
                         {
+                            Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
+                            System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
                             newimage = pimg;
+                        }
+                    }
+                }
+                #endregion
+
+                #region download preview
+                if (AppInit.conf.sisi.bookmarks.savepreview)
+                {
+                    if (data.preview != null)
+                    {
+                        string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
+
+                        if (System.IO.File.Exists($"wwwroot/{path}"))
+                        {
+                            data.preview = path;
                         }
                         else
                         {
-                            var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
-                            if (image != null)
+                            var preview = await Http.Download(data.preview, timeoutSeconds: 8);
+                            if (preview != null)
                             {
-                                Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                                await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
-                                newimage = pimg;
-                            }
-                        }
-                    }
-                    #endregion
-
-                    #region download preview
-                    if (AppInit.conf.sisi.bookmarks.savepreview)
-                    {
-                        if (data.preview != null)
-                        {
-                            string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
-
-                            if (System.IO.File.Exists($"wwwroot/{path}"))
-                            {
+                                Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
+                                System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
                                 data.preview = path;
                             }
-                            else
-                            {
-                                var preview = await Http.Download(data.preview, timeoutSeconds: 8);
-                                if (preview != null)
-                                {
-                                    Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
-                                    await System.IO.File.WriteAllBytesAsync($"wwwroot/{path}", preview);
-                                    data.preview = path;
-                                }
-                            }
                         }
                     }
-                    #endregion
+                }
+                #endregion
 
-                    var b = data.bookmark;
-                    data.bookmark = new Bookmark()
-                    {
-                        href = b.href,
-                        image = newimage ?? b.image,
-                        site = b.site,
-                        uid = uid
-                    };
+                var b = data.bookmark;
+                data.bookmark = new Bookmark()
+                {
+                    href = b.href,
+                    image = newimage ?? b.image,
+                    site = b.site,
+                    uid = uid
+                };
+
+                using (var db = CollectionDb.Get())
+                {
+                    var collection = db.GetCollection<User>("sisi_users");
+                    user = collection.FindById(md5user);
 
                     user.Bookmarks.Insert(0, data);
                     collection.Update(user);
                 }
-
-                return Json(new
-                {
-                    result = true
-                });
             }
+
+            return Json(new
+            {
+                result = true
+            });
         }
 
 
