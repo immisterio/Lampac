@@ -87,6 +87,7 @@ namespace Lampac
 
             CollectionDb.Configure();
             ProxyLinkContext.Configure();
+            PlaywrightContext.Configure();
 
             #region migration
             if (File.Exists("vers.txt") || File.Exists("isdocker"))

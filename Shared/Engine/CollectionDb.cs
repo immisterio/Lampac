@@ -18,8 +18,6 @@ namespace Shared.Engine
 
         public static ILiteCollection<BsonDocument> externalids_kp { get; set; }
 
-        public static ILiteCollection<PlaywrightRouteCache> playwrightRoute { get; set; }
-
 
         static LiteDatabase cacheDb, dataDb;
         static Timer _clearTimer;
@@ -44,9 +42,6 @@ namespace Shared.Engine
 
                 hybrid_cache = cacheDb.GetCollection<HybridCacheModel>("fdb");
                 hybrid_cache.EnsureIndex(x => x.ex);
-
-                playwrightRoute = cacheDb.GetCollection<PlaywrightRouteCache>("playwrightRoute");
-                playwrightRoute.EnsureIndex(x => x.ex);
             }
             catch (Exception ex) { Console.WriteLine("CollectionDb: " + ex); }
 
@@ -66,7 +61,6 @@ namespace Shared.Engine
 
                 var ex = DateTimeOffset.Now;
                 hybrid_cache?.DeleteMany(i => ex > i.ex);
-                playwrightRoute?.DeleteMany(i => ex > i.ex);
             }
             catch { }
 

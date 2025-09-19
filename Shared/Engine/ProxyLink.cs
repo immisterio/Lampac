@@ -1,4 +1,5 @@
-﻿using Shared.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Proxy;
 using Shared.Models.SQL;
@@ -148,6 +149,8 @@ namespace Shared.Engine
         }
 
 
+        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
+
         async public static Task Cron()
         {
             int round = 0;
@@ -168,6 +171,19 @@ namespace Shared.Engine
 
                     using (var sqlDb = new ProxyLinkContext())
                     {
+                        if (DateTime.Now > _nextClearDb)
+                        {
+                            var now = DateTime.Now;
+
+                            sqlDb.links
+                                 .AsNoTracking()
+                                 .Where(i => now > i.ex)
+                                 .ExecuteDelete();
+
+                            _nextClearDb = DateTime.Now.AddHours(1);
+                            continue;
+                        }
+
                         foreach (var link in links)
                         {
                             try

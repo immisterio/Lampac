@@ -1,13 +1,14 @@
-﻿using Microsoft.Playwright;
-using Newtonsoft.Json;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Playwright;
+using Shared.Engine;
+using Shared.Models;
+using Shared.Models.SQL;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
-using Shared.Engine;
-using Shared.Models;
-using LiteDB;
 
 namespace Shared.PlaywrightCore
 {
@@ -18,21 +19,10 @@ namespace Shared.PlaywrightCore
         NoHeadless
     }
 
-    public struct PlaywrightRouteCache()
-    {
-        [BsonId]
-        public string id { get; set; }
-
-        public DateTimeOffset ex { get; set; }
-
-        public byte[] content { get; set; }
-
-        public Dictionary<string, string> headers { get; set; }
-    }
-
-
     public class PlaywrightBase
     {
+        static DateTime _nextClearDb = default;
+
         public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
 
         #region WaitPageResult
@@ -360,44 +350,67 @@ namespace Shared.PlaywrightCore
 
                     if (valid)
                     {
-                        var doc = CollectionDb.playwrightRoute.FindById(memkey);
-                        if (doc.content != null)
+                        using (var sqlDb = new PlaywrightContext())
                         {
-                            if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
-                                Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
-
-                            await route.FulfillAsync(new RouteFulfillOptions
-                            {
-                                BodyBytes = doc.content,
-                                Headers = doc.headers
-                            });
-                        }
-                        else
-                        {
-                            if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
-                                Console.WriteLine($"Playwright: MISS {route.Request.Url}");
-
-                            await route.ContinueAsync();
-
+                            #region ClearDb
                             try
                             {
-                                var response = await page.WaitForResponseAsync(route.Request.Url);
-                                if (response != null)
+                                if (DateTime.Now > _nextClearDb)
                                 {
-                                    var content = await response.BodyAsync();
-                                    if (content != null)
-                                    {
-                                        CollectionDb.playwrightRoute.Insert(new PlaywrightRouteCache()
-                                        {
-                                            id = memkey,
-                                            ex = DateTimeOffset.Now.AddHours(1),
-                                            headers = response.Headers,
-                                            content = content
-                                        });
-                                    }
+                                    var now = DateTime.Now;
+
+                                    sqlDb.files
+                                         .AsNoTracking()
+                                         .Where(i => now > i.ex)
+                                         .ExecuteDelete();
+
+                                    _nextClearDb = DateTime.Now.AddHours(1);
                                 }
                             }
                             catch { }
+                            #endregion
+
+                            var doc = sqlDb.files.Find(memkey);
+                            if (doc?.content != null)
+                            {
+                                if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                                    Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
+
+                                await route.FulfillAsync(new RouteFulfillOptions
+                                {
+                                    BodyBytes = doc.content,
+                                    Headers = JsonSerializer.Deserialize<Dictionary<string, string>>(doc.headers)
+                                });
+                            }
+                            else
+                            {
+                                if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                                    Console.WriteLine($"Playwright: MISS {route.Request.Url}");
+
+                                await route.ContinueAsync();
+
+                                try
+                                {
+                                    var response = await page.WaitForResponseAsync(route.Request.Url);
+                                    if (response != null)
+                                    {
+                                        var content = await response.BodyAsync();
+                                        if (content != null)
+                                        {
+                                            sqlDb.files.Add(new PlaywrightSqlModel() 
+                                            {
+                                                Id = memkey,
+                                                ex = DateTime.Now.AddHours(1),
+                                                headers = JsonSerializer.Serialize(response.Headers.ToDictionary()),
+                                                content = content
+                                            });
+
+                                            sqlDb.SaveChanges();
+                                        }
+                                    }
+                                }
+                                catch { }
+                            }
                         }
 
                         return true;
@@ -427,7 +440,7 @@ namespace Shared.PlaywrightCore
             {
                 if (headers != null)
                 {
-                    Console.WriteLine($"\n{value}\n{JsonConvert.SerializeObject(headers.ToDictionary(), Formatting.Indented)}\n");
+                    Console.WriteLine($"\n{value}\n{Newtonsoft.Json.JsonConvert.SerializeObject(headers.ToDictionary(), Newtonsoft.Json.Formatting.Indented)}\n");
                 }
                 else
                 {
