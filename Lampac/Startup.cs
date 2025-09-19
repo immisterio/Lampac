@@ -428,7 +428,6 @@ namespace Lampac
 
         private void OnShutdown()
         {
-            CollectionDb.Dispose();
             Chromium.FullDispose();
             Firefox.FullDispose();
         }

@@ -267,29 +267,32 @@ namespace Online.Controllers
 
                 if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
                 {
-                    var collection = CollectionDb.externalids_imdb;
-                    imdb_id = collection.FindById($"{id}_{serial}")?["value"]?.AsString;
-
-                    if (string.IsNullOrEmpty(imdb_id))
+                    using (var db = CollectionDb.Get())
                     {
-                        string mkey = $"externalids:locktmdb:{serial}:{id}";
-                        if (!hybridCache.TryGetValue(mkey, out _))
-                        {
-                            hybridCache.Set(mkey, 0, DateTime.Now.AddHours(1));
+                        var collection = db.GetCollection("externalids_imdb");
+                        imdb_id = collection.FindById($"{id}_{serial}")?["value"]?.AsString;
 
-                            string cat = serial == 1 ? "tv" : "movie";
-                            var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                            string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
-                            if (!string.IsNullOrWhiteSpace(json))
+                        if (string.IsNullOrEmpty(imdb_id))
+                        {
+                            string mkey = $"externalids:locktmdb:{serial}:{id}";
+                            if (!hybridCache.TryGetValue(mkey, out _))
                             {
-                                imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
-                                if (!string.IsNullOrWhiteSpace(imdb_id))
+                                hybridCache.Set(mkey, 0, DateTime.Now.AddHours(1));
+
+                                string cat = serial == 1 ? "tv" : "movie";
+                                var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
+                                string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
+                                if (!string.IsNullOrWhiteSpace(json))
                                 {
-                                    collection.Insert(new BsonDocument() 
+                                    imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
+                                    if (!string.IsNullOrWhiteSpace(imdb_id))
                                     {
-                                        ["_id"] = $"{id}_{serial}",
-                                        ["value"] = imdb_id
-                                    });
+                                        collection.Insert(new BsonDocument()
+                                        {
+                                            ["_id"] = $"{id}_{serial}",
+                                            ["value"] = imdb_id
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -307,55 +310,58 @@ namespace Online.Controllers
 
                 if (string.IsNullOrEmpty(kpid) || kpid == "0")
                 {
-                    var collection = CollectionDb.externalids_kp;
-                    kpid = collection.FindById(imdb_id)?["value"]?.AsString;
-
-                    if (string.IsNullOrEmpty(kpid) && kinopoisk_id == 0)
+                    using (var db = CollectionDb.Get())
                     {
-                        string mkey = $"externalids:lockkpid:{imdb_id}";
-                        if (!hybridCache.TryGetValue(mkey, out _))
+                        var collection = db.GetCollection("externalids_kp");
+                        kpid = collection.FindById(imdb_id)?["value"]?.AsString;
+
+                        if (string.IsNullOrEmpty(kpid) && kinopoisk_id == 0)
                         {
-                            hybridCache.Set(mkey, 0, DateTime.Now.AddDays(1));
-
-                            switch (AppInit.conf.online.findkp ?? "all")
+                            string mkey = $"externalids:lockkpid:{imdb_id}";
+                            if (!hybridCache.TryGetValue(mkey, out _))
                             {
-                                case "alloha":
-                                    kpid = await getAlloha(imdb_id);
-                                    break;
-                                case "vsdn":
-                                    kpid = await getVSDN(imdb_id);
-                                    break;
-                                case "tabus":
-                                    kpid = await getTabus(imdb_id);
-                                    break;
-                                default:
-                                    {
-                                        var tasks = new List<Task<string>> { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
+                                hybridCache.Set(mkey, 0, DateTime.Now.AddDays(1));
 
-                                        while (tasks.Count > 0)
-                                        {
-                                            var completedTask = await Task.WhenAny(tasks);
-                                            tasks.Remove(completedTask);
-
-                                            var result = completedTask.Result;
-                                            if (result != null)
-                                            {
-                                                kpid = result;
-                                                break;
-                                            }
-                                        }
-
-                                        break;
-                                    }
-                            }
-
-                            if (!string.IsNullOrEmpty(kpid) && kpid != "0")
-                            {
-                                collection.Insert(new BsonDocument()
+                                switch (AppInit.conf.online.findkp ?? "all")
                                 {
-                                    ["_id"] = imdb_id,
-                                    ["value"] = kpid
-                                });
+                                    case "alloha":
+                                        kpid = await getAlloha(imdb_id);
+                                        break;
+                                    case "vsdn":
+                                        kpid = await getVSDN(imdb_id);
+                                        break;
+                                    case "tabus":
+                                        kpid = await getTabus(imdb_id);
+                                        break;
+                                    default:
+                                        {
+                                            var tasks = new List<Task<string>> { getVSDN(imdb_id), getAlloha(imdb_id), getTabus(imdb_id) };
+
+                                            while (tasks.Count > 0)
+                                            {
+                                                var completedTask = await Task.WhenAny(tasks);
+                                                tasks.Remove(completedTask);
+
+                                                var result = completedTask.Result;
+                                                if (result != null)
+                                                {
+                                                    kpid = result;
+                                                    break;
+                                                }
+                                            }
+
+                                            break;
+                                        }
+                                }
+
+                                if (!string.IsNullOrEmpty(kpid) && kpid != "0")
+                                {
+                                    collection.Insert(new BsonDocument()
+                                    {
+                                        ["_id"] = imdb_id,
+                                        ["value"] = kpid
+                                    });
+                                }
                             }
                         }
                     }

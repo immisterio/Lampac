@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
 using Shared.Models.Base;
+using Shared.Models.Online.Lumex;
 using Shared.Models.SISI;
 using Shared.Models.SISI.Base;
 using Shared.Models.SQL;
@@ -125,26 +126,33 @@ namespace Lampac
                 #region cache/bookmarks/sisi
                 if (Directory.Exists("cache/bookmarks/sisi"))
                 {
-                    foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                    using (var db = CollectionDb.Get())
                     {
-                        string folderName = Path.GetFileName(folder);
-                        foreach (string file in Directory.GetFiles(folder))
-                        {
-                            try
-                            {
-                                string md5user = folderName + Path.GetFileName(file);
-                                var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
+                        var sisiDb = db.GetCollection<Shared.Models.SISI.User>("sisi_users");
 
-                                if (bookmarks.Count > 0)
+                        foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                        {
+                            string folderName = Path.GetFileName(folder);
+                            foreach (string file in Directory.GetFiles(folder))
+                            {
+                                try
                                 {
-                                    CollectionDb.sisi_users.Insert(new User
+                                    string md5user = folderName + Path.GetFileName(file);
+                                    var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
+
+                                    if (bookmarks.Count > 0)
                                     {
-                                        Id = md5user,
-                                        Bookmarks = bookmarks
-                                    });
+                                        sisiDb.Insert(new User
+                                        {
+                                            Id = md5user,
+                                            Bookmarks = bookmarks
+                                        });
+                                    }
+
+                                    File.Delete(file);
                                 }
+                                catch { }
                             }
-                            catch { }
                         }
                     }
                 }
