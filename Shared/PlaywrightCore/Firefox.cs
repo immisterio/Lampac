@@ -2,6 +2,7 @@
 using Shared.Engine;
 using Shared.Models.Browser;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Shared.PlaywrightCore
 {
@@ -167,6 +168,57 @@ namespace Shared.PlaywrightCore
             Console.WriteLine("Firefox: Browser_Disconnected");
             await Task.Delay(TimeSpan.FromSeconds(10));
             await CreateAsync();
+        }
+        #endregion
+
+        #region CronStart
+        public static void CronStart()
+        {
+            _closeLifetimeTimer = new Timer(CronCloseLifetimeContext, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+
+        static Timer _closeLifetimeTimer;
+
+        static bool _cronCloseLifetimeWork = false;
+        #endregion
+
+        #region CronCloseLifetimeContext
+        async static void CronCloseLifetimeContext(object state)
+        {
+            if (!AppInit.conf.firefox.enable || Status == PlaywrightStatus.disabled)
+                return;
+
+            if (_cronCloseLifetimeWork)
+                return;
+
+            _cronCloseLifetimeWork = true;
+
+            try
+            {
+                var init = AppInit.conf.firefox;
+                if (0 >= init.context.keepalive)
+                    return;
+
+                foreach (var k in pages_keepopen.ToArray())
+                {
+                    if (Math.Max(1, init.context.min) >= pages_keepopen.Count)
+                        break;
+
+                    if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
+                    {
+                        try
+                        {
+                            await k.page.CloseAsync().ConfigureAwait(false);
+                            pages_keepopen.Remove(k);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            finally
+            {
+                _cronCloseLifetimeWork = false;
+            }
         }
         #endregion
 
@@ -355,39 +407,6 @@ namespace Shared.PlaywrightCore
                 browser.DisposeAsync();
             }
             catch { }
-        }
-
-
-        async public static Task CloseLifetimeContext()
-        {
-            while (true)
-            {
-                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-
-                try
-                {
-                    var init = AppInit.conf.firefox;
-                    if (0 >= init.context.keepalive)
-                        continue;
-
-                    foreach (var k in pages_keepopen.ToArray())
-                    {
-                        if (Math.Max(1, init.context.min) >= pages_keepopen.Count)
-                            break;
-
-                        if (DateTime.Now > k.lastActive.AddMinutes(init.context.keepalive))
-                        {
-                            try
-                            {
-                                await k.page.CloseAsync().ConfigureAwait(false);
-                                pages_keepopen.Remove(k);
-                            }
-                            catch { }
-                        }
-                    }
-                }
-                catch { }
-            }
         }
     }
 }

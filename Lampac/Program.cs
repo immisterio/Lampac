@@ -195,14 +195,8 @@ namespace Lampac
                     }
                 });
 
-                if (AppInit.conf.chromium.enable)
-                {
-                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.CloseLifetimeContext().ConfigureAwait(false));
-                    ThreadPool.QueueUserWorkItem(async _ => await Chromium.Browser_Disconnected().ConfigureAwait(false));
-                }
-
-                if (AppInit.conf.firefox.enable)
-                    ThreadPool.QueueUserWorkItem(async _ => await Firefox.CloseLifetimeContext().ConfigureAwait(false));
+                Chromium.CronStart();
+                Firefox.CronStart();
             }
             #endregion
 
@@ -359,7 +353,7 @@ namespace Lampac
 
         #region UpdateUsersDb
         static bool _updateUsersDb = false;
-        static DateTime _usersLastWrite = DateTime.MinValue;
+        static string _usersKeyUpdate = string.Empty;
 
         static void UpdateUsersDb(object state)
         {
@@ -373,9 +367,9 @@ namespace Lampac
                 if (File.Exists("users.json"))
                 {
                     var lastWriteTime = File.GetLastWriteTime("users.json");
-                    var lastWriteTimeInit = File.Exists("init.conf") ? File.GetLastWriteTime("init.conf") : DateTime.MinValue;
 
-                    if (_usersLastWrite >= lastWriteTime && _usersLastWrite >= lastWriteTimeInit)
+                    string keyUpdate = $"{AppInit.conf?.guid}:{AppInit.conf?.accsdb?.users?.Count ?? 0}:{lastWriteTime}";
+                    if (keyUpdate == _usersKeyUpdate)
                         return;
 
                     foreach (var user in JsonConvert.DeserializeObject<List<AccsUser>>(File.ReadAllText("users.json")))
@@ -403,10 +397,10 @@ namespace Lampac
                         catch { }
                     }
 
-                    _usersLastWrite = lastWriteTime > lastWriteTimeInit ? lastWriteTime : lastWriteTimeInit;
+                    _usersKeyUpdate = keyUpdate;
                 }
             }
-            finally 
+            finally
             {
                 _updateUsersDb = false;
             }

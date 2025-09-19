@@ -2,7 +2,7 @@
 using Shared.Engine;
 using Shared.Models.Browser;
 using System.Runtime.InteropServices;
-using System.Timers;
+using System.Threading;
 
 namespace Shared.PlaywrightCore
 {
@@ -176,64 +176,90 @@ namespace Shared.PlaywrightCore
         }
         #endregion
 
-        #region CloseLifetimeContext
-        async public static Task CloseLifetimeContext()
+        #region CronStart
+        public static void CronStart()
         {
-            while (true)
+            _closeLifetimeTimer = new Timer(CronCloseLifetimeContext, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+            _browserDisconnectedTimer = new Timer(CronBrowserDisconnected, null, TimeSpan.FromMinutes(2), TimeSpan.FromSeconds(20));
+        }
+
+        static Timer _closeLifetimeTimer, _browserDisconnectedTimer;
+
+        static bool _cronCloseLifetimeWork = false, _cronBrowserDisconnectedWork = false;
+        #endregion
+
+        #region CronCloseLifetimeContext
+        async static void CronCloseLifetimeContext(object state)
+        {
+            if (!AppInit.conf.chromium.enable || Status == PlaywrightStatus.disabled)
+                return;
+
+            if (_cronCloseLifetimeWork)
+                return;
+
+            _cronCloseLifetimeWork = true;
+
+            try
             {
-                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+                var init = AppInit.conf.chromium;
+                if (0 >= init.context.keepalive)
+                    return;
 
-                try
+                if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
                 {
-                    var init = AppInit.conf.chromium;
-                    if (0 >= init.context.keepalive)
-                        continue;
+                    create_keepopen_context = DateTime.Now;
+                    var kpc = await browser.NewContextAsync(baseContextOptions).ConfigureAwait(false);
+                    await kpc.NewPageAsync().ConfigureAwait(false);
 
-                    if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
+                    try
                     {
-                        create_keepopen_context = DateTime.Now;
-                        var kpc = await browser.NewContextAsync(baseContextOptions).ConfigureAwait(false);
-                        await kpc.NewPageAsync().ConfigureAwait(false);
+                        _ = keepopen_context.CloseAsync().ConfigureAwait(false);
+                    }
+                    catch { }
 
+                    keepopen_context = kpc;
+                }
+
+                foreach (var k in pages_keepopen.ToArray())
+                {
+                    if (init.context.min >= pages_keepopen.Count)
+                        break;
+
+                    if (DateTime.Now > k.create.AddMinutes(init.context.keepalive))
+                    {
                         try
                         {
-                            _= keepopen_context.CloseAsync().ConfigureAwait(false);
+                            if (pages_keepopen.Remove(k))
+                                _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(i => k.context.CloseAsync()).ConfigureAwait(false);
                         }
                         catch { }
-
-                        keepopen_context = kpc;
-                    }
-
-                    foreach (var k in pages_keepopen.ToArray())
-                    {
-                        if (init.context.min >= pages_keepopen.Count)
-                            break;
-
-                        if (DateTime.Now > k.create.AddMinutes(init.context.keepalive))
-                        {
-                            try
-                            {
-                                if (pages_keepopen.Remove(k))
-                                    _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(i => k.context.CloseAsync()).ConfigureAwait(false);
-                            }
-                            catch { }
-                        }
                     }
                 }
-                catch { }
+            }
+            finally
+            {
+                _cronCloseLifetimeWork = false;
             }
         }
         #endregion
 
-        #region Browser_Disconnected
-        async public static Task Browser_Disconnected()
+        #region CronBrowserDisconnected
+        async static void CronBrowserDisconnected(object state)
         {
-            stats_ping = (DateTime.Now, 1, null);
-            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+            if (!AppInit.conf.chromium.enable)
+                return;
 
-            while (!shutdown)
+            if (_cronBrowserDisconnectedWork)
+                return;
+
+            _cronBrowserDisconnectedWork = true;
+
+            try
             {
-                await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+                stats_ping = (DateTime.Now, 1, null);
+                if (shutdown)
+                    return;
+
                 stats_ping = (DateTime.Now, 2, null);
 
                 if ((AppInit.conf.multiaccess || AppInit.conf.chromium.Headless) && Status != PlaywrightStatus.disabled)
@@ -242,11 +268,11 @@ namespace Shared.PlaywrightCore
                     {
                         stats_ping = (DateTime.Now, 3, null);
                         if (AppInit.conf.multiaccess == false && keepopen_context == null)
-                            continue;
+                            return;
 
                         stats_ping = (DateTime.Now, 4, null);
                         if (browser == null && keepopen_context == null)
-                            continue;
+                            return;
 
                         bool isOk = false;
 
@@ -281,8 +307,8 @@ namespace Shared.PlaywrightCore
                             {
                                 if (browser != null)
                                 {
-                                    _= browser.CloseAsync().ConfigureAwait(false);
-                                    _= browser.DisposeAsync().ConfigureAwait(false);
+                                    _ = browser.CloseAsync().ConfigureAwait(false);
+                                    _ = browser.DisposeAsync().ConfigureAwait(false);
                                 }
                             }
                             catch { }
@@ -293,12 +319,16 @@ namespace Shared.PlaywrightCore
                             await CreateAsync().ConfigureAwait(false);
                         }
                     }
-                    catch (Exception ex) 
+                    catch (Exception ex)
                     {
                         stats_ping = (DateTime.Now, -1, ex.Message);
-                        Console.WriteLine(ex.Message); 
+                        Console.WriteLine(ex.Message);
                     }
                 }
+            }
+            finally
+            {
+                _cronBrowserDisconnectedWork = false;
             }
         }
         #endregion
@@ -524,19 +554,10 @@ namespace Shared.PlaywrightCore
                     }
                 }
 
-                if (imitationHuman)
+                if (imitationHuman || deferredDispose)
                 {
-                    var timer = new Timer(10_000);
-                    timer.Elapsed += (s,e) => { close(); };
-                    timer.AutoReset = false;
-                    timer.Start();
-                }
-                else if (deferredDispose)
-                {
-                    var timer = new Timer(2_000);
-                    timer.Elapsed += (s, e) => { close(); };
-                    timer.AutoReset = false;
-                    timer.Start();
+                    Task.Delay(deferredDispose ? 2_000 : 10_000)
+                        .ContinueWith(t => close());
                 }
                 else
                 {

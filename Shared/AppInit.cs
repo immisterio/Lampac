@@ -31,6 +31,9 @@ namespace Shared
         static AppInit()
         {
             updateConf();
+            if (File.Exists("init.conf"))
+                lastUpdateConf = File.GetLastWriteTime("init.conf");
+
             LoadModules();
 
             #region watcherInit
@@ -94,6 +97,7 @@ namespace Shared
         }
         #endregion
 
+        public readonly string guid = Guid.NewGuid().ToString();
 
         #region conf
         static DateTime lastUpdateConf = default;

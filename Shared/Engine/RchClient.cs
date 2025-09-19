@@ -22,28 +22,37 @@ namespace Shared.Engine
         #region static
         static RchClient()
         {
-            ThreadPool.QueueUserWorkItem(async _ =>
-            {
-                while (true)
-                {
-                    await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+            _checkConnectionTimer = new Timer(CheckConnection, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
 
-                    try
+        static Timer _checkConnectionTimer;
+
+        static bool _cronCheckConnectionWork = false;
+
+        async static void CheckConnection(object state)
+        {
+            if (_cronCheckConnectionWork || clients.Count == 0)
+                return;
+
+            _cronCheckConnectionWork = true;
+
+            try
+            {
+                await Parallel.ForEachAsync(clients.Select(i => i.Key).ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (connectionId, cancellationToken) =>
+                {
+                    if (clients.ContainsKey(connectionId))
                     {
-                        await Parallel.ForEachAsync(clients.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (client, cancellationToken) =>
-                        {
-                            if (clients.ContainsKey(client.Key))
-                            {
-                                var rch = new RchClient(client.Key);
-                                string result = await rch.SendHub("ping", useDefaultHeaders: false);
-                                if (result != "pong")
-                                    OnDisconnected(client.Key);
-                            }
-                        }).ConfigureAwait(false);
+                        var rch = new RchClient(connectionId);
+                        string result = await rch.SendHub("ping", useDefaultHeaders: false);
+                        if (result != "pong")
+                            OnDisconnected(connectionId);
                     }
-                    catch { }
-                }
-            });
+                });
+            }
+            finally
+            {
+                _cronCheckConnectionWork = false;
+            }
         }
 
 

@@ -121,9 +121,8 @@ namespace Shared.Engine
             var type = typeof(TItem);
             bool isText = type == typeof(string);
             bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
-            bool isValueType = type.IsValueType;
 
-            if (!isText && !isConstructor && !isValueType)
+            if (!isText && !isConstructor && !type.IsValueType && !type.IsArray)
                 return false;
 
             try
@@ -142,7 +141,7 @@ namespace Shared.Engine
 
                     var eventResult = InvkEvent.HybridCache("read", key, doc.value, doc.ex);
 
-                    if (isConstructor || isValueType)
+                    if (isConstructor || type.IsValueType || type.IsArray)
                         value = JsonConvert.DeserializeObject<TItem>(eventResult.value ?? doc.value);
                     else
                         value = (TItem)Convert.ChangeType(eventResult.value ?? doc.value, type);
@@ -168,6 +167,9 @@ namespace Shared.Engine
                 return value;
             }
 
+            if (inmemory != true)
+                Console.WriteLine($"set memory: {key} / {DateTime.Now}");
+
             return memoryCache.Set(key, value, absoluteExpiration);
         }
 
@@ -180,6 +182,9 @@ namespace Shared.Engine
 
                 return value;
             }
+
+            if (inmemory != true)
+                Console.WriteLine($"set memory: {key} / {DateTime.Now}");
 
             return memoryCache.Set(key, value, absoluteExpirationRelativeToNow);
         }
@@ -194,16 +199,15 @@ namespace Shared.Engine
             var type = typeof(TItem);
             bool isText = type == typeof(string);
             bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
-            bool isValueType = type.IsValueType;
 
-            if (!isText && !isConstructor && !isValueType)
+            if (!isText && !isConstructor && !type.IsValueType && !type.IsArray)
                 return false;
 
             try
             {
                 string result;
 
-                if (isConstructor || isValueType)
+                if (isConstructor || type.IsValueType || type.IsArray)
                 {
                     result = JsonConvert.SerializeObject(value);
                 }
