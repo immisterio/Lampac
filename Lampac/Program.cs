@@ -86,7 +86,7 @@ namespace Lampac
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             CollectionDb.Configure();
-            ProxyLinkContext.
+            ProxyLinkContext.Configure();
 
             #region migration
             if (File.Exists("vers.txt") || File.Exists("isdocker"))

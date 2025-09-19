@@ -2,6 +2,6 @@
 {
     public interface IProxyLink
     {
-        public string Encrypt(string uri, string plugin, DateTimeOffset ex = default);
+        public string Encrypt(string uri, string plugin, DateTime ex = default);
     }
 }

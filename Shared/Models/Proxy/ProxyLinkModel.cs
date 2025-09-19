@@ -1,5 +1,5 @@
-﻿using LiteDB;
-using System.Net;
+﻿using System.Net;
+using System.Text.Json.Serialization;
 
 namespace Shared.Models.Proxy
 {
@@ -7,10 +7,10 @@ namespace Shared.Models.Proxy
     {
         public ProxyLinkModel() 
         { 
-            ex = DateTimeOffset.Now.AddHours(AppInit.conf.mikrotik ? 4 : 20);
+            ex = DateTime.Now.AddHours(AppInit.conf.mikrotik ? 4 : 20);
         }
 
-        public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTimeOffset ex = default)
+        public ProxyLinkModel(string reqip, List<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTime ex = default)
         {
             this.ex = ex;
             this.reqip = reqip;
@@ -21,19 +21,20 @@ namespace Shared.Models.Proxy
             this.verifyip = verifyip;
 
             if (this.ex == default)
-                this.ex = DateTimeOffset.Now.AddHours(AppInit.conf.mikrotik ? 4 : 20);
+                this.ex = DateTime.Now.AddHours(AppInit.conf.mikrotik ? 4 : 20);
         }
 
-        [BsonId]
+        [JsonIgnore]
         public string id { get; set; }
 
-        public DateTimeOffset ex { get; set; }
+        [JsonIgnore]
+        public DateTime ex { get; set; }
 
         public string reqip { get; set; }
 
         public List<HeadersModel> headers { get; set; }
 
-        [BsonIgnore]
+        [JsonIgnore]
         public WebProxy proxy { get; set; }
 
         public string uri { get; set; }

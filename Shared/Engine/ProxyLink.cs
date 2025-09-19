@@ -1,6 +1,7 @@
 ﻿using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Proxy;
+using Shared.Models.SQL;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
@@ -11,14 +12,14 @@ namespace Shared.Engine
 {
     public class ProxyLink : IProxyLink
     {
-        public string Encrypt(string uri, string plugin, DateTimeOffset ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
+        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
 
 
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
 
         public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, p.verifyip, forceMd5: forceMd5);
 
-        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTimeOffset ex = default, bool forceMd5 = false)
+        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
@@ -121,7 +122,18 @@ namespace Shared.Engine
                 try
                 {
                     if (!AppInit.conf.mikrotik)
-                        val = CollectionDb.proxyLink.FindById(hash);
+                    {
+                        using (var sqlDb = new ProxyLinkContext())
+                        {
+                            var link = sqlDb.links.Find(hash);
+                            if (link != null && link.ex > DateTime.Now)
+                            {
+                                val = JsonSerializer.Deserialize<ProxyLinkModel>(link.json);
+                                val.id = link.Id;
+                                val.ex = link.ex;
+                            }
+                        }
+                    }
                 }
                 catch { }
             }
@@ -154,36 +166,42 @@ namespace Shared.Engine
                     round++;
                     await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
-                    foreach (var link in links)
+                    using (var sqlDb = new ProxyLinkContext())
                     {
-                        try
+                        foreach (var link in links)
                         {
-                            if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTimeOffset.Now.AddMinutes(5) > link.Value.ex)
+                            try
                             {
-                                if (DateTimeOffset.Now > link.Value.ex)
-                                    links.TryRemove(link.Key, out _);
-                            }
-                            else
-                            {
-                                if (hash.Contains(link.Key))
-                                    links.TryRemove(link.Key, out _);
+                                if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex)
+                                {
+                                    if (DateTime.Now > link.Value.ex)
+                                        links.TryRemove(link.Key, out _);
+                                }
                                 else
                                 {
-                                    link.Value.id = link.Key;
-
-                                    var doc = CollectionDb.proxyLink.FindById(link.Key);
-                                    if (doc != null)
-                                    {
-                                        doc.ex = link.Value.ex;
-                                        if (CollectionDb.proxyLink.Update(doc))
-                                        {
-                                            hash.Add(link.Key);
-                                            links.TryRemove(link.Key, out _);
-                                        }
-                                    }
+                                    if (hash.Contains(link.Key))
+                                        links.TryRemove(link.Key, out _);
                                     else
                                     {
-                                        if (CollectionDb.proxyLink.Insert(link.Value))
+                                        link.Value.id = link.Key;
+
+                                        var doc = sqlDb.links.Find(link.Key);
+                                        if (doc != null)
+                                        {
+                                            doc.ex = link.Value.ex;
+                                            doc.json = JsonSerializer.Serialize(link.Value);
+                                        }
+                                        else
+                                        {
+                                            sqlDb.links.Add(new ProxyLinkSqlModel() 
+                                            {
+                                                Id = link.Key,
+                                                ex = link.Value.ex,
+                                                json = JsonSerializer.Serialize(link.Value)
+                                            });
+                                        }
+
+                                        if (sqlDb.SaveChanges() > 0)
                                         {
                                             hash.Add(link.Key);
                                             links.TryRemove(link.Key, out _);
@@ -191,8 +209,8 @@ namespace Shared.Engine
                                     }
                                 }
                             }
+                            catch { }
                         }
-                        catch { }
                     }
                 }
                 catch { }

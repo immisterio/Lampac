@@ -24,14 +24,13 @@ namespace Shared.Models.SQL
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("Data Source=cache/ProxyLink.sql;Pooling=true;");
-            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ProxyLinkSqlModel>()
-                        .HasIndex(j => new { j.ex })
-                        .IsDescending(false, true);
+                        .HasIndex(j => j.ex);
         }
     }
 
