@@ -10,6 +10,7 @@ using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.SISI;
 using Shared.Models.SISI.Base;
+using Shared.Models.SQL;
 using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
@@ -85,6 +86,7 @@ namespace Lampac
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             CollectionDb.Configure();
+            ProxyLinkContext.
 
             #region migration
             if (File.Exists("vers.txt") || File.Exists("isdocker"))

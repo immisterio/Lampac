@@ -217,7 +217,7 @@ namespace Online.Controllers
 
                 if (Lumex.database != null)
                 {
-                    long? res = Lumex.database.Find(i => i.imdb_id == imdb).kinopoisk_id;
+                    long? res = Lumex.database.FirstOrDefault(i => i.imdb_id == imdb).kinopoisk_id;
                     if (res > 0)
                         return res.ToString();
                 }

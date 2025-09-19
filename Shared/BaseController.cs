@@ -138,7 +138,7 @@ namespace Shared
                     }
                 }
 
-                if (headers.Find(i => i.name == h.name) == null)
+                if (headers.FirstOrDefault(i => i.name == h.name) == null)
                     headers.Add(new HeadersModel(h.name, val));
             }
 

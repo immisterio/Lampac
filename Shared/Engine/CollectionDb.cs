@@ -8,6 +8,7 @@ namespace Shared.Engine
 {
     public static class CollectionDb
     {
+        #region static
         public static ILiteCollection<UserSync> sync_users { get; set; }
 
         public static ILiteCollection<Models.SISI.User> sisi_users { get; set; }
@@ -24,6 +25,8 @@ namespace Shared.Engine
 
 
         static LiteDatabase cacheDb, dataDb;
+        static Timer _clearTimer;
+        #endregion
 
         public static void Configure()
         {
@@ -51,22 +54,30 @@ namespace Shared.Engine
                 playwrightRoute = cacheDb.GetCollection<PlaywrightRouteCache>("playwrightRoute");
                 playwrightRoute.EnsureIndex(x => x.ex);
             }
-            catch (Exception ex) { Console.WriteLine(ex); }
+            catch (Exception ex) { Console.WriteLine("CollectionDb: " + ex); }
 
-            ThreadPool.QueueUserWorkItem(async _ =>
+            _clearTimer = new Timer(ClearDB, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+
+
+        static bool workClearDB = false;
+        static void ClearDB(object state)
+        {
+            if (workClearDB)
+                return;
+
+            try
             {
-                while (true)
-                {
-                    try
-                    {
-                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-                        hybrid_cache?.DeleteMany(i => DateTimeOffset.Now > i.ex);
-                        proxyLink?.DeleteMany(i => DateTimeOffset.Now > i.ex);
-                        playwrightRoute?.DeleteMany(i => DateTimeOffset.Now > i.ex);
-                    }
-                    catch { }
-                }
-            });
+                workClearDB = true;
+
+                var ex = DateTimeOffset.Now;
+                hybrid_cache?.DeleteMany(i => ex > i.ex);
+                proxyLink?.DeleteMany(i => ex > i.ex);
+                playwrightRoute?.DeleteMany(i => ex > i.ex);
+            }
+            catch { }
+
+            workClearDB = false;
         }
 
         public static void Dispose()
