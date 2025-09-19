@@ -6,8 +6,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
+using Shared.Models.AppConf;
 using Shared.Models.Base;
+using Shared.Models.CSharpGlobals;
 using Shared.Models.Events;
+using Shared.Models.Online.KinoPub;
 using Shared.Models.Online.Settings;
 using Shared.Models.SISI.OnResult;
 using System.Collections.Concurrent;
@@ -552,6 +555,10 @@ namespace Shared
                     else
                     {
                         string init_file = $"{init.path}/{CrypTo.md5(requestInfo.user_uid)}";
+
+                        if (init.eval_path != null)
+                            init_file = CSharpEval.Execute<string>(init.eval_path, new KitConfEvalPath(init.path, requestInfo.user_uid));
+                       
                         if (!IO.File.Exists(init_file))
                             return null;
 

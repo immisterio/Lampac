@@ -23,7 +23,7 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=cache/Playwright.sql;Pooling=true;");
+            optionsBuilder.UseSqlite("Data Source=cache/Playwright.sql");
             //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 

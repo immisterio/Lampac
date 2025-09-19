@@ -23,7 +23,7 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql;Pooling=true;");
+            optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql");
             //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 

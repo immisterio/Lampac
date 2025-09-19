@@ -25,7 +25,7 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=cache/Externalids.sql;Pooling=true;");
+            optionsBuilder.UseSqlite("Data Source=cache/Externalids.sql");
             //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
     }

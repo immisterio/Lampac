@@ -8,6 +8,8 @@ namespace Shared.Models.AppConf
 
         public string path { get; set; }
 
+        public string eval_path { get; set; }
+
         public bool IsAllUsersPath { get; set; }
 
         public int cacheToSeconds { get; set; }
@@ -18,4 +20,7 @@ namespace Shared.Models.AppConf
         [Newtonsoft.Json.JsonIgnore]
         public Dictionary<string, JObject> allUsers { get; set; }
     }
+
+
+    public record KitConfEvalPath(string path, string uid);
 }

@@ -23,7 +23,7 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=cache/ProxyLink.sql;Pooling=true;");
+            optionsBuilder.UseSqlite("Data Source=cache/ProxyLink.sql");
             //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
