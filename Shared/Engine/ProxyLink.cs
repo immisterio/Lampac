@@ -149,7 +149,7 @@ namespace Shared.Engine
         }
 
 
-        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
+        static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
         async public static Task Cron()
         {

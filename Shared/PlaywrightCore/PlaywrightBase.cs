@@ -21,7 +21,7 @@ namespace Shared.PlaywrightCore
 
     public class PlaywrightBase
     {
-        static DateTime _nextClearDb = default;
+        static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
         public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
 
@@ -371,7 +371,7 @@ namespace Shared.PlaywrightCore
                             #endregion
 
                             var doc = sqlDb.files.Find(memkey);
-                            if (doc?.content != null)
+                            if (doc?.content != null && doc.ex > DateTime.Now)
                             {
                                 if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
                                     Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
@@ -397,13 +397,23 @@ namespace Shared.PlaywrightCore
                                         var content = await response.BodyAsync();
                                         if (content != null)
                                         {
-                                            sqlDb.files.Add(new PlaywrightSqlModel() 
+                                            if (doc != null)
                                             {
-                                                Id = memkey,
-                                                ex = DateTime.Now.AddHours(1),
-                                                headers = JsonSerializer.Serialize(response.Headers.ToDictionary()),
-                                                content = content
-                                            });
+                                                doc.Id = memkey;
+                                                doc.ex = DateTime.Now.AddHours(1);
+                                                doc.headers = JsonSerializer.Serialize(response.Headers.ToDictionary());
+                                                doc.content = content;
+                                            }
+                                            else
+                                            {
+                                                sqlDb.files.Add(new PlaywrightSqlModel()
+                                                {
+                                                    Id = memkey,
+                                                    ex = DateTime.Now.AddHours(1),
+                                                    headers = JsonSerializer.Serialize(response.Headers.ToDictionary()),
+                                                    content = content
+                                                });
+                                            }
 
                                             sqlDb.SaveChanges();
                                         }
