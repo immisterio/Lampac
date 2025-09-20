@@ -8,6 +8,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -52,11 +53,12 @@ namespace Lampac.Engine.Middlewares
         {
             try
             {
-                foreach (var file in Directory.EnumerateFiles("cache/cub", "*"))
+                var files = Directory.GetFiles("cache/img", "*").Select(f => Path.GetFileName(f)).ToHashSet();
+
+                foreach (var c in cacheFiles)
                 {
-                    string md5 = Path.GetFileName(file);
-                    if (!cacheFiles.ContainsKey(md5))
-                        cacheFiles.TryRemove(md5, out _);
+                    if (!files.Contains(c.Key))
+                        cacheFiles.TryRemove(c.Key, out _);
                 }
             }
             catch { }
@@ -107,15 +109,17 @@ namespace Lampac.Engine.Middlewares
                     if (httpContext.Request.ContentType != null &&
                         httpContext.Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
                     {
-                        using var reader = new StreamReader(httpContext.Request.Body, leaveOpen: true);
-                        string form = await reader.ReadToEndAsync().ConfigureAwait(false);
-
-                        var match = Regex.Match(form, @"(?:^|&)data=([^&]+)");
-                        if (match.Success)
+                        using (var reader = new StreamReader(httpContext.Request.Body, leaveOpen: true))
                         {
-                            string dataValue = Uri.UnescapeDataString(match.Groups[1].Value);
-                            await httpContext.Response.WriteAsync(dataValue, httpContext.RequestAborted).ConfigureAwait(false);
-                            return;
+                            string form = await reader.ReadToEndAsync().ConfigureAwait(false);
+
+                            var match = Regex.Match(form, @"(?:^|&)data=([^&]+)");
+                            if (match.Success)
+                            {
+                                string dataValue = Uri.UnescapeDataString(match.Groups[1].Value);
+                                await httpContext.Response.WriteAsync(dataValue, httpContext.RequestAborted).ConfigureAwait(false);
+                                return;
+                            }
                         }
                     }
                 }
@@ -137,19 +141,6 @@ namespace Lampac.Engine.Middlewares
 
             bool isMedia = Regex.IsMatch(uri, "\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)");
 
-            void SemaphoreRelease(string key, SemaphoreSlim semaphore)
-            {
-                if (semaphore != null)
-                {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                    {
-                        semaphore = null;
-                        _semaphoreLocks.TryRemove(key, out _);
-                    }
-                }
-            }
-
             if (0 >= init.cache_api || !HttpMethods.IsGet(httpContext.Request.Method) || isMedia || 
                 (path.Split(".")[0] is "imagetmdb" or "cdn" or "ad") ||
                 httpContext.Request.Headers.ContainsKey("token") || httpContext.Request.Headers.ContainsKey("profile"))
@@ -163,101 +154,130 @@ namespace Lampac.Engine.Middlewares
 
                 try
                 {
-                    await semaphore?.WaitAsync();
+                    if (semaphore != null)
+                        await semaphore.WaitAsync();
 
                     if (isCacheRequest && cacheFiles.ContainsKey(md5key))
                     {
-                        SemaphoreRelease(md5key, semaphore);
+                        if (semaphore != null)
+                        {
+                            semaphore.Release();
+                            if (semaphore.CurrentCount == 1)
+                                _semaphoreLocks.TryRemove(md5key, out _);
+
+                            semaphore = null;
+                        }
+
                         httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                         httpContext.Response.ContentType = getContentType(uri);
                         await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
                         return;
                     }
 
-                    HttpClientHandler handler = new HttpClientHandler()
+                    using (var handler = new HttpClientHandler()
                     {
                         AutomaticDecompression = DecompressionMethods.All,
                         AllowAutoRedirect = false
-                    };
-
-                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                    if (proxy != null)
+                    })
                     {
-                        handler.UseProxy = true;
-                        handler.Proxy = proxy;
-                    }
+                        handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
-                    var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
-                    var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
-
-                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
-                    {
-                        if (isCacheRequest && response.StatusCode == HttpStatusCode.OK)
+                        if (proxy != null)
                         {
-                            #region cache
-                            httpContext.Response.ContentType = getContentType(uri);
-                            httpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                (int)response.Content.Headers.ContentLength.Value :
-                                20_000; // 20kB
-
-                            using (var memoryStream = new MemoryStream(initialCapacity))
-                            {
-                                bool saveCache = true;
-
-                                using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                                {
-                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
-
-                                    try
-                                    {
-                                        int bytesRead;
-                                        Memory<byte> memoryBuffer = buffer.AsMemory();
-
-                                        while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
-                                        {
-                                            memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                            await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
-                                        }
-                                    }
-                                    catch
-                                    {
-                                        saveCache = false;
-                                    }
-                                    finally
-                                    {
-                                        ArrayPool<byte>.Shared.Return(buffer);
-                                    }
-                                }
-
-                                if (saveCache && memoryStream.Length > 1000)
-                                {
-                                    try
-                                    {
-                                        if (!cacheFiles.ContainsKey(md5key))
-                                        {
-                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                            cacheFiles.TryAdd(md5key, 0);
-                                        }
-                                    }
-                                    catch { try { File.Delete(outFile); } catch { } }
-                                }
-                            }
-                            #endregion
+                            handler.UseProxy = true;
+                            handler.Proxy = proxy;
                         }
-                        else
+
+                        var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
+                        var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
+
+                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                         {
-                            SemaphoreRelease(md5key, semaphore);
-                            httpContext.Response.Headers["X-Cache-Status"] = "bypass";
-                            await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                            if (isCacheRequest && response.StatusCode == HttpStatusCode.OK)
+                            {
+                                #region cache
+                                httpContext.Response.ContentType = getContentType(uri);
+                                httpContext.Response.Headers["X-Cache-Status"] = "MISS";
+
+                                int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                    (int)response.Content.Headers.ContentLength.Value :
+                                    20_000; // 20kB
+
+                                using (var memoryStream = new MemoryStream(initialCapacity))
+                                {
+                                    try
+                                    {
+                                        bool saveCache = true;
+
+                                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                        {
+                                            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                                            try
+                                            {
+                                                int bytesRead;
+                                                Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                                while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                                {
+                                                    memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                                    await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                                }
+                                            }
+                                            catch
+                                            {
+                                                saveCache = false;
+                                            }
+                                            finally
+                                            {
+                                                ArrayPool<byte>.Shared.Return(buffer);
+                                            }
+                                        }
+
+                                        if (saveCache && memoryStream.Length > 1000)
+                                        {
+                                            try
+                                            {
+                                                if (!cacheFiles.ContainsKey(md5key))
+                                                {
+                                                    File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                                    cacheFiles.TryAdd(md5key, 0);
+                                                }
+                                            }
+                                            catch { File.Delete(outFile); }
+                                        }
+                                    }
+                                    catch { }
+                                }
+                                #endregion
+                            }
+                            else
+                            {
+                                if (semaphore != null)
+                                {
+                                    semaphore.Release();
+                                    if (semaphore.CurrentCount == 1)
+                                        _semaphoreLocks.TryRemove(md5key, out _);
+
+                                    semaphore = null;
+                                }
+
+                                httpContext.Response.Headers["X-Cache-Status"] = "bypass";
+                                await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                            }
                         }
                     }
                 }
                 finally
                 {
-                    SemaphoreRelease(md5key, semaphore);
+                    if (semaphore != null)
+                    {
+                        semaphore.Release();
+                        if (semaphore.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(md5key, out _);
+
+                        semaphore = null;
+                    }
                 }
                 #endregion
             }
@@ -338,7 +358,14 @@ namespace Lampac.Engine.Middlewares
                 }
                 finally
                 {
-                    SemaphoreRelease(memkey, semaphore);
+                    if (semaphore != null)
+                    {
+                        semaphore.Release();
+                        if (semaphore.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(memkey, out _);
+
+                        semaphore = null;
+                    }
                 }
 
                 httpContext.Response.StatusCode = cache.statusCode;

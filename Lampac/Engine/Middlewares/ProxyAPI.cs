@@ -83,7 +83,7 @@ namespace Lampac.Engine.Middlewares
             }
 
             #region handler
-            HttpClientHandler handler = new HttpClientHandler()
+            using var handler = new HttpClientHandler()
             {
                 AutomaticDecompression = DecompressionMethods.All,
                 AllowAutoRedirect = false
@@ -105,11 +105,13 @@ namespace Lampac.Engine.Middlewares
 
                 var client = FrendlyHttp.CreateClient("ProxyAPI:DASH", handler, "proxy", timeoutSeconds: 20);
 
-                var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
-                using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                using (var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true))
                 {
-                    httpContext.Response.Headers["PX-Cache"] = "BYPASS";
-                    await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                    {
+                        httpContext.Response.Headers["PX-Cache"] = "BYPASS";
+                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                    }
                 }
                 #endregion
             }
@@ -159,11 +161,13 @@ namespace Lampac.Engine.Middlewares
                         // base => AllowAutoRedirect = true
                         var clientor = FrendlyHttp.CreateClient("ProxyAPI:or", hdlr, "base", timeoutSeconds: 7);
 
-                        var requestor = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true);
-                        using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                        using (var requestor = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true))
                         {
-                            if ((int)response.StatusCode != 200)
-                                servUri = links[1].Trim();
+                            using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                            {
+                                if ((int)response.StatusCode != 200)
+                                    servUri = links[1].Trim();
+                            }
                         }
                     }
                     catch
@@ -178,7 +182,7 @@ namespace Lampac.Engine.Middlewares
 
                 var client = FrendlyHttp.CreateClient("ProxyAPI", handler, "proxy", timeoutSeconds: 20);
 
-                var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
+                using var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase));
 
                 using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                 {

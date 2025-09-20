@@ -55,11 +55,12 @@ namespace Lampac.Engine.Middlewares
         {
             try
             {
-                foreach (var file in Directory.EnumerateFiles("cache/tmdb", "*"))
+                var files = Directory.GetFiles("cache/img", "*").Select(f => Path.GetFileName(f)).ToHashSet();
+
+                foreach (var c in cacheFiles)
                 {
-                    string md5 = Path.GetFileName(file);
-                    if (!cacheFiles.ContainsKey(md5))
-                        cacheFiles.TryRemove(md5, out _);
+                    if (!files.Contains(c.Key))
+                        cacheFiles.TryRemove(c.Key, out _);
                 }
             }
             catch { }
@@ -122,25 +123,21 @@ namespace Lampac.Engine.Middlewares
 
             var semaphore = _semaphoreLocks.GetOrAdd(mkey, _ => new SemaphoreSlim(1, 1));
 
-            void SemaphoreRelease()
-            {
-                if (semaphore != null)
-                {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(mkey, out _);
-
-                    semaphore = null;
-                }
-            }
-
             try
             {
                 await semaphore.WaitAsync();
 
                 if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
                 {
-                    SemaphoreRelease();
+                    if (semaphore != null)
+                    {
+                        semaphore.Release();
+                        if (semaphore.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(mkey, out _);
+
+                        semaphore = null;
+                    }
+
                     httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContex.Response.StatusCode = cache.statusCode;
                     httpContex.Response.ContentType = "application/json; charset=utf-8";
@@ -203,7 +200,15 @@ namespace Lampac.Engine.Middlewares
                 var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
                 if (result.content == null)
                 {
-                    SemaphoreRelease();
+                    if (semaphore != null)
+                    {
+                        semaphore.Release();
+                        if (semaphore.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(mkey, out _);
+
+                        semaphore = null;
+                    }
+
                     proxyManager.Refresh();
                     httpContex.Response.StatusCode = 401;
                     await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "json null" }, httpContex.RequestAborted).ConfigureAwait(false);
@@ -221,7 +226,15 @@ namespace Lampac.Engine.Middlewares
                     if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                         hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: false);
 
-                    SemaphoreRelease();
+                    if (semaphore != null)
+                    {
+                        semaphore.Release();
+                        if (semaphore.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(mkey, out _);
+
+                        semaphore = null;
+                    }
+
                     await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
                     return;
                 }
@@ -231,14 +244,29 @@ namespace Lampac.Engine.Middlewares
                 if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                     hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
 
-                SemaphoreRelease();
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(mkey, out _);
+
+                    semaphore = null;
+                }
+
                 proxyManager.Success();
                 httpContex.Response.ContentType = "application/json; charset=utf-8";
                 await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
             }
             finally
             {
-                SemaphoreRelease();
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(mkey, out _);
+
+                    semaphore = null;
+                }
             }
         }
         #endregion
@@ -267,25 +295,21 @@ namespace Lampac.Engine.Middlewares
 
             var semaphore = _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1));
 
-            void SemaphoreRelease()
-            {
-                if (semaphore != null)
-                {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(md5key, out _);
-
-                    semaphore = null;
-                }
-            }
-
             try
             {
                 await semaphore.WaitAsync();
 
                 if (cacheFiles.ContainsKey(md5key))
                 {
-                    SemaphoreRelease();
+                    if (semaphore != null)
+                    {
+                        semaphore.Release();
+                        if (semaphore.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(md5key, out _);
+
+                        semaphore = null;
+                    }
+
                     httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                     await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
                     return;
@@ -343,7 +367,7 @@ namespace Lampac.Engine.Middlewares
 
                 try
                 {
-                    var handler = Http.Handler(uri, proxyManager.Get());
+                    using var handler = Http.Handler(uri, proxyManager.Get());
                     handler.AllowAutoRedirect = true;
 
                     var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
@@ -369,71 +393,83 @@ namespace Lampac.Engine.Middlewares
 
                             using (var memoryStream = new MemoryStream(initialCapacity))
                             {
-                                bool saveCache = true;
-
-                                using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                try
                                 {
-                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                    bool saveCache = true;
 
-                                    try
+                                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                                     {
-                                        int bytesRead;
-                                        Memory<byte> memoryBuffer = buffer.AsMemory();
+                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                        while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
+                                        try
                                         {
-                                            memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                            await httpContex.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContex.RequestAborted).ConfigureAwait(false);
+                                            int bytesRead;
+                                            Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                            while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
+                                            {
+                                                memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                                await httpContex.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContex.RequestAborted).ConfigureAwait(false);
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            saveCache = false;
+                                        }
+                                        finally
+                                        {
+                                            ArrayPool<byte>.Shared.Return(buffer);
                                         }
                                     }
-                                    catch
-                                    {
-                                        saveCache = false;
-                                    }
-                                    finally
-                                    {
-                                        ArrayPool<byte>.Shared.Return(buffer);
-                                    }
-                                }
 
-                                if (saveCache && memoryStream.Length > 1000)
-                                {
-                                    try
+                                    if (saveCache && memoryStream.Length > 1000)
                                     {
-                                        if (!cacheFiles.ContainsKey(md5key))
+                                        try
                                         {
-                                            #region check_img
-                                            if (init.check_img && !path.Contains(".svg"))
+                                            if (!cacheFiles.ContainsKey(md5key))
                                             {
-                                                using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
+                                                #region check_img
+                                                if (init.check_img && !path.Contains(".svg"))
                                                 {
-                                                    try
+                                                    using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
                                                     {
-                                                        // тестируем jpg/png на целостность
-                                                        byte[] temp = image.JpegsaveBuffer();
-                                                        if (temp == null || temp.Length == 0)
+                                                        try
+                                                        {
+                                                            // тестируем jpg/png на целостность
+                                                            byte[] temp = image.JpegsaveBuffer();
+                                                            if (temp == null || temp.Length == 0)
+                                                                return;
+                                                        }
+                                                        catch
+                                                        {
                                                             return;
-                                                    }
-                                                    catch
-                                                    {
-                                                        return;
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            #endregion
+                                                #endregion
 
-                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                            cacheFiles.TryAdd(md5key, 0);
+                                                File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                                cacheFiles.TryAdd(md5key, 0);
+                                            }
                                         }
+                                        catch { File.Delete(outFile); }
                                     }
-                                    catch { try { File.Delete(outFile); } catch { } }
                                 }
+                                catch { }
                             }
                             #endregion
                         }
                         else
                         {
-                            SemaphoreRelease();
+                            if (semaphore != null)
+                            {
+                                semaphore.Release();
+                                if (semaphore.CurrentCount == 1)
+                                    _semaphoreLocks.TryRemove(md5key, out _);
+
+                                semaphore = null;
+                            }
+
                             httpContex.Response.StatusCode = (int)response.StatusCode;
                             httpContex.Response.Headers["X-Cache-Status"] = "bypass";
                             await response.Content.CopyToAsync(httpContex.Response.Body, httpContex.RequestAborted).ConfigureAwait(false);
@@ -452,7 +488,14 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                SemaphoreRelease();
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(md5key, out _);
+
+                    semaphore = null;
+                }
             }
         }
         #endregion
