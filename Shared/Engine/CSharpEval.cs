@@ -52,19 +52,15 @@ namespace Shared.Engine
             {
                 var now = DateTime.UtcNow;
 
-                foreach (var kv in scripts.ToArray())
+                foreach (var entry in scripts.Select(i => new { i.Key, i.Value.IsValueCreated, i.Value.Value.Ex }).ToArray())
                 {
-                    var key = kv.Key;
-                    var lazy = kv.Value;
-
-                    if (!lazy.IsValueCreated)
+                    if (!entry.IsValueCreated)
                         continue;
 
-                    var entry = lazy.Value;
                     if (now <= entry.Ex)
                         continue;
 
-                    scripts.TryRemove(key, out _);
+                    scripts.TryRemove(entry.Key, out _);
                 }
             }
             catch { }

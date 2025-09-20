@@ -18,11 +18,9 @@ namespace Shared.Engine
 
                     try
                     {
-                        var deleteClients = _clients
-                            .Where(c => DateTime.UtcNow > c.Value.lifetime)
-                            .ToArray();
+                        var keysToRemove = new HashSet<string>();
 
-                        foreach (var c in deleteClients)
+                        foreach (var c in _clients.Where(c => DateTime.UtcNow > c.Value.lifetime))
                         {
                             try
                             {
@@ -30,8 +28,11 @@ namespace Shared.Engine
                             }
                             catch { }
 
-                            _clients.TryRemove(c.Key, out var _);
+                            keysToRemove.Add(c.Key);
                         }
+
+                        foreach (string key in keysToRemove)
+                            _clients.TryRemove(key, out var _);
                     }
                     catch { }
                 }
