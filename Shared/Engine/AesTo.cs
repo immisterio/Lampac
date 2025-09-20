@@ -5,19 +5,15 @@ namespace Shared.Engine
 {
     public static class AesTo
     {
-        static readonly object lockObj = new object();
-        static ICryptoTransform encryptor, decryptor;
+        static byte[] aesKey, aesIV;
 
         static AesTo()
         {
-            byte[] key;
-            byte[] iv;
-
             if (File.Exists("cache/aeskey"))
             {
                 var i = File.ReadAllText("cache/aeskey").Split("/");
-                key = Encoding.UTF8.GetBytes(i[0]);
-                iv = Encoding.UTF8.GetBytes(i[1]);
+                aesKey = Encoding.UTF8.GetBytes(i[0]);
+                aesIV = Encoding.UTF8.GetBytes(i[1]);
             }
             else
             {
@@ -25,58 +21,75 @@ namespace Shared.Engine
                 string v = CrypTo.unic(16);
                 File.WriteAllText("cache/aeskey", $"{k}/{v}");
 
-                key = Encoding.UTF8.GetBytes(k);
-                iv = Encoding.UTF8.GetBytes(v);
+                aesKey = Encoding.UTF8.GetBytes(k);
+                aesIV = Encoding.UTF8.GetBytes(v);
             }
-
-            Aes aes = Aes.Create();
-            aes.Key = key;
-            aes.IV = iv;
-
-            encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-            decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
         }
 
         public static string Encrypt(string plainText)
         {
             try
             {
-                lock (lockObj)
+                using (var aes = Aes.Create())
                 {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                        {
-                            using (StreamWriter sw = new StreamWriter(cs))
-                                sw.Write(plainText);
+                    aes.Key = aesKey;
+                    aes.IV = aesIV;
 
-                            return Convert.ToBase64String(ms.ToArray());
+                    using (var encryptor = aes.CreateEncryptor(aes.Key, aes.IV))
+                    {
+                        using (var ms = new MemoryStream())
+                        {
+                            using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                            {
+                                try
+                                {
+                                    using (var sw = new StreamWriter(cs, Encoding.UTF8))
+                                        sw.Write(plainText ?? string.Empty);
+
+                                    return Convert.ToBase64String(ms.ToArray());
+                                }
+                                catch { return null; }
+                            }
                         }
                     }
                 }
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         public static string Decrypt(string cipherText)
         {
             try
             {
-                lock (lockObj)
+                using (var aes = Aes.Create())
                 {
-                    using (MemoryStream ms = new MemoryStream(Convert.FromBase64String(cipherText)))
+                    aes.Key = aesKey;
+                    aes.IV = aesIV;
+
+                    using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
                     {
-                        using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                        using (var ms = new MemoryStream(Convert.FromBase64String(cipherText)))
                         {
-                            using (StreamReader sr = new StreamReader(cs))
+                            using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
                             {
-                                return sr.ReadToEnd();
+                                try
+                                {
+                                    using (var sr = new StreamReader(cs, Encoding.UTF8))
+                                        return sr.ReadToEnd();
+                                }
+                                catch { return null; }
                             }
                         }
                     }
                 }
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

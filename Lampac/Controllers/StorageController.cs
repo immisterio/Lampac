@@ -53,19 +53,28 @@ namespace Lampac.Controllers
         async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string pathfile, [FromQuery]string events)
         {
             if (!AppInit.conf.storage.enable)
-                return Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"disabled\"}");
 
             if (HttpContext.Request.ContentLength > AppInit.conf.storage.max_size)
-                return Content("{\"success\": false, \"msg\": \"max_size\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"max_size\"}");
 
             string outFile = getFilePath(path, pathfile, true);
             if (outFile == null)
-                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
             byte[] array = null;
-            using (var memoryStream = new MemoryStream()) {
-                await HttpContext.Request.Body.CopyToAsync(memoryStream);
-                array = memoryStream.ToArray();
+            using (var memoryStream = new MemoryStream()) 
+            {
+                try
+                {
+                    await HttpContext.Request.Body.CopyToAsync(memoryStream);
+                    array = memoryStream.ToArray();
+                }
+                catch 
+                {
+                    HttpContext.Response.StatusCode = 500;
+                    return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
+                }
             }
 
             var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
@@ -81,6 +90,11 @@ namespace Lampac.Controllers
                     using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
                         fileStream.Write(array, 0, array.Length);
                 }
+            }
+            catch
+            {
+                HttpContext.Response.StatusCode = 500;
+                return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
             }
             finally
             {
@@ -138,20 +152,28 @@ namespace Lampac.Controllers
         async public Task<ActionResult> TempSet(string key)
         {
             if (!AppInit.conf.storage.enable)
-                return Content("{\"success\": false, \"msg\": \"disabled\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"disabled\"}");
 
             if (HttpContext.Request.ContentLength > AppInit.conf.storage.max_size)
-                return Content("{\"success\": false, \"msg\": \"max_size\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"max_size\"}");
 
             string outFile = getFilePath("temp", null, true, user_uid: key);
             if (outFile == null)
-                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
             byte[] array = null;
             using (var memoryStream = new MemoryStream())
             {
-                await HttpContext.Request.Body.CopyToAsync(memoryStream);
-                array = memoryStream.ToArray();
+                try
+                {
+                    await HttpContext.Request.Body.CopyToAsync(memoryStream);
+                    array = memoryStream.ToArray();
+                }
+                catch 
+                {
+                    HttpContext.Response.StatusCode = 500;
+                    return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
+                }
             }
 
             var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
@@ -167,6 +189,11 @@ namespace Lampac.Controllers
                     using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
                         fileStream.Write(array, 0, array.Length);
                 }
+            }
+            catch
+            {
+                HttpContext.Response.StatusCode = 500;
+                return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
             }
             finally
             {

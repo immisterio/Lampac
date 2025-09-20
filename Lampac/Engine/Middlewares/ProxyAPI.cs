@@ -581,12 +581,20 @@ namespace Lampac.Engine.Middlewares
                                 while (!context.RequestAborted.IsCancellationRequested)
                                 {
                                     byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(bunit.rent, 4096));
-                                    int bytesRead = await responseStream.ReadAsync(chunkBuffer, 0, chunkBuffer.Length, context.RequestAborted);
 
-                                    if (bytesRead == 0) 
-                                        break;
+                                    try
+                                    {
+                                        int bytesRead = await responseStream.ReadAsync(chunkBuffer, 0, chunkBuffer.Length, context.RequestAborted);
 
-                                    await channel.Writer.WriteAsync((chunkBuffer, bytesRead), context.RequestAborted);
+                                        if (bytesRead == 0)
+                                            break;
+
+                                        await channel.Writer.WriteAsync((chunkBuffer, bytesRead), context.RequestAborted);
+                                    }
+                                    finally
+                                    {
+                                        ArrayPool<byte>.Shared.Return(chunkBuffer);
+                                    }
                                 }
                             }
                             finally

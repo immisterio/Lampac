@@ -21,10 +21,14 @@ namespace Shared.Engine
                 {
                     using (var output = new MemoryStream())
                     {
-                        using (var stream = new BrotliStream(output, CompressionLevel.Fastest))
-                            input.CopyTo(stream);
+                        try
+                        {
+                            using (var stream = new BrotliStream(output, CompressionLevel.Fastest))
+                                input.CopyTo(stream);
 
-                        return output.ToArray();
+                            return output.ToArray();
+                        }
+                        catch { return null; }
                     }
                 }
             }
@@ -50,8 +54,12 @@ namespace Shared.Engine
                     {
                         using (var output = new FileStream(outfile, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            using (var stream = new BrotliStream(output, CompressionLevel.Fastest))
-                                input.CopyTo(stream);
+                            try
+                            {
+                                using (var stream = new BrotliStream(output, CompressionLevel.Fastest))
+                                    input.CopyTo(stream);
+                            }
+                            catch { }
                         }
                     }
                 }
@@ -68,10 +76,14 @@ namespace Shared.Engine
                 {
                     using (var output = new MemoryStream())
                     {
-                        using (var stream = new BrotliStream(input, CompressionMode.Decompress))
-                            stream.CopyTo(output);
+                        try
+                        {
+                            using (var stream = new BrotliStream(input, CompressionMode.Decompress))
+                                stream.CopyTo(output);
 
-                        return Encoding.UTF8.GetString(output.ToArray());
+                            return Encoding.UTF8.GetString(output.ToArray());
+                        }
+                        catch { return null; }
                     }
                 }
             }
@@ -99,10 +111,14 @@ namespace Shared.Engine
                 {
                     using (var output = new MemoryStream())
                     {
-                        using (var stream = new BrotliStream(input, CompressionMode.Decompress))
-                            stream.CopyTo(output);
+                        try
+                        {
+                            using (var stream = new BrotliStream(input, CompressionMode.Decompress))
+                                stream.CopyTo(output);
 
-                        return output.ToArray();
+                            return output.ToArray();
+                        }
+                        catch { return null; }
                     }
                 }
             }

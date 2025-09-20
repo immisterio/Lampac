@@ -58,21 +58,18 @@ namespace Lampac.Controllers
                 return Content(string.Empty);
             }
 
-            using (var compressedStream = new MemoryStream())
+            try
             {
-                await Request.Body.CopyToAsync(compressedStream);
-                compressedStream.Position = 0;
-
-                using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
+                using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
                 {
-                    using (var resultStream = new MemoryStream())
+                    using (var reader = new StreamReader(gzip, Encoding.UTF8))
                     {
-                        gzipStream.CopyTo(resultStream);
-                        string decompressedData = Encoding.UTF8.GetString(resultStream.ToArray());
-                        tcs.SetResult(decompressedData);
+                        var text = await reader.ReadToEndAsync();
+                        tcs.SetResult(text ?? string.Empty);
                     }
                 }
             }
+            catch { }
 
             return Ok();
         }
