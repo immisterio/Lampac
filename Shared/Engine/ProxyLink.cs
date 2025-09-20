@@ -217,7 +217,7 @@ namespace Shared.Engine
                     }
                     else
                     {
-                        foreach (var link in links)
+                        foreach (var link in links.ToArray())
                         {
                             try
                             {
@@ -258,7 +258,7 @@ namespace Shared.Engine
                                     }
                                 }
                             }
-                            catch { }
+                            catch (Exception ex) { Console.WriteLine($"ProxyLink cron: {ex}"); }
                         }
                     }
                 }

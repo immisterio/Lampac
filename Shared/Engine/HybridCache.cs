@@ -50,7 +50,7 @@ namespace Shared.Engine
                     }
                     else
                     {
-                        foreach (var t in tempDb)
+                        foreach (var t in tempDb.ToArray())
                         {
                             try
                             {

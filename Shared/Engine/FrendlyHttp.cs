@@ -18,18 +18,19 @@ namespace Shared.Engine
 
                     try
                     {
-                        foreach (var c in _clients)
-                        {
-                            if (DateTime.UtcNow > c.Value.lifetime)
-                            {
-                                try
-                                {
-                                    c.Value.http.Dispose();
-                                }
-                                catch { }
+                        var deleteClients = _clients
+                            .Where(c => DateTime.UtcNow > c.Value.lifetime)
+                            .ToArray();
 
-                                _clients.TryRemove(c.Key, out var _);
+                        foreach (var c in deleteClients)
+                        {
+                            try
+                            {
+                                c.Value.http.Dispose();
                             }
+                            catch { }
+
+                            _clients.TryRemove(c.Key, out var _);
                         }
                     }
                     catch { }

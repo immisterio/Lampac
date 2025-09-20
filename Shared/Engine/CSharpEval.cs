@@ -50,14 +50,21 @@ namespace Shared.Engine
         {
             try
             {
-                foreach (var s in scripts)
+                var now = DateTime.UtcNow;
+
+                foreach (var kv in scripts.ToArray())
                 {
-                    if (s.Value.IsValueCreated)
-                    {
-                        var entry = s.Value.Value;
-                        if (DateTime.UtcNow > entry.Ex)
-                            scripts.TryRemove(s.Key, out _);
-                    }
+                    var key = kv.Key;
+                    var lazy = kv.Value;
+
+                    if (!lazy.IsValueCreated)
+                        continue;
+
+                    var entry = lazy.Value;
+                    if (now <= entry.Ex)
+                        continue;
+
+                    scripts.TryRemove(key, out _);
                 }
             }
             catch { }

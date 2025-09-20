@@ -55,10 +55,10 @@ namespace Lampac.Engine.Middlewares
             {
                 var files = Directory.GetFiles("cache/img", "*").Select(f => Path.GetFileName(f)).ToHashSet();
 
-                foreach (var c in cacheFiles)
+                foreach (string md5fileName in cacheFiles.Keys.ToArray())
                 {
-                    if (!files.Contains(c.Key))
-                        cacheFiles.TryRemove(c.Key, out _);
+                    if (!files.Contains(md5fileName))
+                        cacheFiles.TryRemove(md5fileName, out _);
                 }
             }
             catch { }

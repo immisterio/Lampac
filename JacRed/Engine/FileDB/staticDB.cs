@@ -102,11 +102,13 @@ namespace JacRed.Engine
 
                 try
                 {
-                    foreach (var i in openWriteTask)
-                    {
-                        if (DateTime.UtcNow > i.Value.lastread.AddHours(ModInit.conf.Red.evercache.validHour))
-                            openWriteTask.TryRemove(i.Key, out _);
-                    }
+                    var deleteKeys = openWriteTask
+                        .Where(i => DateTime.UtcNow > i.Value.lastread.AddHours(ModInit.conf.Red.evercache.validHour))
+                        .Select(i => i.Key)
+                        .ToArray();
+
+                    foreach (string key in deleteKeys) 
+                        openWriteTask.TryRemove(key, out _);
                 }
                 catch { }
             }
@@ -125,11 +127,15 @@ namespace JacRed.Engine
                 {
                     if (openWriteTask.Count > ModInit.conf.Red.evercache.maxOpenWriteTask)
                     {
-                        var query = openWriteTask.Where(i => DateTime.Now > i.Value.create.AddMinutes(10));
-                        query = query.OrderBy(i => i.Value.countread).ThenBy(i => i.Value.lastread);
+                        var deleteKeys = openWriteTask
+                            .Where(i => DateTime.Now > i.Value.create.AddMinutes(10))
+                            .OrderBy(i => i.Value.countread).ThenBy(i => i.Value.lastread)
+                            .Take(ModInit.conf.Red.evercache.dropCacheTake)
+                            .Select(i => i.Key)
+                            .ToArray();
 
-                        foreach (var i in query.Take(ModInit.conf.Red.evercache.dropCacheTake))
-                            openWriteTask.TryRemove(i.Key, out _);
+                        foreach (string key in deleteKeys)
+                            openWriteTask.TryRemove(key, out _);
                     }
                 }
                 catch { }
