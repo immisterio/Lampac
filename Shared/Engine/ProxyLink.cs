@@ -181,7 +181,7 @@ namespace Shared.Engine
 
         static int cronRound = 0;
 
-        static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
+        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
 
         static bool _cronWork = false;
 

@@ -14,7 +14,7 @@ namespace Shared.Engine
 
         static Timer _clearTimer;
 
-        static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
+        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
 
         static ConcurrentDictionary<string, HybridCacheSqlModel> tempDb;
 

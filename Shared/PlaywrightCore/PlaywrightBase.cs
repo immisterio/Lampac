@@ -21,7 +21,7 @@ namespace Shared.PlaywrightCore
 
     public class PlaywrightBase
     {
-        static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
+        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
 
         public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
 
