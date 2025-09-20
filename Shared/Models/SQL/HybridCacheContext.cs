@@ -40,7 +40,7 @@ namespace Shared.Models.SQL
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public string Id { get; set; }
 
-        public DateTimeOffset ex { get; set; }
+        public DateTime ex { get; set; }
 
         public string value { get; set; }
     }

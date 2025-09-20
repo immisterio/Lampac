@@ -16,13 +16,14 @@ namespace Shared.Engine
 
         static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
-        static ConcurrentDictionary<string, HybridCacheSqlModel> tempDb = new();
+        static ConcurrentDictionary<string, HybridCacheSqlModel> tempDb;
 
         public static void Configure(IMemoryCache mem)
         {
             memoryCache = mem;
 
-            _clearTimer = new Timer(UpdateDB, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            tempDb = new ConcurrentDictionary<string, HybridCacheSqlModel>();
+            _clearTimer = new Timer(UpdateDB, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
         static bool updatingDb = false;
@@ -78,9 +79,10 @@ namespace Shared.Engine
                     }
                 }
             }
-            catch { }
-
-            updatingDb = false;
+            finally 
+            {
+                updatingDb = false;
+            }
         }
         #endregion
 
@@ -136,7 +138,7 @@ namespace Shared.Engine
 
                     var doc = _temp ?? sqlDb.files.Find(md5key);
 
-                    if (doc?.Id == null || DateTimeOffset.Now > doc.ex)
+                    if (doc?.Id == null || DateTime.Now > doc.ex)
                         return false;
 
                     var eventResult = InvkEvent.HybridCache("read", key, doc.value, doc.ex);
@@ -228,7 +230,7 @@ namespace Shared.Engine
 
                 tempDb.TryAdd(CrypTo.md5(key), new HybridCacheSqlModel()
                 {
-                    ex = absoluteExpiration,
+                    ex = absoluteExpiration.DateTime,
                     value = result
                 });
 

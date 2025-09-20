@@ -21,7 +21,7 @@ namespace Shared.Engine
 
         static ProxyLink()
         {
-            _cronTimer = new Timer(Cron, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            _cronTimer = new Timer(Cron, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
         #endregion
 
