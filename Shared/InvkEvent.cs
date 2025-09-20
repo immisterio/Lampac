@@ -186,14 +186,22 @@ namespace Shared
 
 
         #region LoadKit
-        public static void LoadKit(EventLoadKit model) => 
+        public static void LoadKit(EventLoadKit model) 
+        {
+            if (conf?.LoadKit == null)
+                return;
+
             Invoke(conf?.LoadKit, model, ScriptOptions.Default.AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base")
-                                                              .AddReferences(typeof(File).Assembly).AddImports("System.IO"));
+                                                                     .AddReferences(typeof(File).Assembly).AddImports("System.IO"));
+        }
         #endregion
 
         #region BadInitialization
         public static Task<ActionResult> BadInitialization(EventBadInitialization model)
         {
+            if (conf?.Controller?.BadInitialization == null)
+                return Task.FromResult(default(ActionResult));
+
             var option = ScriptOptions.Default.AddReferences(typeof(ActionResult).Assembly).AddImports("Microsoft.AspNetCore.Mvc")
                                               .AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base")
                                               .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
@@ -207,6 +215,9 @@ namespace Shared
         #region Middleware
         public static Task<bool> Middleware(bool first, EventMiddleware model)
         {
+            if ((first ? conf?.Middleware?.first : conf?.Middleware?.end) == null)
+                return Task.FromResult(default(bool));
+
             var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
                                               .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks")
                                               .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
@@ -241,6 +252,9 @@ namespace Shared
                     break;
             }
 
+            if (string.IsNullOrEmpty(code))
+                return null;
+
             return Invoke<string>(code, model, ScriptOptions.Default.AddReferences(typeof(File).Assembly).AddImports("System.IO"));
         }
         #endregion
@@ -261,6 +275,9 @@ namespace Shared
                     break;
             }
 
+            if (string.IsNullOrEmpty(code))
+                return;
+
             var option = ScriptOptions.Default.AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
                                               .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http")
                                               .AddReferences(typeof(File).Assembly).AddImports("System.IO");
@@ -278,6 +295,9 @@ namespace Shared
                     code = conf?.Http?.Response;
                     break;
             }
+
+            if (string.IsNullOrEmpty(code))
+                return Task.CompletedTask;
 
             var option = ScriptOptions.Default.AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
                                               .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http");

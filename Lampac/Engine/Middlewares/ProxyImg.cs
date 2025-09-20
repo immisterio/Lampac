@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
 using Shared.Models;
@@ -28,11 +29,13 @@ namespace Lampac.Engine.Middlewares
 
         static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
+        static Timer cleanupTimer;
+
         static ProxyImg()
         {
             Directory.CreateDirectory("cache/img");
 
-            foreach (var item in Directory.GetFiles("cache/img", "*"))
+            foreach (var item in Directory.EnumerateFiles("cache/img", "*"))
                 cacheFiles.TryAdd(Path.GetFileName(item), 0);
 
             fileWatcher = new FileSystemWatcher
@@ -44,6 +47,22 @@ namespace Lampac.Engine.Middlewares
 
             fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
+
+            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+        }
+
+        static void cleanup(object state)
+        {
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles("cache/img", "*"))
+                {
+                    string md5 = Path.GetFileName(file);
+                    if (!cacheFiles.ContainsKey(md5))
+                        cacheFiles.TryRemove(md5, out _);
+                }
+            }
+            catch { }
         }
 
         public ProxyImg(RequestDelegate next) { }
@@ -120,26 +139,24 @@ namespace Lampac.Engine.Middlewares
             if (width > 0 || height > 0)
                 contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
 
-            var semaphore = _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1));
+            var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1)) : null;
 
-            if (cacheimg)
-                await semaphore.WaitAsync();
-
-            bool semaphoreDispose = false;
             void SemaphoreRelease()
             {
-                if (cacheimg && !semaphoreDispose)
+                if (semaphore != null)
                 {
-                    semaphoreDispose = true;
                     semaphore.Release();
                     if (semaphore.CurrentCount == 1)
                         _semaphoreLocks.TryRemove(href, out _);
+
+                    semaphore = null;
                 }
-                else _semaphoreLocks.TryRemove(href, out _);
             }
 
             try
             {
+                await semaphore?.WaitAsync();
+
                 if (cacheimg && cacheFiles.ContainsKey(md5key))
                 {
                     SemaphoreRelease();

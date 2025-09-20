@@ -26,11 +26,13 @@ namespace Lampac.Engine.Middlewares
 
         static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
+        static Timer cleanupTimer;
+
         static ProxyCub() 
         {
             Directory.CreateDirectory("cache/cub");
 
-            foreach (var item in Directory.GetFiles("cache/cub", "*"))
+            foreach (var item in Directory.EnumerateFiles("cache/cub", "*"))
                 cacheFiles.TryAdd(Path.GetFileName(item), 0);
 
             fileWatcher = new FileSystemWatcher
@@ -42,6 +44,22 @@ namespace Lampac.Engine.Middlewares
 
             fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
+
+            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+        }
+
+        static void cleanup(object state)
+        {
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles("cache/cub", "*"))
+                {
+                    string md5 = Path.GetFileName(file);
+                    if (!cacheFiles.ContainsKey(md5))
+                        cacheFiles.TryRemove(md5, out _);
+                }
+            }
+            catch { }
         }
 
         public ProxyCub(RequestDelegate next) { }
@@ -119,13 +137,17 @@ namespace Lampac.Engine.Middlewares
 
             bool isMedia = Regex.IsMatch(uri, "\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)");
 
-            bool semaphoreDispose = false;
             void SemaphoreRelease(string key, SemaphoreSlim semaphore)
             {
-                semaphoreDispose = true;
-                semaphore.Release();
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(key, out _);
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                    {
+                        semaphore = null;
+                        _semaphoreLocks.TryRemove(key, out _);
+                    }
+                }
             }
 
             if (0 >= init.cache_api || !HttpMethods.IsGet(httpContext.Request.Method) || isMedia || 
@@ -137,13 +159,12 @@ namespace Lampac.Engine.Middlewares
                 string outFile = Path.Combine("cache", "cub", md5key);
                 bool isCacheRequest = init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false;
 
-                var semaphore = _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1));
-
-                if (isCacheRequest)
-                    await semaphore.WaitAsync();
+                var semaphore = isCacheRequest ? _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1)) : null;
 
                 try
                 {
+                    await semaphore?.WaitAsync();
+
                     if (isCacheRequest && cacheFiles.ContainsKey(md5key))
                     {
                         SemaphoreRelease(md5key, semaphore);
@@ -228,9 +249,7 @@ namespace Lampac.Engine.Middlewares
                         }
                         else
                         {
-                            if (isCacheRequest)
-                                SemaphoreRelease(md5key, semaphore);
-
+                            SemaphoreRelease(md5key, semaphore);
                             httpContext.Response.Headers["X-Cache-Status"] = "bypass";
                             await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
                         }
@@ -238,11 +257,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 finally
                 {
-                    if (!semaphoreDispose)
-                    {
-                        if (isCacheRequest) SemaphoreRelease(md5key, semaphore);
-                        else _semaphoreLocks.TryRemove(md5key, out _);
-                    }
+                    SemaphoreRelease(md5key, semaphore);
                 }
                 #endregion
             }
@@ -253,10 +268,11 @@ namespace Lampac.Engine.Middlewares
                 (string content, int statusCode, string contentType) cache = default;
 
                 var semaphore = _semaphoreLocks.GetOrAdd(memkey, _ => new SemaphoreSlim(1, 1));
-                await semaphore.WaitAsync();
 
                 try
                 {
+                    await semaphore.WaitAsync();
+
                     if (!hybridCache.TryGetValue(memkey, out cache, inmemory: false))
                     {
                         var headers = HeadersModel.Init();

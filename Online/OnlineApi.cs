@@ -906,7 +906,7 @@ namespace Online.Controllers
                 {
                     void psend()
                     {
-                        var _conf = conf.PidTor.Clone();
+                        var _conf = InvkEvent.conf.PidTor != null ? conf.PidTor.Clone() : conf.PidTor;
 
                         InvkEvent.PidTor(new EventPidTor(_conf, requestInfo, hybridCache));
 

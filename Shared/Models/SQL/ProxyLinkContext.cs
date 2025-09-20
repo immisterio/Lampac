@@ -27,11 +27,11 @@ namespace Shared.Models.SQL
             //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<ProxyLinkSqlModel>()
-                        .HasIndex(j => j.ex);
-        }
+        //protected override void OnModelCreating(ModelBuilder modelBuilder)
+        //{
+        //    modelBuilder.Entity<ProxyLinkSqlModel>()
+        //                .HasIndex(j => j.ex);
+        //}
     }
 
     public class ProxyLinkSqlModel

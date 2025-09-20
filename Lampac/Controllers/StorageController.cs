@@ -69,10 +69,11 @@ namespace Lampac.Controllers
             }
 
             var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
-            await fileLock.WaitAsync();
 
             try
             {
+                await fileLock.WaitAsync();
+
                 if (AppInit.conf.storage.brotli)
                     BrotliTo.Compress(outFile, array);
                 else
@@ -86,9 +87,7 @@ namespace Lampac.Controllers
                 fileLock.Release();
 
                 if (fileLock.CurrentCount == 1)
-                {
                     _fileLocks.TryRemove(outFile, out _);
-                }
             }
 
             var inf = new FileInfo(outFile);
@@ -156,10 +155,11 @@ namespace Lampac.Controllers
             }
 
             var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
-            await fileLock.WaitAsync();
 
             try
             {
+                await fileLock.WaitAsync();
+
                 if (AppInit.conf.storage.brotli)
                     BrotliTo.Compress(outFile, array);
                 else
@@ -173,9 +173,7 @@ namespace Lampac.Controllers
                 fileLock.Release();
 
                 if (fileLock.CurrentCount == 1)
-                {
                     _fileLocks.TryRemove(outFile, out _);
-                }
             }
 
             var inf = new FileInfo(outFile);

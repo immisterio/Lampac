@@ -163,7 +163,7 @@ namespace Shared.Engine
         {
             try
             {
-                var handler = Handler(url, proxy);
+                using var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = allowAutoRedirect;
 
                 using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
@@ -196,7 +196,7 @@ namespace Shared.Engine
         {
             try
             {
-                var handler = Handler(url, proxy);
+                using var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = allowAutoRedirect;
 
                 using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
@@ -279,7 +279,7 @@ namespace Shared.Engine
 
             try
             {
-                var handler = Handler(url, proxy, ref loglines, cookieContainer);
+                using var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 var client = FrendlyHttp.CreateClient("http:BaseGetAsync", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
                 {
@@ -433,7 +433,7 @@ namespace Shared.Engine
 
             try
             {
-                var handler = Handler(url, proxy, ref loglines, cookieContainer);
+                using var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 var client = FrendlyHttp.CreateClient("http:BasePost", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, null, useDefaultHeaders, uclient =>
                 {
@@ -556,7 +556,7 @@ namespace Shared.Engine
         {
             try
             {
-                var handler = Handler(url, proxy);
+                using var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
                 var client = FrendlyHttp.CreateClient("http:BaseDownload", handler, factoryClient ?? "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
@@ -595,7 +595,7 @@ namespace Shared.Engine
         {
             try
             {
-                var handler = Handler(url, proxy);
+                using var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
                 using (var client = new System.Net.Http.HttpClient(handler))

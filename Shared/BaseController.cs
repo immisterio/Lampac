@@ -310,10 +310,11 @@ namespace Shared
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager? proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
         {
             var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync();
 
             try
             {
+                await semaphore.WaitAsync();
+
                 if (hybridCache.TryGetValue(key, out T _val, memory))
                 {
                     HttpContext.Response.Headers.TryAdd("X-Invoke-Cache", "HIT");
@@ -352,10 +353,11 @@ namespace Shared
         async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager? proxyManager = null, bool? memory = null)
         {
             var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync();
 
             try
             {
+                await semaphore.WaitAsync();
+
                 if (hybridCache.TryGetValue(key, out T val, memory))
                     return val;
 
@@ -387,10 +389,10 @@ namespace Shared
             }
 
             var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync();
 
             try
             {
+                await semaphore.WaitAsync();
                 return await func.Invoke();
             }
             finally
@@ -584,13 +586,13 @@ namespace Shared
             if (_init.kit == false && _init.rhub_fallback == false)
                 return (T)_init.Clone();
 
-            return loadKit(_init, await loadKitConf(), func);
+            return loadKit((T)_init.Clone(), await loadKitConf(), func, clone: false);
         }
 
         public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable
         {
             var init = clone ? (T)_init.Clone() : _init;
-            var defaultinit = clone ? _init : (T)_init.Clone();
+            var defaultinit = InvkEvent.conf.LoadKit != null ? (clone ? _init : (T)_init.Clone()) : null;
 
             if (init == null || !init.kit || appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
             {

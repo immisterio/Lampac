@@ -70,8 +70,8 @@ namespace Shared.Engine
                                     });
                                 }
 
-                                if (sqlDb.SaveChanges() > 0)
-                                    tempDb.TryRemove(t.Key, out _);
+                                sqlDb.SaveChanges();
+                                tempDb.TryRemove(t.Key, out _);
                             }
                             catch (Exception ex) { Console.WriteLine("HybridCache / UpdateDb: " + ex); }
                         }
@@ -167,7 +167,7 @@ namespace Shared.Engine
                 return value;
             }
 
-            if (inmemory != true)
+            if (inmemory != true && !AppInit.conf.mikrotik)
                 Console.WriteLine($"set memory: {key} / {DateTime.Now}");
 
             return memoryCache.Set(key, value, absoluteExpiration);
@@ -183,7 +183,7 @@ namespace Shared.Engine
                 return value;
             }
 
-            if (inmemory != true)
+            if (inmemory != true && !AppInit.conf.mikrotik)
                 Console.WriteLine($"set memory: {key} / {DateTime.Now}");
 
             return memoryCache.Set(key, value, absoluteExpirationRelativeToNow);

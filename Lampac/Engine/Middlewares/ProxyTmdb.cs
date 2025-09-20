@@ -29,11 +29,13 @@ namespace Lampac.Engine.Middlewares
 
         static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
+        static Timer cleanupTimer;
+
         static ProxyTmdb()
         {
             Directory.CreateDirectory("cache/tmdb");
 
-            foreach (var item in Directory.GetFiles("cache/tmdb", "*"))
+            foreach (var item in Directory.EnumerateFiles("cache/tmdb", "*"))
                 cacheFiles.TryAdd(Path.GetFileName(item), 0);
 
             fileWatcher = new FileSystemWatcher
@@ -45,6 +47,22 @@ namespace Lampac.Engine.Middlewares
 
             fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
+
+            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+        }
+
+        static void cleanup(object state)
+        {
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles("cache/tmdb", "*"))
+                {
+                    string md5 = Path.GetFileName(file);
+                    if (!cacheFiles.ContainsKey(md5))
+                        cacheFiles.TryRemove(md5, out _);
+                }
+            }
+            catch { }
         }
 
         public ProxyTmdb(RequestDelegate next) { }
@@ -103,19 +121,23 @@ namespace Lampac.Engine.Middlewares
             string mkey = $"tmdb/api:{path}:{query}";
 
             var semaphore = _semaphoreLocks.GetOrAdd(mkey, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync();
 
-            bool semaphoreDispose = false;
             void SemaphoreRelease()
             {
-                semaphoreDispose = true;
-                semaphore.Release();
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(mkey, out _);
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(mkey, out _);
+
+                    semaphore = null;
+                }
             }
 
             try
             {
+                await semaphore.WaitAsync();
+
                 if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
                 {
                     SemaphoreRelease();
@@ -136,10 +158,11 @@ namespace Lampac.Engine.Middlewares
                     string dnskey = $"tmdb/api:dns:{init.DNS}";
 
                     var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
-                    await _spredns.WaitAsync();
 
                     try
                     {
+                        await _spredns.WaitAsync();
+
                         if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
                             var lookup = new LookupClient(IPAddress.Parse(init.DNS));
@@ -215,8 +238,7 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (!semaphoreDispose)
-                    SemaphoreRelease();
+                SemaphoreRelease();
             }
         }
         #endregion
@@ -244,19 +266,23 @@ namespace Lampac.Engine.Middlewares
             httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
             var semaphore = _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync();
 
-            bool semaphoreDispose = false;
             void SemaphoreRelease()
             {
-                semaphoreDispose = true;
-                semaphore.Release();
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(md5key, out _);
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(md5key, out _);
+
+                    semaphore = null;
+                }
             }
 
             try
             {
+                await semaphore.WaitAsync();
+
                 if (cacheFiles.ContainsKey(md5key))
                 {
                     SemaphoreRelease();
@@ -273,10 +299,11 @@ namespace Lampac.Engine.Middlewares
                     string dnskey = $"tmdb/img:dns:{init.DNS}";
 
                     var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
-                    await _spredns.WaitAsync();
 
                     try
                     {
+                        await _spredns.WaitAsync();
+
                         if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
                             var lookup = new LookupClient(IPAddress.Parse(init.DNS));
@@ -425,8 +452,7 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (!semaphoreDispose)
-                    SemaphoreRelease();
+                SemaphoreRelease();
             }
         }
         #endregion
