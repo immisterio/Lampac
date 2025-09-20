@@ -22,8 +22,13 @@ namespace Shared.Engine
                         {
                             if (DateTime.UtcNow > c.Value.lifetime)
                             {
-                                c.Value.http.Dispose();
-                                _clients.TryRemove(c.Key, out (DateTime, System.Net.Http.HttpClient) _);
+                                try
+                                {
+                                    c.Value.http.Dispose();
+                                }
+                                catch { }
+
+                                _clients.TryRemove(c.Key, out var _);
                             }
                         }
                     }

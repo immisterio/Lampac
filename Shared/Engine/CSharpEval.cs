@@ -1,21 +1,69 @@
-﻿using Shared.Models.Module;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Extensions.DependencyModel;
+using Shared.Models.Module;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine
 {
+    class CSharpEvalScriptEntry
+    {
+        public dynamic Script { get; }
+        private long exTicks;
+
+        public DateTime Ex
+        {
+            get => DateTime.FromBinary(Interlocked.Read(ref exTicks));
+            set => Interlocked.Exchange(ref exTicks, value.ToBinary());
+        }
+
+        public CSharpEvalScriptEntry(dynamic script, DateTime ex)
+        {
+            Script = script;
+            Ex = ex;
+        }
+    }
+
+
     public static class CSharpEval
     {
+        #region static
         static InteractiveAssemblyLoader assemblyLoader = new InteractiveAssemblyLoader();
-        static ConcurrentDictionary<string, dynamic> scripts = new ConcurrentDictionary<string, dynamic>();
+
+        static ConcurrentDictionary<string, Lazy<CSharpEvalScriptEntry>> scripts = new ConcurrentDictionary<string, Lazy<CSharpEvalScriptEntry>>();
+
+        static CSharpEval()
+        {
+            _clearTimer = new Timer(ClearScripts, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+
+        static Timer _clearTimer;
+
+        static void ClearScripts(object state)
+        {
+            try
+            {
+                foreach (var s in scripts)
+                {
+                    if (s.Value.IsValueCreated)
+                    {
+                        var entry = s.Value.Value;
+                        if (DateTime.UtcNow > entry.Ex)
+                            scripts.TryRemove(s.Key, out _);
+                    }
+                }
+            }
+            catch { }
+        }
+        #endregion
+
 
         #region Execute<T>
         public static T Execute<T>(in string cs, object model, ScriptOptions options = null)
@@ -25,7 +73,7 @@ namespace Shared.Engine
 
         public static Task<T> ExecuteAsync<T>(string cs, object model, ScriptOptions options = null)
         {
-            var script = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+            var lazy = scripts.GetOrAdd(CrypTo.md5(cs), _ => new Lazy<CSharpEvalScriptEntry>(() =>
             {
                 if (options == null)
                     options = ScriptOptions.Default;
@@ -36,15 +84,20 @@ namespace Shared.Engine
                                  .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
                                  .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
 
-                return CSharpScript.Create<T>(
+                var del = CSharpScript.Create<T>(
                     cs,
                     options,
                     globalsType: model.GetType(),
                     assemblyLoader: assemblyLoader
                 ).CreateDelegate();
-            });
 
-            return script(model);
+                return new CSharpEvalScriptEntry(del, DateTime.UtcNow.AddMinutes(20));
+            }, LazyThreadSafetyMode.ExecutionAndPublication));
+
+            var entry = lazy.Value;
+            entry.Ex = DateTime.UtcNow.AddMinutes(20);
+
+            return entry.Script(model);
         }
         #endregion
 
@@ -56,20 +109,24 @@ namespace Shared.Engine
 
         public static Task<T> BaseExecuteAsync<T>(string cs, object model, ScriptOptions options = null, InteractiveAssemblyLoader loader = null)
         {
-            var script = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+            var lazy = scripts.GetOrAdd(CrypTo.md5(cs), _ => new Lazy<CSharpEvalScriptEntry>(() =>
             {
-                return CSharpScript.Create<T>(
+                var del = CSharpScript.Create<T>(
                     cs,
                     options,
                     globalsType: model.GetType(),
                     assemblyLoader: loader
                 ).CreateDelegate();
-            });
 
-            return script(model);
+                return new CSharpEvalScriptEntry(del, DateTime.UtcNow.AddMinutes(20));
+            }, LazyThreadSafetyMode.ExecutionAndPublication));
+
+            var entry = lazy.Value;
+            entry.Ex = DateTime.UtcNow.AddMinutes(20);
+
+            return entry.Script(model);
         }
         #endregion
-
 
         #region Execute
         public static void Execute(in string cs, object model, ScriptOptions options = null)
@@ -79,7 +136,7 @@ namespace Shared.Engine
 
         public static Task ExecuteAsync(string cs, object model, ScriptOptions options = null)
         {
-            var script = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+            var lazy = scripts.GetOrAdd(CrypTo.md5(cs), _ => new Lazy<CSharpEvalScriptEntry>(() =>
             {
                 if (options == null)
                     options = ScriptOptions.Default;
@@ -90,15 +147,20 @@ namespace Shared.Engine
                                  .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
                                  .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
 
-                return CSharpScript.Create(
+                var del = CSharpScript.Create(
                     cs,
                     options,
                     globalsType: model.GetType(),
                     assemblyLoader: assemblyLoader
                 ).CreateDelegate();
-            });
 
-            return script(model);
+                return new CSharpEvalScriptEntry(del, DateTime.UtcNow.AddMinutes(20));
+            }, LazyThreadSafetyMode.ExecutionAndPublication));
+
+            var entry = lazy.Value;
+            entry.Ex = DateTime.UtcNow.AddMinutes(20);
+
+            return entry.Script(model);
         }
         #endregion
 

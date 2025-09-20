@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
@@ -17,8 +18,6 @@ namespace Online.Controllers
 
 
         #region Video
-        static ConcurrentDictionary<long, string> lastvrf = new ConcurrentDictionary<long, string>();
-
         static List<HeadersModel> lastHeaders = null;
 
 
@@ -44,9 +43,9 @@ namespace Online.Controllers
             return await InvkSemaphore(init, embed, async () =>
             {
                 #region api servers
-                if (lastvrf.ContainsKey(id) && s > 0)
+                if (memoryCache.TryGetValue($"vidsrc:lastvrf:{id}", out string _vrf) && s > 0)
                 {
-                    string uri = $"{init.host}/api/{id}/servers?id={id}&type=tv&season={s}&episode={e}&vrf={lastvrf[id]}&imdbId={imdb_id}";
+                    string uri = $"{init.host}/api/{id}/servers?id={id}&type=tv&season={s}&episode={e}&vrf={_vrf}&imdbId={imdb_id}";
                     if (!hybridCache.TryGetValue(uri, out JToken data))
                     {
                         try
@@ -129,7 +128,7 @@ namespace Online.Controllers
                                 {
                                     string vrf = Regex.Match(e.HttpClient.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
                                     if (!string.IsNullOrEmpty(vrf) && e.HttpClient.Request.Url.Contains("&type=tv"))
-                                        lastvrf.AddOrUpdate(id, vrf, (k, v) => vrf);
+                                        memoryCache.Set($"vidsrc:lastvrf:{id}", vrf, DateTime.Now.AddDays(1));
                                 }
                                 else if (Regex.IsMatch(e.HttpClient.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|ico)$"))
                                     e.Ok(string.Empty);
@@ -180,7 +179,7 @@ namespace Online.Controllers
                                     {
                                         string vrf = Regex.Match(route.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
                                         if (!string.IsNullOrEmpty(vrf) && route.Request.Url.Contains("&type=tv"))
-                                            lastvrf.AddOrUpdate(id, vrf, (k, v) => vrf);
+                                            memoryCache.Set($"vidsrc:lastvrf:{id}", vrf, DateTime.Now.AddDays(1));
                                     }
 
                                     if (route.Request.Url.Contains(".m3u8"))
