@@ -73,11 +73,11 @@ namespace Lampac.Engine.Middlewares
                     catch { }
                 }
             }
-            #endregion
+            #endregion 
 
             if ((first && InvkEvent.conf?.Middleware?.first != null) || (!first && InvkEvent.conf?.Middleware?.end != null))
             {
-                var rqinfo = first ? new RequestModel() : httpContext.Features.Get<RequestModel>();
+                var rqinfo = httpContext.Features.Get<RequestModel>();
                 bool next = await InvkEvent.Middleware(first, new EventMiddleware(rqinfo, httpContext.Request, httpContext, new HybridCache(), memoryCache));
                 if (!next)
                     return;

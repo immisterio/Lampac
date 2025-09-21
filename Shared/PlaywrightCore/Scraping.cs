@@ -28,143 +28,151 @@ namespace Shared.PlaywrightCore
 
         public Scraping(string targetUrl, string patternUrl, string headerKey, string proxyBypassList = "*.example.com")
         {
-            this.patternUrl = patternUrl;
-            this.headerKey = headerKey;
-
-            if (Chromium.Status != PlaywrightStatus.disabled)
+            try
             {
-                proxyServer = new ProxyServer();
-                proxyServer.BeforeRequest += Request;
-                proxyServer.BeforeResponse += Response;
+                this.patternUrl = patternUrl;
+                this.headerKey = headerKey;
 
-                if (!File.Exists("cache/titanium.pfx"))
+                if (Chromium.Status != PlaywrightStatus.disabled)
                 {
-                    // Генерируем корневой сертификат (если еще не создан)
-                    if (proxyServer.CertificateManager.RootCertificate == null)
-                        proxyServer.CertificateManager.CreateRootCertificate();
+                    proxyServer = new ProxyServer();
+                    proxyServer.BeforeRequest += Request;
+                    proxyServer.BeforeResponse += Response;
 
-                    // Получаем корневой сертификат
-                    X509Certificate2 rootCert = proxyServer.CertificateManager.RootCertificate;
-
-                    // Сохраняем в PFX-файл (с паролем)
-                    byte[] certBytes = rootCert.Export(X509ContentType.Pkcs12, "35sd85454gfd");
-                    File.WriteAllBytes("cache/titanium.pfx", certBytes);
-
-                    certBytes = proxyServer.CertificateManager.RootCertificate.Export(X509ContentType.Cert);
-                    File.WriteAllBytes("cache/titanium.crt", certBytes);
-                }
-
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !File.Exists("/usr/local/share/ca-certificates/lampac_titanium.crt"))
-                {
-                    File.Copy("cache/titanium.crt", "/usr/local/share/ca-certificates/lampac_titanium.crt", true);
-                    _ = Bash.Run("update-ca-certificates");
-                }
-
-                proxyServer.CertificateManager.LoadRootCertificate("cache/titanium.pfx", "35sd85454gfd");
-                proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
-
-                explicitEndPoint = new ExplicitProxyEndPoint(System.Net.IPAddress.Loopback, 0, true);
-                proxyServer.AddEndPoint(explicitEndPoint);
-                proxyServer.Start();
-
-                #region executablePath
-                string executablePath = AppInit.conf.chromium.executablePath;
-
-                if (string.IsNullOrEmpty(executablePath))
-                {
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    if (!File.Exists("cache/titanium.pfx"))
                     {
-                        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
-                            executablePath = ".playwright\\chrome-win32\\chrome.exe";
-                        else
-                            executablePath = ".playwright\\chrome-win\\chrome.exe";
+                        // Генерируем корневой сертификат (если еще не создан)
+                        if (proxyServer.CertificateManager.RootCertificate == null)
+                            proxyServer.CertificateManager.CreateRootCertificate();
+
+                        // Получаем корневой сертификат
+                        X509Certificate2 rootCert = proxyServer.CertificateManager.RootCertificate;
+
+                        // Сохраняем в PFX-файл (с паролем)
+                        byte[] certBytes = rootCert.Export(X509ContentType.Pkcs12, "35sd85454gfd");
+                        File.WriteAllBytes("cache/titanium.pfx", certBytes);
+
+                        certBytes = proxyServer.CertificateManager.RootCertificate.Export(X509ContentType.Cert);
+                        File.WriteAllBytes("cache/titanium.crt", certBytes);
                     }
-                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !File.Exists("/usr/local/share/ca-certificates/lampac_titanium.crt"))
                     {
-                        executablePath = ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium";
+                        File.Copy("cache/titanium.crt", "/usr/local/share/ca-certificates/lampac_titanium.crt", true);
+                        _ = Bash.Run("update-ca-certificates");
                     }
-                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+
+                    proxyServer.CertificateManager.LoadRootCertificate("cache/titanium.pfx", "35sd85454gfd");
+                    proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
+
+                    explicitEndPoint = new ExplicitProxyEndPoint(System.Net.IPAddress.Loopback, 0, true);
+                    proxyServer.AddEndPoint(explicitEndPoint);
+                    proxyServer.Start();
+
+                    #region executablePath
+                    string executablePath = AppInit.conf.chromium.executablePath;
+
+                    if (string.IsNullOrEmpty(executablePath))
                     {
-                        executablePath = ".playwright/chrome-linux/chrome";
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                                executablePath = ".playwright\\chrome-win32\\chrome.exe";
+                            else
+                                executablePath = ".playwright\\chrome-win\\chrome.exe";
+                        }
+                        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                        {
+                            executablePath = ".playwright/chrome-mac/Chromium.app/Contents/MacOS/Chromium";
+                        }
+                        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                        {
+                            executablePath = ".playwright/chrome-linux/chrome";
+                        }
                     }
+
+                    if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath))
+                        return;
+                    #endregion
+
+                    int proxyPort = explicitEndPoint.Port;
+
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = executablePath,
+                        Arguments = $"--proxy-server=127.0.0.1:{proxyPort} " +
+                                    $"--proxy-bypass-list=\"localhost;127.0.0.1;*.microsoft.com;{proxyBypassList}\" " +
+                                    $"--incognito " +
+                                    $"--ignore-certificate-errors " +
+                                    $"--ignore-ssl-errors " +
+                                    $"--disable-web-security " +
+                                    $"--no-first-run " +
+                                    $"--no-default-browser-check " +
+                                    $"--disable-background-mode " +
+                                    $"--no-sandbox " +
+                                    (AppInit.conf.chromium.Headless ? "--headless " : "") +
+                                    $"\"{targetUrl}\"",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = false
+                    };
+
+                    process = Process.Start(startInfo);
+                    if (process == null)
+                        return;
                 }
-
-                if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath))
-                    return;
-                #endregion
-
-                int proxyPort = explicitEndPoint.Port;
-
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = executablePath,
-                    Arguments = $"--proxy-server=127.0.0.1:{proxyPort} " +
-                                $"--proxy-bypass-list=\"localhost;127.0.0.1;*.microsoft.com;{proxyBypassList}\" " +
-                                $"--incognito " +
-                                $"--ignore-certificate-errors " +
-                                $"--ignore-ssl-errors " +
-                                $"--disable-web-security " +
-                                $"--no-first-run " +
-                                $"--no-default-browser-check " +
-                                $"--disable-background-mode " +
-                                $"--no-sandbox " +
-                                (AppInit.conf.chromium.Headless ? "--headless " : "") +
-                                $"\"{targetUrl}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = false
-                };
-
-                process = Process.Start(startInfo);
-                if (process == null)
-                    return;
             }
+            catch { Dispose(); }
         }
 
 
         private Task Request(object sender, SessionEventArgs e)
         {
-            var session = e.HttpClient.Request;
-
-            if (IsCompleted)
+            try
             {
-                e.Ok(string.Empty);
-                return Task.CompletedTask;
-            }
+                var session = e.HttpClient.Request;
 
-            if (session.Method == "GET" && !string.IsNullOrEmpty(patternUrl) && Regex.IsMatch(session.Url, patternUrl))
-            {
-                IsCompleted = true;
-                completionSource.TrySetResult(session);
-                e.Ok(string.Empty);
-                return Task.CompletedTask;
-            }
-
-            if (!string.IsNullOrEmpty(headerKey))
-            {
-                foreach (var header in session.Headers)
+                if (IsCompleted)
                 {
-                    if (header.Name == headerKey)
+                    e.Ok(string.Empty);
+                    return Task.CompletedTask;
+                }
+
+                if (session.Method == "GET" && !string.IsNullOrEmpty(patternUrl) && Regex.IsMatch(session.Url, patternUrl))
+                {
+                    IsCompleted = true;
+                    completionSource.TrySetResult(session);
+                    e.Ok(string.Empty);
+                    return Task.CompletedTask;
+                }
+
+                if (!string.IsNullOrEmpty(headerKey))
+                {
+                    foreach (var header in session.Headers)
                     {
-                        IsCompleted = true;
-                        completionSource.TrySetResult(session);
-                        e.Ok(string.Empty);
-                        return Task.CompletedTask;
+                        if (header.Name == headerKey)
+                        {
+                            IsCompleted = true;
+                            completionSource.TrySetResult(session);
+                            e.Ok(string.Empty);
+                            return Task.CompletedTask;
+                        }
                     }
                 }
-            }
 
-            if (AppInit.conf.chromium.consoleLog)
-            {
-                Console.WriteLine("=== HTTP ЗАПРОС ===");
-                Console.WriteLine($"URL: {session.Url}");
-                Console.WriteLine($"Метод: {session.Method}");
-                Console.WriteLine("Заголовки:");
-                foreach (var header in session.Headers)
-                    Console.WriteLine($"  {header.Name}: {header.Value}");
-                Console.WriteLine();
+                if (AppInit.conf.chromium.consoleLog)
+                {
+                    Console.WriteLine("=== HTTP ЗАПРОС ===");
+                    Console.WriteLine($"URL: {session.Url}");
+                    Console.WriteLine($"Метод: {session.Method}");
+                    Console.WriteLine("Заголовки:");
+                    foreach (var header in session.Headers)
+                        Console.WriteLine($"  {header.Name}: {header.Value}");
+                    Console.WriteLine();
+                }
             }
+            catch { }
 
             OnRequest?.Invoke(e);
             return Task.CompletedTask;
@@ -172,19 +180,24 @@ namespace Shared.PlaywrightCore
 
         private Task Response(object sender, SessionEventArgs e)
         {
-            if (AppInit.conf.chromium.consoleLog)
+            try
             {
-                var session = e.HttpClient.Response;
-                Console.WriteLine("=== HTTP ОТВЕТ ===");
-                Console.WriteLine($"URL: {e.HttpClient.Request.Url}");
-                Console.WriteLine($"Статус: {session.StatusCode} {session.StatusDescription}");
-                Console.WriteLine("Заголовки:");
-                foreach (var header in session.Headers)
-                    Console.WriteLine($"  {header.Name}: {header.Value}");
-                Console.WriteLine();
-            }
+                if (AppInit.conf.chromium.consoleLog)
+                {
+                    var session = e.HttpClient.Response;
+                    Console.WriteLine("=== HTTP ОТВЕТ ===");
+                    Console.WriteLine($"URL: {e.HttpClient.Request.Url}");
+                    Console.WriteLine($"Статус: {session.StatusCode} {session.StatusDescription}");
+                    Console.WriteLine("Заголовки:");
+                    foreach (var header in session.Headers)
+                        Console.WriteLine($"  {header.Name}: {header.Value}");
+                    Console.WriteLine();
+                }
 
-            OnResponse?.Invoke(e);
+                OnResponse?.Invoke(e);
+            }
+            catch { }
+
             return Task.CompletedTask;
         }
 
@@ -223,10 +236,14 @@ namespace Shared.PlaywrightCore
             {
                 if (proxyServer != null)
                 {
-                    proxyServer.BeforeRequest -= Request;
-                    proxyServer.BeforeResponse -= Response;
+                    try
+                    {
+                        proxyServer.BeforeRequest -= Request;
+                        proxyServer.BeforeResponse -= Response;
+                        proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
 
-                    if (proxyServer.ProxyRunning)
+                    }
+                    finally 
                     {
                         Task.Run(() =>
                         {
@@ -235,7 +252,10 @@ namespace Shared.PlaywrightCore
                                 proxyServer.Stop();
                                 proxyServer.Dispose();
                             }
-                            catch { }
+                            finally
+                            {
+                                proxyServer = null;
+                            }
                         });
                     }
                 }
@@ -250,15 +270,20 @@ namespace Shared.PlaywrightCore
                     {
                         try
                         {
-                            process.Kill();
+                            process.Kill(true);
                             process.Close();
                             process.Dispose();
                         }
-                        catch { }
+                        finally
+                        {
+                            process = null;
+                        }
                     });
                 }
             }
             catch { }
+
+            completionSource = null;
         }
         #endregion
 

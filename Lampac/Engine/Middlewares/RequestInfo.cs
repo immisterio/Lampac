@@ -33,7 +33,7 @@ namespace Lampac.Engine.Middlewares
                     _req = 0;
 
                 _req++;
-                memoryCache.Set(skey, _req, DateTime.Now.AddMinutes(58));
+                memoryCache.Set(skey, _req, DateTime.Now.AddMinutes(59));
             }
             #endregion
 
@@ -117,7 +117,21 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
+            if (!string.IsNullOrEmpty(AppInit.conf.accsdb.domainId_pattern))
+            {
+                string uid = Regex.Match(httpContext.Request.Host.Host, AppInit.conf.accsdb.domainId_pattern).Groups[1].Value;
+                req.user = AppInit.conf.accsdb.findUser(uid);
+                req.user_uid = uid;
+
+                if (req.user == null)
+                    return httpContext.Response.WriteAsync("user not found", httpContext.RequestAborted);
+
+                req.@params = AppInit.conf.accsdb.@params;
+
+                httpContext.Features.Set(req);
+                return _next(httpContext);
+            }
+            else
             {
                 #region getuid
                 string getuid()
@@ -162,20 +176,6 @@ namespace Lampac.Engine.Middlewares
 
                 if (req.user != null)
                     req.@params = AppInit.conf.accsdb.@params;
-
-                httpContext.Features.Set(req);
-                return _next(httpContext);
-            }
-            else
-            {
-                string uid = Regex.Match(httpContext.Request.Host.Host, AppInit.conf.accsdb.domainId_pattern).Groups[1].Value;
-                req.user = AppInit.conf.accsdb.findUser(uid);
-                req.user_uid = uid;
-
-                if (req.user == null)
-                    return httpContext.Response.WriteAsync("user not found", httpContext.RequestAborted);
-
-                req.@params = AppInit.conf.accsdb.@params;
 
                 httpContext.Features.Set(req);
                 return _next(httpContext);

@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using NetVips;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
-using Shared.Models.CSharpGlobals;
 using Shared.Models.Events;
 using System;
 using System.Collections.Generic;
@@ -16,7 +15,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using YamlDotNet.Core.Tokens;
 using IO = System.IO;
 
 namespace Lampac.Controllers
@@ -55,7 +53,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        #region Version / Headers / geo / myip / testaccsdb / reqinfo / personal.lampa
+        #region Version / Headers / geo / myip / reqinfo / personal.lampa
         [Route("/version")]
         public ActionResult Version() => Content($"{appversion}.{minorversion}");
 
@@ -95,13 +93,57 @@ namespace Lampac.Controllers
             DefaultValueHandling = DefaultValueHandling.Ignore
         }));
 
-        [Route("/testaccsdb")]
-        public ActionResult TestAccsdb() => Content("{\"accsdb\": false}", "application/json; charset=utf-8");
-
         [Route("/personal.lampa")]
         [Route("/lampa-main/personal.lampa")]
         [Route("/{myfolder}/personal.lampa")]
         public ActionResult PersonalLampa(string myfolder) => StatusCode(200);
+        #endregion
+
+        #region testaccsdb
+        [Route("/testaccsdb")]
+        public ActionResult TestAccsdb(string account_email, string uid) 
+        {
+            if (!string.IsNullOrEmpty(uid) && !string.IsNullOrEmpty(account_email) && account_email == AppInit.conf.accsdb.shared_passwd)
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(uid))
+                    {
+                        string file = "users.json";
+
+                        JArray arr = new JArray();
+
+                        if (IO.File.Exists(file))
+                        {
+                            var txt = IO.File.ReadAllText(file);
+                            if (!string.IsNullOrWhiteSpace(txt))
+                                try { arr = JArray.Parse(txt); } catch { arr = new JArray(); }
+                        }
+
+                        bool exists = arr.Children<JObject>().Any(o =>
+                            (o.Value<string>("id") != null && o.Value<string>("id").Equals(uid, StringComparison.OrdinalIgnoreCase)) ||
+                            (o["ids"] != null && o["ids"].Any(t => t.ToString().Equals(uid, StringComparison.OrdinalIgnoreCase)))
+                        );
+
+                        if (exists)
+                            return ContentTo("{\"accsdb\": false}");
+
+                        var obj = new JObject();
+                        obj["id"] = uid;
+                        obj["expires"] = DateTime.Now.AddDays(Math.Max(1, AppInit.conf.accsdb.shared_daytime));
+
+                        arr.Add(obj);
+
+                        IO.File.WriteAllText(file, arr.ToString(Formatting.Indented));
+                    }
+                }
+                catch { }
+
+                return ContentTo("{\"accsdb\": false, \"uid\": \"" + uid + "\"}");
+            }
+
+            return ContentTo("{\"accsdb\": false}");
+        }
         #endregion
 
         #region Sync

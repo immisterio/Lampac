@@ -26,7 +26,7 @@ namespace Lampac.Engine.Middlewares
         {
             if (AppInit.conf.overrideResponse != null && AppInit.conf.overrideResponse.Count > 0)
             {
-                var requestInfo = first ? new RequestModel() : httpContext.Features.Get<RequestModel>();
+                var requestInfo = httpContext.Features.Get<RequestModel>();
                 if (requestInfo.IsLocalRequest)
                     return _next(httpContext);
 
@@ -70,8 +70,9 @@ namespace Lampac.Engine.Middlewares
                                 }
                             case "eval":
                                 {
-                                    var options = ScriptOptions.Default.AddReferences(typeof(Console).Assembly).AddImports("System")
-                                                                       .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
+                                    var options = ScriptOptions.Default
+                                        .AddReferences(typeof(Console).Assembly).AddImports("System")
+                                        .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
 
                                     bool _next = CSharpEval.BaseExecute<bool>(over.val, new OverrideResponseGlobals(url, httpContext.Request, requestInfo), options);
                                     if (!_next)

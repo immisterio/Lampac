@@ -80,6 +80,7 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
+            #region ws
             if (httpContext.Request.Path.Value.StartsWith("/ws"))
             {
                 if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && !AppInit.conf.storage.enable)
@@ -87,7 +88,9 @@ namespace Lampac.Engine.Middlewares
 
                 return _next(httpContext);
             }
+            #endregion
 
+            #region jacred
             string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|bigfangroup|mazepa)";
 
             if (!string.IsNullOrEmpty(AppInit.conf.apikey))
@@ -98,13 +101,22 @@ namespace Lampac.Engine.Middlewares
                         return Task.CompletedTask;
                 }
             }
+            #endregion
 
             if (AppInit.conf.accsdb.enable)
             {
-                if (!string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern) && !Regex.IsMatch(httpContext.Request.Path.Value, AppInit.conf.accsdb.premium_pattern, RegexOptions.IgnoreCase))
+                var accsdb = AppInit.conf.accsdb;
+
+                if (httpContext.Request.Path.Value.StartsWith("/testaccsdb") && accsdb.shared_passwd != null && requestInfo.user_uid == accsdb.shared_passwd)
+                {
+                    requestInfo.IsLocalRequest = true;
+                    return _next(httpContext);
+                }
+
+                if (!string.IsNullOrEmpty(accsdb.premium_pattern) && !Regex.IsMatch(httpContext.Request.Path.Value, accsdb.premium_pattern, RegexOptions.IgnoreCase))
                     return _next(httpContext);
 
-                if (!string.IsNullOrEmpty(AppInit.conf.accsdb.whitepattern) && Regex.IsMatch(httpContext.Request.Path.Value, AppInit.conf.accsdb.whitepattern, RegexOptions.IgnoreCase))
+                if (!string.IsNullOrEmpty(accsdb.whitepattern) && Regex.IsMatch(httpContext.Request.Path.Value, accsdb.whitepattern, RegexOptions.IgnoreCase))
                     return _next(httpContext);
 
                 if (Regex.IsMatch(httpContext.Request.Path.Value, jacpattern))
@@ -119,7 +131,7 @@ namespace Lampac.Engine.Middlewares
 
                     var user = requestInfo.user;
 
-                    if (requestInfo.user_uid != null && AppInit.conf.accsdb.white_uids != null && AppInit.conf.accsdb.white_uids.Contains(requestInfo.user_uid))
+                    if (requestInfo.user_uid != null && accsdb.white_uids != null && accsdb.white_uids.Contains(requestInfo.user_uid))
                         return _next(httpContext);
 
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
@@ -154,9 +166,9 @@ namespace Lampac.Engine.Middlewares
 
                         string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы") : 
                                      limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
-                                     string.IsNullOrWhiteSpace(requestInfo.user_uid) ? AppInit.conf.accsdb.authMesage :
-                                     user != null ? AppInit.conf.accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
-                                     AppInit.conf.accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid);
+                                     string.IsNullOrWhiteSpace(requestInfo.user_uid) ? accsdb.authMesage :
+                                     user != null ? accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
+                                     accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{host}", httpContext.Request.Host.Value);
 
                         if (httpContext.Request.Path.Value.StartsWith("/tmdb"))
                             httpContext.Response.StatusCode = 403;

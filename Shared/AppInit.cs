@@ -436,10 +436,11 @@ namespace Shared
         public AccsConf accsdb = new AccsConf() 
         { 
             authMesage = "Войдите в аккаунт - настройки, синхронизация",
-            denyMesage = "Добавьте {account_email} в init.conf",
+            denyMesage = "Добавьте {account_email} в init.conf или через {host}/admin",
             denyGroupMesage = "У вас нет прав для просмотра этой страницы",
             expiresMesage = "Время доступа для {account_email} истекло в {expires}",
-            maxip_hour = 15, maxrequest_hour = 300, maxlock_day = 3, blocked_hour = 36 
+            maxip_hour = 15, maxrequest_hour = 300, maxlock_day = 3, blocked_hour = 36,
+            shared_daytime = 7
         };
 
         public MerchantsModel Merchant = new MerchantsModel();

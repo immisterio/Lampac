@@ -380,13 +380,12 @@ namespace Lampac
                 app.UseResponseCompression();
 
             app.UseModHeaders();
+            app.UseRequestInfo();
             app.UseModule(first: true);
             app.UseOverrideResponse(first: true);
             app.UseStaticFiles();
-            app.UseRequestInfo();
             app.UseWAF();
             app.UseAccsdb();
-            app.UseOverrideResponse(first: false);
 
             app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
             {
@@ -409,6 +408,7 @@ namespace Lampac
             });
 
             app.UseModule(first: false);
+            app.UseOverrideResponse(first: false);
 
             app.UseEndpoints(endpoints =>
             {

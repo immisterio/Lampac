@@ -8,6 +8,10 @@ namespace Shared.Models.AppConf
     {
         public bool enable { get; set; }
 
+        public string shared_passwd { get; set; }
+
+        public int shared_daytime { get; set; }
+
         public string whitepattern { get; set; }
 
         public HashSet<string> white_uids { get; set; }
