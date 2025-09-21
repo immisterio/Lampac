@@ -30,7 +30,7 @@ namespace Jackett
                     }};
 
                     string json = File.ReadAllText("module/JacRed.conf");
-                    if (!json.Trim().StartsWith("{"))
+                    if (!json.TrimStart().StartsWith("{"))
                         json = "{"+json+"}";
 
                     cacheconf.Item1 = JsonConvert.DeserializeObject<ModInit>(json, jss);

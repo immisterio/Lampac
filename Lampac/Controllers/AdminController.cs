@@ -130,7 +130,7 @@ namespace Lampac.Controllers
             {
                 var usersNode = accsdbNode["users"];
                 if (usersNode != null)
-                {
+				{
 					users = usersNode.DeepClone();
                     accsdbNode.Remove("users");
 
@@ -321,12 +321,45 @@ namespace Lampac.Controllers
                 if (sisi == "on")
                     modules.Add("{\"enable\":true,\"dll\":\"SISI.dll\"}");
 
-				if (!string.IsNullOrEmpty(jac))
-				{
-					modules.Add("{\"enable\":true,\"initspace\":\"Jackett.ModInit\",\"dll\":\"JacRed.dll\"}");
+                if (!string.IsNullOrEmpty(jac))
+                {
+                    modules.Add("{\"enable\":true,\"initspace\":\"Jackett.ModInit\",\"dll\":\"JacRed.dll\"}");
 
-					if (jac == "fdb")
-                        IO.File.WriteAllText("module/JacRed.conf", "\"typesearch\": \"red\"");
+                    #region JacRed.conf
+                    if (jac == "fdb")
+                    {
+                        var jacPath = "module/JacRed.conf";
+
+                        JObject jj;
+                        if (IO.File.Exists(jacPath))
+                        {
+                            string txt = IO.File.ReadAllText(jacPath).Trim();
+                            if (string.IsNullOrEmpty(txt))
+                                jj = new JObject();
+                            else
+                            {
+                                if (!txt.StartsWith("{"))
+                                    txt = "{" + txt + "}";
+
+                                try
+                                {
+                                    jj = JsonConvert.DeserializeObject<JObject>(txt) ?? new JObject();
+                                }
+                                catch
+                                {
+                                    jj = new JObject();
+                                }
+                            }
+                        }
+                        else
+                        {
+                            jj = new JObject();
+                        }
+
+                        jj["typesearch"] = "red";
+                        IO.File.WriteAllText(jacPath, JsonConvert.SerializeObject(jj, Formatting.Indented));
+                    }
+                    #endregion
                 }
 
                 if (dlna == "on")
@@ -343,51 +376,29 @@ namespace Lampac.Controllers
 
                 IO.File.WriteAllText("module/manifest.json", $"[{string.Join(",", modules)}]");
 
-                #region ENG
                 if (eng != "on")
-                {
-					if (IO.File.Exists("init.conf"))
-					{
-						string initconf = IO.File.ReadAllText("init.conf").Trim();
-						if (initconf != null)
-						{
-                            if (initconf.StartsWith("{"))
-                                IO.File.WriteAllText("init.conf", "{\"disableEng\": true," + initconf.Remove(0, 1));
-							else
-                                IO.File.WriteAllText("init.conf", "\"disableEng\": true," + initconf);
-                        }
-                    }
-					else
-					{
-						IO.File.WriteAllText("init.conf", "\"disableEng\":{\"enable\": true}");
-					}
-                }
-				#endregion
+                    UpdateInitConf(j => j["disableEng"] = true);
 
-				if (isEditManifest)
+                if (isEditManifest)
 				{
-                    return Content("Перезагрузите lampac для изменения настроек", contentType: "text/plain; charset=utf-8");
-				}
+                    return ContentTo("Перезагрузите lampac для изменения настроек");
+                }
 				else
 				{
                     #region frontend cloudflare
                     if (HttpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out var xip) && !string.IsNullOrEmpty(xip))
 					{
-                        if (IO.File.Exists("init.conf"))
+                        UpdateInitConf(j =>
                         {
-                            string initconf = IO.File.ReadAllText("init.conf").Trim();
-                            if (initconf != null)
+                            var listen = j["listen"] as JObject;
+                            if (listen == null)
                             {
-                                if (initconf.StartsWith("{"))
-                                    IO.File.WriteAllText("init.conf", "{\"frontend\":\"cloudflare\"," + initconf.Remove(0, 1));
-                                else
-                                    IO.File.WriteAllText("init.conf", "\"frontend\":\"cloudflare\"," + initconf);
+                                listen = new JObject();
+                                j["listen"] = listen;
                             }
-                        }
-                        else
-                        {
-                            IO.File.WriteAllText("init.conf", "\"frontend\":\"cloudflare\"");
-                        }
+
+                            listen["frontend"] = "cloudflare";
+                        });
                     }
                     #endregion
 
@@ -404,7 +415,7 @@ namespace Lampac.Controllers
 				string IsChecked(string name, string def)
 				{
 					if (modules == null)
-						return def;	
+						return def;
 
                     bool res = modules.FirstOrDefault(m => m.dll == name)?.enable ?? false;
                     return res ? "checked" : string.Empty;
@@ -489,6 +500,44 @@ namespace Lampac.Controllers
             #endregion
 
             return Content(renderHtml(), contentType: "text/html; charset=utf-8");
+        }
+        #endregion
+
+
+        #region UpdateInitConf
+        void UpdateInitConf(Action<JObject> modify)
+        {
+            JObject jo;
+
+            if (IO.File.Exists("init.conf"))
+            {
+                string initconf = IO.File.ReadAllText("init.conf").Trim();
+                if (string.IsNullOrEmpty(initconf))
+                    jo = new JObject();
+
+                else
+                {
+                    if (!initconf.StartsWith("{"))
+                        initconf = "{" + initconf + "}";
+
+                    try
+                    {
+                        jo = JsonConvert.DeserializeObject<JObject>(initconf) ?? new JObject();
+                    }
+                    catch
+                    {
+                        jo = new JObject();
+                    }
+                }
+            }
+            else
+            {
+                jo = new JObject();
+            }
+
+            modify?.Invoke(jo);
+
+            IO.File.WriteAllText("init.conf", JsonConvert.SerializeObject(jo, Formatting.Indented));
         }
         #endregion
     }
