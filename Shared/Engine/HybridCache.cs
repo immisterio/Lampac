@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shared.Models.SQL;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -16,13 +17,13 @@ namespace Shared.Engine
 
         static DateTime _nextClearDb = DateTime.Now.AddHours(1);
 
-        static ConcurrentDictionary<string, HybridCacheSqlModel> tempDb;
+        static ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel cache)> tempDb;
 
         public static void Configure(IMemoryCache mem)
         {
             memoryCache = mem;
 
-            tempDb = new ConcurrentDictionary<string, HybridCacheSqlModel>();
+            tempDb = new ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel value)>();
             _clearTimer = new Timer(UpdateDB, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
@@ -51,34 +52,35 @@ namespace Shared.Engine
                     }
                     else
                     {
-                        foreach (var t in tempDb.ToArray())
+                        foreach (var t in tempDb.Where(i => DateTime.Now > i.Value.extend).ToArray())
                         {
                             try
                             {
                                 var doc = sqlDb.files.Find(t.Key);
                                 if (doc != null)
                                 {
-                                    doc.ex = t.Value.ex;
-                                    doc.value = t.Value.value;
+                                    doc.ex = t.Value.cache.ex;
+                                    doc.value = t.Value.cache.value;
                                 }
                                 else
                                 {
                                     sqlDb.files.Add(new HybridCacheSqlModel()
                                     {
                                         Id = t.Key,
-                                        ex = t.Value.ex,
-                                        value = t.Value.value
+                                        ex = t.Value.cache.ex,
+                                        value = t.Value.cache.value
                                     });
                                 }
 
                                 sqlDb.SaveChanges();
                                 tempDb.TryRemove(t.Key, out _);
                             }
-                            catch (Exception ex) { Console.WriteLine("HybridCache / UpdateDb: " + ex); }
+                            catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }
                         }
                     }
                 }
             }
+            catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }
             finally 
             {
                 updatingDb = false;
@@ -97,16 +99,18 @@ namespace Shared.Engine
         {
             if (!AppInit.conf.mikrotik)
             {
-                if (AppInit.conf.cache.type == "hybrid" && memoryCache.TryGetValue(key, out value))
+                if (memoryCache.TryGetValue(key, out value))
                     return true;
 
-                if (ReadCache(key, out value))
+                if (ReadCache(key, out value, out bool setmemory))
                 {
-                    if (inmemory != false && AppInit.conf.cache.type == "hybrid" && AppInit.conf.cache.extend > 0)
+                    if (setmemory && inmemory != false && AppInit.conf.cache.type == "hybrid" && AppInit.conf.cache.extend > 0)
                         memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cache.extend));
 
                     return true;
                 }
+
+                return false;
             }
 
             return memoryCache.TryGetValue(key, out value);
@@ -114,41 +118,58 @@ namespace Shared.Engine
         #endregion
 
         #region ReadCache
-        private bool ReadCache<TItem>(string key, out TItem value)
+        private bool ReadCache<TItem>(string key, out TItem value, out bool setmemory)
         {
             value = default;
+            setmemory = true;
+
             if (AppInit.conf.cache.type == "mem")
                 return false;
 
             var type = typeof(TItem);
             bool isText = type == typeof(string);
-            bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
 
-            if (!isText && !isConstructor && !type.IsValueType && !type.IsArray)
+            bool IsDeserialize = type.GetConstructor(Type.EmptyTypes) != null 
+                || type.IsValueType 
+                || type.IsArray
+                || type == typeof(JToken)
+                || type == typeof(JObject)
+                || type == typeof(JArray);
+
+            if (!isText && !IsDeserialize)
                 return false;
 
             try
             {
-                using (var sqlDb = new HybridCacheContext())
+                bool deserializeCache(HybridCacheSqlModel doc, out TItem result)
                 {
-                    string md5key = CrypTo.md5(key);
-                    tempDb.TryGetValue(key, out HybridCacheSqlModel _temp);
-                    if (_temp != null)
-                        _temp.Id = md5key;
-
-                    var doc = _temp ?? sqlDb.files.Find(md5key);
+                    result = default;
 
                     if (doc?.Id == null || DateTime.Now > doc.ex)
                         return false;
 
                     var eventResult = InvkEvent.HybridCache("read", key, doc.value, doc.ex);
 
-                    if (isConstructor || type.IsValueType || type.IsArray)
-                        value = JsonConvert.DeserializeObject<TItem>(eventResult.value ?? doc.value);
+                    if (IsDeserialize)
+                        result = JsonConvert.DeserializeObject<TItem>(eventResult.value ?? doc.value);
                     else
-                        value = (TItem)Convert.ChangeType(eventResult.value ?? doc.value, type);
+                        result = (TItem)Convert.ChangeType(eventResult.value ?? doc.value, type);
 
                     return true;
+                }
+
+                string md5key = CrypTo.md5(key);
+
+                tempDb.TryGetValue(key, out var _temp);
+                if (_temp.cache != null)
+                {
+                    setmemory = false;
+                    return deserializeCache(_temp.cache, out value);
+                }
+                else
+                {
+                    using (var sqlDb = new HybridCacheContext())
+                        return deserializeCache(sqlDb.files.Find(md5key), out value);
                 }
             }
             catch { }
@@ -162,12 +183,7 @@ namespace Shared.Engine
         public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, bool? inmemory = null)
         {
             if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
-            {
-                if (AppInit.conf.cache.type == "hybrid" && inmemory != false && AppInit.conf.cache.extend > 0)
-                    memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cache.extend));
-
                 return value;
-            }
 
             if (inmemory != true && !AppInit.conf.mikrotik)
                 Console.WriteLine($"set memory: {key} / {DateTime.Now}");
@@ -178,12 +194,7 @@ namespace Shared.Engine
         public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow, bool? inmemory = null)
         {
             if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
-            {
-                if (AppInit.conf.cache.type == "hybrid" && inmemory != false && AppInit.conf.cache.extend > 0)
-                    memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cache.extend));
-
                 return value;
-            }
 
             if (inmemory != true && !AppInit.conf.mikrotik)
                 Console.WriteLine($"set memory: {key} / {DateTime.Now}");
@@ -200,16 +211,22 @@ namespace Shared.Engine
 
             var type = typeof(TItem);
             bool isText = type == typeof(string);
-            bool isConstructor = type.GetConstructor(Type.EmptyTypes) != null;
 
-            if (!isText && !isConstructor && !type.IsValueType && !type.IsArray)
+            bool IsSerialize = type.GetConstructor(Type.EmptyTypes) != null
+                || type.IsValueType
+                || type.IsArray
+                || type == typeof(JToken)
+                || type == typeof(JObject)
+                || type == typeof(JArray);
+
+            if (!isText && !IsSerialize)
                 return false;
 
             try
             {
                 string result;
 
-                if (isConstructor || type.IsValueType || type.IsArray)
+                if (IsSerialize)
                 {
                     result = JsonConvert.SerializeObject(value);
                 }
@@ -228,11 +245,14 @@ namespace Shared.Engine
                     absoluteExpiration = eventResult.ex;
                 }
 
-                tempDb.TryAdd(CrypTo.md5(key), new HybridCacheSqlModel()
+                var extend = DateTime.Now.AddSeconds(Math.Max(5, AppInit.conf.cache.extend));
+
+                tempDb.TryAdd(CrypTo.md5(key), (extend, new HybridCacheSqlModel()
                 {
+                    Id = CrypTo.md5(key),
                     ex = absoluteExpiration.DateTime,
                     value = result
-                });
+                }));
 
                 return true;
             }
