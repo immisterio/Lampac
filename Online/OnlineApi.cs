@@ -10,7 +10,6 @@ using Shared.Models.Online.Lumex;
 using Shared.Models.SQL;
 using Shared.PlaywrightCore;
 using System.Data;
-using System.Reflection;
 using System.Text;
 using IO = System.IO;
 
@@ -571,50 +570,79 @@ namespace Online.Controllers
             JObject kitconf = await loadKitConf();
 
             #region modules
-            if (AppInit.modules != null)
+            OnlineModuleEntry.EnsureCache();
+
+            if (OnlineModuleEntry.onlineModulesCache != null && OnlineModuleEntry.onlineModulesCache.Count > 0)
             {
                 var args = new OnlineEventsModel(id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, rchtype, serial, life, islite, account_email, uid, token);
 
-                foreach (var mod in AppInit.modules.Where(i => i.online != null))
+                foreach (var entry in OnlineModuleEntry.onlineModulesCache)
                 {
                     try
                     {
-                        if (mod.assembly.GetType(mod.NamespacePath(mod.online)) is Type t)
+                        #region version >= 3 methods
+                        if (entry.Invoke != null)
                         {
-                            void invk(object result)
+                            try
                             {
-                                if (result == null)
-                                    return;
-
-                                if (result is List<(string name, string url, string plugin, int index)> list)
+                                var result = entry.Invoke(HttpContext, memoryCache, requestInfo, host, args);
+                                if (result != null && result.Count > 0)
                                 {
-                                    if (list != null && list.Count > 0)
-                                    {
-                                        foreach (var r in list)
-                                            online.Add((null, r.name, r.url, r.plugin, r.index));
-                                    }
+                                    foreach (var r in result)
+                                        online.Add((null, r.name, r.url, r.plugin, r.index));
                                 }
                             }
-
-                            if (mod.version >= 3)
-                            {
-                                if (t.GetMethod("Invoke") is MethodInfo e)
-                                    invk(e.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args }));
-
-                                if (t.GetMethod("InvokeAsync") is MethodInfo es)
-                                    invk(await (Task<List<(string, string, string, int)>>)es.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args }));
-                            }
-                            else
-                            {
-                                if (t.GetMethod("Events") is MethodInfo e)
-                                    invk(e.Invoke(null, new object[] { host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email }));
-
-                                if (t.GetMethod("EventsAsync") is MethodInfo es)
-                                    invk(await (Task<List<(string, string, string, int)>>)es.Invoke(null, new object[] { HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email }));
-                            }
+                            catch { }
                         }
+
+                        if (entry.InvokeAsync != null)
+                        {
+                            try
+                            {
+                                var task = entry.InvokeAsync(HttpContext, memoryCache, requestInfo, host, args);
+                                var result = await task.ConfigureAwait(false);
+                                if (result != null && result.Count > 0)
+                                {
+                                    foreach (var r in result)
+                                        online.Add((null, r.name, r.url, r.plugin, r.index));
+                                }
+                            }
+                            catch { }
+                        }
+                        #endregion
+
+                        #region version < 3 legacy methods
+                        if (entry.Events != null)
+                        {
+                            try
+                            {
+                                var result = entry.Events(host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
+                                if (result != null && result.Count > 0)
+                                {
+                                    foreach (var r in result)
+                                        online.Add((null, r.name, r.url, r.plugin, r.index));
+                                }
+                            }
+                            catch { }
+                        }
+
+                        if (entry.EventsAsync != null)
+                        {
+                            try
+                            {
+                                var task = entry.EventsAsync(HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
+                                var result = await task.ConfigureAwait(false);
+                                if (result != null && result.Count > 0)
+                                {
+                                    foreach (var r in result)
+                                        online.Add((null, r.name, r.url, r.plugin, r.index));
+                                }
+                            }
+                            catch { }
+                        }
+                        #endregion
                     }
-                    catch (Exception ex) { Console.WriteLine($"Modules {mod.NamespacePath(mod.online)}: {ex.Message}\n\n"); }
+                    catch (Exception ex) { Console.WriteLine($"Modules {entry.mod?.NamespacePath(entry.mod.online)}: {ex.Message}\n\n"); }
                 }
             }
             #endregion
@@ -746,7 +774,7 @@ namespace Online.Controllers
                             if (view != null && view.ContainsKey("online") && view["online"] is JObject onlineObj)
                                 VoKinoInvoke.SendOnline(myinit, online, onlineObj);
                         }
-                    }
+                    };
 
                     if (AppInit.conf.accsdb.enable)
                     {
