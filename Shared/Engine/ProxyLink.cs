@@ -258,11 +258,12 @@ namespace Shared.Engine
                                     }
                                 }
                             }
-                            catch (Exception ex) { Console.WriteLine($"ProxyLink cron: {ex}"); }
+                            catch (Exception ex) { Console.WriteLine($"ProxyLink: {ex}"); }
                         }
                     }
                 }
             }
+            catch (Exception ex) { Console.WriteLine($"ProxyLink: {ex}"); }
             finally 
             {
                 _cronWork = false;

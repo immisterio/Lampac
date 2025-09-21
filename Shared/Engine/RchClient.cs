@@ -310,7 +310,7 @@ namespace Shared.Engine
             if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return true; // заглушка для checksearch
 
-            return !clients.Select(i => i.Value.ip).ToList().Contains(ip);
+            return clients.Select(i => i.Value.ip).FirstOrDefault(i => i == ip) == null;
         }
         #endregion
 

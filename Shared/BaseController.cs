@@ -570,6 +570,9 @@ namespace Shared
 
                     try
                     {
+                        if (!json.TrimStart().StartsWith("{"))
+                            json = "{" + json + "}";
+
                         appinit = JsonConvert.DeserializeObject<JObject>(json);
                     }
                     catch { return null; }
