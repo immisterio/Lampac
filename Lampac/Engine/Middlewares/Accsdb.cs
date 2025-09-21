@@ -118,6 +118,10 @@ namespace Lampac.Engine.Middlewares
                     bool limitip = false;
 
                     var user = requestInfo.user;
+
+                    if (requestInfo.user_uid != null && AppInit.conf.accsdb.white_uids != null && AppInit.conf.accsdb.white_uids.Contains(requestInfo.user_uid))
+                        return _next(httpContext);
+
                     string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
 
                     if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))

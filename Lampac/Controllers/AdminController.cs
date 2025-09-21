@@ -297,7 +297,7 @@ namespace Lampac.Controllers
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
 			if (AppInit.rootPasswd == "termux")
-                return Content("На termux операция недоступна", contentType: "text/html; charset=utf-8");
+                return Content("В termux операция недоступна", contentType: "text/html; charset=utf-8");
 
             bool isEditManifest = false;
 

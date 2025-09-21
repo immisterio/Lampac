@@ -82,6 +82,7 @@ cat <<EOF > init.conf
   "serverproxy": {
     "enable": true,
     "verifyip": false,
+    "encrypt_aes": true,
     "image": {
       "cache": false,
       "cache_rsize": false

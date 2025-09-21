@@ -10,6 +10,8 @@ namespace Shared.Models.AppConf
 
         public string whitepattern { get; set; }
 
+        public HashSet<string> white_uids { get; set; }
+
         public string premium_pattern { get; set; }
 
         public string domainId_pattern { get; set; }
