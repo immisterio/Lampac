@@ -164,16 +164,35 @@ namespace Lampac.Engine.Middlewares
                             return Task.CompletedTask;
                         }
 
-                        string msg = (user != null && user.ban) ? (user.ban_msg ?? "Вы заблокированы") : 
-                                     limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : // Разбан через {60 - DateTime.Now.Minute} мин.\n{string.Join(", ", ips)}
-                                     string.IsNullOrWhiteSpace(requestInfo.user_uid) ? accsdb.authMesage :
-                                     user != null ? accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy")) :
-                                     accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{host}", httpContext.Request.Host.Value);
+                        #region msg
+                        string msg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." 
+                            : string.IsNullOrEmpty(requestInfo.user_uid) ? accsdb.authMesage 
+                            : accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{host}", httpContext.Request.Host.Value);
 
-                        if (httpContext.Request.Path.Value.StartsWith("/tmdb"))
-                            httpContext.Response.StatusCode = 403;
+                        if (user != null)
+                        {
+                            if (user.ban)
+                                msg = user.ban_msg ?? "Вы заблокированы";
 
-                        return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, user }, httpContext.RequestAborted);
+                            else if (DateTime.UtcNow > user.expires)
+                                msg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                        }
+                        #endregion
+
+                        #region denymsg
+                        string denymsg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : null;
+
+                        if (user != null)
+                        {
+                            if (user.ban)
+                                denymsg = user.ban_msg ?? "Вы заблокированы";
+
+                            else if (DateTime.UtcNow > user.expires)
+                                denymsg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                        }
+                        #endregion
+
+                        return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, denymsg, user }, httpContext.RequestAborted);
                     }
                 }
             }

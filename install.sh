@@ -98,13 +98,25 @@ iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 EOF
 
+get_external_ip() {
+   local ip
+   ip=$(curl -s --connect-timeout 5 https://api.ipify.org 2>/dev/null)
+   if [ -z "$ip" ]; then
+      ip=$(curl -s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
+   fi
+   if [ -z "$ip" ]; then
+      ip=$(curl -s --connect-timeout 5 https://ifconfig.me 2>/dev/null)
+   fi
+   echo "${ip:-IP}"
+}
+
 # Note
 echo ""
 echo "################################################################"
 echo ""
 echo "Have fun!"
 echo ""
-echo "http://IP:$random_port"
+echo "http://$(get_external_ip):$random_port"
 echo ""
 echo "Please check/edit $DEST/init.conf params and configure it"
 echo ""
