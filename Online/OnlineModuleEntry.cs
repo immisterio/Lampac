@@ -57,8 +57,6 @@ namespace Online
                                     {
                                         entry.Invoke = (Func<HttpContext, IMemoryCache, RequestModel, string, OnlineEventsModel, List<(string name, string url, string plugin, int index)>>)Delegate.CreateDelegate(
                                             typeof(Func<HttpContext, IMemoryCache, RequestModel, string, OnlineEventsModel, List<(string name, string url, string plugin, int index)>>), m);
-
-                                        onlineModulesCache.Add(entry);
                                     }
                                 }
                                 catch { }
@@ -70,8 +68,6 @@ namespace Online
                                     {
                                         entry.InvokeAsync = (Func<HttpContext, IMemoryCache, RequestModel, string, OnlineEventsModel, Task<List<(string name, string url, string plugin, int index)>>>)Delegate.CreateDelegate(
                                             typeof(Func<HttpContext, IMemoryCache, RequestModel, string, OnlineEventsModel, Task<List<(string name, string url, string plugin, int index)>>>), m2);
-
-                                        onlineModulesCache.Add(entry);
                                     }
                                 }
                                 catch { }
@@ -85,8 +81,6 @@ namespace Online
                                     {
                                         entry.Events = (Func<string, long, string, long, string, string, string, int, string, int, string, List<(string name, string url, string plugin, int index)>>)Delegate.CreateDelegate(
                                             typeof(Func<string, long, string, long, string, string, string, int, string, int, string, List<(string name, string url, string plugin, int index)>>), m);
-
-                                        onlineModulesCache.Add(entry);
                                     }
                                 }
                                 catch { }
@@ -98,12 +92,13 @@ namespace Online
                                     {
                                         entry.EventsAsync = (Func<HttpContext, IMemoryCache, string, long, string, long, string, string, string, int, string, int, string, Task<List<(string name, string url, string plugin, int index)>>>)Delegate.CreateDelegate(
                                             typeof(Func<HttpContext, IMemoryCache, string, long, string, long, string, string, string, int, string, int, string, Task<List<(string name, string url, string plugin, int index)>>>), m2);
-
-                                        onlineModulesCache.Add(entry);
                                     }
                                 }
                                 catch { }
                             }
+
+                            if (entry.Invoke != null || entry.InvokeAsync != null || entry.Events != null || entry.EventsAsync != null)
+                                onlineModulesCache.Add(entry);
                         }
                         catch { }
                     }

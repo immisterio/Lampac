@@ -4,10 +4,6 @@ using Shared;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
-using Shared.Models.Module;
-using System;
-using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -28,70 +24,49 @@ namespace Lampac.Engine.Middlewares
         async public Task InvokeAsync(HttpContext httpContext)
         {
             #region modules
-            if (AppInit.modules != null)
+            MiddlewareModuleEntry.EnsureCache();
+
+            if (MiddlewareModuleEntry.middlewareModulesCache != null && MiddlewareModuleEntry.middlewareModulesCache.Count > 0)
             {
-                foreach (RootModule mod in AppInit.modules.Where(i => i.middlewares != null))
+                foreach (var entry in MiddlewareModuleEntry.middlewareModulesCache)
                 {
+                    var mod = entry.mod;
+
                     try
                     {
                         if (first && (mod.version == 0 || mod.version == 1))
                             continue;
 
-                        Assembly assembly = null;
-
-                        if (mod.dynamic)
+                        if (mod.version >= 2)
                         {
-                            string cacheKey = $"{mod.dll}:{mod.middlewares}";
-                            if (!memoryCache.TryGetValue(cacheKey, out assembly))
+                            if (entry.Invoke != null)
                             {
-                                assembly = CSharpEval.Compilation(mod);
-                                var cacheEntryOptions = new MemoryCacheEntryOptions
-                                {
-                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(1)
-                                };
+                                bool next = entry.Invoke(first, httpContext, memoryCache);
+                                if (!next)
+                                    return;
+                            }
 
-                                if (assembly != null)
-                                    memoryCache.Set(cacheKey, assembly, cacheEntryOptions);
+                            if (entry.InvokeAsync != null)
+                            {
+                                bool next = await entry.InvokeAsync(first, httpContext, memoryCache);
+                                if (!next)
+                                    return;
                             }
                         }
                         else
                         {
-                            assembly = mod.assembly;
-                        }
-
-                        if (assembly != null && assembly.GetType(mod.NamespacePath(mod.middlewares)) is Type t)
-                        {
-                            if (mod.version >= 2)
+                            if (entry.InvokeV1 != null)
                             {
-                                if (t.GetMethod("Invoke") is MethodInfo m2)
-                                {
-                                    bool next = (bool)m2.Invoke(null, [first, httpContext, memoryCache]);
-                                    if (!next)
-                                        return;
-                                }
-
-                                if (t.GetMethod("InvokeAsync") is MethodInfo m)
-                                {
-                                    bool next = await (Task<bool>)m.Invoke(null, [first, httpContext, memoryCache]);
-                                    if (!next)
-                                        return;
-                                }
+                                bool next = entry.InvokeV1(httpContext, memoryCache);
+                                if (!next)
+                                    return;
                             }
-                            else
-                            {
-                                if (t.GetMethod("Invoke") is MethodInfo m2)
-                                {
-                                    bool next = (bool)m2.Invoke(null, [httpContext, memoryCache]);
-                                    if (!next)
-                                        return;
-                                }
 
-                                if (t.GetMethod("InvokeAsync") is MethodInfo m)
-                                {
-                                    bool next = await (Task<bool>)m.Invoke(null, [httpContext, memoryCache]);
-                                    if (!next)
-                                        return;
-                                }
+                            if (entry.InvokeAsyncV1 != null)
+                            {
+                                bool next = await entry.InvokeAsyncV1(httpContext, memoryCache);
+                                if (!next)
+                                    return;
                             }
                         }
                     }
