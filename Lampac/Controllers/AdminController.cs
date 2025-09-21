@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using IO = System.IO;
 using Shared;
+using System.Threading.Tasks;
 
 namespace Lampac.Controllers
 {
@@ -297,7 +298,7 @@ namespace Lampac.Controllers
         public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
 			if (AppInit.rootPasswd == "termux")
-                return Content("В termux операция недоступна", contentType: "text/html; charset=utf-8");
+                return ContentTo("В termux операция недоступна");
 
             bool isEditManifest = false;
 
@@ -402,7 +403,8 @@ namespace Lampac.Controllers
                     }
                     #endregion
 
-                    Program.Reload();
+                    Task.Delay(100).ContinueWith(t => Program._host.StopAsync());
+
                     return Redirect("/admin/auth");
                 }
             }
@@ -499,7 +501,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            return Content(renderHtml(), contentType: "text/html; charset=utf-8");
+            return ContentTo(renderHtml());
         }
         #endregion
 

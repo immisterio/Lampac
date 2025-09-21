@@ -5,6 +5,8 @@ namespace Shared
 {
     public class Startup
     {
+        public static bool IsShutdown { get; set; }
+
         public static IServiceProvider ApplicationServices { get; private set; }
 
         public static IMemoryCache memoryCache { get; private set; }

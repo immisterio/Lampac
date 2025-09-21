@@ -34,6 +34,8 @@ namespace Lampac
     public class Startup
     {
         #region Startup
+        public static bool IsShutdown { get; private set; }
+
         public IConfiguration Configuration { get; }
 
         public static IServiceCollection serviceCollection { get; private set; }
@@ -420,6 +422,9 @@ namespace Lampac
 
         private void OnShutdown()
         {
+            IsShutdown = true;
+            Shared.Startup.IsShutdown = true;
+
             Chromium.FullDispose();
             Firefox.FullDispose();
             CollectionDb.Dispose();

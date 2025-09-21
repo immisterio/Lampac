@@ -158,7 +158,7 @@ namespace Shared.PlaywrightCore
                     if (!File.Exists("/usr/bin/Xvfb"))
                     {
                         Console.WriteLine("Playwright: install xvfb");
-                        await Bash.Run("apt update && apt install -y xvfb libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2");
+                        await Bash.Run("apt update && apt install -y xvfb");
                     }
 
                     _ = Bash.Run("Xvfb :99 -screen 0 1280x1024x24").ConfigureAwait(false);
