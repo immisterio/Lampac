@@ -91,6 +91,7 @@ namespace Lampac
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             SisiContext.Configure();
+            SyncUserContext.Configure();
             ProxyLinkContext.Configure();
             PlaywrightContext.Configure();
             HybridCacheContext.Configure();
@@ -192,6 +193,7 @@ namespace Lampac
             if (File.Exists("database/app.db"))
             {
                 CollectionDb.Configure();
+                MigrateSyncUsers();
 
                 using (var sisiDb = new SisiContext())
                 {
@@ -436,6 +438,62 @@ namespace Lampac
                 });
         #endregion
 
+
+        static void MigrateSyncUsers()
+        {
+            var syncCollection = CollectionDb.sync_users;
+            if (syncCollection == null)
+                return;
+
+            Console.WriteLine("run migration sync_users");
+
+            using (var syncDb = new SyncUserContext())
+            {
+                var existing = new HashSet<string>(
+                    syncDb.timecodes
+                          .AsNoTracking()
+                          .Select(i => $"{i.user}:{i.card}:{i.item}")
+                );
+
+                foreach (var user in syncCollection.FindAll())
+                {
+                    try
+                    {
+                        if (string.IsNullOrEmpty(user?.id) || user.timecodes == null || user.timecodes.Count == 0)
+                            continue;
+
+                        DateTime updated = DateTime.UtcNow;
+
+                        foreach (var card in user.timecodes)
+                        {
+                            if (string.IsNullOrEmpty(card.Key) || card.Value == null)
+                                continue;
+
+                            foreach (var item in card.Value)
+                            {
+                                if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
+                                    continue;
+
+                                if (!existing.Add($"{user.id}:{card.Key}:{item.Key}"))
+                                    continue;
+
+                                syncDb.timecodes.Add(new SyncUserTimecodeSqlModel
+                                {
+                                    user = user.id,
+                                    card = card.Key,
+                                    item = item.Key,
+                                    data = item.Value,
+                                    updated = updated
+                                });
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                syncDb.SaveChanges();
+            }
+        }
 
         #region UpdateUsersDb
         static bool _updateUsersDb = false;
