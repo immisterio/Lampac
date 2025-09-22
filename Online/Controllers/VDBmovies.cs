@@ -9,7 +9,23 @@ namespace Online.Controllers
 {
     public class VDBmovies : BaseOnlineController
     {
-        public static List<MovieDB> database = null;
+        static List<MovieDB> databaseCache;
+
+        public static IEnumerable<MovieDB> database
+        {
+            get
+            {
+                if (AppInit.conf.multiaccess)
+                {
+                    return databaseCache ??= JsonHelper.ListReader<MovieDB>("data/cdnmovies.json", 105000);
+                }
+
+                if (databaseCache != null)
+                    databaseCache = null;
+
+                return JsonHelper.ItemReader<MovieDB>("data/cdnmovies.json");
+            }
+        }
 
         static string referer = CrypTo.DecodeBase64("aHR0cHM6Ly9tb3ZpZWJvb20uc3RvcmUv");
 
@@ -41,15 +57,14 @@ namespace Online.Controllers
                 if (!init.spider)
                     return OnError("spider");
 
-                if (database == null)
-                    database = JsonHelper.ListReader<MovieDB>("data/cdnmovies.json", 105000);
-
                 var stpl = new SimilarTpl();
+
+                var db = database;
 
                 string stitle = StringConvert.SearchName(title);
                 string sorigtitle = StringConvert.SearchName(original_title);
 
-                foreach (var j in database)
+                foreach (var j in db)
                 {
                     if (stpl.data.Count > 100)
                         break;
