@@ -25,15 +25,17 @@ namespace SISI
                 }
             };
 
+            #region bookmarks
             var bookmarks = new List<PlaylistItem>();
 
             using (var db = new SisiContext())
             {
-                var bookmarksQuery = db.bookmarks
+                var bookmarksQuery = await db.bookmarks
                     .AsNoTracking()
-                    .Where(i => i.user == md5user);
+                    .Where(i => i.user == md5user)
+                    .ToListAsync();
 
-                #region menu
+                #region Модель
                 var menu_models = new MenuItem()
                 {
                     title = $"Модель: {model ?? "выбрать"}",
@@ -41,15 +43,9 @@ namespace SISI
                     submenu = new List<MenuItem>(20)
                 };
 
-                var temp_models = new HashSet<string>();
-                var models = await bookmarksQuery
-                    .OrderByDescending(i => i.created)
-                    .Select(i => i.model)
-                    .ToListAsync();
-
-                foreach (var m in models)
+                foreach (var m in bookmarksQuery.OrderByDescending(i => i.created).Select(i => i.model).ToHashSet())
                 {
-                    if (string.IsNullOrEmpty(m) || !temp_models.Add(m))
+                    if (string.IsNullOrEmpty(m))
                         continue;
 
                     menu_models.submenu.Add(new MenuItem()
@@ -63,30 +59,23 @@ namespace SISI
                     menu.Add(menu_models);
                 #endregion
 
+                var items = bookmarksQuery
+                    .OrderByDescending(i => i.created)
+                    .Skip((pg * pageSize) - pageSize)
+                    .Take(pageSize);
+
                 if (!string.IsNullOrEmpty(search))
                 {
-                    string _s = search.ToLower();
-                    bookmarksQuery = bookmarksQuery.Where(i => i.name != null && i.name.Contains(_s));
+                    string _s = StringConvert.SearchName(search);
+                    items = items.Where(i => i.name != null && StringConvert.SearchName(i.name).Contains(_s));
                 }
 
                 if (!string.IsNullOrEmpty(model))
-                    bookmarksQuery = bookmarksQuery.Where(i => i.model == model);
+                    items = items.Where(i => i.model == model);
 
-                int page = Math.Max(1, pg);
-                int skip = (page - 1) * pageSize;
-
-                var items = await bookmarksQuery
-                    .OrderByDescending(i => i.created)
-                    .Skip(skip)
-                    .Take(pageSize)
-                    .Select(i => i.json)
-                    .ToListAsync();
-
-                if (items.Count > 0)
+                if (items.Any())
                 {
-                    bookmarks.Capacity = items.Count;
-
-                    foreach (var json in items)
+                    foreach (var json in items.Select(i => i.json))
                     {
                         if (string.IsNullOrEmpty(json))
                             continue;
@@ -101,7 +90,9 @@ namespace SISI
                     }
                 }
             }
+            #endregion
 
+            #region getvideLink
             string getvideLink(PlaylistItem pl)
             {
                 if (pl.bookmark.site is "phub" or "phubprem")
@@ -109,6 +100,7 @@ namespace SISI
 
                 return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
             }
+            #endregion
 
             string localhost = $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}";
 
