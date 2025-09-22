@@ -1,11 +1,27 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.AnimeLib;
+using Shared.Models.Online.Settings;
+using System.Net.Http;
+using System.Text;
+using System.Threading;
 
 namespace Online.Controllers
 {
     public class AnimeLib : BaseOnlineController
     {
+        private const string TokenCachePath = "cache/animelib.json";
+        private static readonly SemaphoreSlim TokenSemaphore = new SemaphoreSlim(1, 1);
+
+        private sealed class AnimeLibTokenState
+        {
+            public string init_tk { get; set; }
+            public string token { get; set; }
+            public string refresh_token { get; set; }
+            public long refresh_time { get; set; }
+        }
+
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeLib);
 
         [HttpGet]
@@ -17,6 +33,9 @@ namespace Online.Controllers
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
+                return OnError();
+
+            if (!await EnsureAnimeLibToken(init))
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
@@ -195,6 +214,9 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
+            if (!await EnsureAnimeLibToken(init))
+                return OnError();
+
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected() && init.rhub_fallback && play)
                 rch.Disabled();
@@ -272,5 +294,123 @@ namespace Online.Controllers
             return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: headers_stream));
         }
         #endregion
+
+        async ValueTask<bool> EnsureAnimeLibToken(OnlinesSettings init)
+        {
+            string initToken = init.token;
+            if (string.IsNullOrEmpty(initToken))
+                return false;
+
+            await TokenSemaphore.WaitAsync();
+
+            try
+            {
+                AnimeLibTokenState cache = null;
+
+                try
+                {
+                    if (File.Exists(TokenCachePath))
+                    {
+                        string json = File.ReadAllText(TokenCachePath);
+                        if (!string.IsNullOrWhiteSpace(json))
+                            cache = JsonConvert.DeserializeObject<AnimeLibTokenState>(json);
+                    }
+                }
+                catch
+                {
+                    cache = null;
+                }
+
+                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+                if (cache != null &&
+                    cache.init_tk == initToken &&
+                    !string.IsNullOrEmpty(cache.token) &&
+                    !string.IsNullOrEmpty(cache.refresh_token) &&
+                    cache.refresh_time > now)
+                {
+                    init.token = cache.token;
+                    return true;
+                }
+
+                string refreshToken = initToken;
+
+                if (cache != null && cache.init_tk == initToken && !string.IsNullOrEmpty(cache.refresh_token))
+                    refreshToken = cache.refresh_token;
+
+                var tokens = await RequestAnimeLibToken(refreshToken);
+                if (tokens == null)
+                    return false;
+
+                cache = new AnimeLibTokenState
+                {
+                    init_tk = initToken,
+                    token = tokens.Value.accessToken,
+                    refresh_token = tokens.Value.refreshToken,
+                    refresh_time = DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeSeconds()
+                };
+
+                try
+                {
+                    Directory.CreateDirectory("cache");
+                    File.WriteAllText(TokenCachePath, JsonConvert.SerializeObject(cache));
+                }
+                catch
+                {
+                }
+
+                init.token = cache.token;
+                return true;
+            }
+            finally
+            {
+                TokenSemaphore.Release();
+            }
+        }
+
+        async ValueTask<(string accessToken, string refreshToken)?> RequestAnimeLibToken(string refreshToken)
+        {
+            if (string.IsNullOrEmpty(refreshToken))
+                return null;
+
+            var payload = JsonConvert.SerializeObject(new
+            {
+                grant_type = "refresh_token",
+                client_id = "1",
+                refresh_token = refreshToken,
+                scope = string.Empty
+            });
+
+            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+            var headers = HeadersModel.Init(
+                ("accept", "*/*"),
+                ("accept-language", "en-US,en;q=0.9,ru;q=0.8"),
+                ("client-time-zone", "Europe/Kiev"),
+                ("origin", "https://anilib.me"),
+                ("priority", "u=1, i"),
+                ("referer", "https://anilib.me/"),
+                ("sec-ch-ua", "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Google Chrome\";v=\"140\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("site-id", "5"),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
+            );
+
+            var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, timeoutSeconds: 8, headers: headers, useDefaultHeaders: false);
+            if (result == null)
+                return null;
+
+            string accessToken = result.Value<string>("access_token");
+            string newRefreshToken = result.Value<string>("refresh_token");
+
+            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(newRefreshToken))
+                return null;
+
+            return (accessToken, newRefreshToken);
+        }
     }
 }
