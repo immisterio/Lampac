@@ -15,15 +15,10 @@ namespace Online.Controllers
         {
             get
             {
-                if (AppInit.conf.multiaccess)
-                {
+                if (AppInit.conf.multiaccess || databaseCache != null)
                     return databaseCache ??= JsonHelper.ListReader<MovieDB>("data/cdnmovies.json", 105000);
-                }
 
-                if (databaseCache != null)
-                    databaseCache = null;
-
-                return JsonHelper.ItemReader<MovieDB>("data/cdnmovies.json");
+                return JsonHelper.IEnumerableReader<MovieDB>("data/cdnmovies.json");
             }
         }
 

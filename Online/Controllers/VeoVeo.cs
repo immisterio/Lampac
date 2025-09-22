@@ -142,15 +142,10 @@ namespace Online.Controllers
         {
             get
             {
-                if (AppInit.conf.multiaccess)
-                {
+                if (AppInit.conf.multiaccess || databaseCache != null)
                     return databaseCache ??= JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
-                }
 
-                if (databaseCache != null)
-                    databaseCache = null;
-
-                return JsonHelper.ItemReader<Movie>("data/veoveo.json");
+                return JsonHelper.IEnumerableReader<Movie>("data/veoveo.json");
             }
         }
 

@@ -1,13 +1,12 @@
 using Newtonsoft.Json;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO.Compression;
-using System.Linq;
 
 namespace Shared.Engine
 {
     public static class JsonHelper
     {
+        #region ListReader
         public static List<T> ListReader<T>(string filePath, int capacity = 0)
         {
             var items = new List<T>(capacity);
@@ -39,15 +38,20 @@ namespace Shared.Engine
 
             return items;
         }
+        #endregion
 
-        public static IEnumerable<T> ItemReader<T>(string filePath)
+        #region IEnumerableReader
+        public static IEnumerable<T> IEnumerableReader<T>(string filePath)
         {
             if (!File.Exists(filePath))
                 return Enumerable.Empty<T>();
 
             return new JsonItemEnumerable<T>(filePath);
         }
+        #endregion
 
+
+        #region [Codex AI] JsonItemEnumerable<T>
         private class JsonItemEnumerable<T> : IEnumerable<T>
         {
             readonly string filePath;
@@ -129,5 +133,6 @@ namespace Shared.Engine
                 }
             }
         }
+        #endregion
     }
 }

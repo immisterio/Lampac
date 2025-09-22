@@ -16,15 +16,10 @@ namespace Online.Controllers
         {
             get
             {
-                if (AppInit.conf.multiaccess)
-                {
+                if (AppInit.conf.multiaccess || databaseCache != null)
                     return databaseCache ??= JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
-                }
 
-                if (databaseCache != null)
-                    databaseCache = null;
-
-                return JsonHelper.ItemReader<DatumDB>("data/lumex.json");
+                return JsonHelper.IEnumerableReader<DatumDB>("data/lumex.json");
             }
         }
 
