@@ -2,13 +2,13 @@ using Lampac.Engine;
 using Lampac.Engine.CRON;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
 using Shared.Models.Base;
-using Shared.Models.SISI;
 using Shared.Models.SISI.Base;
 using Shared.Models.SQL;
 using Shared.PlaywrightCore;
@@ -21,6 +21,8 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 
 namespace Lampac
@@ -91,6 +93,7 @@ namespace Lampac
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             CollectionDb.Configure();
+            SisiContext.Configure();
             ProxyLinkContext.Configure();
             PlaywrightContext.Configure();
             HybridCacheContext.Configure();
@@ -131,7 +134,13 @@ namespace Lampac
                 #region cache/bookmarks/sisi
                 if (Directory.Exists("cache/bookmarks/sisi"))
                 {
-                    var sisiDb = CollectionDb.sisi_users;
+                    var jsonOptions = new JsonSerializerOptions
+                    {
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                        PropertyNameCaseInsensitive = true
+                    };
+
+                    using var sisiDb = new SisiContext();
 
                     foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
                     {
@@ -143,17 +152,110 @@ namespace Lampac
                                 string md5user = folderName + Path.GetFileName(file);
                                 var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
 
-                                if (bookmarks.Count > 0)
+                                if (bookmarks == null || bookmarks.Count == 0)
+                                    continue;
+
+                                var existing = sisiDb.bookmarks.AsNoTracking()
+                                                               .Where(i => i.user == md5user)
+                                                               .Select(i => i.uid)
+                                                               .ToHashSet();
+
+                                DateTime now = DateTime.UtcNow;
+
+                                for (int i = 0; i < bookmarks.Count; i++)
                                 {
-                                    sisiDb.Insert(new User
+                                    var pl = bookmarks[i];
+                                    if (pl?.bookmark == null || string.IsNullOrEmpty(pl.bookmark.site) || string.IsNullOrEmpty(pl.bookmark.href))
+                                        continue;
+
+                                    pl.bookmark.uid ??= CrypTo.md5($"{pl.bookmark.site}:{pl.bookmark.href}");
+
+                                    if (existing.Contains(pl.bookmark.uid))
+                                        continue;
+
+                                    sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
                                     {
-                                        Id = md5user,
-                                        Bookmarks = bookmarks
+                                        user = md5user,
+                                        uid = pl.bookmark.uid,
+                                        created = now.AddSeconds(-i),
+                                        json = JsonSerializer.Serialize(pl, jsonOptions)
                                     });
+
+                                    existing.Add(pl.bookmark.uid);
                                 }
+
+                                sisiDb.SaveChanges();
                             }
                             catch { }
                         }
+                    }
+                }
+                #endregion
+
+                #region database/sisi_users
+                if (CollectionDb.sisi_users != null)
+                {
+                    var jsonOptions = new JsonSerializerOptions
+                    {
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                        PropertyNameCaseInsensitive = true
+                    };
+
+                    using var sisiDb = new SisiContext();
+
+                    foreach (var user in CollectionDb.sisi_users.FindAll())
+                    {
+                        if (user == null || string.IsNullOrEmpty(user.Id) || user.Bookmarks == null || user.Bookmarks.Count == 0)
+                            continue;
+
+                        try
+                        {
+                            var existing = sisiDb.bookmarks.AsNoTracking()
+                                                           .Where(i => i.user == user.Id)
+                                                           .Select(i => i.uid)
+                                                           .ToHashSet();
+
+                            var migrated = new HashSet<string>();
+                            DateTime created = DateTime.UtcNow;
+                            int offset = 0;
+
+                            for (int i = 0; i < user.Bookmarks.Count; i++)
+                            {
+                                var bookmark = user.Bookmarks[i];
+
+                                if (bookmark?.bookmark == null || string.IsNullOrEmpty(bookmark.bookmark.site) || string.IsNullOrEmpty(bookmark.bookmark.href))
+                                    continue;
+
+                                bookmark.bookmark.uid ??= CrypTo.md5($"{bookmark.bookmark.site}:{bookmark.bookmark.href}");
+
+                                if (!existing.Add(bookmark.bookmark.uid))
+                                    continue;
+
+                                sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
+                                {
+                                    user = user.Id,
+                                    uid = bookmark.bookmark.uid,
+                                    created = created.AddSeconds(-offset),
+                                    json = JsonSerializer.Serialize(bookmark, jsonOptions)
+                                });
+
+                                migrated.Add(bookmark.bookmark.uid);
+                                offset++;
+                            }
+
+                            if (migrated.Count > 0)
+                            {
+                                sisiDb.SaveChanges();
+
+                                user.Bookmarks.RemoveAll(b => b?.bookmark != null && migrated.Contains(b.bookmark.uid));
+
+                                if (user.Bookmarks.Count == 0)
+                                    CollectionDb.sisi_users.Delete(user.Id);
+                                else
+                                    CollectionDb.sisi_users.Update(user);
+                            }
+                        }
+                        catch { }
                     }
                 }
                 #endregion
