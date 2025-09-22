@@ -174,19 +174,19 @@ namespace JacRed.Controllers
 
             try
             {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
+                using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
                     AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                })
                 {
-                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
+                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    using (var client = new System.Net.Http.HttpClient(clientHandler))
+                    {
+                        client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
+                        client.MaxResponseContentBufferSize = 2000000; // 2MB
+                        client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
-                    var postParams = new Dictionary<string, string>
+                        var postParams = new Dictionary<string, string>
                     {
                         { "act", "users" },
                         { "type", "login" },
@@ -197,26 +197,27 @@ namespace JacRed.Controllers
                         { "rem", "1" }
                     };
 
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"{jackett.Lostfilm.host}/ajaxik.users.php", postContent))
+                        using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            using (var response = await client.PostAsync($"{jackett.Lostfilm.host}/ajaxik.users.php", postContent))
                             {
-                                string cookie = string.Empty;
-                                foreach (string line in cook)
+                                if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                                 {
-                                    if (string.IsNullOrWhiteSpace(line))
-                                        continue;
+                                    string cookie = string.Empty;
+                                    foreach (string line in cook)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(line))
+                                            continue;
 
-                                    cookie += " " + line;
-                                }
+                                        cookie += " " + line;
+                                    }
 
-                                if (cookie.Contains("lf_session=") && cookie.Contains("lnk_uid="))
-                                {
-                                    cookie = Regex.Replace(cookie.Trim(), ";$", "");
-                                    Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
-                                    return cookie;
+                                    if (cookie.Contains("lf_session=") && cookie.Contains("lnk_uid="))
+                                    {
+                                        cookie = Regex.Replace(cookie.Trim(), ";$", "");
+                                        Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
+                                        return cookie;
+                                    }
                                 }
                             }
                         }

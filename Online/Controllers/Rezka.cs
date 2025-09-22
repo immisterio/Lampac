@@ -315,59 +315,60 @@ namespace Online.Controllers
 
             try
             {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
+                using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
                     AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                })
                 {
-                    client.Timeout = TimeSpan.FromSeconds(20);
-                    client.DefaultRequestHeaders.Add("user-agent", Http.UserAgent);
-
-                    var postParams = new Dictionary<string, string>
+                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    using (var client = new System.Net.Http.HttpClient(clientHandler))
                     {
-                        { "login_name", init.login },
-                        { "login_password", init.passwd },
-                        { "login_not_save", "0" }
-                    };
+                        client.Timeout = TimeSpan.FromSeconds(20);
+                        client.DefaultRequestHeaders.Add("user-agent", Http.UserAgent);
 
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"{init.host}/ajax/login/", postContent))
+                        var postParams = new Dictionary<string, string>
                         {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            { "login_name", init.login },
+                            { "login_password", init.passwd },
+                            { "login_not_save", "0" }
+                        };
+
+                        using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
+                        {
+                            using (var response = await client.PostAsync($"{init.host}/ajax/login/", postContent))
                             {
-                                string cookie = string.Empty;
-
-                                foreach (string line in cook)
+                                if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                                 {
-                                    if (string.IsNullOrEmpty(line))
-                                        continue;
+                                    string cookie = string.Empty;
 
-                                    if (line.Contains("=deleted;") || !line.Contains(domain))
-                                        continue;
-
-                                    string c = line.Split(";")[0];
-                                    if (c.Contains("="))
+                                    foreach (string line in cook)
                                     {
-                                        string name = c.Split("=")[0];
-                                        if (cookie.Contains(name))
+                                        if (string.IsNullOrEmpty(line))
+                                            continue;
+
+                                        if (line.Contains("=deleted;") || !line.Contains(domain))
+                                            continue;
+
+                                        string c = line.Split(";")[0];
+                                        if (c.Contains("="))
                                         {
-                                            cookie = Regex.Replace(cookie, $"{name}=[^;]+", $"{name}={c.Split("=")[1]}");
-                                        }
-                                        else
-                                        {
-                                            cookie += $"{c}; ";
+                                            string name = c.Split("=")[0];
+                                            if (cookie.Contains(name))
+                                            {
+                                                cookie = Regex.Replace(cookie, $"{name}=[^;]+", $"{name}={c.Split("=")[1]}");
+                                            }
+                                            else
+                                            {
+                                                cookie += $"{c}; ";
+                                            }
                                         }
                                     }
-                                }
 
-                                if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
-                                {
-                                    setCookieContainer(cookie.Trim());
-                                    return cookieContainer;
+                                    if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
+                                    {
+                                        setCookieContainer(cookie.Trim());
+                                        return cookieContainer;
+                                    }
                                 }
                             }
                         }

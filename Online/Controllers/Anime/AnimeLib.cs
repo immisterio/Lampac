@@ -368,27 +368,28 @@ namespace Online.Controllers
                 scope = string.Empty
             });
 
-            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using (var content = new StringContent(payload, Encoding.UTF8, "application/json"))
+            {
+                var headers = HeadersModel.Init(Http.defaultFullHeaders,
+                    ("accept", "*/*"),
+                    ("origin", "https://anilib.me"),
+                    ("referer", "https://anilib.me/")
+                );
 
-            var headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "*/*"),
-                ("origin", "https://anilib.me"),
-                ("referer", "https://anilib.me/")
-            );
+                var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, httpversion: 2, timeoutSeconds: 8, headers: headers, useDefaultHeaders: false);
+                if (result == null)
+                    return null;
 
-            var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, httpversion: 2, timeoutSeconds: 8, headers: headers, useDefaultHeaders: false);
-            if (result == null)
-                return null;
+                //{"token_type":"Bearer","expires_in":2592000,"access_token":"*","refresh_token":"*"}
 
-            //{"token_type":"Bearer","expires_in":2592000,"access_token":"*","refresh_token":"*"}
+                string accessToken = result.Value<string>("access_token");
+                string newRefreshToken = result.Value<string>("refresh_token");
 
-            string accessToken = result.Value<string>("access_token");
-            string newRefreshToken = result.Value<string>("refresh_token");
+                if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(newRefreshToken))
+                    return null;
 
-            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(newRefreshToken))
-                return null;
-
-            return (accessToken, newRefreshToken);
+                return (accessToken, newRefreshToken);
+            }
         }
         #endregion
     }

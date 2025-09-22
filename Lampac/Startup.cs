@@ -56,26 +56,28 @@ namespace Lampac
             #region IHttpClientFactory
             services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() =>
             {
-                var handler = new HttpClientHandler()
+                using (var handler = new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.All,
                     AllowAutoRedirect = false
-                };
-
-                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                return handler;
+                })
+                {
+                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    return handler;
+                }
             });
 
             services.AddHttpClient("base").ConfigurePrimaryHttpMessageHandler(() =>
             {
-                var handler = new HttpClientHandler()
+                using (var handler = new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.All,
                     AllowAutoRedirect = true
-                };
-
-                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                return handler;
+                })
+                {
+                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    return handler;
+                }
             });
 
             services.AddHttpClient("http2", client =>

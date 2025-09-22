@@ -55,7 +55,7 @@ namespace Lampac.Engine.Middlewares
         {
             try
             {
-                var files = Directory.GetFiles("cache/img", "*").Select(f => Path.GetFileName(f)).ToHashSet();
+                var files = Directory.GetFiles("cache/tmdb", "*").Select(f => Path.GetFileName(f)).ToHashSet();
 
                 foreach (string md5fileName in cacheFiles.Keys.ToArray())
                 {
@@ -367,7 +367,7 @@ namespace Lampac.Engine.Middlewares
 
                 try
                 {
-                    using var handler = Http.Handler(uri, proxyManager.Get());
+                    var handler = Http.Handler(uri, proxyManager.Get());
                     handler.AllowAutoRedirect = true;
 
                     var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>

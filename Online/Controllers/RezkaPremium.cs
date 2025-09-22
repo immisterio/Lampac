@@ -346,68 +346,70 @@ namespace Online.Controllers
 
             try
             {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
+                using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
                     AllowAutoRedirect = false,
                     AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
-                };
-
-                if (proxy != null)
+                })
                 {
-                    clientHandler.UseProxy = true;
-                    clientHandler.Proxy = proxy;
-                }
 
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
-                {
-                    client.Timeout = TimeSpan.FromSeconds(15);
-
-                    foreach (var item in apiHeaders(init, string.Empty))
-                        client.DefaultRequestHeaders.Add(item.name, item.val);
-
-                    var postParams = new Dictionary<string, string>
+                    if (proxy != null)
                     {
-                        { "login_name", init.login },
-                        { "login_password", init.passwd },
-                        { "login_not_save", "0" }
-                    };
+                        clientHandler.UseProxy = true;
+                        clientHandler.Proxy = proxy;
+                    }
 
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
+                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    using (var client = new System.Net.Http.HttpClient(clientHandler))
                     {
-                        loglines += $"POST: {init.host}/ajax/login/\n";
-                        loglines += $"{postContent.ReadAsStringAsync().Result}\n";
+                        client.Timeout = TimeSpan.FromSeconds(15);
 
-                        using (var response = await client.PostAsync($"{init.host}/ajax/login/", postContent))
+                        foreach (var item in apiHeaders(init, string.Empty))
+                            client.DefaultRequestHeaders.Add(item.name, item.val);
+
+                        var postParams = new Dictionary<string, string>
                         {
-                            loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
+                            { "login_name", init.login },
+                            { "login_password", init.passwd },
+                            { "login_not_save", "0" }
+                        };
 
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                        using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
+                        {
+                            loglines += $"POST: {init.host}/ajax/login/\n";
+                            loglines += $"{postContent.ReadAsStringAsync().Result}\n";
+
+                            using (var response = await client.PostAsync($"{init.host}/ajax/login/", postContent))
                             {
-                                string cookie = string.Empty;
+                                loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
 
-                                foreach (string line in cook)
+                                if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                                 {
-                                    if (string.IsNullOrEmpty(line))
-                                        continue;
+                                    string cookie = string.Empty;
 
-                                    if (line.Contains("=deleted;"))
-                                        continue;
+                                    foreach (string line in cook)
+                                    {
+                                        if (string.IsNullOrEmpty(line))
+                                            continue;
 
-                                    loglines += $"Set-Cookie: {line}\n";
+                                        if (line.Contains("=deleted;"))
+                                            continue;
 
-                                    if (line.Contains("dle_user_id") || line.Contains("dle_password"))
-                                        cookie += $"{line.Split(";")[0]}; ";
+                                        loglines += $"Set-Cookie: {line}\n";
+
+                                        if (line.Contains("dle_user_id") || line.Contains("dle_password"))
+                                            cookie += $"{line.Split(";")[0]}; ";
+                                    }
+
+                                    if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
+                                    {
+                                        _cook = $"dle_user_taken=1; {Regex.Replace(cookie.Trim(), ";$", "")}";
+                                        authCookie.TryAdd(init.login, _cook);
+                                    }
+
+                                    loglines += $"authCookie: {authCookie}\n\n";
+                                    loglines += await response.Content.ReadAsStringAsync();
                                 }
-
-                                if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
-                                {
-                                    _cook = $"dle_user_taken=1; {Regex.Replace(cookie.Trim(), ";$", "")}";
-                                    authCookie.TryAdd(init.login, _cook);
-                                }
-
-                                loglines += $"authCookie: {authCookie}\n\n";
-                                loglines += await response.Content.ReadAsStringAsync();
                             }
                         }
                     }

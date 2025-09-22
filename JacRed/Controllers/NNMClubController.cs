@@ -219,25 +219,25 @@ namespace JacRed.Controllers
 
             try
             {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
+                using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
                     AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                })
                 {
-                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
-                    client.DefaultRequestHeaders.Add("cache-control", "no-cache");
-                    client.DefaultRequestHeaders.Add("dnt", "1");
-                    client.DefaultRequestHeaders.Add("origin", jackett.NNMClub.host);
-                    client.DefaultRequestHeaders.Add("pragma", "no-cache");
-                    client.DefaultRequestHeaders.Add("referer", $"{jackett.NNMClub.host}/");
-                    client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
+                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    using (var client = new System.Net.Http.HttpClient(clientHandler))
+                    {
+                        client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
+                        client.MaxResponseContentBufferSize = 2000000; // 2MB
+                        client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
+                        client.DefaultRequestHeaders.Add("cache-control", "no-cache");
+                        client.DefaultRequestHeaders.Add("dnt", "1");
+                        client.DefaultRequestHeaders.Add("origin", jackett.NNMClub.host);
+                        client.DefaultRequestHeaders.Add("pragma", "no-cache");
+                        client.DefaultRequestHeaders.Add("referer", $"{jackett.NNMClub.host}/");
+                        client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
-                    var postParams = new Dictionary<string, string>
+                        var postParams = new Dictionary<string, string>
                     {
                         { "redirect", "%2F" },
                         { "username", jackett.NNMClub.login.u },
@@ -246,27 +246,28 @@ namespace JacRed.Controllers
                         { "login", "%C2%F5%EE%E4" }
                     };
 
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"{jackett.NNMClub.host}/forum/login.php", postContent))
+                        using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            using (var response = await client.PostAsync($"{jackett.NNMClub.host}/forum/login.php", postContent))
                             {
-                                string data = null, sid = null;
-                                foreach (string line in cook)
+                                if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                                 {
-                                    if (string.IsNullOrWhiteSpace(line))
-                                        continue;
+                                    string data = null, sid = null;
+                                    foreach (string line in cook)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(line))
+                                            continue;
 
-                                    if (line.Contains("phpbb2mysql_4_data="))
-                                        data = new Regex("phpbb2mysql_4_data=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                        if (line.Contains("phpbb2mysql_4_data="))
+                                            data = new Regex("phpbb2mysql_4_data=([^;]+)(;|$)").Match(line).Groups[1].Value;
 
-                                    if (line.Contains("phpbb2mysql_4_sid="))
-                                        sid = new Regex("phpbb2mysql_4_sid=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                        if (line.Contains("phpbb2mysql_4_sid="))
+                                            sid = new Regex("phpbb2mysql_4_sid=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                    }
+
+                                    if (!string.IsNullOrWhiteSpace(data) && !string.IsNullOrWhiteSpace(sid))
+                                        Cookie = $"phpbb2mysql_4_data={data}; phpbb2mysql_4_sid={sid};";
                                 }
-
-                                if (!string.IsNullOrWhiteSpace(data) && !string.IsNullOrWhiteSpace(sid))
-                                    Cookie = $"phpbb2mysql_4_data={data}; phpbb2mysql_4_sid={sid};";
                             }
                         }
                     }

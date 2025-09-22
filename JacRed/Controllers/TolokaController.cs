@@ -335,19 +335,19 @@ namespace JacRed.Controllers
 
             try
             {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
+                using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
                     AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                })
                 {
-                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
+                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    using (var client = new System.Net.Http.HttpClient(clientHandler))
+                    {
+                        client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
+                        client.MaxResponseContentBufferSize = 2000000; // 2MB
+                        client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
-                    var postParams = new Dictionary<string, string>
+                        var postParams = new Dictionary<string, string>
                     {
                         { "username", jackett.Toloka.login.u },
                         { "password", jackett.Toloka.login.p },
@@ -357,30 +357,31 @@ namespace JacRed.Controllers
                         { "login", "Вхід" }
                     };
 
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"{jackett.Toloka.host}/login.php", postContent))
+                        using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            using (var response = await client.PostAsync($"{jackett.Toloka.host}/login.php", postContent))
                             {
-                                string toloka_sid = null, toloka_data = null;
-                                foreach (string line in cook)
+                                if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                                 {
-                                    if (string.IsNullOrWhiteSpace(line))
-                                        continue;
+                                    string toloka_sid = null, toloka_data = null;
+                                    foreach (string line in cook)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(line))
+                                            continue;
 
-                                    if (line.Contains("toloka_sid="))
-                                        toloka_sid = new Regex("toloka_sid=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                        if (line.Contains("toloka_sid="))
+                                            toloka_sid = new Regex("toloka_sid=([^;]+)(;|$)").Match(line).Groups[1].Value;
 
-                                    if (line.Contains("toloka_data="))
-                                        toloka_data = new Regex("toloka_data=([^;]+)(;|$)").Match(line).Groups[1].Value;
-                                }
+                                        if (line.Contains("toloka_data="))
+                                            toloka_data = new Regex("toloka_data=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                    }
 
-                                if (!string.IsNullOrWhiteSpace(toloka_sid) && !string.IsNullOrWhiteSpace(toloka_data))
-                                {
-                                    string cookie = $"toloka_sid={toloka_sid}; toloka_ssl=1; toloka_data={toloka_data};";
-                                    Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
-                                    return cookie;
+                                    if (!string.IsNullOrWhiteSpace(toloka_sid) && !string.IsNullOrWhiteSpace(toloka_data))
+                                    {
+                                        string cookie = $"toloka_sid={toloka_sid}; toloka_ssl=1; toloka_data={toloka_data};";
+                                        Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
+                                        return cookie;
+                                    }
                                 }
                             }
                         }

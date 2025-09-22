@@ -211,52 +211,53 @@ namespace JacRed.Controllers
 
             try
             {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
+                using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
                     AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                })
                 {
-                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
-                    client.DefaultRequestHeaders.Add("cache-control", "no-cache");
-                    client.DefaultRequestHeaders.Add("dnt", "1");
-                    client.DefaultRequestHeaders.Add("origin", jackett.Kinozal.host);
-                    client.DefaultRequestHeaders.Add("pragma", "no-cache");
-                    client.DefaultRequestHeaders.Add("referer", $"{jackett.Kinozal.host}/");
-                    client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
+                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    using (var client = new System.Net.Http.HttpClient(clientHandler))
+                    {
+                        client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
+                        client.MaxResponseContentBufferSize = 2000000; // 2MB
+                        client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
+                        client.DefaultRequestHeaders.Add("cache-control", "no-cache");
+                        client.DefaultRequestHeaders.Add("dnt", "1");
+                        client.DefaultRequestHeaders.Add("origin", jackett.Kinozal.host);
+                        client.DefaultRequestHeaders.Add("pragma", "no-cache");
+                        client.DefaultRequestHeaders.Add("referer", $"{jackett.Kinozal.host}/");
+                        client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
-                    var postParams = new Dictionary<string, string>
+                        var postParams = new Dictionary<string, string>
                     {
                         { "username", jackett.Kinozal.login.u },
                         { "password", jackett.Kinozal.login.p },
                         { "returnto", "" }
                     };
 
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"{jackett.Kinozal.host}/takelogin.php", postContent))
+                        using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            using (var response = await client.PostAsync($"{jackett.Kinozal.host}/takelogin.php", postContent))
                             {
-                                string uid = null, pass = null;
-                                foreach (string line in cook)
+                                if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                                 {
-                                    if (string.IsNullOrWhiteSpace(line))
-                                        continue;
+                                    string uid = null, pass = null;
+                                    foreach (string line in cook)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(line))
+                                            continue;
 
-                                    if (line.Contains("uid="))
-                                        uid = new Regex("uid=([0-9]+)").Match(line).Groups[1].Value;
+                                        if (line.Contains("uid="))
+                                            uid = new Regex("uid=([0-9]+)").Match(line).Groups[1].Value;
 
-                                    if (line.Contains("pass="))
-                                        pass = new Regex("pass=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                        if (line.Contains("pass="))
+                                            pass = new Regex("pass=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                    }
+
+                                    if (!string.IsNullOrWhiteSpace(uid) && !string.IsNullOrWhiteSpace(pass))
+                                        Cookie = $"uid={uid}; pass={pass};";
                                 }
-
-                                if (!string.IsNullOrWhiteSpace(uid) && !string.IsNullOrWhiteSpace(pass))
-                                    Cookie = $"uid={uid}; pass={pass};";
                             }
                         }
                     }

@@ -392,46 +392,47 @@ namespace JacRed.Controllers
 
             try
             {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
+                using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
                     AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
+                })
                 {
-                    client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
-                    client.MaxResponseContentBufferSize = 2000000; // 2MB
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
+                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    using (var client = new System.Net.Http.HttpClient(clientHandler))
+                    {
+                        client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
+                        client.MaxResponseContentBufferSize = 2000000; // 2MB
+                        client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
-                    var postParams = new Dictionary<string, string>
+                        var postParams = new Dictionary<string, string>
                     {
                         { "login_username", jackett.Rutracker.login.u },
                         { "login_password", jackett.Rutracker.login.p },
                         { "login", "Вход" }
                     };
 
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"{jackett.Rutracker.host}/forum/login.php", postContent))
+                        using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
+                            using (var response = await client.PostAsync($"{jackett.Rutracker.host}/forum/login.php", postContent))
                             {
-                                string session = null;
-                                foreach (string line in cook)
+                                if (response.Headers.TryGetValues("Set-Cookie", out var cook))
                                 {
-                                    if (string.IsNullOrWhiteSpace(line))
-                                        continue;
+                                    string session = null;
+                                    foreach (string line in cook)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(line))
+                                            continue;
 
-                                    if (line.Contains("bb_session="))
-                                        session = new Regex("bb_session=([^;]+)(;|$)").Match(line).Groups[1].Value;
-                                }
+                                        if (line.Contains("bb_session="))
+                                            session = new Regex("bb_session=([^;]+)(;|$)").Match(line).Groups[1].Value;
+                                    }
 
-                                if (!string.IsNullOrWhiteSpace(session))
-                                {
-                                    string cookie = $"bb_ssl=1; bb_session={session};";
-                                    Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
-                                    return cookie;
+                                    if (!string.IsNullOrWhiteSpace(session))
+                                    {
+                                        string cookie = $"bb_ssl=1; bb_session={session};";
+                                        Startup.memoryCache.Set(authKey, cookie, DateTime.Today.AddDays(1));
+                                        return cookie;
+                                    }
                                 }
                             }
                         }

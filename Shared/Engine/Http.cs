@@ -163,24 +163,26 @@ namespace Shared.Engine
         {
             try
             {
-                using var handler = Handler(url, proxy);
-                handler.AllowAutoRedirect = allowAutoRedirect;
-
-                using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
+                using (var handler = Handler(url, proxy))
                 {
-                    DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, referer, headers);
+                    handler.AllowAutoRedirect = allowAutoRedirect;
 
-                    var req = new HttpRequestMessage(HttpMethod.Get, url)
+                    using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
                     {
-                        Version = new Version(httpversion, 0)
-                    };
+                        DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, referer, headers);
 
-                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-                    {
-                        string location = (int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307 ? response.Headers.Location?.ToString() : response.RequestMessage.RequestUri?.ToString();
-                        location = Uri.EscapeUriString(System.Web.HttpUtility.UrlDecode(location ?? ""));
+                        var req = new HttpRequestMessage(HttpMethod.Get, url)
+                        {
+                            Version = new Version(httpversion, 0)
+                        };
 
-                        return string.IsNullOrWhiteSpace(location) ? null : location;
+                        using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+                        {
+                            string location = (int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307 ? response.Headers.Location?.ToString() : response.RequestMessage.RequestUri?.ToString();
+                            location = Uri.EscapeUriString(System.Web.HttpUtility.UrlDecode(location ?? ""));
+
+                            return string.IsNullOrWhiteSpace(location) ? null : location;
+                        }
                     }
                 }
             }
@@ -196,20 +198,22 @@ namespace Shared.Engine
         {
             try
             {
-                using var handler = Handler(url, proxy);
-                handler.AllowAutoRedirect = allowAutoRedirect;
-
-                using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
+                using (var handler = Handler(url, proxy))
                 {
-                    DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, null, headers);
+                    handler.AllowAutoRedirect = allowAutoRedirect;
 
-                    var req = new HttpRequestMessage(HttpMethod.Get, url)
+                    using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
                     {
-                        Version = new Version(httpversion, 0)
-                    };
+                        DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, null, headers);
 
-                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-                        return response;
+                        var req = new HttpRequestMessage(HttpMethod.Get, url)
+                        {
+                            Version = new Version(httpversion, 0)
+                        };
+
+                        using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+                            return response;
+                    }
                 }
             }
             catch
@@ -279,7 +283,7 @@ namespace Shared.Engine
 
             try
             {
-                using var handler = Handler(url, proxy, ref loglines, cookieContainer);
+                var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 var client = FrendlyHttp.CreateClient("http:BaseGetAsync", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
                 {
@@ -433,7 +437,7 @@ namespace Shared.Engine
 
             try
             {
-                using var handler = Handler(url, proxy, ref loglines, cookieContainer);
+                var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
                 var client = FrendlyHttp.CreateClient("http:BasePost", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, null, useDefaultHeaders, uclient =>
                 {
@@ -556,7 +560,7 @@ namespace Shared.Engine
         {
             try
             {
-                using var handler = Handler(url, proxy);
+                var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = true;
 
                 var client = FrendlyHttp.CreateClient("http:BaseDownload", handler, factoryClient ?? "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
@@ -595,19 +599,21 @@ namespace Shared.Engine
         {
             try
             {
-                using var handler = Handler(url, proxy);
-                handler.AllowAutoRedirect = true;
-
-                using (var client = new System.Net.Http.HttpClient(handler))
+                using (var handler = Handler(url, proxy))
                 {
-                    DefaultRequestHeaders(url, client, timeoutSeconds, -1, null, null, headers);
+                    handler.AllowAutoRedirect = true;
 
-                    using (var stream = await client.GetStreamAsync(url))
+                    using (var client = new System.Net.Http.HttpClient(handler))
                     {
-                        using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
+                        DefaultRequestHeaders(url, client, timeoutSeconds, -1, null, null, headers);
+
+                        using (var stream = await client.GetStreamAsync(url))
                         {
-                            await stream.CopyToAsync(fileStream);
-                            return true;
+                            using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
+                            {
+                                await stream.CopyToAsync(fileStream);
+                                return true;
+                            }
                         }
                     }
                 }
