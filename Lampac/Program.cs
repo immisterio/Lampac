@@ -28,7 +28,9 @@ namespace Lampac
     public class Program
     {
         #region static
-        public static IHost _host;
+        public static bool _reload = true;
+
+        static IHost _host;
 
         public static List<(IPAddress prefix, int prefixLength)> cloudflare_ips = new List<(IPAddress prefix, int prefixLength)>();
 
@@ -88,128 +90,115 @@ namespace Lampac
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            if (File.Exists("module/manifest.json"))
+            CollectionDb.Configure();
+            ProxyLinkContext.Configure();
+            PlaywrightContext.Configure();
+            HybridCacheContext.Configure();
+            ExternalidsContext.Configure();
+
+            #region migration
+            if (File.Exists("vers.txt") || File.Exists("isdocker"))
             {
-                CollectionDb.Configure();
-                ProxyLinkContext.Configure();
-                PlaywrightContext.Configure();
-                HybridCacheContext.Configure();
-                ExternalidsContext.Configure();
+                Console.WriteLine("run migration");
 
-                #region migration
-                if (File.Exists("vers.txt") || File.Exists("isdocker"))
+                #region cache/storage
+                if (Directory.Exists("cache/storage"))
                 {
-                    Console.WriteLine("run migration");
+                    string sourceDir = "cache/storage";
+                    string targetDir = "database/storage";
 
-                    #region cache/storage
-                    if (Directory.Exists("cache/storage"))
+                    void CopyAll(string source, string target)
                     {
-                        string sourceDir = "cache/storage";
-                        string targetDir = "database/storage";
+                        Directory.CreateDirectory(target);
 
-                        void CopyAll(string source, string target)
+                        foreach (string file in Directory.GetFiles(source))
                         {
-                            Directory.CreateDirectory(target);
-
-                            foreach (string file in Directory.GetFiles(source))
-                            {
-                                string destFile = Path.Combine(target, Path.GetFileName(file));
-                                File.Copy(file, destFile, true);
-                            }
-
-                            foreach (string dir in Directory.GetDirectories(source))
-                            {
-                                string destDir = Path.Combine(target, Path.GetFileName(dir));
-                                CopyAll(dir, destDir);
-                            }
+                            string destFile = Path.Combine(target, Path.GetFileName(file));
+                            File.Copy(file, destFile, true);
                         }
 
-                        CopyAll(sourceDir, targetDir);
-                    }
-                    #endregion
-
-                    #region cache/bookmarks/sisi
-                    if (Directory.Exists("cache/bookmarks/sisi"))
-                    {
-                        var sisiDb = CollectionDb.sisi_users;
-
-                        foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                        foreach (string dir in Directory.GetDirectories(source))
                         {
-                            string folderName = Path.GetFileName(folder);
-                            foreach (string file in Directory.GetFiles(folder))
-                            {
-                                try
-                                {
-                                    string md5user = folderName + Path.GetFileName(file);
-                                    var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
-
-                                    if (bookmarks.Count > 0)
-                                    {
-                                        sisiDb.Insert(new User
-                                        {
-                                            Id = md5user,
-                                            Bookmarks = bookmarks
-                                        });
-                                    }
-                                }
-                                catch { }
-                            }
+                            string destDir = Path.Combine(target, Path.GetFileName(dir));
+                            CopyAll(dir, destDir);
                         }
                     }
-                    #endregion
 
-                    if (File.Exists("vers.txt"))
-                        File.Delete("vers.txt");
+                    CopyAll(sourceDir, targetDir);
                 }
                 #endregion
 
-                Http.onlog += (e, log) => soks.SendLog(log, "http");
-                RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
-
-                string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+                #region cache/bookmarks/sisi
+                if (Directory.Exists("cache/bookmarks/sisi"))
                 {
-                    NullValueHandling = NullValueHandling.Ignore
+                    var sisiDb = CollectionDb.sisi_users;
+
+                    foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                    {
+                        string folderName = Path.GetFileName(folder);
+                        foreach (string file in Directory.GetFiles(folder))
+                        {
+                            try
+                            {
+                                string md5user = folderName + Path.GetFileName(file);
+                                var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
+
+                                if (bookmarks.Count > 0)
+                                {
+                                    sisiDb.Insert(new User
+                                    {
+                                        Id = md5user,
+                                        Bookmarks = bookmarks
+                                    });
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                #endregion
+
+                if (File.Exists("vers.txt"))
+                    File.Delete("vers.txt");
+            }
+            #endregion
+
+            Http.onlog += (e, log) => soks.SendLog(log, "http");
+            RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
+
+            string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            });
+
+            Console.WriteLine(init + "\n");
+            File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
+
+            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+            ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
+
+            #region Playwright
+            if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
+            {
+                if (!AppInit.conf.multiaccess)
+                    Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=256");
+
+                ThreadPool.QueueUserWorkItem(async _ =>
+                {
+                    if (await PlaywrightBase.InitializationAsync())
+                    {
+                        if (AppInit.conf.chromium.enable)
+                            _ = Chromium.CreateAsync().ConfigureAwait(false);
+
+                        if (AppInit.conf.firefox.enable)
+                            _ = Firefox.CreateAsync().ConfigureAwait(false);
+                    }
                 });
 
-                Console.WriteLine(init + "\n");
-                File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
-
-                ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-                ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
-
-                #region Playwright
-                if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
-                {
-                    if (!AppInit.conf.multiaccess)
-                        Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=256");
-
-                    ThreadPool.QueueUserWorkItem(async _ =>
-                    {
-                        if (await PlaywrightBase.InitializationAsync())
-                        {
-                            if (AppInit.conf.chromium.enable)
-                                _ = Chromium.CreateAsync().ConfigureAwait(false);
-
-                            if (AppInit.conf.firefox.enable)
-                                _ = Firefox.CreateAsync().ConfigureAwait(false);
-                        }
-                    });
-
-                    Chromium.CronStart();
-                    Firefox.CronStart();
-                }
-                #endregion
-
-                CacheCron.Run();
-                KurwaCron.Run();
-                PluginsCron.Run();
-                SyncCron.Run();
-                TrackersCron.Run();
-                LampaCron.Run();
-
-                _usersTimer = new Timer(UpdateUsersDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
-                _kitTimer = new Timer(UpdateKitDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
+                Chromium.CronStart();
+                Firefox.CronStart();
             }
+            #endregion
 
             #region passwd
             if (!File.Exists("passwd"))
@@ -305,8 +294,33 @@ namespace Lampac
             }
             #endregion
 
-            _host = CreateHostBuilder(args).Build();
-            _host.Run();
+            CacheCron.Run();
+            KurwaCron.Run();
+            PluginsCron.Run();
+            SyncCron.Run();
+            TrackersCron.Run();
+            LampaCron.Run();
+
+            _usersTimer = new Timer(UpdateUsersDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            _kitTimer = new Timer(UpdateKitDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(Math.Max(5, AppInit.conf.kit.cacheToSeconds)));
+
+            while (_reload)
+            {
+                _host = CreateHostBuilder(args).Build();
+                _reload = false;
+                _host.Run();
+            }
+        }
+        #endregion
+
+
+        #region Reload
+        public static void Reload()
+        {
+            _reload = true;
+            _host.StopAsync();
+
+            AppInit.LoadModules();
         }
         #endregion
 

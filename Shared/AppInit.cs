@@ -231,6 +231,9 @@ namespace Shared
 
         public static void LoadModules()
         {
+            if (modules != null)
+                return;
+
             modules = null;
 
             if (File.Exists("module/manifest.json"))

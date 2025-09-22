@@ -295,21 +295,24 @@ namespace Lampac.Controllers
 
         #region manifest
         [Route("admin/manifest/install")]
-        public ActionResult ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
+        public Task ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
-			if (AppInit.rootPasswd == "termux")
-                return ContentTo("В termux операция недоступна");
+            if (AppInit.rootPasswd == "termux")
+                return HttpContext.Response.WriteAsync("В termux операция недоступна");
 
             bool isEditManifest = false;
 
 			if (IO.File.Exists("module/manifest.json"))
 			{
-				if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == AppInit.rootPasswd) 
-				{
+                if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == AppInit.rootPasswd)
+                {
                     isEditManifest = true;
                 }
-				else
-                    return Redirect("/admin");
+                else
+                {
+                    HttpContext.Response.Redirect("/admin");
+                    return Task.CompletedTask;
+                }
             }
 
 			if (HttpContext.Request.Method == "POST")
@@ -381,14 +384,14 @@ namespace Lampac.Controllers
                     UpdateInitConf(j => j["disableEng"] = true);
 
                 if (isEditManifest)
-				{
-                    return ContentTo("Перезагрузите lampac для изменения настроек");
+                {
+                    return HttpContext.Response.WriteAsync("Перезагрузите lampac для изменения настроек");
                 }
-				else
-				{
+                else
+                {
                     #region frontend cloudflare
                     if (HttpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out var xip) && !string.IsNullOrEmpty(xip))
-					{
+                    {
                         UpdateInitConf(j =>
                         {
                             var listen = j["listen"] as JObject;
@@ -403,9 +406,78 @@ namespace Lampac.Controllers
                     }
                     #endregion
 
-                    Task.Delay(100).ContinueWith(t => Program._host.StopAsync());
+                    #region htmlSuccess
+                    string passwdTxt = IO.File.Exists("passwd") ? IO.File.ReadAllText("passwd").Trim() : string.Empty;
 
-                    return Redirect("/admin/auth");
+                    string htmlSuccesds = $@"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""utf-8"" />
+    <title>Установка завершена</title>
+</head>
+<body>
+
+<style type=""text/css"">
+    * {{ box-sizing: border-box; outline: none; }}
+    body {{ padding: 40px; font-family: sans-serif; }}
+    h1 {{ color: #2b7a78; margin-bottom: 1em; text-align: center; }}
+    hr {{ margin-top: 1em; margin-bottom: 2em; }}
+    .block {{ margin-top: 20px; }}
+    pre {{ background: #f5f5f5; padding: 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; }}
+</style>
+
+<h1>Установка завершена</h1>
+
+<div class=""block"">
+    <b>Админ панель</b><br /><br />
+    Aдрес: {host}/admin<br />
+    Пароль: {passwdTxt}
+</div>
+
+<hr />
+
+<div class=""block"">
+    <div style=""margin-top:10px""> 
+        <b>Media Station X</b><br /><br />
+        Settings -> Start Parameter -> Setup<br />
+        Enter current ip address and port: {HttpContext.Request.Host.Value}<br /><br />
+        Убрать/Добавить адреса можно в /home/lampac/msx.json
+    </div>
+</div>
+
+<hr />
+
+<div class=""block"">
+    <b>Виджет для Samsung</b><br /><br />
+    {host}/samsung.wgt
+</div>
+
+<hr />
+
+<div class=""block"">
+    <b>Для android apk</b><br /><br />
+    Зажмите кнопку назад и введите новый адрес: {host}
+</div>
+
+<hr />
+
+<div class=""block"">
+    <b>Плагины для Lampa</b><br /><br />
+    Заходим в настройки - расширения, жмем на кнопку ""добавить плагин"". В окне ввода вписываем адрес плагина {host}/on.js и перезагружаем виджет удерживая кнопку ""назад"" пока виджет не закроется.
+</div>
+
+<hr />
+
+<div class=""block"">
+    <b>TorrServer (если установлен)</b><br /><br />
+    {host}/ts
+</div>
+
+</body>
+</html>";
+
+                    return HttpContext.Response.WriteAsync(htmlSuccesds).ContinueWith(t => Program.Reload());
+                    #endregion
                 }
             }
 
@@ -501,7 +573,7 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            return ContentTo(renderHtml());
+            return HttpContext.Response.WriteAsync(renderHtml());
         }
         #endregion
 

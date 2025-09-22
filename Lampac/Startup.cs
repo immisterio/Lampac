@@ -422,6 +422,9 @@ namespace Lampac
 
         private void OnShutdown()
         {
+            if (Program._reload)
+                return;
+
             IsShutdown = true;
             Shared.Startup.IsShutdown = true;
 
