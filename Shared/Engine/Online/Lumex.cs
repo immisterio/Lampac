@@ -43,7 +43,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl> Search(string title, string original_title, int serial, int clarification, List<DatumDB> database = null)
+        public async ValueTask<SimilarTpl> Search(string title, string original_title, int serial, int clarification, IEnumerable<DatumDB> database = null)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return default;
@@ -107,10 +107,11 @@ namespace Shared.Engine.Online
             else if (database != null)
             {
                 #region database
-                if (database == null)
-                    return default;
+                int capacity = 100;
+                if (database is ICollection<DatumDB> collection)
+                    capacity = collection.Count > 100 ? 100 : collection.Count;
 
-                var stpl = new SimilarTpl(database.Count > 100 ? 100 : database.Count);
+                var stpl = new SimilarTpl(capacity);
 
                 foreach (var item in database)
                 {

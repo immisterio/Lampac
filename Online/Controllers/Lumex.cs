@@ -10,7 +10,23 @@ namespace Online.Controllers
 {
     public class Lumex : BaseOnlineController
     {
-        public static List<DatumDB> database = null;
+        static List<DatumDB> databaseCache;
+
+        public static IEnumerable<DatumDB> database
+        {
+            get
+            {
+                if (AppInit.conf.multiaccess)
+                {
+                    return databaseCache ??= JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
+                }
+
+                if (databaseCache != null)
+                    databaseCache = null;
+
+                return JsonHelper.ItemReader<DatumDB>("data/lumex.json");
+            }
+        }
 
         [HttpGet]
         [Route("lite/lumex")]
@@ -56,10 +72,11 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(memKey, out SimilarTpl search))
                     {
-                        if (string.IsNullOrEmpty(init.token) && database == null && init.spider)
-                            database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
+                        IEnumerable<DatumDB> db = null;
+                        if (string.IsNullOrEmpty(init.token) && init.spider)
+                            db = database;
 
-                        search = await oninvk.Search(title, original_title, serial, clarification, database);
+                        search = await oninvk.Search(title, original_title, serial, clarification, db);
                         if (search.data?.Count == 0)
                             return OnError("search");
 

@@ -136,7 +136,23 @@ namespace Online.Controllers
         #endregion
 
         #region search
-        public static List<Movie> database = JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
+        static List<Movie> databaseCache;
+
+        public static IEnumerable<Movie> database
+        {
+            get
+            {
+                if (AppInit.conf.multiaccess)
+                {
+                    return databaseCache ??= JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
+                }
+
+                if (databaseCache != null)
+                    databaseCache = null;
+
+                return JsonHelper.ItemReader<Movie>("data/veoveo.json");
+            }
+        }
 
         Movie? search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
         {

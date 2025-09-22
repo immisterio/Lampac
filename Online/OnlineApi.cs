@@ -212,12 +212,10 @@ namespace Online.Controllers
 
             async Task<string> getVSDN(string imdb)
             {
-                if (Lumex.database == null && AppInit.conf.Lumex.spider && AppInit.conf.mikrotik == false)
-                    Lumex.database = JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
-
-                if (Lumex.database != null)
+                if (AppInit.conf.Lumex.spider && AppInit.conf.mikrotik == false)
                 {
-                    long? res = Lumex.database.FirstOrDefault(i => i.imdb_id == imdb).kinopoisk_id;
+                    var db = Lumex.database;
+                    long? res = db.FirstOrDefault(i => i.imdb_id == imdb).kinopoisk_id;
                     if (res > 0)
                         return res.ToString();
                 }
