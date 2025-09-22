@@ -194,57 +194,9 @@ namespace Lampac
             {
                 CollectionDb.Configure();
                 MigrateSyncUsers();
-
-                using (var sisiDb = new SisiContext())
-                {
-                    Console.WriteLine("run migration sisi_users");
-
-                    var existing = new HashSet<string>(
-                        sisiDb.bookmarks
-                             .AsNoTracking()
-                             .Select(i => $"{i.user}:{i.uid}")
-                    );
-
-                    foreach (var user in CollectionDb.sisi_users.FindAll())
-                    {
-                        try
-                        {
-                            if (string.IsNullOrEmpty(user?.Id) || user.Bookmarks == null || user.Bookmarks.Count == 0)
-                                continue;
-
-                            DateTime created = DateTime.UtcNow;
-                            int offset = 0;
-
-                            for (int i = 0; i < user.Bookmarks.Count; i++)
-                            {
-                                var bookmark = user.Bookmarks[i];
-
-                                if (bookmark?.bookmark == null || string.IsNullOrEmpty(bookmark.bookmark.uid))
-                                    continue;
-
-                                if (!existing.Add($"{user.Id}:{bookmark.bookmark.uid}"))
-                                    continue;
-
-                                sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
-                                {
-                                    user = user.Id,
-                                    uid = bookmark.bookmark.uid,
-                                    created = created.AddSeconds(-offset),
-                                    json = JsonConvert.SerializeObject(bookmark),
-                                    name = bookmark.name,
-                                    model = bookmark.model?.name
-                                });
-
-                                offset++;
-                            }
-                        }
-                        catch { }
-                    }
-
-                    sisiDb.SaveChanges();
-                    CollectionDb.Dispose();
-                    File.Delete("database/app.db");
-                }
+                MigrateSisiUsers();
+                CollectionDb.Dispose();
+                File.Delete("database/app.db");
             }
             #endregion
 
@@ -439,62 +391,6 @@ namespace Lampac
         #endregion
 
 
-        static void MigrateSyncUsers()
-        {
-            var syncCollection = CollectionDb.sync_users;
-            if (syncCollection == null)
-                return;
-
-            Console.WriteLine("run migration sync_users");
-
-            using (var syncDb = new SyncUserContext())
-            {
-                var existing = new HashSet<string>(
-                    syncDb.timecodes
-                          .AsNoTracking()
-                          .Select(i => $"{i.user}:{i.card}:{i.item}")
-                );
-
-                foreach (var user in syncCollection.FindAll())
-                {
-                    try
-                    {
-                        if (string.IsNullOrEmpty(user?.id) || user.timecodes == null || user.timecodes.Count == 0)
-                            continue;
-
-                        DateTime updated = DateTime.UtcNow;
-
-                        foreach (var card in user.timecodes)
-                        {
-                            if (string.IsNullOrEmpty(card.Key) || card.Value == null)
-                                continue;
-
-                            foreach (var item in card.Value)
-                            {
-                                if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
-                                    continue;
-
-                                if (!existing.Add($"{user.id}:{card.Key}:{item.Key}"))
-                                    continue;
-
-                                syncDb.timecodes.Add(new SyncUserTimecodeSqlModel
-                                {
-                                    user = user.id,
-                                    card = card.Key,
-                                    item = item.Key,
-                                    data = item.Value,
-                                    updated = updated
-                                });
-                            }
-                        }
-                    }
-                    catch { }
-                }
-
-                syncDb.SaveChanges();
-            }
-        }
-
         #region UpdateUsersDb
         static bool _updateUsersDb = false;
         static string _usersKeyUpdate = string.Empty;
@@ -573,6 +469,122 @@ namespace Lampac
             finally
             {
                 _updateKitDb = false;
+            }
+        }
+        #endregion
+
+
+        #region [Codex AI] Migrate LiteDb to EFCore
+        static void MigrateSyncUsers()
+        {
+            var collection = CollectionDb.sync_users;
+            if (collection == null)
+                return;
+
+            Console.WriteLine("run migration sync_users");
+
+            using (var syncDb = new SyncUserContext())
+            {
+                var existing = new HashSet<string>(
+                    syncDb.timecodes
+                          .AsNoTracking()
+                          .Select(i => $"{i.user}:{i.card}:{i.item}")
+                );
+
+                foreach (var user in collection.FindAll())
+                {
+                    try
+                    {
+                        if (string.IsNullOrEmpty(user?.id) || user.timecodes == null || user.timecodes.Count == 0)
+                            continue;
+
+                        DateTime updated = DateTime.UtcNow;
+
+                        foreach (var card in user.timecodes)
+                        {
+                            if (string.IsNullOrEmpty(card.Key) || card.Value == null)
+                                continue;
+
+                            foreach (var item in card.Value)
+                            {
+                                if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
+                                    continue;
+
+                                if (!existing.Add($"{user.id}:{card.Key}:{item.Key}"))
+                                    continue;
+
+                                syncDb.timecodes.Add(new SyncUserTimecodeSqlModel
+                                {
+                                    user = user.id,
+                                    card = card.Key,
+                                    item = item.Key,
+                                    data = item.Value,
+                                    updated = updated
+                                });
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                syncDb.SaveChanges();
+            }
+        }
+
+
+        static void MigrateSisiUsers()
+        {
+            var collection = CollectionDb.sisi_users;
+            if (collection == null)
+                return;
+
+            Console.WriteLine("run migration sisi_users");
+
+            using (var sisiDb = new SisiContext())
+            {
+                var existing = new HashSet<string>(
+                    sisiDb.bookmarks
+                         .AsNoTracking()
+                         .Select(i => $"{i.user}:{i.uid}")
+                );
+
+                foreach (var user in collection.FindAll())
+                {
+                    try
+                    {
+                        if (string.IsNullOrEmpty(user?.Id) || user.Bookmarks == null || user.Bookmarks.Count == 0)
+                            continue;
+
+                        DateTime created = DateTime.UtcNow;
+                        int offset = 0;
+
+                        for (int i = 0; i < user.Bookmarks.Count; i++)
+                        {
+                            var bookmark = user.Bookmarks[i];
+
+                            if (bookmark?.bookmark == null || string.IsNullOrEmpty(bookmark.bookmark.uid))
+                                continue;
+
+                            if (!existing.Add($"{user.Id}:{bookmark.bookmark.uid}"))
+                                continue;
+
+                            sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
+                            {
+                                user = user.Id,
+                                uid = bookmark.bookmark.uid,
+                                created = created.AddSeconds(-offset),
+                                json = JsonConvert.SerializeObject(bookmark),
+                                name = bookmark.name,
+                                model = bookmark.model?.name
+                            });
+
+                            offset++;
+                        }
+                    }
+                    catch { }
+                }
+
+                sisiDb.SaveChanges();
             }
         }
         #endregion

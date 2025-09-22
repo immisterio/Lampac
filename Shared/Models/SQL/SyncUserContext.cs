@@ -1,8 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.IO;
 
 namespace Shared.Models.SQL
 {
@@ -56,7 +54,6 @@ namespace Shared.Models.SQL
         [Required]
         public string item { get; set; }
 
-        [Required]
         public string data { get; set; }
 
         public DateTime updated { get; set; }
