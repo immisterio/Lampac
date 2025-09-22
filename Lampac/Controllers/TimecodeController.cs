@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Shared;
-using Shared.Engine;
-using Shared.Models.Base;
+using Shared.Models.SQL;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Web;
 
 namespace Lampac.Controllers
@@ -25,13 +27,20 @@ namespace Lampac.Controllers
         [Route("/timecode/all")]
         public ActionResult Get(string card_id)
         {
-            var collection = CollectionDb.sync_users;
-            var doc = collection.FindById(requestInfo.user_uid);
-
-            if (doc == null || !doc.timecodes.ContainsKey(card_id))
+            if (string.IsNullOrEmpty(card_id))
                 return Json(new { });
 
-            return Json(doc.timecodes[card_id]);
+            using var db = new SyncUserContext();
+
+            Dictionary<string, string> timecodes = db.timecodes
+                .AsNoTracking()
+                .Where(i => i.user == requestInfo.user_uid && i.card == card_id)
+                .ToDictionary(i => i.item, i => i.data);
+
+            if (timecodes.Count == 0)
+                return Json(new { });
+
+            return Json(timecodes);
         }
 
         [HttpPost]
@@ -41,28 +50,52 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
                 return Content("{\"secuses\": false}", "application/json; charset=utf-8");
 
-            var collection = CollectionDb.sync_users;
-            var doc = collection.FindById(requestInfo.user_uid);
-            if (doc == null)
+            if (string.IsNullOrEmpty(card_id))
+                return Content("{\"secuses\": false}", "application/json; charset=utf-8");
+
+            string payload = data ?? string.Empty;
+
+            using var db = new SyncUserContext();
+
+            var entity = db.timecodes
+                .FirstOrDefault(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id);
+
+            if (entity == null)
             {
-                collection.Insert(new UserSync
+                entity = new SyncUserTimecodeSqlModel
                 {
-                    id = requestInfo.user_uid,
-                    timecodes = new Dictionary<string, Dictionary<string, string>>()
-                    {
-                        [card_id] = new Dictionary<string, string>() { [id] = data }
-                    }
-                });
+                    user = requestInfo.user_uid,
+                    card = card_id,
+                    item = id,
+                    data = payload,
+                    updated = DateTime.UtcNow
+                };
+
+                db.timecodes.Add(entity);
             }
             else
             {
-                if (!doc.timecodes.ContainsKey(card_id))
-                    doc.timecodes.Add(card_id, new Dictionary<string, string>());
+                entity.data = payload;
+                entity.updated = DateTime.UtcNow;
+                db.timecodes.Update(entity);
+            }
 
-                var card = doc.timecodes[card_id];
-                card[id] = data;
+            try
+            {
+                db.SaveChanges();
+            }
+            catch (DbUpdateException)
+            {
+                var existing = db.timecodes
+                    .FirstOrDefault(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id);
 
-                collection.Update(doc);
+                if (existing == null)
+                    throw;
+
+                existing.data = payload;
+                existing.updated = DateTime.UtcNow;
+
+                db.SaveChanges();
             }
 
             return Json(new { secuses = true });
