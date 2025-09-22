@@ -15,42 +15,6 @@ namespace SISI
             if (md5user == null)
                 return OnError("access denied");
 
-            #region bookmarks
-            var bookmarks = Enumerable.Empty<PlaylistItem>();
-
-            using (var db = new SisiContext())
-            {
-                var items = await db.bookmarks
-                    .AsNoTracking()
-                    .Where(i => i.user == md5user)
-                    .OrderByDescending(i => i.created)
-                    .Select(i => i.json)
-                    .ToListAsync();
-
-                if (items.Count > 0)
-                {
-                    var list = new List<PlaylistItem>(items.Count);
-
-                    foreach (var json in items)
-                    {
-                        if (string.IsNullOrEmpty(json))
-                            continue;
-
-                        try
-                        {
-                            var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(json);
-                            if (bookmark != null)
-                                list.Add(bookmark);
-                        }
-                        catch { }
-                    }
-
-                    bookmarks = list;
-                }
-            }
-            #endregion
-
-            #region menu
             var menu = new List<MenuItem>()
             {
                 new MenuItem()
@@ -61,40 +25,82 @@ namespace SISI
                 }
             };
 
-            var menu_models = new MenuItem()
+            var bookmarks = new List<PlaylistItem>();
+
+            using (var db = new SisiContext())
             {
-                title = $"Модель: {model ?? "выбрать"}",
-                playlist_url = "submenu",
-                submenu = new List<MenuItem>(20)
-            };
+                var bookmarksQuery = db.bookmarks
+                    .AsNoTracking()
+                    .Where(i => i.user == md5user);
 
-            var temp_models = new HashSet<string>();
-            foreach (var b in bookmarks)
-            {
-                if (string.IsNullOrEmpty(b.model?.name) || temp_models.Contains(b.model.name))
-                    continue;
-
-                temp_models.Add(b.model.name);
-
-                menu_models.submenu.Add(new MenuItem()
+                #region menu
+                var menu_models = new MenuItem()
                 {
-                    title = b.model.name,
-                    playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(b.model.name)}"
-                });
+                    title = $"Модель: {model ?? "выбрать"}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>(20)
+                };
+
+                var temp_models = new HashSet<string>();
+                var models = await bookmarksQuery
+                    .OrderByDescending(i => i.created)
+                    .Select(i => i.model)
+                    .ToListAsync();
+
+                foreach (var m in models)
+                {
+                    if (string.IsNullOrEmpty(m) || !temp_models.Add(m))
+                        continue;
+
+                    menu_models.submenu.Add(new MenuItem()
+                    {
+                        title = m,
+                        playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(m)}"
+                    });
+                }
+
+                if (menu_models.submenu.Count > 0)
+                    menu.Add(menu_models);
+                #endregion
+
+                if (!string.IsNullOrEmpty(search))
+                {
+                    string _s = search.ToLowerInvariant();
+                    bookmarksQuery = bookmarksQuery.Where(i => i.search != null && i.search.Contains(_s));
+                }
+
+                if (!string.IsNullOrEmpty(model))
+                    bookmarksQuery = bookmarksQuery.Where(i => i.model == model);
+
+                int page = Math.Max(1, pg);
+                int skip = (page - 1) * pageSize;
+
+                var items = await bookmarksQuery
+                    .OrderByDescending(i => i.created)
+                    .Skip(skip)
+                    .Take(pageSize)
+                    .Select(i => i.json)
+                    .ToListAsync();
+
+                if (items.Count > 0)
+                {
+                    bookmarks.Capacity = items.Count;
+
+                    foreach (var json in items)
+                    {
+                        if (string.IsNullOrEmpty(json))
+                            continue;
+
+                        try
+                        {
+                            var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(json);
+                            if (bookmark != null)
+                                bookmarks.Add(bookmark);
+                        }
+                        catch { }
+                    }
+                }
             }
-
-            if (menu_models.submenu.Count > 0)
-                menu.Add(menu_models);
-            #endregion
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                string _s = search.ToLower();
-                bookmarks = bookmarks.Where(i => i.name.ToLower().Contains(_s));
-            }
-
-            if (!string.IsNullOrEmpty(model))
-                bookmarks = bookmarks.Where(i => i.model?.name == model);
 
             string getvideLink(PlaylistItem pl)
             {
@@ -109,7 +115,7 @@ namespace SISI
             return new JsonResult(new
             {
                 menu,
-                list = bookmarks.Skip((pg * pageSize) - pageSize).Take(pageSize).Select(pl => new
+                list = bookmarks.Select(pl => new
                 {
                     pl.name,
                     video = getvideLink(pl),
@@ -198,12 +204,17 @@ namespace SISI
                         uid = uid
                     };
 
+                    string json = JsonConvert.SerializeObject(data);
+
                     db.bookmarks.Add(new SisiBookmarkSqlModel
                     {
                         user = md5user,
                         uid = uid,
                         created = DateTime.UtcNow,
-                        json = JsonConvert.SerializeObject(data)
+                        json = json,
+                        name = data.name,
+                        search = data.name?.ToLowerInvariant(),
+                        model = data.model?.name
                     });
 
                     await db.SaveChangesAsync();
