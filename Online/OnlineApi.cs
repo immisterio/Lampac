@@ -214,8 +214,7 @@ namespace Online.Controllers
             {
                 if (AppInit.conf.Lumex.spider && AppInit.conf.mikrotik == false)
                 {
-                    var db = Lumex.database;
-                    long? res = db.FirstOrDefault(i => i.imdb_id == imdb).kinopoisk_id;
+                    long? res = Lumex.database.FirstOrDefault(i => i.imdb_id == imdb).kinopoisk_id;
                     if (res > 0)
                         return res.ToString();
                 }

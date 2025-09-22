@@ -10,6 +10,7 @@ namespace Online.Controllers
 {
     public class Lumex : BaseOnlineController
     {
+        #region database
         static List<DatumDB> databaseCache;
 
         public static IEnumerable<DatumDB> database
@@ -22,6 +23,7 @@ namespace Online.Controllers
                 return JsonHelper.IEnumerableReader<DatumDB>("data/lumex.json");
             }
         }
+        #endregion
 
         [HttpGet]
         [Route("lite/lumex")]
@@ -34,17 +36,12 @@ namespace Online.Controllers
             if (init.priorityBrowser == "firefox")
             {
                 if (Firefox.Status == PlaywrightStatus.disabled)
-                    return OnError();
+                    return OnError("Firefox disabled");
             }
-            else if (init.priorityBrowser == "http")
-            {
-                if (kinopoisk_id == 0)
-                    return OnError();
-            }
-            else
+            else if (init.priorityBrowser != "http")
             {
                 if (Chromium.Status == PlaywrightStatus.disabled)
-                    return OnError();
+                    return OnError("Chromium disabled");
             }
 
             var proxyManager = new ProxyManager(init);
@@ -67,11 +64,7 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(memKey, out SimilarTpl search))
                     {
-                        IEnumerable<DatumDB> db = null;
-                        if (string.IsNullOrEmpty(init.token) && init.spider)
-                            db = database;
-
-                        search = await oninvk.Search(title, original_title, serial, clarification, db);
+                        search = await oninvk.Search(title, original_title, serial, clarification, database);
                         if (search.data?.Count == 0)
                             return OnError("search");
 
@@ -148,7 +141,7 @@ namespace Online.Controllers
                     #region Playwright
                     try
                     {
-                        using (var browser = new PlaywrightBrowser())
+                        using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
                             var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data).ConfigureAwait(false);
                             if (page == null)

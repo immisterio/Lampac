@@ -9,9 +9,10 @@ namespace Online.Controllers
 {
     public class VDBmovies : BaseOnlineController
     {
+        #region database
         static List<MovieDB> databaseCache;
 
-        public static IEnumerable<MovieDB> database
+        static IEnumerable<MovieDB> database
         {
             get
             {
@@ -21,6 +22,7 @@ namespace Online.Controllers
                 return JsonHelper.IEnumerableReader<MovieDB>("data/cdnmovies.json");
             }
         }
+        #endregion
 
         static string referer = CrypTo.DecodeBase64("aHR0cHM6Ly9tb3ZpZWJvb20uc3RvcmUv");
 
@@ -54,12 +56,10 @@ namespace Online.Controllers
 
                 var stpl = new SimilarTpl();
 
-                var db = database;
-
                 string stitle = StringConvert.SearchName(title);
                 string sorigtitle = StringConvert.SearchName(original_title);
 
-                foreach (var j in db)
+                foreach (var j in database)
                 {
                     if (stpl.data.Count > 100)
                         break;

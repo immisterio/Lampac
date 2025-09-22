@@ -8,6 +8,21 @@ namespace Online.Controllers
 {
     public class VeoVeo : BaseOnlineController
     {
+        #region database
+        static List<Movie> databaseCache;
+
+        static IEnumerable<Movie> database
+        {
+            get
+            {
+                if (AppInit.conf.multiaccess || databaseCache != null)
+                    return databaseCache ??= JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
+
+                return JsonHelper.IEnumerableReader<Movie>("data/veoveo.json");
+            }
+        }
+        #endregion
+
         [HttpGet]
         [Route("lite/veoveo")]
         async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
@@ -136,19 +151,6 @@ namespace Online.Controllers
         #endregion
 
         #region search
-        static List<Movie> databaseCache;
-
-        public static IEnumerable<Movie> database
-        {
-            get
-            {
-                if (AppInit.conf.multiaccess || databaseCache != null)
-                    return databaseCache ??= JsonHelper.ListReader<Movie>("data/veoveo.json", 45000);
-
-                return JsonHelper.IEnumerableReader<Movie>("data/veoveo.json");
-            }
-        }
-
         Movie? search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
         {
             string stitle = StringConvert.SearchName(title);
