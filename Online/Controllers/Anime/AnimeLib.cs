@@ -11,16 +11,7 @@ namespace Online.Controllers
 {
     public class AnimeLib : BaseOnlineController
     {
-        private const string TokenCachePath = "cache/animelib.json";
         private static readonly SemaphoreSlim TokenSemaphore = new SemaphoreSlim(1, 1);
-
-        private sealed class AnimeLibTokenState
-        {
-            public string init_tk { get; set; }
-            public string token { get; set; }
-            public string refresh_token { get; set; }
-            public long refresh_time { get; set; }
-        }
 
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeLib);
 
@@ -35,8 +26,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (!await EnsureAnimeLibToken(init))
-                return OnError();
+            await EnsureAnimeLibToken(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected())
@@ -214,8 +204,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (!await EnsureAnimeLibToken(init))
-                return OnError();
+            await EnsureAnimeLibToken(init);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected() && init.rhub_fallback && play)
@@ -295,23 +284,26 @@ namespace Online.Controllers
         }
         #endregion
 
-        async ValueTask<bool> EnsureAnimeLibToken(OnlinesSettings init)
+
+        #region [Codex AI] EnsureAnimeLibToken / RequestAnimeLibToken
+        async ValueTask EnsureAnimeLibToken(OnlinesSettings init)
         {
             string initToken = init.token;
-            if (string.IsNullOrEmpty(initToken))
-                return false;
-
-            await TokenSemaphore.WaitAsync();
+            if (string.IsNullOrEmpty(initToken) || initToken.Contains("."))
+                return;
 
             try
             {
+                await TokenSemaphore.WaitAsync();
+
                 AnimeLibTokenState cache = null;
+                string TokenCachePath = Path.Combine("cache", "animelib.json");
 
                 try
                 {
-                    if (File.Exists(TokenCachePath))
+                    if (System.IO.File.Exists(TokenCachePath))
                     {
-                        string json = File.ReadAllText(TokenCachePath);
+                        string json = System.IO.File.ReadAllText(TokenCachePath);
                         if (!string.IsNullOrWhiteSpace(json))
                             cache = JsonConvert.DeserializeObject<AnimeLibTokenState>(json);
                     }
@@ -326,11 +318,10 @@ namespace Online.Controllers
                 if (cache != null &&
                     cache.init_tk == initToken &&
                     !string.IsNullOrEmpty(cache.token) &&
-                    !string.IsNullOrEmpty(cache.refresh_token) &&
                     cache.refresh_time > now)
                 {
                     init.token = cache.token;
-                    return true;
+                    return;
                 }
 
                 string refreshToken = initToken;
@@ -340,7 +331,7 @@ namespace Online.Controllers
 
                 var tokens = await RequestAnimeLibToken(refreshToken);
                 if (tokens == null)
-                    return false;
+                    return;
 
                 cache = new AnimeLibTokenState
                 {
@@ -352,15 +343,11 @@ namespace Online.Controllers
 
                 try
                 {
-                    Directory.CreateDirectory("cache");
-                    File.WriteAllText(TokenCachePath, JsonConvert.SerializeObject(cache));
+                    System.IO.File.WriteAllText(TokenCachePath, JsonConvert.SerializeObject(cache));
                 }
-                catch
-                {
-                }
+                catch { }
 
                 init.token = cache.token;
-                return true;
             }
             finally
             {
@@ -383,26 +370,17 @@ namespace Online.Controllers
 
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
-            var headers = HeadersModel.Init(
+            var headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "*/*"),
-                ("accept-language", "en-US,en;q=0.9,ru;q=0.8"),
-                ("client-time-zone", "Europe/Kiev"),
                 ("origin", "https://anilib.me"),
-                ("priority", "u=1, i"),
-                ("referer", "https://anilib.me/"),
-                ("sec-ch-ua", "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Google Chrome\";v=\"140\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site"),
-                ("site-id", "5"),
-                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
+                ("referer", "https://anilib.me/")
             );
 
-            var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, timeoutSeconds: 8, headers: headers, useDefaultHeaders: false);
+            var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, httpversion: 2, timeoutSeconds: 8, headers: headers, useDefaultHeaders: false);
             if (result == null)
                 return null;
+
+            //{"token_type":"Bearer","expires_in":2592000,"access_token":"*","refresh_token":"*"}
 
             string accessToken = result.Value<string>("access_token");
             string newRefreshToken = result.Value<string>("refresh_token");
@@ -412,5 +390,6 @@ namespace Online.Controllers
 
             return (accessToken, newRefreshToken);
         }
+        #endregion
     }
 }
