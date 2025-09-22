@@ -56,7 +56,9 @@ namespace Shared.Engine
                 return client;
             }
 
-            if (handler == null || handler.UseProxy == false || handler.Proxy == null)
+            var webProxy = handler.Proxy != null ? handler.Proxy as WebProxy : null;
+
+            if (handler == null || handler.UseProxy == false || webProxy == null)
             {
                 var factory = Http.httpClientFactory.CreateClient(factoryClient);
                 factory.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
@@ -66,15 +68,6 @@ namespace Shared.Engine
 
             int port = 0;
             string ip = null, username = null, password = null;
-
-            var webProxy = handler.Proxy as WebProxy;
-            if (webProxy == null)
-            {
-                var factory = Http.httpClientFactory.CreateClient(factoryClient);
-                factory.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                updateClient?.Invoke(factory);
-                return factory;
-            }
 
             ip = webProxy.Address?.Host;
             port = webProxy.Address?.Port ?? 0;
