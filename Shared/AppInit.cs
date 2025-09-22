@@ -371,7 +371,8 @@ namespace Shared
 
         public ServerproxyConf serverproxy = new ServerproxyConf()
         {
-            enable = true, encrypt = true, verifyip = true,
+            enable = true, verifyip = true,
+            encrypt = true, encrypt_aes = true,
             buffering = new ServerproxyBufferingConf()
             {
                 enable = true, 
@@ -416,7 +417,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "13cb08af0a14d45204d1055896812420927135cc"
+            tree = "a054a6d43f9b922473e1284d8d34771888cfab2a"
         };
 
         public OnlineConf online = new OnlineConf()

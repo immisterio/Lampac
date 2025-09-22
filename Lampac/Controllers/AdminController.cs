@@ -297,6 +297,8 @@ namespace Lampac.Controllers
         [Route("admin/manifest/install")]
         public Task ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
         {
+            HttpContext.Response.ContentType = "text/html; charset=utf-8";
+
             if (AppInit.rootPasswd == "termux")
                 return HttpContext.Response.WriteAsync("В termux операция недоступна");
 
@@ -413,7 +415,7 @@ namespace Lampac.Controllers
 <html>
 <head>
     <meta charset=""utf-8"" />
-    <title>Установка завершена</title>
+    <title>Настройка завершена</title>
 </head>
 <body>
 
@@ -426,7 +428,7 @@ namespace Lampac.Controllers
     pre {{ background: #f5f5f5; padding: 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; }}
 </style>
 
-<h1>Установка завершена</h1>
+<h1>Настройка завершена</h1>
 
 <div class=""block"">
     <b>Админ панель</b><br /><br />
@@ -499,6 +501,7 @@ namespace Lampac.Controllers
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset=""utf-8"" />
 	<title>Модули</title>
 </head>
 <body>
