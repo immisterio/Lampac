@@ -1,12 +1,20 @@
-﻿using LiteDB;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Models.SISI;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Shared.Models.SQL;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Web;
 
 namespace SISI
 {
     public class BookmarkController : BaseSisiController
     {
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNameCaseInsensitive = true
+        };
+
         [Route("sisi/bookmarks")]
         public ActionResult List(string search, string model, int pg = 1, int pageSize = 36)
         {
@@ -14,8 +22,37 @@ namespace SISI
             if (md5user == null)
                 return OnError("access denied");
 
-            var collection = CollectionDb.sisi_users;
-            var bookmarks = (collection.FindById(md5user)?.Bookmarks ?? new List<PlaylistItem>()).AsEnumerable();
+            IEnumerable<PlaylistItem> bookmarks = Enumerable.Empty<PlaylistItem>();
+
+            using (var db = new SisiContext())
+            {
+                var items = db.bookmarks.AsNoTracking()
+                                        .Where(i => i.user == md5user)
+                                        .OrderByDescending(i => i.created)
+                                        .Select(i => i.json)
+                                        .ToList();
+
+                if (items.Count > 0)
+                {
+                    var list = new List<PlaylistItem>(items.Count);
+
+                    foreach (var json in items)
+                    {
+                        if (string.IsNullOrEmpty(json))
+                            continue;
+
+                        try
+                        {
+                            var bookmark = JsonSerializer.Deserialize<PlaylistItem>(json, JsonOptions);
+                            if (bookmark != null)
+                                list.Add(bookmark);
+                        }
+                        catch { }
+                    }
+
+                    bookmarks = list;
+                }
+            }
 
             #region menu
             var menu = new List<MenuItem>()
@@ -102,23 +139,11 @@ namespace SISI
                 return OnError("access denied");
 
             
-            var collection = CollectionDb.sisi_users;
-            var user = collection.FindById(md5user);
-
-            if (user == null)
-            {
-                user = new User
-                {
-                    Id = md5user,
-                    Bookmarks = new List<PlaylistItem>()
-                };
-
-                collection.Insert(user);
-            }
-
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            if (user.Bookmarks.FirstOrDefault(i => i.bookmark.uid == uid) == null)
+            using var db = new SisiContext();
+
+            if (!await db.bookmarks.AsNoTracking().AnyAsync(i => i.user == md5user && i.uid == uid))
             {
                 string newimage = null;
 
@@ -178,8 +203,15 @@ namespace SISI
                     uid = uid
                 };
 
-                user.Bookmarks.Insert(0, data);
-                collection.Update(user);
+                db.bookmarks.Add(new SisiBookmarkSqlModel
+                {
+                    user = md5user,
+                    uid = uid,
+                    created = DateTime.UtcNow,
+                    json = JsonSerializer.Serialize(data, JsonOptions)
+                });
+
+                await db.SaveChangesAsync();
             }
 
             return Json(new
@@ -196,13 +228,17 @@ namespace SISI
             if (md5user == null || string.IsNullOrEmpty(id))
                 return OnError("access denied");
 
-            var collection = CollectionDb.sisi_users;
-            var user = collection.FindById(md5user);
-            if (user == null)
+            using var db = new SisiContext();
+
+            if (!db.bookmarks.Any(i => i.user == md5user))
                 return OnError("user not found");
 
-            if (user.Bookmarks.RemoveAll(i => i.bookmark.uid == id) > 0)
-                collection.Update(user);
+            var bookmark = db.bookmarks.FirstOrDefault(i => i.user == md5user && i.uid == id);
+            if (bookmark != null)
+            {
+                db.bookmarks.Remove(bookmark);
+                db.SaveChanges();
+            }
 
             return Json(new
             {
