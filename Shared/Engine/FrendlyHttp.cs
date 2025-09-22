@@ -18,21 +18,15 @@ namespace Shared.Engine
 
                     try
                     {
-                        var keysToRemove = new HashSet<string>();
-
-                        foreach (var c in _clients.Where(c => DateTime.UtcNow > c.Value.lifetime))
+                        foreach (var c in _clients.Where(c => DateTime.UtcNow > c.Value.lifetime).ToArray())
                         {
                             try
                             {
-                                c.Value.http.Dispose();
+                                if (_clients.TryRemove(c.Key, out var _c))
+                                    _c.http.Dispose();
                             }
                             catch { }
-
-                            keysToRemove.Add(c.Key);
                         }
-
-                        foreach (string key in keysToRemove)
-                            _clients.TryRemove(key, out var _);
                     }
                     catch { }
                 }
@@ -54,7 +48,7 @@ namespace Shared.Engine
             Action<System.Net.Http.HttpClient> updateClient = null
         )
         {
-            if (handler != null && handler.CookieContainer.Count > 0 || Http.httpClientFactory == null)
+            if ((handler != null && handler.CookieContainer.Count > 0) || Http.httpClientFactory == null)
             {
                 var client = new System.Net.Http.HttpClient(handler);
                 client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
@@ -62,7 +56,7 @@ namespace Shared.Engine
                 return client;
             }
 
-            if (handler == null || handler.UseProxy == false)
+            if (handler == null || handler.UseProxy == false || handler.Proxy == null)
             {
                 var factory = Http.httpClientFactory.CreateClient(factoryClient);
                 factory.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
