@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Filmix;
-using Shared.Models.Online.Settings;
-using System.Text;
 
 namespace Online.Controllers
 {
@@ -38,9 +36,6 @@ namespace Online.Controllers
 
                 i.pro = c.pro;
                 i.tokens = c.tokens;
-                i.user_apitv = c.user_apitv;
-                i.token_apitv = c.token_apitv;
-                i.livehash = c.livehash;
                 return i;
             });
 
@@ -60,38 +55,18 @@ namespace Online.Controllers
 
             reset:
 
-            #region filmix.tv
-            if (!rch.enable && !string.IsNullOrEmpty(init.user_apitv) && string.IsNullOrEmpty(init.token_apitv))
-            {
-                string accessToken = await InvokeCache($"filmix:accessToken:{init.user_apitv}:{init.token_apitv}", TimeSpan.FromHours(8), async () => 
-                {
-                    var content = new System.Net.Http.StringContent($"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\"}}", Encoding.UTF8, "application/json"); ;
-                    var jobject = await Http.Post<JObject>("https://api.filmix.tv/api-fx/auth", content, timeoutSeconds: 8);
-                    return jobject?.GetValue("accessToken")?.ToString();
-                });
-
-                if (!string.IsNullOrEmpty(accessToken))
-                {
-                    init.pro = true;
-                    init.token_apitv = accessToken;
-                }
-            }
-
-            string livehash = string.Empty;
-            if (!rch.enable && (init.livehash || !string.IsNullOrEmpty(init.token_apitv)))
-                livehash = await getLiveHash(init);
-            #endregion
-
             var oninvk = new FilmixInvoke
             (
                init,
                host,
                token,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init), useDefaultHeaders: false) : 
-                                          Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
-               (url, data, head) => rch.enable ? rch.Post(init.cors(url), data, (head != null ? head : httpHeaders(init)), useDefaultHeaders: false) : 
-                                                 Http.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
-               streamfile => HostStreamProxy(init, replaceLink(livehash, streamfile), proxy: proxy),
+               ongettourl => rch.enable 
+                    ? rch.Get(init.cors(ongettourl), httpHeaders(init), useDefaultHeaders: false) 
+                    : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), useDefaultHeaders: false),
+               (url, data, head) => rch.enable 
+                    ? rch.Post(init.cors(url), data, (head != null ? head : httpHeaders(init)), useDefaultHeaders: false) 
+                    : Http.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
+               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },
                rjson: rjson
             );
@@ -127,42 +102,6 @@ namespace Online.Controllers
                 goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast), origsource: origsource, gbcache: !rch.enable);
-        }
-
-
-        async ValueTask<string> getLiveHash(FilmixSettings init)
-        {
-            string memKey = $"filmix:ChangeLink:hashfimix:{init.token_apitv}";
-            if (!hybridCache.TryGetValue(memKey, out string hash))
-            {
-                if (!string.IsNullOrEmpty(init.token_apitv))
-                {
-                    string json = await Http.Get("https://api.filmix.tv/api-fx/post/171042/video-links", timeoutSeconds: 8, headers: HeadersModel.Init("Authorization", $"Bearer {init.token_apitv}"));
-                    hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
-                }
-                else if (!string.IsNullOrEmpty(init.token))
-                {
-                    string json = await Http.Get($"{init.corsHost()}/api/v2/post/171042?user_dev_apk=2.2.10.0&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi", timeoutSeconds: 8);
-                    hash = Regex.Match(json?.Replace("\\", ""), "/s/([^/]+)/").Groups[1].Value;
-                }
-                else
-                {
-                    return null;
-                }
-
-                if (init.livehash && !string.IsNullOrWhiteSpace(hash))
-                    hybridCache.Set(memKey, hash, DateTime.Now.AddHours(2));
-            }
-
-            return hash;
-        }
-
-        string replaceLink(string hash, string l)
-        {
-            if (string.IsNullOrEmpty(hash))
-                return l;
-
-            return Regex.Replace(l, "/s/[^/]+/", $"/s/{hash}/");
         }
     }
 }
