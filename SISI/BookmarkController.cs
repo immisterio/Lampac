@@ -65,8 +65,8 @@ namespace SISI
 
                 if (!string.IsNullOrEmpty(search))
                 {
-                    string _s = search.ToLowerInvariant();
-                    bookmarksQuery = bookmarksQuery.Where(i => i.search != null && i.search.Contains(_s));
+                    string _s = search.ToLower();
+                    bookmarksQuery = bookmarksQuery.Where(i => i.name != null && i.name.Contains(_s));
                 }
 
                 if (!string.IsNullOrEmpty(model))
@@ -213,7 +213,6 @@ namespace SISI
                         created = DateTime.UtcNow,
                         json = json,
                         name = data.name,
-                        search = data.name?.ToLowerInvariant(),
                         model = data.model?.name
                     });
 

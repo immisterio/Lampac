@@ -13,10 +13,7 @@ namespace Shared.Models.SQL
                 Directory.CreateDirectory("database");
 
                 using (var context = new SisiContext())
-                {
                     context.Database.EnsureCreated();
-
-                }
             }
             catch (Exception ex)
             {
@@ -56,12 +53,9 @@ namespace Shared.Models.SQL
 
         public DateTime created { get; set; }
 
-        [Required]
         public string json { get; set; }
 
         public string name { get; set; }
-
-        public string search { get; set; }
 
         public string model { get; set; }
     }

@@ -165,16 +165,13 @@ namespace Lampac
                                         if (!existing.Add($"{md5user}:{pl.bookmark.uid}"))
                                             continue;
 
-                                        string json = JsonConvert.SerializeObject(pl);
-
                                         sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
                                         {
                                             user = md5user,
                                             uid = pl.bookmark.uid,
                                             created = now.AddSeconds(-i),
-                                            json = json,
+                                            json = JsonConvert.SerializeObject(pl),
                                             name = pl.name,
-                                            search = pl.name?.ToLowerInvariant(),
                                             model = pl.model?.name
                                         });
                                     }
@@ -226,16 +223,13 @@ namespace Lampac
                                 if (!existing.Add($"{user.Id}:{bookmark.bookmark.uid}"))
                                     continue;
 
-                                string json = JsonConvert.SerializeObject(bookmark);
-
                                 sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
                                 {
                                     user = user.Id,
                                     uid = bookmark.bookmark.uid,
                                     created = created.AddSeconds(-offset),
-                                    json = json,
+                                    json = JsonConvert.SerializeObject(bookmark),
                                     name = bookmark.name,
-                                    search = bookmark.name?.ToLowerInvariant(),
                                     model = bookmark.model?.name
                                 });
 
