@@ -588,11 +588,14 @@ namespace Lampac.Engine.Middlewares
                                         int bytesRead = await responseStream.ReadAsync(chunkBuffer, 0, chunkBuffer.Length, context.RequestAborted);
 
                                         if (bytesRead == 0)
+                                        {
+                                            ArrayPool<byte>.Shared.Return(chunkBuffer);
                                             break;
+                                        }
 
                                         await channel.Writer.WriteAsync((chunkBuffer, bytesRead), context.RequestAborted);
                                     }
-                                    finally
+                                    catch
                                     {
                                         ArrayPool<byte>.Shared.Return(chunkBuffer);
                                     }
