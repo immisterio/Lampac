@@ -21,6 +21,8 @@
     {
         public string BadInitialization { get; set; }
 
+        public string HostStreamProxy { get; set; }
+
         public EventModelAppReplace AppReplace { get; set; }
 
         public string Externalids { get; set; }

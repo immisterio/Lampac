@@ -221,6 +221,18 @@ namespace Shared
                 }
             }
 
+            var eventHostStreamProxy = InvkEvent.HostStreamProxy(
+                new EventHostStreamProxy(conf, uri, headers, proxy, force_streamproxy, streamproxy, requestInfo, HttpContext, hybridCache));
+            if (eventHostStreamProxy != null)
+            {
+                conf = eventHostStreamProxy.conf;
+                uri = eventHostStreamProxy.uri;
+                headers = eventHostStreamProxy.headers;
+                proxy = eventHostStreamProxy.proxy;
+                force_streamproxy = eventHostStreamProxy.force_streamproxy;
+                streamproxy = eventHostStreamProxy.streamproxy;
+            }
+
             if (streamproxy)
             {
                 if (conf.headers_stream != null && conf.headers_stream.Count > 0)
