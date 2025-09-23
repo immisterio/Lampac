@@ -28,10 +28,10 @@ namespace Shared.Models.Events
 
     public record EventPidTor(PidTorSettings init, RequestModel requestInfo, HybridCache hybridCache);
 
+    public record EventHostStreamProxy(BaseSettings conf, List<HeadersModel> headers, WebProxy proxy, RequestModel requestInfo, HttpContext httpContext, HybridCache hybridCache);
     public record EventMyLocalIp(RequestModel requestInfo, HttpRequest request, HttpContext httpContext, HybridCache hybridCache);
 
     public record EventControllerHttpHeaders(string site, List<HeadersModel> headers, RequestModel requestInfo, HttpRequest request, HttpContext httpContext);
-
 
     public record EventHttpHandler(string url, HttpClientHandler handler, WebProxy proxy, CookieContainer cookieContainer, IMemoryCache memoryCache);
 

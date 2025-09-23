@@ -218,6 +218,23 @@ namespace Shared
         }
         #endregion
 
+        #region HostStreamProxy
+        public static void HostStreamProxy(EventHostStreamProxy model)
+        {
+            if (conf?.Controller?.HostStreamProxy == null)
+                return;
+
+            var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                                              .AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base")
+                                              .AddReferences(typeof(HeadersModel).Assembly).AddImports("Shared.Models")
+                                              .AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
+                                              .AddReferences(typeof(HybridCache).Assembly).AddImports("Shared.Engine")
+                                              .AddImports("System.Collections.Generic");
+
+            Invoke(conf.Controller.HostStreamProxy, model, option);
+        }
+        #endregion
+
         #region MyLocalIp
         public static async Task<string> MyLocalIp(EventMyLocalIp model)
         {

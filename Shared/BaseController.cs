@@ -28,7 +28,7 @@ namespace Shared
 
         public static string appversion => "147";
 
-        public static string minorversion => "17";
+        public static string minorversion => "18";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -209,6 +209,8 @@ namespace Shared
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri;
+
+            InvkEvent.HostStreamProxy(new EventHostStreamProxy(conf, headers, proxy, requestInfo, HttpContext, hybridCache));
 
             if (conf.rhub && !conf.rhub_streamproxy)
                 return uri;
