@@ -358,6 +358,7 @@ namespace Online.Controllers
                         clientHandler.UseProxy = true;
                         clientHandler.Proxy = proxy;
                     }
+                    else { clientHandler.UseProxy = false; }
 
                     clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                     using (var client = new System.Net.Http.HttpClient(clientHandler))

@@ -139,34 +139,33 @@ namespace Lampac.Engine.Middlewares
             if (width > 0 || height > 0)
                 contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
 
-            //var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1)) : null;
+            if (cacheFiles.ContainsKey(md5key))
+            {
+                httpContext.Response.Headers["X-Cache-Status"] = "HIT";
+                httpContext.Response.ContentType = contentType;
+                await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
+                return;
+            }
+
+            var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1)) : null;
 
             try
             {
-                //if (semaphore != null)
-                //    await semaphore.WaitAsync();
-
-                if (cacheimg && cacheFiles.ContainsKey(md5key))
-                {
-                    //if (semaphore != null)
-                    //{
-                    //    semaphore.Release();
-                    //    if (semaphore.CurrentCount == 1)
-                    //        _semaphoreLocks.TryRemove(href, out _);
-
-                    //    semaphore = null;
-                    //}
-
-                    httpContext.Response.Headers["X-Cache-Status"] = "HIT";
-                    httpContext.Response.ContentType = contentType;
-                    await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
-                    return;
-                }
-
                 string memKeyErrorDownload = $"ProxyImg:ErrorDownload:{href}";
                 if (memoryCache.TryGetValue(memKeyErrorDownload, out _))
                 {
                     httpContext.Response.Redirect(href);
+                    return;
+                }
+
+                if (semaphore != null)
+                    await semaphore.WaitAsync();
+
+                if (cacheFiles.ContainsKey(md5key))
+                {
+                    httpContext.Response.Headers["X-Cache-Status"] = "HIT";
+                    httpContext.Response.ContentType = contentType;
+                    await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
                     return;
                 }
 
@@ -319,15 +318,6 @@ namespace Lampac.Engine.Middlewares
                         catch { try { File.Delete(outFile); } catch { } }
                     }
 
-                    //if (semaphore != null)
-                    //{
-                    //    semaphore.Release();
-                    //    if (semaphore.CurrentCount == 1)
-                    //        _semaphoreLocks.TryRemove(href, out _);
-
-                    //    semaphore = null;
-                    //}
-
                     proxyManager.Success();
                     httpContext.Response.ContentType = contentType;
                     await httpContext.Response.Body.WriteAsync(array, httpContext.RequestAborted).ConfigureAwait(false);
@@ -336,14 +326,12 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                //if (semaphore != null)
-                //{
-                //    semaphore.Release();
-                //    if (semaphore.CurrentCount == 1)
-                //        _semaphoreLocks.TryRemove(href, out _);
-
-                //    semaphore = null;
-                //}
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(href, out _);
+                }
             }
         }
 

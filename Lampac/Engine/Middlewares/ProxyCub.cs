@@ -150,133 +150,97 @@ namespace Lampac.Engine.Middlewares
                 string outFile = Path.Combine("cache", "cub", md5key);
                 bool isCacheRequest = init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false;
 
-                //var semaphore = isCacheRequest ? _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1)) : null;
-
-                try
+                if (isCacheRequest && cacheFiles.ContainsKey(md5key))
                 {
-                    //if (semaphore != null)
-                    //    await semaphore.WaitAsync();
+                    httpContext.Response.Headers["X-Cache-Status"] = "HIT";
+                    httpContext.Response.ContentType = getContentType(uri);
+                    await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
+                    return;
+                }
 
-                    if (isCacheRequest && cacheFiles.ContainsKey(md5key))
+                var handler = new HttpClientHandler()
+                {
+                    AutomaticDecompression = DecompressionMethods.All,
+                    AllowAutoRedirect = false
+                };
+
+                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
+                if (proxy != null)
+                {
+                    handler.UseProxy = true;
+                    handler.Proxy = proxy;
+                }
+                else { handler.UseProxy = false; }
+
+                var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
+                var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
+
+                using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                {
+                    if (isCacheRequest && response.StatusCode == HttpStatusCode.OK)
                     {
-                        //if (semaphore != null)
-                        //{
-                        //    semaphore.Release();
-                        //    if (semaphore.CurrentCount == 1)
-                        //        _semaphoreLocks.TryRemove(md5key, out _);
-
-                        //    semaphore = null;
-                        //}
-
-                        httpContext.Response.Headers["X-Cache-Status"] = "HIT";
+                        #region cache
                         httpContext.Response.ContentType = getContentType(uri);
-                        await httpContext.Response.SendFileAsync(outFile).ConfigureAwait(false);
-                        return;
-                    }
+                        httpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
-                    var handler = new HttpClientHandler()
-                    {
-                        AutomaticDecompression = DecompressionMethods.All,
-                        AllowAutoRedirect = false
-                    };
+                        int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                            (int)response.Content.Headers.ContentLength.Value :
+                            20_000; // 20kB
 
-                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                    if (proxy != null)
-                    {
-                        handler.UseProxy = true;
-                        handler.Proxy = proxy;
-                    }
-
-                    var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
-                    var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
-
-                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
-                    {
-                        if (isCacheRequest && response.StatusCode == HttpStatusCode.OK)
+                        using (var memoryStream = new MemoryStream(initialCapacity))
                         {
-                            #region cache
-                            httpContext.Response.ContentType = getContentType(uri);
-                            httpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                (int)response.Content.Headers.ContentLength.Value :
-                                20_000; // 20kB
-
-                            using (var memoryStream = new MemoryStream(initialCapacity))
+                            try
                             {
-                                try
+                                bool saveCache = true;
+
+                                using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                                 {
-                                    bool saveCache = true;
+                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                    try
                                     {
-                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                        int bytesRead;
+                                        Memory<byte> memoryBuffer = buffer.AsMemory();
 
-                                        try
+                                        while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
                                         {
-                                            int bytesRead;
-                                            Memory<byte> memoryBuffer = buffer.AsMemory();
-
-                                            while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
-                                            {
-                                                memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                                await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            saveCache = false;
-                                        }
-                                        finally
-                                        {
-                                            ArrayPool<byte>.Shared.Return(buffer);
+                                            memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                            await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
                                         }
                                     }
-
-                                    if (saveCache && memoryStream.Length > 1000)
+                                    catch
                                     {
-                                        try
-                                        {
-                                            if (!cacheFiles.ContainsKey(md5key))
-                                            {
-                                                File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                                cacheFiles.TryAdd(md5key, 0);
-                                            }
-                                        }
-                                        catch { File.Delete(outFile); }
+                                        saveCache = false;
+                                    }
+                                    finally
+                                    {
+                                        ArrayPool<byte>.Shared.Return(buffer);
                                     }
                                 }
-                                catch { }
+
+                                if (saveCache && memoryStream.Length > 1000)
+                                {
+                                    try
+                                    {
+                                        if (!cacheFiles.ContainsKey(md5key))
+                                        {
+                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                            cacheFiles.TryAdd(md5key, 0);
+                                        }
+                                    }
+                                    catch { File.Delete(outFile); }
+                                }
                             }
-                            #endregion
+                            catch { }
                         }
-                        else
-                        {
-                            //if (semaphore != null)
-                            //{
-                            //    semaphore.Release();
-                            //    if (semaphore.CurrentCount == 1)
-                            //        _semaphoreLocks.TryRemove(md5key, out _);
-
-                            //    semaphore = null;
-                            //}
-
-                            httpContext.Response.Headers["X-Cache-Status"] = "bypass";
-                            await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
-                        }
+                        #endregion
                     }
-                }
-                finally
-                {
-                    //if (semaphore != null)
-                    //{
-                    //    semaphore.Release();
-                    //    if (semaphore.CurrentCount == 1)
-                    //        _semaphoreLocks.TryRemove(md5key, out _);
-
-                    //    semaphore = null;
-                    //}
+                    else
+                    {
+                        httpContext.Response.Headers["X-Cache-Status"] = "bypass";
+                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                    }
                 }
                 #endregion
             }
@@ -357,14 +321,9 @@ namespace Lampac.Engine.Middlewares
                 }
                 finally
                 {
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(memkey, out _);
-
-                        semaphore = null;
-                    }
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(memkey, out _);
                 }
 
                 httpContext.Response.StatusCode = cache.statusCode;

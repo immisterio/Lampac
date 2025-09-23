@@ -96,6 +96,7 @@ namespace Lampac.Engine.Middlewares
                 handler.UseProxy = true;
                 handler.Proxy = decryptLink.proxy;
             }
+            else { handler.UseProxy = false; }
             #endregion
 
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
@@ -152,6 +153,7 @@ namespace Lampac.Engine.Middlewares
                         hdlr.UseProxy = true;
                         hdlr.Proxy = decryptLink.proxy;
                     }
+                    else { hdlr.UseProxy = false; }
 
                     string[] links = servUri.Split(" or ");
                     servUri = links[0].Trim();
