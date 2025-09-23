@@ -299,8 +299,21 @@ namespace Lampac.Engine.Middlewares
                 uri = uri.Replace("image.tmdb.org", tmdb_ip);
             }
 
+            bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
+            var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(uri, _ => new SemaphoreSlim(1, 1)) : null;
+
             try
             {
+                if (semaphore != null)
+                    await semaphore.WaitAsync();
+
+                if (cacheFiles.ContainsKey(md5key))
+                {
+                    httpContex.Response.Headers["X-Cache-Status"] = "HIT";
+                    await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
+                    return;
+                }
+
                 var handler = Http.Handler(uri, proxyManager.Get());
 
                 var client = FrendlyHttp.HttpMessageClient(init.httpversion == 2 ? "http2" : "base", handler);
@@ -321,7 +334,7 @@ namespace Lampac.Engine.Middlewares
                         else
                             proxyManager.Refresh();
 
-                        if (response.StatusCode == HttpStatusCode.OK && init.cache_img > 0 && AppInit.conf.mikrotik == false)
+                        if (response.StatusCode == HttpStatusCode.OK && cacheimg)
                         {
                             #region cache
                             httpContex.Response.Headers["X-Cache-Status"] = "MISS";
@@ -415,6 +428,15 @@ namespace Lampac.Engine.Middlewares
                     httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
                 else
                     httpContex.Response.Redirect(uri);
+            }
+            finally
+            {
+                if (semaphore != null)
+                {
+                    semaphore.Release();
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(uri, out _);
+                }
             }
         }
         #endregion
