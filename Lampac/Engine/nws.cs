@@ -56,9 +56,9 @@ namespace Lampac.Engine
             using var socket = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
 
             var requestInfo = context.Features.Get<RequestModel>();
-            string ip = requestInfo?.IP ?? context.Connection.RemoteIpAddress?.ToString();
+            string ip = requestInfo.IP ?? context.Connection.RemoteIpAddress?.ToString();
             string host = AppInit.Host(context);
-            string userAgent = requestInfo?.UserAgent;
+            string userAgent = requestInfo.UserAgent;
 
             string connectionId = Guid.NewGuid().ToString("N");
 
@@ -74,7 +74,7 @@ namespace Lampac.Engine
             var connection = new NwsConnection(connectionId, socket, host, ip, userAgent);
 
             _connections.TryAdd(connectionId, connection);
-            _connectionInfos.AddOrUpdate(connectionId, info, static (_, existing) =>
+            _connectionInfos.AddOrUpdate(connectionId, info, (_, existing) =>
             {
                 existing.Ip = info.Ip;
                 existing.Host = info.Host;
@@ -230,7 +230,7 @@ namespace Lampac.Engine
                 {
                     string uid = GetStringArg(args, 0);
                     if (!string.IsNullOrEmpty(uid))
-                        event_clients.AddOrUpdate(connection.ConnectionId, uid, static (_, __) => uid);
+                        event_clients.AddOrUpdate(connection.ConnectionId, uid, (_, __) => uid);
                     break;
                 }
 

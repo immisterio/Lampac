@@ -248,7 +248,8 @@ namespace Lampac.Controllers
             if (string.IsNullOrWhiteSpace(category))
                 return null;
 
-            return category.Trim().ToLowerInvariant();
+            var normalized = category.Trim().ToLowerInvariant();
+            return BookmarkCategories.Contains(normalized) ? normalized : null;
         }
 
         static bool EnsureCard(JObject data, JObject card, long id)
@@ -263,7 +264,7 @@ namespace Lampac.Controllers
             foreach (var existing in cardArray.Children<JObject>().ToList())
             {
                 var token = existing["id"];
-                if (token != null && token.ToString(CultureInfo.InvariantCulture) == idStr)
+                if (token != null && token.ToString() == idStr)
                 {
                     if (!JToken.DeepEquals(existing, newCard))
                     {
@@ -281,7 +282,7 @@ namespace Lampac.Controllers
 
         static bool AddToCategory(JObject data, string category, long id)
         {
-            if (data == null || string.IsNullOrEmpty(category))
+            if (data == null || string.IsNullOrEmpty(category) || !BookmarkCategories.Contains(category))
                 return false;
 
             var array = GetCategoryArray(data, category);
@@ -289,7 +290,7 @@ namespace Lampac.Controllers
 
             foreach (var token in array)
             {
-                if (token.ToString(CultureInfo.InvariantCulture) == idStr)
+                if (token.ToString() == idStr)
                     return false;
             }
 
@@ -299,7 +300,7 @@ namespace Lampac.Controllers
 
         static bool RemoveFromCategory(JObject data, string category, long id)
         {
-            if (data == null || string.IsNullOrEmpty(category))
+            if (data == null || string.IsNullOrEmpty(category) || !BookmarkCategories.Contains(category))
                 return false;
 
             if (data[category] is not JArray array)
@@ -338,7 +339,7 @@ namespace Lampac.Controllers
             foreach (var card in cardArray.Children<JObject>().ToList())
             {
                 var token = card["id"];
-                if (token != null && token.ToString(CultureInfo.InvariantCulture) == idStr)
+                if (token != null && token.ToString() == idStr)
                 {
                     card.Remove();
                     return true;
@@ -364,7 +365,7 @@ namespace Lampac.Controllers
                 {
                     foreach (var token in array)
                     {
-                        if (token.ToString(CultureInfo.InvariantCulture) == idStr)
+                        if (token.ToString() == idStr)
                             return true;
                     }
                 }
@@ -399,7 +400,7 @@ namespace Lampac.Controllers
 
             foreach (var token in array.ToList())
             {
-                if (token.ToString(CultureInfo.InvariantCulture) == idStr)
+                if (token.ToString() == idStr)
                 {
                     token.Remove();
                     return true;
