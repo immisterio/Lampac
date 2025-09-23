@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Shared;
+using Shared.Engine;
 using Shared.Models;
+using Shared.Models.Proxy;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -11,10 +13,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Shared.Models.Proxy;
-using Shared.Engine;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -104,14 +105,17 @@ namespace Lampac.Engine.Middlewares
                 #region DASH
                 servUri += Regex.Replace(httpContext.Request.Path.Value, "/[^/]+/[^/]+/", "") + httpContext.Request.QueryString.Value;
 
-                var client = FrendlyHttp.CreateClient("ProxyAPI:DASH", handler, "proxy", timeoutSeconds: 20);
+                var client = FrendlyHttp.HttpMessageClient("proxy", handler);
 
                 using (var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true))
                 {
-                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                     {
-                        httpContext.Response.Headers["PX-Cache"] = "BYPASS";
-                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                        {
+                            httpContext.Response.Headers["PX-Cache"] = "BYPASS";
+                            await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                        }
                     }
                 }
                 #endregion
@@ -161,14 +165,17 @@ namespace Lampac.Engine.Middlewares
                     try
                     {
                         // base => AllowAutoRedirect = true
-                        var clientor = FrendlyHttp.CreateClient("ProxyAPI:or", hdlr, "base", timeoutSeconds: 7);
+                        var clientor = FrendlyHttp.HttpMessageClient("base", hdlr);
 
                         using (var requestor = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), true))
                         {
-                            using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(7)))
                             {
-                                if ((int)response.StatusCode != 200)
-                                    servUri = links[1].Trim();
+                                using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                                {
+                                    if ((int)response.StatusCode != 200)
+                                        servUri = links[1].Trim();
+                                }
                             }
                         }
                     }
@@ -182,148 +189,151 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                var client = FrendlyHttp.CreateClient("ProxyAPI", handler, "proxy", timeoutSeconds: 20);
+                var client = FrendlyHttp.HttpMessageClient("proxy", handler);
 
                 using (var request = CreateProxyHttpRequest(httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase)))
                 {
-                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                     {
-                        if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
+                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                         {
-                            httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", httpContext));
-                            return;
-                        }
-
-                        response.Content.Headers.TryGetValues("Content-Type", out var contentType);
-                        if (!ists && (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")))
-                        {
-                            #region m3u8/txt
-                            using (HttpContent content = response.Content)
+                            if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                             {
-                                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
-                                {
-                                    if (response.Content.Headers.ContentLength > init.maxlength_m3u)
-                                    {
-                                        httpContext.Response.StatusCode = 502;
-                                        httpContext.Response.ContentType = "text/plain";
-                                        await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
-                                        return;
-                                    }
-
-                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
-                                    if (array == null)
-                                    {
-                                        httpContext.Response.StatusCode = 502;
-                                        await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
-                                        return;
-                                    }
-
-                                    string hls = editm3u(Encoding.UTF8.GetString(array), httpContext, decryptLink);
-
-                                    httpContext.Response.StatusCode = (int)response.StatusCode;
-                                    httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
-                                    //httpContext.Response.ContentLength = hls.Length;
-                                    await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
-                                }
-                                else
-                                {
-                                    httpContext.Response.StatusCode = (int)response.StatusCode;
-                                    await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
-                                }
+                                httpContext.Response.Redirect(validArgs($"{AppInit.Host(httpContext)}/proxy/{ProxyLink.Encrypt(response.Headers.Location.AbsoluteUri, decryptLink)}", httpContext));
+                                return;
                             }
-                            #endregion
-                        }
-                        else if (httpContext.Request.Path.Value.Contains(".mpd") || (contentType != null && contentType.First().ToLower() is "application/dash+xml"))
-                        {
-                            #region dash
-                            using (HttpContent content = response.Content)
+
+                            response.Content.Headers.TryGetValues("Content-Type", out var contentType);
+                            if (!ists && (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")))
                             {
-                                if (response.StatusCode == HttpStatusCode.OK)
+                                #region m3u8/txt
+                                using (HttpContent content = response.Content)
                                 {
-                                    if (response.Content.Headers.ContentLength > init.maxlength_m3u)
+                                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
                                     {
-                                        httpContext.Response.ContentType = "text/plain";
-                                        await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
-                                        return;
-                                    }
-
-                                    var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
-                                    if (array == null)
-                                    {
-                                        httpContext.Response.StatusCode = 502;
-                                        await httpContext.Response.WriteAsync("error proxy mpd", httpContext.RequestAborted).ConfigureAwait(false);
-                                        return;
-                                    }
-
-                                    string mpd = Encoding.UTF8.GetString(array);
-
-                                    var m = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>");
-                                    while (m.Success)
-                                    {
-                                        string baseURL = m.Groups[1].Value;
-                                        mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{ProxyLink.Encrypt(baseURL, decryptLink, forceMd5: true)}/");
-                                        m = m.NextMatch();
-                                    }
-
-                                    httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
-                                    //httpContext.Response.ContentLength = mpd.Length;
-                                    await httpContext.Response.WriteAsync(mpd, httpContext.RequestAborted).ConfigureAwait(false);
-                                }
-                                else
-                                {
-                                    httpContext.Response.StatusCode = (int)response.StatusCode;
-                                    await httpContext.Response.WriteAsync("error proxy", httpContext.RequestAborted).ConfigureAwait(false);
-                                }
-                            }
-                            #endregion
-                        }
-                        else if (ists && cache_stream)
-                        {
-                            #region ts
-                            using (HttpContent content = response.Content)
-                            {
-                                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
-                                {
-                                    if (response.Content.Headers.ContentLength > init.maxlength_ts)
-                                    {
-                                        httpContext.Response.StatusCode = 502;
-                                        httpContext.Response.ContentType = "text/plain";
-                                        await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
-                                        return;
-                                    }
-
-                                    byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
-
-                                    httpContext.Response.StatusCode = (int)response.StatusCode;
-                                    httpContext.Response.Headers["PX-Cache"] = "MISS";
-                                    httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
-                                    //httpContext.Response.ContentLength = buffer.Length;
-                                    await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
-
-                                    try
-                                    {
-                                        if (!File.Exists(cachefile))
+                                        if (response.Content.Headers.ContentLength > init.maxlength_m3u)
                                         {
-                                            Directory.CreateDirectory(foldercache);
-
-                                            using (var fileStream = new FileStream(cachefile, FileMode.Create, FileAccess.Write, FileShare.None))
-                                                await fileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                                            httpContext.Response.StatusCode = 502;
+                                            httpContext.Response.ContentType = "text/plain";
+                                            await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
+                                            return;
                                         }
+
+                                        var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                        if (array == null)
+                                        {
+                                            httpContext.Response.StatusCode = 502;
+                                            await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                            return;
+                                        }
+
+                                        string hls = editm3u(Encoding.UTF8.GetString(array), httpContext, decryptLink);
+
+                                        httpContext.Response.StatusCode = (int)response.StatusCode;
+                                        httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
+                                        //httpContext.Response.ContentLength = hls.Length;
+                                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                                     }
-                                    catch { try { File.Delete(cachefile); } catch { } }
+                                    else
+                                    {
+                                        httpContext.Response.StatusCode = (int)response.StatusCode;
+                                        await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                    }
                                 }
-                                else
-                                {
-                                    httpContext.Response.StatusCode = (int)response.StatusCode;
-                                    await httpContext.Response.WriteAsync("error proxy ts", httpContext.RequestAborted).ConfigureAwait(false);
-                                }
+                                #endregion
                             }
-                            #endregion
-                        }
-                        else
-                        {
-                            httpContext.Response.Headers["PX-Cache"] = "BYPASS";
-                            await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                            else if (httpContext.Request.Path.Value.Contains(".mpd") || (contentType != null && contentType.First().ToLower() is "application/dash+xml"))
+                            {
+                                #region dash
+                                using (HttpContent content = response.Content)
+                                {
+                                    if (response.StatusCode == HttpStatusCode.OK)
+                                    {
+                                        if (response.Content.Headers.ContentLength > init.maxlength_m3u)
+                                        {
+                                            httpContext.Response.ContentType = "text/plain";
+                                            await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
+                                            return;
+                                        }
+
+                                        var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                        if (array == null)
+                                        {
+                                            httpContext.Response.StatusCode = 502;
+                                            await httpContext.Response.WriteAsync("error proxy mpd", httpContext.RequestAborted).ConfigureAwait(false);
+                                            return;
+                                        }
+
+                                        string mpd = Encoding.UTF8.GetString(array);
+
+                                        var m = Regex.Match(mpd, "<BaseURL>([^<]+)</BaseURL>");
+                                        while (m.Success)
+                                        {
+                                            string baseURL = m.Groups[1].Value;
+                                            mpd = Regex.Replace(mpd, baseURL, $"{AppInit.Host(httpContext)}/proxy-dash/{ProxyLink.Encrypt(baseURL, decryptLink, forceMd5: true)}/");
+                                            m = m.NextMatch();
+                                        }
+
+                                        httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
+                                        //httpContext.Response.ContentLength = mpd.Length;
+                                        await httpContext.Response.WriteAsync(mpd, httpContext.RequestAborted).ConfigureAwait(false);
+                                    }
+                                    else
+                                    {
+                                        httpContext.Response.StatusCode = (int)response.StatusCode;
+                                        await httpContext.Response.WriteAsync("error proxy", httpContext.RequestAborted).ConfigureAwait(false);
+                                    }
+                                }
+                                #endregion
+                            }
+                            else if (ists && cache_stream)
+                            {
+                                #region ts
+                                using (HttpContent content = response.Content)
+                                {
+                                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
+                                    {
+                                        if (response.Content.Headers.ContentLength > init.maxlength_ts)
+                                        {
+                                            httpContext.Response.StatusCode = 502;
+                                            httpContext.Response.ContentType = "text/plain";
+                                            await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
+                                            return;
+                                        }
+
+                                        byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+
+                                        httpContext.Response.StatusCode = (int)response.StatusCode;
+                                        httpContext.Response.Headers["PX-Cache"] = "MISS";
+                                        httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
+                                        //httpContext.Response.ContentLength = buffer.Length;
+                                        await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
+
+                                        try
+                                        {
+                                            if (!File.Exists(cachefile))
+                                            {
+                                                Directory.CreateDirectory(foldercache);
+
+                                                using (var fileStream = new FileStream(cachefile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                                    await fileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                                            }
+                                        }
+                                        catch { try { File.Delete(cachefile); } catch { } }
+                                    }
+                                    else
+                                    {
+                                        httpContext.Response.StatusCode = (int)response.StatusCode;
+                                        await httpContext.Response.WriteAsync("error proxy ts", httpContext.RequestAborted).ConfigureAwait(false);
+                                    }
+                                }
+                                #endregion
+                            }
+                            else
+                            {
+                                httpContext.Response.Headers["PX-Cache"] = "BYPASS";
+                                await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                            }
                         }
                     }
                 }

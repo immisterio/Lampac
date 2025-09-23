@@ -148,9 +148,8 @@ namespace Lampac.Engine.Middlewares
                 #region bypass
                 string md5key = CrypTo.md5($"{domain}:{uri}");
                 string outFile = Path.Combine("cache", "cub", md5key);
-                bool isCacheRequest = init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false;
 
-                if (isCacheRequest && cacheFiles.ContainsKey(md5key))
+                if (cacheFiles.ContainsKey(md5key))
                 {
                     httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContext.Response.ContentType = getContentType(uri);
@@ -173,73 +172,76 @@ namespace Lampac.Engine.Middlewares
                 }
                 else { handler.UseProxy = false; }
 
-                var client = FrendlyHttp.CreateClient("cubproxy", handler, "proxy");
+                var client = FrendlyHttp.HttpMessageClient("proxy", handler);
                 var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
 
-                using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 {
-                    if (isCacheRequest && response.StatusCode == HttpStatusCode.OK)
+                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
-                        #region cache
-                        httpContext.Response.ContentType = getContentType(uri);
-                        httpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                        int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                            (int)response.Content.Headers.ContentLength.Value :
-                            20_000; // 20kB
-
-                        using (var memoryStream = new MemoryStream(initialCapacity))
+                        if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false && response.StatusCode == HttpStatusCode.OK)
                         {
-                            try
+                            #region cache
+                            httpContext.Response.ContentType = getContentType(uri);
+                            httpContext.Response.Headers["X-Cache-Status"] = "MISS";
+
+                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                (int)response.Content.Headers.ContentLength.Value :
+                                20_000; // 20kB
+
+                            using (var memoryStream = new MemoryStream(initialCapacity))
                             {
-                                bool saveCache = true;
-
-                                using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                try
                                 {
-                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                    bool saveCache = true;
 
-                                    try
+                                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                                     {
-                                        int bytesRead;
-                                        Memory<byte> memoryBuffer = buffer.AsMemory();
+                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                        while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                        try
                                         {
-                                            memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                            await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                            int bytesRead;
+                                            Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                            while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                            {
+                                                memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                                await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            saveCache = false;
+                                        }
+                                        finally
+                                        {
+                                            ArrayPool<byte>.Shared.Return(buffer);
                                         }
                                     }
-                                    catch
-                                    {
-                                        saveCache = false;
-                                    }
-                                    finally
-                                    {
-                                        ArrayPool<byte>.Shared.Return(buffer);
-                                    }
-                                }
 
-                                if (saveCache && memoryStream.Length > 1000)
-                                {
-                                    try
+                                    if (saveCache && memoryStream.Length > 1000)
                                     {
-                                        if (!cacheFiles.ContainsKey(md5key))
+                                        try
                                         {
-                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                            cacheFiles.TryAdd(md5key, 0);
+                                            if (!cacheFiles.ContainsKey(md5key))
+                                            {
+                                                File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                                cacheFiles.TryAdd(md5key, 0);
+                                            }
                                         }
+                                        catch { File.Delete(outFile); }
                                     }
-                                    catch { File.Delete(outFile); }
                                 }
+                                catch { }
                             }
-                            catch { }
+                            #endregion
                         }
-                        #endregion
-                    }
-                    else
-                    {
-                        httpContext.Response.Headers["X-Cache-Status"] = "bypass";
-                        await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                        else
+                        {
+                            httpContext.Response.Headers["X-Cache-Status"] = "bypass";
+                            await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                        }
                     }
                 }
                 #endregion

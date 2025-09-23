@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Shared.Engine
 {
@@ -103,34 +104,29 @@ namespace Shared.Engine
         #endregion
 
         #region DefaultRequestHeaders
-        public static void DefaultRequestHeaders(string url, System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
         {
             string loglines = string.Empty;
-            DefaultRequestHeaders(url, client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
+            DefaultRequestHeaders(url, client, cookie, referer, headers, ref loglines, useDefaultHeaders);
         }
 
-        public static void DefaultRequestHeaders(string url, System.Net.Http.HttpClient client, int timeoutSeconds, long MaxResponseContentBufferSize, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
         {
-            client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-
-            if (MaxResponseContentBufferSize != -1)
-                client.MaxResponseContentBufferSize = MaxResponseContentBufferSize == 0 ? 10_000_000 : MaxResponseContentBufferSize; // 10MB
-
             if (useDefaultHeaders)
             {
-                client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
-                loglines += $"Accept-Language: {client.DefaultRequestHeaders.AcceptLanguage}\n";
+                client.Headers.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
+                loglines += $"Accept-Language: {client.Headers.AcceptLanguage}\n";
             }
 
             if (cookie != null)
             {
-                client.DefaultRequestHeaders.Add("cookie", cookie);
+                client.Headers.TryAddWithoutValidation("cookie", cookie);
                 loglines += $"cookie: {cookie}\n";
             }
 
             if (referer != null)
             {
-                client.DefaultRequestHeaders.Add("referer", referer);
+                client.Headers.TryAddWithoutValidation("referer", referer);
                 loglines += $"referer: {referer}\n";
             }
 
@@ -143,9 +139,9 @@ namespace Shared.Engine
                     if (item.name.ToLower() == "user-agent")
                         setDefaultUseragent = false;
 
-                    if (!client.DefaultRequestHeaders.Contains(item.name))
+                    if (!client.Headers.Contains(item.name))
                     {
-                        client.DefaultRequestHeaders.Add(item.name, item.val);
+                        client.Headers.TryAddWithoutValidation(item.name, item.val);
                         loglines += $"{item.name}: {item.val}\n";
                     }
                 }
@@ -153,11 +149,11 @@ namespace Shared.Engine
 
             if (useDefaultHeaders && setDefaultUseragent)
             {
-                client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-                loglines += $"User-Agent: {client.DefaultRequestHeaders.UserAgent}\n";
+                client.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
+                loglines += $"User-Agent: {client.Headers.UserAgent}\n";
             }
 
-            InvkEvent.Http("headers", new EventHttpHeaders(url, client, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, useDefaultHeaders, Startup.memoryCache));
+            InvkEvent.Http("headers", new EventHttpHeaders(url, client, cookie, referer, headers, useDefaultHeaders, Startup.memoryCache));
         }
         #endregion
 
@@ -167,26 +163,26 @@ namespace Shared.Engine
         {
             try
             {
-                using (var handler = Handler(url, proxy))
+                var handler = Handler(url, proxy);
+                handler.AllowAutoRedirect = allowAutoRedirect;
+
+                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler);
+
+                var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
-                    handler.AllowAutoRedirect = allowAutoRedirect;
+                    Version = httpversion == 1 ? HttpVersion.Version11 : new Version(httpversion, 0)
+                };
 
-                    using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
+                DefaultRequestHeaders(url, req, null, referer, headers);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                {
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
-                        DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, referer, headers);
+                        string location = (int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307 ? response.Headers.Location?.ToString() : response.RequestMessage.RequestUri?.ToString();
+                        location = Uri.EscapeUriString(System.Web.HttpUtility.UrlDecode(location ?? ""));
 
-                        var req = new HttpRequestMessage(HttpMethod.Get, url)
-                        {
-                            Version = new Version(httpversion, 0)
-                        };
-
-                        using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-                        {
-                            string location = (int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307 ? response.Headers.Location?.ToString() : response.RequestMessage.RequestUri?.ToString();
-                            location = Uri.EscapeUriString(System.Web.HttpUtility.UrlDecode(location ?? ""));
-
-                            return string.IsNullOrWhiteSpace(location) ? null : location;
-                        }
+                        return string.IsNullOrWhiteSpace(location) ? null : location;
                     }
                 }
             }
@@ -202,23 +198,21 @@ namespace Shared.Engine
         {
             try
             {
-                using (var handler = Handler(url, proxy))
+                var handler = Handler(url, proxy);
+                handler.AllowAutoRedirect = allowAutoRedirect;
+
+                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler);
+
+                var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
-                    handler.AllowAutoRedirect = allowAutoRedirect;
+                    Version = httpversion == 1 ? HttpVersion.Version11 : new Version(httpversion, 0)
+                };
 
-                    using (var client = handler.UseProxy || allowAutoRedirect == false ? new System.Net.Http.HttpClient(handler) : httpClientFactory.CreateClient(httpversion == 2 ? "http2" : "base"))
-                    {
-                        DefaultRequestHeaders(url, client, timeoutSeconds, 2000000, null, null, headers);
+                DefaultRequestHeaders(url, req, null, null, headers);
 
-                        var req = new HttpRequestMessage(HttpMethod.Get, url)
-                        {
-                            Version = new Version(httpversion, 0)
-                        };
-
-                        using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-                            return response;
-                    }
-                }
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                        return response;
             }
             catch
             {
@@ -289,10 +283,7 @@ namespace Shared.Engine
             {
                 var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
-                var client = FrendlyHttp.CreateClient("http:BaseGetAsync", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
-                {
-                    DefaultRequestHeaders(url, uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, ref loglines, useDefaultHeaders);
-                });
+                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler, MaxResponseContentBufferSize);
 
                 if (cookieContainer != null)
                 {
@@ -306,67 +297,72 @@ namespace Shared.Engine
 
                 var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
-                    Version = new Version(httpversion, 0),
+                    Version = httpversion == 1 ? HttpVersion.Version11 : new Version(httpversion, 0),
                     Content = body
                 };
 
-                using (HttpResponseMessage response = await client.SendAsync(req).ConfigureAwait(false))
+                DefaultRequestHeaders(url, req, cookie, referer, headers, ref loglines, useDefaultHeaders);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
                 {
-                    loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
-                    foreach (var h in response.Headers)
+                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        if (h.Key == "Set-Cookie")
+                        loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
+                        foreach (var h in response.Headers)
                         {
-                            foreach (string v in h.Value)
-                                loglines += $"{h.Key}: {v}\n";
+                            if (h.Key == "Set-Cookie")
+                            {
+                                foreach (string v in h.Value)
+                                    loglines += $"{h.Key}: {v}\n";
+                            }
+                            else
+                                loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
                         }
-                        else
-                            loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
-                    }
 
-                    using (HttpContent content = response.Content)
-                    {
-                        if (encoding != default)
+                        using (HttpContent content = response.Content)
                         {
-                            string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
-                            var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
-
-                            if (string.IsNullOrWhiteSpace(res))
+                            if (encoding != default)
                             {
-                                await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
-                            }
+                                string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
+                                var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
 
-                            loglines += "\n" + res;
-                            if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                if (string.IsNullOrWhiteSpace(res))
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
+                                loglines += "\n" + res;
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
+                                await InvkEvent.HttpAsync("response", model);
+                                return (res, response);
+                            }
+                            else
                             {
+                                string res = await content.ReadAsStringAsync().ConfigureAwait(false);
+                                var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
+
+                                if (string.IsNullOrWhiteSpace(res))
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
+                                loglines += "\n" + res;
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
                                 await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
+                                return (res, response);
                             }
-
-                            await InvkEvent.HttpAsync("response", model);
-                            return (res, response);
-                        }
-                        else
-                        {
-                            string res = await content.ReadAsStringAsync().ConfigureAwait(false);
-                            var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
-
-                            if (string.IsNullOrWhiteSpace(res))
-                            {
-                                await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
-                            }
-
-                            loglines += "\n" + res;
-                            if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                            {
-                                await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
-                            }
-
-                            await InvkEvent.HttpAsync("response", model);
-                            return (res, response);
                         }
                     }
                 }
@@ -443,10 +439,7 @@ namespace Shared.Engine
             {
                 var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
-                var client = FrendlyHttp.CreateClient("http:BasePost", handler, httpversion == 2 ? "http2" : "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, null, useDefaultHeaders, uclient =>
-                {
-                    DefaultRequestHeaders(url, uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, null, headers, ref loglines, useDefaultHeaders);
-                });
+                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler, MaxResponseContentBufferSize);
 
                 if (cookieContainer != null)
                 {
@@ -460,70 +453,75 @@ namespace Shared.Engine
 
                 var req = new HttpRequestMessage(HttpMethod.Post, url)
                 {
-                    Version = new Version(httpversion, 0),
+                    Version = httpversion == 1 ? HttpVersion.Version11 : new Version(httpversion, 0),
                     Content = data
                 };
+
+                DefaultRequestHeaders(url, req, cookie, null, headers, ref loglines, useDefaultHeaders);
 
                 if (removeContentType)
                     req.Content.Headers.Remove("Content-Type");
 
-                using (HttpResponseMessage response = await client.SendAsync(req).ConfigureAwait(false))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
                 {
-                    loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
-                    foreach (var h in response.Headers)
+                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        if (h.Key == "Set-Cookie")
+                        loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
+                        foreach (var h in response.Headers)
                         {
-                            foreach (string v in h.Value)
-                                loglines += $"{h.Key}: {v}\n";
+                            if (h.Key == "Set-Cookie")
+                            {
+                                foreach (string v in h.Value)
+                                    loglines += $"{h.Key}: {v}\n";
+                            }
+                            else
+                                loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
                         }
-                        else
-                            loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
-                    }
 
-                    using (HttpContent content = response.Content)
-                    {
-                        if (encoding != default)
+                        using (HttpContent content = response.Content)
                         {
-                            string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
-                            var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
-
-                            if (string.IsNullOrWhiteSpace(res))
+                            if (encoding != default)
                             {
-                                await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
-                            }
+                                string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
+                                var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
 
-                            loglines += "\n" + res;
-                            if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                if (string.IsNullOrWhiteSpace(res))
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
+                                loglines += "\n" + res;
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
+                                await InvkEvent.HttpAsync("response", model);
+                                return (res, response);
+                            }
+                            else
                             {
+                                string res = await content.ReadAsStringAsync().ConfigureAwait(false);
+                                var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
+
+                                if (string.IsNullOrWhiteSpace(res))
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
+                                loglines += "\n" + res;
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                {
+                                    await InvkEvent.HttpAsync("response", model);
+                                    return (null, response);
+                                }
+
                                 await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
+                                return (res, response);
                             }
-
-                            await InvkEvent.HttpAsync("response", model);
-                            return (res, response);
-                        }
-                        else
-                        {
-                            string res = await content.ReadAsStringAsync().ConfigureAwait(false);
-                            var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
-
-                            if (string.IsNullOrWhiteSpace(res))
-                            {
-                                await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
-                            }
-
-                            loglines += "\n" + res;
-                            if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                            {
-                                await InvkEvent.HttpAsync("response", model);
-                                return (null, response);
-                            }
-
-                            await InvkEvent.HttpAsync("response", model);
-                            return (res, response);
                         }
                     }
                 }
@@ -553,37 +551,43 @@ namespace Shared.Engine
 
 
         #region Download
-        async public static Task<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true, string factoryClient = null)
+        async public static Task<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true)
         {
-            return (await BaseDownload(url, cookie, referer, timeoutSeconds, MaxResponseContentBufferSize, headers, proxy, statusCodeOK, useDefaultHeaders, factoryClient).ConfigureAwait(false)).array;
+            return (await BaseDownload(url, cookie, referer, timeoutSeconds, MaxResponseContentBufferSize, headers, proxy, statusCodeOK, useDefaultHeaders).ConfigureAwait(false)).array;
         }
         #endregion
 
         #region BaseDownload
-        async public static Task<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true, string factoryClient = null)
+        async public static Task<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true)
         {
             try
             {
                 var handler = Handler(url, proxy);
-                handler.AllowAutoRedirect = true;
 
-                var client = FrendlyHttp.CreateClient("http:BaseDownload", handler, factoryClient ?? "base", headers?.ToDictionary(), timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, useDefaultHeaders, uclient =>
+                var client = FrendlyHttp.HttpMessageClient("base", handler);
+
+                var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
-                    DefaultRequestHeaders(url, uclient, timeoutSeconds, MaxResponseContentBufferSize, cookie, referer, headers, useDefaultHeaders: useDefaultHeaders);
-                });
+                    Version = HttpVersion.Version11
+                };
 
-                using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
+                DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
                 {
-                    if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                        return (null, response);
-
-                    using (HttpContent content = response.Content)
+                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                        if (res == null || res.Length == 0)
+                        if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                             return (null, response);
 
-                        return (res, response);
+                        using (HttpContent content = response.Content)
+                        {
+                            byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                            if (res == null || res.Length == 0)
+                                return (null, response);
+
+                            return (res, response);
+                        }
                     }
                 }
             }
@@ -605,11 +609,26 @@ namespace Shared.Engine
             {
                 using (var handler = Handler(url, proxy))
                 {
-                    handler.AllowAutoRedirect = true;
-
-                    using (var client = new System.Net.Http.HttpClient(handler))
+                    using (var client = new HttpClient(handler))
                     {
-                        DefaultRequestHeaders(url, client, timeoutSeconds, -1, null, null, headers);
+                        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+
+                        bool setDefaultUseragent = true;
+
+                        if (headers != null)
+                        {
+                            foreach (var item in headers)
+                            {
+                                if (item.name.ToLower() == "user-agent")
+                                    setDefaultUseragent = false;
+
+                                if (!client.DefaultRequestHeaders.Contains(item.name))
+                                    client.DefaultRequestHeaders.Add(item.name, item.val);
+                            }
+                        }
+
+                        if (setDefaultUseragent)
+                            client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
 
                         using (var stream = await client.GetStreamAsync(url))
                         {

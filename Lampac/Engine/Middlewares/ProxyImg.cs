@@ -180,93 +180,98 @@ namespace Lampac.Engine.Middlewares
                     bypass_reset:
                     var handler = Http.Handler(href, proxy);
 
-                    handler.AllowAutoRedirect = true;
+                    var client = FrendlyHttp.HttpMessageClient("base", handler);
 
-                    var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", decryptLink?.headers?.ToDictionary(), updateClient: uclient =>
+                    var req = new HttpRequestMessage(HttpMethod.Get, href)
                     {
-                        Http.DefaultRequestHeaders(href, uclient, 8, 0, null, null, decryptLink?.headers);
-                    });
+                        Version = HttpVersion.Version11
+                    };
 
-                    using (HttpResponseMessage response = await client.GetAsync(href).ConfigureAwait(false))
+                    Http.DefaultRequestHeaders(href, req, null, null, decryptLink?.headers);
+
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                     {
-                        if (response.StatusCode != HttpStatusCode.OK)
+                        using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                         {
-                            if (url_reserve != null)
+                            if (response.StatusCode != HttpStatusCode.OK)
                             {
-                                href = url_reserve;
-                                url_reserve = null;
-                                goto bypass_reset;
+                                if (url_reserve != null)
+                                {
+                                    href = url_reserve;
+                                    url_reserve = null;
+                                    goto bypass_reset;
+                                }
+
+                                if (cacheimg)
+                                    memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddSeconds(5));
+
+                                proxyManager.Refresh();
+                                httpContext.Response.Redirect(href);
+                                return;
                             }
+
+                            httpContext.Response.StatusCode = (int)response.StatusCode;
+
+                            if (response.Headers.TryGetValues("Content-Type", out var contype))
+                                httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
 
                             if (cacheimg)
-                                memoryCache.Set(memKeyErrorDownload, 0, DateTime.Now.AddSeconds(5));
-
-                            proxyManager.Refresh();
-                            httpContext.Response.Redirect(href);
-                            return;
-                        }
-
-                        httpContext.Response.StatusCode = (int)response.StatusCode;
-
-                        if (response.Headers.TryGetValues("Content-Type", out var contype))
-                            httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
-
-                        if (cacheimg)
-                        {
-                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                (int)response.Content.Headers.ContentLength.Value :
-                                50_000; // 50kB
-
-                            using (var memoryStream = new MemoryStream(initialCapacity))
                             {
-                                try
+                                int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                    (int)response.Content.Headers.ContentLength.Value :
+                                    50_000; // 50kB
+
+                                using (var memoryStream = new MemoryStream(initialCapacity))
                                 {
-                                    bool saveCache = true;
-
-                                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                    try
                                     {
-                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                        bool saveCache = true;
 
-                                        try
+                                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                                         {
-                                            int bytesRead;
-                                            Memory<byte> memoryBuffer = buffer.AsMemory();
+                                            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                            while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                            try
                                             {
-                                                memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                                await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                                int bytesRead;
+                                                Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                                while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                                {
+                                                    memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                                    await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                                }
+                                            }
+                                            catch
+                                            {
+                                                saveCache = false;
+                                            }
+                                            finally
+                                            {
+                                                ArrayPool<byte>.Shared.Return(buffer);
                                             }
                                         }
-                                        catch
-                                        {
-                                            saveCache = false;
-                                        }
-                                        finally
-                                        {
-                                            ArrayPool<byte>.Shared.Return(buffer);
-                                        }
-                                    }
 
-                                    if (saveCache && memoryStream.Length > 1000)
-                                    {
-                                        try
+                                        if (saveCache && memoryStream.Length > 1000)
                                         {
-                                            if (!cacheFiles.ContainsKey(md5key))
+                                            try
                                             {
-                                                File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                                cacheFiles.TryAdd(md5key, 0);
+                                                if (!cacheFiles.ContainsKey(md5key))
+                                                {
+                                                    File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                                    cacheFiles.TryAdd(md5key, 0);
+                                                }
                                             }
+                                            catch { File.Delete(outFile); }
                                         }
-                                        catch { File.Delete(outFile); }
                                     }
+                                    catch { }
                                 }
-                                catch { }
                             }
-                        }
-                        else
-                        {
-                            await response.Content.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                            else
+                            {
+                                await response.Content.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+                            }
                         }
                     }
                     #endregion
@@ -342,25 +347,35 @@ namespace Lampac.Engine.Middlewares
             try
             {
                 var handler = Http.Handler(url, proxy);
-                handler.AllowAutoRedirect = true;
 
-                var client = FrendlyHttp.CreateClient("proxyimg", handler, "base", headers?.ToDictionary(), updateClient: uclient =>
+                var client = FrendlyHttp.HttpMessageClient("base", handler);
+
+                var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
-                    Http.DefaultRequestHeaders(url, uclient, 8, 0, null, null, headers);
-                });
+                    Version = HttpVersion.Version11
+                };
 
-                using (HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false))
+                if (headers != null)
                 {
-                    if (response.StatusCode != HttpStatusCode.OK)
-                        return null;
+                    foreach (var h in headers)
+                        req.Headers.TryAddWithoutValidation(h.name, h.val);
+                }
 
-                    using (HttpContent content = response.Content)
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                {
+                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                        if (res == null || res.Length == 0)
+                        if (response.StatusCode != HttpStatusCode.OK)
                             return null;
 
-                        return res;
+                        using (HttpContent content = response.Content)
+                        {
+                            byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                            if (res == null || res.Length == 0)
+                                return null;
+
+                            return res;
+                        }
                     }
                 }
             }

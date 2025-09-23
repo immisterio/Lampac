@@ -72,6 +72,15 @@ namespace Lampac
                 UseCookies = false
             });
 
+            services.AddHttpClient("baseNoRedirect").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                UseCookies = false
+            });
+
             services.AddHttpClient("http2", client =>
             {
                 client.DefaultRequestVersion = HttpVersion.Version20;
@@ -80,7 +89,22 @@ namespace Lampac
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 AllowAutoRedirect = true,
-                AutomaticDecompression = DecompressionMethods.All,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                EnableMultipleHttp2Connections = true,
+                UseCookies = false
+            });
+
+            services.AddHttpClient("http2NoRedirect", client =>
+            {
+                client.DefaultRequestVersion = HttpVersion.Version20;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
                 PooledConnectionLifetime = TimeSpan.FromMinutes(10),
                 EnableMultipleHttp2Connections = true,

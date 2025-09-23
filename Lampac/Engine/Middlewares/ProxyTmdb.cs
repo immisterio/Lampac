@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -299,102 +300,108 @@ namespace Lampac.Engine.Middlewares
             try
             {
                 var handler = Http.Handler(uri, proxyManager.Get());
-                handler.AllowAutoRedirect = true;
 
-                var client = FrendlyHttp.CreateClient("tmdbroxy:image", handler, init.httpversion == 2 ? "http2" : "base", headers.ToDictionary(), timeoutSeconds: 10, updateClient: uclient =>
+                var client = FrendlyHttp.HttpMessageClient(init.httpversion == 2 ? "http2" : "base", handler);
+
+                var req = new HttpRequestMessage(HttpMethod.Get, uri)
                 {
-                    Http.DefaultRequestHeaders(uri, uclient, 10, 0, null, null, headers);
-                });
+                    Version = init.httpversion == 1 ? HttpVersion.Version11 : new Version(init.httpversion, 0)
+                };
 
-                using (var response = await client.GetAsync(uri).ConfigureAwait(false))
+                Http.DefaultRequestHeaders(uri, req, null, null, headers);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
                 {
-                    if (response.StatusCode == HttpStatusCode.OK)
-                        proxyManager.Success();
-                    else
-                        proxyManager.Refresh();
-
-                    if (response.StatusCode == HttpStatusCode.OK && init.cache_img > 0 && AppInit.conf.mikrotik == false)
+                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        #region cache
-                        httpContex.Response.Headers["X-Cache-Status"] = "MISS";
+                        if (response.StatusCode == HttpStatusCode.OK)
+                            proxyManager.Success();
+                        else
+                            proxyManager.Refresh();
 
-                        int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                            (int)response.Content.Headers.ContentLength.Value :
-                            50_000; // 50kB
-
-                        using (var memoryStream = new MemoryStream(initialCapacity))
+                        if (response.StatusCode == HttpStatusCode.OK && init.cache_img > 0 && AppInit.conf.mikrotik == false)
                         {
-                            try
+                            #region cache
+                            httpContex.Response.Headers["X-Cache-Status"] = "MISS";
+
+                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                (int)response.Content.Headers.ContentLength.Value :
+                                50_000; // 50kB
+
+                            using (var memoryStream = new MemoryStream(initialCapacity))
                             {
-                                bool saveCache = true;
-
-                                using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                try
                                 {
-                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                    bool saveCache = true;
 
-                                    try
+                                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                                     {
-                                        int bytesRead;
-                                        Memory<byte> memoryBuffer = buffer.AsMemory();
+                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                        while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
+                                        try
                                         {
-                                            memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                            await httpContex.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContex.RequestAborted).ConfigureAwait(false);
+                                            int bytesRead;
+                                            Memory<byte> memoryBuffer = buffer.AsMemory();
+
+                                            while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
+                                            {
+                                                memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
+                                                await httpContex.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContex.RequestAborted).ConfigureAwait(false);
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            saveCache = false;
+                                        }
+                                        finally
+                                        {
+                                            ArrayPool<byte>.Shared.Return(buffer);
                                         }
                                     }
-                                    catch
-                                    {
-                                        saveCache = false;
-                                    }
-                                    finally
-                                    {
-                                        ArrayPool<byte>.Shared.Return(buffer);
-                                    }
-                                }
 
-                                if (saveCache && memoryStream.Length > 1000)
-                                {
-                                    try
+                                    if (saveCache && memoryStream.Length > 1000)
                                     {
-                                        if (!cacheFiles.ContainsKey(md5key))
+                                        try
                                         {
-                                            #region check_img
-                                            if (init.check_img && !path.Contains(".svg"))
+                                            if (!cacheFiles.ContainsKey(md5key))
                                             {
-                                                using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
+                                                #region check_img
+                                                if (init.check_img && !path.Contains(".svg"))
                                                 {
-                                                    try
+                                                    using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
                                                     {
-                                                        // тестируем jpg/png на целостность
-                                                        byte[] temp = image.JpegsaveBuffer();
-                                                        if (temp == null || temp.Length == 0)
+                                                        try
+                                                        {
+                                                            // тестируем jpg/png на целостность
+                                                            byte[] temp = image.JpegsaveBuffer();
+                                                            if (temp == null || temp.Length == 0)
+                                                                return;
+                                                        }
+                                                        catch
+                                                        {
                                                             return;
-                                                    }
-                                                    catch
-                                                    {
-                                                        return;
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            #endregion
+                                                #endregion
 
-                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                            cacheFiles.TryAdd(md5key, 0);
+                                                File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                                cacheFiles.TryAdd(md5key, 0);
+                                            }
                                         }
+                                        catch { File.Delete(outFile); }
                                     }
-                                    catch { File.Delete(outFile); }
                                 }
+                                catch { }
                             }
-                            catch { }
+                            #endregion
                         }
-                        #endregion
-                    }
-                    else
-                    {
-                        httpContex.Response.StatusCode = (int)response.StatusCode;
-                        httpContex.Response.Headers["X-Cache-Status"] = "bypass";
-                        await response.Content.CopyToAsync(httpContex.Response.Body, httpContex.RequestAborted).ConfigureAwait(false);
+                        else
+                        {
+                            httpContex.Response.StatusCode = (int)response.StatusCode;
+                            httpContex.Response.Headers["X-Cache-Status"] = "bypass";
+                            await response.Content.CopyToAsync(httpContex.Response.Body, httpContex.RequestAborted).ConfigureAwait(false);
+                        }
                     }
                 }
             }

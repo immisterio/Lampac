@@ -1,11 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 
 namespace Shared.Engine
 {
     public static class FrendlyHttp
     {
+        #region static
         static ConcurrentDictionary<string, (DateTime lifetime, System.Net.Http.HttpClient http)> _clients = new ConcurrentDictionary<string, (DateTime, System.Net.Http.HttpClient)>();
 
         static FrendlyHttp()
@@ -32,27 +34,25 @@ namespace Shared.Engine
                 }
             });
         }
+        #endregion
 
-
-        public static System.Net.Http.HttpClient CreateClient
+        #region HttpMessageClient
+        public static HttpClient HttpMessageClient
         (
-            string name,
-            System.Net.Http.HttpClientHandler handler, 
-            string factoryClient, 
-            Dictionary<string, string> headers = null, 
-            int timeoutSeconds = 8,
-            long MaxResponseContentBufferSize = 0,
-            string cookie = null,
-            string referer = null,
-            bool useDefaultHeaders = true, 
-            Action<System.Net.Http.HttpClient> updateClient = null
+            string factoryClient,
+            HttpClientHandler handler,
+            long MaxResponseContentBufferSize = -1
         )
         {
+            // 10MB
+            long maxBufferSize = 10_000_000;
+            if (MaxResponseContentBufferSize > 0)
+                maxBufferSize = MaxResponseContentBufferSize;
+
             if ((handler != null && handler.CookieContainer.Count > 0) || Http.httpClientFactory == null)
             {
-                var client = new System.Net.Http.HttpClient(handler);
-                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                updateClient?.Invoke(client);
+                var client = new HttpClient(handler);
+                client.MaxResponseContentBufferSize = maxBufferSize;
                 return client;
             }
 
@@ -60,9 +60,17 @@ namespace Shared.Engine
 
             if (webProxy == null)
             {
+                if (handler != null && handler.AllowAutoRedirect == false)
+                {
+                    if (factoryClient is "base" or "http2")
+                        factoryClient += "NoRedirect";
+                }
+
                 var factory = Http.httpClientFactory.CreateClient(factoryClient);
-                factory.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                updateClient?.Invoke(factory);
+
+                if (maxBufferSize > factory.MaxResponseContentBufferSize)
+                    factory.MaxResponseContentBufferSize = maxBufferSize;
+
                 return factory;
             }
 
@@ -78,23 +86,21 @@ namespace Shared.Engine
                 password = credentials.Password;
             }
 
-            string key = $"{name}:{ip}:{port}:{username}:{password}:{timeoutSeconds}:{MaxResponseContentBufferSize}:{cookie}:{referer}:{useDefaultHeaders}";
-            if (headers != null)
-                key += ":" + string.Join(";", headers.Select(h => $"{h.Key}={h.Value}"));
+            string key = $"{ip}:{port}:{username}:{password}:{MaxResponseContentBufferSize}:{handler?.AllowAutoRedirect}";
 
             lock (_clients)
             {
-                if (_clients.TryGetValue(key, out (DateTime, System.Net.Http.HttpClient http) value))
+                if (_clients.TryGetValue(key, out (DateTime, HttpClient http) value))
                     return value.http;
 
-                var client = new System.Net.Http.HttpClient(handler);
-                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-                updateClient?.Invoke(client);
+                var client = new HttpClient(handler);
+                client.MaxResponseContentBufferSize = maxBufferSize;
 
                 _clients.TryAdd(key, (DateTime.UtcNow.AddMinutes(10), client));
 
                 return client;
             }
         }
+        #endregion
     }
 }
