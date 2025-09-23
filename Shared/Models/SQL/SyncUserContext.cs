@@ -18,14 +18,14 @@ namespace Shared.Models.SQL
 
                     try
                     {
-                        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS \"bookmarks\" (
-    \"Id\" INTEGER NOT NULL CONSTRAINT \"PK_bookmarks\" PRIMARY KEY AUTOINCREMENT,
-    \"user\" TEXT NOT NULL,
-    \"data\" TEXT NOT NULL,
-    \"updated\" TEXT NOT NULL
+                        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ""bookmarks"" (
+    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_bookmarks"" PRIMARY KEY AUTOINCREMENT,
+    ""user"" TEXT NOT NULL,
+    ""data"" TEXT NOT NULL,
+    ""updated"" TEXT NOT NULL
 );");
 
-                        context.Database.ExecuteSqlRaw(@"CREATE UNIQUE INDEX IF NOT EXISTS \"IX_bookmarks_user\" ON \"bookmarks\" (\"user\")");
+                        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS \"IX_bookmarks_user\" ON \"bookmarks\" (\"user\")");
                     }
                     catch (Exception ex)
                     {
