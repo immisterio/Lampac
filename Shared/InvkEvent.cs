@@ -230,6 +230,39 @@ namespace Shared
         }
         #endregion
 
+        #region MyLocalIp
+        public static Task<string> MyLocalIp(EventMyLocalIp model)
+        {
+            if (string.IsNullOrEmpty(conf?.Controller?.MyLocalIp))
+                return null;
+
+            var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                                              .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                                              .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine")
+                                              .AddReferences(typeof(RequestModel).Assembly).AddImports("Shared.Models.Base")
+                                              .AddReferences(typeof(File).Assembly).AddImports("System.IO");
+
+            return InvokeAsync<string>(conf.Controller.MyLocalIp, model, option);
+        }
+        #endregion
+
+        #region HttpHeaders
+        public static List<HeadersModel> HttpHeaders(EventControllerHttpHeaders model)
+        {
+            if (string.IsNullOrEmpty(conf?.Controller?.HttpHeaders))
+                return default;
+
+            var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                                              .AddReferences(typeof(RequestModel).Assembly).AddImports("Shared.Models.Base")
+                                              .AddReferences(typeof(HeadersModel).Assembly).AddImports("Shared.Models")
+                                              .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine")
+                                              .AddReferences(typeof(File).Assembly).AddImports("System.IO")
+                                              .AddImports("System.Collections.Generic");
+
+            return Invoke<List<HeadersModel>>(conf.Controller.HttpHeaders, model, option);
+        }
+        #endregion
+
         #region Middleware
         public static Task<bool> Middleware(bool first, EventMiddleware model)
         {

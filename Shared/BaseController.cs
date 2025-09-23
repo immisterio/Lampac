@@ -57,12 +57,18 @@ namespace Shared
             string key = "BaseController:mylocalip";
             if (!hybridCache.TryGetValue(key, out string userIp))
             {
-                var myip = await Http.Get<JObject>("https://api.ipify.org/?format=json");
-                if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
-                    return null;
+                userIp = await InvkEvent.MyLocalIp(new EventMyLocalIp(requestInfo, HttpContext.Request, HttpContext, hybridCache));
 
-                userIp = myip.Value<string>("ip");
-                hybridCache.Set(key, userIp, DateTime.Now.AddMinutes(20));
+                if (string.IsNullOrWhiteSpace(userIp))
+                {
+                    var myip = await Http.Get<JObject>("https://api.ipify.org/?format=json");
+                    if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
+                        return null;
+
+                    userIp = myip.Value<string>("ip");
+                }
+
+                hybridCache.Set(key, userIp, DateTime.Now.AddMinutes(15));
             }
 
             return userIp;
@@ -142,6 +148,10 @@ namespace Shared
                 if (headers.FirstOrDefault(i => i.name == h.name) == null)
                     headers.Add(new HeadersModel(h.name, val));
             }
+
+            var eventHeaders = InvkEvent.HttpHeaders(new EventControllerHttpHeaders(site, headers, requestInfo, HttpContext.Request, HttpContext));
+            if (eventHeaders != null)
+                headers = eventHeaders;
 
             return headers;
         }
