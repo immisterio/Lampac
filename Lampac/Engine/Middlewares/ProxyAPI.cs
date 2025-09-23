@@ -171,7 +171,7 @@ namespace Lampac.Engine.Middlewares
                         {
                             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(7)))
                             {
-                                using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
+                                using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                                 {
                                     if ((int)response.StatusCode is 200 or 206) { }
                                     else

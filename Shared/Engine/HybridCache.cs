@@ -56,7 +56,7 @@ namespace Shared.Engine
                         {
                             try
                             {
-                                var doc = sqlDb.files.Find(t.Key);
+                                var doc = sqlDb.files.Find(t.Value.cache.Id);
                                 if (doc != null)
                                 {
                                     doc.ex = t.Value.cache.ex;
@@ -161,7 +161,8 @@ namespace Shared.Engine
 
                 string md5key = CrypTo.md5(key);
 
-                tempDb.TryGetValue(key, out var _temp);
+                tempDb.TryGetValue(md5key, out var _temp);
+
                 if (_temp.cache != null)
                 {
                     setmemory = false;

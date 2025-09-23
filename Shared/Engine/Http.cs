@@ -175,7 +175,7 @@ namespace Shared.Engine
 
                 DefaultRequestHeaders(url, req, null, referer, headers);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
@@ -210,7 +210,7 @@ namespace Shared.Engine
 
                 DefaultRequestHeaders(url, req, null, null, headers);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                         return response;
             }
@@ -303,7 +303,7 @@ namespace Shared.Engine
 
                 DefaultRequestHeaders(url, req, cookie, referer, headers, ref loglines, useDefaultHeaders);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
@@ -462,7 +462,7 @@ namespace Shared.Engine
                 if (removeContentType)
                     req.Content.Headers.Remove("Content-Type");
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
@@ -573,7 +573,7 @@ namespace Shared.Engine
 
                 DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(20, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
