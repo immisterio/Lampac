@@ -183,7 +183,7 @@ namespace Lampac
                 }
             }
 
-            // сборка dll из source
+            //  dll  source
             if (File.Exists("module/manifest.json"))
             {
                 var jss = new JsonSerializerSettings
@@ -358,7 +358,13 @@ namespace Lampac
                             {
                                 m.Invoke(null, [ new InitspaceModel()
                                 {
-                                    path = $"module/{mod.dll}", soks = new soks(), memoryCache = memoryCache, configuration = Configuration, services = serviceCollection, app = app
+                                    path = $"module/{mod.dll}",
+                                    soks = new soks(),
+                                    nws = new nws(),
+                                    memoryCache = memoryCache,
+                                    configuration = Configuration,
+                                    services = serviceCollection,
+                                    app = app
                                 }]);
                             }
                             else
@@ -394,6 +400,8 @@ namespace Lampac
             app.UseForwardedHeaders(forwarded);
             #endregion
 
+            app.UseWebSockets();
+
             app.UseRouting();
 
             if (AppInit.conf.listen.compression)
@@ -406,6 +414,11 @@ namespace Lampac
             app.UseStaticFiles();
             app.UseWAF();
             app.UseAccsdb();
+
+            app.Map("/nws", builder =>
+            {
+                builder.Run(nws.HandleWebSocketAsync);
+            });
 
             app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
             {

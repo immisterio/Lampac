@@ -112,6 +112,7 @@ namespace Lampac.Controllers
                 {
                     var json = JsonConvert.DeserializeObject<JObject>(CrypTo.DecodeBase64(events));
                     _ = soks.SendEvents(json.Value<string>("connectionId"), requestInfo.user_uid, json.Value<string>("name"), json.Value<string>("data")).ConfigureAwait(false);
+                    _ = nws.SendEvents(json.Value<string>("connectionId"), requestInfo.user_uid, json.Value<string>("name"), json.Value<string>("data")).ConfigureAwait(false);
                 }
                 catch { }
             }
