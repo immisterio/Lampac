@@ -409,6 +409,7 @@ namespace Lampac
 
             app.UseModHeaders();
             app.UseRequestInfo();
+            app.UseAlwaysRjson();
             app.UseModule(first: true);
             app.UseOverrideResponse(first: true);
             app.UseStaticFiles();

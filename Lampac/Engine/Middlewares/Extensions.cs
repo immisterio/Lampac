@@ -24,6 +24,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<RequestInfo>();
         }
 
+        public static IApplicationBuilder UseAlwaysRjson(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<AlwaysRjson>();
+        }
+
         public static IApplicationBuilder UseAccsdb(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<Accsdb>();

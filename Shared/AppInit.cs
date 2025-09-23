@@ -299,6 +299,8 @@ namespace Shared
 
         public bool disableEng = false;
 
+        public bool always_rjson = false;
+
         public string anticaptchakey;
 
         public string omdbapi_key;
