@@ -35,7 +35,8 @@ namespace Lampac.Engine.Middlewares
             var init = AppInit.conf.serverproxy;
             var requestInfo = httpContext.Features.Get<RequestModel>();
             string reqip = requestInfo.IP;
-            string servUri = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "") + httpContext.Request.QueryString.Value;
+            string servPath = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "");
+            string servUri = servPath + httpContext.Request.QueryString.Value;
 
             #region tmdb proxy
             if (servUri.Contains(".themoviedb.org"))
@@ -51,8 +52,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             #region decryptLink
-            string _servUri = ProxyLink.IsAes(servUri) ? servUri : servUri.Split("/")[0];
-            var decryptLink = ProxyLink.Decrypt(Regex.Replace(_servUri, "(\\?|&).*", ""), reqip);
+            var decryptLink = ProxyLink.Decrypt(httpContext.Request.Path.Value.StartsWith("/proxy-dash/") ? servPath.Split("/")[0] : servPath, reqip);
 
             if (init.encrypt || decryptLink?.uri != null || httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
@@ -173,7 +173,8 @@ namespace Lampac.Engine.Middlewares
                             {
                                 using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, httpContext.RequestAborted).ConfigureAwait(false))
                                 {
-                                    if ((int)response.StatusCode != 200)
+                                    if ((int)response.StatusCode is 200 or 206) { }
+                                    else
                                         servUri = links[1].Trim();
                                 }
                             }
@@ -186,6 +187,9 @@ namespace Lampac.Engine.Middlewares
 
                     servUri = servUri.Split(" ")[0].Trim();
                     decryptLink.uri = servUri;
+
+                    if (init.showOrigUri)
+                        httpContext.Response.Headers["PX-Set-Orig"] = decryptLink.uri;
                 }
                 #endregion
 

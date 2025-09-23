@@ -75,16 +75,17 @@ namespace Lampac.Engine.Middlewares
             var init = AppInit.conf.serverproxy.image;
             bool cacheimg = init.cache && AppInit.conf.mikrotik == false;
 
-            #region Проверки
-            string href = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "") + httpContext.Request.QueryString.Value;
+            string servPath = Regex.Replace(httpContext.Request.Path.Value, "/proxyimg([^/]+)?/", "");
+            string href = servPath + httpContext.Request.QueryString.Value;
 
-            if (href.Contains("image.tmdb.org"))
+            #region Проверки
+            if (servPath.Contains("image.tmdb.org"))
             {
                 httpContext.Response.Redirect($"/tmdb/img/{Regex.Replace(href.Replace("://", ":/_/").Replace("//", "/").Replace(":/_/", "://"), "^https?://[^/]+/", "")}");
                 return;
             }
 
-            var decryptLink = ProxyLink.Decrypt(Regex.Replace(href, "(\\?|&).*", ""), requestInfo.IP);
+            var decryptLink = ProxyLink.Decrypt(servPath, requestInfo.IP);
 
             if (AppInit.conf.serverproxy.encrypt || decryptLink?.uri != null)
             {

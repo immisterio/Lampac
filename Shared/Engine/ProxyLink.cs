@@ -40,7 +40,7 @@ namespace Shared.Engine
             bool IsMd5 = false;
             string uri_clear = uri.Contains("#") ? uri.Split("#")[0].Trim() : uri.Trim();
 
-            if (!forceMd5 && AppInit.conf.serverproxy.encrypt_aes && (headers == null || headers.Count == 0) && proxy == null)
+            if (!forceMd5 && AppInit.conf.serverproxy.encrypt_aes && (headers == null || headers.Count == 0) && proxy == null && !uri_clear.Contains(" or "))
             {
                 if (verifyip && AppInit.conf.serverproxy.verifyip)
                 {
@@ -168,7 +168,7 @@ namespace Shared.Engine
             if (hash.StartsWith("http"))
                 return false;
 
-            if (hash.Split('?', '&', '/', '.')[0].Length == 32)
+            if (hash.Split('?', '&', '.')[0].Length == 32)
                 return false;
 
             return true;
@@ -221,7 +221,7 @@ namespace Shared.Engine
                         {
                             try
                             {
-                                if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex)
+                                if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
                                 {
                                     if (DateTime.Now > link.Value.ex)
                                         links.TryRemove(link.Key, out _);
