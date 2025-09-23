@@ -2,11 +2,17 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Events;
+using Newtonsoft.Json.Linq;
+using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using YamlDotNet.Serialization;
 
 namespace Shared
@@ -209,6 +215,47 @@ namespace Shared
                                               .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
             return InvokeAsync<ActionResult>(conf?.Controller?.BadInitialization, model, option);
+        }
+        #endregion
+
+        #region MyLocalIp
+        public static async Task<string> MyLocalIp(EventMyLocalIp model)
+        {
+            string result = null;
+
+            if (!string.IsNullOrEmpty(conf?.Controller?.MyLocalIp))
+            {
+                var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                                                      .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                                                      .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine")
+                                                      .AddReferences(typeof(RequestModel).Assembly).AddImports("Shared.Models.Base")
+                                                      .AddReferences(typeof(File).Assembly).AddImports("System.IO");
+
+                result = await InvokeAsync<string>(conf.Controller.MyLocalIp, model, option);
+            }
+
+            if (!string.IsNullOrWhiteSpace(result))
+                return result;
+
+            var myip = await Http.Get<JObject>("https://api.ipify.org/?format=json");
+            return myip?.Value<string>("ip");
+        }
+        #endregion
+
+        #region HttpHeaders
+        public static List<HeadersModel> HttpHeaders(EventControllerHttpHeaders model)
+        {
+            if (string.IsNullOrEmpty(conf?.Controller?.HttpHeaders))
+                return default;
+
+            var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                                              .AddReferences(typeof(RequestModel).Assembly).AddImports("Shared.Models.Base")
+                                              .AddReferences(typeof(HeadersModel).Assembly).AddImports("Shared.Models")
+                                              .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine")
+                                              .AddReferences(typeof(File).Assembly).AddImports("System.IO")
+                                              .AddImports("System.Collections.Generic");
+
+            return Invoke<List<HeadersModel>>(conf.Controller.HttpHeaders, model, option);
         }
         #endregion
 

@@ -24,6 +24,10 @@
         public EventModelAppReplace AppReplace { get; set; }
 
         public string Externalids { get; set; }
+
+        public string MyLocalIp { get; set; }
+
+        public string HttpHeaders { get; set; }
     }
 
     public class EventModelAppReplace()
