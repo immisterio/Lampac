@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Models;
 
 namespace Shared.Models.Module
 {
@@ -10,6 +11,8 @@ namespace Shared.Models.Module
         public string path { get; set; }
 
         public ISoks soks { get; set; }
+
+        public INws nws { get; set; }
 
         public IMemoryCache memoryCache { get; set; }
 
