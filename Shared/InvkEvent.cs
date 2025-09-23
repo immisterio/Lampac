@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using System.Net;
@@ -209,6 +210,24 @@ namespace Shared
                                               .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
             return InvokeAsync<ActionResult>(conf?.Controller?.BadInitialization, model, option);
+        }
+        #endregion
+
+        #region HostStreamProxy
+        public static EventHostStreamProxy HostStreamProxy(EventHostStreamProxy model)
+        {
+            if (conf?.Controller?.HostStreamProxy == null)
+                return null;
+
+            var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                                              .AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base")
+                                              .AddReferences(typeof(HeadersModel).Assembly).AddImports("Shared.Models")
+                                              .AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
+                                              .AddReferences(typeof(HybridCache).Assembly).AddImports("Shared.Engine")
+                                              .AddImports("System.Collections.Generic");
+
+            var result = Invoke<EventHostStreamProxy>(conf.Controller.HostStreamProxy, model, option);
+            return result ?? model;
         }
         #endregion
 
