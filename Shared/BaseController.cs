@@ -207,6 +207,8 @@ namespace Shared
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri;
 
+            InvkEvent.HostStreamProxy(new EventHostStreamProxy(conf, headers, proxy, requestInfo, HttpContext, hybridCache));
+
             if (conf.rhub && !conf.rhub_streamproxy)
                 return uri;
 
@@ -219,18 +221,6 @@ namespace Shared
                     if (conf.geostreamproxy.Contains("ALL") || conf.geostreamproxy.Contains(country))
                         streamproxy = true;
                 }
-            }
-
-            var eventHostStreamProxy = InvkEvent.HostStreamProxy(
-                new EventHostStreamProxy(conf, uri, headers, proxy, force_streamproxy, streamproxy, requestInfo, HttpContext, hybridCache));
-            if (eventHostStreamProxy != null)
-            {
-                conf = eventHostStreamProxy.conf;
-                uri = eventHostStreamProxy.uri;
-                headers = eventHostStreamProxy.headers;
-                proxy = eventHostStreamProxy.proxy;
-                force_streamproxy = eventHostStreamProxy.force_streamproxy;
-                streamproxy = eventHostStreamProxy.streamproxy;
             }
 
             if (streamproxy)

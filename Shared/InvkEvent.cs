@@ -214,10 +214,10 @@ namespace Shared
         #endregion
 
         #region HostStreamProxy
-        public static EventHostStreamProxy HostStreamProxy(EventHostStreamProxy model)
+        public static void HostStreamProxy(EventHostStreamProxy model)
         {
             if (conf?.Controller?.HostStreamProxy == null)
-                return null;
+                return;
 
             var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
                                               .AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base")
@@ -226,8 +226,7 @@ namespace Shared
                                               .AddReferences(typeof(HybridCache).Assembly).AddImports("Shared.Engine")
                                               .AddImports("System.Collections.Generic");
 
-            var result = Invoke<EventHostStreamProxy>(conf.Controller.HostStreamProxy, model, option);
-            return result ?? model;
+            Invoke(conf.Controller.HostStreamProxy, model, option);
         }
         #endregion
 
