@@ -86,6 +86,7 @@ namespace TorrServer
                     cacheconf.Item2 = lastWriteTime;
                 }
             }
+            catch { }
             finally
             {
                 _cronWork = false;

@@ -461,6 +461,10 @@ namespace Lampac.Engine.Middlewares
 
                 return File.ReadAllBytes(outputFilePath);
             }
+            catch 
+            { 
+                return array; 
+            }
             finally
             {
                 try

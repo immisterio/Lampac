@@ -215,6 +215,7 @@ namespace Shared.PlaywrightCore
                     }
                 }
             }
+            catch { }
             finally
             {
                 _cronCloseLifetimeWork = false;

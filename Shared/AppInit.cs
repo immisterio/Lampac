@@ -56,6 +56,7 @@ namespace Shared
                         await Task.Delay(200);
                         updateConf();
                     }
+                    catch { }
                     finally
                     {
                         fileWatcher.EnableRaisingEvents = true;

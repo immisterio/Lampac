@@ -236,28 +236,23 @@ namespace Shared.PlaywrightCore
             {
                 if (proxyServer != null)
                 {
-                    try
-                    {
-                        proxyServer.BeforeRequest -= Request;
-                        proxyServer.BeforeResponse -= Response;
-                        proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
+                    proxyServer.BeforeRequest -= Request;
+                    proxyServer.BeforeResponse -= Response;
+                    proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
 
-                    }
-                    finally 
+                    Task.Run(() =>
                     {
-                        Task.Run(() =>
+                        try
                         {
-                            try
-                            {
-                                proxyServer.Stop();
-                                proxyServer.Dispose();
-                            }
-                            finally
-                            {
-                                proxyServer = null;
-                            }
-                        });
-                    }
+                            proxyServer.Stop();
+                            proxyServer.Dispose();
+                        }
+                        catch { }
+                        finally
+                        {
+                            proxyServer = null;
+                        }
+                    });
                 }
             }
             catch { }
@@ -274,6 +269,7 @@ namespace Shared.PlaywrightCore
                             process.Close();
                             process.Dispose();
                         }
+                        catch { }
                         finally
                         {
                             process = null;

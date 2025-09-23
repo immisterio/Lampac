@@ -31,6 +31,7 @@ namespace Lampac.Engine.CRON
                 if (externalids != null && externalids.Count > 0)
                     await File.WriteAllTextAsync("data/externalids.json", JsonConvert.SerializeObject(externalids)).ConfigureAwait(false);
             }
+            catch { }
             finally
             {
                 _cronWork = false;

@@ -70,6 +70,7 @@ namespace Lampac.Engine.CRON
                     File.WriteAllLines("cache/trackers.txt", trackers.OrderByDescending(i => Regex.IsMatch(i, "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")).ThenByDescending(i => i.StartsWith("http")));
                 }
             }
+            catch { }
             finally
             {
                 _cronWork = false;

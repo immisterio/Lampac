@@ -161,6 +161,7 @@ namespace Lampac.Engine.Middlewares
                     if (!string.IsNullOrEmpty(dns_ip))
                         tmdb_ip = dns_ip;
                 }
+                catch { }
                 finally
                 {
                     _spredns.Release();
@@ -275,6 +276,7 @@ namespace Lampac.Engine.Middlewares
                     if (!string.IsNullOrEmpty(dns_ip))
                         tmdb_ip = dns_ip;
                 }
+                catch { }
                 finally
                 {
                     _spredns.Release();

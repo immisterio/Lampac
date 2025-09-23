@@ -69,6 +69,7 @@ namespace Lampac.Engine.CRON
                 await update("https://bdvburik.github.io/rezkacomment.js").ConfigureAwait(false);
                 await update("https://lampame.github.io/main/Shikimori/Shikimori.js").ConfigureAwait(false);
             }
+            catch { }
             finally
             {
                 _cronWork = false;

@@ -44,8 +44,8 @@ namespace Lampac.Engine.CRON
                         AppInit.conf.accsdb.users = init.accsdb.users;
                     }
                 }
-
             }
+            catch { }
             finally
             {
                 _cronWork = false;

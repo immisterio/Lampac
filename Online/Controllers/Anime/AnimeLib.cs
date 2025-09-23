@@ -349,6 +349,7 @@ namespace Online.Controllers
 
                 init.token = cache.token;
             }
+            catch { }
             finally
             {
                 TokenSemaphore.Release();

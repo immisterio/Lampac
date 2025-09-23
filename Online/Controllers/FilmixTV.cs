@@ -158,6 +158,7 @@ namespace Online.Controllers
 
                 return (true, auth.Value, null);
             }
+            catch (Exception ex) { return (false, null, ex.Message); }
             finally
             {
                 _accessTokenLock.Release();

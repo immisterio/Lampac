@@ -236,6 +236,7 @@ namespace Shared.PlaywrightCore
                     }
                 }
             }
+            catch { }
             finally
             {
                 _cronCloseLifetimeWork = false;
@@ -326,6 +327,7 @@ namespace Shared.PlaywrightCore
                     }
                 }
             }
+            catch { }
             finally
             {
                 _cronBrowserDisconnectedWork = false;

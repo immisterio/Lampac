@@ -49,6 +49,7 @@ namespace Shared.Engine
                     }
                 });
             }
+            catch { }
             finally
             {
                 _cronCheckConnectionWork = false;

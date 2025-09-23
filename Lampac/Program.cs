@@ -442,6 +442,7 @@ namespace Lampac
                     _usersKeyUpdate = keyUpdate;
                 }
             }
+            catch { }
             finally
             {
                 _updateUsersDb = false;
@@ -468,6 +469,7 @@ namespace Lampac
                         AppInit.conf.kit.allUsers = users;
                 }
             }
+            catch { }
             finally
             {
                 _updateKitDb = false;

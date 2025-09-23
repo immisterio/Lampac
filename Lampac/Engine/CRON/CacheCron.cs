@@ -88,6 +88,7 @@ namespace Lampac.Engine.CRON
                     }
                 }
             }
+            catch { }
             finally 
             {
                 _cronWork = false;

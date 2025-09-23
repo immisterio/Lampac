@@ -614,6 +614,7 @@ namespace Lampac.Engine.Middlewares
                                     catch
                                     {
                                         ArrayPool<byte>.Shared.Return(chunkBuffer);
+                                        break;
                                     }
                                 }
                             }
@@ -627,11 +628,18 @@ namespace Lampac.Engine.Middlewares
 
                     var writeTask = Task.Factory.StartNew(async () =>
                         {
+                            bool reqAborted = false;
+
                             await foreach (var (chunkBuffer, length) in channel.Reader.ReadAllAsync(context.RequestAborted))
                             {
                                 try
                                 {
-                                    await response.Body.WriteAsync(chunkBuffer, 0, length, context.RequestAborted);
+                                    if (reqAborted == false)
+                                        await response.Body.WriteAsync(chunkBuffer, 0, length, context.RequestAborted);
+                                }
+                                catch 
+                                {
+                                    reqAborted = true;
                                 }
                                 finally
                                 {

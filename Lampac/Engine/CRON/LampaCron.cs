@@ -66,7 +66,7 @@ namespace Lampac.Engine.CRON
 
                 if (await update().ConfigureAwait(false))
                 {
-                    string uri = istree ? 
+                    string uri = istree ?
                         $"https://github.com/yumata/lampa/archive/{init.tree}.zip" :
                         "https://github.com/yumata/lampa/archive/refs/heads/main.zip";
 
@@ -112,6 +112,7 @@ namespace Lampac.Engine.CRON
                     }
                 }
             }
+            catch { }
             finally
             {
                 _cronWork = false;
