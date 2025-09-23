@@ -37,14 +37,16 @@ namespace Lampac.Engine.CRON
 
                 if (AppInit.conf.dlna.enable && AppInit.conf.dlna.autoupdatetrackers)
                 {
-                    HashSet<string> trackers = new HashSet<string>(), trackers_bad = new HashSet<string>(), temp = new HashSet<string>();
+                    var trackers = new HashSet<string>();
+                    var trackers_bad = new HashSet<string>();
+                    var temp = new HashSet<string>();
 
                     foreach (string uri in new string[]
                     {
-                            "http://redapi.cfhttp.top/trackers.txt",
-                            "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
-                            "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt",
-                            "https://newtrackon.com/api/all"
+                        "http://redapi.cfhttp.top/trackers.txt",
+                        "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
+                        "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt",
+                        "https://newtrackon.com/api/all"
                     })
                     {
                         string plain = await Http.Get(uri, weblog: false).ConfigureAwait(false);

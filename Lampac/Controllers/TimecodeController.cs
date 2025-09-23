@@ -6,6 +6,7 @@ using Shared.Models.SQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace Lampac.Controllers
@@ -26,17 +27,17 @@ namespace Lampac.Controllers
         #endregion
 
         [Route("/timecode/all")]
-        public ActionResult Get(string card_id)
+        async public Task<ActionResult> Get(string card_id)
         {
             if (string.IsNullOrEmpty(card_id))
                 return Json(new { });
 
             using (var db = new SyncUserContext())
             {
-                Dictionary<string, string> timecodes = db.timecodes
+                Dictionary<string, string> timecodes = await db.timecodes
                     .AsNoTracking()
                     .Where(i => i.user == requestInfo.user_uid && i.card == card_id)
-                    .ToDictionary(i => i.item, i => i.data);
+                    .ToDictionaryAsync(i => i.item, i => i.data);
 
                 if (timecodes.Count == 0)
                     return Json(new { });
@@ -47,7 +48,7 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/timecode/add")]
-        public ActionResult Set([FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
+        async public Task<ActionResult> Set([FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
                 return Content("{\"secuses\": false}", "application/json; charset=utf-8");
@@ -57,8 +58,8 @@ namespace Lampac.Controllers
 
             using (var db = new SyncUserContext())
             {
-                var entity = db.timecodes
-                    .FirstOrDefault(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id);
+                var entity = await db.timecodes
+                    .FirstOrDefaultAsync(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id);
 
                 if (entity == null)
                 {
@@ -80,7 +81,7 @@ namespace Lampac.Controllers
                     db.timecodes.Update(entity);
                 }
 
-                db.SaveChanges();
+                await db.SaveChangesAsync();
             }
 
             return Json(new { secuses = true });

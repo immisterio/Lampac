@@ -139,23 +139,23 @@ namespace Lampac.Engine.Middlewares
             if (width > 0 || height > 0)
                 contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
 
-            var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1)) : null;
+            //var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1)) : null;
 
             try
             {
-                if (semaphore != null)
-                    await semaphore.WaitAsync();
+                //if (semaphore != null)
+                //    await semaphore.WaitAsync();
 
                 if (cacheimg && cacheFiles.ContainsKey(md5key))
                 {
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(href, out _);
+                    //if (semaphore != null)
+                    //{
+                    //    semaphore.Release();
+                    //    if (semaphore.CurrentCount == 1)
+                    //        _semaphoreLocks.TryRemove(href, out _);
 
-                        semaphore = null;
-                    }
+                    //    semaphore = null;
+                    //}
 
                     httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContext.Response.ContentType = contentType;
@@ -319,14 +319,14 @@ namespace Lampac.Engine.Middlewares
                         catch { try { File.Delete(outFile); } catch { } }
                     }
 
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(href, out _);
+                    //if (semaphore != null)
+                    //{
+                    //    semaphore.Release();
+                    //    if (semaphore.CurrentCount == 1)
+                    //        _semaphoreLocks.TryRemove(href, out _);
 
-                        semaphore = null;
-                    }
+                    //    semaphore = null;
+                    //}
 
                     proxyManager.Success();
                     httpContext.Response.ContentType = contentType;
@@ -336,14 +336,14 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (semaphore != null)
-                {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(href, out _);
+                //if (semaphore != null)
+                //{
+                //    semaphore.Release();
+                //    if (semaphore.CurrentCount == 1)
+                //        _semaphoreLocks.TryRemove(href, out _);
 
-                    semaphore = null;
-                }
+                //    semaphore = null;
+                //}
             }
         }
 

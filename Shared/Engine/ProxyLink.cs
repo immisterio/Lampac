@@ -185,7 +185,7 @@ namespace Shared.Engine
 
         static bool _cronWork = false;
 
-        static void Cron(object state)
+        async static void Cron(object state)
         {
             if (_cronWork)
                 return;
@@ -208,10 +208,10 @@ namespace Shared.Engine
                     {
                         var now = DateTime.Now;
 
-                        sqlDb.links
+                        await sqlDb.links
                              .AsNoTracking()
                              .Where(i => now > i.ex)
-                             .ExecuteDelete();
+                             .ExecuteDeleteAsync();
 
                         _nextClearDb = DateTime.Now.AddHours(1);
                     }
@@ -250,7 +250,7 @@ namespace Shared.Engine
                                             });
                                         }
 
-                                        if (sqlDb.SaveChanges() > 0)
+                                        if (await sqlDb.SaveChangesAsync() > 0)
                                         {
                                             tempLinks.Add(link.Key);
                                             links.TryRemove(link.Key, out _);

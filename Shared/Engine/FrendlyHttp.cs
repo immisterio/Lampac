@@ -56,9 +56,9 @@ namespace Shared.Engine
                 return client;
             }
 
-            var webProxy = handler.Proxy != null ? handler.Proxy as WebProxy : null;
+            var webProxy = handler?.Proxy != null ? handler.Proxy as WebProxy : null;
 
-            if (handler == null || handler.UseProxy == false || webProxy == null)
+            if (webProxy == null)
             {
                 var factory = Http.httpClientFactory.CreateClient(factoryClient);
                 factory.Timeout = TimeSpan.FromSeconds(timeoutSeconds);

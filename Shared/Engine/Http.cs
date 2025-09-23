@@ -39,7 +39,7 @@ namespace Shared.Engine
             return Handler(url, proxy, ref log, cookieContainer);
         }
 
-        public static HttpClientHandler Handler(string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
+        static HttpClientHandler Handler(string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
         {
             var handler = new HttpClientHandler()
             {
@@ -54,6 +54,10 @@ namespace Shared.Engine
                 handler.UseProxy = true;
                 handler.Proxy = proxy;
                 loglines += $"proxy: {proxy.Address.ToString()}\n";
+            }
+            else
+            {
+                handler.UseProxy = false;
             }
 
             if (cookieContainer != null)

@@ -28,7 +28,7 @@ namespace Shared.Engine
         }
 
         static bool updatingDb = false;
-        static void UpdateDB(object state)
+        async static void UpdateDB(object state)
         {
             if (updatingDb)
                 return;
@@ -43,10 +43,10 @@ namespace Shared.Engine
                     {
                         var now = DateTime.Now;
 
-                        sqlDb.files
+                        await sqlDb.files
                              .AsNoTracking()
                              .Where(i => now > i.ex)
-                             .ExecuteDelete();
+                             .ExecuteDeleteAsync();
 
                         _nextClearDb = DateTime.Now.AddHours(1);
                     }
@@ -72,7 +72,8 @@ namespace Shared.Engine
                                     });
                                 }
 
-                                sqlDb.SaveChanges();
+                                await sqlDb.SaveChangesAsync();
+
                                 tempDb.TryRemove(t.Key, out _);
                             }
                             catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }

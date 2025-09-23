@@ -150,23 +150,23 @@ namespace Lampac.Engine.Middlewares
                 string outFile = Path.Combine("cache", "cub", md5key);
                 bool isCacheRequest = init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false;
 
-                var semaphore = isCacheRequest ? _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1)) : null;
+                //var semaphore = isCacheRequest ? _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1)) : null;
 
                 try
                 {
-                    if (semaphore != null)
-                        await semaphore.WaitAsync();
+                    //if (semaphore != null)
+                    //    await semaphore.WaitAsync();
 
                     if (isCacheRequest && cacheFiles.ContainsKey(md5key))
                     {
-                        if (semaphore != null)
-                        {
-                            semaphore.Release();
-                            if (semaphore.CurrentCount == 1)
-                                _semaphoreLocks.TryRemove(md5key, out _);
+                        //if (semaphore != null)
+                        //{
+                        //    semaphore.Release();
+                        //    if (semaphore.CurrentCount == 1)
+                        //        _semaphoreLocks.TryRemove(md5key, out _);
 
-                            semaphore = null;
-                        }
+                        //    semaphore = null;
+                        //}
 
                         httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                         httpContext.Response.ContentType = getContentType(uri);
@@ -253,14 +253,14 @@ namespace Lampac.Engine.Middlewares
                         }
                         else
                         {
-                            if (semaphore != null)
-                            {
-                                semaphore.Release();
-                                if (semaphore.CurrentCount == 1)
-                                    _semaphoreLocks.TryRemove(md5key, out _);
+                            //if (semaphore != null)
+                            //{
+                            //    semaphore.Release();
+                            //    if (semaphore.CurrentCount == 1)
+                            //        _semaphoreLocks.TryRemove(md5key, out _);
 
-                                semaphore = null;
-                            }
+                            //    semaphore = null;
+                            //}
 
                             httpContext.Response.Headers["X-Cache-Status"] = "bypass";
                             await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
@@ -269,14 +269,14 @@ namespace Lampac.Engine.Middlewares
                 }
                 finally
                 {
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(md5key, out _);
+                    //if (semaphore != null)
+                    //{
+                    //    semaphore.Release();
+                    //    if (semaphore.CurrentCount == 1)
+                    //        _semaphoreLocks.TryRemove(md5key, out _);
 
-                        semaphore = null;
-                    }
+                    //    semaphore = null;
+                    //}
                 }
                 #endregion
             }

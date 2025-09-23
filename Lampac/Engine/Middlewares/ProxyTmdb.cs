@@ -121,22 +121,22 @@ namespace Lampac.Engine.Middlewares
 
             string mkey = $"tmdb/api:{path}:{query}";
 
-            var semaphore = _semaphoreLocks.GetOrAdd(mkey, _ => new SemaphoreSlim(1, 1));
+            //var semaphore = _semaphoreLocks.GetOrAdd(mkey, _ => new SemaphoreSlim(1, 1));
 
             try
             {
-                await semaphore.WaitAsync();
+                //await semaphore.WaitAsync();
 
                 if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
                 {
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(mkey, out _);
+                    //if (semaphore != null)
+                    //{
+                    //    semaphore.Release();
+                    //    if (semaphore.CurrentCount == 1)
+                    //        _semaphoreLocks.TryRemove(mkey, out _);
 
-                        semaphore = null;
-                    }
+                    //    semaphore = null;
+                    //}
 
                     httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContex.Response.StatusCode = cache.statusCode;
@@ -200,14 +200,14 @@ namespace Lampac.Engine.Middlewares
                 var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
                 if (result.content == null)
                 {
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(mkey, out _);
+                    //if (semaphore != null)
+                    //{
+                    //    semaphore.Release();
+                    //    if (semaphore.CurrentCount == 1)
+                    //        _semaphoreLocks.TryRemove(mkey, out _);
 
-                        semaphore = null;
-                    }
+                    //    semaphore = null;
+                    //}
 
                     proxyManager.Refresh();
                     httpContex.Response.StatusCode = 401;
@@ -224,16 +224,16 @@ namespace Lampac.Engine.Middlewares
                     cache.json = JsonConvert.SerializeObject(result.content);
 
                     if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
-                        hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: false);
+                        hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: true);
 
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(mkey, out _);
+                    //if (semaphore != null)
+                    //{
+                    //    semaphore.Release();
+                    //    if (semaphore.CurrentCount == 1)
+                    //        _semaphoreLocks.TryRemove(mkey, out _);
 
-                        semaphore = null;
-                    }
+                    //    semaphore = null;
+                    //}
 
                     await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
                     return;
@@ -244,14 +244,14 @@ namespace Lampac.Engine.Middlewares
                 if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                     hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
 
-                if (semaphore != null)
-                {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(mkey, out _);
+                //if (semaphore != null)
+                //{
+                //    semaphore.Release();
+                //    if (semaphore.CurrentCount == 1)
+                //        _semaphoreLocks.TryRemove(mkey, out _);
 
-                    semaphore = null;
-                }
+                //    semaphore = null;
+                //}
 
                 proxyManager.Success();
                 httpContex.Response.ContentType = "application/json; charset=utf-8";
@@ -259,14 +259,14 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (semaphore != null)
-                {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(mkey, out _);
+                //if (semaphore != null)
+                //{
+                //    semaphore.Release();
+                //    if (semaphore.CurrentCount == 1)
+                //        _semaphoreLocks.TryRemove(mkey, out _);
 
-                    semaphore = null;
-                }
+                //    semaphore = null;
+                //}
             }
         }
         #endregion
@@ -293,22 +293,22 @@ namespace Lampac.Engine.Middlewares
 
             httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
-            var semaphore = _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1));
+            //var semaphore = _semaphoreLocks.GetOrAdd(md5key, _ => new SemaphoreSlim(1, 1));
 
             try
             {
-                await semaphore.WaitAsync();
+                //await semaphore.WaitAsync();
 
                 if (cacheFiles.ContainsKey(md5key))
                 {
-                    if (semaphore != null)
-                    {
-                        semaphore.Release();
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(md5key, out _);
+                    //if (semaphore != null)
+                    //{
+                    //    semaphore.Release();
+                    //    if (semaphore.CurrentCount == 1)
+                    //        _semaphoreLocks.TryRemove(md5key, out _);
 
-                        semaphore = null;
-                    }
+                    //    semaphore = null;
+                    //}
 
                     httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                     await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
@@ -461,14 +461,14 @@ namespace Lampac.Engine.Middlewares
                         }
                         else
                         {
-                            if (semaphore != null)
-                            {
-                                semaphore.Release();
-                                if (semaphore.CurrentCount == 1)
-                                    _semaphoreLocks.TryRemove(md5key, out _);
+                            //if (semaphore != null)
+                            //{
+                            //    semaphore.Release();
+                            //    if (semaphore.CurrentCount == 1)
+                            //        _semaphoreLocks.TryRemove(md5key, out _);
 
-                                semaphore = null;
-                            }
+                            //    semaphore = null;
+                            //}
 
                             httpContex.Response.StatusCode = (int)response.StatusCode;
                             httpContex.Response.Headers["X-Cache-Status"] = "bypass";
@@ -488,14 +488,14 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (semaphore != null)
-                {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(md5key, out _);
+                //if (semaphore != null)
+                //{
+                //    semaphore.Release();
+                //    if (semaphore.CurrentCount == 1)
+                //        _semaphoreLocks.TryRemove(md5key, out _);
 
-                    semaphore = null;
-                }
+                //    semaphore = null;
+                //}
             }
         }
         #endregion

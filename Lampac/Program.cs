@@ -90,12 +90,48 @@ namespace Lampac
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+            Http.onlog += (e, log) => soks.SendLog(log, "http");
+            RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
+
+            string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            });
+
+            Console.WriteLine(init + "\n");
+            File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
+
+            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+            ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
+
+            #region passwd
+            if (!File.Exists("passwd"))
+            {
+                AppInit.rootPasswd = Guid.NewGuid().ToString();
+                File.WriteAllText("passwd", AppInit.rootPasswd);
+            }
+            else
+            {
+                AppInit.rootPasswd = File.ReadAllText("passwd");
+            }
+            #endregion
+
+            #region vers.txt
+            if (!File.Exists("data/vers.txt"))
+                File.WriteAllText("data/vers.txt", BaseController.appversion);
+
+            if (!File.Exists("data/vers-minor.txt"))
+                File.WriteAllText("data/vers-minor.txt", "1");
+            #endregion
+
+            #region EFCore Configure
             SisiContext.Configure();
             SyncUserContext.Configure();
             ProxyLinkContext.Configure();
             PlaywrightContext.Configure();
             HybridCacheContext.Configure();
             ExternalidsContext.Configure();
+            #endregion
 
             #region migration
             if (File.Exists("vers.txt") || File.Exists("isdocker"))
@@ -200,20 +236,6 @@ namespace Lampac
             }
             #endregion
 
-            Http.onlog += (e, log) => soks.SendLog(log, "http");
-            RchClient.hub += (e, req) => soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
-
-            string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
-            {
-                NullValueHandling = NullValueHandling.Ignore
-            });
-
-            Console.WriteLine(init + "\n");
-            File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
-
-            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-            ThreadPool.SetMinThreads(Math.Max(4096, workerThreads), Math.Max(1024, completionPortThreads));
-
             #region Playwright
             if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
             {
@@ -235,26 +257,6 @@ namespace Lampac
                 Chromium.CronStart();
                 Firefox.CronStart();
             }
-            #endregion
-
-            #region passwd
-            if (!File.Exists("passwd"))
-            {
-                AppInit.rootPasswd = Guid.NewGuid().ToString();
-                File.WriteAllText("passwd", AppInit.rootPasswd);
-            }
-            else
-            {
-                AppInit.rootPasswd = File.ReadAllText("passwd");
-            }
-            #endregion
-
-            #region vers.txt
-            if (!File.Exists("data/vers.txt"))
-                File.WriteAllText("data/vers.txt", BaseController.appversion);
-
-            if (!File.Exists("data/vers-minor.txt"))
-                File.WriteAllText("data/vers-minor.txt", "1");
             #endregion
 
             #region cloudflare_ips

@@ -359,10 +359,10 @@ namespace Shared.PlaywrightCore
                                 {
                                     var now = DateTime.Now;
 
-                                    sqlDb.files
+                                    await sqlDb.files
                                          .AsNoTracking()
                                          .Where(i => now > i.ex)
-                                         .ExecuteDelete();
+                                         .ExecuteDeleteAsync();
 
                                     _nextClearDb = DateTime.Now.AddHours(1);
                                 }
@@ -370,7 +370,7 @@ namespace Shared.PlaywrightCore
                             catch { }
                             #endregion
 
-                            var doc = sqlDb.files.Find(memkey);
+                            var doc = await sqlDb.files.FindAsync(memkey);
                             if (doc?.content != null && doc.ex > DateTime.Now)
                             {
                                 if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
@@ -415,7 +415,7 @@ namespace Shared.PlaywrightCore
                                                 });
                                             }
 
-                                            sqlDb.SaveChanges();
+                                            await sqlDb.SaveChangesAsync();
                                         }
                                     }
                                 }

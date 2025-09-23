@@ -220,7 +220,7 @@ namespace SISI
 
 
         [Route("sisi/bookmark/remove")]
-        public ActionResult Remove(string id)
+        public async Task<ActionResult> Remove(string id)
         {
             string md5user = getuser();
             if (md5user == null || string.IsNullOrEmpty(id))
@@ -228,11 +228,13 @@ namespace SISI
 
             using (var db = new SisiContext())
             {
-                var bookmark = db.bookmarks.FirstOrDefault(i => i.user == md5user && i.uid == id);
+                var bookmark = await db.bookmarks
+                    .FirstOrDefaultAsync(i => i.user == md5user && i.uid == id);
+
                 if (bookmark != null)
                 {
                     db.bookmarks.Remove(bookmark);
-                    db.SaveChanges();
+                    await db.SaveChangesAsync();
                 }
             }
 
