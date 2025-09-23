@@ -81,7 +81,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             #region ws
-            if (httpContext.Request.Path.Value.StartsWith("/ws"))
+            if (httpContext.Request.Path.Value.StartsWith("/ws") || httpContext.Request.Path.Value.StartsWith("/nws"))
             {
                 if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && !AppInit.conf.storage.enable)
                     return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);

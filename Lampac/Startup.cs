@@ -415,11 +415,6 @@ namespace Lampac
             app.UseWAF();
             app.UseAccsdb();
 
-            app.Map("/nws", builder =>
-            {
-                builder.Run(nws.HandleWebSocketAsync);
-            });
-
             app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
             {
                 proxyApp.UseProxyAPI();
@@ -442,6 +437,11 @@ namespace Lampac
 
             app.UseModule(first: false);
             app.UseOverrideResponse(first: false);
+
+            app.Map("/nws", builder =>
+            {
+                builder.Run(nws.HandleWebSocketAsync);
+            });
 
             app.UseEndpoints(endpoints =>
             {
