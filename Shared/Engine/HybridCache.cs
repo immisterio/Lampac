@@ -52,10 +52,13 @@ namespace Shared.Engine
                     }
                     else
                     {
-                        foreach (var t in tempDb.Where(i => DateTime.Now > i.Value.extend).ToArray())
+                        foreach (var t in tempDb.ToArray())
                         {
                             try
                             {
+                                if (t.Value.extend >= DateTime.Now)
+                                    continue;
+
                                 var doc = sqlDb.files.Find(t.Value.cache.Id);
                                 if (doc != null)
                                 {

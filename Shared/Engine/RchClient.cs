@@ -38,14 +38,14 @@ namespace Shared.Engine
 
             try
             {
-                await Parallel.ForEachAsync(clients.Select(i => i.Key).ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (connectionId, cancellationToken) =>
+                await Parallel.ForEachAsync(clients.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (user, cancellationToken) =>
                 {
-                    if (clients.ContainsKey(connectionId))
+                    if (clients.ContainsKey(user.Key))
                     {
-                        var rch = new RchClient(connectionId);
+                        var rch = new RchClient(user.Key);
                         string result = await rch.SendHub("ping", useDefaultHeaders: false);
                         if (result != "pong")
-                            OnDisconnected(connectionId);
+                            OnDisconnected(user.Key);
                     }
                 });
             }
