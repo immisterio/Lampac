@@ -1066,7 +1066,10 @@ namespace Online.Controllers
                     res = string.Empty;
 
                 bool rch = res.Contains("\"rch\":true");
-                bool work = res.Contains("data-json=") || rch;
+                bool work = rch || res.Contains("data-json=") 
+                    || res.Contains("\"type\":\"movie\"") 
+                    || res.Contains("\"type\":\"episode\"")
+                    || res.Contains("\"type\":\"season\"");
 
                 string quality = string.Empty;
                 string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
