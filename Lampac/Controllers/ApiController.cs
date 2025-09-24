@@ -683,7 +683,8 @@ namespace Lampac.Controllers
         {
             var sb = new StringBuilder(FileCache.ReadAllText("plugins/invc-ws.js"));
 
-            sb.Replace("{localhost}", host)
+            sb.Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js"))
+              .Replace("{localhost}", host)
               .Replace("{token}", HttpUtility.UrlEncode(token));
 
             return Content(sb.ToString(), "application/javascript; charset=utf-8");
@@ -695,7 +696,11 @@ namespace Lampac.Controllers
         [Route("invc-rch.js")]
         public ActionResult InvcRchJS()
         {
-            return Content(FileCache.ReadAllText("plugins/invc-rch.js").Replace("{localhost}", host), "application/javascript; charset=utf-8");
+            string source = FileCache.ReadAllText("plugins/invc-rch.js").Replace("{localhost}", host);
+
+            source = $"(function(){{'use strict'; {source} }})();";
+
+            return Content(source, "application/javascript; charset=utf-8");
         }
         #endregion
 

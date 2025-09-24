@@ -72,9 +72,10 @@ namespace SISI
                                    .Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
                 }
 
-                bulder = bulder.Replace("{localhost}", host)
-                               .Replace("{push_all}", init.push_all.ToString().ToLower())
-                               .Replace("{token}", HttpUtility.UrlEncode(token));
+                bulder = bulder.Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", saveCache: false))
+                    .Replace("{push_all}", init.push_all.ToString().ToLower())
+                    .Replace("{localhost}", host)
+                    .Replace("{token}", HttpUtility.UrlEncode(token));
 
                 if (init.forced_checkRchtype)
                     bulder = bulder.Replace("window.rchtype", "Defined.rchtype");

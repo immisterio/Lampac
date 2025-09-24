@@ -94,8 +94,9 @@ namespace Online.Controllers
                                    .Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
                 }
 
-                bulder = bulder.Replace("{player-inner}", playerinner)
-                               .Replace("{localhost}", host);
+                bulder = bulder.Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", saveCache: false))
+                    .Replace("{player-inner}", playerinner)
+                    .Replace("{localhost}", host);
 
                 cache.file = bulder.ToString();
                 cache.filecleaer = cache.file.Replace("{token}", string.Empty);
