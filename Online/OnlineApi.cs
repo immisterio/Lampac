@@ -6,7 +6,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Events;
 using Shared.Models.Module;
-using Shared.Models.Online.Lumex;
 using Shared.Models.SQL;
 using Shared.PlaywrightCore;
 using System.Data;

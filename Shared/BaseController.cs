@@ -217,7 +217,9 @@ namespace Shared
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri;
 
-            InvkEvent.HostStreamProxy(new EventHostStreamProxy(conf, headers, proxy, requestInfo, HttpContext, hybridCache));
+            string _eventUri = InvkEvent.HostStreamProxy(new EventHostStreamProxy(conf, uri, headers, proxy, requestInfo, HttpContext, hybridCache));
+            if (_eventUri != null)
+                return _eventUri;
 
             if (conf.rhub && !conf.rhub_streamproxy)
                 return uri;

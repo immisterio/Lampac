@@ -7,6 +7,7 @@ using Shared.Models.Base;
 using Shared.Models.Events;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Threading;
 using YamlDotNet.Serialization;
 
@@ -214,19 +215,20 @@ namespace Shared
         #endregion
 
         #region HostStreamProxy
-        public static void HostStreamProxy(EventHostStreamProxy model)
+        public static string HostStreamProxy(EventHostStreamProxy model)
         {
             if (conf?.Controller?.HostStreamProxy == null)
-                return;
+                return null;
 
             var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
                                               .AddReferences(typeof(BaseSettings).Assembly).AddImports("Shared.Models.Base")
                                               .AddReferences(typeof(HeadersModel).Assembly).AddImports("Shared.Models")
                                               .AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
                                               .AddReferences(typeof(HybridCache).Assembly).AddImports("Shared.Engine")
+                                              .AddReferences(typeof(MD5).Assembly).AddImports("System.Security.Cryptography")
                                               .AddImports("System.Collections.Generic");
 
-            Invoke(conf.Controller.HostStreamProxy, model, option);
+            return Invoke<string>(conf.Controller.HostStreamProxy, model, option);
         }
         #endregion
 
@@ -255,7 +257,6 @@ namespace Shared
             var option = ScriptOptions.Default.AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
                                               .AddReferences(typeof(RequestModel).Assembly).AddImports("Shared.Models.Base")
                                               .AddReferences(typeof(HeadersModel).Assembly).AddImports("Shared.Models")
-                                              .AddReferences(typeof(Http).Assembly).AddImports("Shared.Engine")
                                               .AddReferences(typeof(File).Assembly).AddImports("System.IO")
                                               .AddImports("System.Collections.Generic");
 
