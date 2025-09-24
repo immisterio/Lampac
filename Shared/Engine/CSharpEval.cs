@@ -182,7 +182,8 @@ namespace Shared.Engine
 
                     foreach (string file in Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories))
                     {
-                        if (file.Contains("/obj/"))
+                        string _file = file.Replace("\\", "/").Replace(path.Replace("\\", "/"), "").Replace(Environment.CurrentDirectory.Replace("\\", "/"), "");
+                        if (Regex.IsMatch(_file, "(\\.vs|bin|obj|Properties)/", RegexOptions.IgnoreCase))
                             continue;
 
                         syntaxTree.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(file)));
