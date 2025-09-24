@@ -603,9 +603,21 @@ namespace Shared.Engine
 
                     string destinationPath = Path.Combine(Environment.CurrentDirectory, "module", folder.ModuleName);
 
+                    string existingManifestJson = null;
+                    string existingManifestPath = Path.Combine(destinationPath, "manifest.json");
+
                     if (Directory.Exists(destinationPath))
                     {
-                        try { Directory.Delete(destinationPath, true); }
+                        try
+                        {
+                            // Read existing manifest if present so we can preserve/merge its values
+                            if (File.Exists(existingManifestPath))
+                            {
+                                try { existingManifestJson = File.ReadAllText(existingManifestPath); } catch { existingManifestJson = null; }
+                            }
+
+                            Directory.Delete(destinationPath, true);
+                        }
                         catch (Exception ex)
                         {
                             Console.WriteLine($"module repository: failed to clean '{destinationPath}': {ex.Message}");
@@ -615,6 +627,24 @@ namespace Shared.Engine
 
                     Directory.CreateDirectory(destinationPath);
                     CopyDirectory(sourcePath, destinationPath);
+
+                    // After copying, merge manifests if we had an existing one
+                    string newManifestPath = Path.Combine(destinationPath, "manifest.json");
+                    if (!string.IsNullOrEmpty(existingManifestJson) && File.Exists(newManifestPath))
+                    {
+                        try
+                        {
+                            string newManifestJson = File.ReadAllText(newManifestPath);
+                            var merged = MergeManifests(existingManifestJson, newManifestJson);
+                            if (merged != null)
+                                File.WriteAllText(newManifestPath, merged);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"module repository: failed to merge post-copy manifest.json for '{folder.ModuleName}': {ex.Message}");
+                        }
+                    }
+
                     modulesToCompile.Add(folder.ModuleName);
                     Console.WriteLine($"module repository: updated module '{folder.ModuleName}' from {repository.Url}");
                 }
@@ -631,6 +661,116 @@ namespace Shared.Engine
                 try { if (File.Exists(tempZip)) File.Delete(tempZip); } catch { }
                 try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
                 Console.WriteLine($"ModuleRepository: DownloadAndExtract finished for {repository.Owner}/{repository.Name}");
+            }
+        }
+
+        private static string MergeManifests(string existingJson, string newJson)
+        {
+            try
+            {
+                var existingToken = JsonConvert.DeserializeObject<JToken>(existingJson);
+                var newToken = JsonConvert.DeserializeObject<JToken>(newJson);
+
+                if (existingToken == null)
+                    return newJson;
+
+                if (newToken == null)
+                    return existingJson;
+
+                // If both are arrays: merge by 'dll' key; start from existing to preserve custom fields
+                if (existingToken is JArray existingArr && newToken is JArray newArr)
+                {
+                    // Build index for existing by dll (case-insensitive)
+                    var existingIndex = new Dictionary<string, JObject>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var e in existingArr.OfType<JObject>())
+                    {
+                        var dll = e["dll"]?.Value<string>();
+                        if (!string.IsNullOrEmpty(dll))
+                            existingIndex[dll.ToLowerInvariant()] = (JObject)e.DeepClone();
+                    }
+
+                    // Apply updates from newArr: only properties present in source overwrite existing
+                    foreach (var n in newArr.OfType<JObject>())
+                    {
+                        var ndll = n["dll"]?.Value<string>();
+                        if (!string.IsNullOrEmpty(ndll) && existingIndex.TryGetValue(ndll.ToLowerInvariant(), out JObject existObj))
+                        {
+                            foreach (var prop in n.Properties())
+                            {
+                                var name = prop.Name;
+                                if (string.Equals(name, "enable", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    // preserve existing enable if present
+                                    if (existObj.Property(name, StringComparison.OrdinalIgnoreCase) == null)
+                                        existObj[name] = prop.Value.DeepClone();
+
+                                    continue;
+                                }
+
+                                // Only update properties that exist in new manifest (we are iterating them)
+                                existObj[name] = prop.Value.DeepClone();
+                            }
+
+                            existingIndex[ndll.ToLowerInvariant()] = existObj;
+                        }
+                        else
+                        {
+                            // New entry: add to existingIndex
+                            var clone = (JObject)n.DeepClone();
+                            existingIndex[ndll?.ToLowerInvariant() ?? Guid.NewGuid().ToString()] = clone;
+                        }
+                    }
+
+                    // Preserve original order where possible: start with original existingArr order, then append any new ones not present
+                    var resultArr = new JArray();
+
+                    var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var e in existingArr.OfType<JObject>())
+                    {
+                        var dll = e["dll"]?.Value<string>() ?? string.Empty;
+                        if (existingIndex.TryGetValue(dll.ToLowerInvariant(), out JObject val))
+                        {
+                            resultArr.Add(val);
+                            added.Add(dll.ToLowerInvariant());
+                        }
+                        else
+                        {
+                            resultArr.Add(e);
+                            added.Add(dll.ToLowerInvariant());
+                        }
+                    }
+
+                    // Append remaining
+                    foreach (var kv in existingIndex)
+                    {
+                        if (!added.Contains(kv.Key))
+                            resultArr.Add(kv.Value);
+                    }
+
+                    return JsonConvert.SerializeObject(resultArr, Formatting.Indented);
+                }
+
+                // If both are objects: merge into existing, updating only fields present in new, but preserve existing enable
+                if (existingToken is JObject existingObjRoot && newToken is JObject newObjRoot)
+                {
+                    foreach (var prop in newObjRoot.Properties())
+                    {
+                        var name = prop.Name;
+                        if (string.Equals(name, "enable", StringComparison.OrdinalIgnoreCase) && existingObjRoot.Property(name, StringComparison.OrdinalIgnoreCase) != null)
+                            continue; // preserve
+
+                        existingObjRoot[name] = prop.Value.DeepClone();
+                    }
+
+                    return JsonConvert.SerializeObject(existingObjRoot, Formatting.Indented);
+                }
+
+                // Fallback: return newJson
+                return newJson;
+            }
+            catch
+            {
+                return newJson;
             }
         }
 
@@ -653,7 +793,15 @@ namespace Shared.Engine
 
                 string target = Path.Combine(destination, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(target));
-                File.Copy(file, target, true);
+
+                try
+                {
+                    File.Copy(file, target, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"module repository: failed to copy file '{file}' to '{target}': {ex.Message}");
+                }
             }
         }
 
