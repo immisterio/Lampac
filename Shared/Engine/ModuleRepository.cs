@@ -209,11 +209,6 @@ namespace Shared.Engine
 
                 string branch = GetString(map, "branch", "ref");
                 var folders = ParseFolders(map);
-                if (folders.Count == 0)
-                {
-                    Console.WriteLine($"ModuleRepository: repository '{url}' has no folders configured");
-                    return null;
-                }
 
                 var repository = new RepositoryEntry
                 {
@@ -231,6 +226,29 @@ namespace Shared.Engine
                 repository.Owner = owner;
                 repository.Name = name;
                 Console.WriteLine($"ModuleRepository: parsed repository {repository.Owner}/{repository.Name} branch={repository.Branch ?? "(default)"}");
+
+                // If no folders were specified in YAML, try to fetch top-level directories from GitHub repo
+                if (repository.Folders == null || repository.Folders.Count == 0)
+                {
+                    try
+                    {
+                        var remoteFolders = FetchRepositoryFolders(repository);
+                        if (remoteFolders.Count > 0)
+                        {
+                            repository.Folders = remoteFolders;
+                            Console.WriteLine($"ModuleRepository: populated {remoteFolders.Count} folders from remote repository {repository.Owner}/{repository.Name}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"ModuleRepository: no folders found in remote repository {repository.Owner}/{repository.Name}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"ModuleRepository: failed to fetch folders for {repository.Owner}/{repository.Name} - {ex.Message}");
+                    }
+                }
+
                 return repository;
             }
 
@@ -403,17 +421,56 @@ namespace Shared.Engine
                 return null;
             }
 
-            if (string.IsNullOrWhiteSpace(repository.Branch))
+            // Determine a usable branch (try configured, default, then main, then master)
+            var branch = DetermineBranch(repository);
+            if (string.IsNullOrEmpty(branch))
             {
-                var repoInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}");
-                repository.Branch = repoInfo?["default_branch"]?.Value<string>() ?? "main";
-                Console.WriteLine($"ModuleRepository: determined default branch = {repository.Branch} for {repository.Owner}/{repository.Name}");
+                Console.WriteLine($"ModuleRepository: could not determine a valid branch for {repository.Owner}/{repository.Name}");
+                return null;
             }
 
-            var branchInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}/branches/{Uri.EscapeDataString(repository.Branch)}");
+            var branchInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}/branches/{Uri.EscapeDataString(branch)}");
             var sha = branchInfo?["commit"]?["sha"]?.Value<string>();
-            Console.WriteLine($"ModuleRepository: latest commit sha for {repository.Owner}/{repository.Name} ({repository.Branch}) = {sha}");
+            Console.WriteLine($"ModuleRepository: latest commit sha for {repository.Owner}/{repository.Name} ({branch}) = {sha}");
             return sha;
+        }
+
+        private static string DetermineBranch(RepositoryEntry repository)
+        {
+            if (string.IsNullOrEmpty(repository.Owner) || string.IsNullOrEmpty(repository.Name))
+                return null;
+
+            var candidates = new List<string>();
+            if (!string.IsNullOrWhiteSpace(repository.Branch))
+                candidates.Add(repository.Branch.Trim());
+
+            // Try to get default branch from repo metadata
+            var repoInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}");
+            var defaultBranch = repoInfo?["default_branch"]?.Value<string>();
+            if (!string.IsNullOrWhiteSpace(defaultBranch) && !candidates.Contains(defaultBranch, StringComparer.OrdinalIgnoreCase))
+                candidates.Add(defaultBranch);
+
+            // Add common fallbacks
+            if (!candidates.Contains("main", StringComparer.OrdinalIgnoreCase))
+                candidates.Add("main");
+            if (!candidates.Contains("master", StringComparer.OrdinalIgnoreCase))
+                candidates.Add("master");
+
+            foreach (var b in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(b))
+                    continue;
+
+                var branchInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}/branches/{Uri.EscapeDataString(b)}");
+                if (branchInfo != null)
+                {
+                    repository.Branch = b;
+                    Console.WriteLine($"ModuleRepository: selected branch '{b}' for {repository.Owner}/{repository.Name}");
+                    return b;
+                }
+            }
+
+            return null;
         }
 
         private static JObject GetJson(string url)
@@ -439,6 +496,64 @@ namespace Shared.Engine
                 Console.WriteLine($"module repository: request {url} failed - {ex.Message}");
                 return null;
             }
+        }
+
+        private static JArray GetJsonArray(string url)
+        {
+            try
+            {
+                using var response = HttpClient.GetAsync(url).GetAwaiter().GetResult();
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"module repository: request {url} failed with {(int)response.StatusCode} {response.StatusCode}");
+                    return null;
+                }
+
+                string json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                if (string.IsNullOrEmpty(json))
+                    return null;
+
+                Console.WriteLine($"ModuleRepository: GetJsonArray success for {url}");
+                return JsonConvert.DeserializeObject<JArray>(json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"module repository: request {url} failed - {ex.Message}");
+                return null;
+            }
+        }
+
+        private static List<RepositoryFolder> FetchRepositoryFolders(RepositoryEntry repository)
+        {
+            var result = new List<RepositoryFolder>();
+            if (string.IsNullOrEmpty(repository.Owner) || string.IsNullOrEmpty(repository.Name))
+                return result;
+
+            var branch = DetermineBranch(repository);
+            if (string.IsNullOrEmpty(branch))
+                return result;
+
+            string url = $"https://api.github.com/repos/{repository.Owner}/{repository.Name}/contents?ref={Uri.EscapeDataString(branch)}";
+            var items = GetJsonArray(url);
+            if (items == null)
+                return result;
+
+            foreach (var item in items)
+            {
+                var type = item["type"]?.Value<string>();
+                if (!string.Equals(type, "dir", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var name = item["name"]?.Value<string>();
+                if (string.IsNullOrEmpty(name))
+                    continue;
+
+                var folder = new RepositoryFolder(name, null);
+                if (folder.IsValid)
+                    result.Add(folder);
+            }
+
+            return result;
         }
 
         private static bool DownloadAndExtract(RepositoryEntry repository, HashSet<string> modulesToCompile)
