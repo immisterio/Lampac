@@ -168,6 +168,8 @@ namespace Lampac
             }
             #endregion
 
+            ModuleRepository.Configuration(mvcBuilder);
+
             #region compilation modules
             if (AppInit.modules != null)
             {
