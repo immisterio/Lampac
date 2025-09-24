@@ -310,7 +310,7 @@ namespace Online.Controllers
                                 if (cache.playlist != null && cache.playlist.Count > 0)
                                 {
                                     cache.href = href;
-                                    memoryCache.Set(mkey_playlist, cache, cacheTime(40, init: init));
+                                    hybridCache.Set(mkey_playlist, cache, cacheTime(40, init: init));
                                 }
                                 else
                                 {
@@ -437,7 +437,7 @@ namespace Online.Controllers
         {
             string memKey = $"hdvb:view:{kinopoisk_id}";
 
-            if (!hybridCache.TryGetValue(memKey, out JArray root))
+            if (!hybridCache.TryGetValue(memKey, out JArray root, inmemory: false))
             {
                 var init = await loadKit(AppInit.conf.HDVB);
                 string uri = $"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}";
@@ -454,7 +454,8 @@ namespace Online.Controllers
 
                 if (!rch.enable)
                     proxyManager.Success();
-                hybridCache.Set(memKey, root, cacheTime(40, init: init));
+
+                hybridCache.Set(memKey, root, cacheTime(40, init: init), inmemory: false);
             }
 
             if (root.Count == 0)
