@@ -95,6 +95,7 @@ namespace Lampac
                 soks.SendLog(log, "http");
                 nws.SendLog(log, "http");
             };
+
             RchClient.hub += (e, req) =>
             {
                 soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
