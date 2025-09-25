@@ -90,8 +90,9 @@ namespace Lampac
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+            #region GC
             var gc = AppInit.conf.GC;
-            if (gc != null && gc.enable)
+            if (gc != null && gc.enable && AppInit.conf.multiaccess == false)
             {
                 if (gc.Concurrent.HasValue)
                     AppContext.SetSwitch("System.GC.Concurrent", gc.Concurrent.Value);
@@ -105,6 +106,7 @@ namespace Lampac
                 if (gc.RetainVM.HasValue)
                     AppContext.SetSwitch("System.GC.RetainVM", gc.RetainVM.Value);
             }
+            #endregion
 
             Http.onlog += (e, log) =>
             {

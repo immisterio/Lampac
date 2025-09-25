@@ -2,14 +2,14 @@ namespace Shared.Models.AppConf
 {
     public class GCConf
     {
-        public bool enable { get; set; } = true;
+        public bool enable { get; set; }
 
-        public bool? Concurrent { get; set; } = false;
+        public bool? Concurrent { get; set; }
 
-        public int? ConserveMemory { get; set; } = 9;
+        public int? ConserveMemory { get; set; }
 
-        public int? HighMemoryPercent { get; set; } = 1;
+        public int? HighMemoryPercent { get; set; }
 
-        public bool? RetainVM { get; set; } = false;
+        public bool? RetainVM { get; set; }
     }
 }

@@ -341,7 +341,12 @@ namespace Shared
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
-        public GCConf GC { get; set; } = new GCConf();
+        public GCConf GC { get; set; } = new GCConf() 
+        {
+            enable = true,
+            RetainVM = false, Concurrent = false,
+            ConserveMemory = 9, HighMemoryPercent = 1
+        };
 
         public PuppeteerConf chromium = new PuppeteerConf()
         {
