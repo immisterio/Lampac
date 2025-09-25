@@ -90,6 +90,22 @@ namespace Lampac
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+            var gc = AppInit.conf.GC;
+            if (gc != null && gc.enable)
+            {
+                if (gc.Concurrent.HasValue)
+                    AppContext.SetSwitch("System.GC.Concurrent", gc.Concurrent.Value);
+
+                if (gc.ConserveMemory.HasValue)
+                    AppContext.SetData("System.GC.ConserveMemory", gc.ConserveMemory.Value);
+
+                if (gc.HighMemoryPercent.HasValue)
+                    AppContext.SetData("System.GC.HighMemoryPercent", gc.HighMemoryPercent.Value);
+
+                if (gc.RetainVM.HasValue)
+                    AppContext.SetSwitch("System.GC.RetainVM", gc.RetainVM.Value);
+            }
+
             Http.onlog += (e, log) =>
             {
                 soks.SendLog(log, "http");
