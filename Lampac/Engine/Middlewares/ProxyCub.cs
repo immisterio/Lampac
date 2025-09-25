@@ -256,7 +256,7 @@ namespace Lampac.Engine.Middlewares
 
                 try
                 {
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TimeSpan.FromSeconds(20));
 
                     if (!hybridCache.TryGetValue(memkey, out cache, inmemory: false))
                     {

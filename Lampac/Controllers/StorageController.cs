@@ -81,7 +81,7 @@ namespace Lampac.Controllers
 
             try
             {
-                await fileLock.WaitAsync();
+                await fileLock.WaitAsync(TimeSpan.FromMinutes(1));
 
                 if (AppInit.conf.storage.brotli)
                     BrotliTo.Compress(outFile, array);
@@ -181,7 +181,7 @@ namespace Lampac.Controllers
 
             try
             {
-                await fileLock.WaitAsync();
+                await fileLock.WaitAsync(TimeSpan.FromMinutes(1));
 
                 if (AppInit.conf.storage.brotli)
                     BrotliTo.Compress(outFile, array);

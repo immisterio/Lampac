@@ -160,7 +160,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 if (semaphore != null)
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
 
                 if (cacheFiles.ContainsKey(md5key))
                 {

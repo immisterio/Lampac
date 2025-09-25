@@ -96,7 +96,7 @@ namespace Online.Controllers
         {
             try
             {
-                await _accessTokenLock.WaitAsync();
+                await _accessTokenLock.WaitAsync(TimeSpan.FromMinutes(1));
 
                 string hashFile = $"cache/filmixtv-{CrypTo.md5(init.user_apitv)}.hash";
 

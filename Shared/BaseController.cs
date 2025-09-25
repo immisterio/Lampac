@@ -327,7 +327,7 @@ namespace Shared
 
             try
             {
-                await semaphore.WaitAsync();
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
                 if (hybridCache.TryGetValue(key, out T _val, memory))
                 {
@@ -370,7 +370,7 @@ namespace Shared
 
             try
             {
-                await semaphore.WaitAsync();
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
                 if (hybridCache.TryGetValue(key, out T val, memory))
                     return val;
@@ -406,7 +406,7 @@ namespace Shared
 
             try
             {
-                await semaphore.WaitAsync();
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
                 return await func.Invoke();
             }
             finally

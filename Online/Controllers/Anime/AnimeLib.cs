@@ -294,7 +294,7 @@ namespace Online.Controllers
 
             try
             {
-                await TokenSemaphore.WaitAsync();
+                await TokenSemaphore.WaitAsync(TimeSpan.FromMinutes(1));
 
                 AnimeLibTokenState cache = null;
                 string TokenCachePath = Path.Combine("cache", "animelib.json");

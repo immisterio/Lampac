@@ -144,18 +144,21 @@ namespace Lampac.Engine.Middlewares
 
                 try
                 {
-                    await _spredns.WaitAsync();
+                    await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
 
                     if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                     {
-                        var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                        var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A);
-                        dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+                        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
+                        {
+                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                            var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A, cancellationToken: cts.Token);
+                            dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-                        if (!string.IsNullOrEmpty(dns_ip))
-                            Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                        else
-                            Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                            if (!string.IsNullOrEmpty(dns_ip))
+                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                            else
+                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                        }
                     }
 
                     if (!string.IsNullOrEmpty(dns_ip))
@@ -184,7 +187,7 @@ namespace Lampac.Engine.Middlewares
                 uri = uri.Replace("api.themoviedb.org", tmdb_ip);
             }
 
-            var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
+            var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 20, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
             if (result.content == null)
             {
                 proxyManager.Refresh();
@@ -259,18 +262,21 @@ namespace Lampac.Engine.Middlewares
 
                 try
                 {
-                    await _spredns.WaitAsync();
+                    await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
 
                     if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                     {
-                        var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                        var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
-                        dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+                        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
+                        {
+                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                            var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
+                            dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-                        if (!string.IsNullOrEmpty(dns_ip))
-                            Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                        else
-                            Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                            if (!string.IsNullOrEmpty(dns_ip))
+                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                            else
+                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                        }
                     }
 
                     if (!string.IsNullOrEmpty(dns_ip))
@@ -305,7 +311,7 @@ namespace Lampac.Engine.Middlewares
             try
             {
                 if (semaphore != null)
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
 
                 if (cacheFiles.ContainsKey(md5key))
                 {
@@ -325,7 +331,7 @@ namespace Lampac.Engine.Middlewares
 
                 Http.DefaultRequestHeaders(uri, req, null, null, headers);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
