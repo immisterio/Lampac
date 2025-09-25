@@ -4,7 +4,7 @@ namespace Shared.Models.Templates
 {
     public struct SubtitleTpl
     {
-        List<(string label, string url)> data;
+        public List<(string label, string url)> data { get; set; }
 
         public SubtitleTpl() : this(10) { }
 

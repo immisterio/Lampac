@@ -6,7 +6,7 @@ namespace Shared.Models.Templates
 {
     public struct VoiceTpl
     {
-        List<(string name, bool active, string link)> data;
+        public List<(string name, bool active, string link)> data { get; set; }
 
         public VoiceTpl() : this(15) { }
 

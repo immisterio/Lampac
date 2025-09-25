@@ -4,7 +4,7 @@ namespace Shared.Models.Templates
 {
     public struct StreamQualityTpl
     {
-        List<(string link, string quality)> data = new List<(string, string)>(8);
+        public List<(string link, string quality)> data { get; set; } = new List<(string, string)>(8);
 
         public StreamQualityTpl() { }
 

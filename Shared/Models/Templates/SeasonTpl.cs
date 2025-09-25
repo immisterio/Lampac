@@ -7,7 +7,7 @@ namespace Shared.Models.Templates
 {
     public struct SeasonTpl
     {
-        List<(string name, string link, int? id)> data;
+        public List<(string name, string link, int? id)> data { get; set; }
 
         public string quality = null;
 

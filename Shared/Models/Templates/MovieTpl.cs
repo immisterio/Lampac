@@ -10,7 +10,7 @@ namespace Shared.Models.Templates
     {
         string title, original_title;
 
-        List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout)> data;
+        public List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout)> data { get; set; }
 
         public MovieTpl(string title, string original_title = null, int capacity = 15) 
         {

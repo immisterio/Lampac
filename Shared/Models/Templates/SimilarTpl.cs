@@ -7,7 +7,7 @@ namespace Shared.Models.Templates
 {
     public struct SimilarTpl
     {
-        public List<(string title, string year, string details, string link, string img)> data;
+        public List<(string title, string year, string details, string link, string img)> data { get; set; }
 
         public SimilarTpl() : this(20) { }
 
