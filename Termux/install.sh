@@ -227,11 +227,8 @@ cat <<EOF > Lampac.runtimeconfig.json
       }
     ],
     "configProperties": {
-      "System.GC.Server": true,
-      "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
-      "System.Reflection.NullabilityInfoContext.IsSupported": true,
-      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
-      "System.GC.HeapHardLimit": 100000000
+      "System.GC.Server": false,
+      "System.Reflection.NullabilityInfoContext.IsSupported": true
     }
   }
 }
