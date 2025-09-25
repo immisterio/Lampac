@@ -18,6 +18,14 @@ namespace Shared.Engine
 
         static ConcurrentDictionary<string, dynamic> scripts = new ConcurrentDictionary<string, dynamic>();
 
+        public static PortableExecutableReference ReferenceFromFile(string dll)
+        {
+            if (File.Exists(dll))
+                return MetadataReference.CreateFromFile(Path.Combine(AppContext.BaseDirectory, dll));
+
+            return MetadataReference.CreateFromFile(Path.Combine(AppContext.BaseDirectory, "runtimes", "references", dll));
+        }
+
 
         #region Execute<T>
         public static T Execute<T>(in string cs, object model, ScriptOptions options = null)

@@ -125,7 +125,9 @@ namespace SISI.Controllers.NextHUB
                                 #region routeEval
                                 if (routeEval != null)
                                 {
-                                    var options = ScriptOptions.Default.AddReferences(typeof(Playwright).Assembly).AddImports(typeof(RouteContinueOptions).Namespace);
+                                    var options = ScriptOptions.Default
+                                        .AddReferences(CSharpEval.ReferenceFromFile("Microsoft.Playwright.dll"))
+                                        .AddImports("Microsoft.Playwright");
 
                                     bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, HttpContext.Request.Query, url, null, null, null, null, 0), options);
                                     if (!_next)

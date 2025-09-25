@@ -1,6 +1,4 @@
 ﻿using Microsoft.CodeAnalysis.Scripting;
-using Microsoft.Playwright;
-using Shared.PlaywrightCore;
 using YamlDotNet.Serialization;
 using Shared.Models.SISI.NextHUB;
 
@@ -11,23 +9,18 @@ namespace SISI.Controllers.NextHUB
         #region evalOptionsFull
         public static ScriptOptions evalOptionsFull = ScriptOptions.Default
 
-            .AddReferences(typeof(Playwright).Assembly)
-            .AddImports(typeof(Playwright).Namespace)
+            .AddReferences(CSharpEval.ReferenceFromFile("Microsoft.Playwright.dll"))
+            .AddImports("Microsoft.Playwright")
 
-            .AddReferences(typeof(PlaywrightBrowser).Assembly)
-            .AddImports(typeof(PlaywrightBrowser).Namespace)
-
-            .AddReferences(typeof(Newtonsoft.Json.JsonConvert).Assembly)
-            .AddImports("Newtonsoft.Json")
-            .AddImports("Newtonsoft.Json.Linq")
-
-            .AddReferences(typeof(RchClient).Assembly)
-            .AddReferences(typeof(Http).Assembly)
+            .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+            .AddImports("Shared.PlaywrightCore")
             .AddImports("Shared.Engine")
+            .AddImports("Shared.Models.SISI.Base")
+            .AddImports("Shared.Models.SISI")
 
-            .AddReferences(typeof(PlaylistItem).Assembly)
-            .AddImports(typeof(PlaylistItem).Namespace)
-            .AddImports("Shared.Models.SISI");
+            .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll"))
+            .AddImports("Newtonsoft.Json")
+            .AddImports("Newtonsoft.Json.Linq");
         #endregion
 
         public static NxtSettings goInit(string plugin)

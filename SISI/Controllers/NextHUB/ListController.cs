@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Playwright;
 using Shared.Models.CSharpGlobals;
@@ -268,11 +269,11 @@ namespace SISI.Controllers.NextHUB
                     return null;
 
                 var options = ScriptOptions.Default
-                    .AddReferences(typeof(PlaylistItem).Assembly)
-                    .AddImports(typeof(PlaylistItem).Namespace)
+                    .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                    .AddImports("Shared.Models.SISI.Base")
                     .AddImports("Shared.Models.SISI")
-                    .AddReferences(typeof(HtmlDocument).Assembly)
-                    .AddImports(typeof(HtmlDocument).Namespace);
+                    .AddReferences(CSharpEval.ReferenceFromFile("HtmlAgilityPack.dll"))
+                    .AddImports("HtmlAgilityPack");
 
                 return CSharpEval.Execute<List<PlaylistItem>>(eval, new NxtPlaylist(init, plugin, host, html, doc, new List<PlaylistItem>()), options);
             }
@@ -471,11 +472,11 @@ namespace SISI.Controllers.NextHUB
                     if (eval != null)
                     {
                         var options = ScriptOptions.Default
-                            .AddReferences(typeof(PlaylistItem).Assembly)
-                            .AddImports(typeof(PlaylistItem).Namespace)
+                            .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                            .AddImports("Shared.Models.SISI.Base")
                             .AddImports("Shared.Models.SISI")
-                            .AddReferences(typeof(HtmlDocument).Assembly)
-                            .AddImports(typeof(HtmlDocument).Namespace);
+                            .AddReferences(CSharpEval.ReferenceFromFile("HtmlAgilityPack.dll"))
+                            .AddImports("HtmlAgilityPack");
 
                         pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(init, plugin, host, html, nodes, pl, row), options);
                     }
@@ -519,7 +520,9 @@ namespace SISI.Controllers.NextHUB
                             #region routeEval
                             if (routeEval != null)
                             {
-                                var options = ScriptOptions.Default.AddReferences(typeof(Playwright).Assembly).AddImports(typeof(RouteContinueOptions).Namespace);
+                                var options = ScriptOptions.Default
+                                    .AddReferences(CSharpEval.ReferenceFromFile("Microsoft.Playwright.dll"))
+                                    .AddImports("Microsoft.Playwright");
 
                                 bool _next = await CSharpEval.ExecuteAsync<bool>(routeEval, new NxtRoute(route, HttpContext.Request.Query, url, search, sort, cat, model, pg), options);
                                 if (!_next)
