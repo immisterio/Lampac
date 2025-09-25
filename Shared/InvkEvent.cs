@@ -236,7 +236,7 @@ namespace Shared
         public static Task<string> MyLocalIp(EventMyLocalIp model)
         {
             if (string.IsNullOrEmpty(conf?.Controller?.MyLocalIp))
-                return null;
+                return Task.FromResult(default(string));
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")

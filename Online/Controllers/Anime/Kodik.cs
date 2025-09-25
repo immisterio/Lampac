@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Utilities.IO;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Online.Settings;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -143,37 +146,68 @@ namespace Online.Controllers
 
                 return await InvkSemaphore(init, memKey, async () =>
                 {
-                    if (!hybridCache.TryGetValue(memKey, out List<(string q, string url)> streams))
+                    if (!hybridCache.TryGetValue(memKey, out (List<(string q, string url)> streams, SegmentTpl segments) cache))
                     {
                         string deadline = DateTime.Now.AddHours(2).ToString("yyyy MM dd HH").Replace(" ", "");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                        string json = await Http.Get($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}", timeoutSeconds: 8, proxy: proxy);
+                        var root = await Http.Get<JObject>($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true", timeoutSeconds: 8, proxy: proxy);
 
-                        streams = new List<(string q, string url)>(4);
-                        var match = new Regex("\"([0-9]+)p?\":{\"Src\":\"(https?:)?//([^\"]+)\"", RegexOptions.IgnoreCase).Match(json);
-                        while (match.Success)
+                        if (root == null || !root.ContainsKey("links"))
+                            return OnError("links");
+
+                        cache.streams = new List<(string q, string url)>(3);
+
+                        foreach (var link in root["links"].ToObject<Dictionary<string, JObject>>())
                         {
-                            if (!string.IsNullOrWhiteSpace(match.Groups[3].Value))
-                                streams.Add(($"{match.Groups[1].Value}p", $"https://{match.Groups[3].Value}"));
+                            string src = link.Value.Value<string>("Src");
+                            if (src.StartsWith("http"))
+                                src = src.Substring(src.IndexOf("://") + 3);
 
-                            match = match.NextMatch();
+                            cache.streams.Add(($"{link.Key}p", $"https://{src}"));
                         }
 
-                        if (streams.Count == 0)
+                        if (cache.streams.Count == 0)
                         {
                             proxyManager.Refresh();
-                            return Content(string.Empty);
+                            return OnError("streams");
                         }
 
-                        streams.Reverse();
+                        cache.streams.Reverse();
+
+                        if (root.ContainsKey("segments"))
+                        {
+                            var segs = root["segments"] as JObject;
+                            if (segs != null)
+                            {
+                                cache.segments = new SegmentTpl();
+
+                                foreach (string key in new string[] { "ad", "skip" })
+                                {
+                                    if (segs.ContainsKey(key))
+                                    {
+                                        var arr = segs[key] as JArray;
+                                        if (arr != null)
+                                        {
+                                            foreach (var it in arr)
+                                            {
+                                                int? s = it.Value<int?>("start");
+                                                int? e = it.Value<int?>("end");
+                                                if (s.HasValue && e.HasValue)
+                                                    cache.segments.ad(s.Value, e.Value);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         proxyManager.Success();
-                        hybridCache.Set(memKey, streams, cacheTime(20, init: init));
+                        hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                     }
 
                     var streamquality = new StreamQualityTpl();
-                    foreach (var l in streams)
+                    foreach (var l in cache.streams)
                         streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy), l.q);
 
                     if (play)
@@ -183,7 +217,7 @@ namespace Online.Controllers
                     if (episode > 0)
                         name += $" ({episode} серия)";
 
-                    return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name, streamquality: streamquality, vast: init.vast));
+                    return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name, streamquality: streamquality, vast: init.vast, segments: cache.segments));
                 });
             }
         }
