@@ -341,8 +341,10 @@ namespace Shared
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
-        public PuppeteerConf chromium = new PuppeteerConf() 
-        { 
+        public GCConf GC { get; set; } = new GCConf();
+
+        public PuppeteerConf chromium = new PuppeteerConf()
+        {
             enable = true, Headless = true,
             Args = ["--disable-blink-features=AutomationControlled"], // , "--window-position=-2000,100"
             context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
