@@ -34,6 +34,9 @@ namespace Lampac.Engine.Middlewares
 
         static ProxyTmdb()
         {
+            if (AppInit.conf.multiaccess == false)
+                return;
+
             Directory.CreateDirectory("cache/tmdb");
 
             foreach (var item in Directory.EnumerateFiles("cache/tmdb", "*"))
@@ -49,7 +52,7 @@ namespace Lampac.Engine.Middlewares
             fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
 
-            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(60), TimeSpan.FromMinutes(60));
         }
 
         static void cleanup(object state)
@@ -244,7 +247,7 @@ namespace Lampac.Engine.Middlewares
 
             httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
-            if (cacheFiles.ContainsKey(md5key))
+            if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
             {
                 httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                 await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
@@ -313,7 +316,7 @@ namespace Lampac.Engine.Middlewares
                 if (semaphore != null)
                     await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
 
-                if (cacheFiles.ContainsKey(md5key))
+                if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                 {
                     httpContex.Response.Headers["X-Cache-Status"] = "HIT";
                     await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
@@ -384,7 +387,7 @@ namespace Lampac.Engine.Middlewares
                                     {
                                         try
                                         {
-                                            if (!cacheFiles.ContainsKey(md5key))
+                                            if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
                                             {
                                                 #region check_img
                                                 if (init.check_img && !path.Contains(".svg"))
@@ -407,7 +410,9 @@ namespace Lampac.Engine.Middlewares
                                                 #endregion
 
                                                 File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                                cacheFiles.TryAdd(md5key, 0);
+
+                                                if (AppInit.conf.multiaccess)
+                                                    cacheFiles.TryAdd(md5key, 0);
                                             }
                                         }
                                         catch { File.Delete(outFile); }

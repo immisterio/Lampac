@@ -46,7 +46,7 @@ namespace Lampac.Engine.Middlewares
             fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
 
-            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(30));
         }
 
         static void cleanup(object state)

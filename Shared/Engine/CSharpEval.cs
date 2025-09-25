@@ -14,8 +14,6 @@ namespace Shared.Engine
 {
     public static class CSharpEval
     {
-        static InteractiveAssemblyLoader assemblyLoader = new InteractiveAssemblyLoader();
-
         static ConcurrentDictionary<string, dynamic> scripts = new ConcurrentDictionary<string, dynamic>();
 
         public static PortableExecutableReference ReferenceFromFile(string dll)
@@ -50,7 +48,7 @@ namespace Shared.Engine
                     cs,
                     options,
                     globalsType: model.GetType(),
-                    assemblyLoader: assemblyLoader
+                    assemblyLoader: new InteractiveAssemblyLoader()
                 ).CreateDelegate();
             });
 
@@ -103,7 +101,7 @@ namespace Shared.Engine
                     cs,
                     options,
                     globalsType: model.GetType(),
-                    assemblyLoader: assemblyLoader
+                    assemblyLoader: new InteractiveAssemblyLoader()
                 ).CreateDelegate();
             });
 

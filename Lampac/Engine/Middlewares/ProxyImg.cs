@@ -32,6 +32,9 @@ namespace Lampac.Engine.Middlewares
 
         static ProxyImg()
         {
+            if (AppInit.conf.multiaccess == false)
+                return;
+
             Directory.CreateDirectory("cache/img");
 
             foreach (var item in Directory.EnumerateFiles("cache/img", "*"))
@@ -47,7 +50,7 @@ namespace Lampac.Engine.Middlewares
             fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
 
-            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(60), TimeSpan.FromMinutes(60));
         }
 
         static void cleanup(object state)
@@ -140,7 +143,7 @@ namespace Lampac.Engine.Middlewares
             if (width > 0 || height > 0)
                 contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
 
-            if (cacheFiles.ContainsKey(md5key))
+            if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
             {
                 httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                 httpContext.Response.ContentType = contentType;
@@ -162,7 +165,7 @@ namespace Lampac.Engine.Middlewares
                 if (semaphore != null)
                     await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
 
-                if (cacheFiles.ContainsKey(md5key))
+                if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                 {
                     httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContext.Response.ContentType = contentType;
@@ -257,10 +260,12 @@ namespace Lampac.Engine.Middlewares
                                         {
                                             try
                                             {
-                                                if (!cacheFiles.ContainsKey(md5key))
+                                                if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
                                                 {
                                                     File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                                    cacheFiles.TryAdd(md5key, 0);
+
+                                                    if (AppInit.conf.multiaccess)
+                                                        cacheFiles.TryAdd(md5key, 0);
                                                 }
                                             }
                                             catch { File.Delete(outFile); }
@@ -315,10 +320,12 @@ namespace Lampac.Engine.Middlewares
                     {
                         try
                         {
-                            if (!cacheFiles.ContainsKey(md5key))
+                            if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
                             {
                                 File.WriteAllBytes(outFile, array);
-                                cacheFiles.TryAdd(md5key, 0);
+
+                                if (AppInit.conf.multiaccess)
+                                    cacheFiles.TryAdd(md5key, 0);
                             }
                         }
                         catch { try { File.Delete(outFile); } catch { } }
