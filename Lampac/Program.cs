@@ -108,11 +108,7 @@ namespace Lampac
             }
             #endregion
 
-            Http.onlog += (e, log) =>
-            {
-                soks.SendLog(log, "http");
-                nws.SendLog(log, "http");
-            };
+            Http.onlog += (e, log) => nws.SendLog(log, "http");
 
             RchClient.hub += (e, req) =>
             {

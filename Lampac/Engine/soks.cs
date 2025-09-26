@@ -42,33 +42,6 @@ namespace Lampac.Engine
         }
         #endregion
 
-        #region WebLog
-        public static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
-
-        public void RegistryWebLog(string token)
-        {
-            if (AppInit.conf.weblog.enable)
-            {
-                if (string.IsNullOrEmpty(AppInit.conf.weblog.token) || AppInit.conf.weblog.token == token)
-                {
-                    weblog_clients.AddOrUpdate(Context.ConnectionId, 0, (k,v) => 0);
-                    return;
-                }
-            }
-        }
-
-        public void WebLog(string message, string plugin) => SendLog(message, plugin);
-
-        public static void SendLog(string message, string plugin)
-        {
-            if (!AppInit.conf.weblog.enable || hubClients == null || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(plugin) || message.Length > 4_000000)
-                return;
-
-            if (weblog_clients.Count > 0)
-                hubClients.Clients(weblog_clients.Keys).SendAsync("Receive", message, plugin).ConfigureAwait(false);
-        }
-        #endregion
-
         #region Events
         static ConcurrentDictionary<string, string> event_clients = new ConcurrentDictionary<string, string>();
 
@@ -149,7 +122,6 @@ namespace Lampac.Engine
 
         public override Task OnDisconnectedAsync(Exception exception)
         {
-            weblog_clients.TryRemove(Context.ConnectionId, out _);
             event_clients.TryRemove(Context.ConnectionId, out _);
             RchClient.OnDisconnected(Context.ConnectionId);
 

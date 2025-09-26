@@ -102,7 +102,7 @@ namespace Lampac.Engine.Middlewares
             };
 
             #region Weblog Request
-            if (!IsLocalRequest && (soks.weblog_clients.Count > 0 || nws.weblog_clients.Count > 0))
+            if (!IsLocalRequest && nws.weblog_clients.Count > 0)
             {
                 var logBuilder = new System.Text.StringBuilder();
                 logBuilder.AppendLine($"{DateTime.Now}");
@@ -113,7 +113,6 @@ namespace Lampac.Engine.Middlewares
                     logBuilder.AppendLine($"{header.Key}: {header.Value}");
 
                 //Console.WriteLine(logBuilder.ToString());
-                soks.SendLog(logBuilder.ToString(), "request");
                 nws.SendLog(logBuilder.ToString(), "request");
             }
             #endregion

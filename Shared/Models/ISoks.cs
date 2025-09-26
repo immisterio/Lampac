@@ -9,8 +9,6 @@ namespace Shared.Models
 
         ConcurrentDictionary<string, HubCallerContext> Connections { get; }
 
-        void WebLog(string message, string plugin);
-
         Task EventsAsync(string connectionId, string uid, string name, string data);
     }
 }

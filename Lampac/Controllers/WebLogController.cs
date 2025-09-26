@@ -48,11 +48,8 @@ namespace Lampac.Controllers
         <input type='text' id='patternInput' placeholder='rezka.ag' value='{pattern ?? ""}' style='margin-right: 20px;' />
     </div>
     <div id='log'></div>
-    <!--<script src='/signalr-6.0.25_es5.js'></script>-->
     <script src='/js/nws-client-es5.js'></script>
     <script>
-        <!--const hubConnection = new signalR.HubConnectionBuilder().withUrl('/ws').build();-->
-
         let pattern = document.getElementById('patternInput').value.trim();
         let receive = document.getElementById('receiveSelect').value;
 
@@ -139,54 +136,6 @@ namespace Lampac.Controllers
         }});
 
         client.connect();
-
-
-        /* let reconnectAttempts = 0;
-        const maxReconnectAttempts = 150; // 5 minutes
-        const reconnectDelay = 2000;      // 2 seconds
-
-        function startConnection() {{
-            hubConnection.start()
-                .then(function () {{
-                    if (reconnectAttempts != 0)
-                        send('WebSocket connected');
-                    reconnectAttempts = 0; // Reset counter on successful connection
-                    hubConnection.invoke('RegistryWebLog', '{token}');
-                }})
-                .catch(function (err) {{
-                    console.log(`${{err.toString()}}\n\nAttempting to reconnect (${{reconnectAttempts}}/${{maxReconnectAttempts}})...`);
-                    attemptReconnect();
-                }});
-        }}
-
-        function attemptReconnect() {{
-            if (reconnectAttempts < maxReconnectAttempts) {{
-                reconnectAttempts++;
-                setTimeout(function() {{
-                    startConnection();
-                }}, reconnectDelay);
-            }} else {{
-                send('Max reconnection attempts reached. Please refresh the page.');
-            }}
-        }}
-
-        hubConnection.on('Receive', function(message, e) {{
-            if(receive === e) send(message);
-        }});
-
-        hubConnection.onclose(function(err) {{
-            if (err) {{
-                send('Connection closed due to error: ' + err.toString());
-            }} else {{
-                send('Connection closed');
-            }}
-            attemptReconnect();
-        }});
-
-        // Start initial connection
-        startConnection();
-*/
-
     </script>
 </body>
 </html>";
