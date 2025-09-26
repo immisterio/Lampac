@@ -289,9 +289,10 @@ namespace Lampac.Engine
                 return;
             }
 
-            await connection.SendLock.WaitAsync().ConfigureAwait(false);
             try
             {
+                await connection.SendLock.WaitAsync().ConfigureAwait(false);
+
                 if (connection.Socket.State == WebSocketState.Open)
                     await connection.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None).ConfigureAwait(false);
             }
