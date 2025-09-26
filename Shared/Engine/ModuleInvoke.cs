@@ -7,13 +7,13 @@ namespace Shared.Engine
     /// </summary>
     public static class ModuleInvoke
     {
-        public static T Conf<T>(string filed, T val)
+        public static T Init<T>(string filed, T val)
         {
             if (val == null)
                 return val;
 
             // Use existing ConfObject logic to get merged JObject/token
-            var confObj = ConfObject(filed, val);
+            var confObj = Conf(filed, val);
             if (confObj == null)
                 return val;
 
@@ -46,7 +46,7 @@ namespace Shared.Engine
             }
         }
 
-        public static JObject ConfObject(string filed, object val)
+        public static JObject Conf(string filed, object val)
         {
             if (val == null)
                 return null;
