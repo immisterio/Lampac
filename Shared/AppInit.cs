@@ -14,6 +14,7 @@ using Shared.Models.SISI.Base;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
+using YamlDotNet.Serialization;
 
 namespace Shared
 {
@@ -33,6 +34,10 @@ namespace Shared
             updateConf();
             if (File.Exists("init.conf"))
                 lastUpdateConf = File.GetLastWriteTime("init.conf");
+
+            updateYamlConf();
+            if (File.Exists("init.yaml") && File.GetLastWriteTime("init.yaml") > lastUpdateConf)
+                lastUpdateConf = File.GetLastWriteTime("init.yaml");
 
             LoadModules();
 
@@ -55,6 +60,7 @@ namespace Shared
                     {
                         await Task.Delay(200);
                         updateConf();
+                        updateYamlConf();
                     }
                     catch { }
                     finally
@@ -75,16 +81,27 @@ namespace Shared
                         {
                             if (File.Exists("init.conf"))
                             {
-                                var lwt = File.GetLastWriteTime("init.conf");
-                                if (lwt != lastUpdateConf)
+                                var lwtConf = File.GetLastWriteTime("init.conf");
+                                var lwtYaml = File.GetLastWriteTime("init.yaml");
+
+                                if (lwtConf > lastUpdateConf || lwtYaml > lastUpdateConf)
                                 {
                                     updateConf();
-                                    lastUpdateConf = lwt;
+                                    updateYamlConf();
+
+                                    lastUpdateConf = lwtConf > lwtYaml ? lwtConf : lwtYaml;
 
                                     try
                                     {
+
+                                        string init = JsonConvert.SerializeObject(conf, Formatting.Indented, new JsonSerializerSettings()
+                                        {
+                                            NullValueHandling = NullValueHandling.Ignore,
+                                            DefaultValueHandling = DefaultValueHandling.Ignore
+                                        });
+
                                         Directory.CreateDirectory("database/backup/init");
-                                        File.WriteAllText($"database/backup/init/{DateTime.Now.ToString("dd-MM-yyyy.HH")}.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
+                                        File.WriteAllText($"database/backup/init/{DateTime.Now.ToString("dd-MM-yyyy.HH")}.conf", init);
                                     }
                                     catch { }
                                 }
@@ -207,6 +224,47 @@ namespace Shared
                 File.WriteAllText("current.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
             }
             catch { }
+        }
+
+        static void updateYamlConf()
+        {
+            if (conf == null)
+                return;
+
+            try
+            {
+                if (File.Exists("init.yaml"))
+                {
+                    string yaml = File.ReadAllText("init.yaml");
+                    if (!string.IsNullOrWhiteSpace(yaml))
+                    {
+                        var deserializer = new DeserializerBuilder().IgnoreUnmatchedProperties().Build();
+                        var yamlObject = deserializer.Deserialize(new StringReader(yaml));
+                        if (yamlObject != null)
+                        {
+                            string json = JsonConvert.SerializeObject(yamlObject);
+                            JsonConvert.PopulateObject(json, conf, new JsonSerializerSettings
+                            {
+                                Error = (se, ev) =>
+                                {
+                                    ev.ErrorContext.Handled = true;
+                                    Console.WriteLine($"DeserializeObject Exception init.yaml:\n{ev.ErrorContext.Error}\n\n");
+                                }
+                            });
+
+                            try
+                            {
+                                File.WriteAllText("current.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"DeserializeObject Exception init.yaml:\n{ex}\n\n");
+            }
         }
         #endregion
 
