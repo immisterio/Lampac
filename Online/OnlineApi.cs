@@ -149,7 +149,7 @@ namespace Online.Controllers
             {
                 try
                 {
-                    if (externalids_nextCheck > DateTime.Now)
+                    if (externalids_nextCheck > DateTime.Now || externalids_nextCheck == default)
                     {
                         externalids_nextCheck = DateTime.Now.AddMinutes(5);
                         var lastWriteTime = IO.File.GetLastWriteTime("data/externalids.json");
@@ -221,8 +221,11 @@ namespace Online.Controllers
                         return res.ToString();
                 }
 
+                if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token) || string.IsNullOrEmpty(AppInit.conf.VideoCDN.iframehost))
+                    return null;
+
                 var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
-                string json = await Http.Get($"{AppInit.conf.VideoCDN.corsHost()}/api/short?api_token={AppInit.conf.VideoCDN.iframehost}&imdb_id={imdb}", timeoutSeconds: 5, proxy: proxyManager.Get());
+                string json = await Http.Get($"{AppInit.conf.VideoCDN.iframehost}/api/short?api_token={AppInit.conf.VideoCDN.token}&imdb_id={imdb}", timeoutSeconds: 5, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
 
