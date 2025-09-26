@@ -106,346 +106,373 @@ namespace Lampac.Engine.Middlewares
         #region API
         async public Task API(HttpContext httpContex, HybridCache hybridCache, RequestModel requestInfo)
         {
-            httpContex.Response.ContentType = "application/json; charset=utf-8";
-
-            var init = AppInit.conf.tmdb;
-            if (!init.enable && !requestInfo.IsLocalRequest)
+            using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContex.RequestAborted))
             {
-                httpContex.Response.StatusCode = 401;
-                await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "disable" }, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
-            }
-
-            string path = httpContex.Request.Path.Value.Replace("/tmdb/api", "");
-            path = Regex.Replace(path, "^/https?://api.themoviedb.org", "");
-            path = Regex.Replace(path, "/$", "");
-
-            string query = Regex.Replace(httpContex.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
-            string uri = "https://api.themoviedb.org" + path + query;
-
-            string mkey = $"tmdb/api:{path}:{query}";
-
-            if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
-            {
-                httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                httpContex.Response.StatusCode = cache.statusCode;
+                ctsHttp.CancelAfter(TimeSpan.FromSeconds(90));
                 httpContex.Response.ContentType = "application/json; charset=utf-8";
-                await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
-            }
 
-            httpContex.Response.Headers["X-Cache-Status"] = "MISS";
-
-            string tmdb_ip = init.API_IP;
-
-            #region DNS QueryType.A
-            if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.API_Minor) && !string.IsNullOrEmpty(init.DNS))
-            {
-                string dnskey = $"tmdb/api:dns:{init.DNS}";
-
-                var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
-
-                try
+                var init = AppInit.conf.tmdb;
+                if (!init.enable && !requestInfo.IsLocalRequest)
                 {
-                    await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
+                    httpContex.Response.StatusCode = 401;
+                    await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "disable" }, ctsHttp.Token);
+                    return;
+                }
 
-                    if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
+                string path = httpContex.Request.Path.Value.Replace("/tmdb/api", "");
+                path = Regex.Replace(path, "^/https?://api.themoviedb.org", "");
+                path = Regex.Replace(path, "/$", "");
+
+                string query = Regex.Replace(httpContex.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
+                string uri = "https://api.themoviedb.org" + path + query;
+
+                string mkey = $"tmdb/api:{path}:{query}";
+
+                if (hybridCache.TryGetValue(mkey, out (string json, int statusCode) cache, inmemory: false))
+                {
+                    httpContex.Response.Headers["X-Cache-Status"] = "HIT";
+                    httpContex.Response.StatusCode = cache.statusCode;
+                    httpContex.Response.ContentType = "application/json; charset=utf-8";
+                    await httpContex.Response.WriteAsync(cache.json, ctsHttp.Token);
+                    return;
+                }
+
+                httpContex.Response.Headers["X-Cache-Status"] = "MISS";
+
+                string tmdb_ip = init.API_IP;
+
+                #region DNS QueryType.A
+                if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.API_Minor) && !string.IsNullOrEmpty(init.DNS))
+                {
+                    string dnskey = $"tmdb/api:dns:{init.DNS}";
+
+                    var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
+
+                    try
                     {
-                        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
-                        {
-                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                            var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A, cancellationToken: cts.Token);
-                            dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+                        await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
 
-                            if (!string.IsNullOrEmpty(dns_ip))
-                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                            else
-                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                        if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
+                        {
+                            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
+                            {
+                                var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                                var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A, cancellationToken: cts.Token);
+                                dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+
+                                if (!string.IsNullOrEmpty(dns_ip))
+                                    Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                                else
+                                    Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(dns_ip))
+                            tmdb_ip = dns_ip;
+                    }
+                    catch { }
+                    finally
+                    {
+                        try
+                        {
+                            _spredns.Release();
+                        }
+                        finally
+                        {
+                            if (_spredns.CurrentCount == 1)
+                                _semaphoreLocks.TryRemove(dnskey, out _);
                         }
                     }
-
-                    if (!string.IsNullOrEmpty(dns_ip))
-                        tmdb_ip = dns_ip;
                 }
-                catch { }
-                finally
+                #endregion
+
+                var headers = new List<HeadersModel>();
+                var proxyManager = new ProxyManager("tmdb_api", init);
+
+                if (!string.IsNullOrEmpty(init.API_Minor))
                 {
-                    _spredns.Release();
-                    if (_spredns.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(dnskey, out _);
+                    uri = uri.Replace("api.themoviedb.org", init.API_Minor);
                 }
-            }
-            #endregion
+                else if (!string.IsNullOrEmpty(tmdb_ip))
+                {
+                    headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
+                    uri = uri.Replace("api.themoviedb.org", tmdb_ip);
+                }
 
-            var headers = new List<HeadersModel>();
-            var proxyManager = new ProxyManager("tmdb_api", init);
+                var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 20, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false);
+                if (result.content == null)
+                {
+                    proxyManager.Refresh();
+                    httpContex.Response.StatusCode = 401;
+                    await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "json null" }, ctsHttp.Token);
+                    return;
+                }
 
-            if (!string.IsNullOrEmpty(init.API_Minor))
-            {
-                uri = uri.Replace("api.themoviedb.org", init.API_Minor);
-            }
-            else if (!string.IsNullOrEmpty(tmdb_ip))
-            {
-                headers.Add(new HeadersModel("Host", "api.themoviedb.org"));
-                uri = uri.Replace("api.themoviedb.org", tmdb_ip);
-            }
+                cache.statusCode = (int)result.response.StatusCode;
+                httpContex.Response.StatusCode = cache.statusCode;
 
-            var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 20, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false).ConfigureAwait(false);
-            if (result.content == null)
-            {
-                proxyManager.Refresh();
-                httpContex.Response.StatusCode = 401;
-                await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "json null" }, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
-            }
+                if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
+                {
+                    proxyManager.Refresh();
+                    cache.json = JsonConvert.SerializeObject(result.content);
 
-            cache.statusCode = (int)result.response.StatusCode;
-            httpContex.Response.StatusCode = cache.statusCode;
+                    if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
+                        hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: true);
 
-            if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
-            {
-                proxyManager.Refresh();
+                    await httpContex.Response.WriteAsync(cache.json, ctsHttp.Token);
+                    return;
+                }
+
                 cache.json = JsonConvert.SerializeObject(result.content);
 
                 if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
-                    hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: true);
+                    hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
 
-                await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
+                proxyManager.Success();
+                httpContex.Response.ContentType = "application/json; charset=utf-8";
+                await httpContex.Response.WriteAsync(cache.json, ctsHttp.Token);
             }
-
-            cache.json = JsonConvert.SerializeObject(result.content);
-
-            if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
-                hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
-
-            proxyManager.Success();
-            httpContex.Response.ContentType = "application/json; charset=utf-8";
-            await httpContex.Response.WriteAsync(cache.json, httpContex.RequestAborted).ConfigureAwait(false);
         }
         #endregion
 
         #region IMG
         async public Task IMG(HttpContext httpContex, RequestModel requestInfo)
         {
-            var init = AppInit.conf.tmdb;
-            if (!init.enable)
+            using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContex.RequestAborted))
             {
-                httpContex.Response.StatusCode = 401;
-                await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "disable" }, httpContex.RequestAborted).ConfigureAwait(false);
-                return;
-            }
+                ctsHttp.CancelAfter(TimeSpan.FromSeconds(90));
 
-            string path = httpContex.Request.Path.Value.Replace("/tmdb/img", "");
-            path = Regex.Replace(path, "^/https?://image.tmdb.org", "");
-
-            string query = Regex.Replace(httpContex.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
-            string uri = "https://image.tmdb.org" + path + query;
-
-            string md5key = CrypTo.md5($"{path}:{query}");
-            string outFile = Path.Combine("cache", "tmdb", md5key);
-
-            httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
-
-            if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
-            {
-                httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
-                return;
-            }
-
-            string tmdb_ip = init.IMG_IP;
-
-            #region DNS QueryType.A
-            if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.IMG_Minor) && !string.IsNullOrEmpty(init.DNS))
-            {
-                string dnskey = $"tmdb/img:dns:{init.DNS}";
-
-                var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
-
-                try
+                var init = AppInit.conf.tmdb;
+                if (!init.enable)
                 {
-                    await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
-
-                    if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
-                    {
-                        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
-                        {
-                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                            var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
-                            dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
-
-                            if (!string.IsNullOrEmpty(dns_ip))
-                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                            else
-                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(dns_ip))
-                        tmdb_ip = dns_ip;
+                    httpContex.Response.StatusCode = 401;
+                    await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "disable" }, ctsHttp.Token);
+                    return;
                 }
-                catch { }
-                finally
-                {
-                    _spredns.Release();
-                    if (_spredns.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(dnskey, out _);
-                }
-            }
-            #endregion
 
-            var headers = new List<HeadersModel>();
-            var proxyManager = new ProxyManager("tmdb_img", init);
+                string path = httpContex.Request.Path.Value.Replace("/tmdb/img", "");
+                path = Regex.Replace(path, "^/https?://image.tmdb.org", "");
 
-            if (!string.IsNullOrEmpty(init.IMG_Minor))
-            {
-                uri = uri.Replace("image.tmdb.org", init.IMG_Minor);
-            }
-            else if (!string.IsNullOrEmpty(tmdb_ip))
-            {
-                headers.Add(new HeadersModel("Host", "image.tmdb.org"));
-                uri = uri.Replace("image.tmdb.org", tmdb_ip);
-            }
+                string query = Regex.Replace(httpContex.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token)=[^&]+", "");
+                string uri = "https://image.tmdb.org" + path + query;
 
-            bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
-            var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(uri, _ => new SemaphoreSlim(1, 1)) : null;
+                string md5key = CrypTo.md5($"{path}:{query}");
+                string outFile = Path.Combine("cache", "tmdb", md5key);
 
-            try
-            {
-                if (semaphore != null)
-                    await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
+                httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
                 if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                 {
                     httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                    await httpContex.Response.SendFileAsync(outFile).ConfigureAwait(false);
+                    await httpContex.Response.SendFileAsync(outFile);
                     return;
                 }
 
-                var handler = Http.Handler(uri, proxyManager.Get());
+                string tmdb_ip = init.IMG_IP;
 
-                var client = FrendlyHttp.HttpMessageClient(init.httpversion == 2 ? "http2" : "base", handler);
-
-                var req = new HttpRequestMessage(HttpMethod.Get, uri)
+                #region DNS QueryType.A
+                if (string.IsNullOrEmpty(tmdb_ip) && string.IsNullOrEmpty(init.IMG_Minor) && !string.IsNullOrEmpty(init.DNS))
                 {
-                    Version = init.httpversion == 1 ? HttpVersion.Version11 : new Version(init.httpversion, 0)
-                };
+                    string dnskey = $"tmdb/img:dns:{init.DNS}";
 
-                Http.DefaultRequestHeaders(uri, req, null, null, headers);
+                    var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
-                {
-                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
+                    try
                     {
-                        if (response.StatusCode == HttpStatusCode.OK)
-                            proxyManager.Success();
-                        else
-                            proxyManager.Refresh();
+                        await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
 
-                        if (response.StatusCode == HttpStatusCode.OK && cacheimg)
+                        if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
-                            #region cache
-                            httpContex.Response.Headers["X-Cache-Status"] = "MISS";
-
-                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                (int)response.Content.Headers.ContentLength.Value :
-                                50_000; // 50kB
-
-                            using (var memoryStream = new MemoryStream(initialCapacity))
+                            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
                             {
-                                try
-                                {
-                                    bool saveCache = true;
+                                var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                                var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
+                                dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-                                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                                    {
-                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
-
-                                        try
-                                        {
-                                            int bytesRead;
-
-                                            while ((bytesRead = await responseStream.ReadAsync(buffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
-                                            {
-                                                memoryStream.Write(buffer, 0, bytesRead);
-                                                await httpContex.Response.Body.WriteAsync(buffer, 0, bytesRead, httpContex.RequestAborted).ConfigureAwait(false);
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            saveCache = false;
-                                        }
-                                        finally
-                                        {
-                                            ArrayPool<byte>.Shared.Return(buffer);
-                                        }
-                                    }
-
-                                    if (saveCache && memoryStream.Length > 1000)
-                                    {
-                                        try
-                                        {
-                                            if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
-                                            {
-                                                #region check_img
-                                                if (init.check_img && !path.Contains(".svg"))
-                                                {
-                                                    using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
-                                                    {
-                                                        try
-                                                        {
-                                                            // тестируем jpg/png на целостность
-                                                            byte[] temp = image.JpegsaveBuffer();
-                                                            if (temp == null || temp.Length == 0)
-                                                                return;
-                                                        }
-                                                        catch
-                                                        {
-                                                            return;
-                                                        }
-                                                    }
-                                                }
-                                                #endregion
-
-                                                File.WriteAllBytes(outFile, memoryStream.ToArray());
-
-                                                if (AppInit.conf.multiaccess)
-                                                    cacheFiles.TryAdd(md5key, 0);
-                                            }
-                                        }
-                                        catch { File.Delete(outFile); }
-                                    }
-                                }
-                                catch { }
+                                if (!string.IsNullOrEmpty(dns_ip))
+                                    Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                                else
+                                    Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                             }
-                            #endregion
                         }
-                        else
+
+                        if (!string.IsNullOrEmpty(dns_ip))
+                            tmdb_ip = dns_ip;
+                    }
+                    catch { }
+                    finally
+                    {
+                        try
                         {
-                            httpContex.Response.StatusCode = (int)response.StatusCode;
-                            httpContex.Response.Headers["X-Cache-Status"] = "bypass";
-                            await response.Content.CopyToAsync(httpContex.Response.Body, httpContex.RequestAborted).ConfigureAwait(false);
+                            _spredns.Release();
+                        }
+                        finally
+                        {
+                            if (_spredns.CurrentCount == 1)
+                                _semaphoreLocks.TryRemove(dnskey, out _);
                         }
                     }
                 }
-            }
-            catch
-            {
-                proxyManager.Refresh();
+                #endregion
 
-                if (!string.IsNullOrEmpty(tmdb_ip))
-                    httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
-                else
-                    httpContex.Response.Redirect(uri);
-            }
-            finally
-            {
-                if (semaphore != null)
+                var headers = new List<HeadersModel>();
+                var proxyManager = new ProxyManager("tmdb_img", init);
+
+                if (!string.IsNullOrEmpty(init.IMG_Minor))
                 {
-                    semaphore.Release();
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(uri, out _);
+                    uri = uri.Replace("image.tmdb.org", init.IMG_Minor);
+                }
+                else if (!string.IsNullOrEmpty(tmdb_ip))
+                {
+                    headers.Add(new HeadersModel("Host", "image.tmdb.org"));
+                    uri = uri.Replace("image.tmdb.org", tmdb_ip);
+                }
+
+                bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
+                var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(uri, _ => new SemaphoreSlim(1, 1)) : null;
+
+                try
+                {
+                    if (semaphore != null)
+                        await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
+
+                    if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
+                    {
+                        httpContex.Response.Headers["X-Cache-Status"] = "HIT";
+                        await httpContex.Response.SendFileAsync(outFile);
+                        return;
+                    }
+
+                    var handler = Http.Handler(uri, proxyManager.Get());
+
+                    var client = FrendlyHttp.HttpMessageClient(init.httpversion == 2 ? "http2" : "base", handler);
+
+                    var req = new HttpRequestMessage(HttpMethod.Get, uri)
+                    {
+                        Version = init.httpversion == 1 ? HttpVersion.Version11 : new Version(init.httpversion, 0)
+                    };
+
+                    Http.DefaultRequestHeaders(uri, req, null, null, headers);
+
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                    {
+                        using (HttpResponseMessage response = await client.SendAsync(req, cts.Token))
+                        {
+                            if (response.StatusCode == HttpStatusCode.OK)
+                                proxyManager.Success();
+                            else
+                                proxyManager.Refresh();
+
+                            if (response.StatusCode == HttpStatusCode.OK && cacheimg)
+                            {
+                                #region cache
+                                httpContex.Response.Headers["X-Cache-Status"] = "MISS";
+
+                                int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                    (int)response.Content.Headers.ContentLength.Value :
+                                    50_000; // 50kB
+
+                                using (var memoryStream = new MemoryStream(initialCapacity))
+                                {
+                                    try
+                                    {
+                                        bool saveCache = true;
+
+                                        using (var responseStream = await response.Content.ReadAsStreamAsync())
+                                        {
+                                            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                                            try
+                                            {
+                                                int bytesRead;
+
+                                                while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
+                                                {
+                                                    memoryStream.Write(buffer, 0, bytesRead);
+                                                    await httpContex.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
+                                                }
+                                            }
+                                            catch
+                                            {
+                                                saveCache = false;
+                                            }
+                                            finally
+                                            {
+                                                ArrayPool<byte>.Shared.Return(buffer);
+                                            }
+                                        }
+
+                                        if (saveCache && memoryStream.Length > 1000)
+                                        {
+                                            try
+                                            {
+                                                if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
+                                                {
+                                                    #region check_img
+                                                    if (init.check_img && !path.Contains(".svg"))
+                                                    {
+                                                        using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
+                                                        {
+                                                            try
+                                                            {
+                                                                // тестируем jpg/png на целостность
+                                                                byte[] temp = image.JpegsaveBuffer();
+                                                                if (temp == null || temp.Length == 0)
+                                                                    return;
+                                                            }
+                                                            catch
+                                                            {
+                                                                return;
+                                                            }
+                                                        }
+                                                    }
+                                                    #endregion
+
+                                                    File.WriteAllBytes(outFile, memoryStream.ToArray());
+
+                                                    if (AppInit.conf.multiaccess)
+                                                        cacheFiles.TryAdd(md5key, 0);
+                                                }
+                                            }
+                                            catch { File.Delete(outFile); }
+                                        }
+                                    }
+                                    catch { }
+                                }
+                                #endregion
+                            }
+                            else
+                            {
+                                httpContex.Response.StatusCode = (int)response.StatusCode;
+                                httpContex.Response.Headers["X-Cache-Status"] = "bypass";
+                                await response.Content.CopyToAsync(httpContex.Response.Body, ctsHttp.Token);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    proxyManager.Refresh();
+
+                    if (!string.IsNullOrEmpty(tmdb_ip))
+                        httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));
+                    else
+                        httpContex.Response.Redirect(uri);
+                }
+                finally
+                {
+                    if (semaphore != null)
+                    {
+                        try
+                        {
+                            semaphore.Release();
+                        }
+                        finally
+                        {
+                            if (semaphore.CurrentCount == 1)
+                                _semaphoreLocks.TryRemove(uri, out _);
+                        }
+                    }
                 }
             }
         }

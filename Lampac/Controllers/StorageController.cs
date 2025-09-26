@@ -98,10 +98,15 @@ namespace Lampac.Controllers
             }
             finally
             {
-                fileLock.Release();
-
-                if (fileLock.CurrentCount == 1)
-                    _fileLocks.TryRemove(outFile, out _);
+                try
+                {
+                    fileLock.Release();
+                }
+                finally
+                {
+                    if (fileLock.CurrentCount == 1)
+                        _fileLocks.TryRemove(outFile, out _);
+                }
             }
 
             var inf = new FileInfo(outFile);

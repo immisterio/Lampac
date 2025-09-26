@@ -357,10 +357,15 @@ namespace Shared
             }
             finally
             {
-                semaphore.Release();
-
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(key, out _);
+                try
+                {
+                    semaphore.Release();
+                }
+                finally
+                {
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(key, out _);
+                }
             }
         }
 
@@ -385,10 +390,15 @@ namespace Shared
             }
             finally
             {
-                semaphore.Release();
-
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(key, out _);
+                try
+                {
+                    semaphore.Release();
+                }
+                finally
+                {
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(key, out _);
+                }
             }
         }
         #endregion
@@ -411,10 +421,15 @@ namespace Shared
             }
             finally
             {
-                semaphore.Release();
-
-                if (semaphore.CurrentCount == 1)
-                    _semaphoreLocks.TryRemove(key, out _);
+                try
+                {
+                    semaphore.Release();
+                }
+                finally
+                {
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(key, out _);
+                }
             }
         }
         #endregion

@@ -346,7 +346,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region validArgs
-        static string validArgs(in string uri, HttpContext httpContext)
+        static string validArgs(string uri, HttpContext httpContext)
         {
             if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
                 return AccsDbInvk.Args(uri, httpContext);
@@ -356,7 +356,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region editm3u
-        static string editm3u(in string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
+        static string editm3u(string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
         {
             string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
             string m3u8 = Regex.Replace(_m3u8, "(https?://[^\n\r\"\\# ]+)", m =>

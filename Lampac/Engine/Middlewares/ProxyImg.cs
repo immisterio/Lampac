@@ -199,7 +199,7 @@ namespace Lampac.Engine.Middlewares
 
                         using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                         {
-                            using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
+                            using (HttpResponseMessage response = await client.SendAsync(req, cts.Token))
                             {
                                 if (response.StatusCode != HttpStatusCode.OK)
                                 {
@@ -235,7 +235,7 @@ namespace Lampac.Engine.Middlewares
                                         {
                                             bool saveCache = true;
 
-                                            using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                                            using (var responseStream = await response.Content.ReadAsStreamAsync())
                                             {
                                                 byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
@@ -243,7 +243,7 @@ namespace Lampac.Engine.Middlewares
                                                 {
                                                     int bytesRead;
 
-                                                    while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token).ConfigureAwait(false)) > 0)
+                                                    while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
                                                     {
                                                         memoryStream.Write(buffer, 0, bytesRead);
                                                         await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
@@ -289,7 +289,7 @@ namespace Lampac.Engine.Middlewares
                     {
                     #region rsize
                         rsize_reset:
-                        var array = await Download(href, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
+                        var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
                         if (array == null)
                         {
                             if (url_reserve != null)
@@ -381,14 +381,14 @@ namespace Lampac.Engine.Middlewares
 
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 {
-                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
+                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token))
                     {
                         if (response.StatusCode != HttpStatusCode.OK)
                             return null;
 
                         using (HttpContent content = response.Content)
                         {
-                            byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                            byte[] res = await content.ReadAsByteArrayAsync();
                             if (res == null || res.Length == 0)
                                 return null;
 
