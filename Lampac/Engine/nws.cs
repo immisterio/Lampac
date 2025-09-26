@@ -187,9 +187,8 @@ namespace Lampac.Engine
             if (string.IsNullOrEmpty(method))
                 return;
 
-            switch (method)
+            switch (method.ToLower())
             {
-                case "RchRegistry":
                 case "rchregistry":
                     if (AppInit.conf.rch.enable)
                     {
@@ -198,7 +197,6 @@ namespace Lampac.Engine
                     }
                     break;
 
-                case "RchResult":
                 case "rchresult":
                     if (AppInit.conf.rch.enable)
                     {
@@ -210,7 +208,6 @@ namespace Lampac.Engine
                     }
                     break;
 
-                case "RegistryWebLog":
                 case "registryweblog":
                     if (AppInit.conf.weblog.enable)
                     {
@@ -220,12 +217,10 @@ namespace Lampac.Engine
                     }
                     break;
 
-                case "WebLog":
                 case "weblog":
                     SendLog(GetStringArg(args, 0), GetStringArg(args, 1));
                     break;
 
-                case "RegistryEvent":
                 case "registryevent":
                 {
                     string uid = GetStringArg(args, 0);
@@ -235,7 +230,6 @@ namespace Lampac.Engine
                 }
 
                 case "events":
-                case "Events":
                 {
                     string uid = GetStringArg(args, 0);
                     string name = GetStringArg(args, 1);
@@ -244,7 +238,6 @@ namespace Lampac.Engine
                     break;
                 }
 
-                case "eventsId":
                 case "eventsid":
                 {
                     string targetConnection = GetStringArg(args, 0);
@@ -256,7 +249,6 @@ namespace Lampac.Engine
                 }
 
                 case "ping":
-                case "Ping":
                     await SendAsync(connection, "pong").ConfigureAwait(false);
                     break;
             }
