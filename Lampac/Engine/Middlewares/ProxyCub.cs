@@ -202,12 +202,11 @@ namespace Lampac.Engine.Middlewares
                                         try
                                         {
                                             int bytesRead;
-                                            Memory<byte> memoryBuffer = buffer.AsMemory();
 
-                                            while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
+                                            while ((bytesRead = await responseStream.ReadAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false)) > 0)
                                             {
-                                                memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                                await httpContext.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContext.RequestAborted).ConfigureAwait(false);
+                                                memoryStream.Write(buffer, 0, bytesRead);
+                                                await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, httpContext.RequestAborted).ConfigureAwait(false);
                                             }
                                         }
                                         catch
@@ -456,10 +455,9 @@ namespace Lampac.Engine.Middlewares
                 try
                 {
                     int bytesRead;
-                    Memory<byte> memoryBuffer = buffer.AsMemory();
 
-                    while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, context.RequestAborted).ConfigureAwait(false)) != 0)
-                        await response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                    while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(buffer, 0, bytesRead, context.RequestAborted);
                 }
                 finally
                 {

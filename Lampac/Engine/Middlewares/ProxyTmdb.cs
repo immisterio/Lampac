@@ -365,12 +365,11 @@ namespace Lampac.Engine.Middlewares
                                         try
                                         {
                                             int bytesRead;
-                                            Memory<byte> memoryBuffer = buffer.AsMemory();
 
-                                            while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
+                                            while ((bytesRead = await responseStream.ReadAsync(buffer, httpContex.RequestAborted).ConfigureAwait(false)) > 0)
                                             {
-                                                memoryStream.Write(memoryBuffer.Slice(0, bytesRead).Span);
-                                                await httpContex.Response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), httpContex.RequestAborted).ConfigureAwait(false);
+                                                memoryStream.Write(buffer, 0, bytesRead);
+                                                await httpContex.Response.Body.WriteAsync(buffer, 0, bytesRead, httpContex.RequestAborted).ConfigureAwait(false);
                                             }
                                         }
                                         catch

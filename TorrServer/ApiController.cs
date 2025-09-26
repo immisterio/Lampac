@@ -386,10 +386,9 @@ namespace TorrServer.Controllers
                 try
                 {
                     int bytesRead;
-                    Memory<byte> memoryBuffer = buffer.AsMemory();
 
-                    while ((bytesRead = await responseStream.ReadAsync(memoryBuffer, context.RequestAborted).ConfigureAwait(false)) != 0)
-                        await response.Body.WriteAsync(memoryBuffer.Slice(0, bytesRead), context.RequestAborted).ConfigureAwait(false);
+                    while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(buffer, 0, bytesRead, context.RequestAborted).ConfigureAwait(false);
                 }
                 finally
                 {
