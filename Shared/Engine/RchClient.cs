@@ -39,14 +39,14 @@ namespace Shared.Engine
 
             try
             {
-                await Parallel.ForEachAsync(clients.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (user, cancellationToken) =>
+                await Parallel.ForEachAsync(clients.Keys.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (connectionId, cancellationToken) =>
                 {
-                    if (clients.ContainsKey(user.Key))
+                    if (clients.ContainsKey(connectionId))
                     {
-                        var rch = new RchClient(user.Key);
+                        var rch = new RchClient(connectionId);
                         string result = await rch.SendHub("ping", useDefaultHeaders: false);
                         if (result != "pong")
-                            OnDisconnected(user.Key);
+                            OnDisconnected(connectionId);
                     }
                 });
             }
@@ -313,7 +313,7 @@ namespace Shared.Engine
             if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return true; // заглушка для checksearch
 
-            return clients.Select(i => i.Value.ip).FirstOrDefault(i => i == ip) == null;
+            return clients.Values.FirstOrDefault(i => i.ip == ip).ip == null;
         }
         #endregion
 

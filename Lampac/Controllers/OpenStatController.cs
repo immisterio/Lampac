@@ -76,8 +76,8 @@ namespace Lampac.Controllers
             { 
                 req_min, 
                 req_hour, 
-                soks_online = soks._connections?.Count,
-                nws_online = Lampac.Engine.nws.ConnectionCount,
+                soks_online = soks.connections,
+                nws_online = nws.ConnectionCount,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
             });
         }

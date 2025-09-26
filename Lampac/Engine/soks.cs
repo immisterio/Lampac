@@ -12,13 +12,11 @@ namespace Lampac.Engine
     public class soks : Hub, ISoks
     {
         #region soks
-        public static ConcurrentDictionary<string, HubCallerContext> _connections = new ConcurrentDictionary<string, HubCallerContext>();
+        public static int connections { get; private set; }
 
         public static IHubCallerClients hubClients = null;
 
         public IHubCallerClients AllClients => hubClients;
-
-        public ConcurrentDictionary<string, HubCallerContext> Connections => _connections;
         #endregion
 
         #region Rch
@@ -115,7 +113,7 @@ namespace Lampac.Engine
         public override Task OnConnectedAsync()
         {
             hubClients = Clients;
-            _connections.TryAdd(Context.ConnectionId, Context);
+            connections++;
 
             return base.OnConnectedAsync();
         }
@@ -126,7 +124,7 @@ namespace Lampac.Engine
             RchClient.OnDisconnected(Context.ConnectionId);
 
             hubClients = Clients;
-            _connections.TryRemove(Context.ConnectionId, out _);
+            connections--;
 
             return base.OnDisconnectedAsync(exception);
         }
