@@ -194,6 +194,7 @@ namespace Lampac.Engine
                     {
                         string json = GetStringArg(args, 0);
                         RchClient.Registry(connection.Ip, connection.ConnectionId, connection.Host, json);
+                        await SendAsync(connection, "RchRegistry", connection.ConnectionId).ConfigureAwait(false);
                     }
                     break;
 

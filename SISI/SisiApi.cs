@@ -72,7 +72,9 @@ namespace SISI
                                    .Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
                 }
 
-                bulder = bulder.Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", saveCache: false))
+                bulder = bulder
+                    .Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", saveCache: false))
+                    .Replace("{invc-rch_nws}", FileCache.ReadAllText("plugins/invc-rch_nws.js", saveCache: false))
                     .Replace("{push_all}", init.push_all.ToString().ToLower())
                     .Replace("{localhost}", host)
                     .Replace("{token}", HttpUtility.UrlEncode(token));

@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models;
 using Shared.Models.Base;
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Shared.Engine
@@ -138,7 +139,8 @@ namespace Shared.Engine
             connectionMsg = System.Text.Json.JsonSerializer.Serialize(new
             {
                 rch = true,
-                ws = $"{host}/ws"
+                ws = $"{host}/ws",
+                nws = $"{(host.StartsWith("https") ? "wss" : "ws")}://{Regex.Replace(host, "^https?://", "")}/nws"
             });
         }
 
