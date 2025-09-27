@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Utilities.IO;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Online.Settings;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -34,6 +32,7 @@ namespace Online.Controllers
         }
         #endregion
 
+        #region Initialization
         ValueTask<KodikSettings> Initialization()
         {
             return loadKit(AppInit.conf.Kodik, (j, i, c) =>
@@ -44,9 +43,16 @@ namespace Online.Controllers
                 if (j.ContainsKey("secret_token"))
                     i.secret_token = c.secret_token;
 
+                if (j.ContainsKey("auto_proxy"))
+                    i.auto_proxy = c.auto_proxy;
+
+                if (j.ContainsKey("cdn_is_working"))
+                    i.cdn_is_working = c.cdn_is_working;
+
                 return i;
             });
         }
+        #endregion
 
         [HttpGet]
         [Route("lite/kodik")]
