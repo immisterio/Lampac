@@ -1,10 +1,8 @@
 ﻿using HtmlAgilityPack;
 using Shared.Models;
-using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Templates;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -42,119 +40,6 @@ namespace Shared.Engine.Online
             this.usehls = hls;
             this.cdn_is_working = cdn_is_working;
             this.requesterror = requesterror;
-        }
-        #endregion
-
-        #region Fallback
-        List<Result> FallbackByIds(string imdb_id, long kinopoisk_id, int season)
-        {
-            var data = fallbackDatabase;
-            if (data == null)
-                return null;
-
-            bool requireImdb = !string.IsNullOrEmpty(imdb_id);
-            bool requireKinopoisk = kinopoisk_id > 0;
-
-            var matches = data.Where(item =>
-            {
-                bool imdbMatch = !requireImdb || string.Equals(item.imdb_id, imdb_id, StringComparison.OrdinalIgnoreCase);
-                bool kinopoiskMatch = !requireKinopoisk || item.kinopoisk_id == kinopoisk_id;
-                return imdbMatch && kinopoiskMatch;
-            }).ToList();
-
-            if (matches.Count == 0)
-                return null;
-
-            if (season > 0)
-            {
-                var filtered = new List<Result>(matches.Count);
-                foreach (var item in matches)
-                {
-                    if (TryFilterSeason(item, season, out var filteredItem))
-                        filtered.Add(filteredItem);
-                }
-
-                matches = filtered;
-            }
-
-            return matches.Count == 0 ? null : matches;
-        }
-
-        List<Result> FallbackByTitle(string title, string originalTitle)
-        {
-            var data = fallbackDatabase;
-            if (data == null)
-                return null;
-
-            bool hasTitle = !string.IsNullOrWhiteSpace(title);
-            bool hasOriginal = !string.IsNullOrWhiteSpace(originalTitle);
-
-            var strictMatches = new List<Result>();
-            List<Result> fallbackMatches = (hasTitle || hasOriginal) ? new List<Result>() : null;
-
-            foreach (var item in data)
-            {
-                bool titleMatch = !hasTitle || TitleMatches(item.title, title) || TitleMatches(item.title_orig, title);
-                bool originalMatch = !hasOriginal || TitleMatches(item.title, originalTitle) || TitleMatches(item.title_orig, originalTitle);
-
-                if (titleMatch && originalMatch)
-                {
-                    strictMatches.Add(item);
-                    continue;
-                }
-
-                if (fallbackMatches == null)
-                    continue;
-
-                if (TitleMatches(item.title, title) ||
-                    TitleMatches(item.title_orig, title) ||
-                    TitleMatches(item.title, originalTitle) ||
-                    TitleMatches(item.title_orig, originalTitle))
-                {
-                    fallbackMatches.Add(item);
-                }
-            }
-
-            var matches = strictMatches.Count > 0 ? strictMatches : fallbackMatches;
-
-            return matches == null || matches.Count == 0 ? null : matches;
-        }
-
-        static bool TryFilterSeason(Result source, int season, out Result filtered)
-        {
-            filtered = source;
-
-            if (season <= 0)
-                return true;
-
-            if (source.seasons == null)
-                return false;
-
-            string key = season.ToString();
-            if (!source.seasons.TryGetValue(key, out var seasonInfo))
-                return false;
-
-            filtered.last_season = season;
-            filtered.seasons = new Dictionary<string, Season>
-            {
-                [key] = seasonInfo
-            };
-
-            return true;
-        }
-
-        static bool TitleMatches(string source, string target)
-        {
-            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
-                return false;
-
-            string normalizedSource = StringConvert.SearchName(source);
-            string normalizedTarget = StringConvert.SearchName(target);
-
-            if (string.IsNullOrWhiteSpace(normalizedSource) || string.IsNullOrWhiteSpace(normalizedTarget))
-                return false;
-
-            return normalizedSource.Contains(normalizedTarget);
         }
         #endregion
 
@@ -363,16 +248,22 @@ namespace Shared.Engine.Online
                     foreach (var item in results)
                     {
                         string id = item.id;
-                        if (string.IsNullOrWhiteSpace(id))
+                        if (string.IsNullOrEmpty(id))
                             continue;
 
                         string name = item.translation.title ?? "оригинал";
-                        if (hash.Contains(name) || item.seasons == null || !item.seasons.ContainsKey(s.ToString()))
+                        if (hash.Contains(name))
                             continue;
+
+                        if (item.last_season != s)
+                        {
+                            if (item.seasons == null || !item.seasons.ContainsKey(s.ToString()))
+                                continue;
+                        }
 
                         hash.Add(name);
 
-                        if (string.IsNullOrWhiteSpace(kid))
+                        if (string.IsNullOrEmpty(kid))
                             kid = id;
 
                         string link = host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}";
@@ -382,7 +273,7 @@ namespace Shared.Engine.Online
                     #endregion
 
                     var selected = results.FirstOrDefault(i => i.id == kid);
-                    if (string.IsNullOrWhiteSpace(selected.id))
+                    if (string.IsNullOrEmpty(selected.id))
                         selected = results[0];
 
                     var series = await ResolveEpisodesAsync(selected, s);
@@ -419,7 +310,238 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region SeriesResolver
+
+        #region VideoParse
+        async public ValueTask<List<StreamModel>> VideoParse(string linkhost, string link)
+        {
+            string iframe = await onget($"https:{link}", null);
+            if (iframe == null)
+            {
+                requesterror?.Invoke();
+                return null;
+            }
+
+            string uri = null;
+            string player_single = Regex.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"").Groups[1].Value;
+            if (!string.IsNullOrEmpty(player_single))
+            {
+                if (!psingles.TryGetValue(player_single, out uri))
+                {
+                    string playerjs = await onget($"{linkhost}/{player_single}", null);
+
+                    if (playerjs == null)
+                    {
+                        requesterror?.Invoke();
+                        return null;
+                    }
+
+                    uri = DecodeUrlBase64(Regex.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)").Groups[1].Value);
+                    if (!string.IsNullOrEmpty(uri))
+                        psingles.TryAdd(player_single, uri);
+                }
+            }
+
+            if (string.IsNullOrEmpty(uri))
+                return null;
+
+            string _frame = Regex.Replace(iframe.Split("advertDebug")[1].Split("preview-icons")[0], "[\n\r\t ]+", "");
+            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
+            string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
+            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
+            string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
+            string ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
+            string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
+            string type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
+            string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
+            string id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
+
+            string json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&bad_user=false&cdn_is_working={cdn_is_working.ToString().ToLower()}&type={type}&hash={hash}&id={id}&info=%7B%7D");
+            if (json == null || !json.Contains("\"src\":\""))
+            {
+                requesterror?.Invoke();
+                return null;
+            }
+
+            var streams = new List<StreamModel>(4);
+
+            var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase).Match(json);
+            while (match.Success)
+            {
+                if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                {
+                    string m3u = match.Groups[2].Value;
+                    if (!m3u.Contains("manifest.m3u8"))
+                    {
+                        int zCharCode = Convert.ToInt32('Z');
+
+                        string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e =>
+                        {
+                            int eCharCode = Convert.ToInt32(e.Value[0]);
+                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 18) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
+                        });
+
+                        m3u = DecodeUrlBase64(src);
+                    }
+
+                    if (m3u.StartsWith("//"))
+                        m3u = $"https:{m3u}";
+
+                    if (!usehls && m3u.Contains(".m3u"))
+                        m3u = m3u.Replace(":hls:manifest.m3u8", "");
+
+                    streams.Add(new StreamModel() { q = $"{match.Groups[1].Value}p", url = m3u });
+                }
+
+                match = match.NextMatch();
+            }
+
+            if (streams.Count == 0)
+                return null;
+
+            streams.Reverse();
+
+            return streams;
+        }
+
+        public string VideoParse(List<StreamModel> streams, string title, string original_title, int episode, bool play, VastConf vast = null)
+        {
+            if (streams == null || streams.Count == 0)
+                return string.Empty;
+
+            if (play)
+                return onstreamfile(streams[0].url);
+
+            string name = title ?? original_title ?? "auto";
+            if (episode > 0)
+                name += $" ({episode} серия)";
+
+            var streamquality = new StreamQualityTpl();
+            foreach (var l in streams)
+                streamquality.Append(onstreamfile(l.url), l.q);
+
+            return VideoTpl.ToJson("play", onstreamfile(streams[0].url), name, streamquality: streamquality, vast: vast);
+        }
+        #endregion
+
+        #region DecodeUrlBase64
+        static string DecodeUrlBase64(string s)
+        {
+            return Encoding.UTF8.GetString(Convert.FromBase64String(s.Replace('-', '+').Replace('_', '/').PadRight(4 * ((s.Length + 3) / 4), '=')));
+        }
+        #endregion
+
+
+        #region [Codex AI]
+        List<Result> FallbackByIds(string imdb_id, long kinopoisk_id, int season)
+        {
+            var data = fallbackDatabase;
+            if (data == null)
+                return null;
+
+            bool requireImdb = !string.IsNullOrEmpty(imdb_id);
+            bool requireKinopoisk = kinopoisk_id > 0;
+
+            var matches = data.Where(item =>
+            {
+                bool imdbMatch = !requireImdb || string.Equals(item.imdb_id, imdb_id, StringComparison.OrdinalIgnoreCase);
+                bool kinopoiskMatch = !requireKinopoisk || item.kinopoisk_id == kinopoisk_id.ToString();
+                return imdbMatch && kinopoiskMatch;
+            }).ToList();
+
+            if (matches.Count == 0)
+                return null;
+
+            if (season > 0)
+            {
+                var filtered = new List<Result>(matches.Count);
+                foreach (var item in matches)
+                {
+                    if (TryFilterSeason(item, season, out var filteredItem))
+                        filtered.Add(filteredItem);
+                }
+
+                matches = filtered;
+            }
+
+            return matches.Count == 0 ? null : matches;
+        }
+
+        List<Result> FallbackByTitle(string title, string originalTitle)
+        {
+            var data = fallbackDatabase;
+            if (data == null)
+                return null;
+
+            bool hasTitle = !string.IsNullOrWhiteSpace(title);
+            bool hasOriginal = !string.IsNullOrWhiteSpace(originalTitle);
+
+            var strictMatches = new List<Result>();
+            List<Result> fallbackMatches = (hasTitle || hasOriginal) ? new List<Result>() : null;
+
+            foreach (var item in data)
+            {
+                bool titleMatch = !hasTitle || TitleMatches(item.title, title) || TitleMatches(item.title_orig, title);
+                bool originalMatch = !hasOriginal || TitleMatches(item.title, originalTitle) || TitleMatches(item.title_orig, originalTitle);
+
+                if (titleMatch && originalMatch)
+                {
+                    strictMatches.Add(item);
+                    continue;
+                }
+
+                if (fallbackMatches == null)
+                    continue;
+
+                if (TitleMatches(item.title, title) ||
+                    TitleMatches(item.title_orig, title) ||
+                    TitleMatches(item.title, originalTitle) ||
+                    TitleMatches(item.title_orig, originalTitle))
+                {
+                    fallbackMatches.Add(item);
+                }
+            }
+
+            var matches = strictMatches.Count > 0 ? strictMatches : fallbackMatches;
+
+            return matches == null || matches.Count == 0 ? null : matches;
+        }
+
+        static bool TryFilterSeason(Result source, int season, out Result filtered)
+        {
+            filtered = source;
+
+            if (season <= 0)
+                return true;
+
+            if (source.seasons == null)
+                return false;
+
+            string key = season.ToString();
+            if (!source.seasons.TryGetValue(key, out var seasonInfo))
+                return false;
+
+            filtered.last_season = season;
+            filtered.seasons = new Dictionary<string, Season>
+            {
+                [key] = seasonInfo
+            };
+
+            return true;
+        }
+
+        static bool TitleMatches(string source, string target)
+        {
+            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
+                return false;
+
+            string normalizedSource = StringConvert.SearchName(source);
+            string normalizedTarget = StringConvert.SearchName(target);
+
+            if (string.IsNullOrWhiteSpace(normalizedSource) || string.IsNullOrWhiteSpace(normalizedTarget))
+                return false;
+
+            return normalizedSource.Contains(normalizedTarget);
+        }
 
         async ValueTask<Dictionary<string, string>> ResolveEpisodesAsync(Result selected, int season)
         {
@@ -590,126 +712,6 @@ namespace Shared.Engine.Online
             }
         }
 
-        #endregion
-
-        #region VideoParse
-        async public ValueTask<List<StreamModel>> VideoParse(string linkhost, string link)
-        {
-            string iframe = await onget($"https:{link}", null);
-            if (iframe == null)
-            {
-                requesterror?.Invoke();
-                return null;
-            }
-
-            string uri = null;
-            string player_single = Regex.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"").Groups[1].Value;
-            if (!string.IsNullOrEmpty(player_single))
-            {
-                if (!psingles.TryGetValue(player_single, out uri))
-                {
-                    string playerjs = await onget($"{linkhost}/{player_single}", null);
-
-                    if (playerjs == null)
-                    {
-                        requesterror?.Invoke();
-                        return null;
-                    }
-
-                    uri = DecodeUrlBase64(Regex.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)").Groups[1].Value);
-                    if (!string.IsNullOrEmpty(uri))
-                        psingles.TryAdd(player_single, uri);
-                }
-            }
-
-            if (string.IsNullOrEmpty(uri))
-                return null;
-
-            string _frame = Regex.Replace(iframe.Split("advertDebug")[1].Split("preview-icons")[0], "[\n\r\t ]+", "");
-            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
-            string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
-            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
-            string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
-            string ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
-            string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
-            string type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
-            string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
-            string id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
-
-            string json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&bad_user=false&cdn_is_working={cdn_is_working.ToString().ToLower()}&type={type}&hash={hash}&id={id}&info=%7B%7D");
-            if (json == null || !json.Contains("\"src\":\""))
-            {
-                requesterror?.Invoke();
-                return null;
-            }
-
-            var streams = new List<StreamModel>(4);
-
-            var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase).Match(json);
-            while (match.Success)
-            {
-                if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                {
-                    string m3u = match.Groups[2].Value;
-                    if (!m3u.Contains("manifest.m3u8"))
-                    {
-                        int zCharCode = Convert.ToInt32('Z');
-
-                        string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e =>
-                        {
-                            int eCharCode = Convert.ToInt32(e.Value[0]);
-                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 18) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
-                        });
-
-                        m3u = DecodeUrlBase64(src);
-                    }
-
-                    if (m3u.StartsWith("//"))
-                        m3u = $"https:{m3u}";
-
-                    if (!usehls && m3u.Contains(".m3u"))
-                        m3u = m3u.Replace(":hls:manifest.m3u8", "");
-
-                    streams.Add(new StreamModel() { q = $"{match.Groups[1].Value}p", url = m3u });
-                }
-
-                match = match.NextMatch();
-            }
-
-            if (streams.Count == 0)
-                return null;
-
-            streams.Reverse();
-
-            return streams;
-        }
-
-        public string VideoParse(List<StreamModel> streams, string title, string original_title, int episode, bool play, VastConf vast = null)
-        {
-            if (streams == null || streams.Count == 0)
-                return string.Empty;
-
-            if (play)
-                return onstreamfile(streams[0].url);
-
-            string name = title ?? original_title ?? "auto";
-            if (episode > 0)
-                name += $" ({episode} серия)";
-
-            var streamquality = new StreamQualityTpl();
-            foreach (var l in streams)
-                streamquality.Append(onstreamfile(l.url), l.q);
-
-            return VideoTpl.ToJson("play", onstreamfile(streams[0].url), name, streamquality: streamquality, vast: vast);
-        }
-        #endregion
-
-
-        #region DecodeUrlBase64
-        static string DecodeUrlBase64(string s)
-        {
-            return Encoding.UTF8.GetString(Convert.FromBase64String(s.Replace('-', '+').Replace('_', '/').PadRight(4 * ((s.Length + 3) / 4), '=')));
-        }
         #endregion
     }
 }

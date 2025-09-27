@@ -16,7 +16,7 @@
 
         public string imdb_id { get; set; }
 
-        public long kinopoisk_id { get; set; }
+        public string kinopoisk_id { get; set; }
 
         public Translation translation { get; set; }
 
