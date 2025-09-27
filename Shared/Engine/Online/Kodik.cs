@@ -49,6 +49,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                 return null;
 
+            string json = null;
             List<Result> results = null;
 
             if (!string.IsNullOrWhiteSpace(token))
@@ -65,7 +66,8 @@ namespace Shared.Engine.Online
 
                 try
                 {
-                    string json = await onget(url, null);
+                    json = await onget(url, null);
+
                     if (string.IsNullOrWhiteSpace(json))
                     {
                         requesterror?.Invoke();
@@ -85,8 +87,11 @@ namespace Shared.Engine.Online
                 }
             }
 
-            if (results == null)
-                results = FallbackByIds(imdb_id, kinopoisk_id, s);
+            if (json == null || json.Contains("Отсутствует или неверный токен"))
+            {
+                if (results == null)
+                    results = FallbackByIds(imdb_id, kinopoisk_id, s);
+            }
 
             return results;
         }
@@ -99,6 +104,7 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(original_title))
                     return null;
 
+                string json = null;
                 List<Result> results = null;
 
                 if (!string.IsNullOrWhiteSpace(token))
@@ -107,7 +113,8 @@ namespace Shared.Engine.Online
 
                     try
                     {
-                        string json = await onget(url, null);
+                        json = await onget(url, null);
+
                         if (string.IsNullOrWhiteSpace(json))
                         {
                             requesterror?.Invoke();
@@ -127,8 +134,11 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                if (results == null)
-                    results = FallbackByTitle(title, original_title);
+                if (json == null || json.Contains("Отсутствует или неверный токен"))
+                {
+                    if (results == null)
+                        results = FallbackByTitle(title, original_title);
+                }
 
                 if (results == null)
                     return null;
@@ -451,18 +461,6 @@ namespace Shared.Engine.Online
             if (matches.Count == 0)
                 return null;
 
-            if (season > 0)
-            {
-                var filtered = new List<Result>(matches.Count);
-                foreach (var item in matches)
-                {
-                    if (TryFilterSeason(item, season, out var filteredItem))
-                        filtered.Add(filteredItem);
-                }
-
-                matches = filtered;
-            }
-
             return matches.Count == 0 ? null : matches;
         }
 
@@ -504,29 +502,6 @@ namespace Shared.Engine.Online
             var matches = strictMatches.Count > 0 ? strictMatches : fallbackMatches;
 
             return matches == null || matches.Count == 0 ? null : matches;
-        }
-
-        static bool TryFilterSeason(Result source, int season, out Result filtered)
-        {
-            filtered = source;
-
-            if (season <= 0)
-                return true;
-
-            if (source.seasons == null)
-                return false;
-
-            string key = season.ToString();
-            if (!source.seasons.TryGetValue(key, out var seasonInfo))
-                return false;
-
-            filtered.last_season = season;
-            filtered.seasons = new Dictionary<string, Season>
-            {
-                [key] = seasonInfo
-            };
-
-            return true;
         }
 
         static bool TitleMatches(string source, string target)
@@ -581,7 +556,7 @@ namespace Shared.Engine.Online
 
             try
             {
-                string html = await onget(selected.link, null);
+                string html = await onget($"https:{selected.link}", null);
                 if (string.IsNullOrWhiteSpace(html))
                 {
                     requesterror?.Invoke();
@@ -595,7 +570,7 @@ namespace Shared.Engine.Online
                 if (optionsRoot == null)
                     return null;
 
-                var baseUri = ResolveBaseUri(selected.link);
+                var baseUri = "//kodik.info";
                 var seasons = new Dictionary<string, Season>();
 
                 var seasonNodes = optionsRoot.SelectNodes(".//div[contains(@class,'season-')]");
@@ -656,62 +631,16 @@ namespace Shared.Engine.Online
             }
         }
 
-        static Uri ResolveBaseUri(string link)
+        static string BuildEpisodeLink(string baseUri, HtmlNode option)
         {
-            string normalized = link;
-            if (string.IsNullOrWhiteSpace(normalized))
-                normalized = "https://kodik.info/";
-            else if (normalized.StartsWith("//"))
-                normalized = $"https:{normalized}";
-            else if (normalized.StartsWith("/"))
-                normalized = $"https://kodik.info{normalized}";
-
-            if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri))
-                uri = new Uri("https://kodik.info/");
-
-            return new Uri(uri.GetLeftPart(UriPartial.Authority) + "/");
-        }
-
-        static string BuildEpisodeLink(Uri baseUri, HtmlNode option)
-        {
-            string direct = option.GetAttributeValue("data-link", null);
-            if (!string.IsNullOrWhiteSpace(direct))
-            {
-                var normalized = NormalizeEpisodeLink(baseUri, direct);
-                if (!string.IsNullOrWhiteSpace(normalized))
-                    return normalized;
-            }
-
             string dataId = option.GetAttributeValue("data-id", null);
             string dataHash = option.GetAttributeValue("data-hash", null);
 
             if (string.IsNullOrWhiteSpace(dataId) || string.IsNullOrWhiteSpace(dataHash))
                 return null;
 
-            return NormalizeEpisodeLink(baseUri, $"seria/{dataId}/{dataHash}");
+            return $"{baseUri}/seria/{dataId}/{dataHash}/720p";
         }
-
-        static string NormalizeEpisodeLink(Uri baseUri, string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            if (value.StartsWith("//"))
-                return $"{baseUri.Scheme}:{value}";
-
-            if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
-                return absolute.ToString();
-
-            try
-            {
-                return new Uri(baseUri, value).ToString();
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
         #endregion
     }
 }
