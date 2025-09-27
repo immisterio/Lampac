@@ -14,6 +14,10 @@
 
         public string link { get; set; }
 
+        public string imdb_id { get; set; }
+
+        public long kinopoisk_id { get; set; }
+
         public Translation translation { get; set; }
 
         public int last_season { get; set; }

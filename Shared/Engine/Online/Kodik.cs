@@ -1,7 +1,10 @@
-﻿using Shared.Models;
+﻿using HtmlAgilityPack;
+using Shared.Models;
+using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Templates;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -13,6 +16,8 @@ namespace Shared.Engine.Online
     {
         #region KodikInvoke
         static Dictionary<string, string> psingles = new Dictionary<string, string>();
+        static readonly HybridCache hybridCache = new HybridCache();
+        readonly IEnumerable<Result> fallbackDatabase;
 
         string host;
         string apihost, token, videopath;
@@ -23,12 +28,13 @@ namespace Shared.Engine.Online
         Func<string, string> onlog;
         Action requesterror;
 
-        public KodikInvoke(string host, string apihost, string token, bool hls, bool cdn_is_working, string videopath, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KodikInvoke(string host, string apihost, string token, bool hls, bool cdn_is_working, string videopath, IEnumerable<Result> fallbackDatabase, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.token = token;
             this.videopath = videopath;
+            this.fallbackDatabase = fallbackDatabase;
             this.onget = onget;
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
@@ -39,38 +45,165 @@ namespace Shared.Engine.Online
         }
         #endregion
 
+        #region Fallback
+        List<Result> FallbackByIds(string imdb_id, long kinopoisk_id, int season)
+        {
+            var data = fallbackDatabase;
+            if (data == null)
+                return null;
+
+            bool requireImdb = !string.IsNullOrEmpty(imdb_id);
+            bool requireKinopoisk = kinopoisk_id > 0;
+
+            var matches = data.Where(item =>
+            {
+                bool imdbMatch = !requireImdb || string.Equals(item.imdb_id, imdb_id, StringComparison.OrdinalIgnoreCase);
+                bool kinopoiskMatch = !requireKinopoisk || item.kinopoisk_id == kinopoisk_id;
+                return imdbMatch && kinopoiskMatch;
+            }).ToList();
+
+            if (matches.Count == 0)
+                return null;
+
+            if (season > 0)
+            {
+                var filtered = new List<Result>(matches.Count);
+                foreach (var item in matches)
+                {
+                    if (TryFilterSeason(item, season, out var filteredItem))
+                        filtered.Add(filteredItem);
+                }
+
+                matches = filtered;
+            }
+
+            return matches.Count == 0 ? null : matches;
+        }
+
+        List<Result> FallbackByTitle(string title, string originalTitle)
+        {
+            var data = fallbackDatabase;
+            if (data == null)
+                return null;
+
+            bool hasTitle = !string.IsNullOrWhiteSpace(title);
+            bool hasOriginal = !string.IsNullOrWhiteSpace(originalTitle);
+
+            var strictMatches = new List<Result>();
+            List<Result> fallbackMatches = (hasTitle || hasOriginal) ? new List<Result>() : null;
+
+            foreach (var item in data)
+            {
+                bool titleMatch = !hasTitle || TitleMatches(item.title, title) || TitleMatches(item.title_orig, title);
+                bool originalMatch = !hasOriginal || TitleMatches(item.title, originalTitle) || TitleMatches(item.title_orig, originalTitle);
+
+                if (titleMatch && originalMatch)
+                {
+                    strictMatches.Add(item);
+                    continue;
+                }
+
+                if (fallbackMatches == null)
+                    continue;
+
+                if (TitleMatches(item.title, title) ||
+                    TitleMatches(item.title_orig, title) ||
+                    TitleMatches(item.title, originalTitle) ||
+                    TitleMatches(item.title_orig, originalTitle))
+                {
+                    fallbackMatches.Add(item);
+                }
+            }
+
+            var matches = strictMatches.Count > 0 ? strictMatches : fallbackMatches;
+
+            return matches == null || matches.Count == 0 ? null : matches;
+        }
+
+        static bool TryFilterSeason(Result source, int season, out Result filtered)
+        {
+            filtered = source;
+
+            if (season <= 0)
+                return true;
+
+            if (source.seasons == null)
+                return false;
+
+            string key = season.ToString();
+            if (!source.seasons.TryGetValue(key, out var seasonInfo))
+                return false;
+
+            filtered.last_season = season;
+            filtered.seasons = new Dictionary<string, Season>
+            {
+                [key] = seasonInfo
+            };
+
+            return true;
+        }
+
+        static bool TitleMatches(string source, string target)
+        {
+            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
+                return false;
+
+            string normalizedSource = StringConvert.SearchName(source);
+            string normalizedTarget = StringConvert.SearchName(target);
+
+            if (string.IsNullOrWhiteSpace(normalizedSource) || string.IsNullOrWhiteSpace(normalizedTarget))
+                return false;
+
+            return normalizedSource.Contains(normalizedTarget);
+        }
+        #endregion
+
         #region Embed
         async public ValueTask<List<Result>> Embed(string imdb_id, long kinopoisk_id, int s)
         {
             if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                 return null;
 
-            string url = $"{apihost}/search?token={token}&limit=100&with_episodes=true";
-            if (kinopoisk_id > 0)
-                url += $"&kinopoisk_id={kinopoisk_id}";
+            List<Result> results = null;
 
-            if (!string.IsNullOrWhiteSpace(imdb_id))
-                url += $"&imdb_id={imdb_id}";
-
-            if (s > 0)
-                url += $"&season={s}";
-
-            try
+            if (!string.IsNullOrWhiteSpace(token))
             {
-                string json = await onget(url, null);
-                if (json == null)
+                string url = $"{apihost}/search?token={token}&limit=100&with_episodes=true";
+                if (kinopoisk_id > 0)
+                    url += $"&kinopoisk_id={kinopoisk_id}";
+
+                if (!string.IsNullOrWhiteSpace(imdb_id))
+                    url += $"&imdb_id={imdb_id}";
+
+                if (s > 0)
+                    url += $"&season={s}";
+
+                try
+                {
+                    string json = await onget(url, null);
+                    if (string.IsNullOrWhiteSpace(json))
+                    {
+                        requesterror?.Invoke();
+                    }
+                    else
+                    {
+                        var root = JsonSerializer.Deserialize<RootObject>(json);
+                        if (root?.results != null)
+                            results = root.results;
+                        else
+                            requesterror?.Invoke();
+                    }
+                }
+                catch
                 {
                     requesterror?.Invoke();
-                    return null;
                 }
-
-                var root = JsonSerializer.Deserialize<RootObject>(json);
-                if (root?.results == null)
-                    return null;
-
-                return root.results;
             }
-            catch { return null; }
+
+            if (results == null)
+                results = FallbackByIds(imdb_id, kinopoisk_id, s);
+
+            return results;
         }
 
 
@@ -81,25 +214,46 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(original_title))
                     return null;
 
-                string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(original_title ?? title)}&with_episodes=true&with_material_data=true";
+                List<Result> results = null;
 
-                string json = await onget(url, null);
-                if (json == null)
+                if (!string.IsNullOrWhiteSpace(token))
                 {
-                    requesterror?.Invoke();
-                    return null;
+                    string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(original_title ?? title)}&with_episodes=true&with_material_data=true";
+
+                    try
+                    {
+                        string json = await onget(url, null);
+                        if (string.IsNullOrWhiteSpace(json))
+                        {
+                            requesterror?.Invoke();
+                        }
+                        else
+                        {
+                            var root = JsonSerializer.Deserialize<RootObject>(json);
+                            if (root?.results != null)
+                                results = root.results;
+                            else
+                                requesterror?.Invoke();
+                        }
+                    }
+                    catch
+                    {
+                        requesterror?.Invoke();
+                    }
                 }
 
-                var root = JsonSerializer.Deserialize<RootObject>(json);
-                if (root?.results == null)
+                if (results == null)
+                    results = FallbackByTitle(title, original_title);
+
+                if (results == null)
                     return null;
 
                 var hash = new HashSet<string>();
-                var stpl = new SimilarTpl(root.results.Count);
+                var stpl = new SimilarTpl(results.Count);
                 string enc_title = HttpUtility.UrlEncode(title);
                 string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-                foreach (var similar in root.results)
+                foreach (var similar in results)
                 {
                     string pick = similar.title?.ToLower()?.Trim();
                     if (string.IsNullOrEmpty(pick))
@@ -111,7 +265,7 @@ namespace Shared.Engine.Online
                     hash.Add(pick);
 
                     string name = !string.IsNullOrEmpty(similar.title) && !string.IsNullOrEmpty(similar.title_orig) ? $"{similar.title} / {similar.title_orig}" : (similar.title ?? similar.title_orig);
-                    
+
                     string details = similar.translation.title;
                     if (similar.last_season > 0)
                         details += $"{stpl.OnlineSplit} {similar.last_season}й сезон";
@@ -124,7 +278,7 @@ namespace Shared.Engine.Online
                 return new EmbedModel()
                 {
                     stpl = stpl,
-                    result = root.results
+                    result = results
                 };
             }
             catch { return null; }
@@ -147,7 +301,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
+        public async ValueTask<string> Html(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
         {
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -213,7 +367,7 @@ namespace Shared.Engine.Online
                             continue;
 
                         string name = item.translation.title ?? "оригинал";
-                        if (hash.Contains(name) || !results.First(i => i.id == id).seasons.ContainsKey(s.ToString()))
+                        if (hash.Contains(name) || item.seasons == null || !item.seasons.ContainsKey(s.ToString()))
                             continue;
 
                         hash.Add(name);
@@ -227,7 +381,14 @@ namespace Shared.Engine.Online
                     }
                     #endregion
 
-                    var series = results.First(i => i.id == kid).seasons[s.ToString()].episodes;
+                    var selected = results.FirstOrDefault(i => i.id == kid);
+                    if (string.IsNullOrWhiteSpace(selected.id))
+                        selected = results[0];
+
+                    var series = await ResolveEpisodesAsync(selected, s);
+                    if (series == null || series.Count == 0)
+                        return string.Empty;
+
                     var etpl = new EpisodeTpl(series.Count);
 
                     string sArhc = s.ToString();
@@ -256,6 +417,179 @@ namespace Shared.Engine.Online
                 #endregion
             }
         }
+        #endregion
+
+        #region SeriesResolver
+
+        async ValueTask<Dictionary<string, string>> ResolveEpisodesAsync(Result selected, int season)
+        {
+            if (season <= 0)
+                return null;
+
+            string seasonKey = season.ToString();
+
+            if (selected.seasons != null &&
+                selected.seasons.TryGetValue(seasonKey, out var seasonInfo) &&
+                seasonInfo.episodes != null &&
+                seasonInfo.episodes.Count > 0)
+            {
+                return seasonInfo.episodes;
+            }
+
+            var seasonsFromHtml = await LoadSeasonsFromHtml(selected);
+            if (seasonsFromHtml != null &&
+                seasonsFromHtml.TryGetValue(seasonKey, out seasonInfo) &&
+                seasonInfo.episodes != null &&
+                seasonInfo.episodes.Count > 0)
+            {
+                return seasonInfo.episodes;
+            }
+
+            return null;
+        }
+
+        async ValueTask<Dictionary<string, Season>> LoadSeasonsFromHtml(Result selected)
+        {
+            if (string.IsNullOrWhiteSpace(selected.id) || string.IsNullOrWhiteSpace(selected.link) || onget == null)
+                return null;
+
+            string cacheKey = $"kodik:series:{selected.id}";
+            if (hybridCache.TryGetValue(cacheKey, out Dictionary<string, Season> cached))
+                return cached;
+
+            try
+            {
+                string html = await onget(selected.link, null);
+                if (string.IsNullOrWhiteSpace(html))
+                {
+                    requesterror?.Invoke();
+                    return null;
+                }
+
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
+
+                var optionsRoot = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'series-options')]");
+                if (optionsRoot == null)
+                    return null;
+
+                var baseUri = ResolveBaseUri(selected.link);
+                var seasons = new Dictionary<string, Season>();
+
+                var seasonNodes = optionsRoot.SelectNodes(".//div[contains(@class,'season-')]");
+                if (seasonNodes == null)
+                    return null;
+
+                foreach (var seasonNode in seasonNodes)
+                {
+                    string classes = seasonNode.GetAttributeValue("class", string.Empty);
+                    var match = Regex.Match(classes, "season-([0-9]+)");
+                    if (!match.Success)
+                        continue;
+
+                    string seasonKey = match.Groups[1].Value;
+                    if (string.IsNullOrWhiteSpace(seasonKey))
+                        continue;
+
+                    var options = seasonNode.SelectNodes(".//option");
+                    if (options == null || options.Count == 0)
+                        continue;
+
+                    var episodes = new Dictionary<string, string>();
+
+                    foreach (var option in options)
+                    {
+                        string episodeNumber = option.GetAttributeValue("value", null) ?? option.InnerText;
+                        episodeNumber = episodeNumber?.Trim();
+                        if (string.IsNullOrWhiteSpace(episodeNumber))
+                            continue;
+
+                        string episodeLink = BuildEpisodeLink(baseUri, option);
+                        if (string.IsNullOrWhiteSpace(episodeLink))
+                            continue;
+
+                        if (!episodes.ContainsKey(episodeNumber))
+                            episodes[episodeNumber] = episodeLink;
+                    }
+
+                    if (episodes.Count > 0)
+                    {
+                        seasons[seasonKey] = new Season
+                        {
+                            link = selected.link,
+                            episodes = episodes
+                        };
+                    }
+                }
+
+                if (seasons.Count == 0)
+                    return null;
+
+                hybridCache.Set(cacheKey, seasons, TimeSpan.FromMinutes(20));
+                return seasons;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        static Uri ResolveBaseUri(string link)
+        {
+            string normalized = link;
+            if (string.IsNullOrWhiteSpace(normalized))
+                normalized = "https://kodik.info/";
+            else if (normalized.StartsWith("//"))
+                normalized = $"https:{normalized}";
+            else if (normalized.StartsWith("/"))
+                normalized = $"https://kodik.info{normalized}";
+
+            if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri))
+                uri = new Uri("https://kodik.info/");
+
+            return new Uri(uri.GetLeftPart(UriPartial.Authority) + "/");
+        }
+
+        static string BuildEpisodeLink(Uri baseUri, HtmlNode option)
+        {
+            string direct = option.GetAttributeValue("data-link", null);
+            if (!string.IsNullOrWhiteSpace(direct))
+            {
+                var normalized = NormalizeEpisodeLink(baseUri, direct);
+                if (!string.IsNullOrWhiteSpace(normalized))
+                    return normalized;
+            }
+
+            string dataId = option.GetAttributeValue("data-id", null);
+            string dataHash = option.GetAttributeValue("data-hash", null);
+
+            if (string.IsNullOrWhiteSpace(dataId) || string.IsNullOrWhiteSpace(dataHash))
+                return null;
+
+            return NormalizeEpisodeLink(baseUri, $"seria/{dataId}/{dataHash}");
+        }
+
+        static string NormalizeEpisodeLink(Uri baseUri, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            if (value.StartsWith("//"))
+                return $"{baseUri.Scheme}:{value}";
+
+            if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
+                return absolute.ToString();
+
+            try
+            {
+                return new Uri(baseUri, value).ToString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         #endregion
 
         #region VideoParse
