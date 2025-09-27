@@ -319,7 +319,7 @@ namespace Lampac.Engine
             foreach (string connectionId in weblog_clients.Keys)
             {
                 if (_connections.TryGetValue(connectionId, out var client))
-                    _ = SendAsync(client, "Receive", message, plugin);
+                    _ = SendAsync(client, "Receive", message, plugin).ConfigureAwait(false);
             }
         }
 
