@@ -11,6 +11,21 @@ namespace Online.Controllers
     {
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.Kodik);
 
+        #region database
+        static List<Result> databaseCache;
+
+        static IEnumerable<Result> database
+        {
+            get
+            {
+                if (AppInit.conf.multiaccess || databaseCache != null)
+                    return databaseCache ??= JsonHelper.ListReader<Result>("data/kodik.json", 105000);
+
+                return JsonHelper.IEnumerableReader<Result>("data/kodik.json");
+            }
+        }
+        #endregion
+
         #region InitKodikInvoke
         public KodikInvoke InitKodikInvoke(KodikSettings init)
         {
@@ -24,6 +39,7 @@ namespace Online.Controllers
                 init.hls,
                 init.cdn_is_working,
                 "video",
+                () => database,
                 (uri, head) => Http.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 (uri, data) => Http.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
