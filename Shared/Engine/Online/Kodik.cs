@@ -1,4 +1,5 @@
 ﻿using Shared.Models;
+using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Templates;
@@ -166,10 +167,13 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
                 return false;
 
-            if (string.Equals(source, target, StringComparison.OrdinalIgnoreCase))
-                return true;
+            string normalizedSource = StringConvert.SearchName(source);
+            string normalizedTarget = StringConvert.SearchName(target);
 
-            return source.IndexOf(target, StringComparison.OrdinalIgnoreCase) >= 0;
+            if (string.IsNullOrWhiteSpace(normalizedSource) || string.IsNullOrWhiteSpace(normalizedTarget))
+                return false;
+
+            return normalizedSource.Contains(normalizedTarget);
         }
         #endregion
 
