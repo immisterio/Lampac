@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Shared.Engine
 {
@@ -66,25 +68,79 @@ namespace Shared.Engine
 
             try
             {
-                if (!File.Exists("init.conf"))
+                if (!File.Exists("init.conf") && !File.Exists("init.yaml"))
                     return baseObj;
-
-                string initfile = File.ReadAllText("init.conf").Trim();
-                if (string.IsNullOrEmpty(initfile))
-                    return baseObj;
-
-                if (!initfile.StartsWith("{"))
-                    initfile = "{" + initfile + "}";
 
                 JObject jo = null;
-                try
+                // First try init.conf if exists
+                if (File.Exists("init.conf"))
                 {
-                    jo = JObject.Parse(initfile);
+                    string initfile = File.ReadAllText("init.conf").Trim();
+                    if (!string.IsNullOrEmpty(initfile))
+                    {
+                        if (!initfile.StartsWith("{"))
+                            initfile = "{" + initfile + "}";
+
+                        try
+                        {
+                            jo = JObject.Parse(initfile);
+                        }
+                        catch
+                        {
+                            try 
+                            { 
+                                jo = JObject.FromObject(Newtonsoft.Json.JsonConvert.DeserializeObject(initfile) ?? new JObject()); 
+                            } 
+                            catch { jo = null; }
+                        }
+                    }
                 }
-                catch
+
+                // Then try init.yaml and merge/override into jo if present
+                if (File.Exists("init.yaml"))
                 {
-                    // Try to deserialize more leniently
-                    try { jo = JObject.FromObject(Newtonsoft.Json.JsonConvert.DeserializeObject(initfile) ?? new JObject()); } catch { jo = null; }
+                    try
+                    {
+                        var yaml = File.ReadAllText("init.yaml").Trim();
+                        if (!string.IsNullOrEmpty(yaml))
+                        {
+                            var deserializer = new DeserializerBuilder()
+                                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                                .IgnoreUnmatchedProperties()
+                                .Build();
+
+                            var deserialized = deserializer.Deserialize<object>(yaml) ?? new object();
+
+                            // Convert deserialized YAML to JSON and then to JObject
+                            var json = Newtonsoft.Json.JsonConvert.SerializeObject(deserialized);
+
+                            JObject yamlJo = null;
+                            try
+                            {
+                                yamlJo = JObject.Parse(json);
+                            }
+                            catch
+                            {
+                                try 
+                                { 
+                                    yamlJo = JObject.FromObject(Newtonsoft.Json.JsonConvert.DeserializeObject(json) ?? new JObject()); 
+                                } 
+                                catch { yamlJo = null; }
+                            }
+
+                            if (yamlJo != null)
+                            {
+                                if (jo == null)
+                                    jo = yamlJo;
+                                else
+                                    Merge(jo, yamlJo);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore yaml parse errors
+                    }
                 }
 
                 if (jo == null || !jo.ContainsKey(filed))
