@@ -6,7 +6,6 @@ using Shared.Models.Templates;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -16,12 +15,7 @@ namespace Shared.Engine.Online
     {
         #region KodikInvoke
         static Dictionary<string, string> psingles = new Dictionary<string, string>();
-        readonly Func<IEnumerable<Result>> fallbackDatabase;
-        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            NumberHandling = JsonNumberHandling.AllowReadingFromString
-        };
+        readonly IEnumerable<Result> fallbackDatabase;
 
         string host;
         string apihost, token, videopath;
@@ -32,7 +26,7 @@ namespace Shared.Engine.Online
         Func<string, string> onlog;
         Action requesterror;
 
-        public KodikInvoke(string host, string apihost, string token, bool hls, bool cdn_is_working, string videopath, Func<IEnumerable<Result>> fallbackDatabase, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KodikInvoke(string host, string apihost, string token, bool hls, bool cdn_is_working, string videopath, IEnumerable<Result> fallbackDatabase, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -50,24 +44,9 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Fallback
-        IEnumerable<Result> GetFallbackResults()
-        {
-            if (fallbackDatabase == null)
-                return null;
-
-            try
-            {
-                return fallbackDatabase.Invoke();
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
         List<Result> FallbackByIds(string imdb_id, long kinopoisk_id, int season)
         {
-            var data = GetFallbackResults();
+            var data = fallbackDatabase;
             if (data == null)
                 return null;
 
@@ -101,7 +80,7 @@ namespace Shared.Engine.Online
 
         List<Result> FallbackByTitle(string title, string originalTitle)
         {
-            var data = GetFallbackResults();
+            var data = fallbackDatabase;
             if (data == null)
                 return null;
 
@@ -206,7 +185,7 @@ namespace Shared.Engine.Online
                     }
                     else
                     {
-                        var root = JsonSerializer.Deserialize<RootObject>(json, jsonOptions);
+                        var root = JsonSerializer.Deserialize<RootObject>(json);
                         if (root?.results != null)
                             results = root.results;
                         else
@@ -248,7 +227,7 @@ namespace Shared.Engine.Online
                         }
                         else
                         {
-                            var root = JsonSerializer.Deserialize<RootObject>(json, jsonOptions);
+                            var root = JsonSerializer.Deserialize<RootObject>(json);
                             if (root?.results != null)
                                 results = root.results;
                             else

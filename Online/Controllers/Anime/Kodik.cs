@@ -39,7 +39,7 @@ namespace Online.Controllers
                 init.hls,
                 init.cdn_is_working,
                 "video",
-                () => database,
+                database,
                 (uri, head) => Http.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 (uri, data) => Http.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                 streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
