@@ -570,7 +570,6 @@ namespace Shared.Engine.Online
                 if (optionsRoot == null)
                     return null;
 
-                var baseUri = "//kodik.info";
                 var seasons = new Dictionary<string, Season>();
 
                 var seasonNodes = optionsRoot.SelectNodes(".//div[contains(@class,'season-')]");
@@ -585,7 +584,7 @@ namespace Shared.Engine.Online
                         continue;
 
                     string seasonKey = match.Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(seasonKey))
+                    if (string.IsNullOrEmpty(seasonKey))
                         continue;
 
                     var options = seasonNode.SelectNodes(".//option");
@@ -598,11 +597,11 @@ namespace Shared.Engine.Online
                     {
                         string episodeNumber = option.GetAttributeValue("value", null) ?? option.InnerText;
                         episodeNumber = episodeNumber?.Trim();
-                        if (string.IsNullOrWhiteSpace(episodeNumber))
+                        if (string.IsNullOrEmpty(episodeNumber))
                             continue;
 
-                        string episodeLink = BuildEpisodeLink(baseUri, option);
-                        if (string.IsNullOrWhiteSpace(episodeLink))
+                        string episodeLink = BuildEpisodeLink(option);
+                        if (string.IsNullOrEmpty(episodeLink))
                             continue;
 
                         if (!episodes.ContainsKey(episodeNumber))
@@ -631,7 +630,7 @@ namespace Shared.Engine.Online
             }
         }
 
-        static string BuildEpisodeLink(string baseUri, HtmlNode option)
+        static string BuildEpisodeLink(HtmlNode option)
         {
             string dataId = option.GetAttributeValue("data-id", null);
             string dataHash = option.GetAttributeValue("data-hash", null);
@@ -639,7 +638,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(dataId) || string.IsNullOrWhiteSpace(dataHash))
                 return null;
 
-            return $"{baseUri}/seria/{dataId}/{dataHash}/720p";
+            return $"//kodik.info/seria/{dataId}/{dataHash}/720p";
         }
         #endregion
     }
