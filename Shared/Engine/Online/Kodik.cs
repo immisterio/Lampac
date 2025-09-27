@@ -1,4 +1,5 @@
-﻿using Shared.Models;
+﻿using HtmlAgilityPack;
+using Shared.Models;
 using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.Online.Kodik;
@@ -15,6 +16,7 @@ namespace Shared.Engine.Online
     {
         #region KodikInvoke
         static Dictionary<string, string> psingles = new Dictionary<string, string>();
+        static readonly HybridCache hybridCache = new HybridCache();
         readonly IEnumerable<Result> fallbackDatabase;
 
         string host;
@@ -299,7 +301,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
+        public async ValueTask<string> Html(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
         {
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -365,7 +367,7 @@ namespace Shared.Engine.Online
                             continue;
 
                         string name = item.translation.title ?? "оригинал";
-                        if (hash.Contains(name) || !results.First(i => i.id == id).seasons.ContainsKey(s.ToString()))
+                        if (hash.Contains(name) || item.seasons == null || !item.seasons.ContainsKey(s.ToString()))
                             continue;
 
                         hash.Add(name);
@@ -379,7 +381,14 @@ namespace Shared.Engine.Online
                     }
                     #endregion
 
-                    var series = results.First(i => i.id == kid).seasons[s.ToString()].episodes;
+                    var selected = results.FirstOrDefault(i => i.id == kid);
+                    if (string.IsNullOrWhiteSpace(selected.id))
+                        selected = results[0];
+
+                    var series = await ResolveEpisodesAsync(selected, s);
+                    if (series == null || series.Count == 0)
+                        return string.Empty;
+
                     var etpl = new EpisodeTpl(series.Count);
 
                     string sArhc = s.ToString();
@@ -408,6 +417,179 @@ namespace Shared.Engine.Online
                 #endregion
             }
         }
+        #endregion
+
+        #region SeriesResolver
+
+        async ValueTask<Dictionary<string, string>> ResolveEpisodesAsync(Result selected, int season)
+        {
+            if (season <= 0)
+                return null;
+
+            string seasonKey = season.ToString();
+
+            if (selected.seasons != null &&
+                selected.seasons.TryGetValue(seasonKey, out var seasonInfo) &&
+                seasonInfo.episodes != null &&
+                seasonInfo.episodes.Count > 0)
+            {
+                return seasonInfo.episodes;
+            }
+
+            var seasonsFromHtml = await LoadSeasonsFromHtml(selected);
+            if (seasonsFromHtml != null &&
+                seasonsFromHtml.TryGetValue(seasonKey, out seasonInfo) &&
+                seasonInfo.episodes != null &&
+                seasonInfo.episodes.Count > 0)
+            {
+                return seasonInfo.episodes;
+            }
+
+            return null;
+        }
+
+        async ValueTask<Dictionary<string, Season>> LoadSeasonsFromHtml(Result selected)
+        {
+            if (string.IsNullOrWhiteSpace(selected.id) || string.IsNullOrWhiteSpace(selected.link) || onget == null)
+                return null;
+
+            string cacheKey = $"kodik:series:{selected.id}";
+            if (hybridCache.TryGetValue(cacheKey, out Dictionary<string, Season> cached))
+                return cached;
+
+            try
+            {
+                string html = await onget(selected.link, null);
+                if (string.IsNullOrWhiteSpace(html))
+                {
+                    requesterror?.Invoke();
+                    return null;
+                }
+
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
+
+                var optionsRoot = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'series-options')]");
+                if (optionsRoot == null)
+                    return null;
+
+                var baseUri = ResolveBaseUri(selected.link);
+                var seasons = new Dictionary<string, Season>();
+
+                var seasonNodes = optionsRoot.SelectNodes(".//div[contains(@class,'season-')]");
+                if (seasonNodes == null)
+                    return null;
+
+                foreach (var seasonNode in seasonNodes)
+                {
+                    string classes = seasonNode.GetAttributeValue("class", string.Empty);
+                    var match = Regex.Match(classes, "season-([0-9]+)");
+                    if (!match.Success)
+                        continue;
+
+                    string seasonKey = match.Groups[1].Value;
+                    if (string.IsNullOrWhiteSpace(seasonKey))
+                        continue;
+
+                    var options = seasonNode.SelectNodes(".//option");
+                    if (options == null || options.Count == 0)
+                        continue;
+
+                    var episodes = new Dictionary<string, string>();
+
+                    foreach (var option in options)
+                    {
+                        string episodeNumber = option.GetAttributeValue("value", null) ?? option.InnerText;
+                        episodeNumber = episodeNumber?.Trim();
+                        if (string.IsNullOrWhiteSpace(episodeNumber))
+                            continue;
+
+                        string episodeLink = BuildEpisodeLink(baseUri, option);
+                        if (string.IsNullOrWhiteSpace(episodeLink))
+                            continue;
+
+                        if (!episodes.ContainsKey(episodeNumber))
+                            episodes[episodeNumber] = episodeLink;
+                    }
+
+                    if (episodes.Count > 0)
+                    {
+                        seasons[seasonKey] = new Season
+                        {
+                            link = selected.link,
+                            episodes = episodes
+                        };
+                    }
+                }
+
+                if (seasons.Count == 0)
+                    return null;
+
+                hybridCache.Set(cacheKey, seasons, TimeSpan.FromMinutes(20));
+                return seasons;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        static Uri ResolveBaseUri(string link)
+        {
+            string normalized = link;
+            if (string.IsNullOrWhiteSpace(normalized))
+                normalized = "https://kodik.info/";
+            else if (normalized.StartsWith("//"))
+                normalized = $"https:{normalized}";
+            else if (normalized.StartsWith("/"))
+                normalized = $"https://kodik.info{normalized}";
+
+            if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri))
+                uri = new Uri("https://kodik.info/");
+
+            return new Uri(uri.GetLeftPart(UriPartial.Authority) + "/");
+        }
+
+        static string BuildEpisodeLink(Uri baseUri, HtmlNode option)
+        {
+            string direct = option.GetAttributeValue("data-link", null);
+            if (!string.IsNullOrWhiteSpace(direct))
+            {
+                var normalized = NormalizeEpisodeLink(baseUri, direct);
+                if (!string.IsNullOrWhiteSpace(normalized))
+                    return normalized;
+            }
+
+            string dataId = option.GetAttributeValue("data-id", null);
+            string dataHash = option.GetAttributeValue("data-hash", null);
+
+            if (string.IsNullOrWhiteSpace(dataId) || string.IsNullOrWhiteSpace(dataHash))
+                return null;
+
+            return NormalizeEpisodeLink(baseUri, $"seria/{dataId}/{dataHash}");
+        }
+
+        static string NormalizeEpisodeLink(Uri baseUri, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            if (value.StartsWith("//"))
+                return $"{baseUri.Scheme}:{value}";
+
+            if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
+                return absolute.ToString();
+
+            try
+            {
+                return new Uri(baseUri, value).ToString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         #endregion
 
         #region VideoParse
