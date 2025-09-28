@@ -393,5 +393,15 @@ namespace Lampac.Engine
             }
         }
         #endregion
+
+
+        #region FullDispose
+        public static void FullDispose()
+        {
+            ConnectionMonitorTimer.Dispose();
+            foreach (var connection in _connections)
+                connection.Value.Cancel();
+        }
+        #endregion
     }
 }

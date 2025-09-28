@@ -129,5 +129,10 @@ namespace Lampac.Engine
             return base.OnDisconnectedAsync(exception);
         }
         #endregion
+
+
+        public static void FullDispose()
+        {
+        }
     }
 }

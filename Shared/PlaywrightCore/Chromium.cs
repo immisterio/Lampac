@@ -577,8 +577,7 @@ namespace Shared.PlaywrightCore
 
             try
             {
-                browser.CloseAsync().Wait(2000);
-                browser.DisposeAsync();
+                browser.CloseAsync().ContinueWith(t => browser.DisposeAsync());
             }
             catch { }
         }

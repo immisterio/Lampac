@@ -464,6 +464,8 @@ namespace Lampac
 
             Chromium.FullDispose();
             Firefox.FullDispose();
+            nws.FullDispose();
+            soks.FullDispose();
             CollectionDb.Dispose();
         }
     }
