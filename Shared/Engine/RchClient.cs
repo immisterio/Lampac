@@ -23,7 +23,7 @@ namespace Shared.Engine
         #region static
         static RchClient()
         {
-            _checkConnectionTimer = new Timer(CheckConnection, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+            _checkConnectionTimer = new Timer(CheckConnection, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(4));
         }
 
         static Timer _checkConnectionTimer;
@@ -39,7 +39,11 @@ namespace Shared.Engine
 
             try
             {
-                await Parallel.ForEachAsync(clients.Keys.ToArray(), new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, async (connectionId, cancellationToken) =>
+                await Parallel.ForEachAsync(clients.Keys.ToArray(), new ParallelOptions 
+                { 
+                    MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) 
+                }, 
+                async (connectionId, cancellationToken) =>
                 {
                     if (clients.ContainsKey(connectionId))
                     {

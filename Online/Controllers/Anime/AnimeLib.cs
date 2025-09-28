@@ -210,7 +210,7 @@ namespace Online.Controllers
             if (rch.IsNotConnected() && init.rhub_fallback && play)
                 rch.Disabled();
 
-            var cache = await InvokeCache<JArray>($"animelib:video:{id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<Player[]>($"animelib:video:{id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
@@ -224,45 +224,47 @@ namespace Online.Controllers
                 if (root == null || !root.ContainsKey("data"))
                     return res.Fail("data");
 
-                return root["data"]["players"].ToObject<JArray>();
+                return root["data"]["players"].ToObject<Player[]>();
             });
 
             if (IsRhubFallback(cache, init))
                 goto reset;
 
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, gbcache: !rch.enable);
+                return OnError(cache.ErrorMsg);
 
             var headers_stream = httpHeaders(init.host, init.headers_stream);
 
+            #region goStreams
             List<(string link, string quality)> goStreams(string _voice)
             {
                 var _streams = new List<(string link, string quality)>(5);
 
                 foreach (var player in cache.Value)
                 {
-                    if (player.Value<string>("player") != "Animelib")
+                    if (player.player != "Animelib")
                         continue;
 
-                    if (!string.IsNullOrEmpty(_voice) && _voice != player["team"].Value<string>("name"))
+                    if (!string.IsNullOrEmpty(_voice) && _voice != player.team.name)
                         continue;
 
-                    foreach (var item in player["video"]["quality"])
+                    foreach (var video in player.video.quality)
                     {
-                        string href = item.Value<string>("href");
-                        if (string.IsNullOrEmpty(href))
+                        if (string.IsNullOrEmpty(video.href))
                             continue;
 
-                        string file = HostStreamProxy(init, "https://video1.cdnlibs.org/.%D0%B0s/" + href, proxy: proxyManager.Get(), headers: headers_stream);
+                        string file = HostStreamProxy(init, "https://video1.cdnlibs.org/.%D0%B0s/" + video.href, proxy: proxyManager.Get(), headers: headers_stream);
 
-                        _streams.Add((file, $"{item.Value<int>("quality")}p"));
+                        _streams.Add((file, $"{video.quality}p"));
                     }
 
-                    break;
+                    if (_streams.Count > 0)
+                        break;
                 }
 
                 return _streams;
             }
+            #endregion
 
             List<(string link, string quality)> streams;
 
@@ -277,10 +279,13 @@ namespace Online.Controllers
                     streams = goStreams(null);
             }
 
+            if (streams == null || streams.Count == 0)
+                return OnError("streams");
+
             if (play)
                 return Redirect(streams[0].link);
 
-            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: headers_stream));
+            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: init.streamproxy ? null : headers_stream));
         }
         #endregion
 

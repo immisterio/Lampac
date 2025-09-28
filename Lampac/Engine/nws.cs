@@ -25,7 +25,7 @@ namespace Lampac.Engine
 
         static readonly ConcurrentDictionary<string, NwsConnection> _connections = new ConcurrentDictionary<string, NwsConnection>();
 
-        static readonly TimeSpan ConnectionInactivityTimeout = TimeSpan.FromHours(10);
+        static readonly TimeSpan ConnectionInactivityTimeout = TimeSpan.FromHours(5);
 
         static readonly TimeSpan ConnectionMonitorInterval = TimeSpan.FromMinutes(30);
 
@@ -400,6 +400,7 @@ namespace Lampac.Engine
         }
         #endregion
 
+        #region ConnectionMonitorCallback
         static void ConnectionMonitorCallback(object state)
         {
             try
@@ -420,8 +421,11 @@ namespace Lampac.Engine
             {
             }
         }
+        #endregion
     }
 
+
+    #region NwsConnection
     sealed class NwsConnection : IDisposable
     {
         public NwsConnection(string connectionId, WebSocket socket, string host, string ip, string userAgent)
@@ -492,4 +496,5 @@ namespace Lampac.Engine
             Interlocked.Exchange(ref _cancellationSource, null)?.Dispose();
         }
     }
+    #endregion
 }

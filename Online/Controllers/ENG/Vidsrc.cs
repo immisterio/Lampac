@@ -83,7 +83,7 @@ namespace Online.Controllers
                         if (play)
                             return Redirect(file);
 
-                        return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: lastHeaders_headers));
+                        return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: init.streamproxy ? null : lastHeaders_headers));
                     }
                 }
                 #endregion
