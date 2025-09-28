@@ -25,6 +25,12 @@ namespace Lampac.Engine
 
         static readonly ConcurrentDictionary<string, NwsConnection> _connections = new ConcurrentDictionary<string, NwsConnection>();
 
+        static readonly TimeSpan ConnectionInactivityTimeout = TimeSpan.FromHours(10);
+
+        static readonly TimeSpan ConnectionMonitorInterval = TimeSpan.FromMinutes(30);
+
+        static readonly Timer ConnectionMonitorTimer = new Timer(ConnectionMonitorCallback, null, ConnectionMonitorInterval, ConnectionMonitorInterval);
+
         static readonly ConcurrentDictionary<string, NwsClientInfo> _connectionInfos = new ConcurrentDictionary<string, NwsClientInfo>();
 
         public static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
@@ -73,6 +79,9 @@ namespace Lampac.Engine
 
             var connection = new NwsConnection(connectionId, socket, host, ip, userAgent);
 
+            var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+            connection.SetCancellationSource(cancellationSource);
+
             _connections.TryAdd(connectionId, connection);
             _connectionInfos.AddOrUpdate(connectionId, info, (_, existing) =>
             {
@@ -86,7 +95,7 @@ namespace Lampac.Engine
             try
             {
                 await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
-                await ReceiveLoopAsync(context, connection).ConfigureAwait(false);
+                await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
             }
             finally
             {
@@ -96,7 +105,7 @@ namespace Lampac.Engine
         #endregion
 
         #region receive loop
-        static async Task ReceiveLoopAsync(HttpContext context, NwsConnection connection)
+        static async Task ReceiveLoopAsync(NwsConnection connection, CancellationToken token)
         {
             WebSocket socket = connection.Socket;
             var buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
@@ -104,8 +113,6 @@ namespace Lampac.Engine
 
             try
             {
-                CancellationToken token = context.RequestAborted;
-
                 while (socket.State == WebSocketState.Open && !token.IsCancellationRequested)
                 {
                     builder.Clear();
@@ -133,6 +140,8 @@ namespace Lampac.Engine
                         }
                     }
                     while (!result.EndOfMessage);
+
+                    connection.UpdateActivity();
 
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
@@ -295,7 +304,10 @@ namespace Lampac.Engine
                 await connection.SendLock.WaitAsync().ConfigureAwait(false);
 
                 if (connection.Socket.State == WebSocketState.Open)
+                {
                     await connection.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None).ConfigureAwait(false);
+                    connection.UpdateActivity();
+                }
             }
             catch (WebSocketException)
             {
@@ -377,6 +389,7 @@ namespace Lampac.Engine
 
             if (_connections.TryRemove(connectionId, out var connection))
             {
+                connection.Cancel();
                 connection.Dispose();
             }
 
@@ -386,6 +399,27 @@ namespace Lampac.Engine
             RchClient.OnDisconnected(connectionId);
         }
         #endregion
+
+        static void ConnectionMonitorCallback(object state)
+        {
+            try
+            {
+                if (_connections.IsEmpty)
+                    return;
+
+                DateTime threshold = DateTime.UtcNow - ConnectionInactivityTimeout;
+
+                foreach (var pair in _connections)
+                {
+                    var connection = pair.Value;
+                    if (connection.LastActivityUtc <= threshold)
+                        connection.Cancel();
+                }
+            }
+            catch
+            {
+            }
+        }
     }
 
     sealed class NwsConnection : IDisposable
@@ -398,6 +432,7 @@ namespace Lampac.Engine
             Ip = ip;
             UserAgent = userAgent;
             SendLock = new SemaphoreSlim(1, 1);
+            UpdateActivity();
         }
 
         public string ConnectionId { get; }
@@ -412,9 +447,49 @@ namespace Lampac.Engine
 
         public SemaphoreSlim SendLock { get; }
 
+        long _lastActivityTicks;
+
+        CancellationTokenSource _cancellationSource;
+
+        public DateTime LastActivityUtc
+        {
+            get
+            {
+                long ticks = Interlocked.Read(ref _lastActivityTicks);
+                return new DateTime(ticks, DateTimeKind.Utc);
+            }
+        }
+
+        public void UpdateActivity()
+        {
+            Interlocked.Exchange(ref _lastActivityTicks, DateTime.UtcNow.Ticks);
+        }
+
+        public void SetCancellationSource(CancellationTokenSource source)
+        {
+            var previous = Interlocked.Exchange(ref _cancellationSource, source);
+            previous?.Dispose();
+        }
+
+        public void Cancel()
+        {
+            var source = Interlocked.CompareExchange(ref _cancellationSource, null, null);
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
         public void Dispose()
         {
             SendLock.Dispose();
+            Interlocked.Exchange(ref _cancellationSource, null)?.Dispose();
         }
     }
 }
