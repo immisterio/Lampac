@@ -869,7 +869,7 @@ namespace Shared
         /// tg: @monk_in_a_hat
         /// email: helpdesk@lumex.ink
         /// </summary>
-        public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.site", "API-токен", "https://portal.lumex.host", "ID клиент")
+        public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.space", "API-токен", "https://portal.lumex.host", "ID клиент")
         {
             enable = false,
             log = false,
