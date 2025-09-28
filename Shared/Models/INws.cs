@@ -1,26 +1,80 @@
-using System.Collections.Concurrent;
+using System.Net.WebSockets;
+using System.Threading;
 
 namespace Shared.Models
 {
     public interface INws
     {
-        ConcurrentDictionary<string, NwsClientInfo> Connections { get; }
-
         void WebLog(string message, string plugin);
 
         Task EventsAsync(string connectionId, string uid, string name, string data);
     }
 
-    public class NwsClientInfo
+    public class NwsConnection : IDisposable
     {
-        public string ConnectionId { get; set; }
+        public NwsConnection(string connectionId, WebSocket socket, string host, string ip)
+        {
+            ConnectionId = connectionId;
+            Socket = socket;
+            Host = host;
+            Ip = ip;
+            SendLock = new SemaphoreSlim(1, 1);
+            UpdateActivity();
+        }
 
-        public string Ip { get; set; }
+        public string ConnectionId { get; }
 
-        public string Host { get; set; }
+        public WebSocket Socket { get; }
 
-        public string UserAgent { get; set; }
+        public string Host { get; }
 
-        public DateTime ConnectedAtUtc { get; set; }
+        public string Ip { get; }
+
+        public SemaphoreSlim SendLock { get; }
+
+        long _lastActivityTicks;
+
+        CancellationTokenSource _cancellationSource;
+
+        public DateTime LastActivityUtc
+        {
+            get
+            {
+                long ticks = Interlocked.Read(ref _lastActivityTicks);
+                return new DateTime(ticks, DateTimeKind.Utc);
+            }
+        }
+
+        public void UpdateActivity()
+        {
+            Interlocked.Exchange(ref _lastActivityTicks, DateTime.UtcNow.Ticks);
+        }
+
+        public void SetCancellationSource(CancellationTokenSource source)
+        {
+            var previous = Interlocked.Exchange(ref _cancellationSource, source);
+            previous?.Dispose();
+        }
+
+        public void Cancel()
+        {
+            var source = Interlocked.CompareExchange(ref _cancellationSource, null, null);
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        public void Dispose()
+        {
+            SendLock.Dispose();
+            Interlocked.Exchange(ref _cancellationSource, null)?.Dispose();
+        }
     }
 }

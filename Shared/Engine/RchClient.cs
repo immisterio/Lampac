@@ -45,7 +45,7 @@ namespace Shared.Engine
                 }, 
                 async (connectionId, cancellationToken) =>
                 {
-                    if (clients.ContainsKey(connectionId))
+                    if (clients.TryGetValue(connectionId, out var client) && client.connection == null)
                     {
                         var rch = new RchClient(connectionId);
                         string result = await rch.SendHub("ping", useDefaultHeaders: false);
@@ -66,12 +66,12 @@ namespace Shared.Engine
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        public static ConcurrentDictionary<string, (string ip, string host, RchClientInfo info)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo)>();
+        public static ConcurrentDictionary<string, (string ip, string host, RchClientInfo info, NwsConnection connection)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo, NwsConnection)>();
 
         public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
-        public static void Registry(string ip, string connectionId, string host = null, string json = null)
+        public static void Registry(string ip, string connectionId, string host = null, string json = null, NwsConnection connection = null)
         {
             RchClientInfo info = default;
             if (json != null)
@@ -92,7 +92,16 @@ namespace Shared.Engine
                 }
             }
 
-            clients.AddOrUpdate(connectionId, (ip, host, info), (i,j) => (ip, host, info));
+            var _current = clients.FirstOrDefault(i => i.Value.ip == ip);
+            if (_current.Key != null)
+            {
+                if (_current.Value.connection != null)
+                    _current.Value.connection.Cancel();
+
+                clients.TryRemove(_current.Key, out _);
+            }
+
+            clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i,j) => (ip, host, info, connection));
         }
 
 

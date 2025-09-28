@@ -25,23 +25,13 @@ namespace Lampac.Engine
 
         static readonly ConcurrentDictionary<string, NwsConnection> _connections = new ConcurrentDictionary<string, NwsConnection>();
 
-        static readonly TimeSpan ConnectionInactivityTimeout = TimeSpan.FromHours(5);
-
-        static readonly TimeSpan ConnectionMonitorInterval = TimeSpan.FromMinutes(30);
-
-        static readonly Timer ConnectionMonitorTimer = new Timer(ConnectionMonitorCallback, null, ConnectionMonitorInterval, ConnectionMonitorInterval);
-
-        static readonly ConcurrentDictionary<string, NwsClientInfo> _connectionInfos = new ConcurrentDictionary<string, NwsClientInfo>();
+        static readonly Timer ConnectionMonitorTimer = new Timer(ConnectionMonitorCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
 
         public static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
 
         static readonly ConcurrentDictionary<string, string> event_clients = new ConcurrentDictionary<string, string>();
-        #endregion
 
-        #region properties
-        public ConcurrentDictionary<string, NwsClientInfo> Connections => _connectionInfos;
-
-        public static int ConnectionCount => _connectionInfos.Count;
+        public static int ConnectionCount => _connections.Count;
         #endregion
 
         #region interface
@@ -59,47 +49,29 @@ namespace Lampac.Engine
                 return;
             }
 
-            using var socket = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
-
-            var requestInfo = context.Features.Get<RequestModel>();
-            string ip = requestInfo.IP ?? context.Connection.RemoteIpAddress?.ToString();
-            string host = AppInit.Host(context);
-            string userAgent = requestInfo.UserAgent;
-
-            string connectionId = Guid.NewGuid().ToString("N");
-
-            var info = new NwsClientInfo
+            using (var socket = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false))
             {
-                ConnectionId = connectionId,
-                Ip = ip,
-                Host = host,
-                UserAgent = userAgent,
-                ConnectedAtUtc = DateTime.UtcNow
-            };
+                var requestInfo = context.Features.Get<RequestModel>();
+                string ip = requestInfo.IP ?? context.Connection.RemoteIpAddress?.ToString();
 
-            var connection = new NwsConnection(connectionId, socket, host, ip, userAgent);
+                string connectionId = Guid.NewGuid().ToString("N");
 
-            var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
-            connection.SetCancellationSource(cancellationSource);
+                var connection = new NwsConnection(connectionId, socket, AppInit.Host(context), ip);
 
-            _connections.TryAdd(connectionId, connection);
-            _connectionInfos.AddOrUpdate(connectionId, info, (_, existing) =>
-            {
-                existing.Ip = info.Ip;
-                existing.Host = info.Host;
-                existing.UserAgent = info.UserAgent;
-                existing.ConnectedAtUtc = info.ConnectedAtUtc;
-                return existing;
-            });
+                var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+                connection.SetCancellationSource(cancellationSource);
 
-            try
-            {
-                await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
-                await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
-            }
-            finally
-            {
-                Cleanup(connectionId);
+                _connections.TryAdd(connectionId, connection);
+
+                try
+                {
+                    await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
+                    await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    Cleanup(connectionId);
+                }
             }
         }
         #endregion
@@ -108,7 +80,7 @@ namespace Lampac.Engine
         static async Task ReceiveLoopAsync(NwsConnection connection, CancellationToken token)
         {
             WebSocket socket = connection.Socket;
-            var buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
+            var buffer = ArrayPool<byte>.Shared.Rent(4096);
             var builder = new StringBuilder();
 
             try
@@ -146,7 +118,7 @@ namespace Lampac.Engine
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
                         string message = builder.ToString();
-                        if (!string.IsNullOrWhiteSpace(message))
+                        if (!string.IsNullOrWhiteSpace(message) && message != "ping")
                             await HandleMessageAsync(connection, message).ConfigureAwait(false);
                     }
                 }
@@ -203,8 +175,8 @@ namespace Lampac.Engine
                     if (AppInit.conf.rch.enable)
                     {
                         string json = GetStringArg(args, 0);
-                        RchClient.Registry(connection.Ip, connection.ConnectionId, connection.Host, json);
-                        await SendAsync(connection, "RchRegistry", connection.ConnectionId).ConfigureAwait(false);
+                        RchClient.Registry(connection.Ip, connection.ConnectionId, connection.Host, json, connection);
+                        await SendAsync(connection, "RchRegistry", connection.Ip).ConfigureAwait(false);
                     }
                     break;
 
@@ -393,7 +365,6 @@ namespace Lampac.Engine
                 connection.Dispose();
             }
 
-            _connectionInfos.TryRemove(connectionId, out _);
             weblog_clients.TryRemove(connectionId, out _);
             event_clients.TryRemove(connectionId, out _);
             RchClient.OnDisconnected(connectionId);
@@ -408,13 +379,13 @@ namespace Lampac.Engine
                 if (_connections.IsEmpty)
                     return;
 
-                DateTime threshold = DateTime.UtcNow - ConnectionInactivityTimeout;
-
-                foreach (var pair in _connections)
+                foreach (string connectionId in _connections.Select(kv => kv.Key).ToArray())
                 {
-                    var connection = pair.Value;
-                    if (connection.LastActivityUtc <= threshold)
-                        connection.Cancel();
+                    if (_connections.TryGetValue(connectionId, out var connection))
+                    {
+                        if (DateTime.UtcNow.AddMinutes(-10) >= connection.LastActivityUtc)
+                            connection.Cancel();
+                    }
                 }
             }
             catch
@@ -423,78 +394,4 @@ namespace Lampac.Engine
         }
         #endregion
     }
-
-
-    #region NwsConnection
-    sealed class NwsConnection : IDisposable
-    {
-        public NwsConnection(string connectionId, WebSocket socket, string host, string ip, string userAgent)
-        {
-            ConnectionId = connectionId;
-            Socket = socket;
-            Host = host;
-            Ip = ip;
-            UserAgent = userAgent;
-            SendLock = new SemaphoreSlim(1, 1);
-            UpdateActivity();
-        }
-
-        public string ConnectionId { get; }
-
-        public WebSocket Socket { get; }
-
-        public string Host { get; }
-
-        public string Ip { get; }
-
-        public string UserAgent { get; }
-
-        public SemaphoreSlim SendLock { get; }
-
-        long _lastActivityTicks;
-
-        CancellationTokenSource _cancellationSource;
-
-        public DateTime LastActivityUtc
-        {
-            get
-            {
-                long ticks = Interlocked.Read(ref _lastActivityTicks);
-                return new DateTime(ticks, DateTimeKind.Utc);
-            }
-        }
-
-        public void UpdateActivity()
-        {
-            Interlocked.Exchange(ref _lastActivityTicks, DateTime.UtcNow.Ticks);
-        }
-
-        public void SetCancellationSource(CancellationTokenSource source)
-        {
-            var previous = Interlocked.Exchange(ref _cancellationSource, source);
-            previous?.Dispose();
-        }
-
-        public void Cancel()
-        {
-            var source = Interlocked.CompareExchange(ref _cancellationSource, null, null);
-            if (source == null)
-                return;
-
-            try
-            {
-                source.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-        }
-
-        public void Dispose()
-        {
-            SendLock.Dispose();
-            Interlocked.Exchange(ref _cancellationSource, null)?.Dispose();
-        }
-    }
-    #endregion
 }
