@@ -26,9 +26,9 @@ namespace Shared
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "147";
+        public static string appversion => "148";
 
-        public static string minorversion => "18";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -52,23 +52,26 @@ namespace Shared
         }
 
         #region mylocalip
+        static string lastMyIp = null;
+
         async public ValueTask<string> mylocalip()
         {
             string key = "BaseController:mylocalip";
-            if (!hybridCache.TryGetValue(key, out string userIp))
+            if (!memoryCache.TryGetValue(key, out string userIp))
             {
                 userIp = await InvkEvent.MyLocalIp(new EventMyLocalIp(requestInfo, HttpContext.Request, HttpContext, hybridCache));
 
-                if (string.IsNullOrWhiteSpace(userIp))
+                if (string.IsNullOrEmpty(userIp))
                 {
                     var myip = await Http.Get<JObject>("https://api.ipify.org/?format=json");
-                    if (myip == null || string.IsNullOrWhiteSpace(myip.Value<string>("ip")))
-                        return null;
+                    if (myip == null || string.IsNullOrEmpty(myip.Value<string>("ip")))
+                        return lastMyIp;
 
                     userIp = myip.Value<string>("ip");
+                    lastMyIp = userIp;
                 }
 
-                hybridCache.Set(key, userIp, DateTime.Now.AddMinutes(15));
+                memoryCache.Set(key, userIp, DateTime.Now.AddMinutes(5));
             }
 
             return userIp;
