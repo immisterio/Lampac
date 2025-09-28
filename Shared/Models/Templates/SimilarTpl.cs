@@ -39,7 +39,7 @@ namespace Shared.Models.Templates
                     method = "link",
                     url = i.link,
                     similar = true,
-                    year = int.TryParse(i.year, out int _year) ? _year : 0,
+                    year = i.year != null && int.TryParse(i.year, out int _year) ? _year : 0,
                     i.details,
                     i.img
 

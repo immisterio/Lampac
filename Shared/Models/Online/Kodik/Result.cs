@@ -10,7 +10,7 @@
 
         public string type { get; set; }
 
-        public int year { get; set; }
+        public int? year { get; set; }
 
         public string link { get; set; }
 

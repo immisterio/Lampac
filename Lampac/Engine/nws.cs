@@ -111,6 +111,7 @@ namespace Lampac.Engine
                     builder.Clear();
 
                     WebSocketReceiveResult result;
+
                     do
                     {
                         result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), token).ConfigureAwait(false);
@@ -369,7 +370,7 @@ namespace Lampac.Engine
         #endregion
 
         #region cleanup
-        static void Cleanup(string connectionId)
+        public static void Cleanup(string connectionId)
         {
             if (string.IsNullOrEmpty(connectionId))
                 return;
