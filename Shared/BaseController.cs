@@ -12,7 +12,6 @@ using Shared.Models.Events;
 using Shared.Models.Online.Settings;
 using Shared.Models.SISI.OnResult;
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -29,7 +28,7 @@ namespace Shared
 
         public static string appversion => "148";
 
-        public static string minorversion => "2";
+        public static string minorversion => "3";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -717,7 +716,7 @@ namespace Shared
         #region RedirectToPlay
         public RedirectResult RedirectToPlay(string url)
         {
-            if (!url.Contains(" ") || url.Contains("/proxy/"))
+            if (!url.Contains(" "))
                 return new RedirectResult(url);
 
             return new RedirectResult(url.Split(" ")[0].Trim());

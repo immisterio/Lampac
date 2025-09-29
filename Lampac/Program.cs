@@ -112,8 +112,8 @@ namespace Lampac
 
             RchClient.hub += (e, req) =>
             {
-                _= soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
                 _ = nws.SendRchRequestAsync(req.connectionId, req.rchId, req.url, req.data, req.headers, req.returnHeaders).ConfigureAwait(false);
+                _ = soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
             };
 
             string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
