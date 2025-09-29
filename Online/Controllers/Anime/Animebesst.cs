@@ -202,7 +202,7 @@ namespace Online.Controllers
             string link = HostStreamProxy(init, cache.Value, proxy: proxyManager.Get());
 
             if (play)
-                return Redirect(link);
+                return RedirectToPlay(link);
 
             return ContentTo(VideoTpl.ToJson("play", link, title, vast: init.vast));
         }

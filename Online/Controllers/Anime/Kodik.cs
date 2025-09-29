@@ -148,7 +148,7 @@ namespace Online.Controllers
                     return OnError();
 
                 if (play)
-                    return Redirect(result);
+                    return RedirectToPlay(result);
 
                 return ContentTo(result);
             }
@@ -233,7 +233,7 @@ namespace Online.Controllers
                         streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy), l.q);
 
                     if (play)
-                        return Redirect(streamquality.Firts().link);
+                        return RedirectToPlay(streamquality.Firts().link);
 
                     string name = title ?? original_title;
                     if (episode > 0)

@@ -81,7 +81,7 @@ namespace Online.Controllers
 
                         string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders_headers);
                         if (play)
-                            return Redirect(file);
+                            return RedirectToPlay(file);
 
                         return ContentTo(VideoTpl.ToJson("play", file, "English", subtitles: subtitles, vast: init.vast, headers: init.streamproxy ? null : lastHeaders_headers));
                     }
@@ -99,7 +99,7 @@ namespace Online.Controllers
                 string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
 
                 if (play)
-                    return Redirect(hls);
+                    return RedirectToPlay(hls);
 
                 return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
             });

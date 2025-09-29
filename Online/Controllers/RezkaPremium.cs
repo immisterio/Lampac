@@ -317,7 +317,7 @@ namespace Online.Controllers
                 return OnError("result = null", weblog: oninvk.requestlog);
 
             if (play)
-                return Redirect(result);
+                return RedirectToPlay(result);
 
             return ContentTo(result.Replace("/rezka", "/rhsprem"));
         }

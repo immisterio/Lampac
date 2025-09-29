@@ -166,7 +166,7 @@ namespace Online.Controllers
                 string hls = HostStreamProxy(init, location, proxy: proxy.proxy);
 
                 if (HttpContext.Request.Path.Value.Contains(".m3u8"))
-                    return Redirect(hls);
+                    return RedirectToPlay(hls);
 
                 return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast));
             });

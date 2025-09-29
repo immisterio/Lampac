@@ -12,6 +12,7 @@ using Shared.Models.Events;
 using Shared.Models.Online.Settings;
 using Shared.Models.SISI.OnResult;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -218,14 +219,14 @@ namespace Shared
         public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, bool force_streamproxy = false)
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
-                return uri;
+                return uri?.Split(" ")?[0]?.Trim();
 
             string _eventUri = InvkEvent.HostStreamProxy(new EventHostStreamProxy(conf, uri, headers, proxy, requestInfo, HttpContext, hybridCache));
             if (_eventUri != null)
                 return _eventUri;
 
             if (conf.rhub && !conf.rhub_streamproxy)
-                return uri;
+                return uri.Split(" ")[0].Trim();
 
             bool streamproxy = conf.streamproxy || conf.useproxystream || force_streamproxy;
             if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
@@ -713,6 +714,15 @@ namespace Shared
         }
         #endregion
 
+        #region RedirectToPlay
+        public RedirectResult RedirectToPlay(string url)
+        {
+            if (!url.Contains(" ") || url.Contains("/proxy/"))
+                return new RedirectResult(url);
+
+            return new RedirectResult(url.Split(" ")[0].Trim());
+        }
+        #endregion
 
         #region ContentTo / Dispose
         public ActionResult ContentTo(in string html)

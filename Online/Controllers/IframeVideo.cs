@@ -95,7 +95,7 @@ namespace Online.Controllers
 
             string url = HostStreamProxy(init, urim3u8, proxy: proxy);
             if (play)
-                return Redirect(url);
+                return RedirectToPlay(url);
 
             return Content("{\"method\":\"play\",\"url\":\"" + url + "\",\"title\":\"" + (title ?? original_title) + "\"}", "application/json; charset=utf-8");
         }

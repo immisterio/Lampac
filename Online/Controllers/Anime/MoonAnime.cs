@@ -286,7 +286,7 @@ namespace Online.Controllers
 
 
                 if (play)
-                    return Redirect(file);
+                    return RedirectToPlay(file);
 
                 return ContentTo(VideoTpl.ToJson("play", file, (title ?? original_title), subtitles: subtitles, vast: init.vast));
             });

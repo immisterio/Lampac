@@ -205,7 +205,7 @@ namespace Online.Controllers
                     streams.Add((HostStreamProxy(init, r.Value<string>("url"), proxy: proxy), $"{r.Value<int>("type")}p"));
 
                 if (play)
-                    return Redirect(streams[0].link);
+                    return RedirectToPlay(streams[0].link);
 
                 var titleObj = root["media"]["movie"]["title"] as JObject;
                 string titleRu = titleObj?["ru"]?.ToString();

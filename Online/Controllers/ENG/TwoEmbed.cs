@@ -43,7 +43,7 @@ namespace Online.Controllers
                 hls = HostStreamProxy(init, hls, proxy: proxy.proxy);
 
                 if (play)
-                    return Redirect(hls);
+                    return RedirectToPlay(hls);
 
                 return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream)));
             });

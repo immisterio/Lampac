@@ -220,7 +220,7 @@ namespace Online.Controllers
                 return OnError(null, gbcache: !rch.enable);
 
             if (play)
-                return Redirect(result);
+                return RedirectToPlay(result);
 
             return ContentTo(result);
         }

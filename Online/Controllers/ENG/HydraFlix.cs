@@ -51,7 +51,7 @@ namespace Online.Controllers
                 string file = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
 
                 if (play)
-                    return Redirect(file);
+                    return RedirectToPlay(file);
 
                 return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
             });

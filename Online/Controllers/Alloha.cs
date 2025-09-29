@@ -233,7 +233,7 @@ namespace Online.Controllers
                     }
 
                     if (play)
-                        return Redirect(streams[0].link.Split(" ")[0]);
+                        return RedirectToPlay(streams[0].link);
 
                     return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title),
                         streamquality: new StreamQualityTpl(streams),
@@ -350,7 +350,7 @@ namespace Online.Controllers
                     }
 
                     if (play)
-                        return Redirect(streamquality.Firts().link);
+                        return RedirectToPlay(streamquality.Firts().link);
 
                     #region subtitle
                     var subtitles = new SubtitleTpl();

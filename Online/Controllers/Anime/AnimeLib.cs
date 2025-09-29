@@ -283,7 +283,7 @@ namespace Online.Controllers
                 return OnError("streams");
 
             if (play)
-                return Redirect(streams[0].link);
+                return RedirectToPlay(streams[0].link);
 
             return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: init.streamproxy ? null : headers_stream));
         }

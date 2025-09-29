@@ -342,7 +342,7 @@ namespace Online.Controllers
                 }
 
                 if (play)
-                    return Redirect(streamquality.Firts().link);
+                    return RedirectToPlay(streamquality.Firts().link);
 
                 return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, hlsSource.Value<string>("label"),
                        streamquality: streamquality,

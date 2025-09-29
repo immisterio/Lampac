@@ -40,7 +40,7 @@ namespace Online.Controllers
                 file = HostStreamProxy(init, file, proxy: proxy.proxy);
 
                 if (play)
-                    return Redirect(file);
+                    return RedirectToPlay(file);
 
                 return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream), hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds));
             });

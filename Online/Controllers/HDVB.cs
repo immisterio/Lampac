@@ -227,7 +227,7 @@ namespace Online.Controllers
                 string m3u8 = HostStreamProxy(init, urim3u8, proxy: proxy);
 
                 if (play)
-                    return Redirect(m3u8);
+                    return RedirectToPlay(m3u8);
 
                 return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast));
             });
