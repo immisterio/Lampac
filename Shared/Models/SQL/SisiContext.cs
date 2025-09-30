@@ -15,7 +15,9 @@ namespace Shared.Models.SQL
             try
             {
                 Write = new SisiContext();
+                Write.ChangeTracker.AutoDetectChangesEnabled = false;
                 Write.Database.EnsureCreated();
+
                 Read = new SisiContext();
             }
             catch (Exception ex)

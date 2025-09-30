@@ -13,7 +13,9 @@ namespace Shared.Models.SQL
             try
             {
                 Write = new HybridCacheContext();
+                Write.ChangeTracker.AutoDetectChangesEnabled = false;
                 Write.Database.EnsureCreated();
+
                 Read = new HybridCacheContext();
             }
             catch (Exception ex)

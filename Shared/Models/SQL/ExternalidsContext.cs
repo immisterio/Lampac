@@ -13,7 +13,9 @@ namespace Shared.Models.SQL
             try
             {
                 Write = new ExternalidsContext();
+                Write.ChangeTracker.AutoDetectChangesEnabled = false;
                 Write.Database.EnsureCreated();
+
                 Read = new ExternalidsContext();
             }
             catch (Exception ex)

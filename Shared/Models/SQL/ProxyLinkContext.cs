@@ -13,7 +13,9 @@ namespace Shared.Models.SQL
             try
             {
                 Write = new ProxyLinkContext();
+                Write.ChangeTracker.AutoDetectChangesEnabled = false;
                 Write.Database.EnsureCreated();
+
                 Read = new ProxyLinkContext();
             }
             catch (Exception ex)

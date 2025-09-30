@@ -13,7 +13,9 @@ namespace Shared.Models.SQL
             try
             {
                 Write = new PlaywrightContext();
+                Write.ChangeTracker.AutoDetectChangesEnabled = false;
                 Write.Database.EnsureCreated();
+
                 Read = new PlaywrightContext();
             }
             catch (Exception ex)

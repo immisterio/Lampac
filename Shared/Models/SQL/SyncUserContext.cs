@@ -15,7 +15,9 @@ namespace Shared.Models.SQL
             try
             {
                 Write = new SyncUserContext();
+                Write.ChangeTracker.AutoDetectChangesEnabled = false;
                 Write.Database.EnsureCreated();
+
                 Read = new SyncUserContext();
             }
             catch (Exception ex)
