@@ -270,6 +270,7 @@ namespace Online.Controllers
                 if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
                 {
                     imdb_id = ExternalidsDb.Read.imdb.Find($"{id}_{serial}")?.value;
+                    ExternalidsDb.Read.ChangeTracker.Clear();
 
                     if (string.IsNullOrEmpty(imdb_id))
                     {
@@ -295,6 +296,7 @@ namespace Online.Controllers
                                     });
 
                                     sqlDb.SaveChanges();
+                                    sqlDb.ChangeTracker.Clear();
                                 }
                             }
                         }

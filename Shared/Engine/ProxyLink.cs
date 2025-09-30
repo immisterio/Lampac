@@ -138,6 +138,8 @@ namespace Shared.Engine
                     if (!AppInit.conf.mikrotik)
                     {
                         var link = ProxyLinkDb.Read.links.Find(hash);
+                        ProxyLinkDb.Read.ChangeTracker.Clear();
+
                         if (link != null && link.ex > DateTime.Now)
                         {
                             val = JsonSerializer.Deserialize<ProxyLinkModel>(link.json);
@@ -200,6 +202,7 @@ namespace Shared.Engine
                 cronRound++;
 
                 var sqlDb = ProxyLinkDb.Write;
+                sqlDb.ChangeTracker.Clear();
 
                 if (DateTime.Now > _nextClearDb)
                 {

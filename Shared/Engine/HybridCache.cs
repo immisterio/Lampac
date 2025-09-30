@@ -15,7 +15,7 @@ namespace Shared.Engine
 
         static Timer _clearTimer;
 
-        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
+        static DateTime _nextClearDb = DateTime.Now.AddMinutes(20);
 
         static ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel cache)> tempDb;
 
@@ -38,6 +38,7 @@ namespace Shared.Engine
                 updatingDb = true;
 
                 var sqlDb = HybridCacheDb.Write;
+                sqlDb.ChangeTracker.Clear();
 
                 if (DateTime.Now > _nextClearDb)
                 {
@@ -48,7 +49,7 @@ namespace Shared.Engine
                          .Where(i => now > i.ex)
                          .ExecuteDeleteAsync();
 
-                    _nextClearDb = DateTime.Now.AddHours(1);
+                    _nextClearDb = DateTime.Now.AddMinutes(20);
                 }
                 else
                 {
@@ -82,7 +83,7 @@ namespace Shared.Engine
                 }
             }
             catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }
-            finally 
+            finally
             {
                 updatingDb = false;
             }
@@ -170,7 +171,10 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    return deserializeCache(HybridCacheDb.Read.files.Find(md5key), out value);
+                    var doc = HybridCacheDb.Read.files.Find(md5key);
+                    HybridCacheDb.Read.ChangeTracker.Clear();
+
+                    return deserializeCache(doc, out value);
                 }
             }
             catch { }

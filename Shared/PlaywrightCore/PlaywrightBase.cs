@@ -362,6 +362,7 @@ namespace Shared.PlaywrightCore
                                      .Where(i => now > i.ex)
                                      .ExecuteDeleteAsync();
 
+                                PlaywrightDb.Write.ChangeTracker.Clear();
                                 _nextClearDb = DateTime.Now.AddMinutes(5);
                             }
                         }
@@ -369,6 +370,8 @@ namespace Shared.PlaywrightCore
                         #endregion
 
                         var doc = PlaywrightDb.Read.files.Find(memkey);
+                        PlaywrightDb.Read.ChangeTracker.Clear();
+
                         if (doc?.content != null)
                         {
                             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
@@ -406,6 +409,7 @@ namespace Shared.PlaywrightCore
                                         });
 
                                         await sqlDb.SaveChangesAsync();
+                                        sqlDb.ChangeTracker.Clear();
                                     }
                                 }
                             }

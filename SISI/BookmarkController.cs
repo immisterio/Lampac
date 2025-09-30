@@ -33,6 +33,8 @@ namespace SISI
                 .Where(i => i.user == md5user)
                 .ToList();
 
+            SisiDb.Read.ChangeTracker.Clear();
+
             #region Модель
             var menu_models = new MenuItem()
             {
@@ -206,6 +208,7 @@ namespace SISI
                 });
 
                 sqlDb.SaveChanges();
+                sqlDb.ChangeTracker.Clear();
             }
 
             return Json(new
@@ -231,6 +234,7 @@ namespace SISI
             {
                 sqlDb.bookmarks.Remove(bookmark);
                 sqlDb.SaveChanges();
+                sqlDb.ChangeTracker.Clear();
             }
 
             return Json(new
