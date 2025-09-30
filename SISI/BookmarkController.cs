@@ -9,7 +9,7 @@ namespace SISI
     public class BookmarkController : BaseSisiController
     {
         [Route("sisi/bookmarks")]
-        public async Task<ActionResult> List(string search, string model, int pg = 1, int pageSize = 36)
+        public ActionResult List(string search, string model, int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
             if (md5user == null)
@@ -28,66 +28,63 @@ namespace SISI
             #region bookmarks
             var bookmarks = new List<PlaylistItem>();
 
-            using (var db = new SisiContext())
+            var bookmarksQuery = SisiDb.Read.bookmarks
+                .AsNoTracking()
+                .Where(i => i.user == md5user)
+                .ToList();
+
+            #region Модель
+            var menu_models = new MenuItem()
             {
-                var bookmarksQuery = await db.bookmarks
-                    .AsNoTracking()
-                    .Where(i => i.user == md5user)
-                    .ToListAsync();
+                title = $"Модель: {model ?? "выбрать"}",
+                playlist_url = "submenu",
+                submenu = new List<MenuItem>(20)
+            };
 
-                #region Модель
-                var menu_models = new MenuItem()
-                {
-                    title = $"Модель: {model ?? "выбрать"}",
-                    playlist_url = "submenu",
-                    submenu = new List<MenuItem>(20)
-                };
+            foreach (var m in bookmarksQuery.OrderByDescending(i => i.created).Select(i => i.model).ToHashSet())
+            {
+                if (string.IsNullOrEmpty(m))
+                    continue;
 
-                foreach (var m in bookmarksQuery.OrderByDescending(i => i.created).Select(i => i.model).ToHashSet())
+                menu_models.submenu.Add(new MenuItem()
                 {
-                    if (string.IsNullOrEmpty(m))
+                    title = m,
+                    playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(m)}"
+                });
+            }
+
+            if (menu_models.submenu.Count > 0)
+                menu.Add(menu_models);
+            #endregion
+
+            var items = bookmarksQuery
+                .OrderByDescending(i => i.created)
+                .Skip((pg * pageSize) - pageSize)
+                .Take(pageSize);
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                string _s = StringConvert.SearchName(search);
+                items = items.Where(i => i.name != null && StringConvert.SearchName(i.name).Contains(_s));
+            }
+
+            if (!string.IsNullOrEmpty(model))
+                items = items.Where(i => i.model == model);
+
+            if (items.Any())
+            {
+                foreach (var json in items.Select(i => i.json))
+                {
+                    if (string.IsNullOrEmpty(json))
                         continue;
 
-                    menu_models.submenu.Add(new MenuItem()
+                    try
                     {
-                        title = m,
-                        playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(m)}"
-                    });
-                }
-
-                if (menu_models.submenu.Count > 0)
-                    menu.Add(menu_models);
-                #endregion
-
-                var items = bookmarksQuery
-                    .OrderByDescending(i => i.created)
-                    .Skip((pg * pageSize) - pageSize)
-                    .Take(pageSize);
-
-                if (!string.IsNullOrEmpty(search))
-                {
-                    string _s = StringConvert.SearchName(search);
-                    items = items.Where(i => i.name != null && StringConvert.SearchName(i.name).Contains(_s));
-                }
-
-                if (!string.IsNullOrEmpty(model))
-                    items = items.Where(i => i.model == model);
-
-                if (items.Any())
-                {
-                    foreach (var json in items.Select(i => i.json))
-                    {
-                        if (string.IsNullOrEmpty(json))
-                            continue;
-
-                        try
-                        {
-                            var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(json);
-                            if (bookmark != null)
-                                bookmarks.Add(bookmark);
-                        }
-                        catch { }
+                        var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(json);
+                        if (bookmark != null)
+                            bookmarks.Add(bookmark);
                     }
+                    catch { }
                 }
             }
             #endregion
@@ -134,82 +131,81 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            using (var db = new SisiContext())
+            var sqlDb = SisiDb.Write;
+
+            if (!sqlDb.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
             {
-                if (!await db.bookmarks.AsNoTracking().AnyAsync(i => i.user == md5user && i.uid == uid))
+                string newimage = null;
+
+                #region download image
+                if (AppInit.conf.sisi.bookmarks.saveimage)
                 {
-                    string newimage = null;
+                    string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
 
-                    #region download image
-                    if (AppInit.conf.sisi.bookmarks.saveimage)
+                    if (System.IO.File.Exists($"wwwroot/{pimg}"))
                     {
-                        string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
-
-                        if (System.IO.File.Exists($"wwwroot/{pimg}"))
+                        newimage = pimg;
+                    }
+                    else
+                    {
+                        var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
+                        if (image != null)
                         {
+                            Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
+                            System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
                             newimage = pimg;
+                        }
+                    }
+                }
+                #endregion
+
+                #region download preview
+                if (AppInit.conf.sisi.bookmarks.savepreview)
+                {
+                    if (data.preview != null)
+                    {
+                        string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
+
+                        if (System.IO.File.Exists($"wwwroot/{path}"))
+                        {
+                            data.preview = path;
                         }
                         else
                         {
-                            var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
-                            if (image != null)
+                            var preview = await Http.Download(data.preview, timeoutSeconds: 8);
+                            if (preview != null)
                             {
-                                Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                                System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
-                                newimage = pimg;
-                            }
-                        }
-                    }
-                    #endregion
-
-                    #region download preview
-                    if (AppInit.conf.sisi.bookmarks.savepreview)
-                    {
-                        if (data.preview != null)
-                        {
-                            string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
-
-                            if (System.IO.File.Exists($"wwwroot/{path}"))
-                            {
+                                Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
+                                System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
                                 data.preview = path;
                             }
-                            else
-                            {
-                                var preview = await Http.Download(data.preview, timeoutSeconds: 8);
-                                if (preview != null)
-                                {
-                                    Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
-                                    System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
-                                    data.preview = path;
-                                }
-                            }
                         }
                     }
-                    #endregion
-
-                    var b = data.bookmark;
-                    data.bookmark = new Bookmark()
-                    {
-                        href = b.href,
-                        image = newimage ?? b.image,
-                        site = b.site,
-                        uid = uid
-                    };
-
-                    string json = JsonConvert.SerializeObject(data);
-
-                    db.bookmarks.Add(new SisiBookmarkSqlModel
-                    {
-                        user = md5user,
-                        uid = uid,
-                        created = DateTime.UtcNow,
-                        json = json,
-                        name = data.name,
-                        model = data.model?.name
-                    });
-
-                    await db.SaveChangesAsync();
                 }
+                #endregion
+
+                var b = data.bookmark;
+                data.bookmark = new Bookmark()
+                {
+                    href = b.href,
+                    image = newimage ?? b.image,
+                    site = b.site,
+                    uid = uid
+                };
+
+                string json = JsonConvert.SerializeObject(data);
+
+                sqlDb.bookmarks.Add(new SisiBookmarkSqlModel
+                {
+                    user = md5user,
+                    uid = uid,
+                    created = DateTime.UtcNow,
+                    json = json,
+                    name = data.name,
+                    model = data.model?.name
+                });
+
+                sqlDb.SaveChanges();
             }
 
             return Json(new
@@ -220,22 +216,21 @@ namespace SISI
 
 
         [Route("sisi/bookmark/remove")]
-        public async Task<ActionResult> Remove(string id)
+        public ActionResult Remove(string id)
         {
             string md5user = getuser();
             if (md5user == null || string.IsNullOrEmpty(id))
                 return OnError("access denied");
 
-            using (var db = new SisiContext())
-            {
-                var bookmark = await db.bookmarks
-                    .FirstOrDefaultAsync(i => i.user == md5user && i.uid == id);
+            var sqlDb = SisiDb.Write;
 
-                if (bookmark != null)
-                {
-                    db.bookmarks.Remove(bookmark);
-                    await db.SaveChangesAsync();
-                }
+            var bookmark = sqlDb.bookmarks
+                .FirstOrDefault(i => i.user == md5user && i.uid == id);
+
+            if (bookmark != null)
+            {
+                sqlDb.bookmarks.Remove(bookmark);
+                sqlDb.SaveChanges();
             }
 
             return Json(new

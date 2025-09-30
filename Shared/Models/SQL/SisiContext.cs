@@ -4,31 +4,36 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shared.Models.SQL
 {
-    public class SisiContext : DbContext
+    public static class SisiDb
     {
-        public static void Configure()
+        public static readonly SisiContext Read, Write;
+
+        static SisiDb()
         {
+            Directory.CreateDirectory("database");
+
             try
             {
-                Directory.CreateDirectory("database");
-
-                using (var context = new SisiContext())
-                    context.Database.EnsureCreated();
+                Write = new SisiContext();
+                Write.Database.EnsureCreated();
+                Read = new SisiContext();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Sisi.sql initialization failed: {ex.Message}");
+                Console.WriteLine($"SisiDb initialization failed: {ex.Message}");
             }
         }
+    }
 
+
+    public class SisiContext : DbContext
+    {
         public DbSet<SisiBookmarkSqlModel> bookmarks { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (Startup.IsShutdown)
-                return;
-
             optionsBuilder.UseSqlite("Data Source=database/Sisi.sql");
+            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

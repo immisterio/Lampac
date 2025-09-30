@@ -30,57 +30,54 @@ namespace Shared.Engine
         static bool updatingDb = false;
         async static void UpdateDB(object state)
         {
-            if (updatingDb)
+            if (updatingDb || tempDb.Count == 0)
                 return;
 
             try
             {
                 updatingDb = true;
 
-                using (var sqlDb = new HybridCacheContext())
+                var sqlDb = HybridCacheDb.Write;
+
+                if (DateTime.Now > _nextClearDb)
                 {
-                    if (DateTime.Now > _nextClearDb)
-                    {
-                        var now = DateTime.Now;
+                    var now = DateTime.Now;
 
-                        await sqlDb.files
-                             .AsNoTracking()
-                             .Where(i => now > i.ex)
-                             .ExecuteDeleteAsync();
+                    await sqlDb.files
+                         .AsNoTracking()
+                         .Where(i => now > i.ex)
+                         .ExecuteDeleteAsync();
 
-                        _nextClearDb = DateTime.Now.AddHours(1);
-                    }
-                    else
+                    _nextClearDb = DateTime.Now.AddHours(1);
+                }
+                else
+                {
+                    foreach (var t in tempDb.ToArray())
                     {
-                        foreach (var t in tempDb.ToArray())
+                        try
                         {
-                            try
+                            if (t.Value.extend >= DateTime.Now)
+                                continue;
+
+                            var doc = sqlDb.files.Find(t.Value.cache.Id);
+                            if (doc != null)
                             {
-                                if (t.Value.extend >= DateTime.Now)
-                                    continue;
-
-                                var doc = sqlDb.files.Find(t.Value.cache.Id);
-                                if (doc != null)
-                                {
-                                    doc.ex = t.Value.cache.ex;
-                                    doc.value = t.Value.cache.value;
-                                }
-                                else
-                                {
-                                    sqlDb.files.Add(new HybridCacheSqlModel()
-                                    {
-                                        Id = t.Key,
-                                        ex = t.Value.cache.ex,
-                                        value = t.Value.cache.value
-                                    });
-                                }
-
+                                sqlDb.files.Remove(doc);
                                 await sqlDb.SaveChangesAsync();
-
-                                tempDb.TryRemove(t.Key, out _);
                             }
-                            catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }
+
+                            sqlDb.files.Add(new HybridCacheSqlModel()
+                            {
+                                Id = t.Key,
+                                ex = t.Value.cache.ex,
+                                value = t.Value.cache.value
+                            });
+
+                            await sqlDb.SaveChangesAsync();
+
+                            tempDb.TryRemove(t.Key, out _);
                         }
+                        catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }
                     }
                 }
             }
@@ -173,8 +170,7 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    using (var sqlDb = new HybridCacheContext())
-                        return deserializeCache(sqlDb.files.Find(md5key), out value);
+                    return deserializeCache(HybridCacheDb.Read.files.Find(md5key), out value);
                 }
             }
             catch { }

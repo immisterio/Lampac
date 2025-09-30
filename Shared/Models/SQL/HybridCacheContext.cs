@@ -4,37 +4,41 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shared.Models.SQL
 {
-    public class HybridCacheContext : DbContext
+    public static class HybridCacheDb
     {
-        public static void Configure()
+        public static readonly HybridCacheContext Read, Write;
+
+        static HybridCacheDb()
         {
             try
             {
-                using (var context = new HybridCacheContext())
-                    context.Database.EnsureCreated();
+                Write = new HybridCacheContext();
+                Write.Database.EnsureCreated();
+                Read = new HybridCacheContext();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"HybridCache.sql initialization failed: {ex.Message}");
+                Console.WriteLine($"HybridCacheDb initialization failed: {ex.Message}");
             }
         }
+    }
 
+
+    public class HybridCacheContext : DbContext
+    {
         public DbSet<HybridCacheSqlModel> files { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (Startup.IsShutdown)
-                return;
-
             optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql");
-            //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
-        //protected override void OnModelCreating(ModelBuilder modelBuilder)
-        //{
-        //    modelBuilder.Entity<HybridCacheSqlModel>()
-        //                .HasIndex(j => j.ex);
-        //}
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<HybridCacheSqlModel>()
+                        .HasIndex(j => j.ex);
+        }
     }
 
     public class HybridCacheSqlModel

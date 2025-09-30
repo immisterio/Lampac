@@ -4,37 +4,41 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shared.Models.SQL
 {
-    public class PlaywrightContext : DbContext
+    public static class PlaywrightDb
     {
-        public static void Configure()
+        public static readonly PlaywrightContext Read, Write;
+
+        static PlaywrightDb()
         {
             try
             {
-                using (var context = new PlaywrightContext())
-                    context.Database.EnsureCreated();
+                Write = new PlaywrightContext();
+                Write.Database.EnsureCreated();
+                Read = new PlaywrightContext();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Playwright.sql initialization failed: {ex.Message}");
+                Console.WriteLine($"PlaywrightDb initialization failed: {ex.Message}");
             }
         }
+    }
 
+
+    public class PlaywrightContext : DbContext
+    {
         public DbSet<PlaywrightSqlModel> files { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (Startup.IsShutdown)
-                return;
-
             optionsBuilder.UseSqlite("Data Source=cache/Playwright.sql");
-            //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
-        //protected override void OnModelCreating(ModelBuilder modelBuilder)
-        //{
-        //    modelBuilder.Entity<ProxyLinkSqlModel>()
-        //                .HasIndex(j => j.ex);
-        //}
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ProxyLinkSqlModel>()
+                        .HasIndex(j => j.ex);
+        }
     }
 
     public class PlaywrightSqlModel

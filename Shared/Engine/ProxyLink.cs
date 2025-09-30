@@ -137,15 +137,12 @@ namespace Shared.Engine
                 {
                     if (!AppInit.conf.mikrotik)
                     {
-                        using (var sqlDb = new ProxyLinkContext())
+                        var link = ProxyLinkDb.Read.links.Find(hash);
+                        if (link != null && link.ex > DateTime.Now)
                         {
-                            var link = sqlDb.links.Find(hash);
-                            if (link != null && link.ex > DateTime.Now)
-                            {
-                                val = JsonSerializer.Deserialize<ProxyLinkModel>(link.json);
-                                val.id = link.Id;
-                                val.ex = link.ex;
-                            }
+                            val = JsonSerializer.Deserialize<ProxyLinkModel>(link.json);
+                            val.id = link.Id;
+                            val.ex = link.ex;
                         }
                     }
                 }
@@ -187,7 +184,7 @@ namespace Shared.Engine
 
         async static void Cron(object state)
         {
-            if (_cronWork)
+            if (_cronWork || links.Count == 0)
                 return;
 
             _cronWork = true;
@@ -202,64 +199,61 @@ namespace Shared.Engine
 
                 cronRound++;
 
-                using (var sqlDb = new ProxyLinkContext())
+                var sqlDb = ProxyLinkDb.Write;
+
+                if (DateTime.Now > _nextClearDb)
                 {
-                    if (DateTime.Now > _nextClearDb)
-                    {
-                        var now = DateTime.Now;
+                    var now = DateTime.Now;
 
-                        await sqlDb.links
-                             .AsNoTracking()
-                             .Where(i => now > i.ex)
-                             .ExecuteDeleteAsync();
+                    await sqlDb.links
+                         .AsNoTracking()
+                         .Where(i => now > i.ex)
+                         .ExecuteDeleteAsync();
 
-                        _nextClearDb = DateTime.Now.AddHours(1);
-                    }
-                    else
+                    _nextClearDb = DateTime.Now.AddHours(1);
+                }
+                else
+                {
+                    foreach (var link in links.ToArray())
                     {
-                        foreach (var link in links.ToArray())
+                        try
                         {
-                            try
+                            if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
                             {
-                                if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
-                                {
-                                    if (DateTime.Now > link.Value.ex)
-                                        links.TryRemove(link.Key, out _);
-                                }
+                                if (DateTime.Now > link.Value.ex)
+                                    links.TryRemove(link.Key, out _);
+                            }
+                            else
+                            {
+                                if (tempLinks.Contains(link.Key))
+                                    links.TryRemove(link.Key, out _);
                                 else
                                 {
-                                    if (tempLinks.Contains(link.Key))
-                                        links.TryRemove(link.Key, out _);
-                                    else
+                                    link.Value.id = link.Key;
+
+                                    var doc = sqlDb.links.Find(link.Key);
+                                    if (doc != null)
                                     {
-                                        link.Value.id = link.Key;
+                                        sqlDb.links.Remove(doc);
+                                        await sqlDb.SaveChangesAsync();
+                                    }
 
-                                        var doc = sqlDb.links.Find(link.Key);
-                                        if (doc != null)
-                                        {
-                                            doc.ex = link.Value.ex;
-                                            doc.json = JsonSerializer.Serialize(link.Value);
-                                        }
-                                        else
-                                        {
-                                            sqlDb.links.Add(new ProxyLinkSqlModel()
-                                            {
-                                                Id = link.Key,
-                                                ex = link.Value.ex,
-                                                json = JsonSerializer.Serialize(link.Value)
-                                            });
-                                        }
+                                    sqlDb.links.Add(new ProxyLinkSqlModel()
+                                    {
+                                        Id = link.Key,
+                                        ex = link.Value.ex,
+                                        json = JsonSerializer.Serialize(link.Value)
+                                    });
 
-                                        if (await sqlDb.SaveChangesAsync() > 0)
-                                        {
-                                            tempLinks.Add(link.Key);
-                                            links.TryRemove(link.Key, out _);
-                                        }
+                                    if (await sqlDb.SaveChangesAsync() > 0)
+                                    {
+                                        tempLinks.Add(link.Key);
+                                        links.TryRemove(link.Key, out _);
                                     }
                                 }
                             }
-                            catch (Exception ex) { Console.WriteLine($"ProxyLink: {ex}"); }
                         }
+                        catch (Exception ex) { Console.WriteLine($"ProxyLink: {ex}"); }
                     }
                 }
             }

@@ -148,12 +148,7 @@ namespace Lampac
             #endregion
 
             #region EFCore Configure
-            SisiContext.Configure();
             SyncUserContext.Configure();
-            ProxyLinkContext.Configure();
-            PlaywrightContext.Configure();
-            HybridCacheContext.Configure();
-            ExternalidsContext.Configure();
             #endregion
 
             #region migration

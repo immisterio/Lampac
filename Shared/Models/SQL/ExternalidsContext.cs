@@ -4,21 +4,28 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shared.Models.SQL
 {
-    public class ExternalidsContext : DbContext
+    public static class ExternalidsDb
     {
-        public static void Configure()
+        public static readonly ExternalidsContext Read, Write;
+
+        static ExternalidsDb()
         {
             try
             {
-                using (var context = new ExternalidsContext())
-                    context.Database.EnsureCreated();
+                Write = new ExternalidsContext();
+                Write.Database.EnsureCreated();
+                Read = new ExternalidsContext();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Externalids.sql initialization failed: {ex.Message}");
+                Console.WriteLine($"ExternalidsDb initialization failed: {ex.Message}");
             }
         }
+    }
 
+
+    public class ExternalidsContext : DbContext
+    {
         public DbSet<ExternalidsSqlModel> imdb { get; set; }
 
         public DbSet<ExternalidsSqlModel> kinopoisk { get; set; }
@@ -26,7 +33,7 @@ namespace Shared.Models.SQL
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("Data Source=cache/Externalids.sql");
-            //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
     }
 

@@ -269,33 +269,32 @@ namespace Online.Controllers
 
                 if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
                 {
-                    using (var sqlDb = new ExternalidsContext())
+                    imdb_id = ExternalidsDb.Read.imdb.Find($"{id}_{serial}")?.value;
+
+                    if (string.IsNullOrEmpty(imdb_id))
                     {
-                        imdb_id = sqlDb.imdb.Find($"{id}_{serial}")?.value;
-
-                        if (string.IsNullOrEmpty(imdb_id))
+                        string mkey = $"externalids:locktmdb:{serial}:{id}";
+                        if (!hybridCache.TryGetValue(mkey, out _))
                         {
-                            string mkey = $"externalids:locktmdb:{serial}:{id}";
-                            if (!hybridCache.TryGetValue(mkey, out _))
+                            hybridCache.Set(mkey, 0, DateTime.Now.AddHours(1));
+
+                            string cat = serial == 1 ? "tv" : "movie";
+                            var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
+                            string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
+                            if (!string.IsNullOrWhiteSpace(json))
                             {
-                                hybridCache.Set(mkey, 0, DateTime.Now.AddHours(1));
-
-                                string cat = serial == 1 ? "tv" : "movie";
-                                var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                                string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
-                                if (!string.IsNullOrWhiteSpace(json))
+                                imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
+                                if (!string.IsNullOrEmpty(imdb_id))
                                 {
-                                    imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
-                                    if (!string.IsNullOrEmpty(imdb_id))
-                                    {
-                                        sqlDb.Add(new ExternalidsSqlModel()
-                                        {
-                                            Id = $"{id}_{serial}",
-                                            value = imdb_id
-                                        });
+                                    var sqlDb = ExternalidsDb.Write;
 
-                                        sqlDb.SaveChanges();
-                                    }
+                                    sqlDb.Add(new ExternalidsSqlModel()
+                                    {
+                                        Id = $"{id}_{serial}",
+                                        value = imdb_id
+                                    });
+
+                                    sqlDb.SaveChanges();
                                 }
                             }
                         }

@@ -4,37 +4,41 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shared.Models.SQL
 {
-    public class ProxyLinkContext : DbContext
+    public static class ProxyLinkDb
     {
-        public static void Configure()
+        public static readonly ProxyLinkContext Read, Write;
+
+        static ProxyLinkDb()
         {
             try
             {
-                using (var context = new ProxyLinkContext())
-                    context.Database.EnsureCreated();
+                Write = new ProxyLinkContext();
+                Write.Database.EnsureCreated();
+                Read = new ProxyLinkContext();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ProxyLink.sql initialization failed: {ex.Message}");
+                Console.WriteLine($"ProxyLinkDb initialization failed: {ex.Message}");
             }
         }
+    }
 
+
+    public class ProxyLinkContext : DbContext
+    {
         public DbSet<ProxyLinkSqlModel> links { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (Startup.IsShutdown)
-                return;
-
             optionsBuilder.UseSqlite("Data Source=cache/ProxyLink.sql");
-            //optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
-        //protected override void OnModelCreating(ModelBuilder modelBuilder)
-        //{
-        //    modelBuilder.Entity<ProxyLinkSqlModel>()
-        //                .HasIndex(j => j.ex);
-        //}
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ProxyLinkSqlModel>()
+                        .HasIndex(j => j.ex);
+        }
     }
 
     public class ProxyLinkSqlModel

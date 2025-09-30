@@ -21,7 +21,7 @@ namespace Shared.PlaywrightCore
 
     public class PlaywrightBase
     {
-        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
+        static DateTime _nextClearDb = default;
 
         public TaskCompletionSource<string> completionSource { get; private set; } = new TaskCompletionSource<string>();
 
@@ -350,77 +350,66 @@ namespace Shared.PlaywrightCore
 
                     if (valid)
                     {
-                        using (var sqlDb = new PlaywrightContext())
+                        #region ClearDb
+                        try
                         {
-                            #region ClearDb
+                            if (DateTime.Now > _nextClearDb)
+                            {
+                                var now = DateTime.Now;
+
+                                await PlaywrightDb.Write.files
+                                     .AsNoTracking()
+                                     .Where(i => now > i.ex)
+                                     .ExecuteDeleteAsync();
+
+                                _nextClearDb = DateTime.Now.AddMinutes(5);
+                            }
+                        }
+                        catch { }
+                        #endregion
+
+                        var doc = PlaywrightDb.Read.files.Find(memkey);
+                        if (doc?.content != null)
+                        {
+                            if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                                Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
+
+                            await route.FulfillAsync(new RouteFulfillOptions
+                            {
+                                BodyBytes = doc.content,
+                                Headers = JsonSerializer.Deserialize<Dictionary<string, string>>(doc.headers)
+                            });
+                        }
+                        else
+                        {
+                            if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
+                                Console.WriteLine($"Playwright: MISS {route.Request.Url}");
+
+                            await route.ContinueAsync();
+
                             try
                             {
-                                if (DateTime.Now > _nextClearDb)
+                                var response = await page.WaitForResponseAsync(route.Request.Url);
+                                if (response != null)
                                 {
-                                    var now = DateTime.Now;
+                                    var content = await response.BodyAsync();
+                                    if (content != null)
+                                    {
+                                        var sqlDb = PlaywrightDb.Write;
 
-                                    await sqlDb.files
-                                         .AsNoTracking()
-                                         .Where(i => now > i.ex)
-                                         .ExecuteDeleteAsync();
+                                        sqlDb.files.Add(new PlaywrightSqlModel()
+                                        {
+                                            Id = memkey,
+                                            ex = DateTime.Now.AddHours(1),
+                                            headers = JsonSerializer.Serialize(response.Headers.ToDictionary()),
+                                            content = content
+                                        });
 
-                                    _nextClearDb = DateTime.Now.AddHours(1);
+                                        await sqlDb.SaveChangesAsync();
+                                    }
                                 }
                             }
                             catch { }
-                            #endregion
-
-                            var doc = await sqlDb.files.FindAsync(memkey);
-                            if (doc?.content != null && doc.ex > DateTime.Now)
-                            {
-                                if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
-                                    Console.WriteLine($"Playwright: CACHE {route.Request.Url}");
-
-                                await route.FulfillAsync(new RouteFulfillOptions
-                                {
-                                    BodyBytes = doc.content,
-                                    Headers = JsonSerializer.Deserialize<Dictionary<string, string>>(doc.headers)
-                                });
-                            }
-                            else
-                            {
-                                if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
-                                    Console.WriteLine($"Playwright: MISS {route.Request.Url}");
-
-                                await route.ContinueAsync();
-
-                                try
-                                {
-                                    var response = await page.WaitForResponseAsync(route.Request.Url);
-                                    if (response != null)
-                                    {
-                                        var content = await response.BodyAsync();
-                                        if (content != null)
-                                        {
-                                            if (doc != null)
-                                            {
-                                                doc.Id = memkey;
-                                                doc.ex = DateTime.Now.AddHours(1);
-                                                doc.headers = JsonSerializer.Serialize(response.Headers.ToDictionary());
-                                                doc.content = content;
-                                            }
-                                            else
-                                            {
-                                                sqlDb.files.Add(new PlaywrightSqlModel()
-                                                {
-                                                    Id = memkey,
-                                                    ex = DateTime.Now.AddHours(1),
-                                                    headers = JsonSerializer.Serialize(response.Headers.ToDictionary()),
-                                                    content = content
-                                                });
-                                            }
-
-                                            await sqlDb.SaveChangesAsync();
-                                        }
-                                    }
-                                }
-                                catch { }
-                            }
                         }
 
                         return true;
