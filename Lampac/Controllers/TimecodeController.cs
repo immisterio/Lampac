@@ -27,28 +27,25 @@ namespace Lampac.Controllers
         #endregion
 
         [Route("/timecode/all")]
-        async public Task<ActionResult> Get(string card_id)
+        public ActionResult Get(string card_id)
         {
             if (string.IsNullOrEmpty(card_id))
                 return Json(new { });
 
-            using (var db = new SyncUserContext())
-            {
-                Dictionary<string, string> timecodes = await db.timecodes
+            Dictionary<string, string> timecodes = SyncUserDb.Read.timecodes
                     .AsNoTracking()
                     .Where(i => i.user == requestInfo.user_uid && i.card == card_id)
-                    .ToDictionaryAsync(i => i.item, i => i.data);
+                    .ToDictionary(i => i.item, i => i.data);
 
-                if (timecodes.Count == 0)
-                    return Json(new { });
+            if (timecodes.Count == 0)
+                return Json(new { });
 
-                return Json(timecodes);
-            }
+            return Json(timecodes);
         }
 
         [HttpPost]
         [Route("/timecode/add")]
-        async public Task<ActionResult> Set([FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
+        public ActionResult Set([FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
                 return Content("{\"secuses\": false}", "application/json; charset=utf-8");
@@ -56,33 +53,29 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(card_id))
                 return Content("{\"secuses\": false}", "application/json; charset=utf-8");
 
-            using (var db = new SyncUserContext())
+            var sqlDb = SyncUserDb.Write;
+
+            var entity = sqlDb.timecodes
+                .FirstOrDefault(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id);
+
+            if (entity != null)
             {
-                var entity = await db.timecodes
-                    .FirstOrDefaultAsync(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id);
-
-                if (entity == null)
-                {
-                    entity = new SyncUserTimecodeSqlModel
-                    {
-                        user = requestInfo.user_uid,
-                        card = card_id,
-                        item = id,
-                        data = data,
-                        updated = DateTime.UtcNow
-                    };
-
-                    db.timecodes.Add(entity);
-                }
-                else
-                {
-                    entity.data = data;
-                    entity.updated = DateTime.UtcNow;
-                    db.timecodes.Update(entity);
-                }
-
-                await db.SaveChangesAsync();
+                sqlDb.timecodes.Remove(entity);
+                sqlDb.SaveChanges();
             }
+
+            entity = new SyncUserTimecodeSqlModel
+            {
+                user = requestInfo.user_uid,
+                card = card_id,
+                item = id,
+                data = data,
+                updated = DateTime.UtcNow
+            };
+
+            sqlDb.timecodes.Add(entity);
+
+            sqlDb.SaveChanges();
 
             return Json(new { secuses = true });
         }

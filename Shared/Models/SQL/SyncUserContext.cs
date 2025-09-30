@@ -4,51 +4,38 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shared.Models.SQL
 {
-    public class SyncUserContext : DbContext
+    public static class SyncUserDb
     {
-        public static void Configure()
+        public static readonly SyncUserContext Read, Write;
+
+        static SyncUserDb()
         {
+            Directory.CreateDirectory("database");
+
             try
             {
-                Directory.CreateDirectory("database");
-
-                using (var context = new SyncUserContext())
-                {
-                    context.Database.EnsureCreated();
-
-                    try
-                    {
-                        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ""bookmarks"" (
-    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_bookmarks"" PRIMARY KEY AUTOINCREMENT,
-    ""user"" TEXT NOT NULL,
-    ""data"" TEXT NOT NULL,
-    ""updated"" TEXT NOT NULL
-);");
-
-                        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS \"IX_bookmarks_user\" ON \"bookmarks\" (\"user\")");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"SyncUser.sql bookmarks initialization failed: {ex.Message}");
-                    }
-                }
+                Write = new SyncUserContext();
+                Write.Database.EnsureCreated();
+                Read = new SyncUserContext();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SyncUser.sql initialization failed: {ex.Message}");
+                Console.WriteLine($"SyncUserDb initialization failed: {ex.Message}");
             }
         }
+    }
 
+
+    public class SyncUserContext : DbContext
+    {
         public DbSet<SyncUserTimecodeSqlModel> timecodes { get; set; }
 
         public DbSet<SyncUserBookmarkSqlModel> bookmarks { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (Startup.IsShutdown)
-                return;
-
             optionsBuilder.UseSqlite("Data Source=database/SyncUser.sql");
+            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

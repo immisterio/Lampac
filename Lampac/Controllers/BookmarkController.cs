@@ -31,9 +31,9 @@ namespace Lampac.Controllers
 
         [HttpGet]
         [Route("/bookmark/list")]
-        public async Task<ActionResult> List()
+        public ActionResult List()
         {
-            var data = await GetBookmarksForResponse();
+            var data = GetBookmarksForResponse();
             return Content(data.ToString(Formatting.None), "application/json; charset=utf-8");
         }
 
@@ -54,22 +54,19 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            using (var db = new SyncUserContext())
-            {
-                var (entity, data) = await LoadBookmarksAsync(db, requestInfo.user_uid, createIfMissing: true);
-                bool changed = false;
+            var (entity, data) = LoadBookmarks(requestInfo.user_uid, createIfMissing: true);
+            bool changed = false;
 
-                changed |= EnsureCard(data, payload.Card, cardId.Value);
-                changed |= AddToCategory(data, "history", cardId.Value);
+            changed |= EnsureCard(data, payload.Card, cardId.Value);
+            changed |= AddToCategory(data, "history", cardId.Value);
 
-                if (!string.IsNullOrEmpty(category))
-                    changed |= AddToCategory(data, category, cardId.Value);
+            if (!string.IsNullOrEmpty(category))
+                changed |= AddToCategory(data, category, cardId.Value);
 
-                if (changed)
-                    await SaveAsync(db, entity, data);
+            if (changed)
+                Save(entity, data);
 
-                return JsonSuccess();
-            }
+            return JsonSuccess();
         }
 
         [HttpPost]
@@ -89,24 +86,21 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            using (var db = new SyncUserContext())
-            {
-                var (entity, data) = await LoadBookmarksAsync(db, requestInfo.user_uid, createIfMissing: true);
-                bool changed = false;
+            var (entity, data) = LoadBookmarks(requestInfo.user_uid, createIfMissing: true);
+            bool changed = false;
 
-                if (payload.Card != null)
-                    changed |= EnsureCard(data, payload.Card, cardId.Value);
+            if (payload.Card != null)
+                changed |= EnsureCard(data, payload.Card, cardId.Value);
 
-                changed |= AddToCategory(data, "history", cardId.Value);
+            changed |= AddToCategory(data, "history", cardId.Value);
 
-                if (!string.IsNullOrEmpty(category))
-                    changed |= AddToCategory(data, category, cardId.Value);
+            if (!string.IsNullOrEmpty(category))
+                changed |= AddToCategory(data, category, cardId.Value);
 
-                if (changed)
-                    await SaveAsync(db, entity, data);
+            if (changed)
+                Save(entity, data);
 
-                return JsonSuccess();
-            }
+            return JsonSuccess();
         }
 
         [HttpPost]
@@ -127,65 +121,59 @@ namespace Lampac.Controllers
             string category = NormalizeCategory(payload.Where);
             string method = payload.NormalizedMethod;
 
-            using (var db = new SyncUserContext())
+            var (entity, data) = LoadBookmarks(requestInfo.user_uid, createIfMissing: false);
+            if (entity == null)
+                return JsonSuccess();
+
+            bool changed = false;
+
+            if (!string.IsNullOrEmpty(category))
+                changed |= RemoveFromCategory(data, category, cardId.Value);
+
+            changed |= RemoveFromCategory(data, "history", cardId.Value);
+
+            if (string.Equals(method, "card", StringComparison.Ordinal))
             {
-                var (entity, data) = await LoadBookmarksAsync(db, requestInfo.user_uid, createIfMissing: false);
-                if (entity == null)
-                    return JsonSuccess();
-
-                bool changed = false;
-
-                if (!string.IsNullOrEmpty(category))
-                    changed |= RemoveFromCategory(data, category, cardId.Value);
-
-                changed |= RemoveFromCategory(data, "history", cardId.Value);
-
-                if (string.Equals(method, "card", StringComparison.Ordinal))
+                changed |= RemoveIdFromAllCategories(data, cardId.Value);
+                changed |= RemoveCard(data, cardId.Value);
+            }
+            else
+            {
+                if (ContainsIdInOtherCategories(data, cardId.Value))
                 {
-                    changed |= RemoveIdFromAllCategories(data, cardId.Value);
-                    changed |= RemoveCard(data, cardId.Value);
+                    changed |= AddToCategory(data, "history", cardId.Value);
                 }
                 else
                 {
-                    if (ContainsIdInOtherCategories(data, cardId.Value))
-                    {
-                        changed |= AddToCategory(data, "history", cardId.Value);
-                    }
-                    else
-                    {
-                        changed |= RemoveCard(data, cardId.Value);
-                    }
+                    changed |= RemoveCard(data, cardId.Value);
                 }
-
-                if (changed)
-                    await SaveAsync(db, entity, data);
-
-                return JsonSuccess();
             }
+
+            if (changed)
+                Save(entity, data);
+
+            return JsonSuccess();
         }
 
-        async Task<JObject> GetBookmarksForResponse()
+        JObject GetBookmarksForResponse()
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return CreateDefaultBookmarks();
 
-            using (var db = new SyncUserContext())
-            {
-                var entity = await db.bookmarks.AsNoTracking().FirstOrDefaultAsync(i => i.user == requestInfo.user_uid);
-                var data = entity != null ? DeserializeBookmarks(entity.data) : CreateDefaultBookmarks();
-                EnsureDefaultArrays(data);
-                return data;
-            }
+            var entity = SyncUserDb.Read.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == requestInfo.user_uid);
+            var data = entity != null ? DeserializeBookmarks(entity.data) : CreateDefaultBookmarks();
+            EnsureDefaultArrays(data);
+            return data;
         }
 
-        static async Task<(SyncUserBookmarkSqlModel entity, JObject data)> LoadBookmarksAsync(SyncUserContext db, string userUid, bool createIfMissing)
+        static (SyncUserBookmarkSqlModel entity, JObject data) LoadBookmarks(string userUid, bool createIfMissing)
         {
             JObject data = CreateDefaultBookmarks();
             SyncUserBookmarkSqlModel entity = null;
 
             if (!string.IsNullOrEmpty(userUid))
             {
-                entity = await db.bookmarks.FirstOrDefaultAsync(i => i.user == userUid);
+                entity = SyncUserDb.Read.bookmarks.FirstOrDefault(i => i.user == userUid);
                 if (entity != null && !string.IsNullOrEmpty(entity.data))
                     data = DeserializeBookmarks(entity.data);
             }
@@ -410,7 +398,7 @@ namespace Lampac.Controllers
             return false;
         }
 
-        static async Task SaveAsync(SyncUserContext db, SyncUserBookmarkSqlModel entity, JObject data)
+        static void Save(SyncUserBookmarkSqlModel entity, JObject data)
         {
             if (entity == null)
                 return;
@@ -419,11 +407,11 @@ namespace Lampac.Controllers
             entity.updated = DateTime.UtcNow;
 
             if (entity.Id == 0)
-                db.bookmarks.Add(entity);
+                SyncUserDb.Write.bookmarks.Add(entity);
             else
-                db.bookmarks.Update(entity);
+                SyncUserDb.Write.bookmarks.Update(entity);
 
-            await db.SaveChangesAsync();
+            SyncUserDb.Write.SaveChanges();
         }
 
         JsonResult JsonSuccess() => Json(new { success = true, secuses = true });

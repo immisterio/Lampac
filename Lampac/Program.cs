@@ -147,10 +147,6 @@ namespace Lampac
                 File.WriteAllText("data/vers-minor.txt", "1");
             #endregion
 
-            #region EFCore Configure
-            SyncUserContext.Configure();
-            #endregion
-
             #region migration
             if (File.Exists("vers.txt") || File.Exists("isdocker"))
             {
@@ -186,57 +182,54 @@ namespace Lampac
                 #region cache/bookmarks/sisi
                 if (Directory.Exists("cache/bookmarks/sisi"))
                 {
-                    using (var sisiDb = new SisiContext())
+                    var existing = new HashSet<string>(
+                        SisiDb.Read.bookmarks
+                                .AsNoTracking()
+                                .Select(i => $"{i.user}:{i.uid}")
+                    );
+
+                    foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
                     {
-                        var existing = new HashSet<string>(
-                            sisiDb.bookmarks
-                                 .AsNoTracking()
-                                 .Select(i => $"{i.user}:{i.uid}")
-                        );
+                        string folderName = Path.GetFileName(folder);
 
-                        foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                        foreach (string file in Directory.GetFiles(folder))
                         {
-                            string folderName = Path.GetFileName(folder);
-
-                            foreach (string file in Directory.GetFiles(folder))
+                            try
                             {
-                                try
-                                {
-                                    string md5user = folderName + Path.GetFileName(file);
-                                    var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
+                                string md5user = folderName + Path.GetFileName(file);
+                                var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
 
-                                    if (bookmarks == null || bookmarks.Count == 0)
+                                if (bookmarks == null || bookmarks.Count == 0)
+                                    continue;
+
+                                DateTime now = DateTime.UtcNow;
+
+                                for (int i = 0; i < bookmarks.Count; i++)
+                                {
+                                    var pl = bookmarks[i];
+
+                                    if (pl?.bookmark == null || string.IsNullOrEmpty(pl.bookmark.uid))
                                         continue;
 
-                                    DateTime now = DateTime.UtcNow;
+                                    if (!existing.Add($"{md5user}:{pl.bookmark.uid}"))
+                                        continue;
 
-                                    for (int i = 0; i < bookmarks.Count; i++)
+                                    SisiDb.Write.bookmarks.Add(new SisiBookmarkSqlModel
                                     {
-                                        var pl = bookmarks[i];
-
-                                        if (pl?.bookmark == null || string.IsNullOrEmpty(pl.bookmark.uid))
-                                            continue;
-
-                                        if (!existing.Add($"{md5user}:{pl.bookmark.uid}"))
-                                            continue;
-
-                                        sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
-                                        {
-                                            user = md5user,
-                                            uid = pl.bookmark.uid,
-                                            created = now.AddSeconds(-i),
-                                            json = JsonConvert.SerializeObject(pl),
-                                            name = pl.name,
-                                            model = pl.model?.name
-                                        });
-                                    }
+                                        user = md5user,
+                                        uid = pl.bookmark.uid,
+                                        created = now.AddSeconds(-i),
+                                        json = JsonConvert.SerializeObject(pl),
+                                        name = pl.name,
+                                        model = pl.model?.name
+                                    });
                                 }
-                                catch { }
                             }
+                            catch { }
                         }
-
-                        sisiDb.SaveChanges();
                     }
+
+                    SisiDb.Write.SaveChanges();
                 }
                 #endregion
 
@@ -505,52 +498,49 @@ namespace Lampac
 
             Console.WriteLine("run migration sync_users");
 
-            using (var syncDb = new SyncUserContext())
-            {
-                var existing = new HashSet<string>(
-                    syncDb.timecodes
-                          .AsNoTracking()
-                          .Select(i => $"{i.user}:{i.card}:{i.item}")
-                );
+            var existing = new HashSet<string>(
+                SyncUserDb.Read.timecodes
+                        .AsNoTracking()
+                        .Select(i => $"{i.user}:{i.card}:{i.item}")
+            );
 
-                foreach (var user in collection.FindAll())
+            foreach (var user in collection.FindAll())
+            {
+                try
                 {
-                    try
+                    if (string.IsNullOrEmpty(user?.id) || user.timecodes == null || user.timecodes.Count == 0)
+                        continue;
+
+                    DateTime updated = DateTime.UtcNow;
+
+                    foreach (var card in user.timecodes)
                     {
-                        if (string.IsNullOrEmpty(user?.id) || user.timecodes == null || user.timecodes.Count == 0)
+                        if (string.IsNullOrEmpty(card.Key) || card.Value == null)
                             continue;
 
-                        DateTime updated = DateTime.UtcNow;
-
-                        foreach (var card in user.timecodes)
+                        foreach (var item in card.Value)
                         {
-                            if (string.IsNullOrEmpty(card.Key) || card.Value == null)
+                            if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
                                 continue;
 
-                            foreach (var item in card.Value)
+                            if (!existing.Add($"{user.id}:{card.Key}:{item.Key}"))
+                                continue;
+
+                            SyncUserDb.Write.timecodes.Add(new SyncUserTimecodeSqlModel
                             {
-                                if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
-                                    continue;
-
-                                if (!existing.Add($"{user.id}:{card.Key}:{item.Key}"))
-                                    continue;
-
-                                syncDb.timecodes.Add(new SyncUserTimecodeSqlModel
-                                {
-                                    user = user.id,
-                                    card = card.Key,
-                                    item = item.Key,
-                                    data = item.Value,
-                                    updated = updated
-                                });
-                            }
+                                user = user.id,
+                                card = card.Key,
+                                item = item.Key,
+                                data = item.Value,
+                                updated = updated
+                            });
                         }
                     }
-                    catch { }
                 }
-
-                syncDb.SaveChanges();
+                catch { }
             }
+
+            SyncUserDb.Write.SaveChanges();
         }
 
 
@@ -562,52 +552,49 @@ namespace Lampac
 
             Console.WriteLine("run migration sisi_users");
 
-            using (var sisiDb = new SisiContext())
-            {
-                var existing = new HashSet<string>(
-                    sisiDb.bookmarks
-                         .AsNoTracking()
-                         .Select(i => $"{i.user}:{i.uid}")
-                );
+            var existing = new HashSet<string>(
+                SisiDb.Read.bookmarks
+                        .AsNoTracking()
+                        .Select(i => $"{i.user}:{i.uid}")
+            );
 
-                foreach (var user in collection.FindAll())
+            foreach (var user in collection.FindAll())
+            {
+                try
                 {
-                    try
+                    if (string.IsNullOrEmpty(user?.Id) || user.Bookmarks == null || user.Bookmarks.Count == 0)
+                        continue;
+
+                    DateTime created = DateTime.UtcNow;
+                    int offset = 0;
+
+                    for (int i = 0; i < user.Bookmarks.Count; i++)
                     {
-                        if (string.IsNullOrEmpty(user?.Id) || user.Bookmarks == null || user.Bookmarks.Count == 0)
+                        var bookmark = user.Bookmarks[i];
+
+                        if (bookmark?.bookmark == null || string.IsNullOrEmpty(bookmark.bookmark.uid))
                             continue;
 
-                        DateTime created = DateTime.UtcNow;
-                        int offset = 0;
+                        if (!existing.Add($"{user.Id}:{bookmark.bookmark.uid}"))
+                            continue;
 
-                        for (int i = 0; i < user.Bookmarks.Count; i++)
+                        SisiDb.Write.bookmarks.Add(new SisiBookmarkSqlModel
                         {
-                            var bookmark = user.Bookmarks[i];
+                            user = user.Id,
+                            uid = bookmark.bookmark.uid,
+                            created = created.AddSeconds(-offset),
+                            json = JsonConvert.SerializeObject(bookmark),
+                            name = bookmark.name,
+                            model = bookmark.model?.name
+                        });
 
-                            if (bookmark?.bookmark == null || string.IsNullOrEmpty(bookmark.bookmark.uid))
-                                continue;
-
-                            if (!existing.Add($"{user.Id}:{bookmark.bookmark.uid}"))
-                                continue;
-
-                            sisiDb.bookmarks.Add(new SisiBookmarkSqlModel
-                            {
-                                user = user.Id,
-                                uid = bookmark.bookmark.uid,
-                                created = created.AddSeconds(-offset),
-                                json = JsonConvert.SerializeObject(bookmark),
-                                name = bookmark.name,
-                                model = bookmark.model?.name
-                            });
-
-                            offset++;
-                        }
+                        offset++;
                     }
-                    catch { }
                 }
-
-                sisiDb.SaveChanges();
+                catch { }
             }
+
+            SisiDb.Write.SaveChanges();
         }
         #endregion
     }
