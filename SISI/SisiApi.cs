@@ -76,8 +76,7 @@ namespace SISI
                     .Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", saveCache: false))
                     .Replace("{invc-rch_nws}", FileCache.ReadAllText("plugins/invc-rch_nws.js", saveCache: false))
                     .Replace("{push_all}", init.push_all.ToString().ToLower())
-                    .Replace("{localhost}", host)
-                    .Replace("{token}", HttpUtility.UrlEncode(token));
+                    .Replace("{localhost}", host);
 
                 if (init.forced_checkRchtype)
                     bulder = bulder.Replace("window.rchtype", "Defined.rchtype");

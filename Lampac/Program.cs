@@ -230,6 +230,7 @@ namespace Lampac
                     }
 
                     SisiDb.Write.SaveChanges();
+                    SisiDb.Write.ChangeTracker.Clear();
                 }
                 #endregion
 
@@ -500,8 +501,8 @@ namespace Lampac
 
             var existing = new HashSet<string>(
                 SyncUserDb.Read.timecodes
-                        .AsNoTracking()
-                        .Select(i => $"{i.user}:{i.card}:{i.item}")
+                          .AsNoTracking()
+                          .Select(i => $"{i.user}:{i.card}:{i.item}")
             );
 
             foreach (var user in collection.FindAll())
@@ -541,6 +542,7 @@ namespace Lampac
             }
 
             SyncUserDb.Write.SaveChanges();
+            SyncUserDb.Write.ChangeTracker.Clear();
         }
 
 
@@ -554,8 +556,8 @@ namespace Lampac
 
             var existing = new HashSet<string>(
                 SisiDb.Read.bookmarks
-                        .AsNoTracking()
-                        .Select(i => $"{i.user}:{i.uid}")
+                      .AsNoTracking()
+                      .Select(i => $"{i.user}:{i.uid}")
             );
 
             foreach (var user in collection.FindAll())
@@ -595,6 +597,7 @@ namespace Lampac
             }
 
             SisiDb.Write.SaveChanges();
+            SisiDb.Write.ChangeTracker.Clear();
         }
         #endregion
     }

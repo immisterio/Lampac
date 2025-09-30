@@ -25,6 +25,12 @@ namespace Shared.Models.SQL
                 Console.WriteLine($"SyncUserDb initialization failed: {ex.Message}");
             }
         }
+
+        public static void FullDispose()
+        {
+            Read?.Dispose();
+            Write?.Dispose();
+        }
     }
 
 

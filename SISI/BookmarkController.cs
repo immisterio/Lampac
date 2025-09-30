@@ -195,14 +195,12 @@ namespace SISI
                     uid = uid
                 };
 
-                string json = JsonConvert.SerializeObject(data);
-
                 sqlDb.bookmarks.Add(new SisiBookmarkSqlModel
                 {
                     user = md5user,
                     uid = uid,
                     created = DateTime.UtcNow,
-                    json = json,
+                    json = JsonConvert.SerializeObject(data),
                     name = data.name,
                     model = data.model?.name
                 });

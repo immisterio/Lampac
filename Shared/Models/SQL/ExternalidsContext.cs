@@ -23,6 +23,12 @@ namespace Shared.Models.SQL
                 Console.WriteLine($"ExternalidsDb initialization failed: {ex.Message}");
             }
         }
+
+        public static void FullDispose()
+        {
+            Read?.Dispose();
+            Write?.Dispose();
+        }
     }
 
 

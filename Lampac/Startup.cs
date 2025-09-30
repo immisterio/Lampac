@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 using Shared;
 using Shared.Engine;
 using Shared.Models.Module;
+using Shared.Models.SQL;
 using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
@@ -467,6 +468,12 @@ namespace Lampac
             nws.FullDispose();
             soks.FullDispose();
             CollectionDb.Dispose();
+            SisiDb.FullDispose();
+            ExternalidsDb.FullDispose();
+            HybridCacheDb.FullDispose();
+            PlaywrightDb.FullDispose();
+            ProxyLinkDb.FullDispose();
+            SyncUserDb.FullDispose();
         }
     }
 }
