@@ -211,7 +211,6 @@ namespace Shared.Engine
                     var now = DateTime.Now;
 
                     await sqlDb.links
-                         .AsNoTracking()
                          .Where(i => now > i.ex)
                          .ExecuteDeleteAsync();
                 }
@@ -234,12 +233,9 @@ namespace Shared.Engine
                                 {
                                     link.Value.id = link.Key;
 
-                                    var doc = sqlDb.links.Find(link.Key);
-                                    if (doc != null)
-                                    {
-                                        sqlDb.links.Remove(doc);
-                                        await sqlDb.SaveChangesAsync();
-                                    }
+                                    await sqlDb.links
+                                        .Where(x => x.Id == link.Key)
+                                        .ExecuteDeleteAsync();
 
                                     sqlDb.links.Add(new ProxyLinkSqlModel()
                                     {

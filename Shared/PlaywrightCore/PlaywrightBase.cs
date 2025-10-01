@@ -360,11 +360,8 @@ namespace Shared.PlaywrightCore
                                 var now = DateTime.Now;
 
                                 await PlaywrightDb.Write.files
-                                     .AsNoTracking()
                                      .Where(i => now > i.ex)
                                      .ExecuteDeleteAsync();
-
-                                PlaywrightDb.Write.ChangeTracker.Clear();
                             }
                         }
                         catch { }

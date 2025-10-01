@@ -225,19 +225,13 @@ namespace SISI
 
             var sqlDb = SisiDb.Write;
 
-            var bookmark = sqlDb.bookmarks
-                .FirstOrDefault(i => i.user == md5user && i.uid == id);
-
-            if (bookmark != null)
-            {
-                sqlDb.bookmarks.Remove(bookmark);
-                sqlDb.SaveChanges();
-                sqlDb.ChangeTracker.Clear();
-            }
+            sqlDb.bookmarks
+                .Where(i => i.user == md5user && i.uid == id)
+                .ExecuteDelete();
 
             return Json(new
             {
-                result = false,
+                result = true,
             });
         }
 

@@ -180,7 +180,7 @@ namespace Shared.PlaywrightCore
         public static void CronStart()
         {
             _closeLifetimeTimer = new Timer(CronCloseLifetimeContext, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
-            _browserDisconnectedTimer = new Timer(CronBrowserDisconnected, null, TimeSpan.FromMinutes(2), TimeSpan.FromSeconds(20));
+            _browserDisconnectedTimer = new Timer(CronBrowserDisconnected, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(1));
         }
 
         static Timer _closeLifetimeTimer, _browserDisconnectedTimer;
@@ -202,14 +202,14 @@ namespace Shared.PlaywrightCore
             try
             {
                 var init = AppInit.conf.chromium;
-                if (0 >= init.context.keepalive)
+                if (!init.context.keepopen || 0 >= init.context.keepalive)
                     return;
 
-                if (init.context.keepopen && DateTime.Now > create_keepopen_context.AddMinutes(init.context.keepalive))
+                if (DateTime.Now.AddMinutes(-init.context.keepalive) > create_keepopen_context)
                 {
                     create_keepopen_context = DateTime.Now;
-                    var kpc = await browser.NewContextAsync(baseContextOptions).ConfigureAwait(false);
-                    await kpc.NewPageAsync().ConfigureAwait(false);
+                    var kpc = await browser.NewContextAsync(baseContextOptions);
+                    await kpc.NewPageAsync();
 
                     try
                     {
@@ -220,19 +220,25 @@ namespace Shared.PlaywrightCore
                     keepopen_context = kpc;
                 }
 
-                foreach (var k in pages_keepopen.ToArray())
+                if (pages_keepopen.Count > 0 && pages_keepopen.Count > init.context.min)
                 {
-                    if (init.context.min >= pages_keepopen.Count)
-                        break;
-
-                    if (DateTime.Now > k.create.AddMinutes(init.context.keepalive))
+                    foreach (var k in pages_keepopen.ToArray())
                     {
-                        try
+                        if (init.context.min >= pages_keepopen.Count)
+                            break;
+
+                        if (DateTime.Now.AddMinutes(-init.context.keepalive) > k.create)
                         {
-                            if (pages_keepopen.Remove(k))
-                                _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(i => k.context.CloseAsync()).ConfigureAwait(false);
+                            try
+                            {
+                                if (pages_keepopen.Remove(k))
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(20));
+                                    await k.context.CloseAsync();
+                                }
+                            }
+                            catch { }
                         }
-                        catch { }
                     }
                 }
             }
@@ -280,18 +286,29 @@ namespace Shared.PlaywrightCore
                         try
                         {
                             stats_ping = (DateTime.Now, 5, null);
-                            IPage p = keepopen_context != null ? await keepopen_context.NewPageAsync().ConfigureAwait(false) : await browser.NewPageAsync().ConfigureAwait(false);
+                            IPage p = keepopen_context != null ? await keepopen_context.NewPageAsync() : await browser.NewPageAsync();
                             if (p != null)
                             {
-                                var r = await p.GotoAsync($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/api/chromium/ping").ConfigureAwait(false);
-                                if (r != null)
+                                try
                                 {
-                                    stats_ping = (DateTime.Now, r.Status, null);
-                                    if (r.Status == 200)
-                                        isOk = true;
-                                }
+                                    var options = new PageGotoOptions
+                                    {
+                                        Timeout = 5000, // 5 секунд
+                                        WaitUntil = WaitUntilState.DOMContentLoaded
+                                    };
 
-                                await p.CloseAsync().ConfigureAwait(false);
+                                    var r = await p.GotoAsync($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/api/chromium/ping", options);
+                                    if (r != null)
+                                    {
+                                        stats_ping = (DateTime.Now, r.Status, null);
+                                        if (r.Status == 200)
+                                            isOk = true;
+                                    }
+                                }
+                                finally
+                                {
+                                    await p.CloseAsync();
+                                }
                             }
                         }
                         catch
@@ -301,23 +318,27 @@ namespace Shared.PlaywrightCore
 
                         if (!isOk)
                         {
-                            Status = PlaywrightStatus.disabled;
                             Console.WriteLine("\nChromium: Browser_Disconnected");
+
+                            Status = PlaywrightStatus.disabled;
+
+                            keepopen_context = null;
+
+                            if (pages_keepopen != null)
+                                pages_keepopen.Clear();
 
                             try
                             {
                                 if (browser != null)
                                 {
-                                    _ = browser.CloseAsync().ConfigureAwait(false);
-                                    _ = browser.DisposeAsync().ConfigureAwait(false);
+                                    await browser.CloseAsync();
+                                    await browser.DisposeAsync();
                                 }
                             }
                             catch { }
 
                             browser = null;
-                            pages_keepopen = new();
-                            keepopen_context = null;
-                            await CreateAsync().ConfigureAwait(false);
+                            await CreateAsync();
                         }
                     }
                     catch (Exception ex)
@@ -372,7 +393,7 @@ namespace Shared.PlaywrightCore
                             {
                                 if (pg.proxy.ip != proxy.ip || pg.proxy.username != proxy.username || pg.proxy.password != proxy.password)
                                 {
-                                    _ = pg.context.CloseAsync();
+                                    _ = pg.context.CloseAsync().ConfigureAwait(false);
                                     pages_keepopen.Remove(pg);
                                     continue;
                                 }
@@ -535,25 +556,17 @@ namespace Shared.PlaywrightCore
 
             try
             {
+                page.RequestFailed -= Page_RequestFailed;
+                page.Popup -= Page_Popup;
+                page.Download -= Page_Download;
+
                 void close()
                 {
-                    page.RequestFailed -= Page_RequestFailed;
-                    page.Popup -= Page_Popup;
-                    page.Download -= Page_Download;
-
-                    if (keepopen_page != null)
-                    {
-                        page.CloseAsync().ConfigureAwait(false);
-                        keepopen_page.lastActive = DateTime.Now;
-                    }
-                    else if (context != null)
-                    {
+                    if (context != null)
                         context.CloseAsync().ConfigureAwait(false);
-                    }
-                    else
-                    {
+
+                    if (page != null)
                         page.CloseAsync().ConfigureAwait(false);
-                    }
                 }
 
                 if (imitationHuman || deferredDispose)

@@ -61,7 +61,6 @@ namespace Shared.Models.SQL
     public class SyncUserTimecodeSqlModel
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long Id { get; set; }
 
         [Required]
@@ -82,7 +81,6 @@ namespace Shared.Models.SQL
     public class SyncUserBookmarkSqlModel
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long Id { get; set; }
 
         [Required]

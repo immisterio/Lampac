@@ -6,7 +6,6 @@ using Shared.Models.SQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Web;
 
 namespace Lampac.Controllers
@@ -33,9 +32,9 @@ namespace Lampac.Controllers
                 return Json(new { });
 
             Dictionary<string, string> timecodes = SyncUserDb.Read.timecodes
-                    .AsNoTracking()
-                    .Where(i => i.user == requestInfo.user_uid && i.card == card_id)
-                    .ToDictionary(i => i.item, i => i.data);
+                .AsNoTracking()
+                .Where(i => i.user == requestInfo.user_uid && i.card == card_id)
+                .ToDictionary(i => i.item, i => i.data);
 
             if (timecodes.Count == 0)
                 return Json(new { });
@@ -55,16 +54,11 @@ namespace Lampac.Controllers
 
             var sqlDb = SyncUserDb.Write;
 
-            var entity = sqlDb.timecodes
-                .FirstOrDefault(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id);
+            sqlDb.timecodes
+                .Where(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id)
+                .ExecuteDelete();
 
-            if (entity != null)
-            {
-                sqlDb.timecodes.Remove(entity);
-                sqlDb.SaveChanges();
-            }
-
-            entity = new SyncUserTimecodeSqlModel
+            var entity = new SyncUserTimecodeSqlModel
             {
                 user = requestInfo.user_uid,
                 card = card_id,
@@ -75,9 +69,9 @@ namespace Lampac.Controllers
 
             sqlDb.timecodes.Add(entity);
 
-            sqlDb.SaveChanges();
+            bool secuses = sqlDb.SaveChanges() > 0;
 
-            return Json(new { secuses = true });
+            return Json(new { secuses });
         }
     }
 }
