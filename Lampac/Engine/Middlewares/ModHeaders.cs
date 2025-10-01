@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Lampac.Controllers;
+using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -44,7 +46,16 @@ namespace Lampac.Engine.Middlewares
             if (HttpMethods.IsOptions(httpContext.Request.Method))
                 return Task.CompletedTask;
 
-            return _next(httpContext);
+            Interlocked.Increment(ref OpenStatController.ActiveHttpRequests);
+
+            try
+            {
+                return _next(httpContext);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref OpenStatController.ActiveHttpRequests);
+            }
         }
     }
 }

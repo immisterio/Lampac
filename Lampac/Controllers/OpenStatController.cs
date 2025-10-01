@@ -13,6 +13,8 @@ namespace Lampac.Controllers
 {
     public class OpenStatController : BaseController
     {
+        public static int ActiveHttpRequests;
+
         public OpenStatConf openstat => AppInit.conf.openstat;
 
         public bool IsDeny(out string ermsg) 
@@ -75,7 +77,8 @@ namespace Lampac.Controllers
             return Json(new 
             { 
                 req_min, 
-                req_hour, 
+                req_hour,
+                http_online = ActiveHttpRequests,
                 soks_online = soks.connections,
                 nws_online = nws.ConnectionCount,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
