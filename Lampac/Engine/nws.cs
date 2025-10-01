@@ -273,7 +273,7 @@ namespace Lampac.Engine
 
             try
             {
-                await connection.SendLock.WaitAsync().ConfigureAwait(false);
+                await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                 if (connection.Socket.State == WebSocketState.Open)
                 {
