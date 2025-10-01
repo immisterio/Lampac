@@ -44,7 +44,7 @@ namespace DLNA.Controllers
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
-                string trackers_best_ip = await Http.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20).ConfigureAwait(false);
+                string trackers_best_ip = await Http.Get("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", timeoutSeconds: 20);
                 if (trackers_best_ip != null)
                 {
                     foreach (string line in trackers_best_ip.Split("\n"))
@@ -62,7 +62,7 @@ namespace DLNA.Controllers
                 {
                     try
                     {
-                        await Task.Delay(TimeSpan.FromMinutes(5)).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromMinutes(5));
                         await removeClientEngine();
                     }
                     catch { }
@@ -784,9 +784,9 @@ namespace DLNA.Controllers
 
                                 string uri = Regex.Replace(thumb, "^https?://[^/]+/", "");
 
-                                var array = await Http.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8).ConfigureAwait(false);
+                                var array = await Http.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8);
                                 if (array == null || !IsValidImg(array))
-                                    array = await Http.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}").ConfigureAwait(false);
+                                    array = await Http.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}");
 
                                 if (array != null && IsValidImg(array))
                                 {

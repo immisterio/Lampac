@@ -45,7 +45,7 @@ namespace Lampac.Engine.CRON
                     if (istree && File.Exists("wwwroot/lampa-main/tree") && init.tree == File.ReadAllText("wwwroot/lampa-main/tree"))
                         return false;
 
-                    string gitapp = await Http.Get($"https://raw.githubusercontent.com/yumata/lampa/{(istree ? init.tree : "main")}/app.min.js", weblog: false).ConfigureAwait(false);
+                    string gitapp = await Http.Get($"https://raw.githubusercontent.com/yumata/lampa/{(istree ? init.tree : "main")}/app.min.js", weblog: false);
                     if (gitapp == null || !gitapp.Contains("author: 'Yumata'"))
                         return false;
 
@@ -64,18 +64,18 @@ namespace Lampac.Engine.CRON
                     return false;
                 }
 
-                if (await update().ConfigureAwait(false))
+                if (await update())
                 {
                     string uri = istree ?
                         $"https://github.com/yumata/lampa/archive/{init.tree}.zip" :
                         "https://github.com/yumata/lampa/archive/refs/heads/main.zip";
 
-                    byte[] array = await Http.Download(uri, MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40).ConfigureAwait(false);
+                    byte[] array = await Http.Download(uri, MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40);
                     if (array != null)
                     {
                         currentapp = null;
 
-                        await File.WriteAllBytesAsync("wwwroot/lampa.zip", array).ConfigureAwait(false);
+                        await File.WriteAllBytesAsync("wwwroot/lampa.zip", array);
                         ZipFile.ExtractToDirectory("wwwroot/lampa.zip", "wwwroot/", overwriteFiles: true);
 
                         if (istree)

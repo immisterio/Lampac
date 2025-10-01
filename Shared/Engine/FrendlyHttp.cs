@@ -16,7 +16,7 @@ namespace Shared.Engine
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMinutes(1));
 
                     try
                     {

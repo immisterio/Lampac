@@ -27,9 +27,9 @@ namespace Lampac.Engine.CRON
 
             try
             {
-                var externalids = await Http.Get<Dictionary<string, string>>("http://bobr-kurwa.men/externalids.json", weblog: false).ConfigureAwait(false);
+                var externalids = await Http.Get<Dictionary<string, string>>("http://bobr-kurwa.men/externalids.json", weblog: false);
                 if (externalids != null && externalids.Count > 0)
-                    await File.WriteAllTextAsync("data/externalids.json", JsonConvert.SerializeObject(externalids)).ConfigureAwait(false);
+                    await File.WriteAllTextAsync("data/externalids.json", JsonConvert.SerializeObject(externalids));
             }
             catch { }
             finally

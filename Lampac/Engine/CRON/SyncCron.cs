@@ -31,7 +31,7 @@ namespace Lampac.Engine.CRON
                 if (sync == null || !sync.enable || sync.type != "slave" || string.IsNullOrEmpty(sync.api_host) || string.IsNullOrEmpty(sync.api_passwd))
                     return;
 
-                var init = await Http.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd), weblog: false).ConfigureAwait(false);
+                var init = await Http.Get<AppInit>(sync.api_host + "/api/sync", timeoutSeconds: 5, headers: HeadersModel.Init("localrequest", sync.api_passwd), weblog: false);
                 if (init != null)
                 {
                     if (sync.sync_full)

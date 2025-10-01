@@ -582,7 +582,7 @@ namespace Shared
                     if (Regex.IsMatch(init.path, "^https?://"))
                     {
                         string uri = init.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
-                        json = await Http.Get(uri, timeoutSeconds: 5).ConfigureAwait(false);
+                        json = await Http.Get(uri, timeoutSeconds: 5);
                     }
                     else
                     {

@@ -26,9 +26,9 @@ namespace DLNA
                 while (true)
                 {
                     if (cover.timeout == -666)
-                        await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromSeconds(5));
                     else
-                        await Task.Delay(TimeSpan.FromMinutes(cover.timeout > 0 ? cover.timeout : 1)).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromMinutes(cover.timeout > 0 ? cover.timeout : 1));
 
                     if (!init.enable || !cover.enable)
                         continue;

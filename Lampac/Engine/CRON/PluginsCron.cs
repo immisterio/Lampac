@@ -35,7 +35,7 @@ namespace Lampac.Engine.CRON
                 {
                     try
                     {
-                        string js = await Http.Get(url, Encoding.UTF8, weblog: false).ConfigureAwait(false);
+                        string js = await Http.Get(url, Encoding.UTF8, weblog: false);
                         if (js != null && js.Contains(checkcode))
                         {
                             if (path == null)
@@ -50,24 +50,24 @@ namespace Lampac.Engine.CRON
                     catch { }
                 }
 
-                await update("https://immisterio.github.io/bwa/fx.js").ConfigureAwait(false);
-                await update("https://nb557.github.io/plugins/online_mod.js").ConfigureAwait(false);
-                await update("http://github.freebie.tom.ru/want.js").ConfigureAwait(false);
-                await update("https://nb557.github.io/plugins/reset_subs.js").ConfigureAwait(false);
-                await update("http://193.233.134.21/plugins/mult.js").ConfigureAwait(false);
-                await update("https://nemiroff.github.io/lampa/select_weapon.js").ConfigureAwait(false);
-                await update("https://nb557.github.io/plugins/not_mobile.js").ConfigureAwait(false);
-                await update("http://cub.red/plugin/etor", path: "etor.js").ConfigureAwait(false);
-                await update("http://193.233.134.21/plugins/checker.js").ConfigureAwait(false);
-                await update("https://plugin.rootu.top/ts-preload.js").ConfigureAwait(false);
-                await update("https://lampame.github.io/main/pubtorr/pubtorr.js").ConfigureAwait(false);
-                await update("https://lampame.github.io/main/nc/nc.js").ConfigureAwait(false);
-                await update("https://nb557.github.io/plugins/rating.js").ConfigureAwait(false);
-                await update("https://github.freebie.tom.ru/torrents.js").ConfigureAwait(false);
-                await update("https://nnmdd.github.io/lampa_hotkeys/hotkeys.js").ConfigureAwait(false);
-                await update("https://bazzzilius.github.io/scripts/gold_theme.js").ConfigureAwait(false);
-                await update("https://bdvburik.github.io/rezkacomment.js").ConfigureAwait(false);
-                await update("https://lampame.github.io/main/Shikimori/Shikimori.js").ConfigureAwait(false);
+                await update("https://immisterio.github.io/bwa/fx.js");
+                await update("https://nb557.github.io/plugins/online_mod.js");
+                await update("http://github.freebie.tom.ru/want.js");
+                await update("https://nb557.github.io/plugins/reset_subs.js");
+                await update("http://193.233.134.21/plugins/mult.js");
+                await update("https://nemiroff.github.io/lampa/select_weapon.js");
+                await update("https://nb557.github.io/plugins/not_mobile.js");
+                await update("http://cub.red/plugin/etor", path: "etor.js");
+                await update("http://193.233.134.21/plugins/checker.js");
+                await update("https://plugin.rootu.top/ts-preload.js");
+                await update("https://lampame.github.io/main/pubtorr/pubtorr.js");
+                await update("https://lampame.github.io/main/nc/nc.js");
+                await update("https://nb557.github.io/plugins/rating.js");
+                await update("https://github.freebie.tom.ru/torrents.js");
+                await update("https://nnmdd.github.io/lampa_hotkeys/hotkeys.js");
+                await update("https://bazzzilius.github.io/scripts/gold_theme.js");
+                await update("https://bdvburik.github.io/rezkacomment.js");
+                await update("https://lampame.github.io/main/Shikimori/Shikimori.js");
             }
             catch { }
             finally

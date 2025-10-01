@@ -602,8 +602,7 @@ namespace Online.Controllers
                         {
                             try
                             {
-                                var task = entry.InvokeAsync(HttpContext, memoryCache, requestInfo, host, args);
-                                var result = await task.ConfigureAwait(false);
+                                var result = await entry.InvokeAsync(HttpContext, memoryCache, requestInfo, host, args);
                                 if (result != null && result.Count > 0)
                                 {
                                     foreach (var r in result)
@@ -633,8 +632,7 @@ namespace Online.Controllers
                         {
                             try
                             {
-                                var task = entry.EventsAsync(HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
-                                var result = await task.ConfigureAwait(false);
+                                var result = await entry.EventsAsync(HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
                                 if (result != null && result.Count > 0)
                                 {
                                     foreach (var r in result)
@@ -1042,7 +1040,7 @@ namespace Online.Controllers
                     if (life)
                         return Json(new { life = true, memkey, title = (fix_title ? title : null) });
 
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                    await Task.WhenAll(tasks);
                 }
 
                 if (life)
@@ -1067,7 +1065,7 @@ namespace Online.Controllers
                 var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", AppInit.rootPasswd)) : null;
 
                 string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
-                string res = await Http.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header).ConfigureAwait(false);
+                string res = await Http.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
 
                 if (string.IsNullOrEmpty(res))
                     res = string.Empty;

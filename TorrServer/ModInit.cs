@@ -228,11 +228,11 @@ namespace TorrServer
                     tsprocess.BeginOutputReadLine();
                     tsprocess.BeginErrorReadLine();
 
-                    await tsprocess.WaitForExitAsync().ConfigureAwait(false);
+                    await tsprocess.WaitForExitAsync();
                 }
                 catch { }
 
-                await Task.Delay(10_000).ConfigureAwait(false);
+                await Task.Delay(10_000);
                 goto reset;
             });
         }

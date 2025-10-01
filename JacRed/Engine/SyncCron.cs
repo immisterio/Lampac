@@ -10,7 +10,7 @@ namespace JacRed.Engine
         async public static Task Run()
         {
             bool reset = true;
-            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromMinutes(2));
 
             DateTime lastSave = DateTime.Now;
 
@@ -26,14 +26,14 @@ namespace JacRed.Engine
                         if (lastsync == -1 && File.Exists("cache/jacred/lastsync.txt"))
                             lastsync = long.Parse(File.ReadAllText("cache/jacred/lastsync.txt"));
 
-                        var root = await Http.Get<RootObject>($"{ModInit.conf.Red.syncapi}/sync/fdb/torrents?time={lastsync}", timeoutSeconds: 300, MaxResponseContentBufferSize: 100_000_000, weblog: false).ConfigureAwait(false);
+                        var root = await Http.Get<RootObject>($"{ModInit.conf.Red.syncapi}/sync/fdb/torrents?time={lastsync}", timeoutSeconds: 300, MaxResponseContentBufferSize: 100_000_000, weblog: false);
 
                         if (root?.collections == null)
                         {
                             if (reset)
                             {
                                 reset = false;
-                                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+                                await Task.Delay(TimeSpan.FromMinutes(1));
                                 continue;
                             }
                         }
@@ -89,7 +89,7 @@ namespace JacRed.Engine
                     }
                     else
                     {
-                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromMinutes(1));
                         continue;
                     }
                 }
@@ -106,8 +106,8 @@ namespace JacRed.Engine
                     catch { }
                 }
 
-                await Task.Delay(1000 * Random.Shared.Next(60, 300)).ConfigureAwait(false);
-                await Task.Delay(1000 * 60 * (20 > ModInit.conf.Red.syntime ? 20 : ModInit.conf.Red.syntime)).ConfigureAwait(false);
+                await Task.Delay(1000 * Random.Shared.Next(60, 300));
+                await Task.Delay(1000 * 60 * (20 > ModInit.conf.Red.syntime ? 20 : ModInit.conf.Red.syntime));
 
                 reset = true;
                 lastSave = DateTime.Now;

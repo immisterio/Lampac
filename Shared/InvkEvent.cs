@@ -31,7 +31,7 @@ namespace Shared
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(1));
 
                     if (!Directory.Exists(eventsDir))
                         continue;

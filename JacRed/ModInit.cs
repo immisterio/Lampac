@@ -47,16 +47,16 @@ namespace Jackett
             Directory.CreateDirectory("cache/jacred");
             File.WriteAllText("module/JacRed.current.conf", JsonConvert.SerializeObject(conf, Formatting.Indented));
 
-            ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await FileDB.Cron().ConfigureAwait(false));
-            ThreadPool.QueueUserWorkItem(async _ => await FileDB.CronFast().ConfigureAwait(false));
+            ThreadPool.QueueUserWorkItem(async _ => await SyncCron.Run());
+            ThreadPool.QueueUserWorkItem(async _ => await FileDB.Cron());
+            ThreadPool.QueueUserWorkItem(async _ => await FileDB.CronFast());
 
 
             ThreadPool.QueueUserWorkItem(async _ =>
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(5)).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMinutes(5));
 
                     try
                     {
@@ -68,24 +68,24 @@ namespace Jackett
                                     return false;
 
                                 var proxyManager = new ProxyManager(name, settings);
-                                string html = await Http.Get($"{settings.host}", timeoutSeconds: conf.Jackett.timeoutSeconds, proxy: proxyManager.Get(), weblog: false).ConfigureAwait(false);
+                                string html = await Http.Get($"{settings.host}", timeoutSeconds: conf.Jackett.timeoutSeconds, proxy: proxyManager.Get(), weblog: false);
                                 return html == null;
                             }
 
-                            conf.Jackett.Rutor.showdown = await showdown("rutor", conf.Jackett.Rutor).ConfigureAwait(false);
-                            conf.Jackett.Megapeer.showdown = await showdown("megapeer", conf.Jackett.Megapeer).ConfigureAwait(false);
-                            conf.Jackett.TorrentBy.showdown = await showdown("torrentby", conf.Jackett.TorrentBy).ConfigureAwait(false);
-                            conf.Jackett.Kinozal.showdown = await showdown("kinozal", conf.Jackett.Kinozal).ConfigureAwait(false);
-                            conf.Jackett.NNMClub.showdown = await showdown("nnmclub", conf.Jackett.NNMClub).ConfigureAwait(false);
-                            conf.Jackett.Bitru.showdown = await showdown("bitru", conf.Jackett.Bitru).ConfigureAwait(false);
-                            conf.Jackett.Toloka.showdown = await showdown("toloka", conf.Jackett.Toloka).ConfigureAwait(false);
-                            conf.Jackett.Rutracker.showdown = await showdown("rutracker", conf.Jackett.Rutracker).ConfigureAwait(false);
-                            conf.Jackett.BigFanGroup.showdown = await showdown("bigfangroup", conf.Jackett.BigFanGroup).ConfigureAwait(false);
-                            conf.Jackett.Selezen.showdown = await showdown("selezen", conf.Jackett.Selezen).ConfigureAwait(false);
-                            conf.Jackett.Lostfilm.showdown = await showdown("lostfilm", conf.Jackett.Lostfilm).ConfigureAwait(false);
-                            conf.Jackett.Anilibria.showdown = await showdown("anilibria", conf.Jackett.Anilibria).ConfigureAwait(false);
-                            conf.Jackett.Animelayer.showdown = await showdown("animelayer", conf.Jackett.Animelayer).ConfigureAwait(false);
-                            conf.Jackett.Anifilm.showdown = await showdown("anifilm", conf.Jackett.Anifilm).ConfigureAwait(false);
+                            conf.Jackett.Rutor.showdown = await showdown("rutor", conf.Jackett.Rutor);
+                            conf.Jackett.Megapeer.showdown = await showdown("megapeer", conf.Jackett.Megapeer);
+                            conf.Jackett.TorrentBy.showdown = await showdown("torrentby", conf.Jackett.TorrentBy);
+                            conf.Jackett.Kinozal.showdown = await showdown("kinozal", conf.Jackett.Kinozal);
+                            conf.Jackett.NNMClub.showdown = await showdown("nnmclub", conf.Jackett.NNMClub);
+                            conf.Jackett.Bitru.showdown = await showdown("bitru", conf.Jackett.Bitru);
+                            conf.Jackett.Toloka.showdown = await showdown("toloka", conf.Jackett.Toloka);
+                            conf.Jackett.Rutracker.showdown = await showdown("rutracker", conf.Jackett.Rutracker);
+                            conf.Jackett.BigFanGroup.showdown = await showdown("bigfangroup", conf.Jackett.BigFanGroup);
+                            conf.Jackett.Selezen.showdown = await showdown("selezen", conf.Jackett.Selezen);
+                            conf.Jackett.Lostfilm.showdown = await showdown("lostfilm", conf.Jackett.Lostfilm);
+                            conf.Jackett.Anilibria.showdown = await showdown("anilibria", conf.Jackett.Anilibria);
+                            conf.Jackett.Animelayer.showdown = await showdown("animelayer", conf.Jackett.Animelayer);
+                            conf.Jackett.Anifilm.showdown = await showdown("anifilm", conf.Jackett.Anifilm);
                         }
                     }
                     catch { }

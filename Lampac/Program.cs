@@ -274,13 +274,13 @@ namespace Lampac
             #region cloudflare_ips
             ThreadPool.QueueUserWorkItem(async _ => 
             {
-                string ips = await Http.Get("https://www.cloudflare.com/ips-v4").ConfigureAwait(false);
+                string ips = await Http.Get("https://www.cloudflare.com/ips-v4");
                 if (ips == null || !ips.Contains("173.245."))
                     ips = File.Exists("data/cloudflare/ips-v4.txt") ? File.ReadAllText("data/cloudflare/ips-v4.txt") : null;
 
                 if (ips != null)
                 {
-                    string ips_v6 = await Http.Get("https://www.cloudflare.com/ips-v6").ConfigureAwait(false);
+                    string ips_v6 = await Http.Get("https://www.cloudflare.com/ips-v6");
                     if (ips_v6 == null || !ips_v6.Contains("2400:cb00"))
                         ips_v6 = File.Exists("data/cloudflare/ips-v6.txt") ? File.ReadAllText("data/cloudflare/ips-v6.txt") : null;
 
@@ -335,7 +335,7 @@ namespace Lampac
                     {
                         ThreadPool.QueueUserWorkItem(async _ => 
                         {
-                            string new_update = await Http.Get("https://raw.githubusercontent.com/immisterio/Lampac/refs/heads/main/update.sh").ConfigureAwait(false);
+                            string new_update = await Http.Get("https://raw.githubusercontent.com/immisterio/Lampac/refs/heads/main/update.sh");
                             if (new_update != null && new_update.Contains("DEST=\"/home/lampac\""))
                                 File.WriteAllText("update.sh", new_update);
                         });
@@ -476,7 +476,7 @@ namespace Lampac
 
                 if (AppInit.conf.kit.enable && AppInit.conf.kit.IsAllUsersPath && !string.IsNullOrEmpty(AppInit.conf.kit.path))
                 {
-                    var users = await Http.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path).ConfigureAwait(false);
+                    var users = await Http.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path);
                     if (users != null)
                         AppInit.conf.kit.allUsers = users;
                 }
