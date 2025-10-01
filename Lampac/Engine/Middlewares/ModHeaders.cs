@@ -14,10 +14,10 @@ namespace Lampac.Engine.Middlewares
             _next = next;
         }
 
-        public Task Invoke(HttpContext httpContext)
+        async public Task InvokeAsync(HttpContext httpContext)
         {
             if (httpContext.Request.Path.Value.StartsWith("/cors/check"))
-                return Task.CompletedTask;
+                return;
 
             httpContext.Response.Headers["Access-Control-Allow-Credentials"] = "true";
             httpContext.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
@@ -44,13 +44,13 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (HttpMethods.IsOptions(httpContext.Request.Method))
-                return Task.CompletedTask;
+                return;
 
             Interlocked.Increment(ref OpenStatController.ActiveHttpRequests);
 
             try
             {
-                return _next(httpContext);
+                await _next(httpContext);
             }
             finally
             {
