@@ -206,7 +206,11 @@ namespace Shared.PlaywrightCore
                     }
                     else
                     {
-                        response = await page.GotoAsync($"view-source:{url}").ConfigureAwait(false);
+                        response = await page.GotoAsync($"view-source:{url}", new PageGotoOptions()
+                        {
+                            Timeout = 10_000,
+                            WaitUntil = WaitUntilState.DOMContentLoaded
+                        }).ConfigureAwait(false);
                     }
 
                     if (response != null)

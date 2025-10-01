@@ -106,7 +106,11 @@ namespace Online.Controllers
                             catch { }
                         });
 
-                        await page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
+                        await page.GotoAsync(uri, new PageGotoOptions() 
+                        {
+                            Timeout = 15_000,
+                            WaitUntil = WaitUntilState.DOMContentLoaded 
+                        }).ConfigureAwait(false);
 
                         var frameElement = await page.WaitForSelectorAsync("iframe[src*='smashyplayer.top']", new PageWaitForSelectorOptions 
                         { 

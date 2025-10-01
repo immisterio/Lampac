@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Playwright;
 using Newtonsoft.Json.Linq;
 using Shared.PlaywrightCore;
 
@@ -172,7 +173,13 @@ namespace Online.Controllers
                                 catch { }
                             });
 
-                            var result = await page.GotoAsync(iframe).ConfigureAwait(false);
+                            var options = new PageGotoOptions()
+                            {
+                                Timeout = 15_000,
+                                WaitUntil = WaitUntilState.NetworkIdle
+                            };
+
+                            var result = await page.GotoAsync(iframe, options).ConfigureAwait(false);
                             if (result != null && string.IsNullOrEmpty(location))
                             {
                                 string html = await page.ContentAsync().ConfigureAwait(false);

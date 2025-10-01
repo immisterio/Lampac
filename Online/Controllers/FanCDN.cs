@@ -86,7 +86,12 @@ namespace Online.Controllers
 
                            await page.Context.AddCookiesAsync(cookies);
 
-                           var response = await page.GotoAsync(ongettourl, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                           var response = await page.GotoAsync(ongettourl, new PageGotoOptions()
+                           {
+                               Timeout = 10_000,
+                               WaitUntil = WaitUntilState.DOMContentLoaded 
+                           });
+
                            if (response == null)
                                return null;
 

@@ -430,7 +430,13 @@ namespace Shared.PlaywrightCore
         #region GotoAsync
         public static void GotoAsync(IPage page, string uri)
         {
-            _ = page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
+            var options = new PageGotoOptions
+            {
+                Timeout = 60_000, // 60 секунд
+                WaitUntil = WaitUntilState.DOMContentLoaded
+            };
+
+            _ = page.GotoAsync(uri, options).ConfigureAwait(false);
         }
         #endregion
 

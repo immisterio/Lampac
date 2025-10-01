@@ -236,7 +236,12 @@ namespace SISI.Controllers.NextHUB
 
                         #region GotoAsync
                         resetGotoAsync: string html = null;
-                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
+                        var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{url}" : url, new PageGotoOptions() 
+                        {
+                            Timeout = 10_000,
+                            WaitUntil = WaitUntilState.DOMContentLoaded 
+                        }).ConfigureAwait(false);
+
                         if (responce != null)
                             html = await responce.TextAsync().ConfigureAwait(false);
                         #endregion

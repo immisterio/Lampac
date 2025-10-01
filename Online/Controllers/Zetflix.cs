@@ -95,7 +95,11 @@ namespace Online.Controllers
                             catch { }
                         });
 
-                        await page.GotoAsync(uri, new PageGotoOptions() { WaitUntil = WaitUntilState.NetworkIdle }).ConfigureAwait(false);
+                        await page.GotoAsync(uri, new PageGotoOptions() 
+                        {
+                            Timeout = 15_000,
+                            WaitUntil = WaitUntilState.NetworkIdle 
+                        }).ConfigureAwait(false);
 
                         result = await page.ContentAsync().ConfigureAwait(false);
 
