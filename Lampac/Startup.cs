@@ -60,7 +60,7 @@ namespace Lampac
                 AllowAutoRedirect = false,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                 UseCookies = false
             });
 
@@ -69,7 +69,7 @@ namespace Lampac
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                 UseCookies = false
             });
 
@@ -78,7 +78,7 @@ namespace Lampac
                 AllowAutoRedirect = false,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                 UseCookies = false
             });
 
@@ -92,7 +92,7 @@ namespace Lampac
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                 EnableMultipleHttp2Connections = true,
                 UseCookies = false
             });
@@ -107,7 +107,7 @@ namespace Lampac
                 AllowAutoRedirect = false,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                 EnableMultipleHttp2Connections = true,
                 UseCookies = false
             });

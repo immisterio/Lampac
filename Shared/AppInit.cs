@@ -385,8 +385,8 @@ namespace Shared
 
         public HybridCacheConf cache = new HybridCacheConf() 
         {
-            type = "hybrid",  // mem|file|hybrid
-            extend = 5        // seconds (hybrid)
+            type = "file",  // mem|file|hybrid
+            extend = -1     // seconds (hybrid)
         };
 
         public WafConf WAF = new WafConf();

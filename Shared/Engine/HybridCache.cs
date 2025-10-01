@@ -42,24 +42,24 @@ namespace Shared.Engine
 
                 if (DateTime.Now > _nextClearDb)
                 {
+                    _nextClearDb = DateTime.Now.AddMinutes(20);
+
                     var now = DateTime.Now;
 
                     await sqlDb.files
                          .AsNoTracking()
                          .Where(i => now > i.ex)
                          .ExecuteDeleteAsync();
-
-                    _nextClearDb = DateTime.Now.AddMinutes(20);
                 }
                 else
                 {
                     foreach (var t in tempDb.ToArray())
                     {
+                        if (t.Value.extend >= DateTime.Now)
+                            continue;
+
                         try
                         {
-                            if (t.Value.extend >= DateTime.Now)
-                                continue;
-
                             var doc = sqlDb.files.Find(t.Value.cache.Id);
                             if (doc != null)
                             {
@@ -75,14 +75,19 @@ namespace Shared.Engine
                             });
 
                             await sqlDb.SaveChangesAsync();
-
+                        }
+                        catch { }
+                        finally
+                        {
                             tempDb.TryRemove(t.Key, out _);
                         }
-                        catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }
                     }
                 }
             }
-            catch (Exception ex) { Console.WriteLine("HybridCache: " + ex); }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine("HybridCache: " + ex); 
+            }
             finally
             {
                 updatingDb = false;
@@ -99,7 +104,7 @@ namespace Shared.Engine
 
         public bool TryGetValue<TItem>(string key, out TItem value, bool? inmemory = null)
         {
-            if (!AppInit.conf.mikrotik)
+            if (!AppInit.conf.mikrotik && AppInit.conf.cache.type != "mem")
             {
                 if (memoryCache.TryGetValue(key, out value))
                     return true;

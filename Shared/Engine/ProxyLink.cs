@@ -206,14 +206,14 @@ namespace Shared.Engine
 
                 if (DateTime.Now > _nextClearDb)
                 {
+                    _nextClearDb = DateTime.Now.AddHours(1);
+
                     var now = DateTime.Now;
 
                     await sqlDb.links
                          .AsNoTracking()
                          .Where(i => now > i.ex)
                          .ExecuteDeleteAsync();
-
-                    _nextClearDb = DateTime.Now.AddHours(1);
                 }
                 else
                 {

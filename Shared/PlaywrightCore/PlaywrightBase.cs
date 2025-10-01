@@ -355,6 +355,8 @@ namespace Shared.PlaywrightCore
                         {
                             if (DateTime.Now > _nextClearDb)
                             {
+                                _nextClearDb = DateTime.Now.AddMinutes(5);
+
                                 var now = DateTime.Now;
 
                                 await PlaywrightDb.Write.files
@@ -363,7 +365,6 @@ namespace Shared.PlaywrightCore
                                      .ExecuteDeleteAsync();
 
                                 PlaywrightDb.Write.ChangeTracker.Clear();
-                                _nextClearDb = DateTime.Now.AddMinutes(5);
                             }
                         }
                         catch { }

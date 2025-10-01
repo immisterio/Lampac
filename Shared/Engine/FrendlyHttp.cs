@@ -8,7 +8,7 @@ namespace Shared.Engine
     public static class FrendlyHttp
     {
         #region static
-        static ConcurrentDictionary<string, (DateTime lifetime, System.Net.Http.HttpClient http)> _clients = new ConcurrentDictionary<string, (DateTime, System.Net.Http.HttpClient)>();
+        static ConcurrentDictionary<string, (DateTime lifetime, HttpClient http)> _clients = new ConcurrentDictionary<string, (DateTime, HttpClient)>();
 
         static FrendlyHttp()
         {
@@ -25,7 +25,10 @@ namespace Shared.Engine
                             try
                             {
                                 if (_clients.TryRemove(c.Key, out var _c))
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(20));
                                     _c.http.Dispose();
+                                }
                             }
                             catch { }
                         }
@@ -86,20 +89,14 @@ namespace Shared.Engine
                 password = credentials.Password;
             }
 
-            string key = $"{ip}:{port}:{username}:{password}:{MaxResponseContentBufferSize}:{handler?.AllowAutoRedirect}";
-
-            lock (_clients)
+            return _clients.GetOrAdd($"{ip}:{port}:{username}:{password}:{MaxResponseContentBufferSize}:{handler?.AllowAutoRedirect}", k => 
             {
-                if (_clients.TryGetValue(key, out (DateTime, HttpClient http) value))
-                    return value.http;
-
                 var client = new HttpClient(handler);
                 client.MaxResponseContentBufferSize = maxBufferSize;
 
-                _clients.TryAdd(key, (DateTime.UtcNow.AddMinutes(10), client));
+                return (DateTime.UtcNow.AddMinutes(30), client);
 
-                return client;
-            }
+            }).http;
         }
         #endregion
     }

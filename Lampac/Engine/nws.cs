@@ -51,20 +51,20 @@ namespace Lampac.Engine
 
             using (var socket = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false))
             {
-                var requestInfo = context.Features.Get<RequestModel>();
-                string ip = requestInfo.IP ?? context.Connection.RemoteIpAddress?.ToString();
-
                 string connectionId = Guid.NewGuid().ToString("N");
-
-                var connection = new NwsConnection(connectionId, socket, AppInit.Host(context), ip);
-
-                var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
-                connection.SetCancellationSource(cancellationSource);
-
-                _connections.TryAdd(connectionId, connection);
 
                 try
                 {
+                    var requestInfo = context.Features.Get<RequestModel>();
+                    string ip = requestInfo.IP ?? context.Connection.RemoteIpAddress?.ToString();
+
+                    var connection = new NwsConnection(connectionId, socket, AppInit.Host(context), ip);
+
+                    var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+                    connection.SetCancellationSource(cancellationSource);
+
+                    _connections.TryAdd(connectionId, connection);
+
                     await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
                     await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
                 }
@@ -97,7 +97,8 @@ namespace Lampac.Engine
 
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            await socket.CloseAsync(result.CloseStatus ?? WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, CancellationToken.None).ConfigureAwait(false);
+                            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                                await socket.CloseAsync(result.CloseStatus ?? WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, cts.Token).ConfigureAwait(false);
                             return;
                         }
 
@@ -106,7 +107,8 @@ namespace Lampac.Engine
                             builder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
                             if (builder.Length > 10_000000)
                             {
-                                await socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "payload too large", CancellationToken.None).ConfigureAwait(false);
+                                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                                    await socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "payload too large", cts.Token).ConfigureAwait(false);
                                 return;
                             }
                         }
@@ -135,6 +137,7 @@ namespace Lampac.Engine
             finally
             {
                 ArrayPool<byte>.Shared.Return(buffer);
+                builder.Clear();
             }
         }
         #endregion
@@ -277,7 +280,9 @@ namespace Lampac.Engine
 
                 if (connection.Socket.State == WebSocketState.Open)
                 {
-                    await connection.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None).ConfigureAwait(false);
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                        await connection.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cts.Token).ConfigureAwait(false);
+
                     connection.UpdateActivity();
                 }
             }
