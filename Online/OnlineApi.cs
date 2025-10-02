@@ -395,7 +395,7 @@ namespace Online.Controllers
         #region spider
         [Route("lite/spider")]
         [Route("lite/spider/anime")]
-        public ActionResult Spider(string title)
+        async public ValueTask<ActionResult> Spider(string title)
         {
             if (!AppInit.conf.online.spider)
                 return ContentTo("{}");
@@ -404,6 +404,62 @@ namespace Online.Controllers
 
             var user = requestInfo.user;
             var piders = new List<(string name, string uri, int index)>();
+
+            bool isanime = HttpContext.Request.Path.Value?.EndsWith("/anime") == true;
+            var spiderArgs = new OnlineSpiderModel(title, isanime);
+
+            void addResult(List<(string name, string url, int index)> result)
+            {
+                if (result == null || result.Count == 0)
+                    return;
+
+                foreach (var item in result)
+                {
+                    if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.url))
+                        continue;
+
+                    piders.Add((item.name, item.url, item.index));
+                }
+            }
+
+            OnlineModuleEntry.EnsureCache();
+
+            if (OnlineModuleEntry.onlineModulesCache != null && OnlineModuleEntry.onlineModulesCache.Count > 0)
+            {
+                foreach (var entry in OnlineModuleEntry.onlineModulesCache)
+                {
+                    try
+                    {
+                        if (entry.Spider != null)
+                        {
+                            try
+                            {
+                                var result = entry.Spider(HttpContext, memoryCache, requestInfo, host, spiderArgs);
+                                addResult(result);
+                            }
+                            catch { }
+                        }
+
+                        if (entry.SpiderAsync != null)
+                        {
+                            try
+                            {
+                                var result = await entry.SpiderAsync(HttpContext, memoryCache, requestInfo, host, spiderArgs);
+                                addResult(result);
+                            }
+                            catch { }
+                        }
+
+                    }
+                    catch (Exception ex) { Console.WriteLine($"Modules {entry.mod?.NamespacePath(entry.mod.online)}: {ex.Message}\n\n"); }
+                }
+            }
+
+            title = spiderArgs.title ?? title;
+            isanime = spiderArgs.isanime;
+
+            if (spiderArgs.requireRhub)
+                rhub = true;
 
             #region send
             void send(BaseSettings init, string plugin = null)
@@ -451,7 +507,7 @@ namespace Online.Controllers
             }
             #endregion
 
-            if (HttpContext.Request.Path.Value.EndsWith("/anime"))
+            if (isanime)
             {
                 send(AppInit.conf.Kodik);
                 send(AppInit.conf.AnimeLib);
