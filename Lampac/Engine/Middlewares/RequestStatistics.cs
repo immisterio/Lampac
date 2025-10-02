@@ -79,23 +79,39 @@ namespace Lampac.Engine.Middlewares
 
             double sum = 0;
             int count = 0;
-            double min = double.MaxValue;
-            double max = double.MinValue;
+            var durations = new System.Collections.Generic.List<double>();
 
             foreach (var item in ResponseTimes)
             {
                 sum += item.durationMs;
                 count++;
-                if (item.durationMs < min)
-                    min = item.durationMs;
-                if (item.durationMs > max)
-                    max = item.durationMs;
+                durations.Add(item.durationMs);
             }
 
             if (count == 0)
                 return (0, 0, 0);
 
-            return (sum / count, min, max);
+            durations.Sort();
+
+            int minSampleSize = Math.Min(100, durations.Count);
+            int maxSampleSize = Math.Min(100, durations.Count);
+
+            double minAvg = AverageRange(durations, 0, minSampleSize);
+            double maxAvg = AverageRange(durations, durations.Count - maxSampleSize, maxSampleSize);
+
+            return (sum / count, minAvg, maxAvg);
+        }
+
+        static double AverageRange(System.Collections.Generic.List<double> sortedDurations, int startIndex, int length)
+        {
+            if (length <= 0)
+                return 0;
+
+            double total = 0;
+            for (int i = 0; i < length; i++)
+                total += sortedDurations[startIndex + i];
+
+            return total / length;
         }
     }
 }
