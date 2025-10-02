@@ -11,12 +11,12 @@ namespace Online
         // version >= 3
         public Func<HttpContext, IMemoryCache, RequestModel, string, OnlineEventsModel, List<(string name, string url, string plugin, int index)>> Invoke = null;
         public Func<HttpContext, IMemoryCache, RequestModel, string, OnlineEventsModel, Task<List<(string name, string url, string plugin, int index)>>> InvokeAsync = null;
+        public Func<HttpContext, IMemoryCache, RequestModel, string, OnlineSpiderModel, List<(string name, string url, int index)>> Spider = null;
+        public Func<HttpContext, IMemoryCache, RequestModel, string, OnlineSpiderModel, Task<List<(string name, string url, int index)>>> SpiderAsync = null;
 
         // version < 3
         public Func<string, long, string, long, string, string, string, int, string, int, string, List<(string name, string url, string plugin, int index)>> Events = null;
         public Func<HttpContext, IMemoryCache, string, long, string, long, string, string, string, int, string, int, string, Task<List<(string name, string url, string plugin, int index)>>> EventsAsync = null;
-
-
         public static List<OnlineModuleEntry> onlineModulesCache = null;
         static readonly object _onlineModulesCacheLock = new object();
 
@@ -71,6 +71,29 @@ namespace Online
                                     }
                                 }
                                 catch { }
+
+                                try
+                                {
+                                    var m3 = type.GetMethod("Spider");
+                                    if (m3 != null)
+                                    {
+                                        entry.Spider = (Func<HttpContext, IMemoryCache, RequestModel, string, OnlineSpiderModel, List<(string name, string url, int index)>>)Delegate.CreateDelegate(
+                                            typeof(Func<HttpContext, IMemoryCache, RequestModel, string, OnlineSpiderModel, List<(string name, string url, int index)>>), m3);
+                                    }
+                                }
+                                catch { }
+
+                                try
+                                {
+                                    var m4 = type.GetMethod("SpiderAsync");
+                                    if (m4 != null)
+                                    {
+                                        entry.SpiderAsync = (Func<HttpContext, IMemoryCache, RequestModel, string, OnlineSpiderModel, Task<List<(string name, string url, int index)>>>)Delegate.CreateDelegate(
+                                            typeof(Func<HttpContext, IMemoryCache, RequestModel, string, OnlineSpiderModel, Task<List<(string name, string url, int index)>>>), m4);
+                                    }
+                                }
+                                catch { }
+
                             }
                             else
                             {
@@ -97,7 +120,7 @@ namespace Online
                                 catch { }
                             }
 
-                            if (entry.Invoke != null || entry.InvokeAsync != null || entry.Events != null || entry.EventsAsync != null)
+                            if (entry.Invoke != null || entry.InvokeAsync != null || entry.Events != null || entry.EventsAsync != null || entry.Spider != null || entry.SpiderAsync != null)
                                 onlineModulesCache.Add(entry);
                         }
                         catch { }
