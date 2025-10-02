@@ -295,7 +295,7 @@ namespace Shared.Engine.Online
 
                 foreach (var v in player_links.movie)
                 {
-                    var streams = new List<(string link, string quality)>(5);
+                    var streamquality = new StreamQualityTpl();
 
                     foreach (int q in new int[] { 2160, 1440, 1080, 720, 480 })
                     {
@@ -325,13 +325,13 @@ namespace Shared.Engine.Online
                             }
                         }
 
-                        streams.Add((onstreamfile.Invoke(l), $"{q}p"));
+                        streamquality.Append(onstreamfile.Invoke(l), $"{q}p");
                     }
 
-                    if (streams.Count == 0)
+                    if (!streamquality.Any())
                         continue;
 
-                    mtpl.Append(v.translation, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                    mtpl.Append(v.translation, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -419,7 +419,7 @@ namespace Shared.Engine.Online
 
                     foreach (var episode in episodes)
                     {
-                        var streams = new List<(string link, string quality)>(episode.Value.qualities.Length);
+                        var streamquality = new StreamQualityTpl();
 
                         foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
@@ -446,15 +446,15 @@ namespace Shared.Engine.Online
                                 }
                             }
 
-                            streams.Add((onstreamfile.Invoke(l), $"{lq}p"));
+                            streamquality.Append(onstreamfile.Invoke(l), $"{lq}p");
                         }
 
-                        if (streams.Count == 0)
+                        if (!streamquality.Any())
                             continue;
 
                         int fis = s == -1 ? 1 : (s ?? 1);
 
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, fis.ToString(), episode.Key, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, fis.ToString(), episode.Key, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                     }
                     #endregion
 

@@ -266,21 +266,19 @@ namespace Shared.Engine.Online
 
                     foreach (var episode in selectedSeason.Value.episodes)
                     {
-                        var streams = new List<(string link, string quality)>(episode.Value.files.Length);
+                        var streamquality = new StreamQualityTpl();
 
                         var sortedFiles = episode.Value.files
                             .Where(file => pro || file.quality <= 720)
                             .OrderByDescending(file => file.quality);
 
                         foreach (var file in sortedFiles)
-                        {
-                            streams.Add((onstreamfile.Invoke(file.url), $"{file.quality}p"));
-                        }
+                            streamquality.Append(onstreamfile.Invoke(file.url), $"{file.quality}p");
 
-                        if (streams.Count == 0)
+                        if (!streamquality.Any())
                             continue;
 
-                        etpl.Append($"{episode.Key.TrimStart('e')} серия", title ?? original_title, selectedSeason.Value.season.ToString(), episode.Key.TrimStart('e'), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                        etpl.Append($"{episode.Key.TrimStart('e')} серия", title ?? original_title, selectedSeason.Value.season.ToString(), episode.Key.TrimStart('e'), streamquality.Firts().link, streamquality: streamquality, vast: vast);
                     }
 
                     if (rjson)
@@ -298,7 +296,7 @@ namespace Shared.Engine.Online
 
                 foreach (var item in root.Movies)
                 {
-                    var streams = new List<(string link, string quality)>(item.files.Length);
+                    var streamquality = new StreamQualityTpl();
 
                     foreach (var file in item.files)
                     {
@@ -311,13 +309,13 @@ namespace Shared.Engine.Online
                                 continue;
                         }
 
-                        streams.Add((onstreamfile.Invoke(file.url), $"{file.quality}p"));
+                        streamquality.Append(onstreamfile.Invoke(file.url), $"{file.quality}p");
                     }
 
-                    if (streams.Count == 0)
+                    if (!streamquality.Any())
                         continue;
 
-                    mtpl.Append(item.voiceover, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                    mtpl.Append(item.voiceover, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
