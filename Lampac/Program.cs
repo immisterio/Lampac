@@ -1,6 +1,7 @@
 using Lampac.Engine;
 using Lampac.Engine.CRON;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -380,8 +381,21 @@ namespace Lampac
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseKestrel(op => 
+                    webBuilder.UseKestrel(op =>
                     {
+                        if (AppInit.conf.listen.keepalive.HasValue)
+                        {
+                            op.Limits.KeepAliveTimeout = AppInit.conf.listen.keepalive.Value <= 0
+                                ? TimeSpan.Zero
+                                : TimeSpan.FromSeconds(AppInit.conf.listen.keepalive.Value);
+                        }
+
+                        op.ConfigureEndpointDefaults(endpointOptions =>
+                        {
+                            if (AppInit.conf.listen.endpointDefaultsProtocols.HasValue)
+                                endpointOptions.Protocols = AppInit.conf.listen.endpointDefaultsProtocols.Value;
+                        });
+
                         if (string.IsNullOrEmpty(AppInit.conf.listen.sock) && string.IsNullOrEmpty(AppInit.conf.listen.ip))
                         {
                             op.Listen(IPAddress.Parse("127.0.0.1"), 9118);
