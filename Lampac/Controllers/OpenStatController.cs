@@ -73,12 +73,19 @@ namespace Lampac.Controllers
                     req_hour += _r;
             }
 
-            return Json(new 
-            { 
+            var responseStats = RequestStatisticsTracker.GetResponseTimeStatsLastMinute();
+
+            return Json(new
+            {
                 req_min,
                 req_hour,
                 http_active = RequestStatisticsTracker.ActiveHttpRequests,
-                http_avg_response_ms = Math.Round(RequestStatisticsTracker.GetAverageResponseTimeLastMinute(), 2),
+                http_response_ms = new
+                {
+                    avg = Math.Round(responseStats.avg, 2),
+                    min = Math.Round(responseStats.min, 2),
+                    max = Math.Round(responseStats.max, 2)
+                },
                 nws_online = nws.ConnectionCount,
                 soks_online = soks.connections,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length

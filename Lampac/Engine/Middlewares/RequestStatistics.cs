@@ -72,24 +72,30 @@ namespace Lampac.Engine.Middlewares
                 ResponseTimes.TryDequeue(out _);
         }
 
-        public static double GetAverageResponseTimeLastMinute()
+        public static (double avg, double min, double max) GetResponseTimeStatsLastMinute()
         {
             var now = DateTime.UtcNow;
             CleanupResponseTimes(now);
 
             double sum = 0;
             int count = 0;
+            double min = double.MaxValue;
+            double max = double.MinValue;
 
             foreach (var item in ResponseTimes)
             {
                 sum += item.durationMs;
                 count++;
+                if (item.durationMs < min)
+                    min = item.durationMs;
+                if (item.durationMs > max)
+                    max = item.durationMs;
             }
 
             if (count == 0)
-                return 0;
+                return (0, 0, 0);
 
-            return sum / count;
+            return (sum / count, min, max);
         }
     }
 }
