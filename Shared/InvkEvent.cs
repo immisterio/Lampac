@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
 using Shared.Models;
-using Shared.Models.Base;
 using Shared.Models.Events;
 using System.Net;
 using System.Net.Http;

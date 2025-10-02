@@ -1,4 +1,3 @@
-using Shared;
 using Shared.Models.Events;
 using System.Text.Json;
 
@@ -68,10 +67,9 @@ namespace Shared.Models.Templates
             if (data.Count == 0)
                 return default;
 
-            var first = data[0];
-            var result = InvkEvent.StreamQualityFirts(new EventStreamQualityFirts(data));
+            var eventResult = InvkEvent.StreamQualityFirts(new EventStreamQualityFirts(data));
 
-            return result ?? first;
+            return eventResult ?? data[0];
         }
     }
 }
