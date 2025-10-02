@@ -37,7 +37,7 @@ namespace Lampac.Controllers
             {
                 Chromium = new
                 {
-                    open = Chromium.browser?.Contexts?.Count,
+                    open = Chromium.ContextsCount,
                     req_keepopen = Chromium.stats_keepopen,
                     req_newcontext = Chromium.stats_newcontext,
                     ping = new 

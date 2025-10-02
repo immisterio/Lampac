@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Shared;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -21,7 +22,7 @@ namespace Lampac.Engine.Middlewares
             bool trackStats = !(context.Request.Path.StartsWithSegments("/ws") || context.Request.Path.StartsWithSegments("/nws"));
             Stopwatch stopwatch = null;
 
-            if (trackStats)
+            if (trackStats && AppInit.conf.openstat.enable)
                 stopwatch = RequestStatisticsTracker.StartRequest();
 
             try
@@ -30,7 +31,7 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (trackStats)
+                if (trackStats && AppInit.conf.openstat.enable)
                     RequestStatisticsTracker.CompleteRequest(stopwatch);
             }
         }

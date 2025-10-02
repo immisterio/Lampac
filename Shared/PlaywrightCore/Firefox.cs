@@ -15,11 +15,14 @@ namespace Shared.PlaywrightCore
 
         public static long stats_newcontext { get; set; }
 
-        public static IBrowser browser = null;
+        static IPlaywright playwright = null;
+        static IBrowser browser = null;
 
         static bool shutdown = false;
 
         public static PlaywrightStatus Status { get; private set; } = PlaywrightStatus.disabled;
+
+        public static int ContextsCount => browser?.Contexts?.Count ?? 0;
 
         async public static Task CreateAsync()
         {
@@ -135,7 +138,7 @@ namespace Shared.PlaywrightCore
 
                 Console.WriteLine("Firefox: Initialization");
 
-                var playwright = await Playwright.CreateAsync();
+                playwright = await Playwright.CreateAsync();
 
                 Console.WriteLine("Firefox: CreateAsync");
 
@@ -162,10 +165,30 @@ namespace Shared.PlaywrightCore
 
         async private static void Browser_Disconnected(object sender, IBrowser e)
         {
-            browser = null;
-            pages_keepopen = new();
             Status = PlaywrightStatus.disabled;
+            browser.Disconnected -= Browser_Disconnected;
             Console.WriteLine("Firefox: Browser_Disconnected");
+
+            if (pages_keepopen != null)
+                pages_keepopen.Clear();
+
+            try
+            {
+                await browser.CloseAsync();
+                await browser.DisposeAsync();
+            }
+            catch { }
+
+            browser = null;
+
+            try
+            {
+                playwright.Dispose();
+            }
+            catch { }
+
+            playwright = null;
+            pages_keepopen = new();
             await Task.Delay(TimeSpan.FromSeconds(10));
             await CreateAsync();
         }

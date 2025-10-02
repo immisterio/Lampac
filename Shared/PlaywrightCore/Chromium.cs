@@ -31,11 +31,14 @@ namespace Shared.PlaywrightCore
         public static (DateTime time, int status, string ex) stats_ping { get; set; }
 
 
-        public static IBrowser browser = null;
+        static IPlaywright playwright = null;
+        static IBrowser browser = null;
 
         static bool shutdown = false;
 
         public static PlaywrightStatus Status { get; private set; } = PlaywrightStatus.disabled;
+
+        public static int ContextsCount => browser?.Contexts?.Count ?? 0;
 
         async public static Task CreateAsync()
         {
@@ -143,7 +146,7 @@ namespace Shared.PlaywrightCore
 
                 Console.WriteLine("Chromium: Initialization");
 
-                var playwright = await Playwright.CreateAsync();
+                playwright = await Playwright.CreateAsync();
 
                 Console.WriteLine("Chromium: CreateAsync");
 
@@ -337,7 +340,15 @@ namespace Shared.PlaywrightCore
                             }
                             catch { }
 
+                            try
+                            {
+                                playwright.Dispose();
+                            }
+                            catch { }
+
                             browser = null;
+                            playwright = null;
+
                             await CreateAsync();
                         }
                     }
