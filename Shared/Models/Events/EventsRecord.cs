@@ -7,7 +7,6 @@ using Shared.Models.JacRed;
 using Shared.Models.Online.Settings;
 using System.Net;
 using System.Net.Http;
-using System.Collections.Generic;
 
 namespace Shared.Models.Events
 {

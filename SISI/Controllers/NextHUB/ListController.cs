@@ -571,7 +571,7 @@ namespace SISI.Controllers.NextHUB
                     }
                     else
                     {
-                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle).ConfigureAwait(false);
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions() { Timeout = 20_000 }).ConfigureAwait(false);
                         content = await page.ContentAsync().ConfigureAwait(false);
                     }
 
