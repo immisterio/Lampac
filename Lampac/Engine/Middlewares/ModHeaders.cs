@@ -12,10 +12,10 @@ namespace Lampac.Engine.Middlewares
             _next = next;
         }
 
-        async public Task InvokeAsync(HttpContext httpContext)
+        public Task Invoke(HttpContext httpContext)
         {
             if (httpContext.Request.Path.Value.StartsWith("/cors/check"))
-                return;
+                return Task.CompletedTask;
 
             httpContext.Response.Headers["Access-Control-Allow-Credentials"] = "true";
             httpContext.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
@@ -34,7 +34,8 @@ namespace Lampac.Engine.Middlewares
             else
                 httpContext.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
-            if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|cubproxy|tracks|dlna|timecode|ts)\\.js"))
+            if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|cubproxy|tracks|dlna|timecode|sync|backup|ts|invc-ws)\\.js") ||
+                Regex.IsMatch(httpContext.Request.Path.Value, "^/(on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/)"))
             {
                 httpContext.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate"; // HTTP 1.1.
                 httpContext.Response.Headers["Pragma"] = "no-cache"; // HTTP 1.0.
@@ -42,9 +43,9 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (HttpMethods.IsOptions(httpContext.Request.Method))
-                return;
+                return Task.CompletedTask;
 
-            await _next(httpContext);
+            return _next(httpContext);
         }
     }
 }

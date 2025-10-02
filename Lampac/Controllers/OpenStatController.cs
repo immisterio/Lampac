@@ -78,7 +78,7 @@ namespace Lampac.Controllers
                 req_min,
                 req_hour,
                 http_active = RequestStatisticsTracker.ActiveHttpRequests,
-                avg_response_ms = Math.Round(RequestStatisticsTracker.GetAverageResponseTimeLastMinute(), 2),
+                http_avg_response_ms = Math.Round(RequestStatisticsTracker.GetAverageResponseTimeLastMinute(), 2),
                 nws_online = nws.ConnectionCount,
                 soks_online = soks.connections,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
