@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -225,6 +226,8 @@ namespace Shared.Engine
 
                 repository.Owner = owner;
                 repository.Name = name;
+
+                ApplyAuthenticationSettings(map, repository);
                 Console.WriteLine($"ModuleRepository: parsed repository {repository.Owner}/{repository.Name} branch={repository.Branch ?? "(default)"}");
 
                 // If no folders were specified in YAML, try to fetch top-level directories from GitHub repo
@@ -253,6 +256,101 @@ namespace Shared.Engine
             }
 
             return null;
+        }
+
+        private static void ApplyAuthenticationSettings(IDictionary<object, object> map, RepositoryEntry repository)
+        {
+            if (map == null || repository == null)
+                return;
+
+            string accept = GetString(map, "accept", "accept_header");
+            if (!string.IsNullOrWhiteSpace(accept))
+                repository.AcceptHeader = accept.Trim();
+
+            string authHeader = GetString(map, "auth_header", "authorization", "authorization_header");
+            if (!string.IsNullOrWhiteSpace(authHeader))
+            {
+                string resolvedHeader = ResolveSecretValue(authHeader, "auth_header", repository);
+                if (!string.IsNullOrWhiteSpace(resolvedHeader))
+                    repository.Token = resolvedHeader.Trim();
+
+                return;
+            }
+
+            string tokenValue = GetString(map, "token", "pat", "personal_access_token");
+            if (string.IsNullOrWhiteSpace(tokenValue))
+                return;
+
+            string resolvedToken = ResolveSecretValue(tokenValue, "token", repository);
+            if (string.IsNullOrWhiteSpace(resolvedToken))
+                return;
+
+            string tokenType = GetString(map, "token_type", "auth_type", "authorization_scheme", "scheme", "token_scheme");
+            string headerValue;
+
+            if (!string.IsNullOrWhiteSpace(tokenType))
+            {
+                headerValue = $"{tokenType.Trim()} {resolvedToken.Trim()}".Trim();
+            }
+            else
+            {
+                string trimmed = resolvedToken.Trim();
+                headerValue = trimmed.Contains(' ') ? trimmed : $"token {trimmed}";
+            }
+
+            if (string.IsNullOrWhiteSpace(headerValue))
+            {
+                Console.WriteLine($"ModuleRepository: resolved token for {repository.Url} is empty");
+                return;
+            }
+
+            repository.Token = headerValue;
+        }
+
+        private static string ResolveSecretValue(string value, string fieldName, RepositoryEntry repository)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            string trimmed = value.Trim();
+
+            int envIndex = trimmed.IndexOf("env:", StringComparison.OrdinalIgnoreCase);
+            if (envIndex < 0)
+                return trimmed;
+
+            var builder = new StringBuilder();
+            int currentIndex = 0;
+
+            while (envIndex >= 0)
+            {
+                builder.Append(trimmed, currentIndex, envIndex - currentIndex);
+
+                int nameStart = envIndex + 4;
+                int nameEnd = nameStart;
+                while (nameEnd < trimmed.Length && (char.IsLetterOrDigit(trimmed[nameEnd]) || trimmed[nameEnd] == '_'))
+                    nameEnd++;
+
+                if (nameEnd == nameStart)
+                {
+                    Console.WriteLine($"ModuleRepository: {fieldName} environment variable name is missing for repository {repository?.Url}");
+                    return null;
+                }
+
+                string envName = trimmed[nameStart..nameEnd];
+                string envValue = Environment.GetEnvironmentVariable(envName);
+                if (string.IsNullOrWhiteSpace(envValue))
+                {
+                    Console.WriteLine($"ModuleRepository: environment variable '{envName}' not found for repository {repository?.Url}");
+                    return null;
+                }
+
+                builder.Append(envValue.Trim());
+                currentIndex = nameEnd;
+                envIndex = trimmed.IndexOf("env:", currentIndex, StringComparison.OrdinalIgnoreCase);
+            }
+
+            builder.Append(trimmed[currentIndex..]);
+            return builder.ToString().Trim();
         }
 
         private static List<RepositoryFolder> ParseFolders(IDictionary<object, object> map)
@@ -429,7 +527,7 @@ namespace Shared.Engine
                 return null;
             }
 
-            var branchInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}/branches/{Uri.EscapeDataString(branch)}");
+            var branchInfo = GetJson(repository, $"https://api.github.com/repos/{repository.Owner}/{repository.Name}/branches/{Uri.EscapeDataString(branch)}");
             var sha = branchInfo?["commit"]?["sha"]?.Value<string>();
             Console.WriteLine($"ModuleRepository: latest commit sha for {repository.Owner}/{repository.Name} ({branch}) = {sha}");
             return sha;
@@ -445,7 +543,7 @@ namespace Shared.Engine
                 candidates.Add(repository.Branch.Trim());
 
             // Try to get default branch from repo metadata
-            var repoInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}");
+            var repoInfo = GetJson(repository, $"https://api.github.com/repos/{repository.Owner}/{repository.Name}");
             var defaultBranch = repoInfo?["default_branch"]?.Value<string>();
             if (!string.IsNullOrWhiteSpace(defaultBranch) && !candidates.Contains(defaultBranch, StringComparer.OrdinalIgnoreCase))
                 candidates.Add(defaultBranch);
@@ -461,7 +559,7 @@ namespace Shared.Engine
                 if (string.IsNullOrWhiteSpace(b))
                     continue;
 
-                var branchInfo = GetJson($"https://api.github.com/repos/{repository.Owner}/{repository.Name}/branches/{Uri.EscapeDataString(b)}");
+                var branchInfo = GetJson(repository, $"https://api.github.com/repos/{repository.Owner}/{repository.Name}/branches/{Uri.EscapeDataString(b)}");
                 if (branchInfo != null)
                 {
                     repository.Branch = b;
@@ -473,11 +571,41 @@ namespace Shared.Engine
             return null;
         }
 
-        private static JObject GetJson(string url)
+        private static HttpResponseMessage SendGetRequest(string url, RepositoryEntry repository, string acceptOverride = null, bool includeConfiguredAccept = true)
+        {
+            var request = CreateRequest(HttpMethod.Get, url, repository, acceptOverride, includeConfiguredAccept);
+
+            try
+            {
+                return HttpClient.SendAsync(request).GetAwaiter().GetResult();
+            }
+            finally
+            {
+                request.Dispose();
+            }
+        }
+
+        private static HttpRequestMessage CreateRequest(HttpMethod method, string url, RepositoryEntry repository, string acceptOverride, bool includeConfiguredAccept)
+        {
+            var request = new HttpRequestMessage(method, url);
+
+            if (!string.IsNullOrWhiteSpace(repository?.Token))
+                request.Headers.TryAddWithoutValidation("Authorization", repository.Token);
+
+            if (includeConfiguredAccept && !string.IsNullOrWhiteSpace(repository?.AcceptHeader))
+                request.Headers.TryAddWithoutValidation("Accept", repository.AcceptHeader);
+
+            if (!string.IsNullOrWhiteSpace(acceptOverride))
+                request.Headers.TryAddWithoutValidation("Accept", acceptOverride);
+
+            return request;
+        }
+
+        private static JObject GetJson(RepositoryEntry repository, string url)
         {
             try
             {
-                using var response = HttpClient.GetAsync(url).GetAwaiter().GetResult();
+                using var response = SendGetRequest(url, repository);
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine($"module repository: request {url} failed with {(int)response.StatusCode} {response.StatusCode}");
@@ -498,11 +626,11 @@ namespace Shared.Engine
             }
         }
 
-        private static JArray GetJsonArray(string url)
+        private static JArray GetJsonArray(RepositoryEntry repository, string url)
         {
             try
             {
-                using var response = HttpClient.GetAsync(url).GetAwaiter().GetResult();
+                using var response = SendGetRequest(url, repository);
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine($"module repository: request {url} failed with {(int)response.StatusCode} {response.StatusCode}");
@@ -534,7 +662,7 @@ namespace Shared.Engine
                 return result;
 
             string url = $"https://api.github.com/repos/{repository.Owner}/{repository.Name}/contents?ref={Uri.EscapeDataString(branch)}";
-            var items = GetJsonArray(url);
+            var items = GetJsonArray(repository, url);
             if (items == null)
                 return result;
 
@@ -568,7 +696,7 @@ namespace Shared.Engine
             try
             {
                 Console.WriteLine($"ModuleRepository: downloading archive {archiveUrl}");
-                using (var response = HttpClient.GetAsync(archiveUrl).GetAwaiter().GetResult())
+                using (var response = SendGetRequest(archiveUrl, repository))
                 {
                     if (!response.IsSuccessStatusCode)
                     {
@@ -872,6 +1000,8 @@ namespace Shared.Engine
             public string Branch { get; set; }
             public string Owner { get; set; }
             public string Name { get; set; }
+            public string Token { get; set; }
+            public string AcceptHeader { get; set; }
             public List<RepositoryFolder> Folders { get; set; } = new List<RepositoryFolder>();
 
             public bool IsValid => !string.IsNullOrEmpty(Url) && !string.IsNullOrEmpty(Owner) && !string.IsNullOrEmpty(Name) && Folders.Count > 0;
