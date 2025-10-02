@@ -400,6 +400,30 @@ namespace Shared
         }
         #endregion
 
+        #region StreamQualityTpl
+        public static (bool? next, string link) StreamQuality(EventStreamQuality model)
+        {
+            if (string.IsNullOrEmpty(conf?.StreamQualityTpl))
+                return default;
+
+            var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events").AddImports("Shared.Models.Templates");
+
+            return Invoke<(bool? next, string link)>(conf.StreamQualityTpl, model, option);
+        }
+
+        public static (string link, string quality)? StreamQualityFirts(EventStreamQualityFirts model)
+        {
+            if (string.IsNullOrEmpty(conf?.StreamQualityFirts))
+                return default;
+
+            var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events").AddImports("Shared.Models.Templates");
+
+            return Invoke<(string link, string quality)?>(conf.StreamQualityFirts, model, option);
+        }
+        #endregion
+
         #region HybridCache
         public static (DateTimeOffset ex, string value) HybridCache(string e, string key, string value, DateTimeOffset ex)
         {
