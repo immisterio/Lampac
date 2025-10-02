@@ -1,7 +1,6 @@
 using Lampac.Engine;
 using Lampac.Engine.CRON;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -383,12 +382,10 @@ namespace Lampac
                 {
                     webBuilder.UseKestrel(op =>
                     {
-                        if (AppInit.conf.listen.keepalive.HasValue)
-                        {
-                            op.Limits.KeepAliveTimeout = AppInit.conf.listen.keepalive.Value <= 0
-                                ? TimeSpan.Zero
-                                : TimeSpan.FromSeconds(AppInit.conf.listen.keepalive.Value);
-                        }
+                        op.AddServerHeader = false;
+
+                        if (AppInit.conf.listen.keepalive.HasValue && AppInit.conf.listen.keepalive.Value > 0)
+                            op.Limits.KeepAliveTimeout = TimeSpan.FromSeconds(AppInit.conf.listen.keepalive.Value);
 
                         op.ConfigureEndpointDefaults(endpointOptions =>
                         {

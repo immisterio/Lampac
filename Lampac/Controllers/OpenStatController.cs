@@ -79,6 +79,8 @@ namespace Lampac.Controllers
             {
                 req_min,
                 req_hour,
+                nws_online = nws.ConnectionCount,
+                soks_online = soks.connections,
                 http_active = RequestStatisticsTracker.ActiveHttpRequests,
                 http_response_ms = new
                 {
@@ -86,8 +88,6 @@ namespace Lampac.Controllers
                     min = Math.Round(responseStats.min, 2),
                     max = Math.Round(responseStats.max, 2)
                 },
-                nws_online = nws.ConnectionCount,
-                soks_online = soks.connections,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
             });
         }
