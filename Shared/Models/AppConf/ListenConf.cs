@@ -1,4 +1,6 @@
-﻿namespace Shared.Models.AppConf
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
+namespace Shared.Models.AppConf
 {
     public class ListenConf
     {
@@ -17,5 +19,9 @@
         public string frontend { get; set; }
 
         public string localhost { get; set; }
+
+        public int? keepalive { get; set; }
+
+        public HttpProtocols? endpointDefaultsProtocols { get; set; }
     }
 }
