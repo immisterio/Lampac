@@ -411,6 +411,7 @@ namespace Lampac
                 app.UseResponseCompression();
 
             app.UseModHeaders();
+            app.UseRequestStatistics();
             app.UseRequestInfo();
             app.UseAlwaysRjson();
             app.UseModule(first: true);

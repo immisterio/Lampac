@@ -14,6 +14,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<ModHeaders>();
         }
 
+        public static IApplicationBuilder UseRequestStatistics(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<RequestStatistics>();
+        }
+
         public static IApplicationBuilder UseOverrideResponse(this IApplicationBuilder builder, bool first)
         {
             return builder.UseMiddleware<OverrideResponse>(first);
