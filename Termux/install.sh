@@ -228,7 +228,9 @@ cat <<EOF > Lampac.runtimeconfig.json
     ],
     "configProperties": {
       "System.GC.Server": false,
-      "System.Reflection.NullabilityInfoContext.IsSupported": true
+      "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+      "System.Reflection.NullabilityInfoContext.IsSupported": true,
+      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
     }
   }
 }
