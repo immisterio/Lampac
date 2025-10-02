@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+using Shared;
+using Shared.Models.Events;
+using System.Text.Json;
 
 namespace Shared.Models.Templates
 {
@@ -14,13 +16,31 @@ namespace Shared.Models.Templates
 
         public void Append(string link, string quality)
         {
-            if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
+            if (string.IsNullOrEmpty(quality))
+                return;
+
+            var eventResult = InvkEvent.StreamQuality(new EventStreamQuality(link, quality, prepend: false));
+            if (eventResult.next.HasValue && !eventResult.next.Value)
+                return;
+
+            link = eventResult.link ?? link;
+
+            if (!string.IsNullOrEmpty(link))
                 data.Add((link, quality));
         }
 
         public void Insert(string link, string quality)
         {
-            if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(quality))
+            if (string.IsNullOrEmpty(quality))
+                return;
+
+            var eventResult = InvkEvent.StreamQuality(new EventStreamQuality(link, quality, prepend: true));
+            if (eventResult.next.HasValue && !eventResult.next.Value)
+                return;
+
+            link = eventResult.link ?? link;
+
+            if (!string.IsNullOrEmpty(link))
                 data.Insert(0, (link, quality));
         }
 
@@ -48,7 +68,10 @@ namespace Shared.Models.Templates
             if (data.Count == 0)
                 return default;
 
-            return data[0];
+            var first = data[0];
+            var result = InvkEvent.StreamQualityFirts(new EventStreamQualityFirts(data));
+
+            return result ?? first;
         }
     }
 }

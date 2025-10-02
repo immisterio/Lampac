@@ -6,6 +6,10 @@
 
         public string PidTor { get; set; }
 
+        public string StreamQualityTpl { get; set; }
+
+        public string StreamQualityFirts { get; set; }
+
         public EventModelMiddleware Middleware { get; set; }
 
         public EventModelController Controller { get; set; }

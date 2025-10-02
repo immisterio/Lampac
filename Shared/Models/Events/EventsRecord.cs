@@ -7,6 +7,7 @@ using Shared.Models.JacRed;
 using Shared.Models.Online.Settings;
 using System.Net;
 using System.Net.Http;
+using System.Collections.Generic;
 
 namespace Shared.Models.Events
 {
@@ -31,6 +32,10 @@ namespace Shared.Models.Events
     public record EventMyLocalIp(RequestModel requestInfo, HttpRequest request, HttpContext httpContext, HybridCache hybridCache);
 
     public record EventControllerHttpHeaders(string site, List<HeadersModel> headers, RequestModel requestInfo, HttpRequest request, HttpContext httpContext);
+
+    public record EventStreamQuality(string link, string quality, bool prepend);
+
+    public record EventStreamQualityFirts(IReadOnlyList<(string link, string quality)> data);
 
     public record EventHttpHandler(string url, HttpClientHandler handler, WebProxy proxy, CookieContainer cookieContainer, IMemoryCache memoryCache);
 
