@@ -402,7 +402,7 @@ namespace Shared
         public GCConf GC { get; set; } = new GCConf() 
         {
             enable = true,
-            RetainVM = false, Concurrent = false,
+            RetainVM = false, //Concurrent = false,
             ConserveMemory = 9, HighMemoryPercent = 1
         };
 

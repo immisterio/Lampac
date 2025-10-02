@@ -49,7 +49,7 @@ namespace Lampac.Controllers
                 },
                 Firefox = new
                 {
-                    open = Firefox.browser?.Contexts?.Count,
+                    open = Firefox.ContextsCount,
                     req_keepopen = Firefox.stats_keepopen,
                     req_newcontext = Firefox.stats_newcontext
                 }
