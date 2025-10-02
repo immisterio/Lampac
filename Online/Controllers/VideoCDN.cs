@@ -319,14 +319,18 @@ namespace Online.Controllers
 
                 if (max_quality > 0 && !init.hls)
                 {
-                    var streams = new List<(string link, string quality)>(5);
+                    var streamquality = new StreamQualityTpl();
                     foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                     {
                         if (max_quality >= q)
-                            streams.Add((HostStreamProxy(init, Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
+                            streamquality.Append(HostStreamProxy(init, Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p");
                     }
 
-                    return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast));
+                    if (!streamquality.Any())
+                        return OnError("streams");
+
+                    var first = streamquality.Firts();
+                    return ContentTo(VideoTpl.ToJson("play", first.link, first.quality, streamquality: streamquality, subtitles: subtitles, vast: vast));
                 }
 
                 return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, hls), "auto", subtitles: subtitles, vast: vast));

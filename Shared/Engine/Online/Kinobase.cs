@@ -206,7 +206,7 @@ namespace Shared.Engine.Online
                             {
                                 hash.Add(voice);
 
-                                var streams = new List<(string link, string quality)>(6);
+                                var streamquality = new StreamQualityTpl();
 
                                 foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
                                 {
@@ -218,19 +218,18 @@ namespace Shared.Engine.Online
                                             if (string.IsNullOrEmpty(links))
                                                 continue;
 
-                                            streams.Add((onstreamfile.Invoke(links), $"{q}p"));
+                                            streamquality.Append(onstreamfile.Invoke(links), $"{q}p");
                                         }
                                     }
                                 }
-
-                                if (streams.Count > 0)
-                                    mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                                
+                                mtpl.Append(voice, streamquality.Firts().link, streamquality: streamquality);
                             }
                         }
                     }
                     else
                     {
-                        var streams = new List<(string link, string quality)>(6);
+                        var streamquality = new StreamQualityTpl();
 
                         foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
                         {
@@ -238,16 +237,15 @@ namespace Shared.Engine.Online
                             if (string.IsNullOrEmpty(link))
                                 continue;
 
-                            streams.Add((onstreamfile.Invoke(link), $"{q}p"));
+                            streamquality.Append(onstreamfile.Invoke(link), $"{q}p");
                         }
 
-                        if (streams.Count > 0)
-                            mtpl.Append("По умолчанию", streams[0].link, streamquality: new StreamQualityTpl(streams));
+                        mtpl.Append("По умолчанию", streamquality.Firts().link, streamquality: streamquality);
                     }
                 }
                 else
                 {
-                    var streams = new List<(string link, string quality)>(4);
+                    var streamquality = new StreamQualityTpl();
 
                     foreach (string q in new string[] { "1080", "720", "480", "360" })
                     {
@@ -255,13 +253,11 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Add((onstreamfile.Invoke(link), $"{q}p"));
+                        streamquality.Append(onstreamfile.Invoke(link), $"{q}p");
                     }
 
-                    if (streams.Count == 0)
-                        return string.Empty;
-
-                    mtpl.Append(streams[0].quality, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                    var first = streamquality.Firts();
+                    mtpl.Append(first.quality, first.link, streamquality: streamquality);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -347,7 +343,7 @@ namespace Shared.Engine.Online
                             if (string.IsNullOrEmpty(episode.file) || (t != null && !episode.file.Contains(t)))
                                 continue;
 
-                            var streams = new List<(string link, string quality)>(6);
+                            var streamquality = new StreamQualityTpl();
 
                             foreach (string quality in new List<string> { "2160", "1440", "1080", "720", "480", "360" })
                             {
@@ -361,7 +357,7 @@ namespace Shared.Engine.Online
                                     if (string.IsNullOrEmpty(links))
                                         continue;
 
-                                    streams.Add((onstreamfile.Invoke(links), $"{quality}p"));
+                                    streamquality.Append(onstreamfile.Invoke(links), $"{quality}p");
                                 }
                                 else
                                 {
@@ -369,12 +365,9 @@ namespace Shared.Engine.Online
                                     if (string.IsNullOrEmpty(links))
                                         continue;
 
-                                    streams.Add((onstreamfile.Invoke(links), $"{quality}p"));
+                                    streamquality.Append(onstreamfile.Invoke(links), $"{quality}p");
                                 }
                             }
-
-                            if (streams.Count == 0)
-                                continue;
 
                             #region subtitle
                             var subtitles = new SubtitleTpl();
@@ -391,8 +384,7 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-
-                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, subtitles: subtitles, streamquality: streamquality);
                         }
 
                         if (rjson)
@@ -413,7 +405,7 @@ namespace Shared.Engine.Online
                             if (string.IsNullOrEmpty(episode.file))
                                 continue;
 
-                            var streams = new List<(string link, string quality)>(4);
+                            var streamquality = new StreamQualityTpl();
 
                             foreach (string quality in new List<string> { "1080", "720", "480", "360" })
                             {
@@ -421,13 +413,10 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                streams.Add((onstreamfile.Invoke(link), $"{quality}p"));
+                                streamquality.Append(onstreamfile.Invoke(link), $"{quality}p");
                             }
 
-                            if (streams.Count == 0)
-                                continue;
-
-                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, streamquality: streamquality);
                         }
 
                         return rjson ? etpl.ToJson() : etpl.ToHtml();

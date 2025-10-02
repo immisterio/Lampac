@@ -142,15 +142,15 @@ namespace Shared.Engine.Online
                 {
                     foreach (var a in root.item.videos[0].audios)
                     {
-                        var streams = new List<(string link, string quality)>(5);
+                        var streamquality = new StreamQualityTpl();
 
                         foreach (var f in root.item.videos[0].files)
                         {
                             if (!string.IsNullOrEmpty(f.url.hls))
-                                streams.Add((onstreamfile(f.url.hls.Replace("a1.m3u8", $"a{a.index}.m3u8"), null), f.quality));
+                                streamquality.Append(onstreamfile(f.url.hls.Replace("a1.m3u8", $"a{a.index}.m3u8"), null), f.quality);
                         }
 
-                        if (streams.Count == 0)
+                        if (!streamquality.Any())
                             continue;
 
                         string voice = a.type?.title ?? a.lang ?? "оригинал";
@@ -170,7 +170,7 @@ namespace Shared.Engine.Online
                         }
                         #endregion
 
-                        mtpl.Append(voice, streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, voice_name: a.codec, vast: vast);
+                        mtpl.Append(voice, streamquality.Firts().link, streamquality: streamquality, subtitles: subtitles, voice_name: a.codec, vast: vast);
                     }
                 }
                 else

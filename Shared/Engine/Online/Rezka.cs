@@ -316,7 +316,9 @@ namespace Shared.Engine.Online
                         return string.Empty;
 
                     var streamquality = new StreamQualityTpl(links.Select(l => (onstreamfile(l.stream_url!), l.title!)));
-                    mtpl.Append(links[0].title, onstreamfile(links[0].stream_url!), streamquality: streamquality);
+                    var first = streamquality.Firts();
+
+                    mtpl.Append(first.quality, onstreamfile(first.link), streamquality: streamquality);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();

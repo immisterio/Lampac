@@ -1,10 +1,11 @@
-﻿using System.Text.RegularExpressions;
-using System.Web;
-using System.Text.Json;
+﻿using Org.BouncyCastle.Utilities.IO;
+using Shared.Models.Online.Settings;
 using Shared.Models.Online.VideoCDN;
 using Shared.Models.Templates;
 using System.Text;
-using Shared.Models.Online.Settings;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Engine.Online
 {
@@ -260,7 +261,7 @@ namespace Shared.Engine.Online
                         name = "По умолчанию";
                     }
 
-                    var streams = new List<(string link, string quality)>(4);
+                    var streamquality = new StreamQualityTpl();
 
                     foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
@@ -273,15 +274,10 @@ namespace Shared.Engine.Online
                         else if (!usehls && link.Contains(".m3u"))
                             link = link.Replace(":hls:manifest.m3u8", "");
 
-                        streams.Add((onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
+                        streamquality.Insert(onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p");
                     }
 
-                    if (streams.Count == 0)
-                        continue;
-
-                    streams.Reverse();
-
-                    mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                    mtpl.Append(name, streamquality.Firts().link, streamquality: streamquality);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -350,7 +346,8 @@ namespace Shared.Engine.Online
 
                         foreach (var episode in season.folder)
                         {
-                            var streams = new List<(string link, string quality)>(4);
+                            var streamquality = new StreamQualityTpl();
+
                             foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                             {
                                 string link = m.Groups[2].Value;
@@ -362,17 +359,12 @@ namespace Shared.Engine.Online
                                 else if (!usehls && link.Contains(".m3u"))
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
-                                streams.Add((onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p"));
+                                streamquality.Insert(onstream($"{scheme}:{link}"), $"{m.Groups[1].Value}p");
                             }
-
-                            if (streams.Count == 0)
-                                continue;
-
-                            streams.Reverse();
 
                             string e = episode.id.Split("_")[1];
 
-                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e, streamquality.Firts().link, streamquality: streamquality);
                         }
 
                         if (rjson)

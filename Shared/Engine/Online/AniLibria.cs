@@ -72,20 +72,15 @@ namespace Shared.Engine.Online
 
                 foreach (var episode in episodes)
                 {
-                    #region streansquality
-                    var streams = new List<(string link, string quality)>(3);
+                    var streamquality = new StreamQualityTpl();
 
                     foreach (var f in new List<(string quality, string url)> { ("1080p", episode.hls.fhd), ("720p", episode.hls.hd), ("480p", episode.hls.sd) })
                     {
                         if (string.IsNullOrWhiteSpace(f.url))
                             continue;
 
-                        streams.Add((onstreamfile($"https://{root.player.host}{f.url}"), f.quality));
+                        streamquality.Append(onstreamfile($"https://{root.player.host}{f.url}"), f.quality);
                     }
-                    #endregion
-
-                    string hls = episode.hls.fhd ?? episode.hls.hd ?? episode.hls.sd;
-                    hls = onstreamfile($"https://{root.player.host}{hls}");
 
                     string season = StringConvert.SearchName(root.names.ru) == stitle || StringConvert.SearchName(root.names.en) == stitle ? "1" : "0";
                     if (season == "0")
@@ -99,7 +94,7 @@ namespace Shared.Engine.Online
                         }
                     }
 
-                    etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), hls, streamquality: new StreamQualityTpl(streams), vast: vast);
+                    etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
                 return rjson ? etpl.ToJson() : etpl.ToHtml();

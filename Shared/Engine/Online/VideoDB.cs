@@ -234,7 +234,7 @@ namespace Shared.Engine.Online
                             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                                 continue;
 
-                            var streams = new List<(string link, string quality)>(7);
+                            var streamquality = new StreamQualityTpl();
 
                             foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
                             {
@@ -242,22 +242,20 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
-                                streams.Add((host + $"lite/videodb/manifest.m3u8?serial=true&link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p"));
+                                streamquality.Insert(host + $"lite/videodb/manifest.m3u8?serial=true&link={HttpUtility.UrlEncode(link)}{args}", $"{m.Groups[1].Value}p");
                             }
 
-                            if (streams.Count == 0)
+                            if (!streamquality.Any())
                                 continue;
-
-                            streams.Reverse();
 
                             if (bwa || rhub)
                             {
-                                string streamlink = rhub ? streams[0].link : null;
-                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call", streamlink: streamlink);
+                                string streamlink = rhub ? streamquality.Firts().link : null;
+                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link.Replace("/manifest.m3u8", "/manifest"), "call", streamlink: streamlink);
                             }
                             else
                             {
-                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams));
+                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, streamquality: streamquality);
                             }
                         }
                     }

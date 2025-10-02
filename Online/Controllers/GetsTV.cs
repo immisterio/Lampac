@@ -199,13 +199,16 @@ namespace Online.Controllers
                 catch { }
                 #endregion
 
-                var streams = new List<(string link, string quality)>(5);
+                var streamquality = new StreamQualityTpl();
 
                 foreach (var r in root["resolutions"])
-                    streams.Add((HostStreamProxy(init, r.Value<string>("url"), proxy: proxy), $"{r.Value<int>("type")}p"));
+                    streamquality.Append(HostStreamProxy(init, r.Value<string>("url"), proxy: proxy), $"{r.Value<int>("type")}p");
+
+                if (!streamquality.Any())
+                    return OnError("stream");
 
                 if (play)
-                    return RedirectToPlay(streams[0].link);
+                    return RedirectToPlay(streamquality.Firts().link);
 
                 var titleObj = root["media"]["movie"]["title"] as JObject;
                 string titleRu = titleObj?["ru"]?.ToString();
@@ -215,8 +218,8 @@ namespace Online.Controllers
                 if (titleRu != null && titleEn != null)
                     name = $"{titleRu} / {titleEn}";
 
-                return ContentTo(VideoTpl.ToJson("play", streams[0].link, name,
-                    streamquality: new StreamQualityTpl(streams),
+                return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name,
+                    streamquality: streamquality,
                     vast: init.vast,
                     subtitles: subtitles
                 ));

@@ -282,10 +282,12 @@ namespace Online.Controllers
             if (streams == null || streams.Count == 0)
                 return OnError("streams");
 
-            if (play)
-                return RedirectToPlay(streams[0].link);
+            var streamquality = new StreamQualityTpl(streams);
 
-            return ContentTo(VideoTpl.ToJson("play", streams[0].link, title, streamquality: new StreamQualityTpl(streams), vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+            if (play)
+                return RedirectToPlay(streamquality.Firts().link);
+
+            return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, title, streamquality: streamquality, vast: init.vast, headers: init.streamproxy ? null : headers_stream));
         }
         #endregion
 

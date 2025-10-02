@@ -232,11 +232,16 @@ namespace Online.Controllers
                         }
                     }
 
-                    if (play)
-                        return RedirectToPlay(streams[0].link);
+                    if (streams == null || streams.Count == 0)
+                        return OnError("streams");
 
-                    return ContentTo(VideoTpl.ToJson("play", streams[0].link, (title ?? original_title),
-                        streamquality: new StreamQualityTpl(streams),
+                    var streamquality = new StreamQualityTpl(streams);
+
+                    if (play)
+                        return RedirectToPlay(streamquality.Firts().link);
+
+                    return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, (title ?? original_title),
+                        streamquality: streamquality,
                         vast: init.vast,
                         subtitles: subtitles,
                         hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds

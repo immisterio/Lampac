@@ -123,7 +123,7 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                         continue;
 
-                    var streams = new List<(string link, string quality)>(4);
+                    var streamquality = new StreamQualityTpl();
 
                     foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
@@ -139,15 +139,10 @@ namespace Shared.Engine.Online
                         if (isbwa)
                             link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
 
-                        streams.Add((onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                        streamquality.Insert(onstreamfile.Invoke(link), $"{m.Groups[1].Value}p");
                     }
 
-                    if (streams.Count == 0)
-                        continue;
-
-                    streams.Reverse();
-
-                    mtpl.Append(name, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                    mtpl.Append(name, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -210,7 +205,7 @@ namespace Shared.Engine.Online
                             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
                                 continue;
 
-                            var streams = new List<(string link, string quality)>(4);
+                            var streamquality = new StreamQualityTpl();
 
                             foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                             {
@@ -226,15 +221,10 @@ namespace Shared.Engine.Online
                                 if (isbwa)
                                     link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
 
-                                streams.Add((onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                                streamquality.Insert(onstreamfile.Invoke(link), $"{m.Groups[1].Value}p");
                             }
 
-                            if (streams.Count == 0)
-                                continue;
-
-                            streams.Reverse();
-
-                            etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                            etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                         }
                     }
 

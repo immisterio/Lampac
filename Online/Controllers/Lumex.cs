@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Utilities.IO;
 using Shared.Models.Online.Lumex;
 using Shared.PlaywrightCore;
 
@@ -288,14 +289,19 @@ namespace Online.Controllers
 
                 if (max_quality > 0 && !init.hls)
                 {
-                    var streams = new List<(string link, string quality)>(5);
+                    var streamquality = new StreamQualityTpl();
+
                     foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                     {
                         if (max_quality >= q)
-                            streams.Add((sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p"));
+                            streamquality.Append(sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p");
                     }
 
-                    return ContentTo(VideoTpl.ToJson("play", streams[0].link, streams[0].quality, streamquality: new StreamQualityTpl(streams), vast: init.vast));
+                    if (!streamquality.Any())
+                        return OnError("streams");
+
+                    var first = streamquality.Firts();
+                    return ContentTo(VideoTpl.ToJson("play", first.link, first.quality, streamquality: streamquality, vast: init.vast));
                 }
 
                 return Redirect(sproxy(hls));

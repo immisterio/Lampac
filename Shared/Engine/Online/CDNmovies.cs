@@ -100,7 +100,7 @@ namespace Shared.Engine.Online
 
                 foreach (var item in voices[t].folder[sid].folder)
                 {
-                    var streams = new List<(string link, string quality)>(2);
+                    var streamquality = new StreamQualityTpl();
 
                     foreach (Match m in Regex.Matches(item.file, "\\[(360|240)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
@@ -108,16 +108,11 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(link))
                             continue;
 
-                        streams.Add((onstreamfile.Invoke(link), $"{m.Groups[1].Value}p"));
+                        streamquality.Insert(onstreamfile.Invoke(link), $"{m.Groups[1].Value}p");
                     }
 
-                    if (streams.Count == 0)
-                        continue;
-
-                    streams.Reverse();
-
                     string episode = Regex.Match(item.title, "([0-9]+)$").Groups[1].Value;
-                    etpl.Append($"{episode} cерия", title ?? original_title, sArhc, episode, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                    etpl.Append($"{episode} cерия", title ?? original_title, sArhc, episode, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
                 if (rjson)

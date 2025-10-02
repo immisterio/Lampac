@@ -162,22 +162,18 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrEmpty(m.file))
                         continue;
 
-                    var streams = new List<(string link, string quality)>(5);
+                    var streamquality = new StreamQualityTpl();
+
                     foreach (Match mf in Regex.Matches(m.file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
                     {
                         string link = mf.Groups[2].Value;
                         if (!usehls)
                             link = link.Replace(":hls:manifest.m3u8", "");
 
-                        streams.Add((onstreamfile.Invoke(link), mf.Groups[1].Value));
+                        streamquality.Insert(onstreamfile.Invoke(link), mf.Groups[1].Value);
                     }
 
-                    if (streams.Count == 0)
-                        continue;
-
-                    streams.Reverse();
-
-                    mtpl.Append(m.title, streams[0].link, subtitles: subtitles, streamquality: new StreamQualityTpl(streams), vast: vast);
+                    mtpl.Append(m.title, streamquality.Firts().link, subtitles: subtitles, streamquality: streamquality, vast: vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -235,22 +231,18 @@ namespace Shared.Engine.Online
                             if (perevod != t)
                                 continue;
 
-                            var streams = new List<(string link, string quality)>(5);
+                            var streamquality = new StreamQualityTpl();
+
                             foreach (Match mf in Regex.Matches(voice.file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
                             {
                                 string link = mf.Groups[2].Value;
                                 if (!usehls)
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
-                                streams.Add((onstreamfile.Invoke(link), mf.Groups[1].Value));
+                                streamquality.Insert(onstreamfile.Invoke(link), mf.Groups[1].Value);
                             }
 
-                            if (streams.Count == 0)
-                                continue;
-
-                            streams.Reverse();
-
-                            etpl.Append($"{ename} cерия", title ?? original_title, sArhc, ename, streams[0].link, streamquality: new StreamQualityTpl(streams), vast: vast);
+                            etpl.Append($"{ename} cерия", title ?? original_title, sArhc, ename, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                         }
                     }
 

@@ -9,7 +9,14 @@ namespace Shared.Models.Templates
 
         public StreamQualityTpl() { }
 
-        public StreamQualityTpl(IEnumerable<(string link, string quality)> streams) { if (streams != null) data = streams.ToList(); }
+        public StreamQualityTpl(IEnumerable<(string link, string quality)> streams) 
+        {
+            if (streams != null)
+            {
+                foreach (var item in streams)
+                    Append(item.link, item.quality);
+            }
+        }
 
         public bool Any() => data.Any();
 

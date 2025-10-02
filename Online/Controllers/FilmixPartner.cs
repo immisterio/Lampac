@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
-using System.Text;
-using System.Security.Cryptography;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Utilities.IO;
 using Shared.Models.Online.Filmix;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Online.Controllers
 {
@@ -85,7 +86,7 @@ namespace Online.Controllers
 
                     foreach (var movie in root)
                     {
-                        var streams = new List<(string link, string quality)>();
+                        var streamquality = new StreamQualityTpl();
 
                         foreach (var file in movie.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                         {
@@ -94,12 +95,10 @@ namespace Online.Controllers
                             if (!string.IsNullOrEmpty(hashfimix))
                                 url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
 
-                            string l = HostStreamProxy(init, url);
-
-                            streams.Add((l, $"{q}p"));
+                            streamquality.Append(HostStreamProxy(init, url), $"{q}p");
                         }
 
-                        mtpl.Append(movie.Value<string>("name"), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                        mtpl.Append(movie.Value<string>("name"), streamquality.Firts().link, streamquality: streamquality, vast: init.vast);
                     }
 
                     return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
@@ -166,7 +165,7 @@ namespace Online.Controllers
 
                         foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
                         {
-                            List<(string link, string quality)> streams = new List<(string, string)>();
+                            var streamquality = new StreamQualityTpl();
 
                             foreach (var file in episode.Value<JArray>("files").OrderByDescending(i => i.Value<int>("quality")))
                             {
@@ -177,11 +176,11 @@ namespace Online.Controllers
 
                                 string l = HostStreamProxy(init, url);
 
-                                streams.Add((l, $"{q}p"));
+                                streamquality.Append(l, $"{q}p");
                             }
 
                             int e = episode.Value<int>("episode");
-                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), vast: init.vast);
+                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), streamquality.Firts().link, streamquality: streamquality, vast: init.vast);
                         }
                         #endregion
 
