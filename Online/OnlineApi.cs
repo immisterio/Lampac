@@ -395,7 +395,7 @@ namespace Online.Controllers
         #region spider
         [Route("lite/spider")]
         [Route("lite/spider/anime")]
-        async public ValueTask<ActionResult> Spider(string title)
+        async public Task<ActionResult> Spider(string title)
         {
             if (!AppInit.conf.online.spider)
                 return ContentTo("{}");
@@ -406,26 +406,27 @@ namespace Online.Controllers
             var piders = new List<(string name, string uri, int index)>();
 
             bool isanime = HttpContext.Request.Path.Value?.EndsWith("/anime") == true;
-            var spiderArgs = new OnlineSpiderModel(title, isanime);
 
-            void addResult(List<(string name, string url, int index)> result)
-            {
-                if (result == null || result.Count == 0)
-                    return;
-
-                foreach (var item in result)
-                {
-                    if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.url))
-                        continue;
-
-                    piders.Add((item.name, item.url, item.index));
-                }
-            }
-
+            #region module
             OnlineModuleEntry.EnsureCache();
+            var spiderArgs = new OnlineSpiderModel(title, isanime);
 
             if (OnlineModuleEntry.onlineModulesCache != null && OnlineModuleEntry.onlineModulesCache.Count > 0)
             {
+                void addResult(List<(string name, string url, int index)> result)
+                {
+                    if (result == null || result.Count == 0)
+                        return;
+
+                    foreach (var item in result)
+                    {
+                        if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.url))
+                            continue;
+
+                        piders.Add((item.name, item.url, item.index));
+                    }
+                }
+
                 foreach (var entry in OnlineModuleEntry.onlineModulesCache)
                 {
                     try
@@ -455,11 +456,9 @@ namespace Online.Controllers
                 }
             }
 
-            title = spiderArgs.title ?? title;
-            isanime = spiderArgs.isanime;
-
             if (spiderArgs.requireRhub)
                 rhub = true;
+            #endregion
 
             #region send
             void send(BaseSettings init, string plugin = null)
