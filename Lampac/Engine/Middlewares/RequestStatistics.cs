@@ -81,7 +81,7 @@ namespace Lampac.Engine.Middlewares
 
             double sum = 0;
             int count = 0;
-            var durations = new List<double>();
+            var durations = new List<double>(ResponseTimes.Count);
 
             foreach (var item in ResponseTimes)
             {

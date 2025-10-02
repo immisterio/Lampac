@@ -89,11 +89,11 @@ namespace Lampac.Controllers
             {
                 req_min,
                 req_hour,
+                tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length,
                 nws_online = nws.ConnectionCount,
                 soks_online = soks.connections,
                 http_active = RequestStatisticsTracker.ActiveHttpRequests,
-                http_response_ms = httpResponseMs,
-                tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
+                http_response_ms = httpResponseMs
             });
         }
         #endregion
