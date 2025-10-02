@@ -1,7 +1,5 @@
-﻿using Lampac.Controllers;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -46,16 +44,7 @@ namespace Lampac.Engine.Middlewares
             if (HttpMethods.IsOptions(httpContext.Request.Method))
                 return;
 
-            Interlocked.Increment(ref OpenStatController.ActiveHttpRequests);
-
-            try
-            {
-                await _next(httpContext);
-            }
-            finally
-            {
-                Interlocked.Decrement(ref OpenStatController.ActiveHttpRequests);
-            }
+            await _next(httpContext);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Lampac.Engine;
+using Lampac.Engine.Middlewares;
 using Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -13,8 +14,6 @@ namespace Lampac.Controllers
 {
     public class OpenStatController : BaseController
     {
-        public static int ActiveHttpRequests;
-
         public OpenStatConf openstat => AppInit.conf.openstat;
 
         public bool IsDeny(out string ermsg) 
@@ -76,9 +75,10 @@ namespace Lampac.Controllers
 
             return Json(new 
             { 
-                req_min, 
+                req_min,
                 req_hour,
-                http_active = ActiveHttpRequests,
+                http_active = RequestStatisticsTracker.ActiveHttpRequests,
+                avg_response_ms = Math.Round(RequestStatisticsTracker.GetAverageResponseTimeLastMinute(), 2),
                 nws_online = nws.ConnectionCount,
                 soks_online = soks.connections,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
