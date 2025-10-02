@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Shared;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,14 +74,14 @@ namespace Lampac.Engine.Middlewares
                 ResponseTimes.TryDequeue(out _);
         }
 
-        public static (double avg, double min, double max) GetResponseTimeStatsLastMinute()
+        public static ResponseTimeStatistics GetResponseTimeStatsLastMinute()
         {
             var now = DateTime.UtcNow;
             CleanupResponseTimes(now);
 
             double sum = 0;
             int count = 0;
-            var durations = new System.Collections.Generic.List<double>();
+            var durations = new List<double>();
 
             foreach (var item in ResponseTimes)
             {
@@ -90,20 +91,58 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (count == 0)
-                return (0, 0, 0);
+            {
+                return new ResponseTimeStatistics
+                {
+                    Average = 0,
+                    PercentileAverages = InitializePercentileDictionary()
+                };
+            }
 
             durations.Sort();
 
-            int minSampleSize = Math.Min(100, durations.Count);
-            int maxSampleSize = Math.Min(100, durations.Count);
-
-            double minAvg = AverageRange(durations, 0, minSampleSize);
-            double maxAvg = AverageRange(durations, durations.Count - maxSampleSize, maxSampleSize);
-
-            return (sum / count, minAvg, maxAvg);
+            return new ResponseTimeStatistics
+            {
+                Average = sum / count,
+                PercentileAverages = CalculatePercentileAverages(durations)
+            };
         }
 
-        static double AverageRange(System.Collections.Generic.List<double> sortedDurations, int startIndex, int length)
+        static Dictionary<int, double> CalculatePercentileAverages(List<double> sortedDurations)
+        {
+            const int bucketCount = 10;
+            var result = InitializePercentileDictionary();
+
+            int total = sortedDurations.Count;
+            int baseSize = total / bucketCount;
+            int remainder = total % bucketCount;
+            int currentIndex = 0;
+
+            for (int i = 1; i <= bucketCount; i++)
+            {
+                int key = i * 10;
+                int bucketSize = baseSize + (i <= remainder ? 1 : 0);
+
+                if (bucketSize > 0)
+                {
+                    result[key] = AverageRange(sortedDurations, currentIndex, bucketSize);
+                    currentIndex += bucketSize;
+                }
+            }
+
+            return result;
+        }
+
+        static Dictionary<int, double> InitializePercentileDictionary()
+        {
+            var dict = new Dictionary<int, double>();
+            for (int i = 1; i <= 10; i++)
+                dict[i * 10] = 0;
+
+            return dict;
+        }
+
+        static double AverageRange(List<double> sortedDurations, int startIndex, int length)
         {
             if (length <= 0)
                 return 0;
@@ -113,6 +152,13 @@ namespace Lampac.Engine.Middlewares
                 total += sortedDurations[startIndex + i];
 
             return total / length;
+        }
+
+        public class ResponseTimeStatistics
+        {
+            public double Average { get; set; }
+
+            public Dictionary<int, double> PercentileAverages { get; set; } = new();
         }
     }
 }

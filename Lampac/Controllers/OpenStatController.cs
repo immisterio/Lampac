@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Collections.Generic;
 using System.Net.NetworkInformation;
+using System.Linq;
 using Shared.Models.AppConf;
 using Shared.PlaywrightCore;
 using Shared.Engine;
@@ -75,6 +77,14 @@ namespace Lampac.Controllers
 
             var responseStats = RequestStatisticsTracker.GetResponseTimeStatsLastMinute();
 
+            var httpResponseMs = new Dictionary<string, object>
+            {
+                ["avg"] = Math.Round(responseStats.Average, 2)
+            };
+
+            foreach (var percentile in responseStats.PercentileAverages.OrderBy(x => x.Key))
+                httpResponseMs[percentile.Key.ToString()] = Math.Round(percentile.Value, 2);
+
             return Json(new
             {
                 req_min,
@@ -82,12 +92,7 @@ namespace Lampac.Controllers
                 nws_online = nws.ConnectionCount,
                 soks_online = soks.connections,
                 http_active = RequestStatisticsTracker.ActiveHttpRequests,
-                http_response_ms = new
-                {
-                    avg = Math.Round(responseStats.avg, 2),
-                    min = Math.Round(responseStats.min, 2),
-                    max = Math.Round(responseStats.max, 2)
-                },
+                http_response_ms = httpResponseMs,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length
             });
         }
