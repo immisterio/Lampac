@@ -92,14 +92,12 @@ namespace Online.Controllers
             if (init.forceua)
                 country = "UA";
 
+            init.premium = true;
+
             return (new RezkaInvoke
             (
                 host,
-                init.host,
-                init.scheme,
-                init.hls,
-                init.reserve,
-                true,
+                init,
                 (url, _) => rch.enable ? rch.Get(url, headers) : Http.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search")),
                 (url, data, _) => rch.enable ? rch.Post(url, data, headers) : Http.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy),

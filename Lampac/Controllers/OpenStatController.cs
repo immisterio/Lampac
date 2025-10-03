@@ -83,7 +83,7 @@ namespace Lampac.Controllers
             };
 
             foreach (var percentile in responseStats.PercentileAverages.OrderBy(x => x.Key))
-                httpResponseMs[percentile.Key.ToString()] = Math.Round(percentile.Value, 2);
+                httpResponseMs.Add(percentile.Key.ToString(), Math.Round(percentile.Value, 2));
 
             return Json(new
             {

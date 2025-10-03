@@ -31,6 +31,8 @@ namespace Shared.Models.Online.Settings
 
         public bool xapp { get; set; }
 
+        public bool? ajax { get; set; }
+
 
         public RezkaSettings Clone()
         {

@@ -1,4 +1,6 @@
-﻿namespace Shared.Models.Base
+﻿using Newtonsoft.Json;
+
+namespace Shared.Models.Base
 {
     public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup, ICloneable
     {
@@ -70,8 +72,16 @@
 
         public string token { get; set; }
 
+        [JsonProperty("headers",
+            ObjectCreationHandling = ObjectCreationHandling.Replace,   // ← заменить, а не дополнять
+            NullValueHandling = NullValueHandling.Ignore               // ← не затирать null-ом
+        )]
         public Dictionary<string, string> headers { get; set; }
 
+        [JsonProperty("headers_stream",
+            ObjectCreationHandling = ObjectCreationHandling.Replace,   // ← заменить, а не дополнять
+            NullValueHandling = NullValueHandling.Ignore               // ← не затирать null-ом
+        )]
         public Dictionary<string, string> headers_stream { get; set; }
 
         public VastConf vast { get; set; }

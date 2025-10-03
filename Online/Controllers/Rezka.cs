@@ -32,16 +32,14 @@ namespace Online.Controllers
             return new RezkaInvoke
             (
                 host,
-                init.corsHost(),
-                init.scheme,
-                init.hls,
-                init.reserve,
-                init.premium,
-                (url, hed) => rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) : 
-                                           Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
-                (url, data, hed) => rch.enable ? rch.Post(url, data, HeadersModel.Join(hed, headers)) : 
-                                                 Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
-                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, headers: RezkaInvoke.StreamProxyHeaders(init.host)),
+                init,
+                (url, hed) =>
+                    rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) :
+                    Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
+                (url, data, hed) =>
+                    rch.enable ? rch.Post(url, data, HeadersModel.Join(hed, headers)) :
+                    Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
+                streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy, headers: RezkaInvoke.StreamProxyHeaders(init)),
                 requesterror: () => proxyManager.Refresh()
             );
         }
@@ -63,6 +61,9 @@ namespace Online.Controllers
 
                 if (j.ContainsKey("reserve"))
                     i.reserve = c.reserve;
+
+                if (j.ContainsKey("ajax"))
+                    i.ajax = c.ajax;
 
                 return i;
             });
@@ -170,7 +171,7 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (string.IsNullOrWhiteSpace(href))
+            if (string.IsNullOrEmpty(href))
                 return OnError();
 
             var oninvk = await InitRezkaInvoke(init);
@@ -196,7 +197,7 @@ namespace Online.Controllers
         [HttpGet]
         [Route("lite/rezka/movie")]
         [Route("lite/rezka/movie.m3u8")]
-        async public ValueTask<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
+        async public ValueTask<ActionResult> Movie(string title, string original_title, string voice, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
@@ -211,7 +212,20 @@ namespace Online.Controllers
 
             string realip = (init.xrealip && init.corseu) ? requestInfo.IP : "";
 
-            var md = await InvokeCache(rch.ipkey($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}:{init.cookie}", proxyManager), cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
+            MovieModel md = null;
+
+            /// ajax = true (get_cdn_series)
+            /// ajax = false (movie | get_cdn_series)
+            /// ajax = null (movie)
+
+            if (init.ajax != null && init.ajax.Value == false && !string.IsNullOrEmpty(voice))
+            {
+                md = await InvokeCache(rch.ipkey($"rezka:movie:{voice}:{realip}:{init.cookie}", proxyManager), cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(voice), proxyManager);
+            }
+
+            if (md == null && init.ajax != null)
+                md = await InvokeCache(rch.ipkey($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}:{init.cookie}", proxyManager), cacheTime(20, mikrotik: 1, init: init), () => oninvk.Movie(id, t, director, s, e, favs), proxyManager);
+
             if (md == null)
                 return OnError(null, gbcache: !rch.enable);
 

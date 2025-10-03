@@ -673,12 +673,17 @@ namespace Shared
         /// </summary>
         public OnlinesSettings VeoVeo { get; set; } = new OnlinesSettings("VeoVeo", "kwwsv=22dsl1uvwsujdslsw1frp");
 
-        public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) { hls = true, reserve = true, scheme = "http" };
+        public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) 
+        {
+            hls = true, ajax = true, reserve = true, scheme = "http",
+            headers = Http.defaultHeaders
+        };
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) 
         { 
             enable = false,
-            reserve = true, hls = true, scheme = "http" 
+            reserve = true, hls = true, scheme = "http",
+            headers = Http.defaultHeaders
         };
 
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1ox{hpeg1zv", streamproxy: true, two: false)

@@ -2,6 +2,7 @@
 using Shared.Models.Base;
 using Shared.Models.Online;
 using Shared.Models.Online.Rezka;
+using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using System.Text;
 using System.Text.Json;
@@ -13,6 +14,7 @@ namespace Shared.Engine.Online
     public class RezkaInvoke
     {
         #region RezkaInvoke
+        RezkaSettings init;
         string host, scheme;
         string apihost;
         bool usehls, userprem, usereserve;
@@ -33,30 +35,32 @@ namespace Shared.Engine.Online
             onlog?.Invoke($"rezka: {msg}\n");
         }
 
-        public RezkaInvoke(string host, string apihost, string scheme, bool hls, bool reserve, bool userprem, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public RezkaInvoke(string host, RezkaSettings init, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
-            this.apihost = apihost;
-            this.scheme = scheme;
+            this.init = init;
+            apihost = init.corsHost();
+            scheme = init.scheme;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onpost = onpost;
-            usehls = hls;
-            usereserve = reserve;
-            this.userprem = userprem;
+            usehls = init.hls;
+            usereserve = init.reserve;
+            userprem = init.premium;
             this.requesterror = requesterror;
 
-            if (this.apihost.Contains("="))
+            if (apihost.Contains("="))
             {
-                char[] buffer = this.apihost.ToCharArray();
+                char[] buffer = apihost.ToCharArray();
                 for (int i = 0; i < buffer.Length; i++)
                 {
                     char letter = buffer[i];
                     letter = (char)(letter - 3);
                     buffer[i] = letter;
                 }
-                this.apihost = new string(buffer);
+
+                apihost = new string(buffer);
             }
         }
         #endregion
@@ -67,7 +71,7 @@ namespace Shared.Engine.Online
             var result = new SearchModel();
             string reservedlink = null;
 
-            var base_headers = HeadersModel.Init(Http.defaultHeaders,
+            var base_headers = HeadersModel.Init(init.headers,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
@@ -109,7 +113,7 @@ namespace Shared.Engine.Online
             var rows = search.Split("\"b-content__inline_item\"");
             foreach (string row in rows.Skip(1))
             {
-                var g = Regex.Match(row, "href=\"(https?://[^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
+                var g = Regex.Match(row, "href=\"https?://[^/]+/([^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
 
                 if (string.IsNullOrEmpty(g[1].Value))
                     continue;
@@ -158,9 +162,12 @@ namespace Shared.Engine.Online
         #region Embed
         async public ValueTask<EmbedModel> Embed(string href, string search_uri)
         {
+            if (!href.StartsWith("http"))
+                href = $"{apihost}/{href}";
+
             var result = new EmbedModel();
 
-            var base_headers = HeadersModel.Init(Http.defaultHeaders,
+            var base_headers = HeadersModel.Init(init.headers,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
@@ -283,6 +290,10 @@ namespace Shared.Engine.Online
                             string favs = Regex.Match(result.content, "id=\"ctrl_favs\" value=\"([^\"]+)\"").Groups[1].Value;
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={match.Groups[1].Value}&favs={favs}";
 
+                            string voice_href = Regex.Match(match.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                            if (!string.IsNullOrEmpty(voice_href))
+                                link += $"&voice={HttpUtility.UrlEncode(voice_href)}";
+
                             #region voice
                             string voice = match.Groups["voice"].Value.Trim();
 
@@ -351,6 +362,13 @@ namespace Shared.Engine.Online
 
                         string link = host + $"lite/rezka/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={result.id}&t={match.Groups["translator"].Value}";
 
+                        string voice_href = Regex.Match(match.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                        if (!string.IsNullOrEmpty(voice_href) && init.ajax != null && init.ajax.Value == false)
+                        {
+                            string voice = HttpUtility.UrlEncode(voice_href);
+                            link = host + $"lite/rezka?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={voice}&id={result.id}&t={match.Groups["translator"].Value}";
+                        }
+
                         vtpl.Append(name, match.Groups["translator"].Value == trs, link);
 
                         match = match.NextMatch();
@@ -387,6 +405,10 @@ namespace Shared.Engine.Online
                         {
                             eshash.Add(m.Groups["name"].Value);
                             string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups["episode"].Value}";
+
+                            string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                            if (!string.IsNullOrEmpty(voice_href))
+                                link += $"&voice={HttpUtility.UrlEncode(voice_href)}";
 
                             string stream = null;
                             if (showstream)
@@ -426,7 +448,7 @@ namespace Shared.Engine.Online
 
             try
             {
-                var headers = HeadersModel.Init(Http.defaultHeaders,
+                var headers = HeadersModel.Init(init.headers,
                     ("accept", "application/json, text/javascript, */*; q=0.01"),
                     ("cache-control", "no-cache"),
                     ("dnt", "1"),
@@ -546,6 +568,11 @@ namespace Shared.Engine.Online
                     if (!string.IsNullOrEmpty(m.Groups["episode"].Value) && !string.IsNullOrEmpty(m.Groups["name"].Value))
                     {
                         string link = host + $"lite/rezka/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups["episode"].Value}";
+
+                        string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                        if (!string.IsNullOrEmpty(voice_href))
+                            link += $"&voice={HttpUtility.UrlEncode(voice_href)}";
+
                         string stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
 
                         etpl.Append(m.Groups["name"].Value, title ?? original_title, sArhc, m.Groups["episode"].Value, link, "call", streamlink: (showstream ? $"{stream}{args}" : null));
@@ -578,7 +605,7 @@ namespace Shared.Engine.Online
                 data = $"id={id}&translator_id={t}&season={s}&episode={e}&favs={favs}&action=get_stream";
             }
 
-            var headers = HeadersModel.Init(Http.defaultHeaders,
+            var headers = HeadersModel.Init(init.headers,
                 ("accept", "application/json, text/javascript, */*; q=0.01"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
@@ -616,7 +643,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string url = root?["url"]?.ToString();
+            string url = root.ContainsKey("url") ? root["url"]?.ToString() : null;
             if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
             {
                 log("url null");
@@ -640,6 +667,45 @@ namespace Shared.Engine.Online
             catch { }
 
             return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
+        }
+
+        async public ValueTask<MovieModel> Movie(string href)
+        {
+            var headers = HeadersModel.Init(init.headers,
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("pragma", "no-cache"),
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "same-origin"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1")
+            );
+
+            string html = await onget($"{apihost}/{href}", headers);
+            if (string.IsNullOrEmpty(html))
+            {
+                requesterror?.Invoke();
+                return null;
+            }
+
+            string url = Regex.Match(html, "\"streams\"\\s*:\\s*\"(.*?)\"\\s*,").Groups[1].Value;
+            if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
+            {
+                requesterror?.Invoke();
+                return null;
+            }
+
+            var links = getStreamLink(url.Replace("\\", ""));
+            if (links.Count == 0)
+                return null;
+
+            return new MovieModel() 
+            { 
+                links = links,
+                subtitlehtml = Regex.Match(html, "\"subtitle\":\"([^\"]+)\"").Groups[1].Value 
+            };
         }
 
         public string Movie(MovieModel md, string title, string original_title, bool play, VastConf vast = null)
@@ -684,7 +750,7 @@ namespace Shared.Engine.Online
         #region decodeBase64
         static string decodeBase64(in string data)
         {
-            if (data.Contains("#"))
+            if (data.StartsWith("#"))
             {
                 try
                 {
@@ -736,7 +802,7 @@ namespace Shared.Engine.Online
             #region getLink
             string getLink(string _q)
             {
-                string qline = Regex.Match(data, $"\\[{_q}\\]([^,\\[]+)").Groups[1].Value;
+                string qline = Regex.Match(data, $"\\[({_q}|[^\\]]+{_q}[^\\]]+)\\]([^,\\[]+)").Groups[2].Value;
                 if (!qline.Contains(".mp4") && !qline.Contains(".m3u8"))
                     return null;
 
@@ -759,6 +825,9 @@ namespace Shared.Engine.Online
                 else
                 {
                     string link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
+                    if (string.IsNullOrEmpty(link))
+                        return null;
+
                     if (usehls)
                     {
                         if (link.EndsWith(".m3u8"))
@@ -788,6 +857,9 @@ namespace Shared.Engine.Online
                         break;
                     case "1440p":
                         link = getLink("2K") ?? getLink(q);
+                        break;
+                    case "1080p":
+                        link = userprem ? getLink(q) : (getLink(q) ?? getLink("1080p Ultra"));
                         break;
                     default:
                         link = getLink(q);
@@ -842,13 +914,13 @@ namespace Shared.Engine.Online
         #endregion
 
         #region StreamProxyHeaders
-        public static List<HeadersModel> StreamProxyHeaders(string host) => HeadersModel.Init(Http.defaultHeaders,
+        public static List<HeadersModel> StreamProxyHeaders(RezkaSettings init) => HeadersModel.Init(init.headers,
             ("accept", "*/*"),
             ("cache-control", "no-cache"),
             ("dnt", "1"),
-            ("origin", host),
+            ("origin", init.host),
             ("pragma", "no-cache"),
-            ("referer", $"{host}/"),
+            ("referer", $"{init.host}/"),
             ("sec-fetch-dest", "empty"),
             ("sec-fetch-mode", "cors"),
             ("sec-fetch-site", "cross-site")
