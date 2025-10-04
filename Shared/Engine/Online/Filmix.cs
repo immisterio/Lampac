@@ -5,6 +5,7 @@ using Shared.Models.Base;
 using Shared.Models.Online.Filmix;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -12,9 +13,11 @@ namespace Shared.Engine.Online
 {
     public class FilmixInvoke
     {
-        static string user_dev_id = UnicTo.Code(16);
+        static ConcurrentDictionary<string, string> user_dev_ids = new ConcurrentDictionary<string, string>();
 
         #region FilmixInvoke
+        FilmixSettings init;
+
         public bool disableSphinxSearch, reserve;
 
         public string token;
@@ -29,6 +32,7 @@ namespace Shared.Engine.Online
 
         public FilmixInvoke(FilmixSettings init, string host, string token, Func<string, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
+            this.init = init;
             apihost = init.corsHost();
             reserve = init.reserve;
             this.token = token;
@@ -39,6 +43,8 @@ namespace Shared.Engine.Online
             this.onlog = onlog;
             this.requesterror = requesterror;
             this.rjson = rjson;
+
+            string user_dev_id = user_dev_ids.GetOrAdd(token ?? string.Empty, (k) => UnicTo.Code(16));
 
             args = $"app_lang=ru_RU&user_dev_apk=2.2.10.0&user_dev_id={user_dev_id}&user_dev_name=Xiaomi+24069PC21G&user_dev_os=14&user_dev_token={token}&user_dev_vendor=Xiaomi";
         }
@@ -287,9 +293,9 @@ namespace Shared.Engine.Online
                 if (player_links.movie.Length == 1 && player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
                     return string.Empty;
 
-                var cdns = player_links.movie
+                var cdns = reserve ? player_links.movie
                         .Select(e => Regex.Match(e.link, "^(https?://[^/]+)").Groups[1].Value)
-                        .ToHashSet();
+                        .ToHashSet() : null;
 
                 var mtpl = new MovieTpl(title, original_title, player_links.movie.Length);
 
@@ -313,6 +319,13 @@ namespace Shared.Engine.Online
 
                         string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
 
+                        if (init.hls)
+                        {
+                            var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
+                            if (m.Success)
+                                l = $"{m.Groups[1].Value}/hls/{m.Groups[3].Value}/index.m3u8?hash={m.Groups[2].Value}";
+                        }
+
                         if (reserve)
                         {
                             foreach (string cdn in cdns)
@@ -327,9 +340,6 @@ namespace Shared.Engine.Online
 
                         streamquality.Append(onstreamfile.Invoke(l), $"{q}p");
                     }
-
-                    if (!streamquality.Any())
-                        continue;
 
                     mtpl.Append(v.translation, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
@@ -410,9 +420,9 @@ namespace Shared.Engine.Online
                         return string.Empty;
                     #endregion
 
-                    var cdns = episodes
+                    var cdns = reserve ? episodes
                         .Select(e => Regex.Match(e.Value.link, "^(https?://[^/]+)").Groups[1].Value)
-                        .ToHashSet();
+                        .ToHashSet() : null;
 
                     #region Серии
                     var etpl = new EpisodeTpl(episodes.Count);
@@ -421,7 +431,7 @@ namespace Shared.Engine.Online
                     {
                         var streamquality = new StreamQualityTpl();
 
-                        foreach (int lq in episode.Value.qualities.OrderByDescending(i => i))
+                        foreach (var lq in episode.Value.qualities.OrderByDescending(i => i))
                         {
                             if (!pro)
                             {
@@ -433,6 +443,13 @@ namespace Shared.Engine.Online
                             }
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
+
+                            if (init.hls)
+                            {
+                                var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
+                                if (m.Success)
+                                    l = $"{m.Groups[1].Value}/hls/{m.Groups[3].Value}/index.m3u8?hash={m.Groups[2].Value}";
+                            }
 
                             if (reserve)
                             {
@@ -448,9 +465,6 @@ namespace Shared.Engine.Online
 
                             streamquality.Append(onstreamfile.Invoke(l), $"{lq}p");
                         }
-
-                        if (!streamquality.Any())
-                            continue;
 
                         int fis = s == -1 ? 1 : (s ?? 1);
 
