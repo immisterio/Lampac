@@ -23,14 +23,14 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            await EnsureAnimeLibToken(init);
+
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
-
-            await EnsureAnimeLibToken(init);
 
             var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
 
@@ -201,10 +201,10 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            await EnsureAnimeLibToken(init);
+
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
-
-            await EnsureAnimeLibToken(init);
 
             reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected() && init.rhub_fallback && play)
