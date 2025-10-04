@@ -414,7 +414,7 @@ namespace Lampac.Controllers
 
                     #region shared_passwd
                     string sharedBlock = string.Empty;
-                    if (!IsLocalIp(requestInfo.IP))
+                    if (IsLocalIp(requestInfo.IP) == false && IO.File.Exists("isdocker") == false)
                     {
                         string shared_passwd = CrypTo.unic(6).ToLower();
 
@@ -651,8 +651,6 @@ namespace Lampac.Controllers
         #region IsLocalIp
         bool IsLocalIp(string ip)
         {
-            return false;
-
             if (string.IsNullOrWhiteSpace(ip))
                 return false;
 
