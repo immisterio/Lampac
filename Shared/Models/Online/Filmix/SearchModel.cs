@@ -8,6 +8,11 @@
 
         public string original_title { get; set; }
 
+        /// <summary>
+        /// api.filmix.tv
+        /// </summary>
+        public string original_name { get; set; }
+
         public string poster { get; set; }
 
         public int year { get; set; }
