@@ -10,6 +10,7 @@ using System.Linq;
 using IO = System.IO;
 using Shared;
 using System.Threading.Tasks;
+using Shared.Engine;
 
 namespace Lampac.Controllers
 {
@@ -411,6 +412,33 @@ namespace Lampac.Controllers
                     #region htmlSuccess
                     string passwdTxt = IO.File.Exists("passwd") ? IO.File.ReadAllText("passwd").Trim() : string.Empty;
 
+                    #region shared_passwd
+                    string sharedBlock = string.Empty;
+                    if (!IsLocalIp(requestInfo.IP))
+                    {
+                        string shared_passwd = CrypTo.unic(6).ToLower();
+
+                        UpdateInitConf(j =>
+                        {
+                            var accsdb = j["accsdb"] as JObject;
+                            if (accsdb == null)
+                            {
+                                accsdb = new JObject();
+                                j["accsdb"] = accsdb;
+                            }
+
+                            accsdb["enable"] = true;
+                            accsdb["shared_passwd"] = shared_passwd;
+                        });
+
+                        sharedBlock = $@"<div class=""block""><b>Авторизация в Lampa</b><br /><br />
+                            Пароль: {shared_passwd}
+                            <br><br>
+                            Отключить авторизацию можно в init.conf (accsdb) или {host}/admin (пользователи) 
+                        </div><hr />";
+                    }
+                    #endregion
+
                     string htmlSuccesds = $@"<!DOCTYPE html>
 <html>
 <head>
@@ -429,6 +457,8 @@ namespace Lampac.Controllers
 </style>
 
 <h1>Настройка завершена</h1>
+
+{sharedBlock}
 
 <div class=""block"">
     <b>Админ панель</b><br /><br />
@@ -615,6 +645,54 @@ namespace Lampac.Controllers
             modify?.Invoke(jo);
 
             IO.File.WriteAllText("init.conf", JsonConvert.SerializeObject(jo, Formatting.Indented));
+        }
+        #endregion
+
+        #region IsLocalIp
+        bool IsLocalIp(string ip)
+        {
+            return false;
+
+            if (string.IsNullOrWhiteSpace(ip))
+                return false;
+
+            // Если ip приходит в формате IPv4-mapped IPv6 (::ffff:192.168.0.1)
+            var lastColon = ip.LastIndexOf(':');
+            if (lastColon != -1 && ip.Contains("."))
+                ip = ip.Substring(lastColon + 1);
+
+            if (!System.Net.IPAddress.TryParse(ip, out var addr))
+                return false;
+
+            // loopback (127.0.0.0/8 и ::1)
+            if (System.Net.IPAddress.IsLoopback(addr))
+                return true;
+
+            if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) // IPv4
+            {
+                var b = addr.GetAddressBytes(); // [a,b,c,d]
+                                                // 10.0.0.0/8
+                if (b[0] == 10) return true;
+                // 127.0.0.0/8
+                if (b[0] == 127) return true;
+                // 192.168.0.0/16
+                if (b[0] == 192 && b[1] == 168) return true;
+                // 172.16.0.0/12  => 172.16.0.0 - 172.31.255.255
+                if (b[0] == 172 && b[1] >= 16 && b[1] <= 31) return true;
+
+                return false;
+            }
+
+            if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) // IPv6
+            {
+                var b = addr.GetAddressBytes();
+                // unique local fc00::/7 (first byte 0xfc or 0xfd)
+                if ((b[0] & 0xfe) == 0xfc) return true;
+                // ::1 handled by IsLoopback above
+                return false;
+            }
+
+            return false;
         }
         #endregion
     }

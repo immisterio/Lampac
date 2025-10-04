@@ -23,9 +23,6 @@ namespace Shared.Models.Online.Settings
 
         public bool livehash { get; set; }
 
-        // new property to request HLS (m3u8) links instead of mp4
-        public bool hls { get; set; }
-
         [JsonIgnore]
         public string token_apitv { get; set; }
 
