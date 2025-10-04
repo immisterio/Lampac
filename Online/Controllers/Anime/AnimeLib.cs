@@ -26,11 +26,11 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            await EnsureAnimeLibToken(init);
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
+
+            await EnsureAnimeLibToken(init);
 
             var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
 
@@ -295,8 +295,7 @@ namespace Online.Controllers
         #region [Codex AI] EnsureAnimeLibToken / RequestAnimeLibToken
         async ValueTask EnsureAnimeLibToken(OnlinesSettings init)
         {
-            string initToken = init.token;
-            if (string.IsNullOrEmpty(initToken) || initToken.Contains("."))
+            if (!string.IsNullOrEmpty(init.token))
                 return;
 
             try
@@ -308,44 +307,29 @@ namespace Online.Controllers
 
                 try
                 {
-                    if (System.IO.File.Exists(TokenCachePath))
-                    {
-                        string json = System.IO.File.ReadAllText(TokenCachePath);
-                        if (!string.IsNullOrWhiteSpace(json))
-                            cache = JsonConvert.DeserializeObject<AnimeLibTokenState>(json);
-                    }
+                    string json = System.IO.File.ReadAllText(TokenCachePath);
+                    cache = JsonConvert.DeserializeObject<AnimeLibTokenState>(json);
                 }
-                catch
-                {
-                    cache = null;
-                }
+                catch { }
 
-                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                if (cache == null)
+                    return;
 
-                if (cache != null &&
-                    cache.init_tk == initToken &&
-                    !string.IsNullOrEmpty(cache.token) &&
-                    cache.refresh_time > now)
+                if (!string.IsNullOrEmpty(cache.token) && cache.refresh_time > DateTimeOffset.UtcNow.ToUnixTimeSeconds())
                 {
                     init.token = cache.token;
                     return;
                 }
 
-                string refreshToken = initToken;
-
-                if (cache != null && cache.init_tk == initToken && !string.IsNullOrEmpty(cache.refresh_token))
-                    refreshToken = cache.refresh_token;
-
-                var tokens = await RequestAnimeLibToken(refreshToken);
+                var tokens = await RequestAnimeLibToken(cache.refresh_token);
                 if (tokens == null)
                     return;
 
                 cache = new AnimeLibTokenState
                 {
-                    init_tk = initToken,
                     token = tokens.Value.accessToken,
                     refresh_token = tokens.Value.refreshToken,
-                    refresh_time = DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeSeconds()
+                    refresh_time = DateTimeOffset.UtcNow.AddDays(2).ToUnixTimeSeconds()
                 };
 
                 try
@@ -365,9 +349,6 @@ namespace Online.Controllers
 
         async ValueTask<(string accessToken, string refreshToken)?> RequestAnimeLibToken(string refreshToken)
         {
-            if (string.IsNullOrEmpty(refreshToken))
-                return null;
-
             var payload = JsonConvert.SerializeObject(new
             {
                 grant_type = "refresh_token",

@@ -675,7 +675,8 @@ namespace Shared
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) 
         {
-            hls = true, ajax = true, reserve = true, scheme = "http",
+            ajax = true, reserve = true,
+            hls = true, scheme = "http",
             headers = Http.defaultHeaders
         };
 
