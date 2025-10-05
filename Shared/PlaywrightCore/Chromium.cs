@@ -573,11 +573,18 @@ namespace Shared.PlaywrightCore
 
                 void close()
                 {
-                    if (context != null)
-                        context.CloseAsync().ConfigureAwait(false);
-
-                    if (page != null)
+                    if (keepopen_page != null)
+                    {
                         page.CloseAsync().ConfigureAwait(false);
+                    }
+                    else if (context != null)
+                    {
+                        context.CloseAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        page.CloseAsync().ConfigureAwait(false);
+                    }
                 }
 
                 if (imitationHuman || deferredDispose)
