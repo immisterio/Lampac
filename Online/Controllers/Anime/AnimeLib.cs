@@ -329,7 +329,10 @@ namespace Online.Controllers
                 {
                     token = tokens.Value.accessToken,
                     refresh_token = tokens.Value.refreshToken,
-                    refresh_time = DateTimeOffset.UtcNow.AddDays(2).ToUnixTimeSeconds()
+                    // 2592000 секунд / 60 = 43200 минут
+                    // 43200 минут / 60 = 720 часов
+                    // 720 часов / 24 = 30 дней
+                    refresh_time = DateTimeOffset.UtcNow.AddDays(20).ToUnixTimeSeconds()
                 };
 
                 try
@@ -362,7 +365,13 @@ namespace Online.Controllers
                 var headers = HeadersModel.Init(Http.defaultFullHeaders,
                     ("accept", "*/*"),
                     ("origin", "https://anilib.me"),
-                    ("referer", "https://anilib.me/")
+                    ("referer", "https://anilib.me/"),
+                    ("accept-language", "en-US,en;q=0.9,ru;q=0.8"),
+                    ("client-time-zone", "Europe/Kiev"),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "cross-site"),
+                    ("site-id", "5")
                 );
 
                 var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, httpversion: 2, timeoutSeconds: 8, headers: headers, useDefaultHeaders: false);
