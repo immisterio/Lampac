@@ -27,7 +27,7 @@ namespace Online.Controllers
             string searchTitle = StringConvert.SearchName(title);
 
             reset:
-            var cache = await InvokeCache<CatalogVideo[]>($"vkmovie:view:{searchTitle}:{year}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<CatalogVideo[]>(rch.ipkey($"vkmovie:view:{searchTitle}:{year}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
