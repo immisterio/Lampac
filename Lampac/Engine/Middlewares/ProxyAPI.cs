@@ -523,7 +523,7 @@ namespace Lampac.Engine.Middlewares
             //requestMessage.Version = new Version(2, 0);
             //Console.WriteLine(JsonConvert.SerializeObject(requestMessage.Headers, Formatting.Indented));
 
-            InvkEvent.ProxyCreateHttpRequest(new EventProxyCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage));
+            InvkEvent.ProxyApi(new EventProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage));
 
             return requestMessage;
         }

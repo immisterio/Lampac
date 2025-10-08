@@ -20,7 +20,7 @@
 
         public EventModelHybridCache HybridCache { get; set; }
 
-        public EventModelProxy Proxy { get; set; }
+        public EventModelProxyApi ProxyApi { get; set; }
     }
 
     public class EventModelController()
@@ -86,7 +86,7 @@
         public string Write { get; set; }
     }
 
-    public class EventModelProxy()
+    public class EventModelProxyApi()
     {
         public string CreateHttpRequest { get; set; }
     }

@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
-using System;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -199,20 +198,25 @@ namespace Shared
         }
         #endregion
 
-        #region ProxyCreateHttpRequest
-        public static void ProxyCreateHttpRequest(EventProxyCreateHttpRequest model)
+        #region ProxyApi
+        public static void ProxyApi(object model)
         {
-            if (conf?.Proxy?.CreateHttpRequest == null)
+            string code = null;
+
+            if (model.GetType() == typeof(EventProxyApiCreateHttpRequest))
+                code = conf?.ProxyApi?.CreateHttpRequest;
+
+            if (string.IsNullOrEmpty(code))
                 return;
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Proxy")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models")
                 .AddReferences(typeof(Uri).Assembly).AddImports("System")
                 .AddReferences(typeof(HttpRequestMessage).Assembly).AddImports("System.Net.Http")
                 .AddImports("System.Collections.Generic");
 
-            Invoke(conf.Proxy.CreateHttpRequest, model, option);
+            Invoke(code, model, option);
         }
         #endregion
 
