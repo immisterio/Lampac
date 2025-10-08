@@ -10,26 +10,30 @@ namespace Shared.Models.Templates
     {
         string title, original_title;
 
-        public List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout)> data { get; set; }
+        public List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments)> data { get; set; }
 
-        public MovieTpl(string title, string original_title = null, int capacity = 15) 
+        public MovieTpl(string title) : this(title, null, 15) { }
+
+        public MovieTpl(string title, string original_title) : this(title, original_title, 15) { }
+
+        public MovieTpl(string title, string original_title, int capacity) 
         {
             this.title = title;
             this.original_title = original_title;
-            data = new List<(string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, string, string, VastConf vast, List<HeadersModel>, int?)>(capacity); 
+            data = new List<(string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, string, string, VastConf vast, List<HeadersModel>, int?, SegmentTpl?)> (capacity); 
         }
 
         public bool IsEmpty() => data.Count == 0;
 
-        public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null)
+        public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null)
         {
             if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
-                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout));
+                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments));
         }
 
-        public string ToHtml(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null)
+        public string ToHtml(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null)
         {
-            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout);
+            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments);
             return ToHtml();
         }
 
@@ -62,7 +66,8 @@ namespace Shared.Models.Templates
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})",
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast
+                    vast = i.vast ?? AppInit.conf.vast,
+                    i.segments
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -104,7 +109,8 @@ namespace Shared.Models.Templates
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{name} ({i.voiceOrQuality})",
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast
+                    vast = i.vast ?? AppInit.conf.vast,
+                    i.segments
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
         }

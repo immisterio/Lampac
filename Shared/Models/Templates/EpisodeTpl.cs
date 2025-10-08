@@ -8,19 +8,19 @@ namespace Shared.Models.Templates
 {
     public struct EpisodeTpl
     {
-        public List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string streamlink, string voice_name, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout)> data { get; set; }
+        public List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string streamlink, string voice_name, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments)> data { get; set; }
 
         public EpisodeTpl() : this(20) { }
 
         public EpisodeTpl(int capacity) 
         {
-            data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, VastConf, List<HeadersModel>, int?)>(capacity);
+            data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, VastConf, List<HeadersModel>, int?, SegmentTpl?)>(capacity);
         }
 
-        public void Append(string name, string title, string s, string e, string link, string method = "play", in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null)
+        public void Append(string name, string title, string s, string e, string link, string method = "play", in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null)
         {
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(link))
-                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers, hls_manifest_timeout));
+                data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers, hls_manifest_timeout, segments));
         }
 
         public string ToHtml()
@@ -45,7 +45,8 @@ namespace Shared.Models.Templates
                     subtitles = i.subtitles?.ToObject(),
                     i.voice_name,
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast
+                    vast = i.vast ?? AppInit.conf.vast,
+                    i.segments
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
 
@@ -79,7 +80,8 @@ namespace Shared.Models.Templates
                     i.name,
                     i.title,
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast
+                    vast = i.vast ?? AppInit.conf.vast,
+                    i.segments
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
         }

@@ -80,7 +80,7 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            #region ws
+            #region ws / nws
             if (httpContext.Request.Path.Value.StartsWith("/ws") || httpContext.Request.Path.Value.StartsWith("/nws"))
             {
                 if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && !AppInit.conf.storage.enable)
