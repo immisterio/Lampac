@@ -56,7 +56,10 @@ namespace Online.Controllers
             {
                 var mtpl = new MovieTpl(title, original_title, cache.Value.Length);
 
-                foreach (var item in cache.Value)
+                foreach (var item in cache.Value
+                    .OrderByDescending(i => i.video?.files?.mp4_2160 != null)
+                    .ThenByDescending(i => i.video?.files?.mp4_1440 != null)
+                    .ThenByDescending(i => i.video?.files?.mp4_1080 != null))
                 {
                     var video = item.video;
                     if (video == null || video.files == null)
@@ -124,7 +127,7 @@ namespace Online.Controllers
                             subtitles = subtitleTpl;
                     }
 
-                    mtpl.Append(video.title, streams.Firts().link, streamquality: streams, subtitles: subtitles, vast: init.vast);
+                    mtpl.Append(video.title, streams.Firts().link, streamquality: streams, subtitles: subtitles, headers: HeadersModel.Init(init.headers), vast: init.vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
