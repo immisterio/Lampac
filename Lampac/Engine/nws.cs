@@ -318,7 +318,7 @@ namespace Lampac.Engine
             if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(name) || (data != null && data.Length > 10_000000))
                 return Task.CompletedTask;
 
-            var targets = event_clients.Where(i => i.Value == uid && i.Key != connectionId).Select(i => i.Key).ToArray();
+            var targets = event_clients.Where(i => i.Value == uid && (connectionId == null || i.Key != connectionId)).Select(i => i.Key).ToArray();
             if (targets.Length == 0)
                 return Task.CompletedTask;
 

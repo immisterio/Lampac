@@ -1,3 +1,4 @@
+using Lampac.Engine;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -36,7 +37,6 @@ namespace Lampac.Controllers
         }
         #endregion
 
-
         private static readonly string[] BookmarkCategories = new[]
         {
             "history",
@@ -61,7 +61,7 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/bookmark/add")]
-        public async Task<ActionResult> Add()
+        public async Task<ActionResult> Add(string connectionId)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
@@ -110,12 +110,14 @@ namespace Lampac.Controllers
                     if (semaphore.CurrentCount == 1)
                         _semaphoreLocks.TryRemove(semaphoreKey, out _);
                 }
+
+                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", "add").ConfigureAwait(false);
             }
         }
 
         [HttpPost]
         [Route("/bookmark/added")]
-        public async Task<ActionResult> Added()
+        public async Task<ActionResult> Added(string connectionId)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
@@ -165,12 +167,14 @@ namespace Lampac.Controllers
                     if (semaphore.CurrentCount == 1)
                         _semaphoreLocks.TryRemove(semaphoreKey, out _);
                 }
+
+                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", "added").ConfigureAwait(false);
             }
         }
 
         [HttpPost]
         [Route("/bookmark/remove")]
-        public async Task<ActionResult> Remove()
+        public async Task<ActionResult> Remove(string connectionId)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
@@ -227,6 +231,8 @@ namespace Lampac.Controllers
                     if (semaphore.CurrentCount == 1)
                         _semaphoreLocks.TryRemove(semaphoreKey, out _);
                 }
+
+                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", "remove").ConfigureAwait(false);
             }
         }
 

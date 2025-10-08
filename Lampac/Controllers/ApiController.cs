@@ -665,7 +665,16 @@ namespace Lampac.Controllers
             if (!AppInit.conf.storage.enable)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
-            var sb = new StringBuilder(FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js"));
+            StringBuilder sb;
+
+            if (lite == false && AppInit.conf.syncBeta)
+            {
+                sb = new StringBuilder(FileCache.ReadAllText("plugins/sync_v2/sync.js"));
+            }
+            else
+            {
+                sb = new StringBuilder(FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js"));
+            }
 
             sb.Replace("{sync-invc}", FileCache.ReadAllText("plugins/sync-invc.js"))
               .Replace("{localhost}", host)
@@ -681,9 +690,19 @@ namespace Lampac.Controllers
         [Route("invc-ws/js/{token}")]
         public ActionResult InvcSyncJS(string token)
         {
-            var sb = new StringBuilder(FileCache.ReadAllText("plugins/invc-ws.js"));
+            StringBuilder sb;
+
+            if (AppInit.conf.syncBeta)
+            {
+                sb = new StringBuilder(FileCache.ReadAllText("plugins/sync_v2/invc-ws.js"));
+            }    
+            else
+            {
+                sb = new StringBuilder(FileCache.ReadAllText("plugins/invc-ws.js"));
+            }
 
             sb.Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js"))
+              .Replace("{invc-rch_nws}", FileCache.ReadAllText("plugins/invc-rch_nws.js"))
               .Replace("{localhost}", host)
               .Replace("{token}", HttpUtility.UrlEncode(token));
 

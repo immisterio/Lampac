@@ -339,6 +339,8 @@ namespace Shared
             frontend = null // cloudflare|nginx
         };
 
+        public bool syncBeta = false;
+
         public bool multiaccess = false;
 
         public bool mikrotik = false;
