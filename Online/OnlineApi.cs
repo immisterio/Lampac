@@ -972,6 +972,7 @@ namespace Online.Controllers
             {
                 send(conf.Plvideo, "plvideo", "Plvideo", rch_access: "apk,cors");
                 send(conf.RutubeMovie, "rutubemovie", "Rutube", rch_access: "apk,cors");
+                send(conf.VkMovie, "vkmovie", "VK Видео", rch_access: "apk,cors");
             }
 
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videoseed.overridehost) || conf.Videoseed.overridehosts?.Length > 0)
