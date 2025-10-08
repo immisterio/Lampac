@@ -5,6 +5,9 @@ using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.JacRed;
 using Shared.Models.Online.Settings;
+using Shared.Models.Proxy;
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 
@@ -41,4 +44,6 @@ namespace Shared.Models.Events
     public record EventHttpHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders, IMemoryCache memoryCache);
 
     public record EventHttpResponse(string url, HttpContent data, HttpClient client, string result, HttpResponseMessage response, IMemoryCache memoryCache);
+
+    public record EventProxyCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage);
 }

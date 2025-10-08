@@ -19,6 +19,8 @@
         public EventModelRedApi RedApi { get; set; }
 
         public EventModelHybridCache HybridCache { get; set; }
+
+        public EventModelProxy Proxy { get; set; }
     }
 
     public class EventModelController()
@@ -82,5 +84,10 @@
         public string Read { get; set; }
 
         public string Write { get; set; }
+    }
+
+    public class EventModelProxy()
+    {
+        public string CreateHttpRequest { get; set; }
     }
 }
