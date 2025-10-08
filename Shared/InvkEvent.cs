@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -187,7 +188,7 @@ namespace Shared
 
 
         #region LoadKit
-        public static void LoadKit(EventLoadKit model) 
+        public static void LoadKit(EventLoadKit model)
         {
             if (conf?.LoadKit == null)
                 return;
@@ -195,6 +196,23 @@ namespace Shared
             Invoke(conf?.LoadKit, model, ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Base")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO"));
+        }
+        #endregion
+
+        #region ProxyCreateHttpRequest
+        public static void ProxyCreateHttpRequest(EventProxyCreateHttpRequest model)
+        {
+            if (conf?.Proxy?.CreateHttpRequest == null)
+                return;
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Proxy")
+                .AddReferences(typeof(Uri).Assembly).AddImports("System")
+                .AddReferences(typeof(HttpRequestMessage).Assembly).AddImports("System.Net.Http")
+                .AddImports("System.Collections.Generic");
+
+            Invoke(conf.Proxy.CreateHttpRequest, model, option);
         }
         #endregion
 
