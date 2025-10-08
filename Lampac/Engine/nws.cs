@@ -120,6 +120,8 @@ namespace Lampac.Engine
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
                         string message = builder.ToString();
+                        builder.Clear();
+
                         if (!string.IsNullOrWhiteSpace(message) && message != "ping")
                             await HandleMessageAsync(connection, message).ConfigureAwait(false);
                     }
