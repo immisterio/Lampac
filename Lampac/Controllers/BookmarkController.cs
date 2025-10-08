@@ -10,6 +10,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -75,21 +76,41 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            using (var sqlDb = new SyncUserContext())
+            string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
+
+            try
             {
-                var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
-                bool changed = false;
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
-                changed |= EnsureCard(data, payload.Card, cardId.Value);
+                using (var sqlDb = new SyncUserContext())
+                {
+                    var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                    bool changed = false;
 
-                if (!string.IsNullOrEmpty(category))
-                    changed |= AddToCategory(data, category, cardId.Value);
+                    changed |= EnsureCard(data, payload.Card, cardId.Value);
 
-                if (changed)
-                    Save(sqlDb, entity, data);
+                    if (!string.IsNullOrEmpty(category))
+                        changed |= AddToCategory(data, category, cardId.Value);
+
+                    if (changed)
+                        Save(sqlDb, entity, data);
+                }
+
+                return JsonSuccess();
             }
-
-            return JsonSuccess();
+            finally
+            {
+                try
+                {
+                    semaphore.Release();
+                }
+                finally
+                {
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
+                }
+            }
         }
 
         [HttpPost]
@@ -109,22 +130,42 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            using (var sqlDb = new SyncUserContext())
+            string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
+
+            try
             {
-                var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
-                bool changed = false;
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
-                if (payload.Card != null)
-                    changed |= EnsureCard(data, payload.Card, cardId.Value);
+                using (var sqlDb = new SyncUserContext())
+                {
+                    var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                    bool changed = false;
 
-                if (!string.IsNullOrEmpty(category))
-                    changed |= AddToCategory(data, category, cardId.Value);
+                    if (payload.Card != null)
+                        changed |= EnsureCard(data, payload.Card, cardId.Value);
 
-                if (changed)
-                    Save(sqlDb, entity, data);
+                    if (!string.IsNullOrEmpty(category))
+                        changed |= AddToCategory(data, category, cardId.Value);
+
+                    if (changed)
+                        Save(sqlDb, entity, data);
+                }
+
+                return JsonSuccess();
             }
-
-            return JsonSuccess();
+            finally
+            {
+                try
+                {
+                    semaphore.Release();
+                }
+                finally
+                {
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
+                }
+            }
         }
 
         [HttpPost]
@@ -145,28 +186,48 @@ namespace Lampac.Controllers
             string category = NormalizeCategory(payload.Where);
             string method = payload.NormalizedMethod;
 
-            using (var sqlDb = new SyncUserContext())
+            string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
+
+            try
             {
-                var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: false);
-                if (entity == null)
-                    return JsonSuccess();
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
-                bool changed = false;
-
-                if (!string.IsNullOrEmpty(category))
-                    changed |= RemoveFromCategory(data, category, cardId.Value);
-
-                if (string.Equals(method, "card", StringComparison.Ordinal))
+                using (var sqlDb = new SyncUserContext())
                 {
-                    changed |= RemoveIdFromAllCategories(data, cardId.Value);
-                    changed |= RemoveCard(data, cardId.Value);
+                    var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: false);
+                    if (entity == null)
+                        return JsonSuccess();
+
+                    bool changed = false;
+
+                    if (!string.IsNullOrEmpty(category))
+                        changed |= RemoveFromCategory(data, category, cardId.Value);
+
+                    if (string.Equals(method, "card", StringComparison.Ordinal))
+                    {
+                        changed |= RemoveIdFromAllCategories(data, cardId.Value);
+                        changed |= RemoveCard(data, cardId.Value);
+                    }
+
+                    if (changed)
+                        Save(sqlDb, entity, data);
                 }
 
-                if (changed)
-                    Save(sqlDb, entity, data);
+                return JsonSuccess();
             }
-
-            return JsonSuccess();
+            finally
+            {
+                try
+                {
+                    semaphore.Release();
+                }
+                finally
+                {
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
+                }
+            }
         }
 
         JObject GetBookmarksForResponse(SyncUserContext sqlDb)
