@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Engine;
 using Shared.Models.SQL;
 using System;
 using System.Globalization;
@@ -10,11 +11,31 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Lampac.Controllers
 {
     public class BookmarkController : BaseController
     {
+        #region bookmark.js
+        [HttpGet]
+        [Route("bookmark.js")]
+        [Route("bookmark/js/{token}")]
+        public ActionResult BookmarkJS(string token)
+        {
+            if (!AppInit.conf.storage.enable)
+                return Content(string.Empty, "application/javascript; charset=utf-8");
+
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/bookmark.js"));
+
+            sb.Replace("{localhost}", host)
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+
         private static readonly string[] BookmarkCategories = new[]
         {
             "history",
@@ -33,8 +54,8 @@ namespace Lampac.Controllers
         [Route("/bookmark/list")]
         public ActionResult List()
         {
-            var data = GetBookmarksForResponse();
-            return Content(data.ToString(Formatting.None), "application/json; charset=utf-8");
+            var data = GetBookmarksForResponse(SyncUserDb.Read);
+            return ContentTo(data.ToString(Formatting.None));
         }
 
         [HttpPost]
@@ -54,17 +75,19 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            var (entity, data) = LoadBookmarks(requestInfo.user_uid, createIfMissing: true);
-            bool changed = false;
+            using (var sqlDb = new SyncUserContext())
+            {
+                var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                bool changed = false;
 
-            changed |= EnsureCard(data, payload.Card, cardId.Value);
-            changed |= AddToCategory(data, "history", cardId.Value);
+                changed |= EnsureCard(data, payload.Card, cardId.Value);
 
-            if (!string.IsNullOrEmpty(category))
-                changed |= AddToCategory(data, category, cardId.Value);
+                if (!string.IsNullOrEmpty(category))
+                    changed |= AddToCategory(data, category, cardId.Value);
 
-            if (changed)
-                Save(entity, data);
+                if (changed)
+                    Save(sqlDb, entity, data);
+            }
 
             return JsonSuccess();
         }
@@ -86,19 +109,20 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            var (entity, data) = LoadBookmarks(requestInfo.user_uid, createIfMissing: true);
-            bool changed = false;
+            using (var sqlDb = new SyncUserContext())
+            {
+                var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                bool changed = false;
 
-            if (payload.Card != null)
-                changed |= EnsureCard(data, payload.Card, cardId.Value);
+                if (payload.Card != null)
+                    changed |= EnsureCard(data, payload.Card, cardId.Value);
 
-            changed |= AddToCategory(data, "history", cardId.Value);
+                if (!string.IsNullOrEmpty(category))
+                    changed |= AddToCategory(data, category, cardId.Value);
 
-            if (!string.IsNullOrEmpty(category))
-                changed |= AddToCategory(data, category, cardId.Value);
-
-            if (changed)
-                Save(entity, data);
+                if (changed)
+                    Save(sqlDb, entity, data);
+            }
 
             return JsonSuccess();
         }
@@ -121,59 +145,49 @@ namespace Lampac.Controllers
             string category = NormalizeCategory(payload.Where);
             string method = payload.NormalizedMethod;
 
-            var (entity, data) = LoadBookmarks(requestInfo.user_uid, createIfMissing: false);
-            if (entity == null)
-                return JsonSuccess();
-
-            bool changed = false;
-
-            if (!string.IsNullOrEmpty(category))
-                changed |= RemoveFromCategory(data, category, cardId.Value);
-
-            changed |= RemoveFromCategory(data, "history", cardId.Value);
-
-            if (string.Equals(method, "card", StringComparison.Ordinal))
+            using (var sqlDb = new SyncUserContext())
             {
-                changed |= RemoveIdFromAllCategories(data, cardId.Value);
-                changed |= RemoveCard(data, cardId.Value);
-            }
-            else
-            {
-                if (ContainsIdInOtherCategories(data, cardId.Value))
+                var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: false);
+                if (entity == null)
+                    return JsonSuccess();
+
+                bool changed = false;
+
+                if (!string.IsNullOrEmpty(category))
+                    changed |= RemoveFromCategory(data, category, cardId.Value);
+
+                if (string.Equals(method, "card", StringComparison.Ordinal))
                 {
-                    changed |= AddToCategory(data, "history", cardId.Value);
-                }
-                else
-                {
+                    changed |= RemoveIdFromAllCategories(data, cardId.Value);
                     changed |= RemoveCard(data, cardId.Value);
                 }
-            }
 
-            if (changed)
-                Save(entity, data);
+                if (changed)
+                    Save(sqlDb, entity, data);
+            }
 
             return JsonSuccess();
         }
 
-        JObject GetBookmarksForResponse()
+        JObject GetBookmarksForResponse(SyncUserContext sqlDb)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return CreateDefaultBookmarks();
 
-            var entity = SyncUserDb.Read.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == requestInfo.user_uid);
+            var entity = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == requestInfo.user_uid);
             var data = entity != null ? DeserializeBookmarks(entity.data) : CreateDefaultBookmarks();
             EnsureDefaultArrays(data);
             return data;
         }
 
-        static (SyncUserBookmarkSqlModel entity, JObject data) LoadBookmarks(string userUid, bool createIfMissing)
+        static (SyncUserBookmarkSqlModel entity, JObject data) LoadBookmarks(SyncUserContext sqlDb, string userUid, bool createIfMissing)
         {
             JObject data = CreateDefaultBookmarks();
             SyncUserBookmarkSqlModel entity = null;
 
             if (!string.IsNullOrEmpty(userUid))
             {
-                entity = SyncUserDb.Read.bookmarks.FirstOrDefault(i => i.user == userUid);
+                entity = sqlDb.bookmarks.FirstOrDefault(i => i.user == userUid);
                 if (entity != null && !string.IsNullOrEmpty(entity.data))
                     data = DeserializeBookmarks(entity.data);
             }
@@ -337,31 +351,6 @@ namespace Lampac.Controllers
             return false;
         }
 
-        static bool ContainsIdInOtherCategories(JObject data, long id)
-        {
-            if (data == null)
-                return false;
-
-            string idStr = id.ToString(CultureInfo.InvariantCulture);
-
-            foreach (var property in data.Properties())
-            {
-                if (property.Name is "card" or "history")
-                    continue;
-
-                if (property.Value is JArray array)
-                {
-                    foreach (var token in array)
-                    {
-                        if (token.ToString() == idStr)
-                            return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
         static JArray GetCardArray(JObject data)
         {
             if (data["card"] is JArray array)
@@ -398,7 +387,7 @@ namespace Lampac.Controllers
             return false;
         }
 
-        static void Save(SyncUserBookmarkSqlModel entity, JObject data)
+        static void Save(SyncUserContext sqlDb, SyncUserBookmarkSqlModel entity, JObject data)
         {
             if (entity == null)
                 return;
@@ -407,16 +396,16 @@ namespace Lampac.Controllers
             entity.updated = DateTime.UtcNow;
 
             if (entity.Id == 0)
-                SyncUserDb.Write.bookmarks.Add(entity);
+                sqlDb.bookmarks.Add(entity);
             else
-                SyncUserDb.Write.bookmarks.Update(entity);
+                sqlDb.bookmarks.Update(entity);
 
-            SyncUserDb.Write.SaveChanges();
+            sqlDb.SaveChanges();
         }
 
-        JsonResult JsonSuccess() => Json(new { success = true, secuses = true });
+        JsonResult JsonSuccess() => Json(new { success = true });
 
-        JsonResult JsonFailure() => Json(new { success = false, secuses = false });
+        JsonResult JsonFailure() => Json(new { success = false });
 
         async Task<BookmarkEventPayload> ReadPayloadAsync()
         {
