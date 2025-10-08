@@ -12,6 +12,9 @@ apt-get install -y libatk1.0-0
 apt-get install -y xvfb
 apt-get install -y coreutils
 
+# chromium
+apt-get install -y libnss3 libatk-bridge2.0-0 libdrm-dev libxkbcommon-dev libxcomposite-dev libxdamage-dev libxrandr-dev libgbm-dev libasound2-dev libpangocairo-1.0-0 libpango-1.0-0 libcairo2-dev
+
 # Install .NET
 if ! curl -L -k -o dotnet-install.sh https://dot.net/v1/dotnet-install.sh; then
    echo "Failed to download dotnet-install.sh. Exiting."
