@@ -14,8 +14,7 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string searchTitle = StringConvert.SearchName(title);
-            if (string.IsNullOrEmpty(searchTitle) || year == 0)
+            if (serial == 1)
                 return OnError();
 
             var proxyManager = new ProxyManager(init);
@@ -25,19 +24,20 @@ namespace Online.Controllers
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
-            if (serial == 1)
-                return OnError();
+            string searchTitle = StringConvert.SearchName(title);
 
-        reset:
-            var cache = await InvokeCache<CatalogVideo[]>($"vkmovie:view:{searchTitle}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+            reset:
+            var cache = await InvokeCache<CatalogVideo[]>($"vkmovie:view:{searchTitle}:{year}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id=52461373&screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={init.token}";
+                string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id=52461373";
+                string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={init.token}";
+
                 var root = rch.enable
-                    ? await rch.Post<JObject>(url, string.Empty, httpHeaders(init))
-                    : await Http.Post<JObject>(url, string.Empty, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    ? await rch.Post<JObject>(url, data, httpHeaders(init))
+                    : await Http.Post<JObject>(url, data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (root == null || !root.ContainsKey("response"))
                     return res.Fail("response");
@@ -69,10 +69,16 @@ namespace Online.Controllers
                     if (!(name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         continue;
 
-                    if (video.duration < 1800)
+                    if (video.duration < 3000) // 50 min
                         continue;
 
                     if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
+                        continue;
+
+                    if (string.IsNullOrEmpty(video.files.mp4_2160) 
+                        && string.IsNullOrEmpty(video.files.mp4_1440) 
+                        && string.IsNullOrEmpty(video.files.mp4_1080) 
+                        && string.IsNullOrEmpty(video.files.mp4_720))
                         continue;
 
                     var streams = new StreamQualityTpl();
@@ -83,7 +89,7 @@ namespace Online.Controllers
                             streams.Append(HostStreamProxy(init, url, proxy: proxy), quality);
                     }
 
-                    append(video.files.hls, "auto");
+                    //append(video.files.hls, "auto");
                     append(video.files.mp4_2160, "2160p");
                     append(video.files.mp4_1440, "1440p");
                     append(video.files.mp4_1080, "1080p");
@@ -118,14 +124,11 @@ namespace Online.Controllers
                             subtitles = subtitleTpl;
                     }
 
-                    var first = streams.Firts();
-                    if (string.IsNullOrEmpty(first.link))
-                        continue;
-
-                    mtpl.Append(video.title, first.link, streamquality: streams, subtitles: subtitles, vast: init.vast);
+                    mtpl.Append(video.title, streams.Firts().link, streamquality: streams, subtitles: subtitles, vast: init.vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+
             }, gbcache: !rch.enable);
         }
     }
