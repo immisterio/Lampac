@@ -31,7 +31,8 @@ namespace Online.Controllers
             else
             {
                 reset:
-                var cache = await InvokeCache<Result[]>($"rutubemovie:view:{searchTitle}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                string memKey = $"rutubemovie:view:{searchTitle}:{year}:{(rch.enable ? requestInfo.Country : "")}";
+                var cache = await InvokeCache<Result[]>(memKey, cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     if (rch.IsNotConnected())
                         return res.Fail(rch.connectionMsg);
@@ -59,9 +60,12 @@ namespace Online.Controllers
                         if (name != null && name.Contains(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                         {
                             long duration = movie.duration;
-                            if (duration > 1800) // 30 minutes
+                            if (duration > 3000) // 50 minutes
                             {
-                                if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
+                                if (name.Contains("трейлер") || name.Contains("trailer") ||
+                                    name.Contains("премьера") || name.Contains("обзор") ||
+                                    name.Contains("сезон") || name.Contains("сериал") ||
+                                    name.Contains("серия") || name.Contains("серий"))
                                     continue;
 
                                 if (movie.category.id == 4)

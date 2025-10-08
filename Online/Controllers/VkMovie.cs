@@ -32,8 +32,8 @@ namespace Online.Controllers
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id=52461373";
-                string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={init.token}";
+                string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={init.token.Split(":")[0]}";
+                string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={init.token.Split(":")[1]}";
 
                 var root = rch.enable
                     ? await rch.Post<JObject>(url, data, httpHeaders(init))
@@ -75,7 +75,10 @@ namespace Online.Controllers
                     if (video.duration < 3000) // 50 min
                         continue;
 
-                    if (name.Contains("трейлер") || name.Contains("премьера") || name.Contains("сезон") || name.Contains("сериал") || name.Contains("серия") || name.Contains("серий"))
+                    if (name.Contains("трейлер") || name.Contains("trailer") || 
+                        name.Contains("премьера") || name.Contains("обзор") ||
+                        name.Contains("сезон") || name.Contains("сериал") ||
+                        name.Contains("серия") || name.Contains("серий"))
                         continue;
 
                     if (string.IsNullOrEmpty(video.files.mp4_2160) 

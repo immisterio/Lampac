@@ -728,19 +728,15 @@ namespace Shared
 
         public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1yls", streamproxy: true);
 
-        public OnlinesSettings RutubeMovie { get; set; } = new OnlinesSettings("RutubeMovie", "kwwsv=22uxwxeh1ux", streamproxy: true)
-        {
-            headers = HeadersModel.Init(
-                ("uuid", "a834f1e4-ebc7-435f-bb82-9aa11cc9e815")
-            ).ToDictionary()
-        };
+        public OnlinesSettings RutubeMovie { get; set; } = new OnlinesSettings("RutubeMovie", "kwwsv=22uxwxeh1ux", streamproxy: true);
 
         public OnlinesSettings VkMovie { get; set; } = new OnlinesSettings("VkMovie", "kwwsv=22dsl1ynylghr1ux", streamproxy: true)
         {
-            token = "anonym.eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhbm9ueW1faWQiOjEzOTkzNTkyNTAsImFwcF9pZCI6NTI0NjEzNzMsImlhdCI6MTc1OTkwOTM2OCwiaXNfdmVyaWZpZWQiOmZhbHNlLCJleHAiOjE3NTk5OTU3NjgsInNpZ25lZF90aW1lIjpudWxsLCJhbm9ueW1faWRfbG9uZyI6OTA1OTc1ODMwMjk1MTgyNTc1Miwic2NvcGUiOjc4ODEyOTkzNDc4OTgzNjh9.c8FPAVYPtgsU2UApr-na0vYr-xZSD-sHvQXBwCmV7U8",
+            // client_id:access_token
+            token = "52461373:anonym.eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhbm9ueW1faWQiOjEzOTkzNTkyNTAsImFwcF9pZCI6NTI0NjEzNzMsImlhdCI6MTc1OTkwOTM2OCwiaXNfdmVyaWZpZWQiOmZhbHNlLCJleHAiOjE3NTk5OTU3NjgsInNpZ25lZF90aW1lIjpudWxsLCJhbm9ueW1faWRfbG9uZyI6OTA1OTc1ODMwMjk1MTgyNTc1Miwic2NvcGUiOjc4ODEyOTkzNDc4OTgzNjh9.c8FPAVYPtgsU2UApr-na0vYr-xZSD-sHvQXBwCmV7U8",
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("origin", "https://vkvideo.ru"),
-                ("referer", "https://vkvideo.ru/")
+                ("origin", "encrypt:kwwsv=22ynylghr1ux"),
+                ("referer", "encrypt:kwwsv=22ynylghr1ux2")
             ).ToDictionary()
         };
 
