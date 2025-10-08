@@ -334,20 +334,16 @@ namespace Shared
         #endregion
 
         #region Http
-        public static void Http(string e, object model)
+        public static void Http(object model)
         {
             string code = null;
+            var modelType = model.GetType();
 
-            switch (e)
-            {
-                case "handler":
-                    code = conf?.Http?.Handler;
-                    break;
+            if (modelType == typeof(EventHttpHandler))
+                code = conf?.Http?.Handler;
 
-                case "headers":
-                    code = conf?.Http?.Headers;
-                    break;
-            }
+            else if (modelType == typeof(EventHttpHeaders))
+                code = conf?.Http?.Headers;
 
             if (string.IsNullOrEmpty(code))
                 return;
@@ -360,16 +356,13 @@ namespace Shared
             Invoke(code, model, option);
         }
 
-        public static Task HttpAsync(string e, object model)
+        public static Task HttpAsync(object model)
         {
             string code = null;
+            var modelType = model.GetType();
 
-            switch (e)
-            {
-                case "response":
-                    code = conf?.Http?.Response;
-                    break;
-            }
+            if (modelType == typeof(EventHttpResponse))
+                code = conf?.Http?.Response;
 
             if (string.IsNullOrEmpty(code))
                 return Task.CompletedTask;
@@ -378,7 +371,7 @@ namespace Shared
                 .AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
                 .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http");
 
-            if (e == "response")
+            if (modelType == typeof(EventHttpResponse))
             {
                 option.AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
                       .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine")
