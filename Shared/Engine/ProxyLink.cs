@@ -46,6 +46,7 @@ namespace Shared.Engine
                 {
                     hash = AesTo.Encrypt(JsonSerializer.Serialize(new
                     {
+                        p = plugin,
                         u = uri_clear,
                         i = reqip,
                         v = true,
@@ -54,7 +55,7 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    hash = AesTo.Encrypt(JsonSerializer.Serialize(new { u = uri_clear }));
+                    hash = AesTo.Encrypt(JsonSerializer.Serialize(new { p = plugin, u = uri_clear }));
                 }
             }
             else
@@ -128,7 +129,8 @@ namespace Shared.Engine
                 }
 
                 var headers = HeadersModel.Init(root["h"]?.Deserialize<Dictionary<string, string>>());
-                return new ProxyLinkModel(reqip, headers, null, root["u"].GetValue<string>());
+
+                return new ProxyLinkModel(reqip, headers, null, root["u"].GetValue<string>(), root["p"]?.GetValue<string>());
             }
 
             if (!links.TryGetValue(hash, out ProxyLinkModel val))

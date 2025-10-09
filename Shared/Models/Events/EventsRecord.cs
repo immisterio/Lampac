@@ -5,9 +5,6 @@ using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.JacRed;
 using Shared.Models.Online.Settings;
-using Shared.Models.Proxy;
-using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 

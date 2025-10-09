@@ -92,15 +92,6 @@ namespace Shared.Engine
                 }
             }
 
-            var _current = clients.FirstOrDefault(i => i.Value.ip == ip);
-            if (_current.Key != null)
-            {
-                if (_current.Value.connection != null)
-                    _current.Value.connection.Cancel();
-
-                clients.TryRemove(_current.Key, out _);
-            }
-
             clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i,j) => (ip, host, info, connection));
         }
 
@@ -138,7 +129,7 @@ namespace Shared.Engine
             rhub_fallback = init.rhub_fallback;
             ip = requestInfo.IP;
             string _ip = ip = requestInfo.IP;
-            connectionId = clients.FirstOrDefault(i => i.Value.ip == _ip).Key;
+            connectionId = clients.LastOrDefault(i => i.Value.ip == _ip).Key;
 
             if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
             {
@@ -326,7 +317,7 @@ namespace Shared.Engine
             if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return true; // заглушка для checksearch
 
-            return clients.Values.FirstOrDefault(i => i.ip == ip).ip == null;
+            return clients.Values.LastOrDefault(i => i.ip == ip).ip == null;
         }
         #endregion
 
@@ -370,7 +361,7 @@ namespace Shared.Engine
         public RchClientInfo InfoConnected()
         {
             string _ip = ip;
-            var client = clients.FirstOrDefault(i => i.Value.ip == _ip);
+            var client = clients.LastOrDefault(i => i.Value.ip == _ip);
             if (client.Value.info.rchtype == null)
                 return default;
 
