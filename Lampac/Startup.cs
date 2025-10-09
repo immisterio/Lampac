@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Caching.Memory;
@@ -416,7 +417,33 @@ namespace Lampac
             app.UseAlwaysRjson();
             app.UseModule(first: true);
             app.UseOverrideResponse(first: true);
-            app.UseStaticFiles();
+
+            #region UseStaticFiles
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                ContentTypeProvider = new FileExtensionContentTypeProvider() 
+                {
+                    Mappings = 
+                    {
+                        [".m4s"]  = "video/mp4",
+                        [".ts"]   = "video/mp2t",
+                        [".mp4"]  = "video/mp4",
+                        [".mkv"]  = "video/x-matroska",
+                        [".m3u"]  = "application/x-mpegURL",
+                        [".m3u8"] = "application/vnd.apple.mpegurl",
+                        [".webm"] = "video/webm",
+                        [".mov"]  = "video/quicktime",
+                        [".avi"]  = "video/x-msvideo",
+                        [".wmv"]  = "video/x-ms-wmv",
+                        [".flv"]  = "video/x-flv",
+                        [".ogv"]  = "video/ogg",
+                        [".m2ts"] = "video/MP2T",
+                        [".vob"]  = "video/x-ms-vob"
+                    }
+                }
+            });
+            #endregion
+
             app.UseWAF();
             app.UseAccsdb();
 
