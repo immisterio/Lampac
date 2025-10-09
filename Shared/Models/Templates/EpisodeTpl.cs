@@ -34,6 +34,8 @@ namespace Shared.Models.Templates
 
             foreach (var i in data) 
             {
+                var vast = i.vast ?? AppInit.conf.vast;
+
                 string datajson = JsonSerializer.Serialize(new
                 {
                     i.method,
@@ -45,7 +47,7 @@ namespace Shared.Models.Templates
                     subtitles = i.subtitles?.ToObject(),
                     i.voice_name,
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast,
+                    vast = vast?.url != null ? vast : null,
                     i.segments
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
@@ -80,7 +82,7 @@ namespace Shared.Models.Templates
                     i.name,
                     i.title,
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast,
+                    vast = (i.vast ?? AppInit.conf.vast)?.url != null ? (i.vast ?? AppInit.conf.vast) : null,
                     i.segments
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });

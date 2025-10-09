@@ -51,6 +51,8 @@ namespace Shared.Models.Templates
 
             foreach (var i in data) 
             {
+                var vast = i.vast ?? AppInit.conf.vast;
+
                 string datajson = JsonSerializer.Serialize(new
                 {
                     i.method,
@@ -66,7 +68,7 @@ namespace Shared.Models.Templates
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{title ?? original_title} ({i.voiceOrQuality})",
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast,
+                    vast = vast?.url != null ? vast : null,
                     i.segments
 
                 }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
@@ -109,7 +111,7 @@ namespace Shared.Models.Templates
                     year = int.TryParse(i.year, out int _year) ? _year : 0,
                     title = $"{name} ({i.voiceOrQuality})",
                     i.hls_manifest_timeout,
-                    vast = i.vast ?? AppInit.conf.vast,
+                    vast = (i.vast ?? AppInit.conf.vast)?.url != null ? (i.vast ?? AppInit.conf.vast) : null,
                     i.segments
                 })
             }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
