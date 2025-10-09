@@ -11,6 +11,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -51,14 +52,117 @@ namespace Lampac.Controllers
             "thrown"
         };
 
+
+        #region List
         [HttpGet]
         [Route("/bookmark/list")]
-        public ActionResult List()
+        public async Task<ActionResult> List()
         {
+            #region migration storage to sql
+            if (AppInit.conf.syncBeta && !string.IsNullOrEmpty(requestInfo.user_uid))
+            {
+                string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(requestInfo.user_uid) : Regex.Replace(requestInfo.user_uid, "(\\@|_)", "");
+                string storageFile = $"database/storage/sync_favorite/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+                if (System.IO.File.Exists(storageFile))
+                {
+                    string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+                    var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
+
+                    try
+                    {
+                        await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+
+                        if (System.IO.File.Exists(storageFile))
+                        {
+                            var content = System.IO.File.ReadAllText(storageFile);
+                            if (!string.IsNullOrWhiteSpace(content))
+                            {
+                                var root = JsonConvert.DeserializeObject<JObject>(content);
+                                if (root != null)
+                                {
+                                    // older format may wrap data under "favorite"; support both
+                                    var favorite = root["favorite"] as JObject ?? root;
+
+                                    using (var sqlDb = new SyncUserContext())
+                                    {
+                                        var (entity, loaded) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                                        bool changed = false;
+
+                                        EnsureDefaultArrays(loaded);
+
+                                        // migrate card objects if present
+                                        if (favorite["card"] is JArray srcCards)
+                                        {
+                                            foreach (var c in srcCards.Children<JObject>().ToList())
+                                            {
+                                                var idToken = c?["id"];
+                                                if (idToken != null)
+                                                {
+                                                    if (long.TryParse(idToken.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var cid))
+                                                    {
+                                                        changed |= EnsureCard(loaded, c, cid);
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // migrate categories
+                                        foreach (var category in BookmarkCategories)
+                                        {
+                                            if (favorite[category] is JArray srcArray)
+                                            {
+                                                var dest = GetCategoryArray(loaded, category);
+                                                foreach (var t in srcArray.ToList())
+                                                {
+                                                    var idStr = t?.ToString();
+                                                    if (string.IsNullOrWhiteSpace(idStr))
+                                                        continue;
+
+                                                    if (long.TryParse(idStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var idVal))
+                                                    {
+                                                        bool exists = dest.Any(dt => dt.ToString() == idVal.ToString(CultureInfo.InvariantCulture));
+                                                        if (!exists)
+                                                        {
+                                                            dest.Insert(0, idVal);
+                                                            changed = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (changed)
+                                            Save(sqlDb, entity, loaded);
+                                    }
+
+                                    System.IO.File.Move(storageFile, $"{storageFile}.migration");
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                    finally
+                    {
+                        try
+                        {
+                            semaphore.Release();
+                        }
+                        finally
+                        {
+                            if (semaphore.CurrentCount == 1)
+                                _semaphoreLocks.TryRemove(semaphoreKey, out _);
+                        }
+                    }
+                }
+            }
+            #endregion
+
             var data = GetBookmarksForResponse(SyncUserDb.Read);
             return ContentTo(data.ToString(Formatting.None));
         }
+        #endregion
 
+        #region Add
         [HttpPost]
         [Route("/bookmark/add")]
         public async Task<ActionResult> Add(string connectionId)
@@ -66,7 +170,9 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
 
-            var payload = await ReadPayloadAsync();
+            var readBody = await ReadPayloadAsync();
+
+            var payload = readBody.payload;
             if (payload?.Card == null)
                 return JsonFailure();
 
@@ -94,7 +200,15 @@ namespace Lampac.Controllers
                         changed |= AddToCategory(data, category, cardId.Value);
 
                     if (changed)
+                    {
                         Save(sqlDb, entity, data);
+
+                        if (readBody.json != null)
+                        {
+                            string edata = JsonConvert.SerializeObject(new { type = "add", readBody.json });
+                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                        }
+                    }
                 }
 
                 return JsonSuccess();
@@ -110,11 +224,11 @@ namespace Lampac.Controllers
                     if (semaphore.CurrentCount == 1)
                         _semaphoreLocks.TryRemove(semaphoreKey, out _);
                 }
-
-                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", "add").ConfigureAwait(false);
             }
         }
+        #endregion
 
+        #region Added
         [HttpPost]
         [Route("/bookmark/added")]
         public async Task<ActionResult> Added(string connectionId)
@@ -122,7 +236,9 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
 
-            var payload = await ReadPayloadAsync();
+            var readBody = await ReadPayloadAsync();
+
+            var payload = readBody.payload;
             if (payload == null)
                 return JsonFailure();
 
@@ -151,7 +267,15 @@ namespace Lampac.Controllers
                         changed |= AddToCategory(data, category, cardId.Value);
 
                     if (changed)
+                    {
                         Save(sqlDb, entity, data);
+
+                        if (readBody.json != null)
+                        {
+                            string edata = JsonConvert.SerializeObject(new { type = "added", readBody.json });
+                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                        }
+                    }
                 }
 
                 return JsonSuccess();
@@ -167,11 +291,11 @@ namespace Lampac.Controllers
                     if (semaphore.CurrentCount == 1)
                         _semaphoreLocks.TryRemove(semaphoreKey, out _);
                 }
-
-                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", "added").ConfigureAwait(false);
             }
         }
+        #endregion
 
+        #region Remove
         [HttpPost]
         [Route("/bookmark/remove")]
         public async Task<ActionResult> Remove(string connectionId)
@@ -179,7 +303,9 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
 
-            var payload = await ReadPayloadAsync();
+            var readBody = await ReadPayloadAsync();
+
+            var payload = readBody.payload;
             if (payload == null)
                 return JsonFailure();
 
@@ -215,7 +341,15 @@ namespace Lampac.Controllers
                     }
 
                     if (changed)
+                    {
                         Save(sqlDb, entity, data);
+
+                        if (readBody.json != null)
+                        {
+                            string edata = JsonConvert.SerializeObject(new { type = "remove", readBody.json });
+                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                        }
+                    }
                 }
 
                 return JsonSuccess();
@@ -231,11 +365,12 @@ namespace Lampac.Controllers
                     if (semaphore.CurrentCount == 1)
                         _semaphoreLocks.TryRemove(semaphoreKey, out _);
                 }
-
-                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", "remove").ConfigureAwait(false);
             }
         }
+        #endregion
 
+
+        #region static
         JObject GetBookmarksForResponse(SyncUserContext sqlDb)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
@@ -345,7 +480,7 @@ namespace Lampac.Controllers
                 }
             }
 
-            cardArray.Add(newCard);
+            cardArray.Insert(0, newCard);
             return true;
         }
 
@@ -363,7 +498,7 @@ namespace Lampac.Controllers
                     return false;
             }
 
-            array.Add(id);
+            array.Insert(0, id);
             return true;
         }
 
@@ -474,37 +609,22 @@ namespace Lampac.Controllers
 
         JsonResult JsonFailure() => Json(new { success = false });
 
-        async Task<BookmarkEventPayload> ReadPayloadAsync()
+        async Task<(BookmarkEventPayload payload, string json)> ReadPayloadAsync()
         {
+            string body = null;
             var payload = new BookmarkEventPayload();
-
-            if (Request.HasFormContentType)
-            {
-                var form = await Request.ReadFormAsync();
-                payload.Method = form["method"];
-                payload.Where = form["where"];
-                payload.CardIdRaw = form["id"];
-                if (string.IsNullOrEmpty(payload.CardIdRaw))
-                    payload.CardIdRaw = form["card_id"];
-
-                var cardJson = form["card"];
-                if (!string.IsNullOrWhiteSpace(cardJson))
-                    payload.Card = ParseCardString(cardJson);
-
-                return payload;
-            }
 
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
             {
-                string body = await reader.ReadToEndAsync();
+                body = await reader.ReadToEndAsync();
                 if (string.IsNullOrWhiteSpace(body))
-                    return payload;
+                    return (payload, body);
 
                 try
                 {
                     var job = JsonConvert.DeserializeObject<JObject>(body);
                     if (job == null)
-                        return payload;
+                        return (payload, body);
 
                     payload.Method = job.Value<string>("method");
                     payload.Where = job.Value<string>("where") ?? job.Value<string>("list");
@@ -518,7 +638,7 @@ namespace Lampac.Controllers
                 }
             }
 
-            return payload;
+            return (payload, body);
         }
 
         static JObject ConvertToCard(JToken token)
@@ -549,7 +669,9 @@ namespace Lampac.Controllers
                 return null;
             }
         }
+        #endregion
 
+        #region BookmarkEventPayload
         sealed class BookmarkEventPayload
         {
             public string Method { get; set; }
@@ -580,5 +702,6 @@ namespace Lampac.Controllers
                 return null;
             }
         }
+        #endregion
     }
 }
