@@ -100,7 +100,7 @@ namespace Lampac.Controllers
                                                 {
                                                     if (long.TryParse(idToken.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var cid))
                                                     {
-                                                        changed |= EnsureCard(loaded, c, cid);
+                                                        changed |= EnsureCard(loaded, c, cid, insert: false);
                                                     }
                                                 }
                                             }
@@ -123,7 +123,7 @@ namespace Lampac.Controllers
                                                         bool exists = dest.Any(dt => dt.ToString() == idVal.ToString(CultureInfo.InvariantCulture));
                                                         if (!exists)
                                                         {
-                                                            dest.Insert(0, idVal);
+                                                            dest.Add(idVal);
                                                             changed = true;
                                                         }
                                                     }
@@ -456,7 +456,7 @@ namespace Lampac.Controllers
             return BookmarkCategories.Contains(normalized) ? normalized : null;
         }
 
-        static bool EnsureCard(JObject data, JObject card, long id)
+        static bool EnsureCard(JObject data, JObject card, long id, bool insert = true)
         {
             if (data == null || card == null)
                 return false;
@@ -480,7 +480,11 @@ namespace Lampac.Controllers
                 }
             }
 
-            cardArray.Insert(0, newCard);
+            if (insert)
+                cardArray.Insert(0, newCard);
+            else
+                cardArray.Add(newCard);
+
             return true;
         }
 
