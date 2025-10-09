@@ -240,10 +240,33 @@ namespace Online.Controllers
                     if (play)
                         return RedirectToPlay(streamquality.Firts().link);
 
+                    #region segments
+                    var segments = new SegmentTpl();
+
+                    var dfile = data["file"];
+                    string skipTime = dfile.Value<string>("skipTime");
+                    string removeTime = dfile.Value<string>("removeTime");
+
+                    if (skipTime != null && skipTime.Contains("-"))
+                    {
+                        var t = skipTime.Split('-');
+                        if (t.Length == 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
+                            segments.skip(start, end);
+                    }
+
+                    if (removeTime != null && removeTime.Contains("-"))
+                    {
+                        var t = removeTime.Split('-');
+                        if (t.Length == 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
+                            segments.ad(start, end);
+                    }
+                    #endregion
+
                     return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, (title ?? original_title),
                         streamquality: streamquality,
                         vast: init.vast,
                         subtitles: subtitles,
+                        segments: segments,
                         hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
                     ));
                     #endregion
@@ -434,7 +457,7 @@ namespace Online.Controllers
             if (!string.IsNullOrEmpty(token_movie))
                 memKey = $"alloha:view:{token_movie}";
 
-            JObject root;
+            JObject root = null;
 
             if (!hybridCache.TryGetValue(memKey, out (int category_id, JToken data) res))
             {
@@ -471,7 +494,12 @@ namespace Online.Controllers
                 }
                 else
                 {
-                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    if (!string.IsNullOrEmpty(imdb_id))
+                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    
+                    if ((root == null || !root.ContainsKey("data")) && kinopoisk_id > 0)
+                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+
                     if (root == null)
                         return (true, 0, null);
 
