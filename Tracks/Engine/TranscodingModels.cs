@@ -20,7 +20,7 @@ namespace Tracks.Engine
     {
         public bool transcodeToAac { get; set; } = true;
 
-        public int bitrateKbps { get; set; } = 190;
+        public int bitrateKbps { get; set; } = 192;
 
         public bool stereo { get; set; } = true;
     }
