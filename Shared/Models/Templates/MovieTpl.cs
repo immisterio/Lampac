@@ -10,7 +10,7 @@ namespace Shared.Models.Templates
     {
         string title, original_title;
 
-        public List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments)> data { get; set; }
+        public List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments, string subtitles_call)> data { get; set; }
 
         public MovieTpl(string title) : this(title, null, 15) { }
 
@@ -20,20 +20,20 @@ namespace Shared.Models.Templates
         {
             this.title = title;
             this.original_title = original_title;
-            data = new List<(string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, string, string, VastConf vast, List<HeadersModel>, int?, SegmentTpl?)> (capacity); 
+            data = new List<(string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, string, string, VastConf vast, List<HeadersModel>, int?, SegmentTpl?, string)> (capacity); 
         }
 
         public bool IsEmpty() => data.Count == 0;
 
-        public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null)
+        public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null, string subtitles_call = null)
         {
             if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
-                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments));
+                data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments, subtitles_call));
         }
 
-        public string ToHtml(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null)
+        public string ToHtml(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null, string subtitles_call = null)
         {
-            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments);
+            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments, subtitles_call);
             return ToHtml();
         }
 
@@ -59,8 +59,9 @@ namespace Shared.Models.Templates
                     url = i.link,
                     i.stream,
                     headers = i.headers != null ? i.headers.ToDictionary(k => k.name, v => v.val) : null,
-                    quality = i.streamquality?.ToObject(),
-                    subtitles = i.subtitles?.ToObject(),
+                    quality = i.streamquality?.ToObject(emptyToNull: true),
+                    subtitles = i.subtitles?.ToObject(emptyToNull: true),
+                    i.subtitles_call,
                     translate = i.voiceOrQuality,
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     i.voice_name,
@@ -103,8 +104,9 @@ namespace Shared.Models.Templates
                     url = i.link,
                     i.stream,
                     headers = i.headers != null ? i.headers.ToDictionary(k => k.name, v => v.val) : null,
-                    quality = i.streamquality?.ToObject(),
-                    subtitles = i.subtitles?.ToObject(),
+                    quality = i.streamquality?.ToObject(emptyToNull: true),
+                    subtitles = i.subtitles?.ToObject(emptyToNull: true),
+                    i.subtitles_call,
                     translate = i.voiceOrQuality,
                     maxquality = i.streamquality?.MaxQuality() ?? i.quality,
                     details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),

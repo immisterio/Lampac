@@ -487,7 +487,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "abb72fb9ace0a8716deca1fd4d2c887899d30197"
+            tree = "0abe6ceeed1ac9e0825555524a038d2681b3359d"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -946,6 +946,7 @@ namespace Shared
         /// </summary>
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "https://api.srvkp.com")
         {
+            // hls | hls4 | mp4
             filetype = "hls",
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),

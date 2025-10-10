@@ -20,10 +20,10 @@ namespace Shared.Models.Templates
 
         public string ToJson() => JsonSerializer.Serialize(ToObject());
 
-        public object ToObject()
+        public object ToObject(bool emptyToNull = false)
         {
             if (data.Count == 0)
-                return new List<string>();
+                return emptyToNull ? null : new List<string>();
 
             return data.Select(i => new
             {

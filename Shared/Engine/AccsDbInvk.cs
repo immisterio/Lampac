@@ -41,6 +41,9 @@ namespace Shared.Engine
             if (args.Length == 0)
                 return uri;
 
+            if (string.IsNullOrEmpty(uri))
+                return args.ToString();
+
             if (uri.Contains("?"))
                 return uri + args.ToString();
 

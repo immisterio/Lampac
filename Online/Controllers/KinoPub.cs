@@ -116,5 +116,59 @@ namespace Online.Controllers
 
             return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
         }
+
+
+        [HttpGet]
+        [Route("lite/kinopub/subtitles.json")]
+        async public ValueTask<ActionResult> Subtitles(int mid)
+        {
+            var init = await loadKit(AppInit.conf.KinoPub, (j, i, c) =>
+            {
+                i.tokens = c.tokens;
+                return i;
+            });
+
+            if (await IsBadInitialization(init, rch: true))
+                return badInitMsg;
+
+            var proxy = proxyManager.Get();
+
+            string token = init.token;
+            if (init.tokens != null && init.tokens.Length > 1)
+                token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
+
+            string uri = $"{init.corsHost()}/v1/items/media-links?mid={mid}&access_token={token}";
+
+            var cache = await InvokeCache<JObject>($"kinopub:media-links:{mid}:{token}", cacheTime(20, init: init), proxyManager, async res =>
+            {
+                return await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+            });
+
+            if (!cache.IsSuccess || cache.Value == null)
+                return ContentTo("[]");
+
+            var root = cache.Value;
+
+            var subs = root.Value<JArray>("subtitles");
+            var tpl = new SubtitleTpl(subs?.Count ?? 0);
+
+            if (subs != null)
+            {
+                foreach (var s in subs)
+                {
+                    try
+                    {
+                        string lang = s.Value<string>("lang");
+                        string url = s.Value<string>("url");
+
+                        if (!string.IsNullOrEmpty(url))
+                            tpl.Append(lang, HostStreamProxy(init, url, proxy: proxy));
+                    }
+                    catch { }
+                }
+            }
+
+            return ContentTo(tpl.ToJson());
+        }
     }
 }

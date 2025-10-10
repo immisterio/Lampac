@@ -52,11 +52,14 @@ namespace Shared.Models.Templates
 
         public string ToJson() => JsonSerializer.Serialize(ToObject());
 
-        public Dictionary<string, string> ToObject()
+        public Dictionary<string, string> ToObject(bool emptyToNull = false)
         {
             var result = new Dictionary<string, string>();
             foreach (var item in data)
                 result.TryAdd(item.quality, item.link);
+
+            if (emptyToNull && result.Count == 0)
+                return null;
 
             return result;
         }

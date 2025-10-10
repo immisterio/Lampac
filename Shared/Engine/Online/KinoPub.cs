@@ -168,9 +168,13 @@ namespace Shared.Engine.Online
                                     subtitles.Append(sub.lang, onstreamfile(sub.url, null));
                             }
                         }
+
+                        string subtitles_call = null;
+                        if (subtitles.IsEmpty())
+                            subtitles_call = host + $"lite/kinopub/subtitles.json?mid={root.item.videos[0].id}";
                         #endregion
 
-                        mtpl.Append(voice, streamquality.Firts().link, streamquality: streamquality, subtitles: subtitles, voice_name: a.codec, vast: vast);
+                        mtpl.Append(voice, streamquality.Firts().link, streamquality: streamquality, subtitles: subtitles, subtitles_call: subtitles_call, voice_name: a.codec, vast: vast);
                     }
                 }
                 else
@@ -226,10 +230,16 @@ namespace Shared.Engine.Online
                                         subtitles.Append(sub.lang, onstreamfile(sub.url, null));
                                 }
                             }
+
+                            string subtitles_call = null;
+                            if (subtitles.IsEmpty())
+                                subtitles_call = host + $"lite/kinopub/subtitles.json?mid={v.id}";
                             #endregion
 
                             var streamquality = new StreamQualityTpl(v.files.Select(f => (onstreamfile(f.url.http, f.file), f.quality)));
-                            mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.http, v.files[0].file), subtitles: subtitles, voice_name: voicename, streamquality: streamquality, vast: vast);
+                            var first = streamquality.Firts();
+
+                            mtpl.Append(first.quality, first.link, subtitles: subtitles, subtitles_call: subtitles_call, voice_name: voicename, streamquality: streamquality, vast: vast);
                         }
                     }
                 }
@@ -344,16 +354,13 @@ namespace Shared.Engine.Online
                                     break;
                             }
 
-                            var streams = new List<(string link, string quality)>(5);
+                            var streamquality = new StreamQualityTpl();
 
                             foreach (var f in episode.files)
                             {
                                 if (!string.IsNullOrEmpty(f.url.hls))
-                                    streams.Add((onstreamfile(f.url.hls.Replace("a1.m3u8", $"a{voice_index}.m3u8"), null), f.quality));
+                                    streamquality.Append(onstreamfile(f.url.hls.Replace("a1.m3u8", $"a{voice_index}.m3u8"), null), f.quality);
                             }
-
-                            if (streams.Count == 0)
-                                continue;
 
                             #region subtitle
                             var subtitles = new SubtitleTpl(episode.subtitles?.Length ?? 0);
@@ -366,9 +373,13 @@ namespace Shared.Engine.Online
                                         subtitles.Append(sub.lang, onstreamfile(sub.url, null));
                                 }
                             }
+
+                            string subtitles_call = null;
+                            if (subtitles.IsEmpty())
+                                subtitles_call = host + $"lite/kinopub/subtitles.json?mid={episode.id}";
                             #endregion
 
-                            etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), streams[0].link, streamquality: new StreamQualityTpl(streams), subtitles: subtitles, vast: vast);
+                            etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), streamquality.Firts().link, streamquality: streamquality, subtitles: subtitles, subtitles_call: subtitles_call, vast: vast);
                         }
                         #endregion
 
@@ -424,20 +435,23 @@ namespace Shared.Engine.Online
                                             subtitles.Append(sub.lang, onstreamfile(sub.url, null));
                                     }
                                 }
+
+                                string subtitles_call = null;
+                                if (subtitles.IsEmpty())
+                                    subtitles_call = host + $"lite/kinopub/subtitles.json?mid={episode.id}";
                                 #endregion
 
                                 #region streams
-                                var streams = new List<(string link, string quality)>(episode.files.Length);
+                                var streamquality = new StreamQualityTpl();
 
                                 foreach (var f in episode.files)
                                 {
                                     if (f.url.http != null)
-                                        streams.Add((onstreamfile(f.url.http, f.file), f.quality));
+                                        streamquality.Append(onstreamfile(f.url.http, f.file), f.quality);
                                 }
                                 #endregion
 
-                                string mp4 = onstreamfile(episode.files[0].url.http, episode.files[0].file);
-                                etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), mp4, subtitles: subtitles, voice_name: voicename, streamquality: new StreamQualityTpl(streams), vast: vast);
+                                etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), streamquality.Firts().link, subtitles: subtitles, subtitles_call: subtitles_call, voice_name: voicename, streamquality: streamquality, vast: vast);
                             }
                         }
 
