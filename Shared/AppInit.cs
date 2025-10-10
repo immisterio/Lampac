@@ -423,6 +423,8 @@ namespace Shared
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
+        public TracksTranscodingConf trackstranscoding { get; set; } = new TracksTranscodingConf();
+
         public CubConf cub { get; set; } = new CubConf()
         {
             enable = false, viewru = true,
