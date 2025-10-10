@@ -470,6 +470,19 @@ namespace Tracks.Engine
             return false;
         }
 
+        public async Task StopAllAsync()
+        {
+            var jobs = _jobs.Values.ToArray();
+            foreach (var job in jobs)
+            {
+                try
+                {
+                    await StopJobAsync(job);
+                }
+                catch { }
+            }
+        }
+
         private Process CreateProcess(TranscodingStartContext context)
         {
             var process = new Process
@@ -481,7 +494,8 @@ namespace Tracks.Engine
                     RedirectStandardError = true,
                     RedirectStandardInput = true,
                     RedirectStandardOutput = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    WorkingDirectory = context.OutputDirectory
                 }
             };
 
