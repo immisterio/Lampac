@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
 using Shared.Models.Events;
+using Shared.Models.Online.Lumex;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -732,13 +734,18 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(AppInit.conf.playerInner))
                 return;
 
-            // убираем мусор из названия файла
-            uri = Regex.Replace(uri, "/stream/[^\n\r]+\\.([a-z0-9]+)$", "/stream/$1", RegexOptions.IgnoreCase);
+            // убираем мусор в ссылке
+            uri = Regex.Replace(uri, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&]+", "", RegexOptions.IgnoreCase);
+            uri = uri + HttpContext.Request.QueryString.Value;
+
+            if (!Uri.TryCreate(uri, UriKind.Absolute, out var stream) || 
+                (stream.Scheme != Uri.UriSchemeHttp && stream.Scheme != Uri.UriSchemeHttps))
+                return;
 
             Process.Start(new ProcessStartInfo()
             {
                 FileName = AppInit.conf.playerInner,
-                Arguments = uri + HttpContext.Request.QueryString.Value
+                Arguments = stream.AbsoluteUri
             });
         }
         #endregion
