@@ -38,7 +38,7 @@ namespace Tracks.Controllers
             return Ok(new
             {
                 job.StreamId,
-                playlistUrl = $"/transcoding/{job.StreamId}/index.m3u8"
+                playlistUrl = $"transcoding/{job.StreamId}/index.m3u8"
             });
         }
 
@@ -57,7 +57,7 @@ namespace Tracks.Controllers
             if (!System.IO.File.Exists(path))
                 return NotFound();
 
-            return PhysicalFile(path, "application/vnd.apple.mpegurl");
+            return File(System.IO.File.OpenRead(path), "application/vnd.apple.mpegurl");
         }
 
         [HttpGet("{streamId}/{file}")]
@@ -75,11 +75,31 @@ namespace Tracks.Controllers
             if (resolved == null)
                 return NotFound();
 
-            var provider = new FileExtensionContentTypeProvider();
+            var provider = new FileExtensionContentTypeProvider()
+            {
+                Mappings =
+                {
+                    [".m4s"]  = "video/mp4",
+                    [".ts"]   = "video/mp2t",
+                    [".mp4"]  = "video/mp4",
+                    [".mkv"]  = "video/x-matroska",
+                    [".m3u"]  = "application/x-mpegURL",
+                    [".m3u8"] = "application/vnd.apple.mpegurl",
+                    [".webm"] = "video/webm",
+                    [".mov"]  = "video/quicktime",
+                    [".avi"]  = "video/x-msvideo",
+                    [".wmv"]  = "video/x-ms-wmv",
+                    [".flv"]  = "video/x-flv",
+                    [".ogv"]  = "video/ogg",
+                    [".m2ts"] = "video/MP2T",
+                    [".vob"]  = "video/x-ms-vob"
+                }
+            };
+
             if (!provider.TryGetContentType(resolved, out var contentType))
                 contentType = "application/octet-stream";
 
-            return PhysicalFile(resolved, contentType, enableRangeProcessing: true);
+            return File(System.IO.File.OpenRead(resolved), contentType, enableRangeProcessing: true);
         }
 
         [HttpPost("{streamId}/heartbeat")]
