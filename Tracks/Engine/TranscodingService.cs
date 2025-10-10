@@ -1,16 +1,16 @@
 using Shared;
 using Shared.Models.AppConf;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System;
 
 namespace Tracks.Engine
 {
@@ -25,10 +25,6 @@ namespace Tracks.Engine
         private TracksTranscodingConf _config = new();
         private byte[] _hmacKey = RandomNumberGenerator.GetBytes(32);
         private string _ffmpegPath = AppInit.Win32NT ? "data/ffmpeg.exe" : "ffmpeg";
-
-        private TranscodingService()
-        {
-        }
 
         public static TranscodingService Instance => _lazy.Value;
 
@@ -50,7 +46,25 @@ namespace Tracks.Engine
                 if (string.IsNullOrWhiteSpace(config.tempRoot))
                     config.tempRoot = Path.Combine(Path.GetTempPath(), "tracks-hls");
 
-                Directory.CreateDirectory(config.tempRoot);
+                try
+                {
+                    if (!Directory.Exists(config.tempRoot))
+                    {
+                        Directory.CreateDirectory(config.tempRoot);
+                    }
+                    else
+                    {
+                        foreach (var dir in Directory.GetDirectories(config.tempRoot))
+                        {
+                            try
+                            {
+                                Directory.Delete(dir, true);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
             }
         }
 
@@ -97,10 +111,10 @@ namespace Tracks.Engine
 
             var context = new TranscodingStartContext(
                 source,
-                SanitizeHeader(GetHeader(request.headers, "userAgent"), "TracksHlsProxy/1.0"),
+                SanitizeHeader(GetHeader(request.headers, "userAgent"), "HlsProxy/1.0"),
                 SanitizeHeader(GetHeader(request.headers, "referer")),
                 MergeHlsOptions(config, request.hls),
-                MergeAudioOptions(request.audio),
+                MergeAudioOptions(config, request.audio),
                 request.subtitles,
                 outputDir,
                 Path.Combine(outputDir, "index.m3u8")
@@ -201,7 +215,6 @@ namespace Tracks.Engine
                     }
                     else
                     {
-                        var gracefulMs = Math.Max(100, GetConfig().gracefulStopTimeoutMs);
                         try
                         {
                             await job.Process.StandardInput.WriteLineAsync("q");
@@ -210,7 +223,7 @@ namespace Tracks.Engine
                         catch { }
 
                         var waitTask = job.Process.WaitForExitAsync();
-                        var timeout = Task.Delay(TimeSpan.FromMilliseconds(gracefulMs));
+                        var timeout = Task.Delay(TimeSpan.FromMilliseconds(1500));
                         var completed = await Task.WhenAny(waitTask, timeout);
                         if (completed != waitTask)
                         {
@@ -283,25 +296,27 @@ namespace Tracks.Engine
             return null;
         }
 
-        private static TranscodingHlsOptions MergeHlsOptions(TracksTranscodingConf config, TranscodingHlsOptions? request)
+        private static TranscodingHlsOptions MergeHlsOptions(TracksTranscodingConf config, TranscodingHlsOptions request)
         {
-            var defaults = config.defaults ?? new TracksTranscodingHls();
+            var opt = request ?? config.hlsOptions;
 
             return new TranscodingHlsOptions
             {
-                segDur = request?.segDur > 0 ? request.segDur : Math.Max(1, defaults.segDur),
-                winSize = request?.winSize > 0 ? request.winSize : Math.Max(2, defaults.winSize),
-                fmp4 = request?.fmp4 ?? defaults.fmp4
+                segDur = opt?.segDur > 1 ? opt.segDur : 1,
+                winSize = opt?.winSize > 5 ? opt.winSize : 5,
+                fmp4 = opt?.fmp4 ?? true
             };
         }
 
-        private static TranscodingAudioOptions MergeAudioOptions(TranscodingAudioOptions? request)
+        private static TranscodingAudioOptions MergeAudioOptions(TracksTranscodingConf config, TranscodingAudioOptions request)
         {
+            var opt = request ?? config.audioOptions;
+
             return new TranscodingAudioOptions
             {
-                bitrateKbps = request?.bitrateKbps is > 0 and <= 512 ? request.bitrateKbps : 160,
-                stereo = request?.stereo ?? true,
-                transcodeToAac = request?.transcodeToAac ?? true
+                bitrateKbps = opt?.bitrateKbps is > 0 and <= 512 ? opt.bitrateKbps : 160,
+                stereo = opt?.stereo ?? true,
+                transcodeToAac = opt?.transcodeToAac ?? true
             };
         }
 
@@ -371,6 +386,9 @@ namespace Tracks.Engine
 
             args.Add("-re");
 
+            args.Add("-threads");
+            args.Add("0");
+
             args.Add("-fflags");
             args.Add("+genpts");
 
@@ -414,8 +432,17 @@ namespace Tracks.Engine
                 args.Add("copy");
             }
 
+            args.Add("-avoid_negative_ts");
+            args.Add("disabled");
+
+            args.Add("-max_muxing_queue_size");
+            args.Add("2048");
+
             args.Add("-f");
             args.Add("hls");
+
+            args.Add("-max_delay");
+            args.Add("5000000");
 
             args.Add("-hls_segment_type");
 
