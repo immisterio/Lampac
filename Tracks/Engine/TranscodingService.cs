@@ -189,44 +189,51 @@ namespace Tracks.Engine
             return File.Exists(candidate) ? candidate : null;
         }
 
-        private async Task StopJobAsync(TranscodingJob job)
+        private async Task StopJobAsync(TranscodingJob job, bool forced = false)
         {
             try
             {
                 if (!job.Process.HasExited)
                 {
-                    var gracefulMs = Math.Max(100, GetConfig().gracefulStopTimeoutMs);
-                    try
+                    if (forced)
                     {
-                        await job.Process.StandardInput.WriteLineAsync("q");
-                        await job.Process.StandardInput.FlushAsync();
-                    }
-                    catch { }
-
-                    var waitTask = job.Process.WaitForExitAsync();
-                    var timeout = Task.Delay(TimeSpan.FromMilliseconds(gracefulMs));
-                    var completed = await Task.WhenAny(waitTask, timeout);
-                    if (completed != waitTask)
-                    {
-                        try
-                        {
-                            job.Process.Kill(true);
-                        }
-                        catch { }
-
-                        try
-                        {
-                            await job.Process.WaitForExitAsync();
-                        }
-                        catch { }
+                        job.Process.Kill(true);
                     }
                     else
                     {
+                        var gracefulMs = Math.Max(100, GetConfig().gracefulStopTimeoutMs);
                         try
                         {
-                            await waitTask;
+                            await job.Process.StandardInput.WriteLineAsync("q");
+                            await job.Process.StandardInput.FlushAsync();
                         }
                         catch { }
+
+                        var waitTask = job.Process.WaitForExitAsync();
+                        var timeout = Task.Delay(TimeSpan.FromMilliseconds(gracefulMs));
+                        var completed = await Task.WhenAny(waitTask, timeout);
+                        if (completed != waitTask)
+                        {
+                            try
+                            {
+                                job.Process.Kill(true);
+                            }
+                            catch { }
+
+                            try
+                            {
+                                await job.Process.WaitForExitAsync();
+                            }
+                            catch { }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                await waitTask;
+                            }
+                            catch { }
+                        }
                     }
                 }
             }
@@ -329,7 +336,7 @@ namespace Tracks.Engine
             {
                 try
                 {
-                    _ = StopJobAsync(job).ConfigureAwait(false);
+                    _ = StopJobAsync(job, forced: true).ConfigureAwait(false);
                 }
                 catch { }
             }

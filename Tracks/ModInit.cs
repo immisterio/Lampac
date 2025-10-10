@@ -14,9 +14,6 @@ namespace Tracks
     {
         public static bool IsInitialization { get; private set; }
 
-        private static int _shutdownRegistered;
-        private static int _shutdownTriggered;
-
         public static void loaded(InitspaceModel initspace)
         {
             RegisterShutdown(initspace);
@@ -29,11 +26,8 @@ namespace Tracks
             });
         }
 
-        private static void RegisterShutdown(InitspaceModel initspace)
+        static void RegisterShutdown(InitspaceModel initspace)
         {
-            if (Interlocked.Exchange(ref _shutdownRegistered, 1) == 1)
-                return;
-
             if (initspace?.app?.ApplicationServices != null)
             {
                 var lifetime = initspace.app.ApplicationServices.GetService<IHostApplicationLifetime>();
@@ -43,11 +37,8 @@ namespace Tracks
             AppDomain.CurrentDomain.ProcessExit += (_, _) => StopTranscoding();
         }
 
-        private static void StopTranscoding()
+        static void StopTranscoding()
         {
-            if (Interlocked.Exchange(ref _shutdownTriggered, 1) == 1)
-                return;
-
             try
             {
                 TranscodingService.Instance.StopAll();
