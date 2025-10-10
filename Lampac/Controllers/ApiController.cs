@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
+using Shared.Models.CSharpGlobals;
 using Shared.Models.Events;
-using Shared.Models.Online.Lumex;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,6 +16,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
 
@@ -753,16 +754,33 @@ namespace Lampac.Controllers
         #region CMD
         [HttpGet]
         [Route("cmd/{key}/{*comand}")]
-        public void PlayerInner(string key, string comand)
+        async public Task CMD(string key, string comand)
         {
             if (!AppInit.conf.cmd.TryGetValue(key, out var cmd))
                 return;
 
-            Process.Start(new ProcessStartInfo()
+            if (!string.IsNullOrEmpty(cmd.eval))
             {
-                FileName = cmd.path,
-                Arguments = cmd.arguments.Replace("{value}", comand + HttpContext.Request.QueryString.Value)
-            });
+                var options = ScriptOptions.Default
+                    .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                    .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks")
+                    .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                    .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine").AddImports("Shared.Models")
+                    .AddReferences(typeof(IO.File).Assembly).AddImports("System.IO")
+                    .AddReferences(typeof(Process).Assembly).AddImports("System.Diagnostics");
+
+                var model = new CmdEvalModel(key, comand, requestInfo, HttpContext.Request, hybridCache, memoryCache);
+
+                await CSharpEval.ExecuteAsync(cmd.eval, model, options);
+            }
+            else
+            {
+                Process.Start(new ProcessStartInfo()
+                {
+                    FileName = cmd.path,
+                    Arguments = cmd.arguments.Replace("{value}", comand + HttpContext.Request.QueryString.Value)
+                });
+            }
         }
         #endregion
     }
