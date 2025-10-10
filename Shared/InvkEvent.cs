@@ -211,10 +211,12 @@ namespace Shared
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models")
-                .AddReferences(typeof(Uri).Assembly).AddImports("System")
+                .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks")
+                .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine")
                 .AddReferences(typeof(HttpRequestMessage).Assembly).AddImports("System.Net.Http")
-                .AddImports("System.Collections.Generic");
+                .AddReferences(typeof(System.Net.Cookie).Assembly).AddImports("System.Net")
+                .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
             Invoke(code, model, option);
         }
@@ -295,7 +297,9 @@ namespace Shared
                 .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
                 .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks")
                 .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine")
+                .AddReferences(typeof(HttpRequestMessage).Assembly).AddImports("System.Net.Http")
+                .AddReferences(typeof(System.Net.Cookie).Assembly).AddImports("System.Net")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
             return InvokeAsync<bool>(first ? conf?.Middleware?.first : conf?.Middleware?.end, model, option);
@@ -374,7 +378,7 @@ namespace Shared
             if (modelType == typeof(EventHttpResponse))
             {
                 option.AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
-                      .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine")
+                      .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine")
                       .AddReferences(typeof(File).Assembly).AddImports("System.IO");
             }
 
