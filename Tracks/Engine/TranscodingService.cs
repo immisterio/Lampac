@@ -6,7 +6,6 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Threading.Tasks;
@@ -75,7 +74,7 @@ namespace Tracks.Engine
             }
         }
 
-        public async Task<(TranscodingJob job, string error)> StartAsync(TranscodingStartRequest request)
+        public (TranscodingJob job, string error) Start(TranscodingStartRequest request)
         {
             var config = GetConfig();
             if (!config.enable)
@@ -90,47 +89,22 @@ namespace Tracks.Engine
             if (!TryValidateSource(request.src, config, out var source, out var error))
                 return (null!, error);
 
-            var ua = SanitizeHeader(GetHeader(request.headers, "userAgent"), "TracksHlsProxy/1.0");
-            var referer = SanitizeHeader(GetHeader(request.headers, "referer"));
-
-            var hlsOptions = MergeHlsOptions(config, request.hls);
-            var audioOptions = MergeAudioOptions(request.audio);
-
-            var probe = await ProbeAsync(source, ua, referer);
-            var hasAudio = probe.HasAudio;
-            var mode = DetermineMode(probe.VideoCodec);
-            var shouldTranscodeAudio = ShouldTranscodeAudio(audioOptions, probe);
-
-            if (!hasAudio)
-                shouldTranscodeAudio = false;
-
             var id = Guid.NewGuid().ToString("N");
             var streamId = BuildToken(id);
 
             var outputDir = Path.Combine(config.tempRoot!, id);
             Directory.CreateDirectory(outputDir);
 
-            var segmentTemplate = Path.Combine(outputDir, hlsOptions.fmp4 ? "seg_%05d.m4s" : "seg_%05d.ts");
-            var playlistPath = Path.Combine(outputDir, "index.m3u8");
-
             var context = new TranscodingStartContext(
                 source,
-                ua,
-                referer,
-                hlsOptions.fmp4,
-                hlsOptions.segDur,
-                hlsOptions.winSize,
-                new TranscodingAudioOptions
-                {
-                    bitrateKbps = audioOptions.bitrateKbps,
-                    stereo = audioOptions.stereo,
-                    transcodeToAac = shouldTranscodeAudio
-                },
-                hasAudio,
-                mode,
-                segmentTemplate,
-                playlistPath,
-                outputDir);
+                SanitizeHeader(GetHeader(request.headers, "userAgent"), "TracksHlsProxy/1.0"),
+                SanitizeHeader(GetHeader(request.headers, "referer")),
+                MergeHlsOptions(config, request.hls),
+                MergeAudioOptions(request.audio),
+                request.subtitles,
+                outputDir,
+                Path.Combine(outputDir, "index.m3u8")
+            );
 
             var process = CreateProcess(context);
 
@@ -348,136 +322,14 @@ namespace Tracks.Engine
             return true;
         }
 
-        private async Task<(string VideoCodec, string AudioCodec, string AudioProfile, int AudioChannels, bool HasAudio)> ProbeAsync(Uri source, string userAgent, string? referer)
-        {
-            try
-            {
-                using var process = new Process();
-                process.StartInfo.FileName = AppInit.Win32NT ? "data/ffprobe.exe" : "ffprobe";
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                process.StartInfo.StandardErrorEncoding = Encoding.UTF8;
-
-                process.StartInfo.ArgumentList.Add("-v");
-                process.StartInfo.ArgumentList.Add("quiet");
-                process.StartInfo.ArgumentList.Add("-print_format");
-                process.StartInfo.ArgumentList.Add("json");
-                process.StartInfo.ArgumentList.Add("-show_streams");
-                process.StartInfo.ArgumentList.Add("-select_streams");
-                process.StartInfo.ArgumentList.Add("v:0,a:0");
-                process.StartInfo.ArgumentList.Add("-user_agent");
-                process.StartInfo.ArgumentList.Add(userAgent);
-                process.StartInfo.ArgumentList.Add("-rw_timeout");
-                process.StartInfo.ArgumentList.Add("20000000");
-                if (!string.IsNullOrWhiteSpace(referer))
-                {
-                    process.StartInfo.ArgumentList.Add("-headers");
-                    process.StartInfo.ArgumentList.Add($"Referer: {referer}\\r\\n");
-                }
-                process.StartInfo.ArgumentList.Add(source.AbsoluteUri);
-
-                var sb = new StringBuilder();
-                process.OutputDataReceived += (_, e) =>
-                {
-                    if (e.Data != null)
-                        sb.AppendLine(e.Data);
-                };
-
-                process.Start();
-                process.BeginOutputReadLine();
-
-                await process.WaitForExitAsync();
-
-                if (sb.Length == 0)
-                    return (string.Empty, string.Empty, string.Empty, 0, false);
-
-                using var doc = JsonDocument.Parse(sb.ToString());
-                if (!doc.RootElement.TryGetProperty("streams", out var streams))
-                    return (string.Empty, string.Empty, string.Empty, 0, false);
-
-                string videoCodec = string.Empty;
-                string audioCodec = string.Empty;
-                string audioProfile = string.Empty;
-                int audioChannels = 0;
-
-                foreach (var element in streams.EnumerateArray())
-                {
-                    if (!element.TryGetProperty("codec_type", out var typeProp))
-                        continue;
-
-                    var type = typeProp.GetString();
-                    if (type == "video" && string.IsNullOrEmpty(videoCodec))
-                    {
-                        if (element.TryGetProperty("codec_name", out var codecName))
-                            videoCodec = codecName.GetString() ?? string.Empty;
-                    }
-                    else if (type == "audio" && string.IsNullOrEmpty(audioCodec))
-                    {
-                        if (element.TryGetProperty("codec_name", out var codecName))
-                            audioCodec = codecName.GetString() ?? string.Empty;
-
-                        if (element.TryGetProperty("profile", out var profileProp))
-                            audioProfile = profileProp.GetString() ?? string.Empty;
-
-                        if (element.TryGetProperty("channels", out var channelsProp))
-                            audioChannels = channelsProp.GetInt32();
-                    }
-                }
-
-                return (videoCodec, audioCodec, audioProfile, audioChannels, !string.IsNullOrEmpty(audioCodec));
-            }
-            catch
-            {
-                return (string.Empty, string.Empty, string.Empty, 0, false);
-            }
-        }
-
-        private static TranscodeMode DetermineMode(string videoCodec)
-        {
-            if (string.Equals(videoCodec, "h264", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(videoCodec, "hevc", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(videoCodec, "h265", StringComparison.OrdinalIgnoreCase))
-            {
-                return TranscodeMode.DirectRemux;
-            }
-
-            return TranscodeMode.FullTranscode;
-        }
-
-        private static bool ShouldTranscodeAudio(TranscodingAudioOptions request, (string VideoCodec, string AudioCodec, string AudioProfile, int AudioChannels, bool HasAudio) probe)
-        {
-            if (!probe.HasAudio)
-                return false;
-
-            if (!request.transcodeToAac)
-            {
-                return !(string.Equals(probe.AudioCodec, "aac", StringComparison.OrdinalIgnoreCase) &&
-                         (string.Equals(probe.AudioProfile, "LC", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(probe.AudioProfile)) &&
-                         (!request.stereo || probe.AudioChannels <= 2));
-            }
-
-            if (!string.Equals(probe.AudioCodec, "aac", StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            if (!string.Equals(probe.AudioProfile, "LC", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(probe.AudioProfile))
-                return true;
-
-            if (request.stereo && probe.AudioChannels > 2)
-                return true;
-
-            return false;
-        }
-
-        public async Task StopAllAsync()
+        public void StopAll()
         {
             var jobs = _jobs.Values.ToArray();
             foreach (var job in jobs)
             {
                 try
                 {
-                    await StopJobAsync(job);
+                    _ = StopJobAsync(job).ConfigureAwait(false);
                 }
                 catch { }
             }
@@ -494,16 +346,14 @@ namespace Tracks.Engine
                     RedirectStandardError = true,
                     RedirectStandardInput = true,
                     RedirectStandardOutput = false,
-                    CreateNoWindow = true,
-                    WorkingDirectory = context.OutputDirectory
+                    CreateNoWindow = true
                 }
             };
 
             var args = process.StartInfo.ArgumentList;
 
             args.Add("-hide_banner");
-            args.Add("-nostdin");
-            args.Add("-y");
+
             args.Add("-user_agent");
             args.Add(context.UserAgent);
             if (!string.IsNullOrWhiteSpace(context.Referer))
@@ -511,79 +361,87 @@ namespace Tracks.Engine
                 args.Add("-headers");
                 args.Add($"Referer: {context.Referer}\\r\\n");
             }
-            args.Add("-rw_timeout");
-            args.Add("20000000");
+
+            args.Add("-re");
+
             args.Add("-fflags");
             args.Add("+genpts");
+
             args.Add("-i");
             args.Add(context.Source.AbsoluteUri);
+
             args.Add("-map");
             args.Add("0:v:0");
-            if (context.HasAudioStream)
-            {
-                args.Add("-map");
-                args.Add("0:a:0");
-            }
-            args.Add("-sn");
+
+            args.Add("-map");
+            args.Add("0:a:0");
+
+            if (context.subtitles == false)
+                args.Add("-sn");
+
             args.Add("-dn");
 
-            if (context.Mode == TranscodeMode.DirectRemux)
+            args.Add("-map_metadata");
+            args.Add("-1");
+
+            args.Add("-map_chapters");
+            args.Add("-1");
+
+            args.Add("-c:v");
+            args.Add("copy");
+
+            if (context.Audio.transcodeToAac)
             {
-                args.Add("-c:v");
-                args.Add("copy");
+                args.Add("-c:a");
+                args.Add("aac");
+                args.Add("-ac");
+                args.Add(context.Audio.stereo ? "2" : "1");
+                args.Add("-b:a");
+                args.Add($"{Math.Clamp(context.Audio.bitrateKbps, 32, 512)}k");
+                args.Add("-profile:a");
+                args.Add("aac_low");
             }
             else
             {
-                args.Add("-c:v");
-                args.Add("libx264");
-                args.Add("-preset");
-                args.Add("veryfast");
-                args.Add("-vf");
-                args.Add("scale=-2:1080:flags=bicubic");
-                args.Add("-b:v");
-                args.Add("5000k");
-                args.Add("-maxrate");
-                args.Add("6000k");
-                args.Add("-bufsize");
-                args.Add("10000k");
-                args.Add("-pix_fmt");
-                args.Add("yuv420p");
-            }
-
-            if (context.HasAudioStream)
-            {
-                if (context.Audio.transcodeToAac)
-                {
-                    args.Add("-c:a");
-                    args.Add("aac");
-                    args.Add("-ac");
-                    args.Add(context.Audio.stereo ? "2" : "1");
-                    args.Add("-b:a");
-                    args.Add($"{Math.Clamp(context.Audio.bitrateKbps, 32, 512)}k");
-                    args.Add("-profile:a");
-                    args.Add("aac_low");
-                }
-                else
-                {
-                    args.Add("-c:a");
-                    args.Add("copy");
-                }
+                args.Add("-c:a");
+                args.Add("copy");
             }
 
             args.Add("-f");
             args.Add("hls");
+
             args.Add("-hls_segment_type");
-            args.Add(context.UseFmp4 ? "fmp4" : "mpegts");
+
+            if (context.HlsOptions.fmp4)
+            {
+                args.Add("fmp4");
+            }
+            else
+            {
+                args.Add("mpegts");
+                args.Add("-bsf:v");
+                args.Add("h264_mp4toannexb");
+            }
+
             args.Add("-hls_time");
-            args.Add(context.SegmentDuration.ToString(CultureInfo.InvariantCulture));
+            args.Add(context.HlsOptions.segDur.ToString(CultureInfo.InvariantCulture));
+
             args.Add("-hls_flags");
             args.Add("append_list+omit_endlist");
+
             args.Add("-hls_list_size");
-            args.Add(context.PlaylistSize.ToString(CultureInfo.InvariantCulture));
+            args.Add(context.HlsOptions.winSize.ToString(CultureInfo.InvariantCulture));
+
             args.Add("-master_pl_name");
             args.Add("index.m3u8");
+
+            args.Add("-hls_fmp4_init_filename");
+            args.Add(Path.Combine(context.OutputDirectory, "init.mp4"));
+
             args.Add("-hls_segment_filename");
-            args.Add(context.SegmentTemplate);
+            args.Add(Path.Combine(context.OutputDirectory, context.HlsOptions.fmp4 ? "seg_%05d.m4s" : "seg_%05d.ts"));
+
+            args.Add("-y");
             args.Add(context.PlaylistPath);
 
             return process;
@@ -629,7 +487,7 @@ namespace Tracks.Engine
         private async Task SegmentJanitorAsync(TranscodingJob job, TracksTranscodingConf config)
         {
             var sweep = TimeSpan.FromSeconds(Math.Max(1, config.janitorSweepSec));
-            var extension = job.Context.UseFmp4 ? ".m4s" : ".ts";
+            var extension = job.Context.HlsOptions.fmp4 ? ".m4s" : ".ts";
             try
             {
                 while (!job.CancellationToken.IsCancellationRequested && !job.Process.HasExited)
@@ -643,7 +501,7 @@ namespace Tracks.Engine
 
                         var files = Directory.GetFiles(job.OutputDirectory, $"seg_*{extension}");
                         Array.Sort(files, StringComparer.Ordinal);
-                        var toRemove = files.Length - job.Context.PlaylistSize;
+                        var toRemove = files.Length - job.Context.HlsOptions.winSize;
                         if (toRemove > 0)
                         {
                             for (var i = 0; i < toRemove; i++)

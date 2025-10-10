@@ -356,6 +356,9 @@ namespace Lampac
                         if (mod.dll == "SISI.dll")
                             mod.initspace = "SISI.ModInit";
 
+                        if (mod.dll == "Tracks.dll")
+                            mod.version = 2;
+
                         if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
                         {
                             if (mod.version >= 2)

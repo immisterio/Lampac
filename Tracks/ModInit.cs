@@ -17,7 +17,7 @@ namespace Tracks
         private static int _shutdownRegistered;
         private static int _shutdownTriggered;
 
-        public static void loaded(InitspaceModel initspace = null)
+        public static void loaded(InitspaceModel initspace)
         {
             RegisterShutdown(initspace);
 
@@ -50,7 +50,7 @@ namespace Tracks
 
             try
             {
-                TranscodingService.Instance.StopAllAsync().GetAwaiter().GetResult();
+                TranscodingService.Instance.StopAll();
             }
             catch { }
         }

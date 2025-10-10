@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Shared;
 using System;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Tracks.Engine;
 
@@ -15,7 +16,7 @@ namespace Tracks.Controllers
         private readonly TranscodingService _service = TranscodingService.Instance;
 
         [HttpPost("start")]
-        public async Task<IActionResult> StartAsync([FromBody] TranscodingStartRequest request)
+        public IActionResult Start([FromBody] TranscodingStartRequest request)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Initialization false" });
@@ -23,7 +24,7 @@ namespace Tracks.Controllers
             if (request == null)
                 return BadRequest(new { error = "Request body is required" });
 
-            var (job, error) = await _service.StartAsync(request);
+            var (job, error) = _service.Start(request);
             if (job == null)
             {
                 if (string.Equals(error, "Maximum concurrent jobs reached", StringComparison.OrdinalIgnoreCase))
@@ -38,7 +39,7 @@ namespace Tracks.Controllers
             return Ok(new
             {
                 job.StreamId,
-                playlistUrl = $"transcoding/{job.StreamId}/index.m3u8"
+                playlistUrl = $"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/index.m3u8"
             });
         }
 
@@ -57,7 +58,10 @@ namespace Tracks.Controllers
             if (!System.IO.File.Exists(path))
                 return NotFound();
 
-            return File(System.IO.File.OpenRead(path), "application/vnd.apple.mpegurl");
+            string m3u8 = System.IO.File.ReadAllText(path);
+            m3u8 = Regex.Replace(m3u8, "#EXT-X-MAP:URI=[^\n\r]+", "#EXT-X-MAP:URI=\"init.mp4\"");
+
+            return Content(m3u8, "application/vnd.apple.mpegurl");
         }
 
         [HttpGet("{streamId}/{file}")]
@@ -82,17 +86,9 @@ namespace Tracks.Controllers
                     [".m4s"]  = "video/mp4",
                     [".ts"]   = "video/mp2t",
                     [".mp4"]  = "video/mp4",
-                    [".mkv"]  = "video/x-matroska",
                     [".m3u"]  = "application/x-mpegURL",
                     [".m3u8"] = "application/vnd.apple.mpegurl",
-                    [".webm"] = "video/webm",
-                    [".mov"]  = "video/quicktime",
-                    [".avi"]  = "video/x-msvideo",
-                    [".wmv"]  = "video/x-ms-wmv",
-                    [".flv"]  = "video/x-flv",
-                    [".ogv"]  = "video/ogg",
-                    [".m2ts"] = "video/MP2T",
-                    [".vob"]  = "video/x-ms-vob"
+                    [".m2ts"] = "video/MP2T"
                 }
             };
 

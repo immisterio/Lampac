@@ -12,6 +12,8 @@ namespace Tracks.Engine
         public TranscodingHlsOptions hls { get; set; } = new();
 
         public Dictionary<string, string> headers { get; set; } = new();
+
+        public bool subtitles { get; set; }
     }
 
     public sealed class TranscodingAudioOptions
@@ -25,10 +27,19 @@ namespace Tracks.Engine
 
     public sealed class TranscodingHlsOptions
     {
+        /// <summary>
+        /// hls_time
+        /// </summary>
         public int segDur { get; set; } = 6;
 
+        /// <summary>
+        /// hls_list_size
+        /// </summary>
         public int winSize { get; set; } = 12;
 
+        /// <summary>
+        /// hls_segment_type fmp4 / mpegts
+        /// </summary>
         public bool fmp4 { get; set; } = true;
     }
 
@@ -43,20 +54,10 @@ namespace Tracks.Engine
         Uri Source,
         string UserAgent,
         string Referer,
-        bool UseFmp4,
-        int SegmentDuration,
-        int PlaylistSize,
+        TranscodingHlsOptions HlsOptions,
         TranscodingAudioOptions Audio,
-        bool HasAudioStream,
-        TranscodeMode Mode,
-        string SegmentTemplate,
-        string PlaylistPath,
-        string OutputDirectory
+        bool subtitles,
+        string OutputDirectory,
+        string PlaylistPath
     );
-
-    internal enum TranscodeMode
-    {
-        DirectRemux,
-        FullTranscode
-    }
 }
