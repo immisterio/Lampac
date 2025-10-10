@@ -1,27 +1,22 @@
-using System;
-
 namespace Shared.Models.AppConf
 {
     public class TracksTranscodingConf
     {
-        public bool enable { get; set; } = true;
+        public bool enable { get; set; }
 
         public string ffmpeg { get; set; }
-            = string.Empty;
 
         public string tempRoot { get; set; }
-            = "database/tracks/transcoding";
 
-        public int idleTimeoutSec { get; set; } = 60;
+        public int idleTimeoutSec { get; set; }
 
-        public int gracefulStopTimeoutMs { get; set; } = 1500;
+        public int gracefulStopTimeoutMs { get; set; }
 
-        public int maxConcurrentJobs { get; set; } = 2;
+        public int maxConcurrentJobs { get; set; }
 
         public string[] allowHosts { get; set; } = Array.Empty<string>();
 
         public string hmacKey { get; set; }
-            = string.Empty;
 
         public TracksTranscodingHls defaults { get; set; } = new();
 

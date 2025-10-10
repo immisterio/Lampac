@@ -5,7 +5,7 @@ namespace Shared.Engine
     public static class FFprobe
     {
         #region InitializationAsync
-        public static ValueTask<bool> InitializationAsync()
+        public static Task<bool> InitializationAsync()
         {
             return FFmpeg.InitializationAsync();
         }

@@ -9,10 +9,11 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System;
 
-namespace Tracks.Transcoding
+namespace Tracks.Engine
 {
     internal sealed class TranscodingService
     {
@@ -54,7 +55,7 @@ namespace Tracks.Transcoding
             }
         }
 
-        public IReadOnlyCollection<TranscodingJob> Jobs => _jobs.Values;
+        public ICollection<TranscodingJob> Jobs => _jobs.Values;
 
         public string FfmpegPath
         {
@@ -200,10 +201,9 @@ namespace Tracks.Transcoding
             return true;
         }
 
-        public void Touch(TranscodingJob job)
-            => job.UpdateLastAccess();
+        public void Touch(TranscodingJob job) => job.UpdateLastAccess();
 
-        public string? GetFilePath(TranscodingJob job, string file)
+        public string GetFilePath(TranscodingJob job, string file)
         {
             if (string.IsNullOrWhiteSpace(file) || !_safeFileNameRegex.IsMatch(file))
                 return null;
@@ -288,7 +288,7 @@ namespace Tracks.Transcoding
                 return _config;
         }
 
-        private static string? GetHeader(Dictionary<string, string>? headers, string key)
+        private static string GetHeader(Dictionary<string, string>? headers, string key)
         {
             if (headers == null)
                 return null;

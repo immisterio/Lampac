@@ -9,7 +9,7 @@ namespace Shared.Engine
         #region InitializationAsync
         static bool disableInstall = false;
 
-        async public static ValueTask<bool> InitializationAsync()
+        async public static Task<bool> InitializationAsync()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

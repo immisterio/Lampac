@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace Tracks.Transcoding
+namespace Tracks.Engine
 {
     internal sealed class TranscodingJob : IDisposable
     {

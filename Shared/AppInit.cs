@@ -423,7 +423,12 @@ namespace Shared
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
-        public TracksTranscodingConf trackstranscoding { get; set; } = new TracksTranscodingConf();
+        public TracksTranscodingConf trackstranscoding { get; set; } = new TracksTranscodingConf()
+        {
+            tempRoot = "cache/transcoding",
+            maxConcurrentJobs = 2,
+            idleTimeoutSec = 60, gracefulStopTimeoutMs = 1500,
+        };
 
         public CubConf cub { get; set; } = new CubConf()
         {

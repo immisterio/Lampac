@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Shared;
 using System;
-using Tracks.Transcoding;
+using System.Threading.Tasks;
+using Tracks.Engine;
 
 namespace Tracks.Controllers
 {
@@ -16,6 +17,9 @@ namespace Tracks.Controllers
         [HttpPost("start")]
         public async Task<IActionResult> StartAsync([FromBody] TranscodingStartRequest request)
         {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Initialization false" });
+
             if (request == null)
                 return BadRequest(new { error = "Request body is required" });
 
@@ -41,6 +45,9 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/index.m3u8")]
         public IActionResult Playlist(string streamId)
         {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Initialization false" });
+
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
 
@@ -56,6 +63,9 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/{file}")]
         public IActionResult Segment(string streamId, string file)
         {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Initialization false" });
+
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
 
@@ -75,6 +85,9 @@ namespace Tracks.Controllers
         [HttpPost("{streamId}/heartbeat")]
         public IActionResult Heartbeat(string streamId)
         {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Initialization false" });
+
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
 
@@ -85,6 +98,9 @@ namespace Tracks.Controllers
         [HttpPost("{streamId}/stop")]
         public async Task<IActionResult> StopAsync(string streamId)
         {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Initialization false" });
+
             var stopped = await _service.StopAsync(streamId);
             return stopped ? Ok() : NotFound();
         }
@@ -92,6 +108,9 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/status")]
         public IActionResult Status(string streamId)
         {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Initialization false" });
+
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
 

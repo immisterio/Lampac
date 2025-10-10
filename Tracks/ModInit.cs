@@ -1,25 +1,22 @@
 ﻿using Shared;
 using Shared.Engine;
 using System.IO;
-using Tracks.Transcoding;
+using Tracks.Engine;
 
 namespace Tracks
 {
     public class ModInit
     {
+        public static bool IsInitialization { get; private set; }
+
         public static void loaded()
         {
             Directory.CreateDirectory("database/tracks");
-
-            FFprobe.InitializationAsync().ConfigureAwait(false);
-
-            try
+            FFprobe.InitializationAsync().ContinueWith(t => 
             {
+                IsInitialization = t.Result;
                 TranscodingService.Instance.Configure(AppInit.conf.trackstranscoding);
-            }
-            catch
-            {
-            }
+            });
         }
     }
 }
