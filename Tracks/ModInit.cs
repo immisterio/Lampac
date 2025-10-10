@@ -1,5 +1,7 @@
-﻿using Shared.Engine;
+﻿using Shared;
+using Shared.Engine;
 using System.IO;
+using Tracks.Transcoding;
 
 namespace Tracks
 {
@@ -10,6 +12,14 @@ namespace Tracks
             Directory.CreateDirectory("database/tracks");
 
             FFprobe.InitializationAsync().ConfigureAwait(false);
+
+            try
+            {
+                TranscodingService.Instance.Configure(AppInit.conf.trackstranscoding);
+            }
+            catch
+            {
+            }
         }
     }
 }
