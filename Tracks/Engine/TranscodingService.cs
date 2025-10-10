@@ -157,7 +157,6 @@ namespace Tracks.Engine
 
             _ = Task.Run(() => PumpStdErrAsync(job));
             _ = Task.Run(() => IdleWatchdogAsync(job, config));
-            _ = Task.Run(() => SegmentJanitorAsync(job, config));
 
             process.EnableRaisingEvents = true;
             process.Exited += (_, _) => OnProcessExit(job);
@@ -540,7 +539,8 @@ namespace Tracks.Engine
 
         private async Task IdleWatchdogAsync(TranscodingJob job, TracksTranscodingConf config)
         {
-            var idle = TimeSpan.FromSeconds(Math.Max(5, config.idleTimeoutSec));
+            var idle = TimeSpan.FromSeconds(Math.Max(20, config.idleTimeoutSec));
+
             try
             {
                 while (!job.CancellationToken.IsCancellationRequested && !job.Process.HasExited)
@@ -552,44 +552,6 @@ namespace Tracks.Engine
                         await StopJobAsync(job);
                         break;
                     }
-                }
-            }
-            catch (TaskCanceledException)
-            {
-            }
-        }
-
-        private async Task SegmentJanitorAsync(TranscodingJob job, TracksTranscodingConf config)
-        {
-            var sweep = TimeSpan.FromSeconds(Math.Max(1, config.janitorSweepSec));
-            var extension = job.Context.HlsOptions.fmp4 ? ".m4s" : ".ts";
-            try
-            {
-                while (!job.CancellationToken.IsCancellationRequested && !job.Process.HasExited)
-                {
-                    await Task.Delay(sweep, job.CancellationToken);
-
-                    try
-                    {
-                        if (!Directory.Exists(job.OutputDirectory))
-                            continue;
-
-                        var files = Directory.GetFiles(job.OutputDirectory, $"seg_*{extension}");
-                        Array.Sort(files, StringComparer.Ordinal);
-                        var toRemove = files.Length - job.Context.HlsOptions.winSize;
-                        if (toRemove > 0)
-                        {
-                            for (var i = 0; i < toRemove; i++)
-                            {
-                                try
-                                {
-                                    File.Delete(files[i]);
-                                }
-                                catch { }
-                            }
-                        }
-                    }
-                    catch { }
                 }
             }
             catch (TaskCanceledException)

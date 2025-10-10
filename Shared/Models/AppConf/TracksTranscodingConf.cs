@@ -19,8 +19,6 @@ namespace Shared.Models.AppConf
         public TranscodingHlsOptions hlsOptions { get; set; } = new();
 
         public TranscodingAudioOptions audioOptions { get; set; } = new();
-
-        public int janitorSweepSec { get; set; } = 5;
     }
 
     public class TranscodingHlsOptions
