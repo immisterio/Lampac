@@ -82,12 +82,24 @@ namespace Tracks.Controllers
 
                 if (string.IsNullOrWhiteSpace(outPut))
                 {
+                    if (!Uri.TryCreate(media, UriKind.Absolute, out var uri) ||
+                        (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                        return Content(string.Empty);
+
                     var process = new System.Diagnostics.Process();
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
                     process.StartInfo.FileName = AppInit.Win32NT ? "data/ffprobe.exe" : "ffprobe";
-                    process.StartInfo.Arguments = $"-v quiet -print_format json -show_format -show_streams \"{media}\"";
+
+                    process.StartInfo.ArgumentList.Add("-v");
+                    process.StartInfo.ArgumentList.Add("quiet");
+                    process.StartInfo.ArgumentList.Add("-print_format");
+                    process.StartInfo.ArgumentList.Add("json");
+                    process.StartInfo.ArgumentList.Add("-show_format");
+                    process.StartInfo.ArgumentList.Add("-show_streams");
+                    process.StartInfo.ArgumentList.Add(uri.AbsoluteUri);
+
                     process.Start();
 
                     outPut = await process.StandardOutput.ReadToEndAsync();
