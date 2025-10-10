@@ -487,7 +487,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "369faab3c096535da89e656fe4b154e788733ed7"
+            tree = "abb72fb9ace0a8716deca1fd4d2c887899d30197"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -734,8 +734,6 @@ namespace Shared
 
         public OnlinesSettings VkMovie { get; set; } = new OnlinesSettings("VkMovie", "kwwsv=22dsl1ynylghr1ux", streamproxy: true)
         {
-            // client_id:access_token
-            token = "52461373:anonym.eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhbm9ueW1faWQiOjEzOTkzNTkyNTAsImFwcF9pZCI6NTI0NjEzNzMsImlhdCI6MTc1OTkwOTM2OCwiaXNfdmVyaWZpZWQiOmZhbHNlLCJleHAiOjE3NTk5OTU3NjgsInNpZ25lZF90aW1lIjpudWxsLCJhbm9ueW1faWRfbG9uZyI6OTA1OTc1ODMwMjk1MTgyNTc1Miwic2NvcGUiOjc4ODEyOTkzNDc4OTgzNjh9.c8FPAVYPtgsU2UApr-na0vYr-xZSD-sHvQXBwCmV7U8",
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("origin", "encrypt:kwwsv=22ynylghr1ux"),
                 ("referer", "encrypt:kwwsv=22ynylghr1ux2")

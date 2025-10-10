@@ -6,6 +6,10 @@ namespace Online.Controllers
 {
     public class VkMovie : BaseOnlineController
     {
+        static readonly int client_id = 52461373;
+        static string access_token;
+        static DateTime token_expires;
+
         [HttpGet]
         [Route("lite/vkmovie")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
@@ -24,6 +28,9 @@ namespace Online.Controllers
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
+            if (!await EnsureAnonymToken(init, proxy))
+                return ShowError("token");
+
             string searchTitle = StringConvert.SearchName(title);
 
             reset:
@@ -32,8 +39,8 @@ namespace Online.Controllers
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={init.token.Split(":")[0]}";
-                string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={init.token.Split(":")[1]}";
+                string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={client_id}";
+                string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={access_token}";
 
                 var root = rch.enable
                     ? await rch.Post<JObject>(url, data, httpHeaders(init))
@@ -136,6 +143,58 @@ namespace Online.Controllers
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 
             }, gbcache: !rch.enable);
+        }
+
+
+        async ValueTask<bool> EnsureAnonymToken(BaseSettings init, System.Net.WebProxy proxy)
+        {
+            // If token exists and not expired - ok
+            if (!string.IsNullOrEmpty(access_token) && token_expires > DateTime.UtcNow)
+                return true;
+
+            var sem = _semaphoreLocks.GetOrAdd("vkmovie:anonym_token", _ => new System.Threading.SemaphoreSlim(1, 1));
+            await sem.WaitAsync();
+            try
+            {
+                // double-check after acquiring semaphore
+                if (!string.IsNullOrEmpty(access_token) && token_expires > DateTime.UtcNow)
+                    return true;
+
+                string url = "https://login.vk.com/?act=get_anonym_token";
+                string postData = $"client_secret=o557NLIkAErNhakXrQ7A&client_id={client_id}&scopes=audio_anonymous%2Cvideo_anonymous%2Cphotos_anonymous%2Cprofile_anonymous&isApiOauthAnonymEnabled=false&version=1&app_id=6287487";
+
+                JObject root = null;
+
+                try
+                {
+                    root = await Http.Post<JObject>(url, postData, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                if (root == null || !root.ContainsKey("data"))
+                    return false;
+
+                var data = root["data"];
+                string token = data? ["access_token"]?.ToString();
+                var expires = data? ["expires"]?.ToObject<long?>();
+
+                if (string.IsNullOrEmpty(token) || expires == null)
+                    return false;
+
+                access_token = token;
+
+                // "expires":1760171110 (24ч) | 20ч
+                token_expires = DateTimeOffset.FromUnixTimeSeconds(expires.Value).UtcDateTime.AddHours(-4);
+
+                return true;
+            }
+            finally
+            {
+                sem.Release();
+            }
         }
     }
 }

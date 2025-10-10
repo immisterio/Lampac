@@ -1196,6 +1196,7 @@ namespace Online.Controllers
                             case "iptvonline":
                             case "plvideo":
                             case "rutubemovie":
+                            case "vkmovie":
                                 quality = " ~ 2160p";
                                 break;
                             case "kinobase":
