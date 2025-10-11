@@ -49,4 +49,16 @@ namespace Shared.Models.AppConf
 
         public bool stereo { get; set; } = true;
     }
+
+    public record TranscodingStartContext(
+        Uri Source,
+        string UserAgent,
+        string Referer,
+        TranscodingHlsOptions HlsOptions,
+        TranscodingAudioOptions Audio,
+        bool live,
+        bool subtitles,
+        string OutputDirectory,
+        string PlaylistPath
+    );
 }

@@ -6,7 +6,6 @@ using Shared.Models.AppConf;
 using System;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -202,17 +201,20 @@ namespace Tracks.Controllers
 
             _service.Touch(job);
 
-            var fileExistsTimeout = TimeSpan.FromSeconds(20);
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-
             var resolved = _service.GetFilePath(job, file);
 
-            while (!job.Context.live && resolved == null && sw.Elapsed < fileExistsTimeout)
+            if (job.Context.live == false)
             {
-                await Task.Delay(250);
-                resolved = _service.GetFilePath(job, file);
-                if (resolved != null)
-                    break;
+                var fileExistsTimeout = TimeSpan.FromSeconds(20);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                while (!job.Context.live && resolved == null && sw.Elapsed < fileExistsTimeout)
+                {
+                    await Task.Delay(250);
+                    resolved = _service.GetFilePath(job, file);
+                    if (resolved != null)
+                        break;
+                }
             }
 
             if (resolved == null)
@@ -242,6 +244,12 @@ namespace Tracks.Controllers
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
+
+            if (!_service.TryResolveJob(streamId, out var job))
+                return NotFound();
+
+            if (!job.Context.live)
+                return BadRequest(new { error = "Context not live" });
 
             if (ss < 0)
                 return BadRequest(new { error = "ss must be greater or equal 0" });
@@ -351,9 +359,10 @@ namespace Tracks.Controllers
                     query = new object[] {
                         new { name = "src", type = "string", required = true, description = "Source URL or local path to media" },
                         new { name = "a", type = "int", required = false, description = "Audio index (optional)" },
-                        new { name = "s", type = "int", required = false, description = "Seek position in seconds (optional)" }
+                        new { name = "s", type = "int", required = false, description = "Seek position in seconds (optional)" },
+                        new { name = "live", type = "bool", required = false, description = "Context live/playlist" }
                     },
-                    description = "Start transcoding with query parameters and redirect to the generated HLS playlist (index.m3u8)"
+                    description = "Start transcoding with query parameters and redirect to the generated HLS playlist"
                 },
                 new {
                     path = "/transcoding/start",
@@ -361,6 +370,7 @@ namespace Tracks.Controllers
                     contentType = "application/json",
                     body = new {
                         src = "https://example.com/media.mp4",
+                        live = false,
                         subtitles = false,
                         headers = new { referer = "https://example.com", userAgent = "HlsProxy/1.0" },
                         audio = AppInit.conf.trackstranscoding.audioOptions,

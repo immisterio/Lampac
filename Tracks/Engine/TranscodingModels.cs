@@ -1,5 +1,4 @@
 using Shared.Models.AppConf;
-using System;
 using System.Collections.Generic;
 
 namespace Tracks.Engine
@@ -25,16 +24,4 @@ namespace Tracks.Engine
         Idle,
         Stopped
     }
-
-    internal sealed record TranscodingStartContext(
-        Uri Source,
-        string UserAgent,
-        string Referer,
-        TranscodingHlsOptions HlsOptions,
-        TranscodingAudioOptions Audio,
-        bool live,
-        bool subtitles,
-        string OutputDirectory,
-        string PlaylistPath
-    );
 }

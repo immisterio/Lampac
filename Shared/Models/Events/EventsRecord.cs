@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
+using Shared.Models.AppConf;
 using Shared.Models.Base;
 using Shared.Models.JacRed;
 using Shared.Models.Online.Settings;
@@ -45,5 +46,5 @@ namespace Shared.Models.Events
 
     public record EventProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage);
 
-    public record EventTranscoding(Collection<string> args);
+    public record EventTranscoding(Collection<string> args, TranscodingStartContext context);
 }

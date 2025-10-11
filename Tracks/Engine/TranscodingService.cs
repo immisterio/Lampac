@@ -624,7 +624,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-y");
             args.Add(context.PlaylistPath);
 
-            InvkEvent.Transcoding(new EventTranscoding(args));
+            InvkEvent.Transcoding(new EventTranscoding(args, context));
 
             return process;
         }
