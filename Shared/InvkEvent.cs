@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
+using System.Collections.Specialized;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -439,6 +440,21 @@ namespace Shared
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events").AddImports("Shared.Models.Templates");
 
             return Invoke<(string link, string quality)?>(conf.StreamQualityFirts, model, option);
+        }
+        #endregion
+
+        #region Transcoding
+        public static void Transcoding(EventTranscoding model)
+        {
+            var code = conf?.Transcoding?.CreateProcess;
+            if (string.IsNullOrEmpty(code))
+                return;
+
+            var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events")
+                .AddReferences(typeof(StringCollection).Assembly).AddImports("System.Collections.Specialized");
+
+            Invoke(code, model, option);
         }
         #endregion
 
