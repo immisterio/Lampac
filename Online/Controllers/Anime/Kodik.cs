@@ -80,7 +80,7 @@ namespace Online.Controllers
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotConnected())
-                return ShowError(rch.connectionMsg);
+                return ContentTo(rch.connectionMsg);
 
             List<Result> content = null;
             var oninvk = InitKodikInvoke(init);
@@ -141,7 +141,7 @@ namespace Online.Controllers
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotConnected())
-                return ShowError(rch.connectionMsg);
+                return ContentTo(rch.connectionMsg);
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
             {
