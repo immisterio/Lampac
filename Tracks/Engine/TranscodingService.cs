@@ -40,9 +40,6 @@ namespace Tracks.Engine
                     ? (AppInit.Win32NT ? "data/ffmpeg.exe" : (File.Exists("data/ffmpeg") ? "data/ffmpeg" : "ffmpeg"))
                     : config.ffmpeg;
 
-                if (!string.IsNullOrWhiteSpace(config.hmacKey))
-                    _hmacKey = SHA256.HashData(Encoding.UTF8.GetBytes(config.hmacKey));
-
                 if (string.IsNullOrWhiteSpace(config.tempRoot))
                     config.tempRoot = Path.Combine(Path.GetTempPath(), "tracks-hls");
 
@@ -281,9 +278,9 @@ namespace Tracks.Engine
                 return _config;
         }
 
-        private static string GetHeader(Dictionary<string, string>? headers, string key)
+        private static string GetHeader(Dictionary<string, string> headers, string key)
         {
-            if (headers == null)
+            if (headers == null || headers.Count == 0)
                 return null;
 
             foreach (var (k, v) in headers)
@@ -426,6 +423,12 @@ namespace Tracks.Engine
 
             args.Add("-re");
 
+            if (context.HlsOptions.seek > 0)
+            {
+                args.Add("-ss");
+                args.Add(context.HlsOptions.seek.ToString());
+            }
+
             args.Add("-threads");
             args.Add("0");
 
@@ -439,7 +442,7 @@ namespace Tracks.Engine
             args.Add("0:v:0");
 
             args.Add("-map");
-            args.Add("0:a:0");
+            args.Add($"{context.Audio.index}:a:0");
 
             if (context.subtitles == false)
                 args.Add("-sn");
@@ -501,7 +504,7 @@ namespace Tracks.Engine
             args.Add(context.HlsOptions.segDur.ToString(CultureInfo.InvariantCulture));
 
             args.Add("-hls_flags");
-            args.Add("append_list+omit_endlist");
+            args.Add("append_list+omit_endlist+delete_segments");
 
             args.Add("-hls_list_size");
             args.Add(context.HlsOptions.winSize.ToString(CultureInfo.InvariantCulture));
@@ -605,7 +608,7 @@ namespace Tracks.Engine
             return hmac.ComputeHash(Encoding.UTF8.GetBytes(id));
         }
 
-        private static string SanitizeHeader(string? value, string fallback = "")
+        private static string SanitizeHeader(string value, string fallback = "")
         {
             if (string.IsNullOrWhiteSpace(value))
                 return fallback;

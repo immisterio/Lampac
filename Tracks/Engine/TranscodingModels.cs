@@ -8,11 +8,11 @@ namespace Tracks.Engine
     {
         public string src { get; set; } = string.Empty;
 
-        public TranscodingAudioOptions audio { get; set; } = new();
+        public TranscodingAudioOptions audio { get; set; }
 
-        public TranscodingHlsOptions hls { get; set; } = new();
+        public TranscodingHlsOptions hls { get; set; }
 
-        public Dictionary<string, string> headers { get; set; } = new();
+        public Dictionary<string, string> headers { get; set; }
 
         public bool subtitles { get; set; }
     }

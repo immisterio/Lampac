@@ -14,8 +14,6 @@ namespace Shared.Models.AppConf
 
         public string[] allowHosts { get; set; } = Array.Empty<string>();
 
-        public string hmacKey { get; set; }
-
         public TranscodingHlsOptions hlsOptions { get; set; } = new();
 
         public TranscodingAudioOptions audioOptions { get; set; } = new();
@@ -23,15 +21,17 @@ namespace Shared.Models.AppConf
 
     public class TranscodingHlsOptions
     {
+        public int seek { get; set; }
+
         /// <summary>
         /// hls_time
         /// </summary>
-        public int segDur { get; set; } = 3;
+        public int segDur { get; set; } = 5;
 
         /// <summary>
         /// hls_list_size
         /// </summary>
-        public int winSize { get; set; } = 20;
+        public int winSize { get; set; } = 10;
 
         /// <summary>
         /// hls_segment_type fmp4 / mpegts
@@ -41,6 +41,8 @@ namespace Shared.Models.AppConf
 
     public class TranscodingAudioOptions
     {
+        public int index { get; set; }
+
         public bool transcodeToAac { get; set; } = true;
 
         public int bitrateKbps { get; set; } = 192;

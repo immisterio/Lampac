@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Shared;
@@ -15,36 +14,48 @@ namespace Tracks.Controllers
     {
         private readonly TranscodingService _service = TranscodingService.Instance;
 
+        #region Start
+        [HttpGet("start.m3u8")]
+        public IActionResult StartM3u8(string src)
+        {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Transcoding disabled" });
+
+            if (string.IsNullOrEmpty(src))
+                return BadRequest(new { error = "src" });
+
+            var (job, error) = _service.Start(new TranscodingStartRequest() { src = src });
+            if (job == null)
+                return BadRequest(new { error });
+
+            return Redirect($"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/index.m3u8");
+        }
+
         [HttpPost("start")]
         public IActionResult Start([FromBody] TranscodingStartRequest request)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
-                return BadRequest(new { error = "Initialization false" });
+                return BadRequest(new { error = "Transcoding disabled" });
 
             if (request == null)
                 return BadRequest(new { error = "Request body is required" });
 
             var (job, error) = _service.Start(request);
             if (job == null)
-            {
-                if (string.Equals(error, "Maximum concurrent jobs reached", StringComparison.OrdinalIgnoreCase))
-                    return StatusCode(StatusCodes.Status429TooManyRequests, new { error });
-
-                if (string.Equals(error, "Transcoding disabled", StringComparison.OrdinalIgnoreCase))
-                    return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error });
-
                 return BadRequest(new { error });
-            }
 
             return Ok(new
             {
                 job.StreamId,
-                playlistUrl = $"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/index.m3u8"
+                playlistUrl = $"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/index.m3u8",
+                hls_timeout_seconds = 60
             });
         }
+        #endregion
 
+        #region Playlist
         [HttpGet("{streamId}/index.m3u8")]
-        public IActionResult Playlist(string streamId)
+        public async Task<IActionResult> Playlist(string streamId)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Initialization false" });
@@ -55,15 +66,53 @@ namespace Tracks.Controllers
             _service.Touch(job);
 
             var path = job.Context.PlaylistPath;
-            if (!System.IO.File.Exists(path))
+
+            var fileExistsTimeout = TimeSpan.FromSeconds(60);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            bool fileExists = System.IO.File.Exists(path);
+
+            while (!fileExists && sw.Elapsed < fileExistsTimeout)
+            {
+                await Task.Delay(250);
+                fileExists = System.IO.File.Exists(path);
+                if (fileExists)
+                    break;
+            }
+
+            if (!fileExists)
                 return NotFound();
 
-            string m3u8 = System.IO.File.ReadAllText(path);
+            string m3u8 = null;
+
+            sw.Restart();
+            while (sw.Elapsed < fileExistsTimeout)
+            {
+                try
+                {
+                    m3u8 = System.IO.File.ReadAllText(path);
+                }
+                catch
+                {
+                    m3u8 = null;
+                }
+
+                if (!string.IsNullOrEmpty(m3u8) && Regex.IsMatch(m3u8, "seg_[0-9]+\\.(m4s|ts)"))
+                    break;
+
+                await Task.Delay(250);
+            }
+
+            if (string.IsNullOrEmpty(m3u8))
+                return NotFound();
+
             m3u8 = Regex.Replace(m3u8, "#EXT-X-MAP:URI=[^\n\r]+", "#EXT-X-MAP:URI=\"init.mp4\"");
 
             return Content(m3u8, "application/vnd.apple.mpegurl");
         }
+        #endregion
 
+        #region Segment
         [HttpGet("{streamId}/{file}")]
         public IActionResult Segment(string streamId, string file)
         {
@@ -97,7 +146,9 @@ namespace Tracks.Controllers
 
             return File(System.IO.File.OpenRead(resolved), contentType, enableRangeProcessing: true);
         }
+        #endregion
 
+        #region Heartbeat
         [HttpPost("{streamId}/heartbeat")]
         public IActionResult Heartbeat(string streamId)
         {
@@ -110,7 +161,9 @@ namespace Tracks.Controllers
             _service.Touch(job);
             return Ok();
         }
+        #endregion
 
+        #region StopAsync
         [HttpPost("{streamId}/stop")]
         public async Task<IActionResult> StopAsync(string streamId)
         {
@@ -120,7 +173,9 @@ namespace Tracks.Controllers
             var stopped = await _service.StopAsync(streamId);
             return stopped ? Ok() : NotFound();
         }
+        #endregion
 
+        #region Status
         [HttpGet("{streamId}/status")]
         public IActionResult Status(string streamId)
         {
@@ -163,5 +218,6 @@ namespace Tracks.Controllers
                 log = job.SnapshotLog()
             });
         }
+        #endregion
     }
 }
