@@ -426,9 +426,8 @@ namespace Shared
         public TracksTranscodingConf trackstranscoding { get; set; } = new TracksTranscodingConf()
         {
             tempRoot = Path.Combine("cache", "transcoding"),
-            maxConcurrentJobs = 5, 
-            idleTimeoutSec = 60 * 20,
-            idleTimeoutSec_live = 180
+            idleTimeoutSec = 60 * 20, idleTimeoutSec_live = 180,
+            maxConcurrentJobs = 5
         };
 
         public CubConf cub { get; set; } = new CubConf()

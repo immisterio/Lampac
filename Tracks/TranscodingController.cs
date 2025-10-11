@@ -17,7 +17,19 @@ namespace Tracks.Controllers
     [Route("transcoding")]
     public sealed class TranscodingController : Controller
     {
-        private readonly TranscodingService _service = TranscodingService.Instance;
+        #region static
+        readonly TranscodingService _service = TranscodingService.Instance;
+
+        static readonly FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider()
+        {
+            Mappings = {
+                [".m4s"] = "video/mp4",
+                [".ts"] = "video/mp2t",
+                [".mp4"] = "video/mp4",
+                [".m2ts"] = "video/MP2T"
+            }
+        };
+        #endregion
 
         #region Start
         [HttpGet("start.m3u8")]
@@ -201,7 +213,7 @@ namespace Tracks.Controllers
 
             _service.Touch(job);
 
-            var resolved = _service.GetFilePath(job, file);
+            string resolved = _service.GetFilePath(job, file);
 
             if (job.Context.live == false)
             {
@@ -220,16 +232,17 @@ namespace Tracks.Controllers
             if (resolved == null)
                 return NotFound();
 
-            var provider = new FileExtensionContentTypeProvider()
+            if (!job.Context.live && AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
             {
-                Mappings =
+                _ = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
                 {
-                    [".m4s"]  = "video/mp4",
-                    [".ts"]   = "video/mp2t",
-                    [".mp4"]  = "video/mp4",
-                    [".m2ts"] = "video/MP2T"
-                }
-            };
+                    try
+                    {
+                        System.IO.File.Delete(resolved);
+                    }
+                    catch { }
+                }, TaskScheduler.Default);
+            }
 
             if (!provider.TryGetContentType(resolved, out var contentType))
                 contentType = "application/octet-stream";

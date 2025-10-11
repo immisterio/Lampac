@@ -19,6 +19,8 @@ namespace Shared.Models.AppConf
         public TranscodingHlsOptions hlsOptions { get; set; } = new();
 
         public TranscodingAudioOptions audioOptions { get; set; } = new();
+
+        public PlaylistOptions playlistOptions { get; set; } = new();
     }
 
     public class TranscodingHlsOptions
@@ -50,6 +52,15 @@ namespace Shared.Models.AppConf
         public int bitrateKbps { get; set; } = 192;
 
         public bool stereo { get; set; } = true;
+    }
+
+    public class PlaylistOptions
+    {
+        public bool re { get; set; } = true;
+
+        public int burstSec { get; set; } = 60*5;
+
+        public bool delete_segments { get; set; } = true;
     }
 
     public record TranscodingStartContext(

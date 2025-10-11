@@ -488,6 +488,16 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add("-readrate_initial_burst");
                 args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
             }
+            else if (_config.playlistOptions.re)
+            {
+                args.Add("-re");
+
+                if (_config.playlistOptions.burstSec > 0)
+                {
+                    args.Add("-readrate_initial_burst");
+                    args.Add(_config.playlistOptions.burstSec.ToString());
+                }
+            }
 
             if (context.HlsOptions.seek > 0)
             {
