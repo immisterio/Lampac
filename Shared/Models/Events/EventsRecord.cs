@@ -5,7 +5,7 @@ using Shared.Engine;
 using Shared.Models.Base;
 using Shared.Models.JacRed;
 using Shared.Models.Online.Settings;
-using System.Collections.Specialized;
+using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
 
@@ -45,5 +45,5 @@ namespace Shared.Models.Events
 
     public record EventProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage);
 
-    public record EventTranscoding(StringCollection args);
+    public record EventTranscoding(Collection<string> args);
 }

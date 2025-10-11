@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
-using System.Collections.Specialized;
+using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -451,8 +451,7 @@ namespace Shared
                 return;
 
             var option = ScriptOptions.Default
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events")
-                .AddReferences(typeof(StringCollection).Assembly).AddImports("System.Collections.Specialized");
+                .AddReferences(typeof(Collection<string>).Assembly).AddImports("System.Collections.ObjectModel");
 
             Invoke(code, model, option);
         }
