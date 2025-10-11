@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
+using Newtonsoft.Json;
 using Shared;
 using Shared.Models.AppConf;
 using System;
@@ -265,10 +266,88 @@ namespace Tracks.Controllers
                 lastAccessUtc = job.LastAccessUtc,
                 uptime = uptime.TotalSeconds,
                 time = (ulong)(job.Context.HlsOptions.seek + (time_ms > 0 ? (time_ms / 1000000.0) : 0)),
-                bitrateKbps = job.LastBitrateKbps,
                 exitCode,
                 log = log ? snapshotLog : null
             });
+        }
+        #endregion
+
+
+        #region DOC
+        [HttpGet("")]
+        public IActionResult DOC()
+        {
+            var endpoints = new object[]
+            {
+                new {
+                    path = "/transcoding/start.m3u8",
+                    method = "GET",
+                    query = (object)new object[] {
+                        new { name = "src", type = "string", required = true, description = "Source URL or local path to media" },
+                        new { name = "a", type = "int", required = false, description = "Audio index (optional)" },
+                        new { name = "s", type = "int", required = false, description = "Seek position in seconds (optional)" }
+                    },
+                    description = "Start transcoding with query parameters and redirect to the generated HLS playlist (index.m3u8)"
+                },
+                new {
+                    path = "/transcoding/start",
+                    method = "POST",
+                    contentType = "application/json",
+                    body = new {
+                        src = "https://example.com/media.mp4",
+                        subtitles = false,
+                        headers = new { referer = "https://example.com", userAgent = "HlsProxy/1.0" },
+                        audio = AppInit.conf.trackstranscoding.audioOptions,
+                        hls = AppInit.conf.trackstranscoding.hlsOptions
+                    },
+                    description = "Start transcoding by POSTing a JSON body. Returns StreamId and playlist URL"
+                },
+                new {
+                    path = "/transcoding/{streamId}/index.m3u8",
+                    method = "GET",
+                    route = new { name = "streamId", type = "string", required = true },
+                    description = "Returns the HLS master/variant playlist for the given transcoding job"
+                },
+                new {
+                    path = "/transcoding/{streamId}/{file}",
+                    method = "GET",
+                    route = new object[] {
+                        new { name = "streamId", type = "string", required = true },
+                        new { name = "file", type = "string", required = true, description = "Requested segment or asset (e.g. init.mp4, seg_1.m4s, index.m3u8)" }
+                    },
+                    description = "Serves individual segment files, init files and playlists produced by the transcoder. Supports range requests."
+                },
+                new {
+                    path = "/transcoding/{streamId}/seek/{ss}",
+                    method = "GET",
+                    route = new object[] {
+                        new { name = "streamId", type = "string", required = true },
+                        new { name = "ss", type = "int", required = true, description = "Seek position in seconds (>= 0)" }
+                    },
+                    description = "Request the transcoder to seek to the specified position (async). Returns 200 on success."
+                },
+                new {
+                    path = "/transcoding/{streamId}/heartbeat",
+                    method = "GET",
+                    route = new { name = "streamId", type = "string", required = true },
+                    description = "Touch the job to keep it alive. Returns 200 if job exists."
+                },
+                new {
+                    path = "/transcoding/{streamId}/stop",
+                    method = "GET",
+                    route = new { name = "streamId", type = "string", required = true },
+                    description = "Stop the transcoding job. Returns 200 if stopped or 404 if job not found."
+                },
+                new {
+                    path = "/transcoding/{streamId}/status",
+                    method = "GET",
+                    query = new { name = "log", type = "bool", required = false, description = "Include job log snapshot when true" },
+                    route = new { name = "streamId", type = "string", required = true },
+                    description = "Return current job status, uptime, position and optional log snapshot."
+                }
+            };
+
+            return Ok(JsonConvert.SerializeObject(endpoints, Formatting.Indented));
         }
         #endregion
     }
