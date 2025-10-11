@@ -1,5 +1,6 @@
 using Shared;
 using Shared.Models.AppConf;
+using Shared.Models.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -603,6 +604,8 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
 
             args.Add("-y");
             args.Add(context.PlaylistPath);
+
+            InvkEvent.Transcoding(new EventTranscoding(args));
 
             return process;
         }

@@ -21,6 +21,8 @@
         public EventModelHybridCache HybridCache { get; set; }
 
         public EventModelProxyApi ProxyApi { get; set; }
+
+        public EventModelTranscoding Transcoding { get; set; }
     }
 
     public class EventModelController()
@@ -89,5 +91,10 @@
     public class EventModelProxyApi()
     {
         public string CreateHttpRequest { get; set; }
+    }
+
+    public class EventModelTranscoding()
+    {
+        public string CreateProcess { get; set; }
     }
 }
