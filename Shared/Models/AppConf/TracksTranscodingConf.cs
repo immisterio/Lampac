@@ -20,7 +20,7 @@ namespace Shared.Models.AppConf
 
         public TranscodingAudioOptions audioOptions { get; set; } = new();
 
-        public PlaylistOptions playlistOptions { get; set; } = new();
+        public TranscodingPlaylistOptions playlistOptions { get; set; } = new();
     }
 
     public class TranscodingHlsOptions
@@ -54,7 +54,7 @@ namespace Shared.Models.AppConf
         public bool stereo { get; set; } = true;
     }
 
-    public class PlaylistOptions
+    public class TranscodingPlaylistOptions
     {
         public bool re { get; set; } = true;
 

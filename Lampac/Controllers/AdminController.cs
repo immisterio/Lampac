@@ -586,7 +586,7 @@ namespace Lampac.Controllers
 			<input name='ts' type='checkbox' {IsChecked("TorrServer.dll", "checked")} /> TorrServer - возможность просматривать торренты в онлайн 
 		</div>
 		<div class='flex'>
-			<input name='tracks' type='checkbox' {IsChecked("Tracks.dll", "checked")} /> Tracks - Заменяет название аудиодорожек и субтитров с rus1, rus2 на читаемые LostFilm, HDRezka, etc
+			<input name='tracks' type='checkbox' {IsChecked("Tracks.dll", "checked")} /> Tracks - транскодинг видео и замена названий аудиодорожек с rus1, rus2 на читаемые LostFilm, HDRezka, etc
 		</div>
 		<div class='flex'>
 			<input name='merch' type='checkbox' {IsChecked("Merchant.dll", "")} /> Автоматизация оплаты FreeKassa, Streampay, Litecoin, CryptoCloud
