@@ -282,7 +282,7 @@ namespace Tracks.Controllers
                 new {
                     path = "/transcoding/start.m3u8",
                     method = "GET",
-                    query = (object)new object[] {
+                    query = new object[] {
                         new { name = "src", type = "string", required = true, description = "Source URL or local path to media" },
                         new { name = "a", type = "int", required = false, description = "Audio index (optional)" },
                         new { name = "s", type = "int", required = false, description = "Seek position in seconds (optional)" }

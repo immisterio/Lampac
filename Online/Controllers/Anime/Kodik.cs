@@ -75,8 +75,12 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: init.rhub && init.rhub_fallback))
                 return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ShowError(rch.connectionMsg);
 
             List<Result> content = null;
             var oninvk = InitKodikInvoke(init);
@@ -132,8 +136,12 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: init.rhub && init.rhub_fallback))
                 return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected())
+                return ShowError(rch.connectionMsg);
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
             {
