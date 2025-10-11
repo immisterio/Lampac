@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Tracks.Engine
@@ -14,7 +13,6 @@ namespace Tracks.Engine
         private readonly LinkedList<string> _log = new();
         private readonly object _logSync = new();
         private readonly CancellationTokenSource _cts = new();
-        private readonly Regex _bitrateRegex = new("bitrate=\\s*(?<value>[0-9.]+)kbits/s", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         public TranscodingJob(string id, string streamId, string outputDirectory, Process process, TranscodingStartContext context)
         {
@@ -40,8 +38,6 @@ namespace Tracks.Engine
         public DateTime StartedUtc { get; }
 
         public DateTime LastAccessUtc { get; private set; }
-
-        public double? LastBitrateKbps { get; private set; }
 
         public int? ExitCode { get; private set; }
 
@@ -71,10 +67,6 @@ namespace Tracks.Engine
                     _log.AddLast(trimmed);
                     if (_log.Count > MaxLogLines)
                         _log.RemoveFirst();
-
-                    var match = _bitrateRegex.Match(trimmed);
-                    if (match.Success && double.TryParse(match.Groups["value"].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var br))
-                        LastBitrateKbps = br;
                 }
             }
         }

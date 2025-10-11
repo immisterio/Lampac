@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Shared;
+using Shared.Models.AppConf;
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Tracks.Engine;
@@ -16,7 +18,7 @@ namespace Tracks.Controllers
 
         #region Start
         [HttpGet("start.m3u8")]
-        public IActionResult StartM3u8(string src)
+        public IActionResult StartM3u8(string src, int a, int s)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -24,7 +26,27 @@ namespace Tracks.Controllers
             if (string.IsNullOrEmpty(src))
                 return BadRequest(new { error = "src" });
 
-            var (job, error) = _service.Start(new TranscodingStartRequest() { src = src });
+            var defaults = AppInit.conf.trackstranscoding;
+
+            var (job, error) = _service.Start(new TranscodingStartRequest() 
+            { 
+                src = src,
+                audio = new TranscodingAudioOptions() 
+                { 
+                    index = a,
+                    bitrateKbps = defaults.audioOptions.bitrateKbps,
+                    stereo = defaults.audioOptions.stereo,
+                    transcodeToAac = defaults.audioOptions.transcodeToAac
+                },
+                hls = new TranscodingHlsOptions() 
+                { 
+                    seek = a,
+                    segDur = defaults.hlsOptions.segDur,
+                    winSize = defaults.hlsOptions.winSize,
+                    fmp4 = defaults.hlsOptions.fmp4
+                }
+            });
+
             if (job == null)
                 return BadRequest(new { error });
 
@@ -58,7 +80,7 @@ namespace Tracks.Controllers
         public async Task<IActionResult> Playlist(string streamId)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
-                return BadRequest(new { error = "Initialization false" });
+                return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
@@ -117,7 +139,7 @@ namespace Tracks.Controllers
         public IActionResult Segment(string streamId, string file)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
-                return BadRequest(new { error = "Initialization false" });
+                return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
@@ -149,34 +171,29 @@ namespace Tracks.Controllers
         #endregion
 
         #region Seek
-        [HttpPost("{streamId}/seek/{ss}")]
+        [HttpGet("{streamId}/seek/{ss}")]
         public async Task<IActionResult> Seek(string streamId, int ss)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
-                return BadRequest(new { error = "Initialization false" });
+                return BadRequest(new { error = "Transcoding disabled" });
 
             if (ss < 0)
                 return BadRequest(new { error = "ss must be greater or equal 0" });
 
             var (success, error) = await _service.SeekAsync(streamId, ss);
             if (!success)
-            {
-                if (error == "Job not found" || error == "Job no longer available")
-                    return NotFound();
-
                 return BadRequest(new { error });
-            }
 
             return Ok();
         }
         #endregion
 
         #region Heartbeat
-        [HttpPost("{streamId}/heartbeat")]
+        [HttpGet("{streamId}/heartbeat")]
         public IActionResult Heartbeat(string streamId)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
-                return BadRequest(new { error = "Initialization false" });
+                return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
@@ -187,11 +204,11 @@ namespace Tracks.Controllers
         #endregion
 
         #region StopAsync
-        [HttpPost("{streamId}/stop")]
+        [HttpGet("{streamId}/stop")]
         public async Task<IActionResult> StopAsync(string streamId)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
-                return BadRequest(new { error = "Initialization false" });
+                return BadRequest(new { error = "Transcoding disabled" });
 
             var stopped = await _service.StopAsync(streamId);
             return stopped ? Ok() : NotFound();
@@ -200,10 +217,10 @@ namespace Tracks.Controllers
 
         #region Status
         [HttpGet("{streamId}/status")]
-        public IActionResult Status(string streamId)
+        public IActionResult Status(string streamId, bool log)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
-                return BadRequest(new { error = "Initialization false" });
+                return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
@@ -224,8 +241,20 @@ namespace Tracks.Controllers
                 if (job.Process.HasExited)
                     exitCode = job.Process.ExitCode;
             }
-            catch
+            catch { }
+
+            var snapshotLog = job.SnapshotLog();
+
+            ulong time_ms = 0;
+            foreach (string line in snapshotLog.Reverse())
             {
+                if (!line.Contains("out_time_ms="))
+                    continue;
+
+                if (!ulong.TryParse(Regex.Match(line, "out_time_ms=([0-9]+)").Groups[1].Value, out time_ms))
+                    continue;
+
+                break;
             }
 
             return Ok(new
@@ -235,10 +264,10 @@ namespace Tracks.Controllers
                 startedUtc = job.StartedUtc,
                 lastAccessUtc = job.LastAccessUtc,
                 uptime = uptime.TotalSeconds,
+                time = (ulong)(job.Context.HlsOptions.seek + (time_ms > 0 ? (time_ms / 1000000.0) : 0)),
                 bitrateKbps = job.LastBitrateKbps,
-                ffmpeg = _service.FfmpegPath,
                 exitCode,
-                log = job.SnapshotLog()
+                log = log ? snapshotLog : null
             });
         }
         #endregion

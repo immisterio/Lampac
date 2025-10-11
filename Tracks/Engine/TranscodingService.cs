@@ -156,7 +156,11 @@ namespace Tracks.Engine
             _ = Task.Run(() => IdleWatchdogAsync(job, config));
 
             process.EnableRaisingEvents = true;
-            process.Exited += (_, _) => OnProcessExit(job);
+            process.Exited += (_, _) => 
+            {
+                if (process.EnableRaisingEvents)
+                    OnProcessExit(job);
+            };
 
             return (job, string.Empty);
         }
@@ -185,19 +189,6 @@ namespace Tracks.Engine
                 return (false, "Job not found");
 
             var config = GetConfig();
-            if (!config.enable)
-                return (false, "Transcoding disabled");
-
-            try
-            {
-                job.Process.EnableRaisingEvents = false;
-            }
-            catch { }
-
-            await StopJobAsync(job, cleanup: false);
-
-            if (!_jobs.TryGetValue(job.Id, out var currentJob) || !ReferenceEquals(currentJob, job))
-                return (false, "Job no longer available");
 
             var newContext = job.Context with
             {
@@ -209,6 +200,9 @@ namespace Tracks.Engine
                     fmp4 = job.Context.HlsOptions.fmp4
                 }
             };
+
+            job.Process.EnableRaisingEvents = false;
+            await StopJobAsync(job, forced: true, cleanup: false);
 
             var process = CreateProcess(newContext);
 
@@ -228,7 +222,7 @@ namespace Tracks.Engine
 
             var newJob = new TranscodingJob(job.Id, job.StreamId, job.OutputDirectory, process, newContext);
 
-            if (!_jobs.TryUpdate(job.Id, newJob, job))
+            if (_jobs.AddOrUpdate(job.Id, newJob, (k, v) => newJob) == null)
             {
                 try
                 {
@@ -244,10 +238,11 @@ namespace Tracks.Engine
             _ = Task.Run(() => IdleWatchdogAsync(newJob, config));
 
             process.EnableRaisingEvents = true;
-            process.Exited += (_, _) => OnProcessExit(newJob);
-
-            job.StopBackground();
-            job.Dispose();
+            process.Exited += (_, _) =>
+            {
+                if (process.EnableRaisingEvents)
+                    OnProcessExit(newJob);
+            };
 
             return (true, string.Empty);
         }
@@ -325,17 +320,7 @@ namespace Tracks.Engine
             finally
             {
                 if (cleanup)
-                {
                     Cleanup(job);
-                }
-                else
-                {
-                    try
-                    {
-                        job.SignalExit();
-                    }
-                    catch { }
-                }
             }
         }
 
@@ -343,8 +328,12 @@ namespace Tracks.Engine
         {
             var removed = _jobs.TryRemove(job.Id, out _);
 
-            job.StopBackground();
-            job.SignalExit();
+            try
+            {
+                job.StopBackground();
+                job.SignalExit();
+            }
+            catch { }
 
             if (!removed)
                 return;
@@ -458,44 +447,45 @@ namespace Tracks.Engine
             var args = process.StartInfo.ArgumentList;
 
             /*
-	-hide_banner  îòêëþ÷àåò âûâîä áàííåðà ffmpeg (âåðñèÿ/êîíôèãóðàöèÿ) â stderr, ÷òîáû ëîãè áûëè ÷èùå.
-	-user_agent + context.UserAgent  çàäà¸ò çàãîëîâîê User-Agent äëÿ HTTP-çàïðîñîâ ê âõîäíîìó URL.
-	-headers + Referer: {context.Referer}&#x0a;  äîáàâëÿåò ïðîèçâîëüíûå HTTP-çàãîëîâêè (çäåñü: Referer) ïðè îáðàùåíèè ê âõîäíîìó URL.
-	-re  ÷èòàåò âõîäíîé ïîòîê â ðåàëüíîì (ðåàëüíîì âðåìåíè) òåìïå; ïîëåçíî ïðè òðàíñëÿöèè/ñòðèìèíãå, ÷òîáû íå ÷èòàòü âõîä áûñòðåå ðåàëüíîãî âðåìåíè.
-	-threads 0  ïîçâîëÿåò ffmpeg àâòîìàòè÷åñêè âûáðàòü êîëè÷åñòâî ïîòîêîâ (CPU) äëÿ êîäèðîâàíèÿ/äåêîäèðîâàíèÿ.
-	-fflags +genpts  óñòàíàâëèâàåò ôëàã ôîðìàòîâ: +genpts ãåíåðèðóåò PTS äëÿ ôðåéìîâ, åñëè èõ íåò (èçáåãàåò ïðîáëåì ñ îòñóòñòâóþùèìè âðåìåííûìè ìåòêàìè).
-	-i {Source}  óêàçûâàåò âõîäíîé èñòî÷íèê (URL/ôàéë).
-	-map 0:v:0  ìàïïèò ïåðâûé âèäåîïîòîê ïåðâîãî âõîäà â âûõîä.
-	-map 0:a:0  ìàïïèò ïåðâûé àóäèîïîòîê ïåðâîãî âõîäà â âûõîä.
-	-sn (îïöèîíàëüíî, ïðè subtitles == false)  îòêëþ÷àåò âêëþ÷åíèå ñóáòèòðîâ â âûâîä.
-	-dn  îòêëþ÷àåò âêëþ÷åíèå data-ïîòîêîâ (metadata/data tracks).
-	-map_metadata -1  íå êîïèðîâàòü ãëîáàëüíûå ìåòàäàííûå â âûõîä (î÷èùàåò ìåòàäàííûå).
-	-map_chapters -1  íå êîïèðîâàòü ãëàâû â âûõîä (óäàëÿåò chapters).
-	-c:v copy  âèäåî «áåç ïåðåêîäèðîâàíèÿ» (êîïèðóåòñÿ ïîòîê êàê åñòü), ÷òîáû èçáåæàòü íàãðóçêè è ïîòåðè êà÷åñòâà.
+-hide_banner — отключает вывод баннера ffmpeg (версия/конфигурация) в stderr, чтобы логи были чище.
+-user_agent {context.UserAgent} — задаёт заголовок User-Agent для HTTP-запросов к входному URL.
+-headers "Referer: {context.Referer}\n" — добавляет произвольные HTTP-заголовки (здесь: Referer) при обращении к входному URL.
+-re — читает входной поток в реальном времени; полезно при трансляции/стриминге, чтобы не читать вход быстрее реального времени.
+-threads 0 — позволяет ffmpeg автоматически выбрать количество потоков (CPU) для кодирования/декодирования.
+-fflags +genpts — генерирует PTS для кадров, если их нет (избегает проблем с отсутствующими временными метками).
+-i {Source} — указывает входной источник (URL/файл).
+-map 0:v:0 — маппит первый видеопоток первого входа в выход.
+-map 0:a:0 — маппит первый аудиопоток первого входа в выход.
+-sn (опционально, при subtitles == false) — исключить субтитры из вывода.
+-dn — исключить data-потоки (metadata/data tracks).
+-map_metadata -1 — не копировать глобальные метаданные в выход (очищает метаданные).
+-map_chapters -1 — не копировать главы (удаляет chapters).
+-c:v copy — копирование видеопотока без перекодирования (для минимальной нагрузки и без потери качества).
 
-	àóäèî:
-	åñëè transcodeToAac:
-	-c:a aac  êîäèðîâàòü àóäèî â AAC.
-	-ac 2 / -ac 1  óñòàíîâèòü ÷èñëî êàíàëîâ (ñòåðåî/ìîíî) ñîãëàñíî íàñòðîéêå.
-	-b:a {N}k  çàäàòü áèòðåéò àóäèî (îãðàíè÷åí/îòêîððåêòèðîâàí â êîäå).
-	-profile:a aac_low  óêàçàòü ïðîôèëü AAC (îáû÷íî LC/AAC äëÿ ñîâìåñòèìîñòè è íèçêîé çàäåðæêè).
-	èíà÷å -c:a copy  êîïèðîâàòü àóäèîïîòîê áåç ïåðåêîäèðîâàíèÿ.
+Аудио:
+Если transcodeToAac:
+-c:a aac — кодировать аудио в AAC.
+-ac 2 / -ac 1 — число каналов (стерео/моно) по настройке.
+-b:a {N}k — битрейт аудио.
+-profile:a aac_low — профиль AAC (обычно LC для совместимости и низкой задержки).
+Иначе: -c:a copy — копирование аудио без перекодирования.
 
-	-avoid_negative_ts disabled  íå ïðèìåíÿòü ñäâèã âðåìåííûõ ìåòîê äëÿ ïðåäîòâðàùåíèÿ îòðèöàòåëüíûõ TS; îáû÷íî èñïîëüçóåòñÿ ÷òîáû ñîõðàíèòü èñõîäíûå PTS ïðè ñåãìåíòàöèè HLS.
-	-max_muxing_queue_size 2048  óâåëè÷èòü î÷åðåäü ïàêåòîâ ïðè ìóëüòèïëåêñèðîâàíèè; ïðåäîòâðàùàåò îøèáêè âðîäå Too many packets buffered ïðè áîëüøèõ ïèêîâûõ íàãðóçêàõ.
-	-f hls  óñòàíîâèòü ôîðìàò âûõîäà â HLS (HTTP Live Streaming).
-	-max_delay 5000000  ìàêñèìàëüíàÿ çàäåðæêà áóôåðà (ìèêðîñåêóíäû/çàâèñèò îò êîíòåêñòà)  ñíèæàåò âåðîÿòíîñòü ÷ðåçìåðíîãî áóôåðèíãà/çàäåðæêè ïðè âõîäíîì ïîòîêå.
-	-hls_segment_type fmp4 èëè mpegts  òèï ñåãìåíòà HLS: fMP4 (CMAF) èëè MPEG-TS. Âûáîð âëèÿåò íà êîíòåéíåð ñåãìåíòîâ.
-	ïðè mpegts: -bsf:v h264_mp4toannexb  áèòñòðèì-ôèëüòð, êîòîðûé êîíâåðòèðóåò H.264 èç MP4-êîíòåéíåðà â Annex-B ôîðìàò, òðåáóåìûé äëÿ TS.
-	-hls_time {segDur}  ïðîäîëæèòåëüíîñòü êàæäîãî HLS-ñåãìåíòà â ñåêóíäàõ.
-	-hls_flags append_list+omit_endlist  ôëàãè HLS:
-	append_list  ïîçâîëÿåò äîïèñûâàòü çàïèñè â ïëåéëèñò (ïîâåäåíèå ïðè äèíàìè÷åñêîì äîáàâëåíèè ñåãìåíòîâ);
-	omit_endlist  íå âêëþ÷àòü #EXT-X-ENDLIST, ÷òîáû ïëåéëèñò ñ÷èòàëñÿ æèâûì (live).
-	-hls_list_size {winSize}  ÷èñëî çàïèñåé â ïëåéëèñòå (îêîííûé ðàçìåð, ñêîëüêî ïîñëåäíèõ ñåãìåíòîâ âèäèò êëèåíò).
-	-master_pl_name index.m3u8  èìÿ master-ïëåéëèñòà (åñëè èñïîëüçóåòñÿ).
-	-hls_fmp4_init_filename {init.mp4}  èìÿ init-ñåãìåíòà äëÿ fMP4 (èíèöèàëèçàöèîííûé ôðàãìåíò).
-	-hls_segment_filename {seg_%05d.m4s / seg_%05d.ts}  øàáëîí èìåíè ôàéëîâ ñåãìåíòîâ (ñ ïîðÿäêîâûì íîìåðîì).
-	-y {PlaylistPath}  ïåðåçàïèñàòü âûõîäíîé ôàéë áåç çàïðîñà ïîäòâåðæäåíèÿ; óêàçûâàåò ïóòü ôèíàëüíîãî ïëåéëèñòà/ôàéëà.
+HLS / контейнер:
+-avoid_negative_ts disabled — не сдвигать временные метки для предотвращения отрицательных TS; сохраняет исходные PTS при HLS-сегментации.
+-max_muxing_queue_size 2048 — увеличивает очередь пакетов при мультиплексировании (помогает против “Too many packets buffered”).
+-f hls — формат выхода HLS (HTTP Live Streaming).
+-max_delay 5000000 — максимальная задержка буфера (в мкс; зависит от контекста), снижает риск избыточного буферинга.
+-hls_segment_type fmp4 или mpegts — тип сегментов HLS (CMAF/fMP4 или MPEG-TS).
+для mpegts: -bsf:v h264_mp4toannexb — конвертирует H.264 к Annex-B, как требуется для TS.
+-hls_time {segDur} — длительность сегмента в секундах.
+-hls_flags append_list+omit_endlist —
+append_list — дописывать записи в плейлист;
+omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейлист считался “живым”.
+-hls_list_size {winSize} — размер окна плейлиста (сколько последних сегментов видит клиент).
+-master_pl_name index.m3u8 — имя master-плейлиста (если используется).
+-hls_fmp4_init_filename {init.mp4} — имя init-сегмента для fMP4.
+-hls_segment_filename {seg_%05d.m4s | seg_%05d.ts} — шаблон имени файлов сегментов.
+-y {PlaylistPath} — перезаписать выходной файл без подтверждения (путь итогового плейлиста/файла).
              */
 
             args.Add("-hide_banner");
@@ -515,6 +505,12 @@ namespace Tracks.Engine
                 args.Add("-ss");
                 args.Add(context.HlsOptions.seek.ToString());
             }
+
+            args.Add("-nostats");
+            args.Add("-progress");
+            args.Add("pipe:2");
+            args.Add("-stats_period");
+            args.Add("1");
 
             args.Add("-threads");
             args.Add("0");
