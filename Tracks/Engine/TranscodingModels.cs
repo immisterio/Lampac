@@ -14,6 +14,8 @@ namespace Tracks.Engine
 
         public Dictionary<string, string> headers { get; set; }
 
+        public bool live { get; set; }
+
         public bool subtitles { get; set; }
     }
 
@@ -30,6 +32,7 @@ namespace Tracks.Engine
         string Referer,
         TranscodingHlsOptions HlsOptions,
         TranscodingAudioOptions Audio,
+        bool live,
         bool subtitles,
         string OutputDirectory,
         string PlaylistPath

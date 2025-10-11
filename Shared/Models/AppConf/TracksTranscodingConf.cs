@@ -26,7 +26,7 @@ namespace Shared.Models.AppConf
         /// <summary>
         /// hls_time
         /// </summary>
-        public int segDur { get; set; } = 5;
+        public int segDur { get; set; } = 6;
 
         /// <summary>
         /// hls_list_size

@@ -113,6 +113,7 @@ namespace Tracks.Engine
                 SanitizeHeader(GetHeader(request.headers, "referer")),
                 MergeHlsOptions(config, request.hls),
                 MergeAudioOptions(config, request.audio),
+                request.live,
                 request.subtitles,
                 outputDir,
                 Path.Combine(outputDir, "index.m3u8")
@@ -499,19 +500,28 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add($"Referer: {context.Referer}\\r\\n");
             }
 
-            args.Add("-re");
+            if (context.live)
+            {
+                args.Add("-re");
+                args.Add("-readrate_initial_burst");
+                args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
+            }
 
             if (context.HlsOptions.seek > 0)
             {
                 args.Add("-ss");
                 args.Add(context.HlsOptions.seek.ToString());
+                args.Add("-noaccurate_seek");
             }
 
-            args.Add("-nostats");
-            args.Add("-progress");
-            args.Add("pipe:2");
-            args.Add("-stats_period");
-            args.Add("1");
+            if (context.live)
+            {
+                args.Add("-nostats");
+                args.Add("-progress");
+                args.Add("pipe:2");
+                args.Add("-stats_period");
+                args.Add("1");
+            }
 
             args.Add("-threads");
             args.Add("0");
@@ -587,11 +597,20 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-hls_time");
             args.Add(context.HlsOptions.segDur.ToString(CultureInfo.InvariantCulture));
 
-            args.Add("-hls_flags");
-            args.Add("append_list+omit_endlist+delete_segments");
+            if (context.live)
+            {
+                args.Add("-hls_flags");
+                args.Add("append_list+omit_endlist+delete_segments");
+            }
 
             args.Add("-hls_list_size");
             args.Add(context.HlsOptions.winSize.ToString(CultureInfo.InvariantCulture));
+
+            if (context.HlsOptions.seek > 0)
+            {
+                args.Add("-start_number");
+                args.Add((context.HlsOptions.seek / context.HlsOptions.segDur).ToString());
+            }
 
             args.Add("-master_pl_name");
             args.Add("index.m3u8");
@@ -634,6 +653,9 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             {
                 while (!job.CancellationToken.IsCancellationRequested && !job.Process.HasExited)
                 {
+                    if (!job.Context.live)
+                        continue;
+
                     await Task.Delay(TimeSpan.FromSeconds(1), job.CancellationToken);
 
                     if (DateTime.UtcNow - job.LastAccessUtc > idle)
@@ -650,8 +672,11 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
 
         private void OnProcessExit(TranscodingJob job)
         {
-            job.SignalExit();
-            Cleanup(job);
+            if (job.Context.live)
+            {
+                job.SignalExit();
+                Cleanup(job);
+            }
         }
 
         private bool TryParseToken(string streamId, out string id)

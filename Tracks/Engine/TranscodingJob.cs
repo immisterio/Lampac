@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Tracks.Engine
@@ -48,6 +49,8 @@ namespace Tracks.Engine
         public void UpdateLastAccess()
             => LastAccessUtc = DateTime.UtcNow;
 
+        public int duration { get; private set; }
+
         public void AppendLog(string line)
         {
             if (string.IsNullOrWhiteSpace(line))
@@ -57,9 +60,16 @@ namespace Tracks.Engine
             {
                 foreach (var part in line.Split('\n'))
                 {
-                    var trimmed = part.TrimEnd('\r');
+                    string trimmed = part.TrimEnd('\r');
                     if (string.IsNullOrWhiteSpace(trimmed))
                         continue;
+
+                    string _duration = Regex.Match(trimmed, "Duration:[\t ]+([0-9\\:\\.]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+                    if (!string.IsNullOrEmpty(_duration))
+                    {
+                        if (TimeSpan.TryParseExact(_duration, @"hh\:mm\:ss\.ff", null, out var timeSpan))
+                            duration = (int)timeSpan.TotalSeconds;
+                    }
 
                     if (trimmed.Length > 2000)
                         trimmed = trimmed[..2000];

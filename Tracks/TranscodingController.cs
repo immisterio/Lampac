@@ -4,7 +4,10 @@ using Newtonsoft.Json;
 using Shared;
 using Shared.Models.AppConf;
 using System;
+using System.IO;
 using System.Linq;
+using System.Numerics;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Tracks.Engine;
@@ -19,7 +22,7 @@ namespace Tracks.Controllers
 
         #region Start
         [HttpGet("start.m3u8")]
-        public IActionResult StartM3u8(string src, int a, int s)
+        public IActionResult StartM3u8(string src, int a, int s, bool live)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -32,6 +35,7 @@ namespace Tracks.Controllers
             var (job, error) = _service.Start(new TranscodingStartRequest() 
             { 
                 src = src,
+                live = live,
                 audio = new TranscodingAudioOptions() 
                 { 
                     index = a,
@@ -51,7 +55,7 @@ namespace Tracks.Controllers
             if (job == null)
                 return BadRequest(new { error });
 
-            return Redirect($"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/index.m3u8");
+            return Redirect($"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/{(live ? "live" : "main")}.m3u8");
         }
 
         [HttpPost("start")]
@@ -70,21 +74,24 @@ namespace Tracks.Controllers
             return Ok(new
             {
                 job.StreamId,
-                playlistUrl = $"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/index.m3u8",
+                playlistUrl = $"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/{(job.Context.live ? "live" : "main")}.m3u8",
                 hls_timeout_seconds = 60
             });
         }
         #endregion
 
-        #region Playlist
-        [HttpGet("{streamId}/index.m3u8")]
-        public async Task<IActionResult> Playlist(string streamId)
+        #region Live
+        [HttpGet("{streamId}/live.m3u8")]
+        public async Task<IActionResult> Live(string streamId)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
+
+            if (!job.Context.live)
+                return BadRequest(new { error = "Context not live" });
 
             _service.Touch(job);
 
@@ -135,9 +142,57 @@ namespace Tracks.Controllers
         }
         #endregion
 
+        #region Playlist
+        [HttpGet("{streamId}/main.m3u8")]
+        public async Task<IActionResult> Playlist(string streamId)
+        {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Transcoding disabled" });
+
+            if (!_service.TryResolveJob(streamId, out var job))
+                return NotFound();
+
+            if (job.Context.live)
+                return BadRequest(new { error = "Context not playlist" });
+
+            _service.Touch(job);
+
+            var fileExistsTimeout = TimeSpan.FromSeconds(60);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            while (sw.Elapsed < fileExistsTimeout)
+            {
+                if (job.duration > 0 && Directory.GetFiles(job.Context.OutputDirectory).Length > 5)
+                    break;
+
+                await Task.Delay(250);
+            }
+
+            if (job.duration == 0)
+                return BadRequest(new { error = "duration" });
+
+            int segDur = job.Context.HlsOptions.segDur;
+
+            var builder = new StringBuilder();
+            builder.AppendLine("#EXTM3U");
+            builder.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
+            builder.AppendLine($"#EXT-X-VERSION:{(job.Context.HlsOptions.fmp4 ? 7 : 3)}");
+            builder.AppendLine($"#EXT-X-TARGETDURATION:{segDur}");
+            builder.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
+            builder.AppendLine("#EXT-X-MAP:URI=\"init.mp4\"");
+
+            for (int i = 0; i < (job.duration / segDur); i++)
+                builder.AppendLine($"#EXTINF:{segDur}.0,\nseg_{i:d5}.m4s");
+
+            builder.AppendLine("#EXT-X-ENDLIST");
+
+            return Content(builder.ToString(), "application/vnd.apple.mpegurl");
+        }
+        #endregion
+
         #region Segment
         [HttpGet("{streamId}/{file}")]
-        public IActionResult Segment(string streamId, string file)
+        public async Task<IActionResult> Segment(string streamId, string file)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -147,7 +202,19 @@ namespace Tracks.Controllers
 
             _service.Touch(job);
 
+            var fileExistsTimeout = TimeSpan.FromSeconds(20);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             var resolved = _service.GetFilePath(job, file);
+
+            while (!job.Context.live && resolved == null && sw.Elapsed < fileExistsTimeout)
+            {
+                await Task.Delay(250);
+                resolved = _service.GetFilePath(job, file);
+                if (resolved != null)
+                    break;
+            }
+
             if (resolved == null)
                 return NotFound();
 
@@ -158,8 +225,6 @@ namespace Tracks.Controllers
                     [".m4s"]  = "video/mp4",
                     [".ts"]   = "video/mp2t",
                     [".mp4"]  = "video/mp4",
-                    [".m3u"]  = "application/x-mpegURL",
-                    [".m3u8"] = "application/vnd.apple.mpegurl",
                     [".m2ts"] = "video/MP2T"
                 }
             };
@@ -265,6 +330,7 @@ namespace Tracks.Controllers
                 startedUtc = job.StartedUtc,
                 lastAccessUtc = job.LastAccessUtc,
                 uptime = uptime.TotalSeconds,
+                job.duration,
                 time = (ulong)(job.Context.HlsOptions.seek + (time_ms > 0 ? (time_ms / 1000000.0) : 0)),
                 exitCode,
                 log = log ? snapshotLog : null
@@ -303,7 +369,13 @@ namespace Tracks.Controllers
                     description = "Start transcoding by POSTing a JSON body. Returns StreamId and playlist URL"
                 },
                 new {
-                    path = "/transcoding/{streamId}/index.m3u8",
+                    path = "/transcoding/{streamId}/live.m3u8",
+                    method = "GET",
+                    route = new { name = "streamId", type = "string", required = true },
+                    description = "Returns the HLS live for the given transcoding job"
+                },
+                new {
+                    path = "/transcoding/{streamId}/main.m3u8",
                     method = "GET",
                     route = new { name = "streamId", type = "string", required = true },
                     description = "Returns the HLS master/variant playlist for the given transcoding job"
