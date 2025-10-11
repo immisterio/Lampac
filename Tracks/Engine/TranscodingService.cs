@@ -20,10 +20,8 @@ namespace Tracks.Engine
         private static readonly Lazy<TranscodingService> _lazy = new(() => new TranscodingService());
 
         private readonly ConcurrentDictionary<string, TranscodingJob> _jobs = new();
-        private readonly object _configSync = new();
         private readonly Regex _safeFileNameRegex = new("^[A-Za-z0-9_.-]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        private TracksTranscodingConf _config = new();
         private byte[] _hmacKey = RandomNumberGenerator.GetBytes(32);
         private string _ffmpegPath = AppInit.Win32NT ? "data/ffmpeg.exe" : "ffmpeg";
 
@@ -34,36 +32,32 @@ namespace Tracks.Engine
             if (config == null)
                 return;
 
-            lock (_configSync)
-            {
-                _config = config;
-                _ffmpegPath = string.IsNullOrWhiteSpace(config.ffmpeg)
+            _ffmpegPath = string.IsNullOrWhiteSpace(config.ffmpeg)
                     ? (AppInit.Win32NT ? "data/ffmpeg.exe" : (File.Exists("data/ffmpeg") ? "data/ffmpeg" : "ffmpeg"))
                     : config.ffmpeg;
 
-                if (string.IsNullOrWhiteSpace(config.tempRoot))
-                    config.tempRoot = Path.Combine(Path.GetTempPath(), "tracks-hls");
+            if (string.IsNullOrWhiteSpace(config.tempRoot))
+                config.tempRoot = Path.Combine(Path.GetTempPath(), "tracks-hls");
 
-                try
+            try
+            {
+                if (!Directory.Exists(config.tempRoot))
                 {
-                    if (!Directory.Exists(config.tempRoot))
+                    Directory.CreateDirectory(config.tempRoot);
+                }
+                else
+                {
+                    foreach (var dir in Directory.GetDirectories(config.tempRoot))
                     {
-                        Directory.CreateDirectory(config.tempRoot);
-                    }
-                    else
-                    {
-                        foreach (var dir in Directory.GetDirectories(config.tempRoot))
+                        try
                         {
-                            try
-                            {
-                                Directory.Delete(dir, true);
-                            }
-                            catch { }
+                            Directory.Delete(dir, true);
                         }
+                        catch { }
                     }
                 }
-                catch { }
             }
+            catch { }
         }
 
         public ICollection<TranscodingJob> Jobs => _jobs.Values;
@@ -334,8 +328,7 @@ namespace Tracks.Engine
 
         private TracksTranscodingConf GetConfig()
         {
-            lock (_configSync)
-                return _config;
+            return AppInit.conf.trackstranscoding;
         }
 
         private static string GetHeader(Dictionary<string, string> headers, string key)
@@ -415,6 +408,8 @@ namespace Tracks.Engine
 
         private Process CreateProcess(TranscodingStartContext context)
         {
+            var config = GetConfig();
+
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -488,14 +483,14 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add("-readrate_initial_burst");
                 args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
             }
-            else if (_config.playlistOptions.re)
+            else if (config.playlistOptions.re)
             {
                 args.Add("-re");
 
-                if (_config.playlistOptions.burstSec > 0)
+                if (config.playlistOptions.burstSec > 0)
                 {
                     args.Add("-readrate_initial_burst");
-                    args.Add(_config.playlistOptions.burstSec.ToString());
+                    args.Add(config.playlistOptions.burstSec.ToString());
                 }
             }
 
@@ -541,9 +536,43 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-map_chapters");
             args.Add("-1");
 
-            args.Add("-c:v");
-            args.Add("copy");
+            #region -c:v
+            if (config.videoOptions.formats != null && config.videoOptions.args != null && config.videoOptions.args.Length > 0)
+            {
+                try
+                {
+                    var extNoDot = Path.GetExtension(context.Source.AbsolutePath).TrimStart('.').ToLowerInvariant();
+                    if (config.videoOptions.formats.Any(f => string.Equals(f, extNoDot, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        args.Add("-c:v");
+                        args.Add(config.videoOptions.args[0]);
 
+                        for (int i = 1; i < config.videoOptions.args.Length; i++)
+                        {
+                            foreach (var t in config.videoOptions.args[i].Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                                args.Add(t);
+                        }
+                    }
+                    else
+                    {
+                        args.Add("-c:v");
+                        args.Add("copy");
+                    }
+                }
+                catch
+                {
+                    args.Add("-c:v");
+                    args.Add("copy");
+                }
+            }
+            else
+            {
+                args.Add("-c:v");
+                args.Add("copy");
+            }
+            #endregion
+
+            #region -c:a
             if (context.Audio.transcodeToAac)
             {
                 args.Add("-c:a");
@@ -560,6 +589,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add("-c:a");
                 args.Add("copy");
             }
+            #endregion
 
             args.Add("-avoid_negative_ts");
             args.Add("disabled");

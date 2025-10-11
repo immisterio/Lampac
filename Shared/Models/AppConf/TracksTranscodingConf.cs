@@ -21,6 +21,8 @@ namespace Shared.Models.AppConf
         public TranscodingAudioOptions audioOptions { get; set; } = new();
 
         public TranscodingPlaylistOptions playlistOptions { get; set; } = new();
+
+        public TranscodingVideoOptions videoOptions { get; set; } = new();
     }
 
     public class TranscodingHlsOptions
@@ -61,6 +63,13 @@ namespace Shared.Models.AppConf
         public int burstSec { get; set; } = 60*5;
 
         public bool delete_segments { get; set; } = true;
+    }
+
+    public class TranscodingVideoOptions
+    {
+        public string[] formats { get; set; } = { "avi", "flv" };
+
+        public string[] args { get; set; } = { "libx264", "-preset veryfast", "-tune zerolatency", "-pix_fmt yuv420p" };
     }
 
     public record TranscodingStartContext(
