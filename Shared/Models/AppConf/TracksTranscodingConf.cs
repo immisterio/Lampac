@@ -10,6 +10,8 @@ namespace Shared.Models.AppConf
 
         public int idleTimeoutSec { get; set; }
 
+        public int idleTimeoutSec_live { get; set; }
+
         public int maxConcurrentJobs { get; set; }
 
         public string[] allowHosts { get; set; } = Array.Empty<string>();

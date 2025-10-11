@@ -300,12 +300,7 @@ namespace Tracks.Controllers
                 return NotFound();
 
             var now = DateTime.UtcNow;
-            var idleTimeout = TimeSpan.FromSeconds(Math.Max(1, _service.IdleTimeoutSeconds));
-            var state = job.Process.HasExited
-                ? TranscodingJobState.Stopped
-                : (now - job.LastAccessUtc) > idleTimeout
-                    ? TranscodingJobState.Idle
-                    : TranscodingJobState.Running;
+            var state = job.Process.HasExited ? TranscodingJobState.Stopped : TranscodingJobState.Running;
 
             var uptime = now - job.StartedUtc;
 

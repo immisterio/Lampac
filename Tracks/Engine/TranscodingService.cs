@@ -68,24 +68,6 @@ namespace Tracks.Engine
 
         public ICollection<TranscodingJob> Jobs => _jobs.Values;
 
-        public string FfmpegPath
-        {
-            get
-            {
-                lock (_configSync)
-                    return _ffmpegPath;
-            }
-        }
-
-        public int IdleTimeoutSeconds
-        {
-            get
-            {
-                lock (_configSync)
-                    return _config.idleTimeoutSec;
-            }
-        }
-
         public (TranscodingJob job, string error) Start(TranscodingStartRequest request)
         {
             var config = GetConfig();
@@ -647,21 +629,37 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
 
         private async Task IdleWatchdogAsync(TranscodingJob job, TracksTranscodingConf config)
         {
-            var idle = TimeSpan.FromSeconds(Math.Max(20, config.idleTimeoutSec));
+            var idle = TimeSpan.FromSeconds(Math.Max(180, config.idleTimeoutSec));
+            var idle_live = TimeSpan.FromSeconds(Math.Max(20, config.idleTimeoutSec_live));
 
             try
             {
                 while (!job.CancellationToken.IsCancellationRequested && !job.Process.HasExited)
                 {
-                    if (!job.Context.live)
-                        continue;
-
                     await Task.Delay(TimeSpan.FromSeconds(1), job.CancellationToken);
 
-                    if (DateTime.UtcNow - job.LastAccessUtc > idle)
+                    if (job.Context.live)
                     {
-                        await StopJobAsync(job);
-                        break;
+                        if (config.idleTimeoutSec_live == -1)
+                            continue;
+
+                        if (DateTime.UtcNow - job.LastAccessUtc > idle_live)
+                        {
+                            await StopJobAsync(job);
+                            break;
+                        }
+                    }
+                    else
+                    {
+
+                        if (config.idleTimeoutSec == -1)
+                            continue;
+
+                        if (DateTime.UtcNow - job.LastAccessUtc > idle)
+                        {
+                            await StopJobAsync(job);
+                            break;
+                        }
                     }
                 }
             }
