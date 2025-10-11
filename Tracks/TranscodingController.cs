@@ -148,6 +148,29 @@ namespace Tracks.Controllers
         }
         #endregion
 
+        #region Seek
+        [HttpPost("{streamId}/seek/{ss}")]
+        public async Task<IActionResult> Seek(string streamId, int ss)
+        {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Initialization false" });
+
+            if (ss < 0)
+                return BadRequest(new { error = "ss must be greater or equal 0" });
+
+            var (success, error) = await _service.SeekAsync(streamId, ss);
+            if (!success)
+            {
+                if (error == "Job not found" || error == "Job no longer available")
+                    return NotFound();
+
+                return BadRequest(new { error });
+            }
+
+            return Ok();
+        }
+        #endregion
+
         #region Heartbeat
         [HttpPost("{streamId}/heartbeat")]
         public IActionResult Heartbeat(string streamId)
