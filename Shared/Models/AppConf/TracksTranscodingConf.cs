@@ -81,6 +81,7 @@ namespace Shared.Models.AppConf
         bool live,
         bool subtitles,
         string OutputDirectory,
-        string PlaylistPath
+        string PlaylistPath,
+        int? startNumber
     );
 }

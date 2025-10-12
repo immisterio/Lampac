@@ -227,12 +227,65 @@ namespace Tracks.Controllers
 
             string resolved = _service.GetFilePath(job, file);
 
-            if (job.Context.live == false)
+            if (job.Context.live == false && resolved == null)
             {
                 var fileExistsTimeout = TimeSpan.FromSeconds(20);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                while (!job.Context.live && resolved == null && sw.Elapsed < fileExistsTimeout)
+                #region SeekAsync
+                var match = Regex.Match(file, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int segmentIndex))
+                {
+                    int segDur = job.Context.HlsOptions.segDur;
+                    int ss = segmentIndex * segDur;
+
+                    if (job.Context.HlsOptions.seek == 0 && 60 > ss) 
+                    {
+                        // первая минута без seek-а - не трогаем
+                    }
+                    else if (job.Context.HlsOptions.seek == ss)
+                    {
+                        // ffmpeg на текущем сегменте
+                    }
+                    else
+                    {
+                        // работает дальше чем текущий сегмент
+                        bool goSeek = job.Context.HlsOptions.seek > ss;
+
+                        if (goSeek == false)
+                        {
+                            goSeek = true;
+
+                            string extension = Path.GetExtension(file);
+                            int segmentsPerMinute = (int)Math.Ceiling(60.0 / segDur);
+                            int startIndex = Math.Max(0, segmentIndex - segmentsPerMinute);
+
+                            for (int i = startIndex; i < segmentIndex; i++)
+                            {
+                                string candidate = $"seg_{i:d5}{extension}";
+                                if (_service.GetFilePath(job, candidate) != null)
+                                {
+                                    // есть сегменты в пределах последней минуты
+                                    goSeek = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (goSeek)
+                        {
+                            var (success, _) = await _service.SeekAsync(streamId, ss, segmentIndex);
+                            if (success && _service.TryResolveJob(streamId, out var refreshedJob))
+                                job = refreshedJob;
+
+                            var waitTimeout = TimeSpan.FromSeconds(60);
+                            sw.Restart();
+                        }
+                    }
+                }
+                #endregion
+
+                while (sw.Elapsed < fileExistsTimeout)
                 {
                     await Task.Delay(250);
                     resolved = _service.GetFilePath(job, file);

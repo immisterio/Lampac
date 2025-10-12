@@ -92,7 +92,8 @@ namespace Tracks.Engine
                 request.live,
                 request.subtitles,
                 outputDir,
-                Path.Combine(outputDir, "index.m3u8")
+                Path.Combine(outputDir, "index.m3u8"),
+                null
             );
 
             var process = CreateProcess(context);
@@ -158,7 +159,7 @@ namespace Tracks.Engine
             return true;
         }
 
-        public async Task<(bool success, string error)> SeekAsync(string streamId, int seconds)
+        public async Task<(bool success, string error)> SeekAsync(string streamId, int seconds, int? startSegment = null)
         {
             if (seconds < 0)
                 return (false, "ss must be greater or equal 0");
@@ -176,7 +177,8 @@ namespace Tracks.Engine
                     segDur = job.Context.HlsOptions.segDur,
                     winSize = job.Context.HlsOptions.winSize,
                     fmp4 = job.Context.HlsOptions.fmp4
-                }
+                },
+                startNumber = startSegment
             };
 
             job.Process.EnableRaisingEvents = false;
@@ -351,6 +353,7 @@ namespace Tracks.Engine
 
             return new TranscodingHlsOptions
             {
+                seek = opt?.seek > 0 ? opt.seek : 0,
                 segDur = opt?.segDur > 1 ? opt.segDur : 1,
                 winSize = opt?.winSize > 5 ? opt.winSize : 5,
                 fmp4 = opt?.fmp4 ?? true
@@ -363,6 +366,7 @@ namespace Tracks.Engine
 
             return new TranscodingAudioOptions
             {
+                index = opt?.index >= 0 ? opt.index : 0,
                 bitrateKbps = opt?.bitrateKbps is > 0 and <= 512 ? opt.bitrateKbps : 160,
                 stereo = opt?.stereo ?? true,
                 transcodeToAac = opt?.transcodeToAac ?? true
@@ -629,11 +633,20 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-hls_list_size");
             args.Add(context.HlsOptions.winSize.ToString(CultureInfo.InvariantCulture));
 
-            if (context.HlsOptions.seek > 0)
+            #region -start_number
+            int? startNumber = context.startNumber;
+            if (!startNumber.HasValue && context.HlsOptions.seek > 0)
+            {
+                int segDur = Math.Max(1, context.HlsOptions.segDur);
+                startNumber = context.HlsOptions.seek / segDur;
+            }
+
+            if (startNumber.HasValue)
             {
                 args.Add("-start_number");
-                args.Add((context.HlsOptions.seek / context.HlsOptions.segDur).ToString());
+                args.Add(startNumber.Value.ToString());
             }
+            #endregion
 
             args.Add("-master_pl_name");
             args.Add("index.m3u8");
