@@ -480,7 +480,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             if (context.live)
             {
                 args.Add("-re");
-                args.Add("-readrate_initial_burst");
+                args.Add("-readrate_initial_burst"); // FFmpeg 6.1+
                 args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
             }
             else if (config.playlistOptions.re)
@@ -489,6 +489,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
 
                 if (config.playlistOptions.burstSec > 0)
                 {
+                    // FFmpeg 6.1+
                     args.Add("-readrate_initial_burst");
                     args.Add(config.playlistOptions.burstSec.ToString());
                 }

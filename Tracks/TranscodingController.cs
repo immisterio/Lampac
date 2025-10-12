@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json;
 using Shared;
+using Shared.Engine;
 using Shared.Models.AppConf;
 using System;
 using System.IO;
@@ -33,7 +34,7 @@ namespace Tracks.Controllers
 
         #region Start
         [HttpGet("start.m3u8")]
-        public IActionResult StartM3u8(string src, int a, int s, bool live)
+        public IActionResult StartM3u8(string src, int a, int s, bool subtitles, bool live)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -47,6 +48,7 @@ namespace Tracks.Controllers
             { 
                 src = src,
                 live = live,
+                subtitles = subtitles,
                 audio = new TranscodingAudioOptions() 
                 { 
                     index = a,
@@ -66,7 +68,9 @@ namespace Tracks.Controllers
             if (job == null)
                 return BadRequest(new { error });
 
-            return Redirect($"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/{(live ? "live" : "main")}.m3u8");
+            string uri = $"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/{(live ? "live" : "main")}.m3u8";
+
+            return Redirect(AccsDbInvk.Args(uri, HttpContext));
         }
 
         [HttpPost("start")]
@@ -85,7 +89,7 @@ namespace Tracks.Controllers
             return Ok(new
             {
                 job.StreamId,
-                playlistUrl = $"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/{(job.Context.live ? "live" : "main")}.m3u8",
+                playlistUrl = AccsDbInvk.Args($"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/{(job.Context.live ? "live" : "main")}.m3u8", HttpContext),
                 hls_timeout_seconds = 60
             });
         }
@@ -148,6 +152,11 @@ namespace Tracks.Controllers
                 return NotFound();
 
             m3u8 = Regex.Replace(m3u8, "#EXT-X-MAP:URI=[^\n\r]+", "#EXT-X-MAP:URI=\"init.mp4\"");
+            m3u8 = Regex.Replace(m3u8, "(seg_[0-9]+\\.(m4s|ts))", r =>
+            {
+                string file = r.Groups[1].Value;
+                return AccsDbInvk.Args(file, HttpContext);
+            });
 
             return Content(m3u8, "application/vnd.apple.mpegurl");
         }
@@ -193,7 +202,10 @@ namespace Tracks.Controllers
             builder.AppendLine("#EXT-X-MAP:URI=\"init.mp4\"");
 
             for (int i = 0; i < (job.duration / segDur); i++)
-                builder.AppendLine($"#EXTINF:{segDur}.0,\nseg_{i:d5}.m4s");
+            {
+                builder.AppendLine($"#EXTINF:{segDur}.0,");
+                builder.AppendLine(AccsDbInvk.Args($"seg_{i:d5}.m4s", HttpContext));
+            }
 
             builder.AppendLine("#EXT-X-ENDLIST");
 
@@ -368,6 +380,7 @@ namespace Tracks.Controllers
                         new { name = "src", type = "string", required = true, description = "Source URL or local path to media" },
                         new { name = "a", type = "int", required = false, description = "Audio index (optional)" },
                         new { name = "s", type = "int", required = false, description = "Seek position in seconds (optional)" },
+                        new { name = "subtitles", type = "bool", required = false, description = "subtitles on/off" },
                         new { name = "live", type = "bool", required = false, description = "Context live/playlist" }
                     },
                     description = "Start transcoding with query parameters and redirect to the generated HLS playlist"
