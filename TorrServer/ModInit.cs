@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
+using Shared.Models.Module;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -95,7 +96,7 @@ namespace TorrServer
         #endregion
 
         #region loaded
-        public static void loaded()
+        public static void loaded(InitspaceModel initspace)
         {
             _cronTimer = new Timer(cron_UpdateSettings, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 

@@ -15,25 +15,6 @@ using Tracks.Engine;
 
 namespace Tracks.Controllers
 {
-    public class TranscodingJsController : Controller
-    {
-        [HttpGet]
-        [Route("transcoding.js")]
-        [Route("transcoding/js/{token}")]
-        public ActionResult TranscodingJs(string token)
-        {
-            if (!AppInit.conf.trackstranscoding.enable)
-                return Content(string.Empty);
-
-            var sb = new StringBuilder(FileCache.ReadAllText("plugins/transcoding.js"));
-
-            sb.Replace("{localhost}", AppInit.Host(HttpContext))
-              .Replace("{token}", HttpUtility.UrlEncode(token));
-
-            return Content(sb.ToString(), "application/javascript; charset=utf-8");
-        }
-    }
-
     [ApiController]
     [Route("transcoding")]
     public sealed class TranscodingController : Controller
@@ -51,6 +32,24 @@ namespace Tracks.Controllers
             }
         };
         #endregion
+
+        #region transcoding.js
+        [HttpGet("/transcoding.js")]
+        [HttpGet("js/{token}")]
+        public ActionResult TranscodingJs(string token)
+        {
+            if (!AppInit.conf.trackstranscoding.enable)
+                return Content(string.Empty);
+
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/transcoding.js"));
+
+            sb.Replace("{localhost}", AppInit.Host(HttpContext))
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
+        }
+        #endregion
+
 
         #region Start
         [HttpGet("start.m3u8")]
@@ -331,21 +330,7 @@ namespace Tracks.Controllers
             if (resolved == null)
                 return NotFound();
 
-            if (!job.Context.live && AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
-            {
-                _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(_ =>
-                {
-                    try
-                    {
-                        System.IO.File.Delete(resolved);
-                    }
-                    catch { }
-                }, TaskScheduler.Default);
-            }
-
-            if (!provider.TryGetContentType(resolved, out var contentType))
-                contentType = "application/octet-stream";
-
+            #region FileStream
             FileStream fs = null;
             while (sw.Elapsed < fileExistsTimeout)
             {
@@ -366,6 +351,24 @@ namespace Tracks.Controllers
 
             if (fs == null)
                 return NotFound();
+            #endregion
+
+            #region delete_segments
+            if (!job.Context.live && AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
+            {
+                _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(_ =>
+                {
+                    try
+                    {
+                        System.IO.File.Delete(resolved);
+                    }
+                    catch { }
+                }, TaskScheduler.Default);
+            }
+            #endregion
+
+            if (!provider.TryGetContentType(resolved, out var contentType))
+                contentType = "application/octet-stream";
 
             return File(fs, contentType, enableRangeProcessing: true);
         }
@@ -489,7 +492,7 @@ namespace Tracks.Controllers
                         new { name = "src", type = "string", required = true, description = "Source URL or local path to media" },
                         new { name = "a", type = "int", required = false, description = "Audio index (optional)" },
                         new { name = "s", type = "int", required = false, description = "Seek position in seconds (optional)" },
-                        new { name = "subtitles", type = "bool", required = false, description = "subtitles on/off" },
+                        new { name = "subtitles", type = "int", required = false, description = "subtitles index" },
                         new { name = "live", type = "bool", required = false, description = "Context live/playlist" }
                     },
                     description = "Start transcoding with query parameters and redirect to the generated HLS playlist"
@@ -500,8 +503,9 @@ namespace Tracks.Controllers
                     contentType = "application/json",
                     body = new {
                         src = "https://example.com/media.mp4",
+                        videoFormat = "",
                         live = false,
-                        subtitles = false,
+                        subtitles = 0,
                         headers = new { referer = "https://example.com", userAgent = "HlsProxy/1.0" },
                         audio = AppInit.conf.trackstranscoding.audioOptions,
                         hls = AppInit.conf.trackstranscoding.hlsOptions
