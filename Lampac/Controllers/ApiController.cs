@@ -235,8 +235,9 @@ namespace Lampac.Controllers
                 }
                 #endregion
 
-                string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false);
-                playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false)
+                       .Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower())
+                       .Replace("{notUseTranscoding}", (AppInit.conf.trackstranscoding.enable == false).ToString().ToLower());
 
                 var bulder = new StringBuilder(file);
 

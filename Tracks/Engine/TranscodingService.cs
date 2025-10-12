@@ -526,10 +526,25 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("0:v:0");
 
             args.Add("-map");
-            args.Add($"{context.Audio.index}:a:0");
+            args.Add($"0:a:{(0 >= context.Audio.index ? 0 : context.Audio.index)}?");
 
-            if (context.subtitles == false)
+            #region subtitles
+            if (context.subtitles != null)
+            {
+                args.Add("-map");
+                args.Add($"0:{context.subtitles}?");
+                args.Add("-c:s");
+                args.Add("webvtt");
+
+                args.Add("-f");
+                args.Add("webvtt");
+                args.Add(Path.Combine(context.OutputDirectory, "subs.vtt"));
+            }
+            else
+            {
                 args.Add("-sn");
+            }
+            #endregion
 
             args.Add("-dn");
 

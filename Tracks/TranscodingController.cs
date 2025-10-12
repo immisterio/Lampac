@@ -54,7 +54,7 @@ namespace Tracks.Controllers
 
         #region Start
         [HttpGet("start.m3u8")]
-        public IActionResult StartM3u8(string src, string videoFormat, int a, int s, bool subtitles, bool live)
+        public IActionResult StartM3u8(string src, string videoFormat, int a, int s, int? subtitles, bool live)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
