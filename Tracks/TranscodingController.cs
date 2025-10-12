@@ -22,7 +22,7 @@ namespace Tracks.Controllers
         [Route("transcoding/js/{token}")]
         public ActionResult TranscodingJs(string token)
         {
-            if (!AppInit.conf.ffprobe.enable)
+            if (!AppInit.conf.trackstranscoding.enable)
                 return Content(string.Empty);
 
             var sb = new StringBuilder(FileCache.ReadAllText("plugins/transcoding.js"));
@@ -203,7 +203,7 @@ namespace Tracks.Controllers
 
             while (sw.Elapsed < fileExistsTimeout)
             {
-                if (job.duration > 0 && Directory.GetFiles(job.Context.OutputDirectory).Length > 5)
+                if (job.duration > 0 && Directory.GetFiles(job.Context.OutputDirectory).Length > 2)
                     break;
 
                 await Task.Delay(250);
@@ -246,13 +246,13 @@ namespace Tracks.Controllers
 
             _service.Touch(job);
 
+            var fileExistsTimeout = TimeSpan.FromSeconds(60);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             string resolved = _service.GetFilePath(job, file);
 
             if (job.Context.live == false && resolved == null)
             {
-                var fileExistsTimeout = TimeSpan.FromSeconds(20);
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
                 #region SeekAsync
                 var match = Regex.Match(file, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
                 if (match.Success && int.TryParse(match.Groups[1].Value, out int segmentIndex))
@@ -262,31 +262,31 @@ namespace Tracks.Controllers
 
                     if (job.Context.HlsOptions.seek == 0 && 60 > ss) 
                     {
-                        // ïåðâàÿ ìèíóòà áåç seek-à - íå òðîãàåì
+                        // Ð¿ÐµÑ€Ð²Ð°Ñ Ð¼Ð¸Ð½ÑƒÑ‚Ð° Ð±ÐµÐ· seek-Ð° - Ð½Ðµ Ñ‚Ñ€Ð¾Ð³Ð°ÐµÐ¼
                     }
                     else if (job.Context.HlsOptions.seek == ss)
                     {
-                        // ffmpeg íà òåêóùåì ñåãìåíòå
+                        // ffmpeg Ð½Ð° Ñ‚ÐµÐºÑƒÑ‰ÐµÐ¼ ÑÐµÐ³Ð¼ÐµÐ½Ñ‚Ðµ
                     }
                     else
                     {
-                        // ðàáîòàåò äàëüøå ÷åì òåêóùèé ñåãìåíò
+                        // Ñ€Ð°Ð±Ð¾Ñ‚Ð°ÐµÑ‚ Ð´Ð°Ð»ÑŒÑˆÐµ Ñ‡ÐµÐ¼ Ñ‚ÐµÐºÑƒÑ‰Ð¸Ð¹ ÑÐµÐ³Ð¼ÐµÐ½Ñ‚
                         bool goSeek = job.Context.HlsOptions.seek > ss;
+
+                        string extension = Path.GetExtension(file);
+                        int segmentsPerMinute = (int)Math.Ceiling(60.0 / segDur);
+                        int startIndex = Math.Max(0, segmentIndex - segmentsPerMinute);
 
                         if (goSeek == false)
                         {
                             goSeek = true;
-
-                            string extension = Path.GetExtension(file);
-                            int segmentsPerMinute = (int)Math.Ceiling(60.0 / segDur);
-                            int startIndex = Math.Max(0, segmentIndex - segmentsPerMinute);
 
                             for (int i = startIndex; i < segmentIndex; i++)
                             {
                                 string candidate = $"seg_{i:d5}{extension}";
                                 if (_service.GetFilePath(job, candidate) != null)
                                 {
-                                    // åñòü ñåãìåíòû â ïðåäåëàõ ïîñëåäíåé ìèíóòû
+                                    // ÐµÑÑ‚ÑŒ ÑÐµÐ³Ð¼ÐµÐ½Ñ‚Ñ‹ Ð² Ð¿Ñ€ÐµÐ´ÐµÐ»Ð°Ñ… Ð¿Ð¾ÑÐ»ÐµÐ´Ð½ÐµÐ¹ Ð¼Ð¸Ð½ÑƒÑ‚Ñ‹
                                     goSeek = false;
                                     break;
                                 }
@@ -295,12 +295,25 @@ namespace Tracks.Controllers
 
                         if (goSeek)
                         {
-                            var (success, _) = await _service.SeekAsync(streamId, ss, segmentIndex);
-                            if (success && _service.TryResolveJob(streamId, out var refreshedJob))
-                                job = refreshedJob;
+                            await _service.SeekAsync(streamId, ss, segmentIndex);
 
-                            var waitTimeout = TimeSpan.FromSeconds(60);
-                            sw.Restart();
+                            if (AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
+                            {
+                                foreach (string inFile in Directory.GetFiles(job.OutputDirectory))
+                                {
+                                    try
+                                    {
+                                        var name = Path.GetFileName(inFile);
+                                        var m = Regex.Match(name, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
+                                        if (m.Success && int.TryParse(m.Groups[1].Value, out int idx))
+                                        {
+                                            if (idx < startIndex)
+                                                System.IO.File.Delete(inFile);
+                                        }
+                                    }
+                                    catch { }
+                                }
+                            }
                         }
                     }
                 }
@@ -320,7 +333,7 @@ namespace Tracks.Controllers
 
             if (!job.Context.live && AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
             {
-                _ = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
+                _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(_ =>
                 {
                     try
                     {
@@ -333,7 +346,28 @@ namespace Tracks.Controllers
             if (!provider.TryGetContentType(resolved, out var contentType))
                 contentType = "application/octet-stream";
 
-            return File(System.IO.File.OpenRead(resolved), contentType, enableRangeProcessing: true);
+            FileStream fs = null;
+            while (sw.Elapsed < fileExistsTimeout)
+            {
+                try
+                {
+                    fs = new FileStream(resolved, FileMode.Open, FileAccess.Read);
+                    break;
+                }
+                catch (IOException)
+                {
+                    await Task.Delay(200);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    await Task.Delay(200);
+                }
+            }
+
+            if (fs == null)
+                return NotFound();
+
+            return File(fs, contentType, enableRangeProcessing: true);
         }
         #endregion
 

@@ -451,8 +451,14 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.dlna && AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/dlna.js\",\"status\": 1,\"name\": \"DLNA\",\"author\": \"lampac\"},";
 
-                    if (AppInit.conf.LampaWeb.initPlugins.tracks && AppInit.modules.FirstOrDefault(i => i.dll == "Tracks.dll" && i.enable) != null)
-                        initiale += "{\"url\": \"{localhost}/tracks.js\",\"status\": 1,\"name\": \"Tracks.js\",\"author\": \"lampac\"},";
+                    if (AppInit.modules.FirstOrDefault(i => i.dll == "Tracks.dll" && i.enable) != null)
+                    {
+                        if (AppInit.conf.LampaWeb.initPlugins.tracks)
+                            initiale += "{\"url\": \"{localhost}/tracks.js\",\"status\": 1,\"name\": \"Tracks.js\",\"author\": \"lampac\"},";
+
+                        if (AppInit.conf.LampaWeb.initPlugins.transcoding && AppInit.conf.trackstranscoding.enable)
+                            initiale += "{\"url\": \"{localhost}/transcoding.js\",\"status\": 1,\"name\": \"Transcoding video\",\"author\": \"lampac\"},";
+                    }
 
                     if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
                         initiale += "{\"url\": \"{localhost}/tmdbproxy.js\",\"status\": 1,\"name\": \"TMDB Proxy\",\"author\": \"lampac\"},";
@@ -466,11 +472,14 @@ namespace Lampac.Controllers
                         initiale += "{\"url\": \"{localhost}/startpage.js\",\"status\": 1,\"name\": \"Стартовая страница\",\"author\": \"lampac\"},";
                     }
 
+                    if (AppInit.conf.LampaWeb.initPlugins.sync)
+                        initiale += "{\"url\": \"{localhost}/sync.js\",\"status\": 1,\"name\": \"Синхронизация\",\"author\": \"lampac\"},";
+
                     if (AppInit.conf.LampaWeb.initPlugins.timecode)
                         initiale += "{\"url\": \"{localhost}/timecode.js\",\"status\": 1,\"name\": \"Синхронизация тайм-кодов\",\"author\": \"lampac\"},";
 
-                    if (AppInit.conf.LampaWeb.initPlugins.sync)
-                        initiale += "{\"url\": \"{localhost}/sync.js\",\"status\": 1,\"name\": \"Синхронизация\",\"author\": \"lampac\"},";
+                    if (AppInit.conf.LampaWeb.initPlugins.bookmark)
+                        initiale += "{\"url\": \"{localhost}/bookmark.js\",\"status\": 1,\"name\": \"Синхронизация закладок\",\"author\": \"lampac\"},";
 
                     if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/ts.js\",\"status\": 1,\"name\": \"TorrServer\",\"author\": \"lampac\"},";
@@ -573,8 +582,14 @@ namespace Lampac.Controllers
                 if (AppInit.conf.LampaWeb.initPlugins.dlna && AppInit.modules.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) != null)
                     send("dlna", true);
 
-                if (AppInit.conf.LampaWeb.initPlugins.tracks && AppInit.modules.FirstOrDefault(i => i.dll == "Tracks.dll" && i.enable) != null)
-                    send("tracks", true);
+                if (AppInit.modules.FirstOrDefault(i => i.dll == "Tracks.dll" && i.enable) != null)
+                {
+                    if (AppInit.conf.LampaWeb.initPlugins.tracks)
+                        send("tracks", true);
+
+                    if (AppInit.conf.LampaWeb.initPlugins.transcoding && AppInit.conf.trackstranscoding.enable)
+                        send("transcoding", true);
+                }
 
                 if (AppInit.conf.LampaWeb.initPlugins.tmdbProxy)
                     send("tmdbproxy", true);
@@ -591,11 +606,14 @@ namespace Lampac.Controllers
                     }
                 }
 
+                if (AppInit.conf.LampaWeb.initPlugins.sync)
+                    send("sync", true);
+
                 if (AppInit.conf.LampaWeb.initPlugins.timecode)
                     send("timecode", true);
 
-                if (AppInit.conf.LampaWeb.initPlugins.sync)
-                    send("sync", true);
+                if (AppInit.conf.LampaWeb.initPlugins.bookmark)
+                    send("bookmark", true);
 
                 if (AppInit.conf.LampaWeb.initPlugins.torrserver && AppInit.modules.FirstOrDefault(i => i.dll == "TorrServer.dll" && i.enable) != null)
                     send("ts", true);

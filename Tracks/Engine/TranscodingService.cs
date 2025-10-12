@@ -488,16 +488,17 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add("-readrate_initial_burst"); // FFmpeg 6.1+
                 args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
             }
-            else if (config.playlistOptions.re)
+            else if (config.playlistOptions.readrate > 0)
             {
-                args.Add("-re");
-
                 if (config.playlistOptions.burstSec > 0)
                 {
                     // FFmpeg 6.1+
                     args.Add("-readrate_initial_burst");
                     args.Add(config.playlistOptions.burstSec.ToString());
                 }
+
+                args.Add("-readrate");
+                args.Add(config.playlistOptions.readrate.ToString().Replace(",", "."));
             }
 
             if (context.HlsOptions.seek > 0)

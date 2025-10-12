@@ -58,11 +58,11 @@ namespace Shared.Models.AppConf
 
     public class TranscodingPlaylistOptions
     {
-        public bool re { get; set; }
+        public double readrate { get; set; } = 1.1;
 
         public int burstSec { get; set; } = 180;
 
-        public bool delete_segments { get; set; }
+        public bool delete_segments { get; set; } = true;
     }
 
     public class TranscodingVideoOptions
