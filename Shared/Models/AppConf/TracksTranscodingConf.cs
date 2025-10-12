@@ -67,7 +67,7 @@ namespace Shared.Models.AppConf
 
     public class TranscodingVideoOptions
     {
-        public string[] formats { get; set; } = { "avi", "flv" };
+        public string[] formats { get; set; } = { "avi", "flv", "h265" };
 
         public string[] args { get; set; } = { "libx264", "-preset veryfast", "-tune zerolatency", "-pix_fmt yuv420p" };
     }
@@ -82,6 +82,7 @@ namespace Shared.Models.AppConf
         bool subtitles,
         string OutputDirectory,
         string PlaylistPath,
-        int? startNumber
+        int? startNumber,
+        string videoFormat
     );
 }

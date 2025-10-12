@@ -10,10 +10,30 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using Tracks.Engine;
 
 namespace Tracks.Controllers
 {
+    public class TranscodingJsController : Controller
+    {
+        [HttpGet]
+        [Route("transcoding.js")]
+        [Route("transcoding/js/{token}")]
+        public ActionResult TranscodingJs(string token)
+        {
+            if (!AppInit.conf.ffprobe.enable)
+                return Content(string.Empty);
+
+            var sb = new StringBuilder(FileCache.ReadAllText("plugins/transcoding.js"));
+
+            sb.Replace("{localhost}", AppInit.Host(HttpContext))
+              .Replace("{token}", HttpUtility.UrlEncode(token));
+
+            return Content(sb.ToString(), "application/javascript; charset=utf-8");
+        }
+    }
+
     [ApiController]
     [Route("transcoding")]
     public sealed class TranscodingController : Controller
@@ -34,7 +54,7 @@ namespace Tracks.Controllers
 
         #region Start
         [HttpGet("start.m3u8")]
-        public IActionResult StartM3u8(string src, int a, int s, bool subtitles, bool live)
+        public IActionResult StartM3u8(string src, string videoFormat, int a, int s, bool subtitles, bool live)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -47,6 +67,7 @@ namespace Tracks.Controllers
             var (job, error) = _service.Start(new TranscodingStartRequest() 
             { 
                 src = src,
+                videoFormat = videoFormat,
                 live = live,
                 subtitles = subtitles,
                 audio = new TranscodingAudioOptions() 
@@ -58,7 +79,7 @@ namespace Tracks.Controllers
                 },
                 hls = new TranscodingHlsOptions() 
                 { 
-                    seek = a,
+                    seek = s,
                     segDur = defaults.hlsOptions.segDur,
                     winSize = defaults.hlsOptions.winSize,
                     fmp4 = defaults.hlsOptions.fmp4
@@ -411,6 +432,7 @@ namespace Tracks.Controllers
                 startedUtc = job.StartedUtc,
                 lastAccessUtc = job.LastAccessUtc,
                 uptime = uptime.TotalSeconds,
+                job.videoFormat,
                 job.duration,
                 time = (ulong)(job.Context.HlsOptions.seek + (time_ms > 0 ? (time_ms / 1000000.0) : 0)),
                 exitCode,

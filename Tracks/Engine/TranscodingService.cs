@@ -93,7 +93,8 @@ namespace Tracks.Engine
                 request.subtitles,
                 outputDir,
                 Path.Combine(outputDir, "index.m3u8"),
-                null
+                null,
+                request.videoFormat
             );
 
             var process = CreateProcess(context);
@@ -506,14 +507,11 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add("-noaccurate_seek");
             }
 
-            if (context.live)
-            {
-                args.Add("-nostats");
-                args.Add("-progress");
-                args.Add("pipe:2");
-                args.Add("-stats_period");
-                args.Add("1");
-            }
+            args.Add("-nostats");
+            args.Add("-progress");
+            args.Add("pipe:2");
+            args.Add("-stats_period");
+            args.Add(context.live ? "1" : "5");
 
             args.Add("-threads");
             args.Add("0");
@@ -546,8 +544,17 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             {
                 try
                 {
-                    var extNoDot = Path.GetExtension(context.Source.AbsolutePath).TrimStart('.').ToLowerInvariant();
-                    if (config.videoOptions.formats.Any(f => string.Equals(f, extNoDot, StringComparison.OrdinalIgnoreCase)))
+                    bool convert = context.videoFormat != null && config.videoOptions.formats.Contains(context.videoFormat);
+
+                    if (convert == false)
+                    {
+                        // Попытка определить формат видео из URL
+                        var ext = Path.GetExtension(context.Source.AbsolutePath).TrimStart('.').ToLowerInvariant();
+                        if (config.videoOptions.formats.Any(f => string.Equals(f, ext, StringComparison.OrdinalIgnoreCase)))
+                            convert = true;
+                    }
+
+                    if (convert)
                     {
                         args.Add("-c:v");
                         args.Add(config.videoOptions.args[0]);
