@@ -4,6 +4,9 @@ using System.Runtime.InteropServices;
 
 namespace Shared.Engine
 {
+    /// <summary>
+    /// https://github.com/BtbN/FFmpeg-Builds/releases
+    /// </summary>
     public static class FFmpeg
     {
         #region InitializationAsync
@@ -32,23 +35,16 @@ namespace Shared.Engine
                 disableInstall = true;
                 string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
 
-                if (await Http.DownloadFile($"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win{arh}-gpl.zip", "data/ffmpeg.zip"))
+                if (await Http.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/ffmpeg-master-latest-win{arh}-gpl.zip", "data/ffmpeg.zip"))
                 {
                     ZipFile.ExtractToDirectory("data/ffmpeg.zip", "data/", overwriteFiles: true);
 
-                    File.Move($"data/ffmpeg-master-latest-win{arh}-gpl/bin/ffmpeg.exe", "data/ffmpeg.exe", true);
-                    File.Move($"data/ffmpeg-master-latest-win{arh}-gpl/bin/ffprobe.exe", "data/ffprobe.exe", true);
-
                     File.Delete("data/ffmpeg.zip");
-                    Directory.Delete($"data/ffmpeg-master-latest-win{arh}-gpl", true);
 
                     Console.WriteLine("FFmpeg: Initialization");
                     disableInstall = false;
                     return true;
                 }
-
-                if (File.Exists("data/ffmpeg.zip"))
-                    File.Delete("data/ffmpeg.zip");
 
                 Console.WriteLine($"FFmpeg: error download ffmpeg-win{arh}-gpl.zip");
                 disableInstall = false;
@@ -72,26 +68,34 @@ namespace Shared.Engine
 
                     disableInstall = true;
 
-                    await Bash.Run("apt update && apt install -y ffmpeg");
-                    version = await Bash.Run("ffmpeg -version");
-                    if (version == null || !version.Contains("FFmpeg developers"))
+                    if (RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
                     {
-                        if (RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                        string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
+                        if (await Http.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/ffmpeg-master-latest-linux{arh}-gpl.zip", "data/ffmpeg"))
                         {
-                            string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
-                            if (await Http.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg/ffmpeg-linux"+arh, "data/ffmpeg"))
-                            {
-                                Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffmpeg")}");
-                                await Task.Delay(2000); // Wait for chmod to complete
-                                Console.WriteLine("FFmpeg: Initialization");
-                                disableInstall = false;
-                                return true;
-                            }
-                        }
+                            ZipFile.ExtractToDirectory("data/ffmpeg.zip", "data/", overwriteFiles: true);
 
-                        Console.WriteLine("FFmpeg: error install ffmpeg");
-                        disableInstall = false;
-                        return false;
+                            File.Delete("data/ffmpeg.zip");
+
+                            Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffmpeg")}");
+                            Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffprobe")}");
+
+                            await Task.Delay(2000); // Wait for chmod to complete
+                            Console.WriteLine("FFmpeg: Initialization");
+                            disableInstall = false;
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        await Bash.Run("apt update && apt install -y ffmpeg");
+                        version = await Bash.Run("ffmpeg -version");
+                        if (version == null || !version.Contains("FFmpeg developers"))
+                        {
+                            Console.WriteLine("FFmpeg: error install ffmpeg");
+                            disableInstall = false;
+                            return false;
+                        }
                     }
                 }
 

@@ -67,16 +67,16 @@ namespace Shared.Models.AppConf
     {
         public double readrate { get; set; } = 1.1;
 
-        public int burstSec { get; set; } = 180;
+        public int burstSec { get; set; }
 
         public bool delete_segments { get; set; } = true;
     }
 
     public class TranscodingConvertOptions
     {
-        public string[] formats { get; set; } = { "avi", "flv", "h265", "av1" };
+        public string[] codec { get; set; } = { "mpeg4", "msmpeg4v3", "flv1", "av1" };
 
-        public string[] args { get; set; } = { "libx264", "-preset veryfast", "-tune zerolatency", "-pix_fmt yuv420p" };
+        public string[] comand { get; set; } = { "libx264", "-preset veryfast", "-tune zerolatency", "-pix_fmt yuv420p" };
     }
 
     public record TranscodingStartContext(

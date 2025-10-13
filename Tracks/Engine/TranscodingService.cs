@@ -7,7 +7,6 @@ using Shared.Models.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -42,7 +41,7 @@ namespace Tracks.Engine
                     : config.ffmpeg;
 
             if (string.IsNullOrWhiteSpace(config.tempRoot))
-                config.tempRoot = Path.Combine(Path.GetTempPath(), "tracks-hls");
+                config.tempRoot = Path.Combine("cache", "transcoding");
 
             try
             {
@@ -492,8 +491,12 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
 
             args.Add("-hide_banner");
 
-            args.Add("-user_agent");
-            args.Add(context.UserAgent);
+            if (context.UserAgent != null)
+            {
+                args.Add("-user_agent");
+                args.Add(context.UserAgent);
+            }
+
             if (!string.IsNullOrWhiteSpace(context.Referer))
             {
                 args.Add("-headers");
@@ -526,8 +529,12 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             {
                 isReadrate = true;
                 args.Add("-re");
-                args.Add("-readrate_initial_burst"); // FFmpeg 6.1+
-                args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
+
+                if (config.playlistOptions.burstSec > 0)
+                {
+                    args.Add("-readrate_initial_burst"); // FFmpeg 6.1+
+                    args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
+                }
             }
             else if (config.playlistOptions.readrate > 0)
             {
@@ -606,7 +613,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-1");
 
             #region -c:v
-            if (config.convertOptions.formats != null && config.convertOptions.args != null && config.convertOptions.args.Length > 0)
+            if (config.convertOptions.codec != null && config.convertOptions.comand != null && config.convertOptions.comand.Length > 0)
             {
                 try
                 {
@@ -615,26 +622,18 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                     if (context.ffprobe != null && context.ffprobe.ContainsKey("streams"))
                     {
                         string codec_name = context.ffprobe["streams"].First.Value<string>("codec_name");
-                        if (!string.IsNullOrEmpty(codec_name) && config.convertOptions.formats.Contains(codec_name))
-                            convert = true;
-                    }
-
-                    if (convert == false)
-                    {
-                        // Попытка определить формат видео из URL
-                        var ext = Path.GetExtension(context.Source.AbsolutePath).TrimStart('.').ToLowerInvariant();
-                        if (config.convertOptions.formats.Any(f => string.Equals(f, ext, StringComparison.OrdinalIgnoreCase)))
+                        if (!string.IsNullOrEmpty(codec_name) && config.convertOptions.codec.Contains(codec_name))
                             convert = true;
                     }
 
                     if (convert)
                     {
                         args.Add("-c:v");
-                        args.Add(config.convertOptions.args[0]);
+                        args.Add(config.convertOptions.comand[0]);
 
-                        for (int i = 1; i < config.convertOptions.args.Length; i++)
+                        for (int i = 1; i < config.convertOptions.comand.Length; i++)
                         {
-                            foreach (var t in config.convertOptions.args[i].Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                            foreach (var t in config.convertOptions.comand[i].Split(' ', StringSplitOptions.RemoveEmptyEntries))
                                 args.Add(t);
                         }
                     }
