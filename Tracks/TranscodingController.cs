@@ -419,21 +419,23 @@ namespace Tracks.Controllers
             {
                 foreach (var s in job.Context.ffprobe["streams"])
                 {
-                    string codec_type = s.Value<string>("codec_type");
-                    if (codec_type != "subtitle")
+                    if (s.Value<string>("codec_type") != "subtitle")
                         continue;
 
-                    int subIndex = s.Value<int>("index");
-                    if (subIndex == 0)
-                        continue;
+                    if (s.Value<string>("codec_name") is "subrip" or "webvtt" or "ass" or "ssa" or "mov_text" or "ttml" or "sami")
+                    {
+                        int subIndex = s.Value<int>("index");
+                        if (subIndex == 0)
+                            continue;
 
-                    string uri = $"{AppInit.Host(HttpContext)}/transcoding/{streamId}/{AccsDbInvk.Args($"subs_{subIndex}.vtt", HttpContext)}";
+                        string uri = $"{AppInit.Host(HttpContext)}/transcoding/{streamId}/{AccsDbInvk.Args($"subs_{subIndex}.vtt", HttpContext)}";
 
-                    string name = s["tags"].Value<string>("title") 
-                        ?? s["language"].Value<string>("title") 
-                        ?? $"sub_{subIndex}";
+                        string name = s["tags"].Value<string>("title")
+                            ?? s["language"].Value<string>("title")
+                            ?? $"sub_{subIndex}";
 
-                    subsTpl.Append(name, uri);
+                        subsTpl.Append(name, uri);
+                    }
                 }
             }
 

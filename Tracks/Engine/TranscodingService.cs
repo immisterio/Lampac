@@ -543,38 +543,39 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("disabled");
 
             #region subtitles map
-            if (context.subtitles && !context.live && config.playlistOptions.readrate > 0 && context.ffprobe.ContainsKey("streams"))
+            if (context.subtitles && !context.live && 0 >= config.playlistOptions.readrate && context.ffprobe.ContainsKey("streams"))
             {
-                // Сохраняем PTS глобально
                 args.Add("-copyts");
 
                 foreach (var s in context.ffprobe["streams"])
                 {
-                    string codec_type = s.Value<string>("codec_type");
-                    if (codec_type != "subtitle")
+                    if (s.Value<string>("codec_type") != "subtitle")
                         continue;
 
-                    int subIndex = s.Value<int>("index");
-                    if (subIndex == 0)
-                        continue;
+                    if (s.Value<string>("codec_name") is "subrip" or "webvtt" or "ass" or "ssa" or "mov_text" or "ttml" or "sami")
+                    {
+                        int subIndex = s.Value<int>("index");
+                        if (subIndex == 0)
+                            continue;
 
-                    args.Add("-map");
-                    args.Add($"0:{subIndex}");
-                    args.Add("-an");
-                    args.Add("-vn");
-                    args.Add("-c:s");
-                    args.Add("webvtt");
-                    args.Add("-flush_packets");
-                    args.Add("1");
-                    args.Add("-max_interleave_delta");
-                    args.Add("0");
-                    args.Add("-muxpreload");
-                    args.Add("0");
-                    args.Add("-muxdelay");
-                    args.Add("0");
-                    args.Add("-f");
-                    args.Add("webvtt");
-                    args.Add($"subs_{subIndex}.vtt");
+                        args.Add("-map");
+                        args.Add($"0:{subIndex}");
+                        args.Add("-an");
+                        args.Add("-vn");
+                        args.Add("-c:s");
+                        args.Add("webvtt");
+                        args.Add("-flush_packets");
+                        args.Add("1");
+                        args.Add("-max_interleave_delta");
+                        args.Add("0");
+                        args.Add("-muxpreload");
+                        args.Add("0");
+                        args.Add("-muxdelay");
+                        args.Add("0");
+                        args.Add("-f");
+                        args.Add("webvtt");
+                        args.Add($"subs_{subIndex}.vtt");
+                    }
                 }
             }
             else
@@ -588,7 +589,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("0:v:0");
 
             args.Add("-map");
-            args.Add($"0:a:{(0 >= context.Audio.index ? 0 : context.Audio.index)}?");
+            args.Add($"0:a:{(0 >= context.Audio.index ? 0 : context.Audio.index)}");
 
             args.Add("-dn");
 
