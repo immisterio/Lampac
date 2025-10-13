@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Shared;
+using Shared.Engine;
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
-using Shared.Engine;
-using Shared;
 
 namespace Tracks.Controllers
 {
@@ -32,20 +33,25 @@ namespace Tracks.Controllers
         async public Task<ActionResult> Ffprobe(string media)
         {
             if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
-                return Content(string.Empty);
+                return ContentTo("{}");
 
+            return ContentTo(await FfprobeJson(host, HttpContext, hybridCache, media));
+        }
+
+
+        public static async Task<string> FfprobeJson(string host, HttpContext httpContext, HybridCache hybridCache, string media)
+        {
             if (media.Contains("/dlna/stream"))
             {
                 string path = Regex.Match(media, "\\?path=([^&]+)").Groups[1].Value;
                 if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
-                    return Content(string.Empty);
+                    return "{}";
 
-                media = accsArgs($"{host}/dlna/stream?path={path}");
+                media = AccsDbInvk.Args($"{host}/dlna/stream?path={path}", httpContext);
             }
             else if (media.Contains("/stream/"))
             {
                 media = Regex.Replace(media, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&]+", "", RegexOptions.IgnoreCase);
-                media = Regex.Replace(media, "^(https?://[a-z0-9_:\\-\\.]+/stream/)[^\\?]+", "$1", RegexOptions.IgnoreCase);
 
                 if (!string.IsNullOrWhiteSpace(AppInit.conf.ffprobe.tsuri))
                     media = Regex.Replace(media, "^https?://[^/]+", AppInit.conf.ffprobe.tsuri, RegexOptions.IgnoreCase);
@@ -55,11 +61,11 @@ namespace Tracks.Controllers
                 string hash = Regex.Match(media, "/([a-z0-9]+\\.mkv)").Groups[1].Value;
                 media = ProxyLink.Decrypt(hash, null).uri;
                 if (string.IsNullOrWhiteSpace(media))
-                    return Content(string.Empty);
+                    return "{}";
             }
             else
             {
-                return Content(string.Empty);
+                return "{}";
             }
 
             string memKey = $"tracks:ffprobe:{media}";
@@ -76,15 +82,25 @@ namespace Tracks.Controllers
                 if (media.Contains("/stream/"))
                 {
                     magnethash = Regex.Match(media, "link=([a-z0-9]+)").Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(magnethash) && System.IO.File.Exists(getFolder(magnethash)))
-                        outPut = BrotliTo.Decompress(getFolder(magnethash));
+                    string index = Regex.Match(media, @"index=([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+
+                    if (!string.IsNullOrWhiteSpace(magnethash))
+                    {
+                        magnethash = $"{magnethash}_{index}";
+                        if (System.IO.File.Exists(getFolder(magnethash)))
+                            outPut = BrotliTo.Decompress(getFolder(magnethash));
+                    }
+                }
+                else
+                {
+                    magnethash = CrypTo.md5(media);
                 }
 
                 if (string.IsNullOrWhiteSpace(outPut))
                 {
                     if (!Uri.TryCreate(media, UriKind.Absolute, out var uri) ||
                         (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-                        return Content(string.Empty);
+                        return "{}";
 
                     var process = new System.Diagnostics.Process();
                     process.StartInfo.UseShellExecute = false;
@@ -123,7 +139,7 @@ namespace Tracks.Controllers
                 }
             }
 
-            return Content(outPut, contentType: "application/json; charset=utf-8");
+            return string.IsNullOrEmpty(outPut) ? "{}" : outPut;
         }
     }
 }

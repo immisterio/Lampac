@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Shared;
 using Shared.Engine;
 using Shared.Models.AppConf;
+using Shared.Models.Templates;
 using System;
 using System.IO;
 using System.Linq;
@@ -53,7 +54,7 @@ namespace Tracks.Controllers
 
         #region Start
         [HttpGet("start.m3u8")]
-        public IActionResult StartM3u8(string src, string videoFormat, int a, int s, int? subtitles, bool live)
+        public async Task<IActionResult> StartM3u8(string src, int a, int s, bool subtitles, bool live)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -63,10 +64,9 @@ namespace Tracks.Controllers
 
             var defaults = AppInit.conf.trackstranscoding;
 
-            var (job, error) = _service.Start(new TranscodingStartRequest() 
+            var (job, error) = await _service.Start(new TranscodingStartRequest() 
             { 
                 src = src,
-                videoFormat = videoFormat,
                 live = live,
                 subtitles = subtitles,
                 audio = new TranscodingAudioOptions() 
@@ -94,7 +94,7 @@ namespace Tracks.Controllers
         }
 
         [HttpPost("start")]
-        public IActionResult Start([FromBody] TranscodingStartRequest request)
+        public async Task<IActionResult> Start([FromBody] TranscodingStartRequest request)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -102,7 +102,7 @@ namespace Tracks.Controllers
             if (request == null)
                 return BadRequest(new { error = "Request body is required" });
 
-            var (job, error) = _service.Start(request);
+            var (job, error) = await _service.Start(request);
             if (job == null)
                 return BadRequest(new { error });
 
@@ -110,8 +110,33 @@ namespace Tracks.Controllers
             {
                 job.StreamId,
                 playlistUrl = AccsDbInvk.Args($"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/{(job.Context.live ? "live" : "main")}.m3u8", HttpContext),
+                subtitlesUrl = job.Context.subtitles ? AccsDbInvk.Args($"{AppInit.Host(HttpContext)}/transcoding/{job.StreamId}/subtitles", HttpContext) : null,
                 hls_timeout_seconds = 60
             });
+        }
+        #endregion
+
+        #region Seek
+        [HttpGet("{streamId}/seek/{ss}")]
+        public async Task<IActionResult> Seek(string streamId, int ss)
+        {
+            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+                return BadRequest(new { error = "Transcoding disabled" });
+
+            if (!_service.TryResolveJob(streamId, out var job))
+                return NotFound();
+
+            if (!job.Context.live)
+                return BadRequest(new { error = "Context not live" });
+
+            if (ss < 0)
+                return BadRequest(new { error = "ss must be greater or equal 0" });
+
+            var (success, error) = await _service.SeekAsync(streamId, ss);
+            if (!success)
+                return BadRequest(new { error });
+
+            return Ok();
         }
         #endregion
 
@@ -195,6 +220,9 @@ namespace Tracks.Controllers
             if (job.Context.live)
                 return BadRequest(new { error = "Context not playlist" });
 
+            if (!int.TryParse(job.Context.ffprobe["format"].Value<string>("duration").Split('.')[0].Split(',')[0], out int duration) || duration == 0)
+                return BadRequest(new { error = "duration" });
+
             _service.Touch(job);
 
             var fileExistsTimeout = TimeSpan.FromSeconds(60);
@@ -202,14 +230,11 @@ namespace Tracks.Controllers
 
             while (sw.Elapsed < fileExistsTimeout)
             {
-                if (job.duration > 0 && Directory.GetFiles(job.Context.OutputDirectory).Length > 2)
+                if (Directory.GetFiles(job.Context.OutputDirectory).Length > 2)
                     break;
 
                 await Task.Delay(250);
             }
-
-            if (job.duration == 0)
-                return BadRequest(new { error = "duration" });
 
             int segDur = job.Context.HlsOptions.segDur;
 
@@ -221,7 +246,7 @@ namespace Tracks.Controllers
             builder.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
             builder.AppendLine("#EXT-X-MAP:URI=\"init.mp4\"");
 
-            for (int i = 0; i < (job.duration / segDur); i++)
+            for (int i = 0; i < (duration / segDur); i++)
             {
                 builder.AppendLine($"#EXTINF:{segDur}.0,");
                 builder.AppendLine(AccsDbInvk.Args($"seg_{i:d5}.m4s", HttpContext));
@@ -250,7 +275,7 @@ namespace Tracks.Controllers
 
             string resolved = _service.GetFilePath(job, file);
 
-            if (job.Context.live == false && resolved == null)
+            if (job.Context.live == false && resolved == null && !file.Contains(".vtt"))
             {
                 #region SeekAsync
                 var match = Regex.Match(file, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
@@ -336,16 +361,18 @@ namespace Tracks.Controllers
             {
                 try
                 {
-                    fs = new FileStream(resolved, FileMode.Open, FileAccess.Read);
+                    fs = file.Contains(".vtt") 
+                        ? new FileStream(resolved, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                        : new FileStream(resolved, FileMode.Open, FileAccess.Read);
                     break;
                 }
                 catch (IOException)
                 {
-                    await Task.Delay(200);
+                    await Task.Delay(100);
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    await Task.Delay(200);
+                    await Task.Delay(100);
                 }
             }
 
@@ -374,9 +401,9 @@ namespace Tracks.Controllers
         }
         #endregion
 
-        #region Seek
-        [HttpGet("{streamId}/seek/{ss}")]
-        public async Task<IActionResult> Seek(string streamId, int ss)
+        #region Subtitles
+        [HttpGet("{streamId}/subtitles")]
+        public IActionResult Subtitles(string streamId)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -384,17 +411,33 @@ namespace Tracks.Controllers
             if (!_service.TryResolveJob(streamId, out var job))
                 return NotFound();
 
-            if (!job.Context.live)
-                return BadRequest(new { error = "Context not live" });
+            _service.Touch(job);
 
-            if (ss < 0)
-                return BadRequest(new { error = "ss must be greater or equal 0" });
+            var subsTpl = new SubtitleTpl();
 
-            var (success, error) = await _service.SeekAsync(streamId, ss);
-            if (!success)
-                return BadRequest(new { error });
+            if (job.Context.subtitles && job.Context.ffprobe.ContainsKey("streams"))
+            {
+                foreach (var s in job.Context.ffprobe["streams"])
+                {
+                    string codec_type = s.Value<string>("codec_type");
+                    if (codec_type != "subtitle")
+                        continue;
 
-            return Ok();
+                    int subIndex = s.Value<int>("index");
+                    if (subIndex == 0)
+                        continue;
+
+                    string uri = $"{AppInit.Host(HttpContext)}/transcoding/{streamId}/{AccsDbInvk.Args($"subs_{subIndex}.vtt", HttpContext)}";
+
+                    string name = s["tags"].Value<string>("title") 
+                        ?? s["language"].Value<string>("title") 
+                        ?? $"sub_{subIndex}";
+
+                    subsTpl.Append(name, uri);
+                }
+            }
+
+            return Ok(subsTpl.ToObject());
         }
         #endregion
 
@@ -427,7 +470,7 @@ namespace Tracks.Controllers
 
         #region Status
         [HttpGet("{streamId}/status")]
-        public IActionResult Status(string streamId, bool log)
+        public IActionResult Status(string streamId)
         {
             if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
@@ -462,19 +505,19 @@ namespace Tracks.Controllers
                 break;
             }
 
-            return Ok(new
+            return Content(JsonConvert.SerializeObject(new
             {
                 job.StreamId,
                 state = state.ToString(),
+                ffmpeg = string.Join(" ", job.Process.StartInfo.ArgumentList),
                 startedUtc = job.StartedUtc,
                 lastAccessUtc = job.LastAccessUtc,
                 uptime = uptime.TotalSeconds,
-                job.videoFormat,
-                job.duration,
-                time = (ulong)(job.Context.HlsOptions.seek + (time_ms > 0 ? (time_ms / 1000000.0) : 0)),
+                positionSec = (ulong)(job.Context.HlsOptions.seek + (time_ms > 0 ? (time_ms / 1000000.0) : 0)),
                 exitCode,
-                log = log ? snapshotLog : null
-            });
+                job.Context.ffprobe,
+                log = snapshotLog
+            }), "application/json; charset=utf-8");
         }
         #endregion
 
@@ -492,7 +535,7 @@ namespace Tracks.Controllers
                         new { name = "src", type = "string", required = true, description = "Source URL or local path to media" },
                         new { name = "a", type = "int", required = false, description = "Audio index (optional)" },
                         new { name = "s", type = "int", required = false, description = "Seek position in seconds (optional)" },
-                        new { name = "subtitles", type = "int", required = false, description = "subtitles index" },
+                        new { name = "subtitles", type = "bool", required = false, description = "subtitles on/off" },
                         new { name = "live", type = "bool", required = false, description = "Context live/playlist" }
                     },
                     description = "Start transcoding with query parameters and redirect to the generated HLS playlist"
@@ -505,7 +548,7 @@ namespace Tracks.Controllers
                         src = "https://example.com/media.mp4",
                         videoFormat = "",
                         live = false,
-                        subtitles = 0,
+                        subtitles = false,
                         headers = new { referer = "https://example.com", userAgent = "HlsProxy/1.0" },
                         audio = AppInit.conf.trackstranscoding.audioOptions,
                         hls = AppInit.conf.trackstranscoding.hlsOptions

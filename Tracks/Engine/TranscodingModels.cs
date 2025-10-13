@@ -15,9 +15,7 @@ namespace Tracks.Engine
 
         public bool live { get; set; }
 
-        public int? subtitles { get; set; }
-
-        public string videoFormat { get; set; }
+        public bool? subtitles { get; set; }
     }
 
     public enum TranscodingJobState

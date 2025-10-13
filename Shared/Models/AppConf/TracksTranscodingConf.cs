@@ -1,3 +1,6 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace Shared.Models.AppConf
 {
     public class TracksTranscodingConf
@@ -22,11 +25,14 @@ namespace Shared.Models.AppConf
 
         public TranscodingPlaylistOptions playlistOptions { get; set; } = new();
 
-        public TranscodingVideoOptions videoOptions { get; set; } = new();
+        public TranscodingConvertOptions convertOptions { get; set; } = new();
+
+        public bool defaultSubtitles { get; set; }
     }
 
     public class TranscodingHlsOptions
     {
+        [JsonIgnore]
         public int seek { get; set; }
 
         /// <summary>
@@ -47,6 +53,7 @@ namespace Shared.Models.AppConf
 
     public class TranscodingAudioOptions
     {
+        [JsonIgnore]
         public int index { get; set; }
 
         public bool transcodeToAac { get; set; } = true;
@@ -65,7 +72,7 @@ namespace Shared.Models.AppConf
         public bool delete_segments { get; set; } = true;
     }
 
-    public class TranscodingVideoOptions
+    public class TranscodingConvertOptions
     {
         public string[] formats { get; set; } = { "avi", "flv", "h265", "av1" };
 
@@ -79,10 +86,10 @@ namespace Shared.Models.AppConf
         TranscodingHlsOptions HlsOptions,
         TranscodingAudioOptions Audio,
         bool live,
-        int? subtitles,
+        bool subtitles,
         string OutputDirectory,
         string PlaylistPath,
         int? startNumber,
-        string videoFormat
+        JObject ffprobe
     );
 }

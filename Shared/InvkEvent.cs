@@ -451,7 +451,9 @@ namespace Shared
                 return;
 
             var option = ScriptOptions.Default
-                .AddReferences(typeof(Collection<string>).Assembly).AddImports("System.Collections.ObjectModel");
+                .AddReferences(typeof(Collection<string>).Assembly).AddImports("System.Collections.ObjectModel")
+                .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine").AddImports("Shared.Models.AppConf");
 
             Invoke(code, model, option);
         }

@@ -1,9 +1,13 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Engine;
 using Shared.Models.AppConf;
 using Shared.Models.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -12,6 +16,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Tracks.Controllers;
 
 namespace Tracks.Engine
 {
@@ -62,7 +67,7 @@ namespace Tracks.Engine
 
         public ICollection<TranscodingJob> Jobs => _jobs.Values;
 
-        public (TranscodingJob job, string error) Start(TranscodingStartRequest request)
+        async public Task<(TranscodingJob job, string error)> Start(TranscodingStartRequest request)
         {
             var config = GetConfig();
             if (!config.enable)
@@ -83,18 +88,31 @@ namespace Tracks.Engine
             var outputDir = Path.Combine(config.tempRoot!, id);
             Directory.CreateDirectory(outputDir);
 
+            #region ffprobe
+            JObject ffprobe = null;
+
+            string ffprobeJson = await TracksController.FfprobeJson(null, null, new HybridCache(), request.src);
+            if (string.IsNullOrEmpty(ffprobeJson) || ffprobeJson == "{}")
+                return (null!, "ffprobe");
+
+            ffprobe = JsonConvert.DeserializeObject<JObject>(ffprobeJson);
+
+            if (ffprobe == null || !ffprobe.ContainsKey("format"))
+                return (null!, "ffprobe");
+            #endregion
+
             var context = new TranscodingStartContext(
                 source,
-                SanitizeHeader(GetHeader(request.headers, "userAgent"), "HlsProxy/1.0"),
+                SanitizeHeader(GetHeader(request.headers, "userAgent"), Http.UserAgent),
                 SanitizeHeader(GetHeader(request.headers, "referer")),
                 MergeHlsOptions(config, request.hls),
                 MergeAudioOptions(config, request.audio),
                 request.live,
-                request.subtitles,
+                request.subtitles ?? config.defaultSubtitles,
                 outputDir,
                 Path.Combine(outputDir, "index.m3u8"),
                 null,
-                request.videoFormat
+                ffprobe
             );
 
             var process = CreateProcess(context);
@@ -482,25 +500,6 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add($"Referer: {context.Referer}\\r\\n");
             }
 
-            if (context.live)
-            {
-                args.Add("-re");
-                args.Add("-readrate_initial_burst"); // FFmpeg 6.1+
-                args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
-            }
-            else if (config.playlistOptions.readrate > 0)
-            {
-                if (config.playlistOptions.burstSec > 0)
-                {
-                    // FFmpeg 6.1+
-                    args.Add("-readrate_initial_burst");
-                    args.Add(config.playlistOptions.burstSec.ToString());
-                }
-
-                args.Add("-readrate");
-                args.Add(config.playlistOptions.readrate.ToString().Replace(",", "."));
-            }
-
             if (context.HlsOptions.seek > 0)
             {
                 args.Add("-ss");
@@ -520,25 +519,70 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-fflags");
             args.Add("+genpts");
 
+            #region readrate
+            bool isReadrate = false;
+
+            if (context.live)
+            {
+                isReadrate = true;
+                args.Add("-re");
+                args.Add("-readrate_initial_burst"); // FFmpeg 6.1+
+                args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
+            }
+            else if (config.playlistOptions.readrate > 0)
+            {
+                if (config.playlistOptions.burstSec > 0)
+                {
+                    // FFmpeg 6.1+
+                    args.Add("-readrate_initial_burst");
+                    args.Add(config.playlistOptions.burstSec.ToString());
+                }
+
+                isReadrate = true;
+                args.Add("-readrate");
+                args.Add(config.playlistOptions.readrate.ToString().Replace(",", "."));
+            }
+            #endregion
+
             args.Add("-i");
             args.Add(context.Source.AbsoluteUri);
 
+            // Сохраняем PTS глобально
+            args.Add("-copyts");
+            args.Add("-avoid_negative_ts");
+            args.Add("disabled");
+
             #region subtitles map
-            if (context.subtitles != null && context.subtitles > 0)
+            if (context.subtitles && !isReadrate && context.ffprobe.ContainsKey("streams"))
             {
-                args.Add("-map");
-                args.Add($"0:{context.subtitles}?");
-                args.Add("-an");
-                args.Add("-vn");
-                args.Add("-c:s");
-                args.Add("webvtt");
-                args.Add("-flush_packets");
-                args.Add("1");
-                args.Add("-max_interleave_delta");
-                args.Add("0");
-                args.Add("-f");
-                args.Add("webvtt");
-                args.Add(Path.Combine(context.OutputDirectory, "subs.vtt"));
+                foreach (var s in context.ffprobe["streams"])
+                {
+                    string codec_type = s.Value<string>("codec_type");
+                    if (codec_type != "subtitle")
+                        continue;
+
+                    int subIndex = s.Value<int>("index");
+                    if (subIndex == 0)
+                        continue;
+
+                    args.Add("-map");
+                    args.Add($"0:{subIndex}");
+                    args.Add("-an");
+                    args.Add("-vn");
+                    args.Add("-c:s");
+                    args.Add("webvtt");
+                    args.Add("-flush_packets");
+                    args.Add("1");
+                    args.Add("-max_interleave_delta");
+                    args.Add("0");
+                    args.Add("-muxpreload");
+                    args.Add("0");
+                    args.Add("-muxdelay");
+                    args.Add("0");
+                    args.Add("-f");
+                    args.Add("webvtt");
+                    args.Add(Path.Combine(context.OutputDirectory, $"subs_{subIndex}.vtt"));
+                }
             }
             else
             {
@@ -562,28 +606,35 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-1");
 
             #region -c:v
-            if (config.videoOptions.formats != null && config.videoOptions.args != null && config.videoOptions.args.Length > 0)
+            if (config.convertOptions.formats != null && config.convertOptions.args != null && config.convertOptions.args.Length > 0)
             {
                 try
                 {
-                    bool convert = context.videoFormat != null && config.videoOptions.formats.Contains(context.videoFormat);
+                    bool convert = false;
+
+                    if (context.ffprobe != null && context.ffprobe.ContainsKey("streams"))
+                    {
+                        string codec_name = context.ffprobe["streams"].First.Value<string>("codec_name");
+                        if (!string.IsNullOrEmpty(codec_name) && config.convertOptions.formats.Contains(codec_name))
+                            convert = true;
+                    }
 
                     if (convert == false)
                     {
                         // Попытка определить формат видео из URL
                         var ext = Path.GetExtension(context.Source.AbsolutePath).TrimStart('.').ToLowerInvariant();
-                        if (config.videoOptions.formats.Any(f => string.Equals(f, ext, StringComparison.OrdinalIgnoreCase)))
+                        if (config.convertOptions.formats.Any(f => string.Equals(f, ext, StringComparison.OrdinalIgnoreCase)))
                             convert = true;
                     }
 
                     if (convert)
                     {
                         args.Add("-c:v");
-                        args.Add(config.videoOptions.args[0]);
+                        args.Add(config.convertOptions.args[0]);
 
-                        for (int i = 1; i < config.videoOptions.args.Length; i++)
+                        for (int i = 1; i < config.convertOptions.args.Length; i++)
                         {
-                            foreach (var t in config.videoOptions.args[i].Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                            foreach (var t in config.convertOptions.args[i].Split(' ', StringSplitOptions.RemoveEmptyEntries))
                                 args.Add(t);
                         }
                     }
@@ -624,9 +675,6 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add("copy");
             }
             #endregion
-
-            args.Add("-avoid_negative_ts");
-            args.Add("disabled");
 
             args.Add("-max_muxing_queue_size");
             args.Add("2048");
