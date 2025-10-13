@@ -523,20 +523,19 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-i");
             args.Add(context.Source.AbsoluteUri);
 
-            args.Add("-map");
-            args.Add("0:v:0");
-
-            args.Add("-map");
-            args.Add($"0:a:{(0 >= context.Audio.index ? 0 : context.Audio.index)}?");
-
-            #region subtitles
-            if (context.subtitles != null)
+            #region subtitles map
+            if (context.subtitles != null && context.subtitles > 0)
             {
                 args.Add("-map");
                 args.Add($"0:{context.subtitles}?");
+                args.Add("-an");
+                args.Add("-vn");
                 args.Add("-c:s");
                 args.Add("webvtt");
-
+                args.Add("-flush_packets");
+                args.Add("1");
+                args.Add("-max_interleave_delta");
+                args.Add("0");
                 args.Add("-f");
                 args.Add("webvtt");
                 args.Add(Path.Combine(context.OutputDirectory, "subs.vtt"));
@@ -546,6 +545,13 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                 args.Add("-sn");
             }
             #endregion
+
+            #region HLS map
+            args.Add("-map");
+            args.Add("0:v:0");
+
+            args.Add("-map");
+            args.Add($"0:a:{(0 >= context.Audio.index ? 0 : context.Audio.index)}?");
 
             args.Add("-dn");
 
@@ -682,6 +688,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
 
             args.Add("-y");
             args.Add(context.PlaylistPath);
+            #endregion
 
             InvkEvent.Transcoding(new EventTranscoding(args, context));
 

@@ -1,4 +1,6 @@
 ﻿using LiteDB;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
@@ -14,6 +16,8 @@ namespace TorrServer
     public class ModInit
     {
         #region static
+        static bool IsShutdown;
+
         public static int tsport = 9080;
 
         public static string tspass = CrypTo.md5(DateTime.Now.ToBinary().ToString());
@@ -98,6 +102,8 @@ namespace TorrServer
         #region loaded
         public static void loaded(InitspaceModel initspace)
         {
+            RegisterShutdown(initspace);
+
             _cronTimer = new Timer(cron_UpdateSettings, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 
             dataDb = new LiteDatabase("cache/ts.db");
@@ -143,30 +149,30 @@ namespace TorrServer
                 #endregion
 
                 #region updatet/install
-                reinstall: try
+                async Task install()
                 {
-                    if (conf.releases == "latest")
+                    try
                     {
-                        var root = await Http.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
-                        if (root != null && root.ContainsKey("tag_name"))
+                        if (conf.releases == "latest")
                         {
-                            string tagname = root.Value<string>("tag_name");
-                            if (!string.IsNullOrEmpty(tagname))
+                            var root = await Http.Get<JObject>("https://api.github.com/repos/YouROK/TorrServer/releases/latest");
+                            if (root != null && root.ContainsKey("tag_name"))
                             {
-                                if (!File.Exists($"{homedir}/tagname") || tagname != File.ReadAllText($"{homedir}/tagname"))
+                                string tagname = root.Value<string>("tag_name");
+                                if (!string.IsNullOrEmpty(tagname))
                                 {
-                                    if (File.Exists(tspath))
-                                        File.Delete(tspath);
+                                    if (!File.Exists($"{homedir}/tagname") || tagname != File.ReadAllText($"{homedir}/tagname"))
+                                    {
+                                        if (File.Exists(tspath))
+                                            File.Delete(tspath);
 
-                                    File.WriteAllText($"{homedir}/tagname", tagname);
+                                        File.WriteAllText($"{homedir}/tagname", tagname);
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    if (!File.Exists(tspath))
-                    {
-                        redownload: try
+                        if (!File.Exists(tspath))
                         {
                             if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                             {
@@ -185,20 +191,16 @@ namespace TorrServer
                                     Bash.Invoke($"rm -f {tspath}");
                             }
                         }
-                        catch
-                        {
-                            File.Delete(tspath);
-                            await Task.Delay(10_000);
-                            goto redownload;
-                        }
                     }
+                    catch { }
                 }
-                catch { }
+
+                await install();
 
                 if (!File.Exists(tspath))
                 {
                     await Task.Delay(10_000);
-                    goto reinstall;
+                    await install();
                 }
 
                 if (!File.Exists("isdocker") && conf.checkfile)
@@ -208,34 +210,61 @@ namespace TorrServer
                     {
                         File.Delete(tspath);
                         await Task.Delay(10_000);
-                        goto reinstall;
+                        await install();
                     }
                 }
                 #endregion
 
-                reset: try
+                while (!IsShutdown && File.Exists(tspath))
                 {
-                    tsprocess = new Process();
-                    tsprocess.StartInfo.UseShellExecute = false;
-                    tsprocess.StartInfo.RedirectStandardOutput = true;
-                    tsprocess.StartInfo.RedirectStandardError = true;
-                    tsprocess.StartInfo.FileName = tspath;
-                    tsprocess.StartInfo.Arguments = $"--httpauth -p {tsport} -d \"{homedir}\"";
+                    try
+                    {
+                        tsprocess = new Process();
+                        tsprocess.StartInfo.UseShellExecute = false;
+                        tsprocess.StartInfo.RedirectStandardOutput = true;
+                        tsprocess.StartInfo.RedirectStandardError = true;
+                        tsprocess.StartInfo.FileName = tspath;
+                        tsprocess.StartInfo.Arguments = $"--httpauth -p {tsport} -d \"{homedir}\"";
 
-                    tsprocess.Start();
+                        tsprocess.Start();
 
-                    tsprocess.OutputDataReceived += (sender, args) => { };
-                    tsprocess.ErrorDataReceived += (sender, args) => { };
-                    tsprocess.BeginOutputReadLine();
-                    tsprocess.BeginErrorReadLine();
+                        tsprocess.OutputDataReceived += (sender, args) => { };
+                        tsprocess.ErrorDataReceived += (sender, args) => { };
+                        tsprocess.BeginOutputReadLine();
+                        tsprocess.BeginErrorReadLine();
 
-                    await tsprocess.WaitForExitAsync();
+                        await tsprocess.WaitForExitAsync();
+                    }
+                    catch { }
+
+                    await Task.Delay(10_000);
                 }
-                catch { }
-
-                await Task.Delay(10_000);
-                goto reset;
             });
+        }
+        #endregion
+
+
+        #region Shutdown
+        static void RegisterShutdown(InitspaceModel initspace)
+        {
+            if (initspace?.app?.ApplicationServices != null)
+            {
+                var lifetime = initspace.app.ApplicationServices.GetService<IHostApplicationLifetime>();
+                lifetime?.ApplicationStopping.Register(StopTranscoding);
+            }
+
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => StopTranscoding();
+        }
+
+        static void StopTranscoding()
+        {
+            try
+            {
+                IsShutdown = true;
+                tsprocess?.Kill(true);
+                _cronTimer.Dispose();
+            }
+            catch { }
         }
         #endregion
     }

@@ -408,7 +408,6 @@ namespace Lampac
             #endregion
 
             app.UseWebSockets();
-
             app.UseRouting();
 
             if (AppInit.conf.listen.compression)
