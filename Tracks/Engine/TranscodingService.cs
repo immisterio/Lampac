@@ -109,7 +109,6 @@ namespace Tracks.Engine
                 request.live,
                 request.subtitles ?? config.defaultSubtitles,
                 outputDir,
-                Path.Combine(outputDir, "index.m3u8"),
                 null,
                 ffprobe
             );
@@ -441,7 +440,8 @@ namespace Tracks.Engine
                     RedirectStandardError = true,
                     RedirectStandardInput = true,
                     RedirectStandardOutput = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    WorkingDirectory = context.OutputDirectory
                 }
             };
 
@@ -523,45 +523,31 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("+genpts");
 
             #region readrate
-            bool isReadrate = false;
-
             if (context.live)
             {
-                isReadrate = true;
                 args.Add("-re");
-
-                if (config.playlistOptions.burstSec > 0)
-                {
-                    args.Add("-readrate_initial_burst"); // FFmpeg 6.1+
-                    args.Add((context.HlsOptions.segDur * 2).ToString()); // первые 2 сегмета в бусте
-                }
             }
             else if (config.playlistOptions.readrate > 0)
             {
-                if (config.playlistOptions.burstSec > 0)
-                {
-                    // FFmpeg 6.1+
-                    args.Add("-readrate_initial_burst");
-                    args.Add(config.playlistOptions.burstSec.ToString());
-                }
-
-                isReadrate = true;
                 args.Add("-readrate");
                 args.Add(config.playlistOptions.readrate.ToString().Replace(",", "."));
+                args.Add("-readrate_initial_burst");
+                args.Add(Math.Max(5242880, config.playlistOptions.burst).ToString());
             }
             #endregion
 
             args.Add("-i");
             args.Add(context.Source.AbsoluteUri);
 
-            // Сохраняем PTS глобально
-            args.Add("-copyts");
             args.Add("-avoid_negative_ts");
             args.Add("disabled");
 
             #region subtitles map
-            if (context.subtitles && !isReadrate && context.ffprobe.ContainsKey("streams"))
+            if (context.subtitles && !context.live && config.playlistOptions.readrate > 0 && context.ffprobe.ContainsKey("streams"))
             {
+                // Сохраняем PTS глобально
+                args.Add("-copyts");
+
                 foreach (var s in context.ffprobe["streams"])
                 {
                     string codec_type = s.Value<string>("codec_type");
@@ -588,7 +574,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                     args.Add("0");
                     args.Add("-f");
                     args.Add("webvtt");
-                    args.Add(Path.Combine(context.OutputDirectory, $"subs_{subIndex}.vtt"));
+                    args.Add($"subs_{subIndex}.vtt");
                 }
             }
             else
@@ -728,13 +714,13 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("index.m3u8");
 
             args.Add("-hls_fmp4_init_filename");
-            args.Add(Path.Combine(context.OutputDirectory, "init.mp4"));
+            args.Add("init.mp4");
 
             args.Add("-hls_segment_filename");
-            args.Add(Path.Combine(context.OutputDirectory, context.HlsOptions.fmp4 ? "seg_%05d.m4s" : "seg_%05d.ts"));
+            args.Add(context.HlsOptions.fmp4 ? "seg_%05d.m4s" : "seg_%05d.ts");
 
             args.Add("-y");
-            args.Add(context.PlaylistPath);
+            args.Add("index.m3u8");
             #endregion
 
             InvkEvent.Transcoding(new EventTranscoding(args, context));

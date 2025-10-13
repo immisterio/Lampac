@@ -43,7 +43,7 @@ namespace Shared.Models.AppConf
         /// <summary>
         /// hls_list_size
         /// </summary>
-        public int winSize { get; set; } = 10;
+        public int winSize { get; set; } = 5;
 
         /// <summary>
         /// hls_segment_type fmp4 / mpegts
@@ -65,9 +65,15 @@ namespace Shared.Models.AppConf
 
     public class TranscodingPlaylistOptions
     {
+        /// <summary>
+        /// sped x1.1
+        /// </summary>
         public double readrate { get; set; } = 1.1;
 
-        public int burstSec { get; set; }
+        /// <summary>
+        /// 10 MB
+        /// </summary>
+        public int burst { get; set; } = 10485760;
 
         public bool delete_segments { get; set; } = true;
     }
@@ -88,7 +94,6 @@ namespace Shared.Models.AppConf
         bool live,
         bool subtitles,
         string OutputDirectory,
-        string PlaylistPath,
         int? startNumber,
         JObject ffprobe
     );

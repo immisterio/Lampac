@@ -155,7 +155,7 @@ namespace Tracks.Controllers
 
             _service.Touch(job);
 
-            var path = job.Context.PlaylistPath;
+            string path = Path.Combine(job.Context.OutputDirectory, "index.m3u8");
 
             var fileExistsTimeout = TimeSpan.FromSeconds(60);
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -284,9 +284,9 @@ namespace Tracks.Controllers
                     int segDur = job.Context.HlsOptions.segDur;
                     int ss = segmentIndex * segDur;
 
-                    if (job.Context.HlsOptions.seek == 0 && 60 > ss) 
+                    if (job.Context.HlsOptions.seek == 0 && 30 > ss) 
                     {
-                        // первая минута без seek-а - не трогаем
+                        // первые 30 секунд без seek-а - не трогаем
                     }
                     else if (job.Context.HlsOptions.seek == ss)
                     {
@@ -298,7 +298,7 @@ namespace Tracks.Controllers
                         bool goSeek = job.Context.HlsOptions.seek > ss;
 
                         string extension = Path.GetExtension(file);
-                        int segmentsPerMinute = (int)Math.Ceiling(60.0 / segDur);
+                        int segmentsPerMinute = (int)Math.Ceiling(30.0 / segDur);
                         int startIndex = Math.Max(0, segmentIndex - segmentsPerMinute);
 
                         if (goSeek == false)
@@ -310,7 +310,7 @@ namespace Tracks.Controllers
                                 string candidate = $"seg_{i:d5}{extension}";
                                 if (_service.GetFilePath(job, candidate) != null)
                                 {
-                                    // есть сегменты в пределах последней минуты
+                                    // есть сегменты в пределах последних 30 секунд
                                     goSeek = false;
                                     break;
                                 }
@@ -381,7 +381,7 @@ namespace Tracks.Controllers
             #endregion
 
             #region delete_segments
-            if (!job.Context.live && AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
+            if (file.StartsWith("seg_") && !job.Context.live && AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
             {
                 _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(_ =>
                 {
@@ -509,6 +509,7 @@ namespace Tracks.Controllers
             {
                 job.StreamId,
                 state = state.ToString(),
+                job.OutputDirectory,
                 ffmpeg = string.Join(" ", job.Process.StartInfo.ArgumentList),
                 startedUtc = job.StartedUtc,
                 lastAccessUtc = job.LastAccessUtc,
