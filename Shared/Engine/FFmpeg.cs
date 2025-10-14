@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.IO.Compression;
 using System.Runtime.InteropServices;
 
 namespace Shared.Engine
@@ -35,26 +34,26 @@ namespace Shared.Engine
                 disableInstall = true;
                 string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
 
-                if (await Http.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/ffmpeg-master-latest-win{arh}-gpl.zip", "data/ffmpeg.zip"))
+                foreach (string fileName in new string[] { "ffmpeg", "ffprobe" })
                 {
-                    ZipFile.ExtractToDirectory("data/ffmpeg.zip", "data/", overwriteFiles: true);
+                    if (File.Exists($"data/{fileName}.exe"))
+                        continue;
 
-                    File.Delete("data/ffmpeg.zip");
-
-                    Console.WriteLine("FFmpeg: Initialization");
-                    disableInstall = false;
-                    return true;
+                    if (!await Http.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/{fileName}-win{arh}-gpl.exe", $"data/{fileName}.exe"))
+                        File.Delete($"data/{fileName}.exe");
                 }
 
-                Console.WriteLine($"FFmpeg: error download ffmpeg-win{arh}-gpl.zip");
+                bool success = File.Exists("data/ffmpeg.exe") && File.Exists("data/ffprobe.exe");
+
+                Console.WriteLine(success ? "FFmpeg: Initialization" : "FFmpeg: error download");
                 disableInstall = false;
-                return false;
+                return success;
                 #endregion
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 #region Linux
-                if (File.Exists("data/ffmpeg") || File.Exists("/bin/ffmpeg"))
+                if ((File.Exists("data/ffmpeg") && File.Exists("data/ffprobe")) || File.Exists("/bin/ffmpeg"))
                 {
                     Console.WriteLine("FFmpeg: Initialization");
                     return true;
@@ -71,20 +70,27 @@ namespace Shared.Engine
                     if (RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
                     {
                         string arh = RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "64" : "arm64";
-                        if (await Http.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/ffmpeg-master-latest-linux{arh}-gpl.zip", "data/ffmpeg"))
+
+                        foreach (string fileName in new string[] { "ffmpeg", "ffprobe" })
                         {
-                            ZipFile.ExtractToDirectory("data/ffmpeg.zip", "data/", overwriteFiles: true);
+                            if (File.Exists($"data/{fileName}"))
+                                continue;
 
-                            File.Delete("data/ffmpeg.zip");
+                            if (!await Http.DownloadFile($"https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/{fileName}-linux{arh}-gpl", $"data/{fileName}"))
+                            {
+                                File.Delete($"data/{fileName}");
+                                continue;
+                            }
 
-                            Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffmpeg")}");
-                            Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), "data/ffprobe")}");
-
-                            await Task.Delay(2000); // Wait for chmod to complete
-                            Console.WriteLine("FFmpeg: Initialization");
-                            disableInstall = false;
-                            return true;
+                            Bash.Invoke($"chmod +x {Path.Join(Directory.GetCurrentDirectory(), $"data/{fileName}")}");
                         }
+
+                        bool success = File.Exists("data/ffmpeg") && File.Exists("data/ffprobe");
+
+                        await Task.Delay(1000); // Wait for chmod to complete
+                        Console.WriteLine(success ? "FFmpeg: Initialization" : "FFmpeg: error download");
+                        disableInstall = false;
+                        return success;
                     }
                     else
                     {
