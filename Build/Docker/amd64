@@ -6,11 +6,6 @@ WORKDIR /home
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium xvfb libnspr4 fontconfig \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN curl -L -k -o ffmpeg.zip https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/ffmpeg-master-latest-linux64-gpl.zip \
-    && unzip -o ffmpeg.zip && rm -f ffmpeg.zip \
-    && mv ffprobe data/ffprobe && chmod +x data/ffprobe \
-    && mv ffmpeg data/ffmpeg && chmod +x data/ffmpeg
-
 RUN curl -fSL -k -o dotnet.tar.gz https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.8/aspnetcore-runtime-9.0.8-linux-x64.tar.gz \
     && mkdir -p /usr/share/dotnet \
     && tar -oxzf dotnet.tar.gz -C /usr/share/dotnet \
@@ -28,6 +23,11 @@ RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://git
 
 RUN mkdir -p .playwright/node/linux-x64 && curl -L -k -o .playwright/node/linux-x64/node https://github.com/immisterio/playwright/releases/download/chrome/node-linux-x64 \
     && chmod +x .playwright/node/linux-x64/node && touch .playwright/node/linux-x64/node.ok
+
+RUN curl -L -k -o ffmpeg.zip https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/ffmpeg-master-latest-linux64-gpl.zip \
+    && unzip -o ffmpeg.zip && rm -f ffmpeg.zip \
+    && mv ffprobe data/ffprobe && chmod +x data/ffprobe \
+    && mv ffmpeg data/ffmpeg && chmod +x data/ffmpeg
 
 RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"}}' > init.conf
 
