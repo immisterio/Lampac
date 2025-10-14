@@ -386,7 +386,7 @@ namespace Tracks.Engine
                 index = opt?.index >= 0 ? opt.index : 0,
                 bitrateKbps = opt?.bitrateKbps is > 0 and <= 512 ? opt.bitrateKbps : 160,
                 stereo = opt?.stereo ?? true,
-                transcodeToAac = opt?.transcodeToAac ?? true
+                codec_copy = opt?.codec_copy ?? config.audioOptions.codec_copy
             };
         }
 
@@ -516,11 +516,13 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-stats_period");
             args.Add(context.live ? "1" : "5");
 
-            args.Add("-threads");
-            args.Add("0");
-
-            args.Add("-fflags");
-            args.Add("+genpts");
+            #region demuxer
+            foreach (var c in config.comand["demuxer"])
+            {
+                foreach (var a in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    args.Add(a);
+            }
+            #endregion
 
             #region readrate
             if (context.live)
@@ -543,8 +545,13 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-i");
             args.Add(context.Source.AbsoluteUri);
 
-            args.Add("-avoid_negative_ts");
-            args.Add("disabled");
+            #region input
+            foreach (var c in config.comand["input"])
+            {
+                foreach (var a in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    args.Add(a);
+            }
+            #endregion
 
             #region subtitles map
             if (context.subtitles && !context.live && 0 >= config.playlistOptions.readrate && context.ffprobe.ContainsKey("streams"))
@@ -556,29 +563,18 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                     if (s.Value<string>("codec_type") != "subtitle")
                         continue;
 
-                    if (s.Value<string>("codec_name") is "subrip" or "webvtt" or "ass" or "ssa" or "mov_text" or "ttml" or "sami")
+                    string codec_name = s.Value<string>("codec_name");
+                    if (!string.IsNullOrEmpty(codec_name) && config.subtitleOptions.codec.Contains(codec_name))
                     {
                         int subIndex = s.Value<int>("index");
                         if (subIndex == 0)
                             continue;
 
-                        args.Add("-map");
-                        args.Add($"0:{subIndex}");
-                        args.Add("-an");
-                        args.Add("-vn");
-                        args.Add("-c:s");
-                        args.Add("webvtt");
-                        args.Add("-flush_packets");
-                        args.Add("1");
-                        args.Add("-max_interleave_delta");
-                        args.Add("0");
-                        args.Add("-muxpreload");
-                        args.Add("0");
-                        args.Add("-muxdelay");
-                        args.Add("0");
-                        args.Add("-f");
-                        args.Add("webvtt");
-                        args.Add($"subs_{subIndex}.vtt");
+                        foreach (var c in config.subtitleOptions.comand)
+                        {
+                            foreach (var a in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                                args.Add(a.Replace("{subIndex}", subIndex.ToString()));
+                        }
                     }
                 }
             }
@@ -589,52 +585,48 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             #endregion
 
             #region HLS map
-            args.Add("-map");
-            args.Add("0:v:0");
-
-            args.Add("-map");
-            args.Add($"0:a:{(0 >= context.Audio.index ? 0 : context.Audio.index)}");
-
-            args.Add("-dn");
-            args.Add("-sn");
-
-            args.Add("-disposition:v");
-            args.Add("-default");
-
-            args.Add("-disposition:a");
-            args.Add("-default");
-
-            args.Add("-disposition:s");
-            args.Add("-default");
-
-            args.Add("-map_metadata");
-            args.Add("-1");
-
-            args.Add("-map_chapters");
-            args.Add("-1");
+            foreach (var c in config.comand["output"])
+            {
+                foreach (var a in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    args.Add(a.Replace("{audio_index}", $"{(0 >= context.Audio.index ? 0 : context.Audio.index)}"));
+            }
 
             #region -c:v
-            if (config.convertOptions.codec != null && config.convertOptions.comand != null && config.convertOptions.comand.Length > 0)
+            if (context.ffprobe != null && context.ffprobe.ContainsKey("streams") &&
+                config.convertOptions.comand != null && config.convertOptions.comand.Count > 0 &&
+                config.convertOptions.codec != null)
             {
                 try
                 {
                     bool convert = false;
 
-                    if (context.ffprobe != null && context.ffprobe.ContainsKey("streams"))
-                    {
-                        string codec_name = context.ffprobe["streams"].First.Value<string>("codec_name");
-                        if (!string.IsNullOrEmpty(codec_name) && config.convertOptions.codec.Contains(codec_name))
-                            convert = true;
-                    }
+                    string codec_name = context.ffprobe["streams"].First.Value<string>("codec_name") ?? "";
+                    if (!string.IsNullOrEmpty(codec_name) && config.convertOptions.codec.Contains(codec_name))
+                        convert = true;
+
+                    string pix_fmt = context.ffprobe["streams"].First.Value<string>("pix_fmt") ?? "";
+                    if (!string.IsNullOrEmpty(pix_fmt) && config.convertOptions.codec.Contains(pix_fmt))
+                        convert = true;
+
+                    if (config.convertOptions.codec.Contains($"{codec_name}_{pix_fmt}"))
+                        convert = true;
 
                     if (convert)
                     {
-                        args.Add("-c:v");
-                        args.Add(config.convertOptions.comand[0]);
+                        string[] comand = config.convertOptions.comand["default"];
 
-                        for (int i = 1; i < config.convertOptions.comand.Length; i++)
+                        foreach (string key in new string[] { $"{codec_name}_{pix_fmt}", pix_fmt, codec_name })
                         {
-                            foreach (var t in config.convertOptions.comand[i].Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                            if (config.convertOptions.comand.ContainsKey(key))
+                            {
+                                comand = config.convertOptions.comand[key];
+                                break;
+                            }
+                        }
+
+                        foreach (var c in comand)
+                        {
+                            foreach (var t in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                                 args.Add(t);
                         }
                     }
@@ -658,33 +650,59 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             #endregion
 
             #region -c:a
-            if (context.Audio.transcodeToAac)
             {
-                args.Add("-c:a");
-                args.Add("aac");
-                args.Add("-ac");
-                args.Add(context.Audio.stereo ? "2" : "1");
-                args.Add("-b:a");
-                args.Add($"{Math.Clamp(context.Audio.bitrateKbps, 32, 512)}k");
-                args.Add("-profile:a");
-                args.Add("aac_low");
-            }
-            else
-            {
-                args.Add("-c:a");
-                args.Add("copy");
+                bool convert = true;
+
+                var audioCodec = context.ffprobe["streams"].FirstOrDefault(i => i.Value<int>("index") == ((0 >= context.Audio.index ? 0 : context.Audio.index) + 1));
+
+                string codec_name = audioCodec?.Value<string>("codec_name") ?? string.Empty;
+                if (!string.IsNullOrEmpty(codec_name) && context.Audio.codec_copy.Contains(codec_name))
+                    convert = false;
+
+                string channel = audioCodec?.Value<int?>("channels")?.ToString() ?? string.Empty;
+                if (!string.IsNullOrEmpty(channel) && context.Audio.codec_copy.Contains(channel))
+                    convert = false;
+
+                if (context.Audio.codec_copy.Contains($"{codec_name}_{channel}"))
+                    convert = false;
+
+                if (convert)
+                {
+                    string[] comand = config.audioOptions.comand_transcode["default"];
+
+                    foreach (string key in new string[] { $"{codec_name}_{channel}", channel, codec_name })
+                    {
+                        if (config.audioOptions.comand_transcode.ContainsKey(key))
+                        {
+                            comand = config.audioOptions.comand_transcode[key];
+                            break;
+                        }
+                    }
+
+                    foreach (var c in comand)
+                    {
+                        foreach (var a in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                            args.Add(a.Replace("{stereo}", context.Audio.stereo ? "2" : "1").Replace("{bitrateKbps}", $"{Math.Clamp(context.Audio.bitrateKbps, 32, 512)}k"));
+                    }
+                }
+                else
+                {
+                    args.Add("-c:a");
+                    args.Add("copy");
+                }
             }
             #endregion
-
-            args.Add("-max_muxing_queue_size");
-            args.Add("4096");
 
             args.Add("-f");
             args.Add("hls");
 
-            args.Add("-max_delay");
-            args.Add("5000000");
+            foreach (var c in config.hlsOptions.comand["output"])
+            {
+                foreach (var a in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    args.Add(a);
+            }
 
+            #region -hls_segment_type
             args.Add("-hls_segment_type");
 
             if (context.HlsOptions.fmp4)
@@ -694,9 +712,14 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             else
             {
                 args.Add("mpegts");
-                args.Add("-bsf:v");
-                args.Add("h264_mp4toannexb");
+
+                foreach (var c in config.hlsOptions.comand["segment_mpegts"])
+                {
+                    foreach (var a in c.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                        args.Add(a);
+                }
             }
+            #endregion
 
             args.Add("-hls_time");
             args.Add(context.HlsOptions.segDur.ToString(CultureInfo.InvariantCulture));

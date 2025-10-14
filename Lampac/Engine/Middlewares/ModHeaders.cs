@@ -34,8 +34,8 @@ namespace Lampac.Engine.Middlewares
             else
                 httpContext.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
-            if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|cubproxy|tracks|dlna|timecode|sync|backup|ts|invc-ws)\\.js") ||
-                Regex.IsMatch(httpContext.Request.Path.Value, "^/(on/|(lite|online|sisi|timecode|sync|tmdbproxy|dlna|ts|tracks|backup|invc-ws)/js/)"))
+            if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(lampainit|sisi|lite|online|tmdbproxy|cubproxy|tracks|transcoding|dlna|timecode|bookmark|sync|backup|ts|invc-ws)\\.js") ||
+                Regex.IsMatch(httpContext.Request.Path.Value, "^/(on/|(lite|online|sisi|timecode|bookmark|sync|tmdbproxy|dlna|ts|tracks|transcoding|backup|invc-ws)/js/)"))
             {
                 httpContext.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate"; // HTTP 1.1.
                 httpContext.Response.Headers["Pragma"] = "no-cache"; // HTTP 1.0.

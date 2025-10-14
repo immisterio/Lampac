@@ -426,7 +426,7 @@ namespace Shared
         public TracksTranscodingConf trackstranscoding { get; set; } = new TracksTranscodingConf()
         {
             tempRoot = Path.Combine("cache", "transcoding"),
-            idleTimeoutSec = 60 * 20, idleTimeoutSec_live = 180,
+            idleTimeoutSec = 60 * 5, idleTimeoutSec_live = 180,
             maxConcurrentJobs = 5
         };
 
@@ -494,7 +494,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "0abe6ceeed1ac9e0825555524a038d2681b3359d"
+            tree = "26b9b6a2dcf90e73c875083f7314fce2df8d2243"
         };
 
         public OnlineConf online = new OnlineConf()

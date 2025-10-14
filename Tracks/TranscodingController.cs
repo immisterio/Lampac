@@ -69,20 +69,8 @@ namespace Tracks.Controllers
                 src = src,
                 live = live,
                 subtitles = subtitles,
-                audio = new TranscodingAudioOptions() 
-                { 
-                    index = a,
-                    bitrateKbps = defaults.audioOptions.bitrateKbps,
-                    stereo = defaults.audioOptions.stereo,
-                    transcodeToAac = defaults.audioOptions.transcodeToAac
-                },
-                hls = new TranscodingHlsOptions() 
-                { 
-                    seek = s,
-                    segDur = defaults.hlsOptions.segDur,
-                    winSize = defaults.hlsOptions.winSize,
-                    fmp4 = defaults.hlsOptions.fmp4
-                }
+                audio = new TranscodingAudioOptions() { index = a },
+                hls = new TranscodingHlsOptions() { seek = s }
             });
 
             if (job == null)
@@ -196,7 +184,7 @@ namespace Tracks.Controllers
             if (string.IsNullOrEmpty(m3u8))
                 return NotFound();
 
-            m3u8 = Regex.Replace(m3u8, "#EXT-X-MAP:URI=[^\n\r]+", "#EXT-X-MAP:URI=\"init.mp4\"");
+            m3u8 = Regex.Replace(m3u8, "#EXT-X-MAP:URI=[^\n\r]+", $"#EXT-X-MAP:URI=\"{AccsDbInvk.Args("init.mp4", HttpContext)}\"");
             m3u8 = Regex.Replace(m3u8, "(seg_[0-9]+\\.(m4s|ts))", r =>
             {
                 string file = r.Groups[1].Value;
@@ -244,7 +232,7 @@ namespace Tracks.Controllers
             builder.AppendLine($"#EXT-X-VERSION:{(job.Context.HlsOptions.fmp4 ? 7 : 3)}");
             builder.AppendLine($"#EXT-X-TARGETDURATION:{segDur}");
             builder.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
-            builder.AppendLine("#EXT-X-MAP:URI=\"init.mp4\"");
+            builder.AppendLine($"#EXT-X-MAP:URI=\"{AccsDbInvk.Args("init.mp4", HttpContext)}\"");
 
             for (int i = 0; i < (duration / segDur); i++)
             {

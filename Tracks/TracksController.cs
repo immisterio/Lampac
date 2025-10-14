@@ -32,7 +32,7 @@ namespace Tracks.Controllers
         [Route("ffprobe")]
         async public Task<ActionResult> Ffprobe(string media)
         {
-            if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http"))
+            if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http") || media.Contains("/transcoding/"))
                 return ContentTo("{}");
 
             return ContentTo(await FfprobeJson(host, HttpContext, hybridCache, media));
@@ -41,19 +41,21 @@ namespace Tracks.Controllers
 
         public static async Task<string> FfprobeJson(string host, HttpContext httpContext, HybridCache hybridCache, string media)
         {
+            string magnethash = null;
+
             if (media.Contains("/dlna/stream"))
             {
                 string path = Regex.Match(media, "\\?path=([^&]+)").Groups[1].Value;
                 if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
                     return "{}";
 
-                media = AccsDbInvk.Args($"{host}/dlna/stream?path={path}", httpContext);
+                magnethash = path;
             }
-            else if (media.Contains("/stream/"))
+            else if (media.Contains("/stream/") || media.Contains("/lite/pidtor/"))
             {
                 media = Regex.Replace(media, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&]+", "", RegexOptions.IgnoreCase);
 
-                if (!string.IsNullOrWhiteSpace(AppInit.conf.ffprobe.tsuri))
+                if (media.Contains("/stream/") && !string.IsNullOrWhiteSpace(AppInit.conf.ffprobe.tsuri))
                     media = Regex.Replace(media, "^https?://[^/]+", AppInit.conf.ffprobe.tsuri, RegexOptions.IgnoreCase);
             }
             else if (media.Contains("/proxy/") && media.Contains(".mkv"))
@@ -62,10 +64,6 @@ namespace Tracks.Controllers
                 media = ProxyLink.Decrypt(hash, null).uri;
                 if (string.IsNullOrWhiteSpace(media))
                     return "{}";
-            }
-            else
-            {
-                return "{}";
             }
 
             string memKey = $"tracks:ffprobe:{media}";
@@ -78,23 +76,28 @@ namespace Tracks.Controllers
                 }
                 #endregion
 
-                string magnethash = null;
                 if (media.Contains("/stream/"))
                 {
                     magnethash = Regex.Match(media, "link=([a-z0-9]+)").Groups[1].Value;
                     string index = Regex.Match(media, @"index=([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
 
                     if (!string.IsNullOrWhiteSpace(magnethash))
-                    {
                         magnethash = $"{magnethash}_{index}";
-                        if (System.IO.File.Exists(getFolder(magnethash)))
-                            outPut = BrotliTo.Decompress(getFolder(magnethash));
-                    }
                 }
-                else
+                else if (media.Contains("/lite/pidtor/"))
                 {
-                    magnethash = CrypTo.md5(media);
+                    magnethash = Regex.Match(media, "/lite/pidtor/s([a-z0-9]+)").Groups[1].Value;
+                    string index = Regex.Match(media, @"tsid=([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+
+                    if (!string.IsNullOrWhiteSpace(magnethash))
+                        magnethash = $"{magnethash}_{index}";
                 }
+
+                if (string.IsNullOrEmpty(magnethash))
+                    magnethash = CrypTo.md5(media);
+
+                if (System.IO.File.Exists(getFolder(magnethash)))
+                    outPut = BrotliTo.Decompress(getFolder(magnethash));
 
                 if (string.IsNullOrWhiteSpace(outPut))
                 {
@@ -114,7 +117,7 @@ namespace Tracks.Controllers
                     process.StartInfo.ArgumentList.Add("json");
                     process.StartInfo.ArgumentList.Add("-show_format");
                     process.StartInfo.ArgumentList.Add("-show_streams");
-                    process.StartInfo.ArgumentList.Add(uri.AbsoluteUri);
+                    process.StartInfo.ArgumentList.Add(AccsDbInvk.Args(uri.AbsoluteUri, httpContext));
 
                     process.Start();
 
