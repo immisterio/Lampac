@@ -783,7 +783,7 @@ namespace Online.Controllers
             }
             #endregion
 
-            if (original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
+            if (original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn" or "th" or "vi" or "tl")
                 send(conf.Kodik);
 
             if (serial == -1 || isanime)
