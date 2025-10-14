@@ -531,8 +531,12 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             {
                 args.Add("-readrate");
                 args.Add(config.playlistOptions.readrate.ToString().Replace(",", "."));
-                args.Add("-readrate_initial_burst");
-                args.Add(Math.Max(5242880, config.playlistOptions.burst).ToString());
+
+                if (config.playlistOptions.burst > 0)
+                {
+                    args.Add("-readrate_initial_burst");
+                    args.Add(config.playlistOptions.burst.ToString());
+                }
             }
             #endregion
 
@@ -592,6 +596,16 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add($"0:a:{(0 >= context.Audio.index ? 0 : context.Audio.index)}");
 
             args.Add("-dn");
+            args.Add("-sn");
+
+            args.Add("-disposition:v");
+            args.Add("-default");
+
+            args.Add("-disposition:a");
+            args.Add("-default");
+
+            args.Add("-disposition:s");
+            args.Add("-default");
 
             args.Add("-map_metadata");
             args.Add("-1");
@@ -663,7 +677,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             #endregion
 
             args.Add("-max_muxing_queue_size");
-            args.Add("2048");
+            args.Add("4096");
 
             args.Add("-f");
             args.Add("hls");
