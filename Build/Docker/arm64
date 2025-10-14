@@ -3,9 +3,8 @@ FROM arm64v8/debian:12.5-slim
 EXPOSE 9118
 WORKDIR /home
 
-RUN apt-get update & apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium xvfb libnspr4 \
-    & apt-get install -y --no-install-recommends tzdata coreutils procps libfdk-aac2 libass9 fontconfig fonts-dejavu fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
-    & apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip sed chromium xvfb libnspr4 fontconfig \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -L -k -o ffmpeg.zip https://github.com/immisterio/ffmpeg/releases/download/ffmpeg2/ffmpeg-master-latest-linuxarm64-gpl.zip \
     && unzip -o ffmpeg.zip && rm -f ffmpeg.zip \
