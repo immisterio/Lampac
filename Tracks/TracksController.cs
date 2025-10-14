@@ -109,7 +109,7 @@ namespace Tracks.Controllers
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                    process.StartInfo.FileName = AppInit.Win32NT ? "data/ffprobe.exe" : "ffprobe";
+                    process.StartInfo.FileName = AppInit.Win32NT ? "data/ffprobe.exe" : System.IO.File.Exists("data/ffprobe") ? "data/ffprobe" : "ffprobe";
 
                     process.StartInfo.ArgumentList.Add("-v");
                     process.StartInfo.ArgumentList.Add("quiet");

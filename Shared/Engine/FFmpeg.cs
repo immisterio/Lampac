@@ -118,7 +118,7 @@ namespace Shared.Engine
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "data/ffmpeg.exe" : File.Exists("data/ffmpeg") ? "data/ffmpeg" : "ffmpeg";
+                process.StartInfo.FileName = AppInit.Win32NT ? "data/ffmpeg.exe" : File.Exists("data/ffmpeg") ? "data/ffmpeg" : "ffmpeg";
                 process.StartInfo.Arguments = comand;
                 process.StartInfo.WorkingDirectory = workingDirectory;
                 process.Start();

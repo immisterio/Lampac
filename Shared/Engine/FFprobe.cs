@@ -20,7 +20,7 @@ namespace Shared.Engine
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.FileName = AppInit.Win32NT ? "data/ffprobe.exe" : "ffprobe";
+                process.StartInfo.FileName = AppInit.Win32NT ? "data/ffprobe.exe" : File.Exists("data/ffprobe") ? "data/ffprobe" : "ffprobe";
                 process.StartInfo.Arguments = comand;
                 process.StartInfo.WorkingDirectory = workingDirectory;
                 process.Start();

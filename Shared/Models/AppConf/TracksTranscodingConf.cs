@@ -94,9 +94,9 @@ namespace Shared.Models.AppConf
     public class TranscodingPlaylistOptions
     {
         /// <summary>
-        /// sped x2
+        /// sped
         /// </summary>
-        public double readrate { get; set; } = 2;
+        public double readrate { get; set; } = 1.6;
 
         /// <summary>
         /// 1 MB
