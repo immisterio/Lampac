@@ -39,7 +39,7 @@ namespace Tracks.Controllers
         [HttpGet("js/{token}")]
         public ActionResult TranscodingJs(string token)
         {
-            if (!AppInit.conf.trackstranscoding.enable)
+            if (!AppInit.conf.transcoding.enable)
                 return Content(string.Empty);
 
             var sb = new StringBuilder(FileCache.ReadAllText("plugins/transcoding.js"));
@@ -56,13 +56,13 @@ namespace Tracks.Controllers
         [HttpGet("start.m3u8")]
         public async Task<IActionResult> StartM3u8(string src, int a, int s, bool subtitles, bool live)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (string.IsNullOrEmpty(src))
                 return BadRequest(new { error = "src" });
 
-            var defaults = AppInit.conf.trackstranscoding;
+            var defaults = AppInit.conf.transcoding;
 
             var (job, error) = await _service.Start(new TranscodingStartRequest() 
             { 
@@ -84,7 +84,7 @@ namespace Tracks.Controllers
         [HttpPost("start")]
         public async Task<IActionResult> Start([FromBody] TranscodingStartRequest request)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (request == null)
@@ -108,7 +108,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/seek/{ss}")]
         public async Task<IActionResult> Seek(string streamId, int ss)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
@@ -132,7 +132,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/live.m3u8")]
         public async Task<IActionResult> Live(string streamId)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
@@ -199,7 +199,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/main.m3u8")]
         public async Task<IActionResult> Playlist(string streamId)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
@@ -250,7 +250,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/{file}")]
         public async Task<IActionResult> Segment(string streamId, string file)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
@@ -309,7 +309,7 @@ namespace Tracks.Controllers
                         {
                             await _service.SeekAsync(streamId, ss, segmentIndex);
 
-                            if (AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
+                            if (AppInit.conf.transcoding.playlistOptions.delete_segments)
                             {
                                 foreach (string inFile in Directory.GetFiles(job.OutputDirectory))
                                 {
@@ -369,7 +369,7 @@ namespace Tracks.Controllers
             #endregion
 
             #region delete_segments
-            if (file.StartsWith("seg_") && !job.Context.live && AppInit.conf.trackstranscoding.playlistOptions.delete_segments)
+            if (file.StartsWith("seg_") && !job.Context.live && AppInit.conf.transcoding.playlistOptions.delete_segments)
             {
                 _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(_ =>
                 {
@@ -393,7 +393,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/subtitles")]
         public IActionResult Subtitles(string streamId)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
@@ -435,7 +435,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/heartbeat")]
         public IActionResult Heartbeat(string streamId)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
@@ -450,7 +450,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/stop")]
         public async Task<IActionResult> StopAsync(string streamId)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             var stopped = await _service.StopAsync(streamId);
@@ -462,7 +462,7 @@ namespace Tracks.Controllers
         [HttpGet("{streamId}/status")]
         public IActionResult Status(string streamId)
         {
-            if (!AppInit.conf.trackstranscoding.enable || !ModInit.IsInitialization)
+            if (!AppInit.conf.transcoding.enable || !ModInit.IsInitialization)
                 return BadRequest(new { error = "Transcoding disabled" });
 
             if (!_service.TryResolveJob(streamId, out var job))
@@ -541,8 +541,8 @@ namespace Tracks.Controllers
                         live = false,
                         subtitles = false,
                         headers = new { referer = "https://example.com", userAgent = "HlsProxy/1.0" },
-                        audio = AppInit.conf.trackstranscoding.audioOptions,
-                        hls = AppInit.conf.trackstranscoding.hlsOptions
+                        audio = AppInit.conf.transcoding.audioOptions,
+                        hls = AppInit.conf.transcoding.hlsOptions
                     },
                     description = "Start transcoding by POSTing a JSON body. Returns StreamId and playlist URL"
                 },

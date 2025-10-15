@@ -21,7 +21,7 @@ namespace Tracks
             FFprobe.InitializationAsync().ContinueWith(t =>
             {
                 IsInitialization = t.Result;
-                TranscodingService.Instance.Configure(AppInit.conf.trackstranscoding);
+                TranscodingService.Instance.Configure(AppInit.conf.transcoding);
             });
         }
 

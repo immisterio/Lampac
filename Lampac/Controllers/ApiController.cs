@@ -237,7 +237,7 @@ namespace Lampac.Controllers
 
                 string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false)
                        .Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower())
-                       .Replace("{notUseTranscoding}", (AppInit.conf.trackstranscoding.enable == false).ToString().ToLower());
+                       .Replace("{notUseTranscoding}", (AppInit.conf.transcoding.enable == false).ToString().ToLower());
 
                 var bulder = new StringBuilder(file);
 
@@ -456,7 +456,7 @@ namespace Lampac.Controllers
                         if (AppInit.conf.LampaWeb.initPlugins.tracks)
                             initiale += "{\"url\": \"{localhost}/tracks.js\",\"status\": 1,\"name\": \"Tracks.js\",\"author\": \"lampac\"},";
 
-                        if (AppInit.conf.LampaWeb.initPlugins.transcoding && AppInit.conf.trackstranscoding.enable)
+                        if (AppInit.conf.LampaWeb.initPlugins.transcoding && AppInit.conf.transcoding.enable)
                             initiale += "{\"url\": \"{localhost}/transcoding.js\",\"status\": 1,\"name\": \"Transcoding video\",\"author\": \"lampac\"},";
                     }
 
@@ -587,7 +587,7 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.tracks)
                         send("tracks", true);
 
-                    if (AppInit.conf.LampaWeb.initPlugins.transcoding && AppInit.conf.trackstranscoding.enable)
+                    if (AppInit.conf.LampaWeb.initPlugins.transcoding && AppInit.conf.transcoding.enable)
                         send("transcoding", true);
                 }
 

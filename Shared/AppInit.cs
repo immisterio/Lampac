@@ -423,7 +423,7 @@ namespace Shared
 
         public FfprobeSettings ffprobe = new FfprobeSettings() { enable = true };
 
-        public TracksTranscodingConf trackstranscoding { get; set; } = new TracksTranscodingConf()
+        public TranscodingConf transcoding { get; set; } = new TranscodingConf()
         {
             tempRoot = Path.Combine("cache", "transcoding"),
             idleTimeoutSec = 60 * 5, idleTimeoutSec_live = 180,

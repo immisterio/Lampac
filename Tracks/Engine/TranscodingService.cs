@@ -31,7 +31,7 @@ namespace Tracks.Engine
 
         public static TranscodingService Instance => _lazy.Value;
 
-        public void Configure(TracksTranscodingConf config)
+        public void Configure(TranscodingConf config)
         {
             if (config == null)
                 return;
@@ -345,9 +345,9 @@ namespace Tracks.Engine
             job.Dispose();
         }
 
-        private TracksTranscodingConf GetConfig()
+        private TranscodingConf GetConfig()
         {
-            return AppInit.conf.trackstranscoding;
+            return AppInit.conf.transcoding;
         }
 
         private static string GetHeader(Dictionary<string, string> headers, string key)
@@ -364,7 +364,7 @@ namespace Tracks.Engine
             return null;
         }
 
-        private static TranscodingHlsOptions MergeHlsOptions(TracksTranscodingConf config, TranscodingHlsOptions request)
+        private static TranscodingHlsOptions MergeHlsOptions(TranscodingConf config, TranscodingHlsOptions request)
         {
             var opt = request ?? config.hlsOptions;
 
@@ -377,7 +377,7 @@ namespace Tracks.Engine
             };
         }
 
-        private static TranscodingAudioOptions MergeAudioOptions(TracksTranscodingConf config, TranscodingAudioOptions request)
+        private static TranscodingAudioOptions MergeAudioOptions(TranscodingConf config, TranscodingAudioOptions request)
         {
             var opt = request ?? config.audioOptions;
 
@@ -390,7 +390,7 @@ namespace Tracks.Engine
             };
         }
 
-        private static bool TryValidateSource(string src, TracksTranscodingConf config, out Uri uri, out string error)
+        private static bool TryValidateSource(string src, TranscodingConf config, out Uri uri, out string error)
         {
             error = string.Empty;
             uri = null!;
@@ -782,7 +782,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             catch { }
         }
 
-        private async Task IdleWatchdogAsync(TranscodingJob job, TracksTranscodingConf config)
+        private async Task IdleWatchdogAsync(TranscodingJob job, TranscodingConf config)
         {
             var idle = TimeSpan.FromSeconds(Math.Max(180, config.idleTimeoutSec));
             var idle_live = TimeSpan.FromSeconds(Math.Max(20, config.idleTimeoutSec_live));

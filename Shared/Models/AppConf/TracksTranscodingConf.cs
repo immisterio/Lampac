@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Shared.Models.AppConf
 {
-    public class TracksTranscodingConf
+    public class TranscodingConf
     {
         public bool enable { get; set; }
 
