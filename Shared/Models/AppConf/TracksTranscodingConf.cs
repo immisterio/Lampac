@@ -99,9 +99,9 @@ namespace Shared.Models.AppConf
         public double readrate { get; set; } = 1.6;
 
         /// <summary>
-        /// 1 MB
+        /// 10 MB
         /// </summary>
-        public int burst { get; set; } = 1048576;
+        public int burst { get; set; } = 10485760;
 
         public bool delete_segments { get; set; } = true;
     }

@@ -38,7 +38,7 @@ namespace Online.Controllers
                             string magnet = torrent.MagnetUri;
                             string name = torrent.Title;
 
-                            if (string.IsNullOrWhiteSpace(magnet) || !magnet.Contains("&tr=") || string.IsNullOrWhiteSpace(name))
+                            if (string.IsNullOrEmpty(magnet) || string.IsNullOrEmpty(name))
                                 continue;
 
                             string tracker = torrent.Tracker;
@@ -64,7 +64,7 @@ namespace Online.Controllers
                                     continue;
                             }
 
-                            if (init.forceAll && Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
+                            if (init.forceAll || Regex.IsMatch(name.ToLower(), "(4k|uhd)( |\\]|,|$)") || name.Contains("2160p") || name.Contains("1080p") || name.Contains("720p"))
                             {
                                 int sid = torrent.Seeders;
                                 long? size = torrent.Size;
@@ -229,14 +229,14 @@ namespace Online.Controllers
                                     while (match.Success)
                                     {
                                         string t = match.Groups[2].Value.Trim().ToLower();
-                                        if (!string.IsNullOrWhiteSpace(t))
+                                        if (!string.IsNullOrEmpty(t))
                                             tr += t.Contains("/") || t.Contains(":") ? $"&tr={HttpUtility.UrlEncode(t)}" : $"&tr={t}";
 
                                         match = match.NextMatch();
                                     }
 
-                                    if (string.IsNullOrWhiteSpace(tr))
-                                        continue;
+                                    if (!string.IsNullOrEmpty(tr))
+                                        tr = tr.Remove(0, 1);
                                     #endregion
 
                                     if (!string.IsNullOrEmpty(init.filter) && !Regex.IsMatch($"{name}:{voicename}", init.filter, RegexOptions.IgnoreCase))
@@ -245,7 +245,7 @@ namespace Online.Controllers
                                     if (!string.IsNullOrEmpty(init.filter_ignore) && Regex.IsMatch($"{name}:{voicename}", init.filter_ignore, RegexOptions.IgnoreCase))
                                         continue;
 
-                                    torrents.Add((name, voicename, magnet, sid, tr.Remove(0, 1), (name.Contains("2160p") ? "2160p" : name.Contains("1080p") ? "1080p" : "720з"), (torrent.Size ?? 0), mediainfo, torrent));
+                                    torrents.Add((name, voicename, magnet, sid, tr, (name.Contains("2160p") ? "2160p" : name.Contains("1080p") ? "1080p" : "720з"), (torrent.Size ?? 0), mediainfo, torrent));
                                 }
                             }
                         }
@@ -261,8 +261,15 @@ namespace Online.Controllers
                 string en_title = HttpUtility.UrlEncode(title);
                 string en_original_title = HttpUtility.UrlEncode(original_title);
 
-                var movies = torrents.OrderByDescending(i => i.voice.Contains("Дубляж")).ThenByDescending(i => !string.IsNullOrWhiteSpace(i.voice));
-                movies = init.sort == "size" ? movies.ThenByDescending(i => i.size) : init.sort == "sid" ? movies.ThenByDescending(i => i.sid) : movies.ThenByDescending(i => i.torrent.PublishDate);
+                var movies = torrents
+                    .OrderByDescending(i => i.voice.Contains("Дубляж"))
+                    .ThenByDescending(i => !string.IsNullOrEmpty(i.voice))
+                    .ThenByDescending(i => i.magnet.Contains("&tr="));
+
+                movies = init.sort == "size" 
+                    ? movies.ThenByDescending(i => i.size) 
+                    : init.sort == "sid" ? movies.ThenByDescending(i => i.sid) 
+                    : movies.ThenByDescending(i => i.torrent.PublishDate);
 
                 if (serial == 1)
                 {
