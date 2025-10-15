@@ -21,13 +21,13 @@ namespace Tracks.Engine
 {
     internal sealed class TranscodingService
     {
-        private static readonly Lazy<TranscodingService> _lazy = new(() => new TranscodingService());
+        static readonly Lazy<TranscodingService> _lazy = new(() => new TranscodingService());
 
-        private readonly ConcurrentDictionary<string, TranscodingJob> _jobs = new();
-        private readonly Regex _safeFileNameRegex = new("^[A-Za-z0-9_.-]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        readonly ConcurrentDictionary<string, TranscodingJob> _jobs = new();
+        readonly Regex _safeFileNameRegex = new("^[A-Za-z0-9_.-]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        private byte[] _hmacKey = RandomNumberGenerator.GetBytes(32);
-        private string _ffmpegPath = AppInit.Win32NT ? "data/ffmpeg.exe" : "ffmpeg";
+        byte[] _hmacKey = RandomNumberGenerator.GetBytes(32);
+        static string _ffmpegPath;
 
         public static TranscodingService Instance => _lazy.Value;
 
@@ -200,6 +200,8 @@ namespace Tracks.Engine
 
             job.Process.EnableRaisingEvents = false;
             await StopJobAsync(job, forced: true, cleanup: false);
+
+            Directory.CreateDirectory(newContext.OutputDirectory);
 
             var process = CreateProcess(newContext);
 
@@ -592,9 +594,9 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             }
 
             #region -c:v
-            if (context.ffprobe != null && context.ffprobe.ContainsKey("streams") &&
-                config.convertOptions.comand != null && config.convertOptions.comand.Count > 0 &&
-                config.convertOptions.codec != null)
+            if (config.convertOptions.transcodeVideo && config.convertOptions.codec != null &&
+                context.ffprobe != null && context.ffprobe.ContainsKey("streams") &&
+                config.convertOptions.comand != null && config.convertOptions.comand.Count > 0)
             {
                 try
                 {

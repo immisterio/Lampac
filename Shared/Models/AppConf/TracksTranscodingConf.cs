@@ -38,8 +38,7 @@ namespace Shared.Models.AppConf
             ["input"] = ["-avoid_negative_ts disabled"],
             ["output"] = [
                 "-map 0:v:0", "-map 0:a:{audio_index}", "-dn -sn", 
-                "-disposition:v default", "-disposition:a default", "-disposition:s default",
-                "-map_metadata -1", "-map_chapters -1", "-max_muxing_queue_size 4096"
+                "-map_metadata -1", "-map_chapters -1", "-max_muxing_queue_size 2048"
             ],
         };
     }
@@ -108,6 +107,8 @@ namespace Shared.Models.AppConf
 
     public class TranscodingConvertOptions
     {
+        public bool transcodeVideo { get; set; }
+
         [JsonProperty("codec", ObjectCreationHandling = ObjectCreationHandling.Replace, NullValueHandling = NullValueHandling.Ignore)]
         public string[] codec { get; set; } = { "mpeg4", "msmpeg4v3", "flv1", "av1" };
 

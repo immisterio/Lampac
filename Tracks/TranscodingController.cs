@@ -356,11 +356,11 @@ namespace Tracks.Controllers
                 }
                 catch (IOException)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(250);
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(250);
                 }
             }
 
