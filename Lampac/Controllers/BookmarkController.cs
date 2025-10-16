@@ -38,21 +38,6 @@ namespace Lampac.Controllers
         }
         #endregion
 
-        private static readonly string[] BookmarkCategories = new[]
-        {
-            "history",
-            "like",
-            "watch",
-            "wath",
-            "book",
-            "look",
-            "viewed",
-            "scheduled",
-            "continued",
-            "thrown"
-        };
-
-
         #region List
         [HttpGet]
         [Route("/bookmark/list")]
@@ -107,25 +92,29 @@ namespace Lampac.Controllers
                                         }
 
                                         // migrate categories
-                                        foreach (var category in BookmarkCategories)
+                                        foreach (var property in favorite.Properties())
                                         {
-                                            if (favorite[category] is JArray srcArray)
-                                            {
-                                                var dest = GetCategoryArray(loaded, category);
-                                                foreach (var t in srcArray.ToList())
-                                                {
-                                                    var idStr = t?.ToString();
-                                                    if (string.IsNullOrWhiteSpace(idStr))
-                                                        continue;
+                                            if (property.Name.Equals("card", StringComparison.OrdinalIgnoreCase))
+                                                continue;
 
-                                                    if (long.TryParse(idStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var idVal))
+                                            string category = NormalizeCategory(property.Name);
+                                            if (string.IsNullOrEmpty(category) || property.Value is not JArray srcArray)
+                                                continue;
+
+                                            var dest = GetCategoryArray(loaded, category);
+                                            foreach (var t in srcArray.ToList())
+                                            {
+                                                var idStr = t?.ToString();
+                                                if (string.IsNullOrWhiteSpace(idStr))
+                                                    continue;
+
+                                                if (long.TryParse(idStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var idVal))
+                                                {
+                                                    bool exists = dest.Any(dt => dt.ToString() == idVal.ToString(CultureInfo.InvariantCulture));
+                                                    if (!exists)
                                                     {
-                                                        bool exists = dest.Any(dt => dt.ToString() == idVal.ToString(CultureInfo.InvariantCulture));
-                                                        if (!exists)
-                                                        {
-                                                            dest.Add(idVal);
-                                                            changed = true;
-                                                        }
+                                                        dest.Add(idVal);
+                                                        changed = true;
                                                     }
                                                 }
                                             }
@@ -421,15 +410,10 @@ namespace Lampac.Controllers
 
         static JObject CreateDefaultBookmarks()
         {
-            var obj = new JObject
+            return new JObject
             {
                 ["card"] = new JArray()
             };
-
-            foreach (var category in BookmarkCategories)
-                obj[category] = new JArray();
-
-            return obj;
         }
 
         static void EnsureDefaultArrays(JObject root)
@@ -439,12 +423,6 @@ namespace Lampac.Controllers
 
             if (root["card"] is not JArray)
                 root["card"] = new JArray();
-
-            foreach (var category in BookmarkCategories)
-            {
-                if (root[category] is not JArray)
-                    root[category] = new JArray();
-            }
         }
 
         static string NormalizeCategory(string category)
@@ -453,7 +431,7 @@ namespace Lampac.Controllers
                 return null;
 
             var normalized = category.Trim().ToLowerInvariant();
-            return BookmarkCategories.Contains(normalized) ? normalized : null;
+            return string.IsNullOrEmpty(normalized) ? null : normalized;
         }
 
         static bool EnsureCard(JObject data, JObject card, long id, bool insert = true)
@@ -490,7 +468,7 @@ namespace Lampac.Controllers
 
         static bool AddToCategory(JObject data, string category, long id)
         {
-            if (data == null || string.IsNullOrEmpty(category) || !BookmarkCategories.Contains(category))
+            if (data == null || string.IsNullOrEmpty(category))
                 return false;
 
             var array = GetCategoryArray(data, category);
@@ -508,7 +486,7 @@ namespace Lampac.Controllers
 
         static bool RemoveFromCategory(JObject data, string category, long id)
         {
-            if (data == null || string.IsNullOrEmpty(category) || !BookmarkCategories.Contains(category))
+            if (data == null || string.IsNullOrEmpty(category))
                 return false;
 
             if (data[category] is not JArray array)
