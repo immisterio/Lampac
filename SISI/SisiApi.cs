@@ -30,7 +30,8 @@ namespace SISI
             string memKey = $"sisi.js:{apr?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                cache.file = FileCache.ReadAllText("plugins/sisi.js", saveCache: false);
+                cache.file = FileCache.ReadAllText("plugins/sisi.js", saveCache: false)
+                    .Replace("{rch_websoket}", FileCache.ReadAllText($"plugins/rch_{AppInit.conf.rch.websoket}.js", saveCache: false));
 
                 #region appReplace
                 if (apr != null)

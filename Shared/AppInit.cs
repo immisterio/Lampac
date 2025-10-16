@@ -339,7 +339,7 @@ namespace Shared
             frontend = null // cloudflare|nginx
         };
 
-        public bool syncBeta = false;
+        public bool syncBeta = true;
 
         public bool multiaccess = false;
 
@@ -397,7 +397,11 @@ namespace Shared
 
         public OpenStatConf openstat = new OpenStatConf();
 
-        public RchConf rch = new RchConf() { enable = true };
+        public RchConf rch = new RchConf() 
+        { 
+            enable = true,
+            websoket = "nws" // signalr|nws
+        };
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 

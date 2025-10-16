@@ -27,7 +27,9 @@ namespace Online.Controllers
             string memKey = $"online.js:{apr?.Count ?? 0}:{InvkEvent.conf?.Controller?.AppReplace?.online?.list?.Count ?? 0}:{init.version}:{init.description}:{init.apn}:{host}:{init.spider}:{init.component}:{init.name}:{init.spiderName}";
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
-                cache.file = FileCache.ReadAllText("plugins/online.js", saveCache: false);
+                cache.file = FileCache.ReadAllText("plugins/online.js", saveCache: false)
+                    .Replace("{rch_websoket}", FileCache.ReadAllText($"plugins/rch_{AppInit.conf.rch.websoket}.js", saveCache: false));
+
                 string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false);
                 playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
 
@@ -60,7 +62,7 @@ namespace Online.Controllers
                 if (!init.version)
                 {
                     cache.file = Regex.Replace(cache.file, "version: \\'[^\\']+\\'", "version: ''")
-                                .Replace("manifst.name, \" v\"", "manifst.name, \" \"");
+                                      .Replace("manifst.name, \" v\"", "manifst.name, \" \"");
                 }
 
                 if (init.description != "Плагин для просмотра онлайн сериалов и фильмов")
