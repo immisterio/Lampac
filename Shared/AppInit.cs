@@ -430,7 +430,7 @@ namespace Shared
         public TranscodingConf transcoding { get; set; } = new TranscodingConf()
         {
             tempRoot = Path.Combine("cache", "transcoding"),
-            idleTimeoutSec = 60 * 5, idleTimeoutSec_live = 180,
+            idleTimeoutSec = 60 * 5, idleTimeoutSec_live = 120,
             maxConcurrentJobs = 5
         };
 
