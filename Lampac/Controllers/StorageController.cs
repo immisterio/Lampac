@@ -128,7 +128,8 @@ namespace Lampac.Controllers
             }
             else
             {
-                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "storage", path).ConfigureAwait(false);
+                string edata = JsonConvert.SerializeObject(new { path, pathfile });
+                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "storage", edata).ConfigureAwait(false);
             }
             #endregion
 
