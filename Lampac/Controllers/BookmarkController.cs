@@ -237,7 +237,7 @@ namespace Lampac.Controllers
                     Save(sqlDb, entity, data);
                 }
 
-                string edata = JsonConvert.SerializeObject(new { type = "set", data = valueToken, profile_id = getProfileid(requestInfo, HttpContext) });
+                string edata = JsonConvert.SerializeObject(new { type = "set", where, data = valueToken, profile_id = getProfileid(requestInfo, HttpContext) });
                 _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
 
                 return JsonSuccess();
