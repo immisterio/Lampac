@@ -12,6 +12,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -48,8 +49,12 @@ namespace Lampac.Controllers
             #region migration storage to sql
             if (AppInit.conf.syncBeta && !string.IsNullOrEmpty(requestInfo.user_uid))
             {
-                string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(requestInfo.user_uid) : Regex.Replace(requestInfo.user_uid, "(\\@|_)", "");
+                string profile_id = getProfileid(requestInfo, HttpContext);
+                string id = requestInfo.user_uid + profile_id;
+
+                string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(id) : Regex.Replace(id, "(\\@|_)", "");
                 string storageFile = $"database/storage/sync_favorite/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
+
                 if (System.IO.File.Exists(storageFile) && !System.IO.File.Exists($"{storageFile}.migration"))
                 {
                     string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
