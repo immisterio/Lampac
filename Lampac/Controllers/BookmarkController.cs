@@ -2,6 +2,7 @@ using Lampac.Engine;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver.Core.Connections;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
@@ -172,7 +173,7 @@ namespace Lampac.Controllers
         #region Set
         [HttpPost]
         [Route("/bookmark/set")]
-        public async Task<ActionResult> Set()
+        public async Task<ActionResult> Set(string connectionId)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
@@ -213,10 +214,10 @@ namespace Lampac.Controllers
 
             var valueToken = job.TryGetValue("data", out var token)
                 ? token?.DeepClone()
-                : JValue.CreateNull();
+                : null;
 
             if (valueToken == null)
-                valueToken = JValue.CreateNull();
+                return JsonFailure();
 
             string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
             var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
@@ -235,6 +236,9 @@ namespace Lampac.Controllers
 
                     Save(sqlDb, entity, data);
                 }
+
+                string edata = JsonConvert.SerializeObject(new { type = "set", data = valueToken, profile_id = getProfileid(requestInfo, HttpContext) });
+                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
 
                 return JsonSuccess();
             }
