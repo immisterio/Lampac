@@ -1,10 +1,12 @@
 using Lampac.Engine;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
+using Shared.Models;
 using Shared.Models.SQL;
 using System;
 using System.Globalization;
@@ -48,16 +50,16 @@ namespace Lampac.Controllers
             {
                 string md5key = AppInit.conf.storage.md5name ? CrypTo.md5(requestInfo.user_uid) : Regex.Replace(requestInfo.user_uid, "(\\@|_)", "");
                 string storageFile = $"database/storage/sync_favorite/{md5key.Substring(0, 2)}/{md5key.Substring(2)}";
-                if (System.IO.File.Exists(storageFile))
+                if (System.IO.File.Exists(storageFile) && !System.IO.File.Exists($"{storageFile}.migration"))
                 {
-                    string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+                    string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
                     var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
                     try
                     {
                         await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
-                        if (System.IO.File.Exists(storageFile))
+                        if (System.IO.File.Exists(storageFile) && !System.IO.File.Exists($"{storageFile}.migration"))
                         {
                             var content = System.IO.File.ReadAllText(storageFile);
                             if (!string.IsNullOrWhiteSpace(content))
@@ -70,7 +72,7 @@ namespace Lampac.Controllers
 
                                     using (var sqlDb = new SyncUserContext())
                                     {
-                                        var (entity, loaded) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                                        var (entity, loaded) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
                                         bool changed = false;
 
                                         EnsureDefaultArrays(loaded);
@@ -124,7 +126,7 @@ namespace Lampac.Controllers
                                             Save(sqlDb, entity, loaded);
                                     }
 
-                                    System.IO.File.Move(storageFile, $"{storageFile}.migration");
+                                    System.IO.File.Create($"{storageFile}.migration");
                                 }
                             }
                         }
@@ -171,7 +173,7 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
             var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
             try
@@ -180,7 +182,7 @@ namespace Lampac.Controllers
 
                 using (var sqlDb = new SyncUserContext())
                 {
-                    var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
                     bool changed = false;
 
                     changed |= EnsureCard(data, payload.Card, cardId.Value);
@@ -194,7 +196,7 @@ namespace Lampac.Controllers
 
                         if (readBody.json != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new { type = "add", readBody.json });
+                            string edata = JsonConvert.SerializeObject(new { type = "add", readBody.json, profile_id = getProfileid(requestInfo, HttpContext) });
                             _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
@@ -237,7 +239,7 @@ namespace Lampac.Controllers
 
             string category = NormalizeCategory(payload.Where);
 
-            string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
             var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
             try
@@ -246,7 +248,7 @@ namespace Lampac.Controllers
 
                 using (var sqlDb = new SyncUserContext())
                 {
-                    var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: true);
+                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
                     bool changed = false;
 
                     if (payload.Card != null)
@@ -261,7 +263,7 @@ namespace Lampac.Controllers
 
                         if (readBody.json != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new { type = "added", readBody.json });
+                            string edata = JsonConvert.SerializeObject(new { type = "added", readBody.json, profile_id = getProfileid(requestInfo, HttpContext) });
                             _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
@@ -305,7 +307,7 @@ namespace Lampac.Controllers
             string category = NormalizeCategory(payload.Where);
             string method = payload.NormalizedMethod;
 
-            string semaphoreKey = $"BookmarkController:{requestInfo.user_uid}";
+            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
             var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
             try
@@ -314,7 +316,7 @@ namespace Lampac.Controllers
 
                 using (var sqlDb = new SyncUserContext())
                 {
-                    var (entity, data) = LoadBookmarks(sqlDb, requestInfo.user_uid, createIfMissing: false);
+                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: false);
                     if (entity == null)
                         return JsonSuccess();
 
@@ -335,7 +337,7 @@ namespace Lampac.Controllers
 
                         if (readBody.json != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new { type = "remove", readBody.json });
+                            string edata = JsonConvert.SerializeObject(new { type = "remove", readBody.json, profile_id = getProfileid(requestInfo, HttpContext) });
                             _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
@@ -360,12 +362,30 @@ namespace Lampac.Controllers
 
 
         #region static
+        static string getUserid(RequestModel requestInfo, HttpContext httpContext)
+        {
+            string user_id = requestInfo.user_uid;
+            if (httpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id) && profile_id != "0")
+                user_id += $"_{profile_id}";
+
+            return user_id;
+        }
+
+        static string getProfileid(RequestModel requestInfo, HttpContext httpContext)
+        {
+            if (httpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id))
+                return profile_id;
+
+            return "0";
+        }
+
         JObject GetBookmarksForResponse(SyncUserContext sqlDb)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return CreateDefaultBookmarks();
 
-            var entity = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == requestInfo.user_uid);
+            string user_id = getUserid(requestInfo, HttpContext);
+            var entity = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == user_id);
             var data = entity != null ? DeserializeBookmarks(entity.data) : CreateDefaultBookmarks();
             EnsureDefaultArrays(data);
             return data;
