@@ -169,6 +169,91 @@ namespace Lampac.Controllers
         }
         #endregion
 
+        #region Set
+        [HttpPost]
+        [Route("/bookmark/set")]
+        public async Task<ActionResult> Set()
+        {
+            if (string.IsNullOrEmpty(requestInfo.user_uid))
+                return JsonFailure();
+
+            string body = null;
+
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
+            {
+                body = await reader.ReadToEndAsync();
+            }
+
+            if (string.IsNullOrWhiteSpace(body))
+                return JsonFailure();
+
+            JObject job = null;
+
+            try
+            {
+                job = JsonConvert.DeserializeObject<JObject>(body);
+            }
+            catch
+            {
+                return JsonFailure();
+            }
+
+            if (job == null)
+                return JsonFailure();
+
+            string where = job.Value<string>("where");
+            if (string.IsNullOrWhiteSpace(where))
+                return JsonFailure();
+
+            where = where.Trim();
+            string normalized = where.ToLowerInvariant();
+
+            if (BookmarkCategories.Contains(normalized))
+                return JsonFailure();
+
+            var valueToken = job.TryGetValue("data", out var token)
+                ? token?.DeepClone()
+                : JValue.CreateNull();
+
+            if (valueToken == null)
+                valueToken = JValue.CreateNull();
+
+            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
+            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
+
+            try
+            {
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+
+                using (var sqlDb = new SyncUserContext())
+                {
+                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
+
+                    data[where] = valueToken;
+
+                    EnsureDefaultArrays(data);
+
+                    Save(sqlDb, entity, data);
+                }
+
+                return JsonSuccess();
+            }
+            finally
+            {
+                try
+                {
+                    semaphore.Release();
+                }
+                finally
+                {
+                    if (semaphore.CurrentCount == 1)
+                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
+                }
+            }
+        }
+
+        #endregion
+
         #region Add
         [HttpPost]
         [Route("/bookmark/add")]
