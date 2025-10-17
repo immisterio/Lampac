@@ -14,6 +14,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Tracks.Controllers;
 
@@ -25,11 +26,20 @@ namespace Tracks.Engine
 
         readonly ConcurrentDictionary<string, TranscodingJob> _jobs = new();
         readonly Regex _safeFileNameRegex = new("^[A-Za-z0-9_.-]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        readonly Regex _segmentFileRegex = new("^seg_(\\d+)\\.(m4s|ts)$", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        readonly Timer _segmentCleanupTimer;
+        int _segmentCleanupRunning;
 
         byte[] _hmacKey = RandomNumberGenerator.GetBytes(32);
         static string _ffmpegPath;
 
         public static TranscodingService Instance => _lazy.Value;
+
+        private TranscodingService()
+        {
+            _segmentCleanupTimer = new Timer(_ => CleanupSegments(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
 
         public void Configure(TranscodingConf config)
         {
@@ -267,6 +277,11 @@ namespace Tracks.Engine
                 return null;
 
             return File.Exists(candidate) ? candidate : null;
+        }
+
+        public void ReportSegmentAccess(TranscodingJob job, int segmentIndex)
+        {
+            job?.UpdateLastSegmentIndex(segmentIndex);
         }
 
         private async Task StopJobAsync(TranscodingJob job, bool forced = false, bool cleanup = true)
@@ -881,6 +896,63 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
 
             var clean = value.Replace("\r", string.Empty).Replace("\n", string.Empty);
             return string.IsNullOrWhiteSpace(clean) ? fallback : clean;
+        }
+
+        private void CleanupSegments()
+        {
+            if (Interlocked.Exchange(ref _segmentCleanupRunning, 1) == 1)
+                return;
+
+            try
+            {
+                if (!(AppInit.conf?.transcoding?.playlistOptions?.delete_segments ?? false))
+                    return;
+
+                foreach (var job in _jobs.Values)
+                {
+                    if (job.Context.live)
+                        continue;
+
+                    var lastIndex = job.LastSegmentIndex;
+                    if (lastIndex <= 0)
+                        continue;
+
+                    try
+                    {
+                        if (!Directory.Exists(job.OutputDirectory))
+                            continue;
+
+                        foreach (var file in Directory.EnumerateFiles(job.OutputDirectory, "seg_*"))
+                        {
+                            try
+                            {
+                                var name = Path.GetFileName(file);
+                                var match = _segmentFileRegex.Match(name);
+                                if (!match.Success)
+                                    continue;
+
+                                if (!int.TryParse(match.Groups[1].Value, out var index))
+                                    continue;
+
+                                if (index >= lastIndex)
+                                    continue;
+
+                                File.Delete(file);
+                            }
+                            catch
+                            {
+                            }
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _segmentCleanupRunning, 0);
+            }
         }
     }
 }

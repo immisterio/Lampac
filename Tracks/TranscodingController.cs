@@ -258,6 +258,17 @@ namespace Tracks.Controllers
 
             _service.Touch(job);
 
+            int? segmentIndex = null;
+            if (!job.Context.live && file != null)
+            {
+                var matchSegment = Regex.Match(file, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
+                if (matchSegment.Success && int.TryParse(matchSegment.Groups[1].Value, out var idx))
+                {
+                    segmentIndex = idx;
+                    _service.ReportSegmentAccess(job, idx);
+                }
+            }
+
             var fileExistsTimeout = TimeSpan.FromSeconds(60);
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -266,13 +277,12 @@ namespace Tracks.Controllers
             if (job.Context.live == false && resolved == null && !file.Contains(".vtt"))
             {
                 #region SeekAsync
-                var match = Regex.Match(file, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
-                if (match.Success && int.TryParse(match.Groups[1].Value, out int segmentIndex))
+                if (segmentIndex.HasValue)
                 {
                     int segDur = job.Context.HlsOptions.segDur;
-                    int ss = segmentIndex * segDur;
+                    int ss = segmentIndex.Value * segDur;
 
-                    if (job.Context.HlsOptions.seek == 0 && 30 > ss) 
+                    if (job.Context.HlsOptions.seek == 0 && 30 > ss)
                     {
                         // первые 30 секунд без seek-а - не трогаем
                     }
@@ -287,13 +297,13 @@ namespace Tracks.Controllers
 
                         string extension = Path.GetExtension(file);
                         int segmentsPerMinute = (int)Math.Ceiling(30.0 / segDur);
-                        int startIndex = Math.Max(0, segmentIndex - segmentsPerMinute);
+                        int startIndex = Math.Max(0, segmentIndex.Value - segmentsPerMinute);
 
                         if (goSeek == false)
                         {
                             goSeek = true;
 
-                            for (int i = startIndex; i < segmentIndex; i++)
+                            for (int i = startIndex; i < segmentIndex.Value; i++)
                             {
                                 string candidate = $"seg_{i:d5}{extension}";
                                 if (_service.GetFilePath(job, candidate) != null)
@@ -307,7 +317,7 @@ namespace Tracks.Controllers
 
                         if (goSeek)
                         {
-                            await _service.SeekAsync(streamId, ss, segmentIndex);
+                            await _service.SeekAsync(streamId, ss, segmentIndex.Value);
 
                             if (AppInit.conf.transcoding.playlistOptions.delete_segments)
                             {
@@ -366,20 +376,6 @@ namespace Tracks.Controllers
 
             if (fs == null)
                 return NotFound();
-            #endregion
-
-            #region delete_segments
-            if (file.StartsWith("seg_") && !job.Context.live && AppInit.conf.transcoding.playlistOptions.delete_segments)
-            {
-                _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(_ =>
-                {
-                    try
-                    {
-                        System.IO.File.Delete(resolved);
-                    }
-                    catch { }
-                }, TaskScheduler.Default);
-            }
             #endregion
 
             if (!provider.TryGetContentType(resolved, out var contentType))
