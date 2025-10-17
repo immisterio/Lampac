@@ -263,10 +263,7 @@ namespace Tracks.Controllers
             {
                 var matchSegment = Regex.Match(file, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
                 if (matchSegment.Success && int.TryParse(matchSegment.Groups[1].Value, out var idx))
-                {
                     segmentIndex = idx;
-                    _service.ReportSegmentAccess(job, idx);
-                }
             }
 
             var fileExistsTimeout = TimeSpan.FromSeconds(60);
@@ -316,63 +313,64 @@ namespace Tracks.Controllers
                         }
 
                         if (goSeek)
-                        {
                             await _service.SeekAsync(streamId, ss, segmentIndex.Value);
-
-                            if (AppInit.conf.transcoding.playlistOptions.delete_segments)
-                            {
-                                foreach (string inFile in Directory.GetFiles(job.OutputDirectory))
-                                {
-                                    try
-                                    {
-                                        var name = Path.GetFileName(inFile);
-                                        var m = Regex.Match(name, @"seg_(\d+)\.(m4s|ts)$", RegexOptions.IgnoreCase);
-                                        if (m.Success && int.TryParse(m.Groups[1].Value, out int idx))
-                                        {
-                                            if (idx < startIndex)
-                                                System.IO.File.Delete(inFile);
-                                        }
-                                    }
-                                    catch { }
-                                }
-                            }
-                        }
                     }
                 }
                 #endregion
 
-                while (sw.Elapsed < fileExistsTimeout)
+                do
                 {
-                    await Task.Delay(250);
-                    resolved = _service.GetFilePath(job, file);
-                    if (resolved != null)
-                        break;
+                    try
+                    {
+                        await Task.Delay(200);
+                        resolved = _service.GetFilePath(job, file);
+                        if (resolved != null)
+                            break;
+                    }
+                    catch { }
                 }
+                while (sw.Elapsed < fileExistsTimeout);
             }
 
             if (resolved == null)
                 return NotFound();
 
-            #region FileStream
-            FileStream fs = null;
-            while (sw.Elapsed < fileExistsTimeout)
+            #region ждем появления следующего сегмента
+            while (segmentIndex.HasValue && sw.Elapsed < fileExistsTimeout)
             {
                 try
                 {
-                    fs = file.Contains(".vtt") 
+                    string seg = Path.Combine(job.OutputDirectory, $"seg_{segmentIndex.Value + 1:d5}");
+                    if (System.IO.File.Exists($"{seg}.{(job.Context.HlsOptions.fmp4 ? "m4s" : "ts")}"))
+                        break;
+                }
+                catch { }
+
+                await Task.Delay(200);
+            }
+            #endregion
+
+            #region FileStream
+            FileStream fs = null;
+            do
+            {
+                try
+                {
+                    fs = file.Contains(".vtt")
                         ? new FileStream(resolved, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
-                        : new FileStream(resolved, FileMode.Open, FileAccess.Read);
+                        : System.IO.File.OpenRead(resolved);
                     break;
                 }
                 catch (IOException)
                 {
-                    await Task.Delay(250);
+                    await Task.Delay(200);
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    await Task.Delay(250);
+                    await Task.Delay(200);
                 }
-            }
+            } 
+            while (sw.Elapsed < fileExistsTimeout);
 
             if (fs == null)
                 return NotFound();
@@ -380,6 +378,9 @@ namespace Tracks.Controllers
 
             if (!provider.TryGetContentType(resolved, out var contentType))
                 contentType = "application/octet-stream";
+
+            if (segmentIndex.HasValue)
+                _service.ReportSegmentAccess(job, segmentIndex.Value);
 
             return File(fs, contentType, enableRangeProcessing: true);
         }

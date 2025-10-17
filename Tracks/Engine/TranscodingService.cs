@@ -28,8 +28,8 @@ namespace Tracks.Engine
         readonly Regex _safeFileNameRegex = new("^[A-Za-z0-9_.-]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         readonly Regex _segmentFileRegex = new("^seg_(\\d+)\\.(m4s|ts)$", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        readonly Timer _segmentCleanupTimer;
         int _segmentCleanupRunning;
+        readonly Timer _segmentCleanupTimer;
 
         byte[] _hmacKey = RandomNumberGenerator.GetBytes(32);
         static string _ffmpegPath;
@@ -38,7 +38,7 @@ namespace Tracks.Engine
 
         private TranscodingService()
         {
-            _segmentCleanupTimer = new Timer(_ => CleanupSegments(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+            _segmentCleanupTimer = new Timer(_ => CleanupSegments(), null, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(20));
         }
 
         public void Configure(TranscodingConf config)
@@ -914,7 +914,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                         continue;
 
                     var lastIndex = job.LastSegmentIndex;
-                    if (lastIndex <= 0)
+                    if (0 >= lastIndex)
                         continue;
 
                     try
@@ -922,7 +922,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                         if (!Directory.Exists(job.OutputDirectory))
                             continue;
 
-                        foreach (var file in Directory.EnumerateFiles(job.OutputDirectory, "seg_*"))
+                        foreach (var file in Directory.GetFiles(job.OutputDirectory, "seg_*"))
                         {
                             try
                             {
@@ -934,21 +934,18 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                                 if (!int.TryParse(match.Groups[1].Value, out var index))
                                     continue;
 
-                                if (index >= lastIndex)
+                                if (index >= lastIndex - 1)
                                     continue;
 
                                 File.Delete(file);
                             }
-                            catch
-                            {
-                            }
+                            catch { }
                         }
                     }
-                    catch
-                    {
-                    }
+                    catch { }
                 }
             }
+            catch { }
             finally
             {
                 Interlocked.Exchange(ref _segmentCleanupRunning, 0);
