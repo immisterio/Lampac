@@ -106,46 +106,46 @@ namespace Lampac.Controllers
         [Route("/testaccsdb")]
         public ActionResult TestAccsdb(string account_email, string uid) 
         {
+            if (!string.IsNullOrEmpty(AppInit.conf.accsdb.shared_passwd) && uid == AppInit.conf.accsdb.shared_passwd)
+                return ContentTo("{\"accsdb\": true, \"newuid\": true}");
+
             if (!string.IsNullOrEmpty(uid) && !string.IsNullOrEmpty(account_email) && account_email == AppInit.conf.accsdb.shared_passwd)
             {
                 try
                 {
-                    if (!string.IsNullOrEmpty(uid))
+                    string file = "users.json";
+
+                    JArray arr = new JArray();
+
+                    if (IO.File.Exists(file))
                     {
-                        string file = "users.json";
-
-                        JArray arr = new JArray();
-
-                        if (IO.File.Exists(file))
-                        {
-                            var txt = IO.File.ReadAllText(file);
-                            if (!string.IsNullOrWhiteSpace(txt))
-                                try { arr = JArray.Parse(txt); } catch { arr = new JArray(); }
-                        }
-
-                        bool exists = arr.Children<JObject>().Any(o =>
-                            (o.Value<string>("id") != null && o.Value<string>("id").Equals(uid, StringComparison.OrdinalIgnoreCase)) ||
-                            (o["ids"] != null && o["ids"].Any(t => t.ToString().Equals(uid, StringComparison.OrdinalIgnoreCase)))
-                        );
-
-                        if (exists)
-                            return ContentTo("{\"accsdb\": false}");
-
-                        var obj = new JObject();
-                        obj["id"] = uid;
-                        obj["expires"] = DateTime.Now.AddDays(Math.Max(1, AppInit.conf.accsdb.shared_daytime));
-
-                        arr.Add(obj);
-
-                        IO.File.WriteAllText(file, arr.ToString(Formatting.Indented));
+                        var txt = IO.File.ReadAllText(file);
+                        if (!string.IsNullOrWhiteSpace(txt))
+                            try { arr = JArray.Parse(txt); } catch { arr = new JArray(); }
                     }
-                }
-                catch { }
 
-                return ContentTo("{\"accsdb\": false, \"uid\": \"" + uid + "\"}");
+                    bool exists = arr.Children<JObject>().Any(o =>
+                        (o.Value<string>("id") != null && o.Value<string>("id").Equals(uid, StringComparison.OrdinalIgnoreCase)) ||
+                        (o["ids"] != null && o["ids"].Any(t => t.ToString().Equals(uid, StringComparison.OrdinalIgnoreCase)))
+                    );
+
+                    if (exists)
+                        return ContentTo("{\"accsdb\": false}");
+
+                    var obj = new JObject();
+                    obj["id"] = uid;
+                    obj["expires"] = DateTime.Now.AddDays(Math.Max(1, AppInit.conf.accsdb.shared_daytime));
+
+                    arr.Add(obj);
+
+                    IO.File.WriteAllText(file, arr.ToString(Formatting.Indented));
+
+                    return ContentTo("{\"accsdb\": false, \"success\": true, \"uid\": \"" + uid + "\"}");
+                }
+                catch { return ContentTo("{\"accsdb\": true}"); }
             }
 
-            return ContentTo("{\"accsdb\": false}");
+            return ContentTo("{\"accsdb\": false, \"success\": true}");
         }
         #endregion
 
@@ -755,7 +755,7 @@ namespace Lampac.Controllers
                 return;
 
             // убираем мусор в ссылке
-            uri = Regex.Replace(uri, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&]+", "", RegexOptions.IgnoreCase);
+            uri = Regex.Replace(uri, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&\\%\\@]+", "", RegexOptions.IgnoreCase);
             uri = uri + HttpContext.Request.QueryString.Value;
 
             if (!Uri.TryCreate(uri, UriKind.Absolute, out var stream) || 

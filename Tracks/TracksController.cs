@@ -53,7 +53,7 @@ namespace Tracks.Controllers
             }
             else if (media.Contains("/stream/") || media.Contains("/lite/pidtor/"))
             {
-                media = Regex.Replace(media, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&]+", "", RegexOptions.IgnoreCase);
+                media = Regex.Replace(media, "[^a-z0-9_:\\-\\/\\.\\=\\?\\&\\%\\@]+", "", RegexOptions.IgnoreCase);
 
                 if (media.Contains("/stream/") && !string.IsNullOrWhiteSpace(AppInit.conf.ffprobe.tsuri))
                     media = Regex.Replace(media, "^https?://[^/]+", AppInit.conf.ffprobe.tsuri, RegexOptions.IgnoreCase);
