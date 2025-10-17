@@ -1,17 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Lampac.Engine;
-using IO = System.IO;
-using Shared;
-using System.IO;
+﻿using Lampac.Engine;
 using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-using System;
-using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver.Core.Connections;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Collections.Concurrent;
-using System.Threading;
+using Shared;
 using Shared.Engine;
+using System;
+using System.Collections.Concurrent;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -55,7 +56,7 @@ namespace Lampac.Controllers
         #region Set
         [HttpPost]
         [Route("/storage/set")]
-        async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string pathfile, [FromQuery]string events)
+        async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string pathfile, [FromQuery]string connectionId, [FromQuery]string events)
         {
             if (!AppInit.conf.storage.enable)
                 return ContentTo("{\"success\": false, \"msg\": \"disabled\"}");
@@ -114,8 +115,7 @@ namespace Lampac.Controllers
                 }
             }
 
-            var inf = new FileInfo(outFile);
-
+            #region events
             if (!string.IsNullOrEmpty(events))
             {
                 try
@@ -126,6 +126,13 @@ namespace Lampac.Controllers
                 }
                 catch { }
             }
+            else
+            {
+                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "storage", path).ConfigureAwait(false);
+            }
+            #endregion
+
+            var inf = new FileInfo(outFile);
 
             return Json(new 
             { 
