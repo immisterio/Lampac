@@ -15,6 +15,7 @@ namespace Tracks.Engine
         private readonly LinkedList<string> _log = new();
         private readonly object _logSync = new();
         private readonly CancellationTokenSource _cts = new();
+        private int _lastSegmentIndex = -1;
 
         public TranscodingJob(string id, string streamId, string outputDirectory, Process process, TranscodingStartContext context)
         {
@@ -48,6 +49,24 @@ namespace Tracks.Engine
         public CancellationToken CancellationToken => _cts.Token;
 
         public void UpdateLastAccess() => LastAccessUtc = DateTime.UtcNow;
+
+        public int LastSegmentIndex => Volatile.Read(ref _lastSegmentIndex);
+
+        public void UpdateLastSegmentIndex(int segmentIndex)
+        {
+            if (segmentIndex < 0)
+                return;
+
+            while (true)
+            {
+                var current = Volatile.Read(ref _lastSegmentIndex);
+                if (segmentIndex <= current)
+                    return;
+
+                if (Interlocked.CompareExchange(ref _lastSegmentIndex, segmentIndex, current) == current)
+                    return;
+            }
+        }
 
 
         public void AppendLog(string line)
