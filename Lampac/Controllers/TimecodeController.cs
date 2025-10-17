@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Engine;
+using Shared.Models;
 using Shared.Models.SQL;
 using System;
 using System.Collections.Generic;
@@ -31,9 +33,11 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(card_id))
                 return Json(new { });
 
+            string userId = getUserid(requestInfo, HttpContext);
+
             Dictionary<string, string> timecodes = SyncUserDb.Read.timecodes
                 .AsNoTracking()
-                .Where(i => i.user == requestInfo.user_uid && i.card == card_id)
+                .Where(i => i.user == userId && i.card == card_id)
                 .ToDictionary(i => i.item, i => i.data);
 
             if (timecodes.Count == 0)
@@ -52,15 +56,17 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(card_id))
                 return Content("{\"secuses\": false}", "application/json; charset=utf-8");
 
+            string userId = getUserid(requestInfo, HttpContext);
+
             var sqlDb = SyncUserDb.Write;
 
             sqlDb.timecodes
-                .Where(i => i.user == requestInfo.user_uid && i.card == card_id && i.item == id)
+                .Where(i => i.user == userId && i.card == card_id && i.item == id)
                 .ExecuteDelete();
 
             var entity = new SyncUserTimecodeSqlModel
             {
-                user = requestInfo.user_uid,
+                user = userId,
                 card = card_id,
                 item = id,
                 data = data,
@@ -72,6 +78,17 @@ namespace Lampac.Controllers
             bool secuses = sqlDb.SaveChanges() > 0;
 
             return Json(new { secuses });
+        }
+
+
+        static string getUserid(RequestModel requestInfo, HttpContext httpContext)
+        {
+            string user_id = requestInfo.user_uid;
+
+            if (httpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id) && profile_id != "0")
+                return $"{user_id}_{profile_id}";
+
+            return user_id;
         }
     }
 }
