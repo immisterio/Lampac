@@ -365,18 +365,20 @@ namespace Lampac.Controllers
         static string getUserid(RequestModel requestInfo, HttpContext httpContext)
         {
             string user_id = requestInfo.user_uid;
-            if (httpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id) && profile_id != "0")
-                user_id += $"_{profile_id}";
+            string profile_id = getProfileid(requestInfo, httpContext);
+
+            if (!string.IsNullOrEmpty(profile_id))
+                return $"{user_id}_{profile_id}";
 
             return user_id;
         }
 
         static string getProfileid(RequestModel requestInfo, HttpContext httpContext)
         {
-            if (httpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id))
+            if (httpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id) && profile_id != "0")
                 return profile_id;
 
-            return "0";
+            return string.Empty;
         }
 
         JObject GetBookmarksForResponse(SyncUserContext sqlDb)
