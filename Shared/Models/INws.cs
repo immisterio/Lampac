@@ -12,12 +12,13 @@ namespace Shared.Models
 
     public class NwsConnection : IDisposable
     {
-        public NwsConnection(string connectionId, WebSocket socket, string host, string ip)
+        public NwsConnection(string connectionId, WebSocket socket, string host, string ip, string userAgent)
         {
             ConnectionId = connectionId;
             Socket = socket;
             Host = host;
             Ip = ip;
+            UserAgent = userAgent;
             SendLock = new SemaphoreSlim(1, 1);
             UpdateActivity();
         }
@@ -29,6 +30,8 @@ namespace Shared.Models
         public string Host { get; }
 
         public string Ip { get; }
+
+        public string UserAgent { get; }
 
         public SemaphoreSlim SendLock { get; }
 

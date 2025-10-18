@@ -58,7 +58,7 @@ namespace Lampac.Engine
                     var requestInfo = context.Features.Get<RequestModel>();
                     string ip = requestInfo.IP ?? context.Connection.RemoteIpAddress?.ToString();
 
-                    var connection = new NwsConnection(connectionId, socket, AppInit.Host(context), ip);
+                    var connection = new NwsConnection(connectionId, socket, AppInit.Host(context), ip, requestInfo.UserAgent);
 
                     var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
                     connection.SetCancellationSource(cancellationSource);
@@ -222,6 +222,25 @@ namespace Lampac.Engine
                     string uid = GetStringArg(args, 0);
                     string name = GetStringArg(args, 1);
                     string data = GetStringArg(args, 2);
+
+                    if (name == "devices")
+                    {
+                        var evc = event_clients.Where(i => i.Value == uid).ToArray();
+
+                        var devices = _connections
+                            .Where(i => i.Value.ConnectionId != connection.ConnectionId)
+                            .Where(i => i.Value.Ip == connection.Ip || event_clients.Values.Contains(uid))
+                            .Select(i => new {
+                                uid = event_clients.TryGetValue(i.Value.ConnectionId, out var _uid) ? _uid : null, 
+                                i.Value.ConnectionId, 
+                                i.Value.UserAgent
+                            })
+                            .ToArray();
+
+                        await SendAsync(connection, "event", uid, name, devices).ConfigureAwait(false);
+                        break;
+                    }
+
                     await SendEvents(connection.ConnectionId, uid, name, data).ConfigureAwait(false);
                     break;
                 }
