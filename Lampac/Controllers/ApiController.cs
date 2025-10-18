@@ -503,6 +503,8 @@ namespace Lampac.Controllers
             sb = sb.Replace("{deny}", string.Empty);
             sb = sb.Replace("{pirate_store}", string.Empty);
 
+            sb = sb.Replace("{ major: 0, minor: 0 }", $"{{major: {appversion}, minor: {minorversion}}}");
+
             if (AppInit.modules != null && AppInit.modules.FirstOrDefault(i => i.dll == "JacRed.dll" && i.enable) != null)
                 sb = sb.Replace("{jachost}", Regex.Replace(host, "^https?://", ""));
             else
