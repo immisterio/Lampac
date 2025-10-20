@@ -30,8 +30,9 @@ namespace Online.Controllers
                 cache.file = FileCache.ReadAllText("plugins/online.js", saveCache: false)
                     .Replace("{rch_websoket}", FileCache.ReadAllText($"plugins/rch_{AppInit.conf.rch.websoket}.js", saveCache: false));
 
-                string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false);
-                playerinner = playerinner.Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower());
+                string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false)
+                       .Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower())
+                       .Replace("{notUseTranscoding}", (AppInit.conf.transcoding.enable == false).ToString().ToLower());
 
                 #region appReplace
                 if (apr != null)

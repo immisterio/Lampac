@@ -805,7 +805,7 @@ namespace Shared
         /// aHR0cHM6Ly9nby56ZXRmbGl4LW9ubGluZS5sb2w=
         /// aHR0cHM6Ly96ZXRmbGl4LW9ubGluZS5hcnQv
         /// </summary>
-        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22jr1}hw0iol{1rqolqh")
+        public ZetflixSettings Zetflix { get; set; } = new ZetflixSettings("Zetflix", "kwwsv=22jr1}hw0iol{1rqolqh", enable: false)
         {
             browser_keepopen = true,
             geostreamproxy = ["ALL"],
