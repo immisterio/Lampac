@@ -40,7 +40,11 @@ namespace Shared.Engine
             bool IsMd5 = false;
             string uri_clear = uri.Contains("#") ? uri.Split("#")[0].Trim() : uri.Trim();
 
-            if (!forceMd5 && AppInit.conf.serverproxy.encrypt_aes && (headers == null || headers.Count == 0) && proxy == null && !uri_clear.Contains(" or "))
+            if (plugin == "posterapi")
+            {
+                hash = AesTo.Encrypt(JsonSerializer.Serialize(new { u = uri_clear }));
+            }
+            else if (!forceMd5 && AppInit.conf.serverproxy.encrypt_aes && (headers == null || headers.Count == 0) && proxy == null && !uri_clear.Contains(" or "))
             {
                 if (verifyip && AppInit.conf.serverproxy.verifyip)
                 {

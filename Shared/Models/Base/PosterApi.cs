@@ -31,6 +31,18 @@ namespace Shared.Models.Base
             return Size(imdb_img ?? kp_img);
         }
 
+        public static string Size(string host, string uri)
+        {
+            if (string.IsNullOrEmpty(uri))
+                return uri;
+
+            string img = Size(uri);
+            if (img.StartsWith("http"))
+                return img;
+
+            return host + img;
+        }
+
         public static string Size(string uri)
         {
             if (string.IsNullOrEmpty(uri) || iproxy == null || init == null || !init.rsize || (init.width == 0 && init.height == 0))
@@ -40,9 +52,9 @@ namespace Shared.Models.Base
                 return uri?.Split(" or ")?[0];
 
             if (!string.IsNullOrEmpty(init.bypass) && Regex.IsMatch(uri, init.bypass, RegexOptions.IgnoreCase))
-                return $"{init.host}/proxyimg/{iproxy.Encrypt(uri, "posterapi", DateTime.Now.AddMinutes(20))}";
+                return $"{init.host}/proxyimg/{iproxy.Encrypt(uri, "posterapi")}";
 
-            return $"{init.host}/proxyimg:{init.width}:{init.height}/{iproxy.Encrypt(uri, "posterapi", DateTime.Now.AddMinutes(20))}";
+            return $"{init.host}/proxyimg:{init.width}:{init.height}/{iproxy.Encrypt(uri, "posterapi")}";
         }
     }
 }

@@ -82,16 +82,15 @@ namespace Online.Controllers
 
                     var streams = new StreamQualityTpl();
 
-                    foreach (string q in new string[] { "1080p", "720p", "480p" })
+                    foreach (string q in new string[] { "1080", "720", "480" })
                     {
-                        var g = new Regex($"({q})\\](https?://[^,\t ]+\\.mp4)").Match(cache.Value.content).Groups;
+                        var g = new Regex($"{q}p?\\](https?://[^,\t ]+\\.mp4)").Match(cache.Value.content).Groups;
 
-                        if (!string.IsNullOrEmpty(g[2].Value))
-                            streams.Append(HostStreamProxy(init, g[2].Value, proxy: proxy), g[1].Value);
+                        if (!string.IsNullOrEmpty(g[1].Value))
+                            streams.Append(HostStreamProxy(init, g[1].Value, proxy: proxy), $"{q}p");
                     }
 
-                    if (streams.Any())
-                        mtpl.Append("По умолчанию", streams.Firts().link, streamquality: streams, vast: init.vast);
+                    mtpl.Append("По умолчанию", streams.Firts().link, streamquality: streams, vast: init.vast);
 
                     return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
 
@@ -142,15 +141,14 @@ namespace Online.Controllers
 
                                 var streams = new StreamQualityTpl();
 
-                                foreach (string q in new string[] { "1080p", "720p", "480p" })
+                                foreach (string q in new string[] { "1080", "720", "480" })
                                 {
-                                    var g = new Regex($"({q})\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+\\.mp4)").Match(file).Groups;
+                                    var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+\\.mp4)").Match(file).Groups;
                                     if (!string.IsNullOrEmpty(g["file"].Value))
-                                        streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), g[1].Value);
+                                        streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), $"{q}p");
                                 }
 
-                                if (streams.Any())
-                                    etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "([0-9]+)").Groups[1].Value, streams.Firts().link, streamquality: streams, vast: init.vast);
+                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "([0-9]+)").Groups[1].Value, streams.Firts().link, streamquality: streams, vast: init.vast);
                             }
                         }
 
