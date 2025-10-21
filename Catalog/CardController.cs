@@ -1,7 +1,4 @@
-﻿using HtmlAgilityPack;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
 
 namespace Catalog.Controllers

@@ -1,10 +1,4 @@
-﻿using HtmlAgilityPack;
-using Microsoft.CodeAnalysis.Scripting;
-using Shared.Models.Base;
-using Shared.Models.Catalog;
-using Shared.Models.CSharpGlobals;
-using System.Web;
-using YamlDotNet.Serialization;
+﻿using YamlDotNet.Serialization;
 
 namespace Catalog
 {

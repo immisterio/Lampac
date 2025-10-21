@@ -1,8 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Text;
-using System.Web;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 
 namespace Catalog.Controllers
 {
