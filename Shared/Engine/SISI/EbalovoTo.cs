@@ -778,11 +778,12 @@ namespace Shared.Engine.SISI
                 return null;
 
             string stream_link = null;
-            var match = new Regex("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)").Match(html);
-            while (match.Success)
+
+            foreach (var item in new string[] { "video_url", "video_alt_url" })
             {
-                stream_link = match.Groups[1].Value;
-                match = match.NextMatch();
+                stream_link = Regex.Match(html, "video_alt_url:([\t ]+)?('|\")(?<link>[^\"']+)").Groups["link"].Value;
+                if (!string.IsNullOrEmpty(stream_link))
+                    break;
             }
 
             if (string.IsNullOrEmpty(stream_link))
@@ -791,7 +792,7 @@ namespace Shared.Engine.SISI
             if (onlocation != null)
             {
                 string location = await onlocation.Invoke(stream_link);
-                if (location == null || stream_link == location || location.Contains("/get_file/"))
+                if (location == null || stream_link == location || location.Contains("_file/"))
                     return null;
 
                 stream_link = location;
