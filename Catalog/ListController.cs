@@ -7,13 +7,13 @@ namespace Catalog.Controllers
     {
         [HttpGet]
         [Route("catalog/list")]
-        async public ValueTask<ActionResult> Index(string plugin, string search, string cat, string sort, int pg = 1)
+        async public ValueTask<ActionResult> Index(string query, string plugin, string cat, string sort, int pg = 1)
         {
             var init = ModInit.goInit(plugin)?.Clone();
             if (init == null || !init.enable)
                 return BadRequest("init not found");
 
-            if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(init.search?.uri))
+            if (!string.IsNullOrEmpty(query) && string.IsNullOrEmpty(init.search?.uri))
                 return BadRequest("search disable");
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
@@ -23,6 +23,7 @@ namespace Catalog.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
+            string search = query;
             string memKey = $"catalog:{plugin}:{search}:{sort}:{cat}:{pg}";
 
             return await InvkSemaphore(init, memKey, async () =>

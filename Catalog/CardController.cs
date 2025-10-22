@@ -66,9 +66,14 @@ namespace Catalog.Controllers
                 var jo = new JObject()
                 {
                     ["id"] = CrypTo.md5($"{plugin}:{uri}"),
-                    ["image"] = ModInit.nodeValue(node, parse.image, host),
-                    ["overview"] = ModInit.nodeValue(node, parse.description, host)
+                    ["plugin"] = plugin,
+                    ["uri"] = uri,
+                    ["image"] = ModInit.nodeValue(node, parse.image, host)
                 };
+
+                string overview = ModInit.nodeValue(node, parse.description, host);
+                if (!string.IsNullOrEmpty(overview))
+                    jo["overview"] = overview;
 
                 if (type == "tv")
                 {

@@ -6,7 +6,7 @@ WORKDIR /home
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip libicu-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fSL -k -o dotnet.tar.gz https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.8/aspnetcore-runtime-9.0.8-linux-x64.tar.gz \
+RUN curl -fSL -k -o dotnet.tar.gz https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.9/aspnetcore-runtime-9.0.9-linux-x64.tar.gz \
     && mkdir -p /usr/share/dotnet \
     && tar -oxzf dotnet.tar.gz -C /usr/share/dotnet \
     && rm dotnet.tar.gz

@@ -62,6 +62,7 @@ namespace Catalog.Controllers
                                 if (!(siteObj[catName] is JObject catObj))
                                 {
                                     catObj = new JObject();
+                                    siteObj["search"] = $"{host}/catalog/list?plugin={HttpUtility.UrlEncode(site)}";
                                     siteObj[catName] = catObj;
                                 }
 

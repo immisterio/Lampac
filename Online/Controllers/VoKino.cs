@@ -58,8 +58,8 @@ namespace Online.Controllers
             if (balancer is "filmix" or "ashdi" or "monframe")
                 init.streamproxy = false;
 
-            if (checksearch && balancer != "vokino")
-                return Content("data-json="); // заглушка от 429
+            if (checksearch /*&& balancer != "vokino"*/)
+                return Content("data-json="); // заглушка от 429 и +1 к просмотру
 
             var proxy = proxyManager.Get();
             var rch = new RchClient(HttpContext, host, init, requestInfo);

@@ -296,7 +296,7 @@ namespace Lampac.Controllers
 
         #region manifest
         [Route("admin/manifest/install")]
-        public Task ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string merch, string eng)
+        public Task ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string catalog, string merch, string eng)
         {
             HttpContext.Response.ContentType = "text/html; charset=utf-8";
 
@@ -377,6 +377,9 @@ namespace Lampac.Controllers
 
                 if (ts == "on")
                     modules.Add("{\"enable\":true,\"initspace\":\"TorrServer.ModInit\",\"dll\":\"TorrServer.dll\"}");
+
+                if (catalog == "on")
+                    modules.Add("{\"enable\":true,\"initspace\":\"Catalog.ModInit\",\"dll\":\"Catalog.dll\"}");
 
                 if (merch == "on")
                     modules.Add("{\"enable\":false,\"dll\":\"Merchant.dll\"}");
@@ -578,6 +581,9 @@ namespace Lampac.Controllers
 		</div>
 		<div class='flex'>
 			<input name='sisi' type='checkbox' {IsChecked("SISI.dll", "checked")} /> Клубничка 18+, PornHub, Xhamster, etc
+		</div>
+		<div class='flex'>
+			<input name='catalog' type='checkbox' {IsChecked("Catalog.dll", "checked")} /> Альтернативные источники каталога cub и tmdb
 		</div>
 		<div class='flex'>
 			<input name='dlna' type='checkbox' {IsChecked("DLNA.dll", "checked")} /> DLNA - Загрузка торрентов и просмотр медиа файлов с локального устройства 

@@ -25,7 +25,7 @@ curl -L -k -s https://lampac.sh/home | bash
 * TorrServer по умолчанию отключен, включается в module/manifest.json
 
 # Установка на Windows
-1. Установить ".NET Core 9 (SDK Installer)" https://github.com/dotnet/core/blob/main/release-notes/9.0/9.0.8/9.0.109.md
+1. Установить ".NET Core 9 (SDK Installer)" https://github.com/dotnet/core/blob/main/release-notes/9.0/9.0.9/9.0.110.md
 2. Распаковать https://github.com/immisterio/Lampac/releases/latest/download/publish.zip
 3. Запустить Lampac.exe
 
