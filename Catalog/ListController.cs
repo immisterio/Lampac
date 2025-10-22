@@ -7,7 +7,7 @@ namespace Catalog.Controllers
     {
         [HttpGet]
         [Route("catalog/list")]
-        async public ValueTask<ActionResult> Index(string query, string plugin, string cat, string sort, int pg = 1)
+        async public ValueTask<ActionResult> Index(string query, string plugin, string cat, string sort, int page = 1)
         {
             var init = ModInit.goInit(plugin)?.Clone();
             if (init == null || !init.enable)
@@ -24,7 +24,7 @@ namespace Catalog.Controllers
             var proxy = proxyManager.BaseGet();
 
             string search = query;
-            string memKey = $"catalog:{plugin}:{search}:{sort}:{cat}:{pg}";
+            string memKey = $"catalog:{plugin}:{search}:{sort}:{cat}:{page}";
 
             return await InvkSemaphore(init, memKey, async () =>
             {
@@ -38,11 +38,11 @@ namespace Catalog.Controllers
                     #endregion
 
                     #region html
-                    string url = $"{init.host}/{(pg == 1 && init.list?.firstpage != null ? init.list?.firstpage : init.list?.uri)}";
+                    string url = $"{init.host}/{(page == 1 && init.list?.firstpage != null ? init.list?.firstpage : init.list?.uri)}";
 
                     if (!string.IsNullOrEmpty(search))
                     {
-                        string uri = pg == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
+                        string uri = page == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
                         url = $"{init.host}/{uri}".Replace("{search}", HttpUtility.UrlEncode(search));
                     }
                     else if (!string.IsNullOrEmpty(cat))
@@ -60,20 +60,20 @@ namespace Catalog.Controllers
                         }
 
                         string eval = $"return (cat != null && sort != null) ? $\"{getFormat("sort")}\" : \"{getFormat("-")}\";";
-                        url = CSharpEval.BaseExecute<string>(eval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, pg));
+                        url = CSharpEval.BaseExecute<string>(eval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
                         
                         if (!url.StartsWith("http"))
                             url = $"{init.host}/{url}";
                     }
 
                     if (init.routeEval != null)
-                        url = CSharpEval.Execute<string>(init.routeEval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, pg));
+                        url = CSharpEval.Execute<string>(init.routeEval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
 
                     reset:
                     string html =
-                        rch.enable ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init))
-                        : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies)
-                        : await Http.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                        rch.enable ? await rch.Get(url.Replace("{page}", page.ToString()), httpHeaders(init))
+                        : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url.Replace("{page}", page.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies)
+                        : await Http.Get(url.Replace("{page}", page.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
                     #endregion
 
                     #region HtmlDocument
@@ -98,7 +98,8 @@ namespace Catalog.Controllers
 
                     if (contentParse.total_pages != null)
                     {
-                        if (int.TryParse(ModInit.nodeValue(doc.DocumentNode, contentParse.total_pages, host), out int _pages) && _pages > 0)
+                        string _p = ModInit.nodeValue(doc.DocumentNode, contentParse.total_pages, host)?.ToString() ?? "";
+                        if (int.TryParse(_p, out int _pages) && _pages > 0)
                             cache.total_pages = _pages;
                     }
 
@@ -126,7 +127,7 @@ namespace Catalog.Controllers
                     var jo = new JObject()
                     {
                         ["id"] = pl.id,
-                        ["image"] = pl.img,
+                        ["img"] = pl.img,
                         ["method"] = pl.card
                     };
 
@@ -150,10 +151,7 @@ namespace Catalog.Controllers
                     if (pl.args != null)
                     {
                         foreach (var a in pl.args)
-                        {
-                            if (!string.IsNullOrEmpty(a.Value))
-                                jo.Add(a.Key, a.Value);
-                        }
+                            jo[a.Key] = JToken.FromObject(a.Value);
                     }
 
                     results.Add(jo);
@@ -162,9 +160,9 @@ namespace Catalog.Controllers
 
                 return ContentTo(JsonConvert.SerializeObject(new 
                 {
-                    page = pg,
+                    page,
                     results,
-                    total_pages,
+                    total_pages
                 }));
             });
         }
@@ -207,11 +205,11 @@ namespace Catalog.Controllers
 
             foreach (var node in nodes)
             {
-                string name = ModInit.nodeValue(node, parse.name, host);
-                string original_name = ModInit.nodeValue(node, parse.original_name, host);
-                string href = ModInit.nodeValue(node, parse.href, host);
-                string img = ModInit.nodeValue(node, parse.image, host);
-                string year = ModInit.nodeValue(node, parse.year, host);
+                string name = ModInit.nodeValue(node, parse.name, host)?.ToString();
+                string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
+                string href = ModInit.nodeValue(node, parse.href, host)?.ToString();
+                string img = ModInit.nodeValue(node, parse.image, host)?.ToString();
+                string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
 
                 if (init.debug)
                     Console.WriteLine($"\n\nname: {name}\nhref: {href}\nimg: {img}\nyear: {year}\n\n{node.OuterHtml}");
@@ -287,11 +285,11 @@ namespace Catalog.Controllers
                     {
                         foreach (var arg in parse.args)
                         {
-                            string val = ModInit.nodeValue(node, arg, host);
-                            if (!string.IsNullOrEmpty(val))
+                            object val = ModInit.nodeValue(node, arg, host);
+                            if (val != null)
                             {
                                 if (pl.args == null)
-                                    pl.args = new Dictionary<string, string>();
+                                    pl.args = new Dictionary<string, object>();
 
                                 pl.args[arg.name_arg] = val;
                             }

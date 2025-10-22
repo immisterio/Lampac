@@ -16,6 +16,6 @@
 
         public string card { get; set; }
 
-        public Dictionary<string, string> args { get; set; }
+        public Dictionary<string, object> args { get; set; }
     }
 }

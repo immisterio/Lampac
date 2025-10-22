@@ -8,19 +8,6 @@ namespace Catalog
         {
         }
 
-        #region evalOptionsFull
-        public static ScriptOptions evalOptionsFull = ScriptOptions.Default
-
-            .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
-            .AddImports("Shared")
-            .AddImports("Shared.Engine")
-            .AddImports("Shared.Models")
-
-            .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll"))
-            .AddImports("Newtonsoft.Json")
-            .AddImports("Newtonsoft.Json.Linq");
-        #endregion
-
         #region goInit
         public static CatalogSettings goInit(string site)
         {
@@ -104,7 +91,7 @@ namespace Catalog
         #endregion
 
         #region nodeValue
-        public static string nodeValue(HtmlNode node, SingleNodeSettings nd, string host)
+        public static object nodeValue(HtmlNode node, SingleNodeSettings nd, string host)
         {
             string value = null;
 
@@ -160,10 +147,15 @@ namespace Catalog
             if (nd.format != null)
             {
                 var options = ScriptOptions.Default
-                    .AddReferences(typeof(Console).Assembly).AddImports("System")
-                    .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
+                    .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                    .AddImports("Shared")
+                    .AddImports("Shared.Engine")
+                    .AddImports("Shared.Models")
+                    .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll"))
+                    .AddImports("Newtonsoft.Json")
+                    .AddImports("Newtonsoft.Json.Linq");
 
-                return CSharpEval.BaseExecute<string>(nd.format, new CatalogNodeValue(value, host), options)?.Trim();
+                return CSharpEval.Execute<object>(nd.format, new CatalogNodeValue(value, host), options);
             }
 
             return value?.Trim();

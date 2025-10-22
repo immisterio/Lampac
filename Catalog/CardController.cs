@@ -59,19 +59,19 @@ namespace Catalog.Controllers
                 var node = doc.DocumentNode;
                 var parse = init.cardParse;
 
-                string name = ModInit.nodeValue(node, parse.name, host);
-                string original_name = ModInit.nodeValue(node, parse.original_name, host);
-                string year = ModInit.nodeValue(node, parse.year, host);
+                string name = ModInit.nodeValue(node, parse.name, host)?.ToString();
+                string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
+                string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
 
                 var jo = new JObject()
                 {
                     ["id"] = CrypTo.md5($"{plugin}:{uri}"),
                     ["plugin"] = plugin,
                     ["uri"] = uri,
-                    ["image"] = ModInit.nodeValue(node, parse.image, host)
+                    ["img"] = PosterApi.Size(host, ModInit.nodeValue(node, parse.image, host)?.ToString())
                 };
 
-                string overview = ModInit.nodeValue(node, parse.description, host);
+                string overview = ModInit.nodeValue(node, parse.description, host)?.ToString();
                 if (!string.IsNullOrEmpty(overview))
                     jo["overview"] = overview;
 
@@ -96,12 +96,9 @@ namespace Catalog.Controllers
                 {
                     foreach (var arg in parse.args)
                     {
-                        string val = ModInit.nodeValue(node, arg, host);
-                        if (!string.IsNullOrEmpty(val))
-                        {
-                            if (!string.IsNullOrEmpty(val))
-                                jo.Add(arg.name_arg, val);
-                        }
+                        object val = ModInit.nodeValue(node, arg, host);
+                        if (val != null)
+                            jo[arg.name_arg] = JToken.FromObject(val);
                     }
                 }
 
