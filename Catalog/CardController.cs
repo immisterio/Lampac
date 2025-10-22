@@ -109,8 +109,8 @@ namespace Catalog.Controllers
                 if (!jo.ContainsKey("tagline") && !string.IsNullOrEmpty(original_name))
                     jo["tagline"] = original_name;
 
-                if (init.card_injects != null && init.card_injects.Length > 0)
-                    await Injects(jo, init.card_injects);
+                if (init.tmdb_injects != null && init.tmdb_injects.Length > 0)
+                    await Injects(jo, init.tmdb_injects);
 
                 return ContentTo(JsonConvert.SerializeObject(jo));
             });

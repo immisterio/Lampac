@@ -40,7 +40,7 @@ namespace Shared.Models.Catalog
 
         public List<SingleNodeSettings> card_args { get; set; }
 
-        public string[] card_injects { get; set; }
+        public string[] tmdb_injects { get; set; }
 
 
         public CatalogSettings Clone()
