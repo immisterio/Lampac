@@ -12,8 +12,6 @@
 
         public SingleNodeSettings description { get; set; }
 
-        public List<SingleNodeSettings> args { get; set; }
-
         public string eval { get; set; }
     }
 }

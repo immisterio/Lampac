@@ -29,6 +29,7 @@ namespace Catalog.Controllers
             if (!Directory.Exists(dir))
                 return ContentTo(result.ToString(Formatting.Indented));
 
+            #region sites
             var sites = new List<(string key, JObject obj, int index)>();
 
             foreach (var file in Directory.GetFiles(dir, "*.yaml"))
@@ -40,60 +41,61 @@ namespace Catalog.Controllers
                         continue;
 
                     var init = ModInit.goInit(site);
-                    if (init == null || !init.enable)
+                    if (init == null || !init.enable || init.menu == null)
                         continue;
 
                     var siteObj = new JObject();
 
-                    if (init.menu != null)
+                    foreach (var menuItem in init.menu)
                     {
-                        foreach (var menuItem in init.menu)
+                        if (menuItem?.categories == null || menuItem.categories.Count == 0)
+                            continue;
+
+                        foreach (var cat in menuItem.categories)
                         {
-                            if (menuItem?.categories == null)
-                                continue;
+                            string catName = cat.Key;
+                            string catCode = cat.Value;
 
-                            foreach (var cat in menuItem.categories)
+                            if (!(siteObj[catName] is JObject catObj))
                             {
-                                string catName = cat.Key;
-                                string catCode = cat.Value;
-                                if (string.IsNullOrEmpty(catName) || string.IsNullOrEmpty(catCode))
-                                    continue;
+                                catObj = new JObject();
 
-                                if (!(siteObj[catName] is JObject catObj))
-                                {
-                                    catObj = new JObject();
+                                if (init.search != null)
                                     siteObj["search"] = $"{host}/catalog/list?plugin={HttpUtility.UrlEncode(site)}";
-                                    siteObj[catName] = catObj;
-                                }
 
-                                string baseUrl = $"{host}/catalog/list?plugin={HttpUtility.UrlEncode(site)}&cat={HttpUtility.UrlEncode(catCode)}";
+                                if (!string.IsNullOrEmpty(init.catalog_key))
+                                    siteObj["catalog_key"] = init.catalog_key;
 
-                                bool addBaseEntry = true;
-                                if (menuItem.format != null)
+                                siteObj[catName] = catObj;
+                            }
+
+                            string baseUrl = $"{host}/catalog/list?plugin={HttpUtility.UrlEncode(site)}&cat={HttpUtility.UrlEncode(catCode)}";
+
+                            bool addBaseEntry = true;
+                            if (menuItem.format != null)
+                            {
+                                if (!menuItem.format.ContainsKey("-"))
+                                    addBaseEntry = false;
+                            }
+
+                            if (addBaseEntry)
+                            {
+                                if (catObj[catName] == null)
+                                    catObj[catName] = baseUrl;
+                            }
+
+                            if (menuItem.sort != null)
+                            {
+                                foreach (var s in menuItem.sort)
                                 {
-                                    if (!menuItem.format.ContainsKey("-"))
-                                        addBaseEntry = false;
-                                }
+                                    string sortName = s.Key;
+                                    string sortCode = s.Value;
+                                    if (string.IsNullOrEmpty(sortName) || string.IsNullOrEmpty(sortCode))
+                                        continue;
 
-                                if (addBaseEntry)
-                                {
-                                    if (catObj[catName] == null)
-                                        catObj[catName] = baseUrl;
-                                }
-
-                                if (menuItem.sort != null)
-                                {
-                                    foreach (var s in menuItem.sort)
-                                    {
-                                        string sortName = s.Key;
-                                        string sortCode = s.Value;
-                                        if (string.IsNullOrEmpty(sortName) || string.IsNullOrEmpty(sortCode))
-                                            continue;
-
-                                        string sortUrl = baseUrl + "&sort=" + HttpUtility.UrlEncode(sortCode);
-                                        if (catObj[sortName] == null)
-                                            catObj[sortName] = sortUrl;
-                                    }
+                                    string sortUrl = baseUrl + "&sort=" + HttpUtility.UrlEncode(sortCode);
+                                    if (catObj[sortName] == null)
+                                        catObj[sortName] = sortUrl;
                                 }
                             }
                         }
@@ -109,9 +111,92 @@ namespace Catalog.Controllers
                 }
                 catch { }
             }
+            #endregion
 
+            #region result
             foreach (var s in sites.OrderBy(x => x.index))
-                result[s.key] = s.obj;
+            {
+                result[s.key] = new JObject();
+
+                if (s.obj.ContainsKey("search"))
+                    result[s.key]["search"] = s.obj["search"];
+
+                string catalog_key = s.obj.ContainsKey("catalog_key") ? s.obj["catalog_key"]?.ToString() : null;
+
+                var menu = new JObject();
+                var main = new JObject();
+                var movie = new JObject();
+                var tv = new JObject();
+                var anime = new JObject();
+                var cartoons = new JObject();
+                var menu_buttons = new JObject();
+
+                foreach (var prop in s.obj.Properties())
+                {
+                    if (prop.Name == "search" || prop.Name == "catalog_key")
+                        continue;
+
+                    if (!(prop.Value is JObject catObj))
+                        continue;
+
+                    foreach (var inner in catObj.Properties())
+                    {
+                        if (prop.Name != inner.Name)
+                            main[$"{prop.Name} • {inner.Name.ToLower()}"] = inner.Value;
+                        else
+                            main[prop.Name] = inner.Value;
+
+                        if (!menu.ContainsKey(prop.Name) || (catalog_key != null && catalog_key == inner.Name))
+                            menu[prop.Name] = inner.Value;
+                    }
+
+                    if (prop.Name == "Фильмы")
+                    {
+                        foreach (var inner in catObj.Properties())
+                            movie[inner.Name] = inner.Value;
+                    }
+
+                    if (prop.Name == "Сериалы")
+                    {
+                        foreach (var inner in catObj.Properties())
+                            tv[inner.Name] = inner.Value;
+                    }
+
+                    if (prop.Name == "Мультфильмы")
+                    {
+                        foreach (var inner in catObj.Properties())
+                            cartoons[inner.Name] = inner.Value;
+                    }
+
+                    if (prop.Name == "Аниме")
+                    {
+                        foreach (var inner in catObj.Properties())
+                            anime[inner.Name] = inner.Value;
+                    }
+                }
+
+                if (menu.HasValues)
+                    result[s.key]["menu"] = menu;
+
+                if (main.HasValues)
+                    result[s.key]["main"] = main;
+
+                if (movie.HasValues)
+                    result[s.key]["movie"] = movie;
+
+                if (tv.HasValues)
+                    result[s.key]["tv"] = tv;
+
+                if (cartoons.HasValues)
+                    menu_buttons["cartoons"] = cartoons;
+
+                if (anime.HasValues)
+                    menu_buttons["anime"] = anime;
+
+                if (menu_buttons.HasValues)
+                    result[s.key]["menu_buttons"] = menu_buttons;
+            }
+            #endregion
 
             return ContentTo(result.ToString(Formatting.Indented));
         }

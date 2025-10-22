@@ -19,19 +19,28 @@ namespace Shared.Models.Catalog
 
         public string routeEval { get; set; }
 
-        public string[] serials { get; set; }
 
-        public string[] movies { get; set; }
+        public string[] serial_cats { get; set; }
+
+        public string[] movie_cats { get; set; }
+
+        public string catalog_key { get; set; }
 
         public List<MenuSettings> menu { get; set; }
+
 
         public ListSettings search { get; set; }
 
         public ListSettings list { get; set; }
 
-        public ContentParseSettings contentParse { get; set; }
+        public ContentParseSettings content { get; set; }
 
-        public CardParseSettings cardParse { get; set; }
+
+        public CardParseSettings card_parse { get; set; }
+
+        public List<SingleNodeSettings> card_args { get; set; }
+
+        public string[] card_injects { get; set; }
 
 
         public CatalogSettings Clone()

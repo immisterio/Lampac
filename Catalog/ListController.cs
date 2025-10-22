@@ -31,7 +31,7 @@ namespace Catalog.Controllers
                 if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache, inmemory: false))
                 {
                     #region contentParse
-                    var contentParse = init.list?.contentParse ?? init.contentParse;
+                    var contentParse = init.list?.contentParse ?? init.content;
 
                     if (!string.IsNullOrEmpty(search) && init.search?.contentParse != null)
                         contentParse = init.search.contentParse;
@@ -128,7 +128,7 @@ namespace Catalog.Controllers
                     {
                         ["id"] = pl.id,
                         ["img"] = pl.img,
-                        ["method"] = pl.card
+                        ["url"] = pl.card
                     };
 
                     if (pl.is_serial)
@@ -260,9 +260,9 @@ namespace Catalog.Controllers
 
                     if (cat != null)
                     {
-                        if (init.movies != null && init.movies.Contains(cat))
+                        if (init.movie_cats != null && init.movie_cats.Contains(cat))
                             is_serial = false;
-                        else if (init.serials != null && init.serials.Contains(cat))
+                        else if (init.serial_cats != null && init.serial_cats.Contains(cat))
                             is_serial = true;
                     }
 
