@@ -101,6 +101,11 @@ cat <<EOF > $DEST/module/manifest.json
     "dll": "Online.dll"
   },
   {
+    "enable":true,
+    "initspace":"Catalog.ModInit",
+    "dll":"Catalog.dll"
+  },
+  {
     "enable": true,
     "dll": "DLNA.dll"
   },

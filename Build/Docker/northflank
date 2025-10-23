@@ -22,6 +22,6 @@ RUN echo '{"listen":{"port":80,"scheme":"https"},"KnownProxies":[{"ip":"0.0.0.0"
 
 RUN echo '"typesearch":"webapi","merge":null' > /home/module/JacRed.conf
 
-RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"},{"enable":true,"initspace":"Jackett.ModInit","dll":"JacRed.dll"}]' > /home/module/manifest.json
+RUN echo '[{"enable":true,"dll":"SISI.dll"},{"enable":true,"dll":"Online.dll"},{"enable":true,"initspace":"Catalog.ModInit","dll":"Catalog.dll"},{"enable":true,"initspace":"Jackett.ModInit","dll":"JacRed.dll"}]' > /home/module/manifest.json
 
 ENTRYPOINT ["/usr/share/dotnet/dotnet", "Lampac.dll"]

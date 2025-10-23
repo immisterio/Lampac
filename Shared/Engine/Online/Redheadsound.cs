@@ -64,7 +64,7 @@ namespace Shared.Engine.Online
 
                     reservedlink = rlnk;
 
-                    if (node.SelectText(".//span[contains(@class, ' year')]//a") == year.ToString())
+                    if (node.SelectText(".//span[contains(@class, 'year')]//a") == year.ToString())
                     {
                         link = reservedlink;
                         break;
@@ -98,7 +98,10 @@ namespace Shared.Engine.Online
 
             string iframe = await onget(iframeUri);
             if (string.IsNullOrEmpty(iframe))
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             string contentUrl = Regex.Match(iframe, "\"contentUrl\": ?\"([^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(contentUrl))

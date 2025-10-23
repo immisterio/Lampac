@@ -41,6 +41,9 @@ cp Merchant/bin/Release/net9.0/publish/Merchant.dll lpc/module/
 ./dotnet/dotnet publish Online -c Release
 cp Online/bin/Release/net9.0/publish/Online.dll lpc/module/
 
+./dotnet/dotnet publish Catalog -c Release
+cp Catalog/bin/Release/net9.0/publish/Catalog.dll lpc/module/
+
 ./dotnet/dotnet publish SISI -c Release
 cp SISI/bin/Release/net9.0/publish/SISI.dll lpc/module/
 
