@@ -12,6 +12,8 @@
 
         public bool online { get; set; } = true;
 
+        public bool catalog { get; set; } = true;
+
         public bool sisi { get; set; } = true;
 
         public bool torrserver { get; set; } = true;

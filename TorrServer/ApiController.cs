@@ -39,10 +39,9 @@ namespace TorrServer.Controllers
         private static readonly HttpClient httpClient = new HttpClient(new SocketsHttpHandler
         {
             AllowAutoRedirect = true,
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            AutomaticDecompression = DecompressionMethods.None,
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-            MaxConnectionsPerServer = 20,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(10)
+            MaxConnectionsPerServer = 100
         })
         {
             BaseAddress = new Uri($"http://{AppInit.conf.listen.localhost}:{ModInit.tsport}"),
@@ -180,7 +179,7 @@ namespace TorrServer.Controllers
                     return;
                 }
 
-                using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8))
+                using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, leaveOpen: true))
                 {
                     string requestJson = await reader.ReadToEndAsync().ConfigureAwait(false);
 
@@ -366,34 +365,33 @@ namespace TorrServer.Controllers
             UpdateHeaders(responseMessage.Headers);
             UpdateHeaders(responseMessage.Content.Headers);
 
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            if (response.Body == null)
+                throw new ArgumentNullException("destination");
+
+            if (!responseStream.CanRead && !responseStream.CanWrite)
+                throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+
+            if (!response.Body.CanRead && !response.Body.CanWrite)
+                throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
+
+            if (!responseStream.CanRead || !response.Body.CanWrite)
+                throw new NotSupportedException("NotSupported_UnreadableStream");
+
+            int rent = responseMessage.Content?.Headers?.ContentLength > 100000000 ? 81920 : 4096;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(rent);
+
+            try
             {
-                if (response.Body == null)
-                    throw new ArgumentNullException("destination");
+                int bytesRead;
 
-                if (!responseStream.CanRead && !responseStream.CanWrite)
-                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
-
-                if (!response.Body.CanRead && !response.Body.CanWrite)
-                    throw new ObjectDisposedException("ObjectDisposed_StreamClosed");
-
-                if (!responseStream.CanRead || !response.Body.CanWrite)
-                    throw new NotSupportedException("NotSupported_UnreadableStream");
-
-                int rent = responseMessage.Content.Headers.ContentLength > 100000000 ? 81920 : 4096;
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(rent);
-
-                try
-                {
-                    int bytesRead;
-
-                    while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)
-                        await response.Body.WriteAsync(buffer, 0, bytesRead, context.RequestAborted).ConfigureAwait(false);
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
+                while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)
+                    await response.Body.WriteAsync(buffer, 0, bytesRead, context.RequestAborted).ConfigureAwait(false);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
         #endregion

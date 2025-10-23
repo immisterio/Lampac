@@ -59,9 +59,15 @@ namespace Catalog.Controllers
                             return string.Empty;
                         }
 
-                        string eval = $"return (cat != null && sort != null) ? $\"{getFormat("sort")}\" : \"{getFormat("-")}\";";
-                        url = CSharpEval.BaseExecute<string>(eval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
-                        
+                        string eval = (cat != null && sort != null) ? getFormat("sort") : getFormat("-");
+                        if (!string.IsNullOrEmpty(eval))
+                        {
+                            if (!eval.Contains("$\"") && eval.Contains("{") && eval.Contains("}"))
+                                eval = $"return $\"{eval}\";";
+
+                            url = CSharpEval.BaseExecute<string>(eval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
+                        }
+
                         if (!url.StartsWith("http"))
                             url = $"{init.host}/{url}";
                     }

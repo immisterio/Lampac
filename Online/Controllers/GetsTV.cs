@@ -49,13 +49,16 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(orid))
             {
                 var result = await search(init, title, original_title, year);
-                if (result.id == null && result.similar.data?.Count == 0)
-                    return OnError("data");
 
                 if (result.id != null && similar == false)
                     orid = result.id;
                 else
+                {
+                    if (result.similar.data == null || result.similar.data.Count == 0)
+                        return OnError("data");
+
                     return ContentTo(rjson ? result.similar.ToJson() : result.similar.ToHtml());
+                }
             }
 
             var cache = await InvokeCache<JObject>($"getstv:movies:{orid}", cacheTime(20, init: init), proxyManager, async res =>

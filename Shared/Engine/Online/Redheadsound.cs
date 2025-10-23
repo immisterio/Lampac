@@ -35,25 +35,36 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(title))
                 return null;
 
-            string search = await onpost($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}");
+            string mainHtml = await onget(apihost);
+            string user_hash = Regex.Match(mainHtml ?? "", "var dle_login_hash([\t ]+)?=([\t ]+)?'(?<hash>[a-f0-9]+)'").Groups["hash"].Value;
+            if (string.IsNullOrEmpty(user_hash))
+                return null;
+
+            string search = await onpost($"{apihost}/engine/ajax/controller.php?mod=search", $"query={HttpUtility.UrlEncode(title)}&skin=rhs_new&user_hash={user_hash}");
             if (search == null)
             {
                 requesterror?.Invoke();
                 return null;
             }
 
+            var doom = new HtmlParse(search, "//div[@class='move-item']");
+
             string link = null, reservedlink = null;
-            foreach (string row in search.Split("card d-flex").Skip(1))
+            foreach (var node in doom.nodes)
             {
-                if (StringConvert.SearchName(row).Contains(StringConvert.SearchName(title)))
+                string rowTitle = StringConvert.SearchName(node.SelectText(".//h4[@class='title']//a"));
+                if (rowTitle == null)
+                    continue;
+
+                if (rowTitle.Contains(StringConvert.SearchName(title)))
                 {
-                    string rlnk = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(rlnk))
+                    string rlnk = node.SelectText(".//a[@class='move-item__img']", "href");
+                    if (rlnk == null)
                         continue;
 
                     reservedlink = rlnk;
 
-                    if (Regex.Match(row, "<span>Год выпуска:</span> ?<a [^>]+>([0-9]{4})</a>").Groups[1].Value == year.ToString())
+                    if (node.SelectText(".//span[contains(@class, ' year')]//a") == year.ToString())
                     {
                         link = reservedlink;
                         break;
@@ -65,7 +76,7 @@ namespace Shared.Engine.Online
             {
                 if (string.IsNullOrEmpty(reservedlink))
                 {
-                    if (search.Contains(">Поиск по сайту<"))
+                    if (search.Contains("notfound"))
                         return new EmbedModel() { IsEmpty = true };
 
                     return null;
@@ -81,8 +92,8 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string iframeUri = Regex.Match(news, "url:([\t ]+)?(\"|')(?<uri>https?://[^\'\"\n\r\t ]+)").Groups["uri"].Value;
-            if (string.IsNullOrWhiteSpace(iframeUri))
+            string iframeUri = Regex.Match(news, "videoUrl([\t ]+)?=([\t ]+)?'(?<uri>https?://[^']+)'").Groups["uri"].Value;
+            if (string.IsNullOrEmpty(iframeUri))
                 return null;
 
             string iframe = await onget(iframeUri);

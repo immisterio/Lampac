@@ -34,12 +34,12 @@ namespace Online.Controllers
             );
 
             reset:
-            var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}:{clarification}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(clarification == 1 ? title : (original_title ?? title), year);
+                return await oninvk.Embed(title, year);
             });
 
             if (IsRhubFallback(cache, init))

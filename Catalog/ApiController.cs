@@ -66,6 +66,9 @@ namespace Catalog.Controllers
                                 if (!string.IsNullOrEmpty(init.catalog_key))
                                     siteObj["catalog_key"] = init.catalog_key;
 
+                                if (!string.IsNullOrEmpty(menuItem.defaultName))
+                                    siteObj["defaultName"] = menuItem.defaultName;
+
                                 siteObj[catName] = catObj;
                             }
 
@@ -122,6 +125,7 @@ namespace Catalog.Controllers
                     result[s.key]["search"] = s.obj["search"];
 
                 string catalog_key = s.obj.ContainsKey("catalog_key") ? s.obj["catalog_key"]?.ToString() : null;
+                string defaultName = s.obj.ContainsKey("defaultName") ? s.obj["defaultName"]?.ToString() : null;
 
                 var menu = new JObject();
                 var main = new JObject();
@@ -129,11 +133,10 @@ namespace Catalog.Controllers
                 var tv = new JObject();
                 var anime = new JObject();
                 var cartoons = new JObject();
-                var menu_buttons = new JObject();
 
                 foreach (var prop in s.obj.Properties())
                 {
-                    if (prop.Name == "search" || prop.Name == "catalog_key")
+                    if (prop.Name == "search" || prop.Name == "catalog_key" || prop.Name == "defaultName")
                         continue;
 
                     if (!(prop.Value is JObject catObj))
@@ -153,25 +156,45 @@ namespace Catalog.Controllers
                     if (prop.Name == "Фильмы")
                     {
                         foreach (var inner in catObj.Properties())
-                            movie[inner.Name] = inner.Value;
+                        {
+                            if (prop.Name != inner.Name)
+                                movie[inner.Name] = inner.Value;
+                            else
+                                movie[defaultName ?? inner.Name] = inner.Value;
+                        }
                     }
 
                     if (prop.Name == "Сериалы")
                     {
                         foreach (var inner in catObj.Properties())
-                            tv[inner.Name] = inner.Value;
+                        {
+                            if (prop.Name != inner.Name)
+                                tv[inner.Name] = inner.Value;
+                            else
+                                tv[defaultName ?? inner.Name] = inner.Value;
+                        }
                     }
 
                     if (prop.Name == "Мультфильмы")
                     {
                         foreach (var inner in catObj.Properties())
-                            cartoons[inner.Name] = inner.Value;
+                        {
+                            if (prop.Name != inner.Name)
+                                cartoons[inner.Name] = inner.Value;
+                            else
+                                cartoons[defaultName ?? inner.Name] = inner.Value;
+                        }
                     }
 
                     if (prop.Name == "Аниме")
                     {
                         foreach (var inner in catObj.Properties())
-                            anime[inner.Name] = inner.Value;
+                        {
+                            if (prop.Name != inner.Name)
+                                anime[inner.Name] = inner.Value;
+                            else
+                                anime[defaultName ?? inner.Name] = inner.Value;
+                        }
                     }
                 }
 
@@ -188,13 +211,10 @@ namespace Catalog.Controllers
                     result[s.key]["tv"] = tv;
 
                 if (cartoons.HasValues)
-                    menu_buttons["cartoons"] = cartoons;
+                    result[s.key]["cartoons"] = cartoons;
 
                 if (anime.HasValues)
-                    menu_buttons["anime"] = anime;
-
-                if (menu_buttons.HasValues)
-                    result[s.key]["menu_buttons"] = menu_buttons;
+                    result[s.key]["anime"] = anime;
             }
             #endregion
 

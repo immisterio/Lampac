@@ -160,6 +160,9 @@ namespace Catalog.Controllers
                 if (result.ContainsKey(key))
                     jo[key] = result[key];
             }
+
+            if (result.ContainsKey("id"))
+                jo["tmdb_id"] = result["id"];
         }
     }
 }

@@ -269,7 +269,7 @@ namespace Online.Controllers
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out _))
+                if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out long _testid) && _testid > 0)
                 {
                     imdb_id = ExternalidsDb.Read.imdb.Find($"{id}_{serial}")?.value;
                     ExternalidsDb.Read.ChangeTracker.Clear();
@@ -594,7 +594,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public ValueTask<ActionResult> Events(long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
+        async public ValueTask<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";
@@ -604,21 +604,24 @@ namespace Online.Controllers
 
             if (title != null && original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
             {
-                Regex chineseRegex = new Regex("[\u4E00-\u9FFF]"); // Диапазон для китайских иероглифов
-                Regex japaneseRegex = new Regex("[\u3040-\u30FF\uFF66-\uFF9F]"); // Хирагана, катакана и специальные символы
-                Regex koreanRegex = new Regex("[\uAC00-\uD7AF]"); // Диапазон для корейских хангыльских символов
-
-                if (chineseRegex.IsMatch(title) || japaneseRegex.IsMatch(title) || koreanRegex.IsMatch(title))
+                if (long.TryParse(id, out long tmdbid) && tmdbid > 0)
                 {
-                    var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                    var result = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{(serial == 1 ? "tv" : "movie")}/{id}?api_key={AppInit.conf.tmdb.api_key}&language=en", timeoutSeconds: 4, headers: header);
-                    if (result != null)
+                    Regex chineseRegex = new Regex("[\u4E00-\u9FFF]"); // Диапазон для китайских иероглифов
+                    Regex japaneseRegex = new Regex("[\u3040-\u30FF\uFF66-\uFF9F]"); // Хирагана, катакана и специальные символы
+                    Regex koreanRegex = new Regex("[\uAC00-\uD7AF]"); // Диапазон для корейских хангыльских символов
+
+                    if (chineseRegex.IsMatch(title) || japaneseRegex.IsMatch(title) || koreanRegex.IsMatch(title))
                     {
-                        string _title = serial == 1 ? result.Value<string>("name") : result.Value<string>("title");
-                        if (!string.IsNullOrEmpty(_title))
+                        var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
+                        var result = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{(serial == 1 ? "tv" : "movie")}/{tmdbid}?api_key={AppInit.conf.tmdb.api_key}&language=en", timeoutSeconds: 4, headers: header);
+                        if (result != null)
                         {
-                            title = _title;
-                            fix_title = true;
+                            string _title = serial == 1 ? result.Value<string>("name") : result.Value<string>("title");
+                            if (!string.IsNullOrEmpty(_title))
+                            {
+                                title = _title;
+                                fix_title = true;
+                            }
                         }
                     }
                 }
@@ -675,7 +678,8 @@ namespace Online.Controllers
                         {
                             try
                             {
-                                var result = entry.Events(host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
+                                long.TryParse(id, out long tmdbid);
+                                var result = entry.Events(host, tmdbid, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
                                 if (result != null && result.Count > 0)
                                 {
                                     foreach (var r in result)
@@ -689,7 +693,8 @@ namespace Online.Controllers
                         {
                             try
                             {
-                                var result = await entry.EventsAsync(HttpContext, memoryCache, host, id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
+                                long.TryParse(id, out long tmdbid);
+                                var result = await entry.EventsAsync(HttpContext, memoryCache, host, tmdbid, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, serial, account_email);
                                 if (result != null && result.Count > 0)
                                 {
                                     foreach (var r in result)
@@ -1067,7 +1072,7 @@ namespace Online.Controllers
                 online.Add((null, "Торренты", "{localhost}/lite/jac", "jac", 200));
 
             #region checkOnlineSearch
-            bool chos = conf.online.checkOnlineSearch && id > 0;
+            bool chos = conf.online.checkOnlineSearch && !string.IsNullOrEmpty(id);
 
             if (chos && IO.File.Exists("isdocker"))
             {
@@ -1115,7 +1120,7 @@ namespace Online.Controllers
 
         #region checkSearch
         async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, int indexList, dynamic init, int index, string name, string uri, string plugin,
-                               long id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
+                               string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
         {
             try
             {

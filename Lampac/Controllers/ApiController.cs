@@ -466,6 +466,9 @@ namespace Lampac.Controllers
                     if (AppInit.conf.LampaWeb.initPlugins.online && AppInit.modules.FirstOrDefault(i => i.dll == "Online.dll" && i.enable) != null)
                         initiale += "{\"url\": \"{localhost}/online.js\",\"status\": 1,\"name\": \"Онлайн\",\"author\": \"lampac\"},";
 
+                    if (AppInit.conf.LampaWeb.initPlugins.catalog && AppInit.modules.FirstOrDefault(i => i.dll == "Catalog.dll" && i.enable) != null)
+                        initiale += "{\"url\": \"{localhost}/catalog.js\",\"status\": 1,\"name\": \"Альтернативные источники каталога\",\"author\": \"lampac\"},";
+
                     if (AppInit.conf.LampaWeb.initPlugins.sisi && AppInit.modules.FirstOrDefault(i => i.dll == "SISI.dll" && i.enable) != null)
                     {
                         initiale += "{\"url\": \"{localhost}/sisi.js\",\"status\": 1,\"name\": \"Клубничка\",\"author\": \"lampac\"},";
