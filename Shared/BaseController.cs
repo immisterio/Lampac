@@ -26,9 +26,9 @@ namespace Shared
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "148";
+        public static string appversion => "149";
 
-        public static string minorversion => "19";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 

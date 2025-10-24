@@ -18,7 +18,7 @@ namespace Catalog.Controllers
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
+                rch.Disabled();
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
