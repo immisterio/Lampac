@@ -319,6 +319,7 @@ namespace Lampac.Engine.Middlewares
                 var headers = new List<HeadersModel>()
                 {
                     // используем старый ua что-бы гарантировать image/jpeg вместо image/webp
+                    new HeadersModel("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
                     new HeadersModel("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2")
                 };
 
