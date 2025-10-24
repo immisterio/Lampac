@@ -383,13 +383,16 @@ namespace Lampac
             }
             #endregion
 
-            if (!string.IsNullOrEmpty(AppInit.conf.listen.sock))
-                _ = Bash.Run($"sleep 10 && chmod 666 /var/run/{AppInit.conf.listen.sock}.sock");
-
             if (!AppInit.conf.multiaccess)
                 app.UseDeveloperExceptionPage();
 
             applicationLifetime.ApplicationStopping.Register(OnShutdown);
+
+            applicationLifetime.ApplicationStarted.Register(() =>
+            {
+                if (!string.IsNullOrEmpty(AppInit.conf.listen.sock))
+                    _ = Bash.Run($"while [ ! -S /var/run/{AppInit.conf.listen.sock}.sock ]; do sleep 1; done && chmod 666 /var/run/{AppInit.conf.listen.sock}.sock").ConfigureAwait(false);
+            });
 
             #region UseForwardedHeaders
             var forwarded = new ForwardedHeadersOptions
