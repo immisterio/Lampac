@@ -47,10 +47,8 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            var doom = new HtmlParse(search, "//div[@class='move-item']");
-
             string link = null, reservedlink = null;
-            foreach (var node in doom.nodes)
+            foreach (var node in HtmlParse.Nodes(search, "//div[@class='move-item']"))
             {
                 string rowTitle = StringConvert.SearchName(node.SelectText(".//h4[@class='title']//a"));
                 if (rowTitle == null)

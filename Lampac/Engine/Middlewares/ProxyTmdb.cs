@@ -315,8 +315,12 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                var headers = new List<HeadersModel>();
-                var proxyManager = new ProxyManager("tmdb_img", init);
+                #region headers
+                var headers = new List<HeadersModel>()
+                {
+                    // используем старый ua что-бы гарантировать image/jpeg вместо image/webp
+                    new HeadersModel("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2")
+                };
 
                 if (!string.IsNullOrEmpty(init.IMG_Minor))
                 {
@@ -327,6 +331,9 @@ namespace Lampac.Engine.Middlewares
                     headers.Add(new HeadersModel("Host", "image.tmdb.org"));
                     uri = uri.Replace("image.tmdb.org", tmdb_ip);
                 }
+                #endregion
+
+                var proxyManager = new ProxyManager("tmdb_img", init);
 
                 bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
                 var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(uri, _ => new SemaphoreSlim(1, 1)) : null;

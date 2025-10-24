@@ -19,6 +19,11 @@ namespace Shared.Engine
             foreach (var node in _nodes)
                 nodes.Add(new HtmlRowParse(node));
         }
+
+        public static List<HtmlRowParse> Nodes(string html, string xpathNodes)
+        {
+            return new HtmlParse(html, xpathNodes).nodes;
+        }
     }
 
 
