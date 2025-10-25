@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Shared;
@@ -27,10 +26,25 @@ namespace Lampac.Controllers
         #region Routes
         [HttpGet]
         [Route("/corseu")]
-        async public Task<IActionResult> Get()
+        public Task<IActionResult> Get(string auth_token, string method, string url, string data, string headers, string browser, int? httpversion, int? timeout, string encoding, bool? defaultHeaders, bool? autoredirect, string proxy, string proxy_name, bool? headersOnly)
         {
-            var model = ParseQuery();
-            return await ExecuteAsync(model);
+            return ExecuteAsync(new CorseuRequest
+            {
+                url = url,
+                method = method,
+                data = data,
+                browser = browser,
+                httpversion = httpversion,
+                timeout = timeout,
+                encoding = encoding,
+                defaultHeaders = defaultHeaders,
+                autoredirect = autoredirect,
+                proxy = proxy,
+                proxy_name = proxy_name,
+                headersOnly = headersOnly,
+                auth_token = auth_token,
+                headers = ParseHeaders(headers)
+            });
         }
 
         [HttpPost]
@@ -81,10 +95,10 @@ namespace Lampac.Controllers
                 ? new Dictionary<string, string>(model.headers, StringComparer.OrdinalIgnoreCase)
                 : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            bool useDefaultHeaders = model.usedefaultHeaders ?? true;
+            bool useDefaultHeaders = model.defaultHeaders ?? true;
             bool autoRedirect = model.autoredirect ?? true;
             bool headersOnly = model.headersOnly ?? false;
-            int timeout = model.timeout.HasValue && model.timeout.Value > 0 ? model.timeout.Value : 20;
+            int timeout = model.timeout.HasValue && model.timeout.Value > 5 ? model.timeout.Value : 20;
             int httpVersion = model.httpversion ?? 1;
 
             string contentType = null;
@@ -97,126 +111,86 @@ namespace Lampac.Controllers
             if (headers.ContainsKey("content-length"))
                 headers.Remove("content-length");
 
-            switch (browser)
-            {
-                case "chromium":
-                    return await SendWithChromiumAsync(method, model.url, model.data, headers, contentType, timeout, autoRedirect, headersOnly, model.proxy, model.proxy_name);
+            if (browser is "chromium" or "playwright")
+                return await SendWithChromiumAsync(method, model.url, model.data, headers, contentType, timeout, autoRedirect, headersOnly, model.proxy, model.proxy_name);
 
-                default:
-                    return await SendWithHttpClientAsync(method, model.url, model.data, headers, contentType, timeout, httpVersion, useDefaultHeaders, autoRedirect, headersOnly, model.proxy, model.proxy_name, model.encoding);
-            }
+            return await SendWithHttpClientAsync(method, model.url, model.data, headers, contentType, timeout, httpVersion, useDefaultHeaders, autoRedirect, headersOnly, model.proxy, model.proxy_name, model.encoding);
         }
         #endregion
 
         #region HttpClient
         async Task<IActionResult> SendWithHttpClientAsync(
-            string method,
-            string url,
-            string data,
-            Dictionary<string, string> headers,
-            string contentType,
-            int timeout,
-            int httpVersion,
-            bool useDefaultHeaders,
-            bool autoRedirect,
-            bool headersOnly,
-            string proxyValue,
-            string proxyName,
-            string encodingName)
+            string method, string url, string data, Dictionary<string, string> headers, 
+            string contentType, int timeout, int httpVersion, bool useDefaultHeaders, bool autoRedirect, bool headersOnly, string encodingName, 
+            string proxyValue, string proxyName)
         {
+            var proxyManager = CreateProxy(url, proxyValue, proxyName);
+
             try
             {
-                using (var handler = CreateHandler(url, autoRedirect, proxyValue, proxyName))
+                var handler = Http.Handler(url, proxyManager.Get());
+                handler.AllowAutoRedirect = autoRedirect;
+
+                var client = FrendlyHttp.HttpMessageClient(httpVersion == 2 ? "http2" : "base", handler);
+
+                using (var request = new HttpRequestMessage(new HttpMethod(method), url))
                 {
-                    var client = FrendlyHttp.HttpMessageClient(httpVersion == 2 ? "http2" : "base", handler);
+                    request.Version = httpVersion == 2 ? HttpVersion.Version20 : HttpVersion.Version11;
 
-                    using (var request = new HttpRequestMessage(new HttpMethod(method), url))
+                    if (!string.IsNullOrEmpty(data))
                     {
-                        request.Version = httpVersion == 2 ? HttpVersion.Version20 : HttpVersion.Version11;
+                        var encoding = string.IsNullOrEmpty(encodingName) 
+                            ? Encoding.UTF8 
+                            : Encoding.GetEncoding(encodingName);
 
-                        if (!string.IsNullOrEmpty(data))
+                        var content = new StringContent(data, encoding);
+
+                        if (!string.IsNullOrEmpty(contentType))
+                            content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+
+                        request.Content = content;
+                    }
+
+                    var headersModel = headers.Count > 0 ? HeadersModel.Init(headers) : null;
+                    string log = string.Empty;
+                    Http.DefaultRequestHeaders(url, request, null, null, headersModel, ref log, useDefaultHeaders);
+
+                    using (var cts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
+                    {
+                        cts.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, timeout)));
+
+                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                         {
-                            var encoding = ResolveEncoding(encodingName);
-                            var content = new StringContent(data, encoding);
+                            proxyManager.Success();
 
-                            if (!string.IsNullOrEmpty(contentType))
-                                content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-
-                            request.Content = content;
-                        }
-
-                        var headersModel = headers.Count > 0 ? HeadersModel.Init(headers) : null;
-                        string log = string.Empty;
-                        Http.DefaultRequestHeaders(url, request, null, null, headersModel, ref log, useDefaultHeaders);
-
-                        using (var cts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
-                        {
-                            cts.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, timeout)));
-
-                            using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
-                            {
-                                await CopyResponseAsync(response, headersOnly).ConfigureAwait(false);
-                                return new EmptyResult();
-                            }
+                            await CopyResponseAsync(response, headersOnly).ConfigureAwait(false);
+                            return new EmptyResult();
                         }
                     }
                 }
             }
             catch (OperationCanceledException)
             {
+                proxyManager.Refresh();
                 return StatusCode((int)HttpStatusCode.RequestTimeout);
             }
             catch (Exception ex)
             {
+                proxyManager.Refresh();
                 return StatusCode((int)HttpStatusCode.BadGateway, ex.Message);
             }
-        }
-
-        HttpClientHandler CreateHandler(string url, bool autoRedirect, string proxyValue, string proxyName)
-        {
-            if (string.IsNullOrWhiteSpace(proxyValue) && string.IsNullOrWhiteSpace(proxyName))
-            {
-                var handler = Http.Handler(url, null);
-                handler.AllowAutoRedirect = autoRedirect;
-                return handler;
-            }
-
-            var customHandler = new HttpClientHandler
-            {
-                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                AllowAutoRedirect = autoRedirect
-            };
-
-            customHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-            var proxy = CreateProxy(proxyValue, proxyName);
-            if (proxy != null)
-            {
-                customHandler.UseProxy = true;
-                customHandler.Proxy = proxy;
-            }
-            else
-            {
-                customHandler.UseProxy = false;
-            }
-
-            return customHandler;
         }
         #endregion
 
         #region Chromium
         async Task<IActionResult> SendWithChromiumAsync(
-            string method,
-            string url,
-            string data,
-            Dictionary<string, string> headers,
-            string contentType,
-            int timeout,
-            bool autoRedirect,
-            bool headersOnly,
-            string proxyValue,
-            string proxyName)
+            string method, string url, string data, Dictionary<string, string> headers, 
+            string contentType, int timeout, bool autoRedirect, bool headersOnly, 
+            string proxyValue, string proxyName)
         {
+            var proxyManager = CreateProxy(url, proxyValue, proxyName);
+            var proxy = proxyManager.BaseGet();
+
             try
             {
                 if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
@@ -224,20 +198,6 @@ namespace Lampac.Controllers
 
                 var contextHeaders = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
                 var requestHeaders = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
-
-                var contextOptions = new APIRequestNewContextOptions
-                {
-                    IgnoreHTTPSErrors = true,
-                    ExtraHTTPHeaders = contextHeaders,
-                    Timeout = timeout * 1000
-                };
-
-                var requestOptions = new APIRequestContextOptions
-                {
-                    Method = method,
-                    Headers = requestHeaders,
-                    Timeout = timeout * 1000
-                };
 
                 if (!string.IsNullOrEmpty(contentType))
                 {
@@ -248,22 +208,34 @@ namespace Lampac.Controllers
                     }
                 }
 
+                var contextOptions = new APIRequestNewContextOptions
+                {
+                    IgnoreHTTPSErrors = true,
+                    ExtraHTTPHeaders = contextHeaders,
+                    Timeout = timeout * 1000,
+                    UserAgent = requestHeaders.TryGetValue("user-agent", out string _useragent) ? _useragent : Http.UserAgent
+                };
+
+                var requestOptions = new APIRequestContextOptions
+                {
+                    Method = method,
+                    Headers = requestHeaders,
+                    Timeout = timeout * 1000
+                };
+
                 if (!string.IsNullOrEmpty(data))
                     requestOptions.DataString = data;
 
                 if (!autoRedirect)
                     requestOptions.MaxRedirects = 0;
 
-                var proxy = CreateProxy(proxyValue, proxyName);
-                if (proxy != null && proxy.Address != null)
+                if (proxy.proxy != null)
                 {
-                    var credentials = proxy.Credentials as NetworkCredential;
                     contextOptions.Proxy = new Proxy
                     {
-                        Server = proxy.Address.ToString(),
-                        Username = credentials?.UserName,
-                        Password = credentials?.Password,
-                        Bypass = proxy.BypassProxyOnLocal ? "127.0.0.1" : null
+                        Server = proxy.data.ip,
+                        Username = proxy.data.username,
+                        Password = proxy.data.password
                     };
                 }
 
@@ -290,6 +262,7 @@ namespace Lampac.Controllers
 
                         if (headersOnly)
                         {
+                            proxyManager.Success();
                             await HttpContext.Response.CompleteAsync().ConfigureAwait(false);
                             return new EmptyResult();
                         }
@@ -298,8 +271,7 @@ namespace Lampac.Controllers
                         if (body?.Length > 0)
                             await HttpContext.Response.Body.WriteAsync(body, 0, body.Length, HttpContext.RequestAborted).ConfigureAwait(false);
 
-                        await HttpContext.Response.CompleteAsync().ConfigureAwait(false);
-
+                        proxyManager.Success();
                         return new EmptyResult();
                     }
                     finally
@@ -310,136 +282,55 @@ namespace Lampac.Controllers
             }
             catch (OperationCanceledException)
             {
+                proxyManager.Refresh();
                 return StatusCode((int)HttpStatusCode.RequestTimeout);
             }
             catch (Exception ex)
             {
+                proxyManager.Refresh();
                 return StatusCode((int)HttpStatusCode.BadGateway, ex.Message);
             }
         }
         #endregion
 
         #region Helpers
-        CorseuRequest ParseQuery()
-        {
-            var query = HttpContext.Request.Query;
-
-            var model = new CorseuRequest
-            {
-                browser = query.TryGetValue("browser", out var browser) ? browser.ToString() : null,
-                url = query.TryGetValue("url", out var url) ? url.ToString() : null,
-                method = query.TryGetValue("method", out var method) ? method.ToString() : null,
-                data = query.TryGetValue("data", out var data) ? data.ToString() : null,
-                httpversion = TryParseInt(query, "httpversion"),
-                timeout = TryParseInt(query, "timeout"),
-                encoding = query.TryGetValue("encoding", out var enc) ? enc.ToString() : null,
-                usedefaultHeaders = TryParseBool(query, "usedefaultHeaders") ?? TryParseBool(query, "useDefaultHeaders"),
-                autoredirect = TryParseBool(query, "autoredirect"),
-                proxy = query.TryGetValue("proxy", out var proxy) ? proxy.ToString() : null,
-                proxy_name = query.TryGetValue("proxy_name", out var proxyName) ? proxyName.ToString() : null,
-                headersOnly = TryParseBool(query, "headersOnly") ?? TryParseBool(query, "headers_only"),
-                auth_token = query.TryGetValue("auth_token", out var token) ? token.ToString() : null,
-                headers = ParseHeaders(query)
-            };
-
-            return model;
-        }
-
-        Dictionary<string, string> ParseHeaders(IQueryCollection query)
+        Dictionary<string, string> ParseHeaders(string headers)
         {
             try
             {
-                if (query.TryGetValue("headers", out StringValues headersValue))
-                    return JsonConvert.DeserializeObject<Dictionary<string, string>>(headersValue.ToString());
+                if (!string.IsNullOrEmpty(headers))
+                    return JsonConvert.DeserializeObject<Dictionary<string, string>>(headers);
             }
             catch { }
 
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        int? TryParseInt(IQueryCollection query, string key)
+        ProxyManager CreateProxy(string url, string proxyValue, string proxyName)
         {
-            if (!query.TryGetValue(key, out var value) || StringValues.IsNullOrEmpty(value))
-                return null;
-
-            if (int.TryParse(value.ToString(), out int result))
-                return result;
-
-            return null;
-        }
-
-        bool? TryParseBool(IQueryCollection query, string key)
-        {
-            if (!query.TryGetValue(key, out var value) || StringValues.IsNullOrEmpty(value))
-                return null;
-
-            var val = value.ToString();
-            if (bool.TryParse(val, out bool result))
-                return result;
-
-            if (val == "1")
-                return true;
-
-            if (val == "0")
-                return false;
-
-            return null;
-        }
-
-        Encoding ResolveEncoding(string encodingName)
-        {
-            if (string.IsNullOrEmpty(encodingName))
-                return Encoding.UTF8;
-
-            var en = Encoding.GetEncoding(encodingName);
-            if (en != null)
-                return en;
-
-            return Encoding.UTF8;
-        }
-
-        WebProxy CreateProxy(string proxyValue, string proxyName)
-        {
-            if (!string.IsNullOrWhiteSpace(proxyValue))
-                return BuildProxy(proxyValue, null);
-
-            if (!string.IsNullOrWhiteSpace(proxyName) && AppInit.conf.globalproxy != null)
+            var model = new BaseSettings()
             {
-                var settings = AppInit.conf.globalproxy.FirstOrDefault(i => string.Equals(i.name, proxyName, StringComparison.OrdinalIgnoreCase));
-                if (settings?.list != null && settings.list.Length > 0)
+                plugin = $"corseu:{Regex.Match(url, "https?://([^/]+)")}"
+            };
+
+            if (!string.IsNullOrEmpty(proxyValue))
+            {
+                model.proxy.list = [proxyValue];
+            }
+            else if (!string.IsNullOrEmpty(proxyName))
+            {
+                if (AppInit.conf.globalproxy != null)
                 {
-                    string proxy = settings.list.OrderBy(_ => Guid.NewGuid()).First();
-                    return BuildProxy(proxy, settings);
+                    var settings = AppInit.conf.globalproxy.FirstOrDefault(i => i.name == proxyName);
+                    if (settings?.list != null && settings.list.Length > 0)
+                        model.proxy = settings;
                 }
             }
 
-            return null;
-        }
+            if (model.proxy != null)
+                model.useproxy = true;
 
-        WebProxy BuildProxy(string proxy, ProxySettings settings)
-        {
-            if (string.IsNullOrWhiteSpace(proxy))
-                return null;
-
-            string pattern = settings?.pattern_auth ?? "^(?<sheme>[^/]+//)?(?<username>[^:/]+):(?<password>[^@]+)@(?<host>.*)";
-            NetworkCredential credentials = null;
-            string address = proxy;
-
-            if (proxy.Contains("@"))
-            {
-                var match = Regex.Match(proxy, pattern);
-                if (match.Success)
-                {
-                    address = match.Groups["sheme"].Value + match.Groups["host"].Value;
-                    credentials = new NetworkCredential(match.Groups["username"].Value, match.Groups["password"].Value);
-                }
-            }
-            else if (settings?.useAuth == true)
-            {
-                credentials = new NetworkCredential(settings.username, settings.password);
-            }
-
-            return new WebProxy(address, settings?.BypassOnLocal ?? false, null, credentials);
+            return new ProxyManager(model);
         }
 
         async Task CopyResponseAsync(HttpResponseMessage response, bool headersOnly)

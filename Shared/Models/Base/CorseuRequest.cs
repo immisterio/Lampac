@@ -18,7 +18,7 @@
 
         public Dictionary<string, string> headers { get; set; }
 
-        public bool? usedefaultHeaders { get; set; }
+        public bool? defaultHeaders { get; set; }
 
         public bool? autoredirect { get; set; }
 
