@@ -125,7 +125,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|nws|headers|myip|geo|version|weblog|stats|admin|rch|merchant/payconfirm|bind|cub|corseu)(/|$)|(ping|extensions|kit)$|on/|(lite|online|sisi|timecode|bookmark|sync|tmdbproxy|dlna|ts|tracks|transcoding|backup|catalog|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind|getstv/bind)|([^/]+/)?app\\.min\\.js|([^/]+/)?css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
+                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|nws|headers|myip|geo|version|weblog|stats|admin|rch|merchant/payconfirm|bind|cub|corseu|media)(/|$)|(ping|extensions|kit)$|on/|(lite|online|sisi|timecode|bookmark|sync|tmdbproxy|dlna|ts|tracks|transcoding|backup|catalog|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind|getstv/bind)|([^/]+/)?app\\.min\\.js|([^/]+/)?css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
                 {
                     bool limitip = false;
 

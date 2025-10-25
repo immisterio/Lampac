@@ -315,6 +315,7 @@ namespace Lampac.Controllers
 
             if (!string.IsNullOrEmpty(proxyValue))
             {
+                model.proxy = new ProxySettings();
                 model.proxy.list = [proxyValue];
             }
             else if (!string.IsNullOrEmpty(proxyName))
