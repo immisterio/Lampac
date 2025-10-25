@@ -212,7 +212,7 @@ namespace Shared.Engine
         }
 
 
-        static (WebProxy proxy, (string ip, string username, string password) data) ConfigureWebProxy(ProxySettings p, string proxyip)
+        public static (WebProxy proxy, (string ip, string username, string password) data) ConfigureWebProxy(ProxySettings p, string proxyip)
         {
             NetworkCredential credentials = null;
 
