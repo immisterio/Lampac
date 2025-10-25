@@ -189,9 +189,9 @@ namespace Shared.PlaywrightCore
         {
             try
             {
-                using (var browser = new PlaywrightBrowser(init.priorityBrowser))
+                using (var browser = new PlaywrightBrowser(init?.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, headers?.ToDictionary(), proxy).ConfigureAwait(false);
+                    var page = await browser.NewPageAsync(init?.plugin, headers?.ToDictionary(), proxy).ConfigureAwait(false);
                     if (page == null)
                         return null;
 

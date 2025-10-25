@@ -31,7 +31,8 @@ namespace Shared.PlaywrightCore
         public static (DateTime time, int status, string ex) stats_ping { get; set; }
 
 
-        static IPlaywright playwright = null;
+        public static IPlaywright playwright { get; private set; } = null;
+
         static IBrowser browser = null;
 
         static bool shutdown = false;

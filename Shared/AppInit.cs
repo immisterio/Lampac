@@ -371,6 +371,8 @@ namespace Shared
 
         public string corsehost { get; set; } = "https://cors.apn.monster";
 
+        public CorseuConf сorseu { get; set; } = new CorseuConf();
+
         public ApnConf apn { get; set; } = new ApnConf() { secure = "none" };
 
         public Dictionary<string, CmdConf> cmd = new Dictionary<string, CmdConf>();

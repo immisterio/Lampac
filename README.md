@@ -119,12 +119,17 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 1. Добавить плагин "http://IP:9118/tracks.js" 
 2. В init.conf заменить значение "ffprobe.os" на один из вариантов "win", "linux"
 
-
 # Плагин TmdbProxy.js
 Проксирование постеров для сайта TMDB
 
 1. Добавить плагин "http://IP:9118/tmdbproxy.js" 
 2. В настройках TMDB включить проксирование
+
+# Плагин Catalog.js
+Альтернативные источники каталога cub и tmdb 
+
+1. Добавить плагин "http://IP:9118/catalog.js" 
+2. Выбрать каталог в настройках лампы "Настройки - Остальное - Основной источник"
 
 # Доступ к доменам .onion
 1. Запустить tor на порту 9050
@@ -140,11 +145,11 @@ Kinozal, NNM-Club, Rutor, Rutracker, Megapeer, Torrentby, Bitru, Toloka (Укр�
 1. Для Samsung "IP:9118/samsung.wgt"
 
 # Работа с базами данных
-* Microsoft.EntityFrameworkCore 6.0.36 - MS SQL Server, SQLite
-* Npgsql 9.0.2 - PostgreSQL
-* Pomelo.EntityFrameworkCore.MySql 6.0.3 - MariaDB, MySQL
-* MongoDB.Driver 3.2.0 - MongoDB
-* StackExchange.Redis 2.8.24 - Redis
+* Microsoft.EntityFrameworkCore 9.0.8 - MS SQL Server, SQLite
+* Npgsql 9.0.3 - PostgreSQL
+* Pomelo.EntityFrameworkCore.MySql 9.0.0 - MariaDB, MySQL
+* MongoDB.Driver 3.4.3 - MongoDB
+* StackExchange.Redis 2.9.11 - Redis
 
 # Параметры init.conf
 * checkOnlineSearch - Делать предварительный поиск скрывая балансеры без ответа
