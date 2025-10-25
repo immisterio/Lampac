@@ -25,6 +25,17 @@ namespace Lampac.Controllers
     {
         #region Routes
         [HttpGet]
+        [Route("/corseu/{token}/{*url}")]
+        public Task<IActionResult> Get(string token, string url)
+        {
+            return ExecuteAsync(new CorseuRequest
+            {
+                url = url + HttpContext.Request.QueryString.Value,
+                auth_token = token
+            });
+        }
+
+        [HttpGet]
         [Route("/corseu")]
         public Task<IActionResult> Get(string auth_token, string method, string url, string data, string headers, string browser, int? httpversion, int? timeout, string encoding, bool? defaultHeaders, bool? autoredirect, string proxy, string proxy_name, bool? headersOnly)
         {
@@ -98,7 +109,7 @@ namespace Lampac.Controllers
             bool useDefaultHeaders = model.defaultHeaders ?? true;
             bool autoRedirect = model.autoredirect ?? true;
             bool headersOnly = model.headersOnly ?? false;
-            int timeout = model.timeout.HasValue && model.timeout.Value > 5 ? model.timeout.Value : 20;
+            int timeout = model.timeout.HasValue && model.timeout.Value > 5 ? model.timeout.Value : 15;
             int httpVersion = model.httpversion ?? 1;
 
             string contentType = null;
