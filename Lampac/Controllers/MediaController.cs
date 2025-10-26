@@ -169,7 +169,7 @@ namespace Lampac.Controllers
             if (!AppInit.conf.serverproxy.enable)
                 return url;
 
-            string encrypted = ProxyLink.Encrypt(url, requestInfo.IP, headers, proxy, "media", verifyip: false, ex: DateTime.Now.AddMinutes(20));
+            string encrypted = ProxyLink.Encrypt(url, requestInfo.IP, headers, proxy, "posterapi", verifyip: false);
 
             if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
                 encrypted = AccsDbInvk.Args(encrypted, HttpContext);
