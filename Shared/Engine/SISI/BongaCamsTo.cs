@@ -95,6 +95,11 @@ namespace Shared.Engine.SISI
                         },
                         new MenuItem()
                         {
+                            title = "Русские модели",
+                            playlist_url = host + "bgs?sort=female/tags/russian"
+                        },
+                        new MenuItem()
+                        {
                             title = "Парни",
                             playlist_url = host + "bgs?sort=male"
                         },
