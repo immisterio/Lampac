@@ -63,11 +63,29 @@ namespace Catalog.Controllers
                 string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
                 string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
 
+                #region img
+                string img = ModInit.nodeValue(node, parse.image, host)?.ToString();
+
+                if (img != null)
+                {
+                    img = img.Replace("&amp;", "&").Replace("\\", "");
+
+                    if (img.StartsWith("../"))
+                        img = $"{init.host}/{img.Replace("../", "")}";
+                    else if (img.StartsWith("//"))
+                        img = $"https:{img}";
+                    else if (img.StartsWith("/"))
+                        img = init.host + img;
+                    else if (!img.StartsWith("http"))
+                        img = $"{init.host}/{img}";
+                }
+                #endregion
+
                 var jo = new JObject()
                 {
                     ["id"] = CrypTo.md5($"{plugin}:{uri}"),
                     ["url"] = $"{host}/catalog/card?plugin={plugin}&uri={HttpUtility.UrlEncode(uri)}&type={type}",
-                    ["img"] = PosterApi.Size(host, ModInit.nodeValue(node, parse.image, host)?.ToString()),
+                    ["img"] = PosterApi.Size(host, img),
 
                     ["vote_average"] = 0,
                     ["genres"] = new JArray(),
@@ -102,7 +120,18 @@ namespace Catalog.Controllers
                     {
                         object val = ModInit.nodeValue(node, arg, host);
                         if (val != null)
-                            jo[arg.name_arg] = JToken.FromObject(val);
+                        {
+                            if (arg.name_arg is "kp_rating" or "imdb_rating")
+                            {
+                                string rating = val?.ToString();
+                                if (!string.IsNullOrEmpty(rating))
+                                    jo[arg.name_arg] = JToken.FromObject(rating.Length > 3 ? rating.Substring(0, 3) : rating);
+                            }
+                            else
+                            {
+                                jo[arg.name_arg] = JToken.FromObject(val);
+                            }
+                        }
                     }
                 }
 
@@ -110,40 +139,87 @@ namespace Catalog.Controllers
                     jo["tagline"] = original_name;
 
                 if (init.tmdb_injects != null && init.tmdb_injects.Length > 0)
-                    await Injects(jo, init.tmdb_injects);
+                    await Injects(year, jo, init.tmdb_injects);
 
                 return ContentTo(JsonConvert.SerializeObject(jo));
             });
         }
 
 
-        async Task Injects(JObject jo, string[] keys)
+        #region Injects
+        async Task Injects(string year, JObject jo, string[] keys)
         {
-            if (!jo.ContainsKey("imdb_id"))
+            if (!jo.ContainsKey("imdb_id") && !jo.ContainsKey("original_title") && !jo.ContainsKey("original_name"))
                 return;
 
-            string imdbId = jo["imdb_id"]?.ToString();
-            if (string.IsNullOrEmpty(imdbId) || !imdbId.StartsWith("tt"))
-                return;
+            string imdbId = null;
+            if (jo.ContainsKey("imdb_id"))
+                imdbId = jo["imdb_id"]?.ToString();
 
             var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
 
-            var find = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/find/{imdbId}?external_source=imdb_id&api_key={AppInit.conf.tmdb.api_key}&language=ru", timeoutSeconds: 5, headers: header);
-            if (find == null)
-                return;
-
             long id = 0;
-            string cat = "";
+            string cat = string.Empty;
 
-            foreach (string key in new string[] { "movie_results", "tv_results" })
+            if (!string.IsNullOrEmpty(imdbId) && imdbId.StartsWith("tt"))
             {
-                if (find.ContainsKey(key))
+                var find = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/find/{imdbId}?external_source=imdb_id&api_key={AppInit.conf.tmdb.api_key}", timeoutSeconds: 5, headers: header);
+                if (find != null)
                 {
-                    var movies = find[key] as JArray;
-                    if (movies != null && movies.Count > 0)
+                    foreach (string key in new string[] { "movie_results", "tv_results" })
                     {
-                        id = movies[0].Value<long>("id");
-                        cat = key == "movie_results" ? "movie" : "tv";
+                        if (find.ContainsKey(key))
+                        {
+                            var movies = find[key] as JArray;
+                            if (movies != null && movies.Count > 0)
+                            {
+                                id = movies[0].Value<long>("id");
+                                cat = key == "movie_results" ? "movie" : "tv";
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (jo.ContainsKey("original_title") || jo.ContainsKey("original_name"))
+            {
+                string originalTitle = jo["original_title"]?.ToString() ?? jo["original_name"]?.ToString();
+                string type = jo.ContainsKey("original_title") ? "movie" : "tv";
+
+                if (!string.IsNullOrEmpty(originalTitle) && int.TryParse(year, out int _year) && _year > 0)
+                {
+                    var searchMovie = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/search/{type}?query={HttpUtility.UrlEncode(originalTitle)}&api_key={AppInit.conf.tmdb.api_key}", timeoutSeconds: 5, headers: header);
+                    if (searchMovie != null && searchMovie.ContainsKey("results"))
+                    {
+                        var results = searchMovie["results"] as JArray;
+                        if (results != null && results.Count > 0)
+                        {
+                            long foundId = 0;
+                            for (int i = 0; i < results.Count; i++)
+                            {
+                                var item = results[i] as JObject;
+                                if (item == null)
+                                    continue;
+
+                                string date = item.Value<string>("release_date") ?? item.Value<string>("first_air_date");
+                                if (string.IsNullOrEmpty(date))
+                                    continue;
+
+                                // date is usually in format YYYY-MM-DD, take first 4 chars
+                                string yearStr = date.Length >= 4 ? date.Substring(0, 4) : date;
+                                if (int.TryParse(yearStr, out int itemYear) && (itemYear == _year || itemYear == _year+1 || itemYear == _year-1))
+                                {
+                                    foundId = item.Value<long>("id");
+                                    break;
+                                }
+                            }
+
+                            if (foundId != 0)
+                            {
+                                id = foundId;
+                                cat = type;
+                            }
+                        }
                     }
                 }
             }
@@ -164,5 +240,6 @@ namespace Catalog.Controllers
             if (result.ContainsKey("id"))
                 jo["tmdb_id"] = result["id"];
         }
+        #endregion
     }
 }
