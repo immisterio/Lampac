@@ -26,7 +26,7 @@ namespace DLNA.Controllers
 {
     public class DLNAController : BaseController
     {
-        static string mediaPattern = "(aac|flac|mpga|mpega|mp2|mp3|m4a|oga|ogg|opus|spx|opus|weba|wav|dif|dv|fli|mp4|mpeg|mpg|mpe|mpv|mkv|ts|m2ts|mts|ogv|webm|avi|qt|mov)";
+        static readonly string mediaPattern = "^\\.(aac|flac|mpga|mpega|mp2|mp3|m4a|oga|ogg|opus|spx|opus|weba|wav|dif|dv|fli|mp4|mpeg|mpg|mpe|mpv|mkv|ts|m4s|m2ts|mts|ogv|webm|avi|qt|mov)$";
 
         #region DLNAController
         static string dlna_path => AppInit.conf.dlna.path;

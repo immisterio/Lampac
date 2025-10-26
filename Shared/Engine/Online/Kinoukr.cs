@@ -168,7 +168,7 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(iframeUri))
             {
-                string json = await onget.Invoke($"https://bobr-kurwa.men/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
+                string json = await onget.Invoke($"http://194.246.82.144/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
                 if (json == null)
                 {
                     requesterror?.Invoke();

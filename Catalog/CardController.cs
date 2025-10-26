@@ -127,6 +127,41 @@ namespace Catalog.Controllers
                                 if (!string.IsNullOrEmpty(rating))
                                     jo[arg.name_arg] = JToken.FromObject(rating.Length > 3 ? rating.Substring(0, 3) : rating);
                             }
+                            else if (val is string && (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages"))
+                            {
+                                string arrayStr = val?.ToString();
+                                var array = new JArray();
+
+                                if (!string.IsNullOrEmpty(arrayStr))
+                                {
+                                    foreach (string str in arrayStr.Split(","))
+                                    {
+                                        if (string.IsNullOrWhiteSpace(str))
+                                            continue;
+
+                                        array.Add(new JObject() { ["name"] = str.Trim() });
+                                    }
+
+                                    jo[arg.name_arg] = array;
+                                }
+                            }
+                            else if (val is string && (arg.name_arg is "origin_country" or "languages"))
+                            {
+                                string arrayStr = val?.ToString();
+                                var array = new JArray();
+
+                                if (!string.IsNullOrEmpty(arrayStr))
+                                {
+                                    foreach (string str in arrayStr.Split(","))
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(str))
+                                            array.Add(str.Trim());
+                                    }
+
+                                    if (array.Count > 0)
+                                        jo[arg.name_arg] = array;
+                                }
+                            }
                             else
                             {
                                 jo[arg.name_arg] = JToken.FromObject(val);
@@ -135,23 +170,70 @@ namespace Catalog.Controllers
                     }
                 }
 
-                if (!jo.ContainsKey("tagline") && !string.IsNullOrEmpty(original_name))
-                    jo["tagline"] = original_name;
-
                 if (init.tmdb_injects != null && init.tmdb_injects.Length > 0)
                     await Injects(year, jo, init.tmdb_injects);
+
+                if (!jo.ContainsKey("tagline") && !string.IsNullOrEmpty(original_name))
+                    jo["tagline"] = original_name;
 
                 return ContentTo(JsonConvert.SerializeObject(jo));
             });
         }
 
 
-        #region Injects
+        #region TMDB Injects
+        static readonly string[] defaultInjectskeys =
+        [
+            "imdb_id",
+            "external_ids",
+            "backdrop_path",
+            "created_by",
+            "genres",
+            "production_companies",
+            "production_countries",
+            "content_ratings",
+            "episode_run_time",
+            "languages",
+            "number_of_episodes",
+            "number_of_seasons",
+            "last_episode_to_air",
+            "origin_country",
+            "original_language",
+            "status",
+            "networks",
+            "seasons",
+            "type",
+            "budget",
+            "spoken_languages",
+            "alternative_titles",
+            "keywords",
+
+            // &append_to_response=
+            "videos",
+            "credits",
+            "recommendations",
+            "similar",
+        ];
+
+        static readonly string[] addEmptykeys =
+        [
+            "tagline",
+            "overview",
+            "first_air_date",
+            "last_air_date",
+            "release_date",
+            "runtime"
+        ];
+
         async Task Injects(string year, JObject jo, string[] keys)
         {
             if (!jo.ContainsKey("imdb_id") && !jo.ContainsKey("original_title") && !jo.ContainsKey("original_name"))
                 return;
 
+            if (keys.Length == 1 && keys[0] == "default")
+                keys = defaultInjectskeys;
+
+            #region Поиск карточки в TMDB
             string imdbId = null;
             if (jo.ContainsKey("imdb_id"))
                 imdbId = jo["imdb_id"]?.ToString();
@@ -223,22 +305,60 @@ namespace Catalog.Controllers
                     }
                 }
             }
+            #endregion
 
             if (id == 0)
                 return;
 
-            var result = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response=content_ratings,release_dates,keywords,alternative_titles&language=ru", timeoutSeconds: 5, headers: header);
+            string append = "content_ratings,release_dates,external_ids,keywords,alternative_titles,videos,credits,recommendations,similar";
+            var result = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/{cat}/{id}?api_key={AppInit.conf.tmdb.api_key}&append_to_response={append}&language=ru", timeoutSeconds: 5, headers: header);
             if (result == null)
                 return;
 
             foreach (string key in keys)
             {
-                if (result.ContainsKey(key))
+                if (key == "credits")
+                {
+                    if (result.ContainsKey(key) && result[key] is JObject _jo && _jo.ContainsKey("cast"))
+                        jo["cast"] = _jo["cast"];
+                }
+                else if (key is "videos" or "recommendations" or "similar")
+                {
+                    if (result.ContainsKey(key) && result[key] is JObject _jo && _jo.ContainsKey("results"))
+                        jo[key] = _jo["results"];
+                }
+                else if (result.ContainsKey(key))
+                {
                     jo[key] = result[key];
+                }
             }
 
             if (result.ContainsKey("id"))
                 jo["tmdb_id"] = result["id"];
+
+            if (!jo.ContainsKey("imdb_id") && result.ContainsKey("external_ids") && result["external_ids"] is JObject extIds && extIds.ContainsKey("imdb_id"))
+                jo["imdb_id"] = extIds["imdb_id"];
+
+            foreach (string key in addEmptykeys)
+            {
+                if (!jo.ContainsKey(key) && result.ContainsKey(key))
+                {
+                    var tok = result[key];
+                    if (tok == null)
+                        continue;
+
+                    if (tok.Type == JTokenType.String)
+                    {
+                        var str = tok.Value<string>();
+                        if (!string.IsNullOrWhiteSpace(str))
+                            jo[key] = str;
+                    }
+                    else
+                    {
+                        jo[key] = tok;
+                    }
+                }
+            }
         }
         #endregion
     }
