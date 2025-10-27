@@ -81,75 +81,73 @@ namespace Lampac.Controllers
                             if (!string.IsNullOrWhiteSpace(content))
                             {
                                 var root = JsonConvert.DeserializeObject<JObject>(content);
-                                if (root != null)
+
+                                // older format may wrap data under "favorite"; support both
+                                var favorite = root["favorite"] as JObject ?? root;
+
+                                using (var sqlDb = new SyncUserContext())
                                 {
-                                    // older format may wrap data under "favorite"; support both
-                                    var favorite = root["favorite"] as JObject ?? root;
+                                    var (entity, loaded) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
+                                    bool changed = false;
 
-                                    using (var sqlDb = new SyncUserContext())
+                                    EnsureDefaultArrays(loaded);
+
+                                    #region migrate card objects
+                                    if (favorite["card"] is JArray srcCards)
                                     {
-                                        var (entity, loaded) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
-                                        bool changed = false;
-
-                                        EnsureDefaultArrays(loaded);
-
-                                        #region migrate card objects
-                                        if (favorite["card"] is JArray srcCards)
+                                        foreach (var c in srcCards.Children<JObject>())
                                         {
-                                            foreach (var c in srcCards.Children<JObject>())
-                                            {
-                                                changed |= EnsureCard(loaded, c, c?["id"]?.ToString(), insert: false);
-                                            }
+                                            changed |= EnsureCard(loaded, c, c?["id"]?.ToString(), insert: false);
                                         }
-                                        #endregion
+                                    }
+                                    #endregion
 
-                                        #region migrate categories
-                                        foreach (var prop in favorite.Properties())
+                                    #region migrate categories
+                                    foreach (var prop in favorite.Properties())
+                                    {
+                                        var name = prop.Name.Trim().ToLowerInvariant();
+
+                                        if (string.Equals(name, "card", StringComparison.OrdinalIgnoreCase))
+                                            continue;
+
+                                        var srcValue = prop.Value;
+
+                                        if (BookmarkCategories.Contains(name))
                                         {
-                                            var name = prop.Name;
-
-                                            if (string.Equals(name, "card", StringComparison.OrdinalIgnoreCase))
-                                                continue;
-
-                                            var srcValue = prop.Value;
-
-                                            if (BookmarkCategories.Contains(name))
+                                            if (srcValue is JArray srcArray)
                                             {
-                                                if (srcValue is JArray srcArray)
+                                                var dest = GetCategoryArray(loaded, name);
+                                                foreach (var t in srcArray)
                                                 {
-                                                    var dest = GetCategoryArray(loaded, name);
-                                                    foreach (var t in srcArray)
-                                                    {
-                                                        var idStr = t?.ToString();
-                                                        if (string.IsNullOrWhiteSpace(idStr))
-                                                            continue;
+                                                    var idStr = t?.ToString();
+                                                    if (string.IsNullOrWhiteSpace(idStr))
+                                                        continue;
 
-                                                        if (dest.Any(dt => dt.ToString() == idStr) == false)
-                                                        {
-                                                            dest.Add(idStr);
-                                                            changed = true;
-                                                        }
+                                                    if (dest.Any(dt => dt.ToString() == idStr) == false)
+                                                    {
+                                                        dest.Add(idStr);
+                                                        changed = true;
                                                     }
                                                 }
                                             }
-                                            else
+                                        }
+                                        else
+                                        {
+                                            var existing = loaded[name];
+                                            if (existing == null || !JToken.DeepEquals(existing, srcValue))
                                             {
-                                                var existing = loaded[name];
-                                                if (existing == null || !JToken.DeepEquals(existing, srcValue))
-                                                {
-                                                    loaded[name] = srcValue.DeepClone();
-                                                    changed = true;
-                                                }
+                                                loaded[name] = srcValue.DeepClone();
+                                                changed = true;
                                             }
                                         }
-                                        #endregion
-
-                                        if (changed)
-                                            Save(sqlDb, entity, loaded);
                                     }
+                                    #endregion
 
-                                    System.IO.File.Create($"{storageFile}.migration");
+                                    if (changed)
+                                        Save(sqlDb, entity, loaded);
                                 }
+
+                                System.IO.File.Create($"{storageFile}.migration");
                             }
                         }
                     }
@@ -186,82 +184,60 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return JsonFailure();
 
-            string body = null;
-
-            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
             {
-                body = await reader.ReadToEndAsync();
-            }
+                string body = await reader.ReadToEndAsync();
+                if (string.IsNullOrWhiteSpace(body))
+                    return JsonFailure();
 
-            if (string.IsNullOrWhiteSpace(body))
-                return JsonFailure();
+                string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
+                var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
-            JObject job = null;
-
-            try
-            {
-                job = JsonConvert.DeserializeObject<JObject>(body);
-            }
-            catch
-            {
-                return JsonFailure();
-            }
-
-            if (job == null)
-                return JsonFailure();
-
-            string where = job.Value<string>("where");
-            if (string.IsNullOrWhiteSpace(where))
-                return JsonFailure();
-
-            where = where.Trim();
-            string normalized = where.ToLowerInvariant();
-
-            if (normalized == "card" || BookmarkCategories.Contains(normalized))
-                return JsonFailure();
-
-            var valueToken = job.TryGetValue("data", out var token)
-                ? token?.DeepClone()
-                : null;
-
-            if (valueToken == null)
-                return JsonFailure();
-
-            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
-            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
-
-            try
-            {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
-
-                using (var sqlDb = new SyncUserContext())
-                {
-                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
-
-                    data[where] = valueToken;
-
-                    EnsureDefaultArrays(data);
-
-                    Save(sqlDb, entity, data);
-                }
-
-                string edata = JsonConvert.SerializeObject(new { type = "set", where, data = valueToken, profile_id = getProfileid(requestInfo, HttpContext) });
-                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
-
-                return JsonSuccess();
-            }
-            finally
-            {
                 try
                 {
-                    semaphore.Release();
+                    await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+
+                    var job = JsonConvert.DeserializeObject<JObject>(body);
+
+                    string where = job.Value<string>("where").Trim().ToLowerInvariant();
+                    if (string.IsNullOrWhiteSpace(where) || where == "card" || BookmarkCategories.Contains(where))
+                        return JsonFailure();
+
+                    if (job.TryGetValue("data", out var dataValue))
+                    {
+                        using (var sqlDb = new SyncUserContext())
+                        {
+                            var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
+
+                            data[where] = dataValue;
+
+                            EnsureDefaultArrays(data);
+
+                            Save(sqlDb, entity, data);
+                        }
+
+                        string edata = JsonConvert.SerializeObject(new { type = "set", where, data = dataValue, profile_id = getProfileid(requestInfo, HttpContext) });
+                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+
+                        return JsonSuccess();
+                    }
                 }
+                catch { }
                 finally
                 {
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
+                    try
+                    {
+                        semaphore.Release();
+                    }
+                    finally
+                    {
+                        if (semaphore.CurrentCount == 1)
+                            _semaphoreLocks.TryRemove(semaphoreKey, out _);
+                    }
                 }
             }
+
+            return JsonFailure();
         }
 
         #endregion
@@ -278,19 +254,15 @@ namespace Lampac.Controllers
             var readBody = await ReadPayloadAsync();
 
             var payload = readBody.payload;
-            if (payload?.Card == null)
-                return JsonFailure();
 
             var cardId = payload.ResolveCardId();
             if (cardId == null)
                 return JsonFailure();
 
-            string category = NormalizeCategory(payload.Where);
+            bool isAddedRequest = HttpContext?.Request?.Path.Value?.StartsWith("/bookmark/added", StringComparison.OrdinalIgnoreCase) == true;
 
             string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
             var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
-
-            bool isAddedRequest = HttpContext?.Request?.Path.Value?.StartsWith("/bookmark/added", StringComparison.OrdinalIgnoreCase) == true;
 
             try
             {
@@ -303,8 +275,8 @@ namespace Lampac.Controllers
 
                     changed |= EnsureCard(data, payload.Card, cardId);
 
-                    if (!string.IsNullOrEmpty(category))
-                        changed |= AddToCategory(data, category, cardId);
+                    if (payload.Where != null)
+                        changed |= AddToCategory(data, payload.Where, cardId);
 
                     if (isAddedRequest)
                         changed |= MoveIdToFrontInAllCategories(data, cardId);
@@ -355,15 +327,10 @@ namespace Lampac.Controllers
             var readBody = await ReadPayloadAsync();
 
             var payload = readBody.payload;
-            if (payload == null)
-                return JsonFailure();
 
             var cardId = payload.ResolveCardId();
             if (cardId == null)
                 return JsonFailure();
-
-            string category = NormalizeCategory(payload.Where);
-            string method = payload.NormalizedMethod;
 
             string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
             var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
@@ -380,10 +347,10 @@ namespace Lampac.Controllers
 
                     bool changed = false;
 
-                    if (!string.IsNullOrEmpty(category))
-                        changed |= RemoveFromCategory(data, category, cardId);
+                    if (payload.Where != null)
+                        changed |= RemoveFromCategory(data, payload.Where, cardId);
 
-                    if (string.Equals(method, "card", StringComparison.Ordinal))
+                    if (payload.Method == "card")
                     {
                         changed |= RemoveIdFromAllCategories(data, cardId);
                         changed |= RemoveCard(data, cardId);
@@ -516,14 +483,6 @@ namespace Lampac.Controllers
             }
         }
 
-        static string NormalizeCategory(string category)
-        {
-            if (string.IsNullOrWhiteSpace(category) || category.Trim().ToLower() == "card")
-                return null;
-
-            return category.Trim().ToLowerInvariant();
-        }
-
         static bool EnsureCard(JObject data, JObject card, string idStr, bool insert = true)
         {
             if (data == null || card == null || string.IsNullOrWhiteSpace(idStr))
@@ -557,9 +516,6 @@ namespace Lampac.Controllers
 
         static bool AddToCategory(JObject data, string category, string idStr)
         {
-            if (data == null || string.IsNullOrWhiteSpace(idStr) || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
-                return false;
-
             var array = GetCategoryArray(data, category);
 
             foreach (var token in array)
@@ -578,9 +534,6 @@ namespace Lampac.Controllers
 
         static bool MoveIdToFrontInAllCategories(JObject data, string idStr)
         {
-            if (data == null)
-                return false;
-
             bool changed = false;
 
             foreach (var prop in data.Properties())
@@ -619,9 +572,6 @@ namespace Lampac.Controllers
 
         static bool RemoveFromCategory(JObject data, string category, string idStr)
         {
-            if (data == null || string.IsNullOrWhiteSpace(idStr) || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
-                return false;
-
             if (data[category] is not JArray array)
                 return false;
 
@@ -630,9 +580,6 @@ namespace Lampac.Controllers
 
         static bool RemoveIdFromAllCategories(JObject data, string idStr)
         {
-            if (data == null)
-                return false;
-
             bool changed = false;
 
             foreach (var property in data.Properties().ToList())
@@ -649,18 +596,16 @@ namespace Lampac.Controllers
 
         static bool RemoveCard(JObject data, string idStr)
         {
-            if (data == null)
-                return false;
-
-            var cardArray = GetCardArray(data);
-
-            foreach (var card in cardArray.Children<JObject>().ToList())
+            if (data["card"] is JArray cardArray)
             {
-                var token = card["id"];
-                if (token != null && token.ToString() == idStr)
+                foreach (var card in cardArray.Children<JObject>().ToList())
                 {
-                    card.Remove();
-                    return true;
+                    var token = card["id"];
+                    if (token != null && token.ToString() == idStr)
+                    {
+                        card.Remove();
+                        return true;
+                    }
                 }
             }
 
@@ -728,58 +673,28 @@ namespace Lampac.Controllers
 
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
             {
-                body = await reader.ReadToEndAsync();
-                if (string.IsNullOrWhiteSpace(body))
-                    return (payload, body);
-
                 try
                 {
+                    body = await reader.ReadToEndAsync();
+
                     var job = JsonConvert.DeserializeObject<JObject>(body);
                     if (job == null)
                         return (payload, body);
 
                     payload.Method = job.Value<string>("method");
-                    payload.Where = job.Value<string>("where") ?? job.Value<string>("list");
                     payload.CardIdRaw = job.Value<string>("id") ?? job.Value<string>("card_id");
 
-                    if (job.TryGetValue("card", out var cardToken))
-                        payload.Card = ConvertToCard(cardToken);
+                    payload.Where = (job.Value<string>("where") ?? job.Value<string>("list"))?.Trim()?.ToLowerInvariant();
+                    if (string.IsNullOrEmpty(payload.Where) || payload.Where == "card")
+                        payload.Where = null;
+
+                    if (job.TryGetValue("card", out var cardToken) && cardToken != null)
+                        payload.Card = (JObject)cardToken;
                 }
-                catch
-                {
-                }
+                catch { }
             }
 
             return (payload, body);
-        }
-
-        static JObject ConvertToCard(JToken token)
-        {
-            if (token == null)
-                return null;
-
-            if (token.Type == JTokenType.Object)
-                return (JObject)token;
-
-            if (token.Type == JTokenType.String)
-                return ParseCardString(token.Value<string>());
-
-            return null;
-        }
-
-        static JObject ParseCardString(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            try
-            {
-                return JsonConvert.DeserializeObject<JObject>(value);
-            }
-            catch
-            {
-                return null;
-            }
         }
         #endregion
 
@@ -794,12 +709,10 @@ namespace Lampac.Controllers
 
             public string CardIdRaw { get; set; }
 
-            public string NormalizedMethod => string.IsNullOrWhiteSpace(Method) ? null : Method.Trim().ToLowerInvariant();
-
             public string ResolveCardId()
             {
                 if (!string.IsNullOrWhiteSpace(CardIdRaw))
-                    return CardIdRaw;
+                    return CardIdRaw.Trim().ToLowerInvariant();
 
                 var token = Card?["id"];
                 if (token != null)
@@ -811,7 +724,7 @@ namespace Lampac.Controllers
                     if (string.IsNullOrWhiteSpace(_id))
                         return null;
 
-                    return _id;
+                    return _id.Trim().ToLowerInvariant();
                 }
 
                 return null;
