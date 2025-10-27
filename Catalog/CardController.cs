@@ -85,6 +85,7 @@ namespace Catalog.Controllers
                 {
                     ["id"] = CrypTo.md5($"{plugin}:{uri}"),
                     ["url"] = $"{host}/catalog/card?plugin={plugin}&uri={HttpUtility.UrlEncode(uri)}&type={type}",
+                    ["source_id"] = uri,
                     ["img"] = PosterApi.Size(host, img),
 
                     ["vote_average"] = 0,
@@ -125,7 +126,13 @@ namespace Catalog.Controllers
                             {
                                 string rating = val?.ToString();
                                 if (!string.IsNullOrEmpty(rating))
-                                    jo[arg.name_arg] = JToken.FromObject(rating.Length > 3 ? rating.Substring(0, 3) : rating);
+                                {
+                                    rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
+                                    if (rating.Length == 1)
+                                        rating = $"{rating}.0";
+
+                                    jo[arg.name_arg] = JToken.FromObject(rating);
+                                }
                             }
                             else if (val is string && (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages"))
                             {
@@ -317,12 +324,7 @@ namespace Catalog.Controllers
 
             foreach (string key in keys)
             {
-                if (key == "credits")
-                {
-                    if (result.ContainsKey(key) && result[key] is JObject _jo && _jo.ContainsKey("cast"))
-                        jo["cast"] = _jo["cast"];
-                }
-                else if (key is "videos" or "recommendations" or "similar")
+                if (key is "videos" or "recommendations" or "similar")
                 {
                     if (result.ContainsKey(key) && result[key] is JObject _jo && _jo.ContainsKey("results"))
                         jo[key] = _jo["results"];

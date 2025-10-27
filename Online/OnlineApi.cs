@@ -594,7 +594,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public ValueTask<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
+        async public ValueTask<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string source_id, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";
@@ -637,7 +637,7 @@ namespace Online.Controllers
 
             if (OnlineModuleEntry.onlineModulesCache != null && OnlineModuleEntry.onlineModulesCache.Count > 0)
             {
-                var args = new OnlineEventsModel(id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, rchtype, serial, life, islite, account_email, uid, token);
+                var args = new OnlineEventsModel(id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, source_id, rchtype, serial, life, islite, account_email, uid, token);
 
                 foreach (var entry in OnlineModuleEntry.onlineModulesCache)
                 {
@@ -872,14 +872,14 @@ namespace Online.Controllers
                     return i; 
                 });
 
-                send(myinit, arg_url: (source == "filmix" ? $"?postid={id}" : ""), myinit: myinit, rch_access: "apk");
+                send(myinit, myinit: myinit, rch_access: "apk");
             }
 
-            send(conf.FilmixTV, "filmixtv", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
-            send(conf.FilmixPartner, "fxapi", "Filmix", arg_url: (source == "filmix" ? $"?postid={id}" : ""));
+            send(conf.FilmixTV, "filmixtv");
+            send(conf.FilmixPartner, "fxapi", "Filmix");
             #endregion
 
-            send(conf.KinoPub, arg_url: (source == "pub" ? $"?postid={id}" : ""));
+            send(conf.KinoPub);
             send(conf.IptvOnline, "iptvonline", "iptv.online");
             send(conf.GetsTV);
 
@@ -898,16 +898,16 @@ namespace Online.Controllers
 
             #region Rezka
             {
-                var rezka = loadKit(conf.RezkaPrem, kitconf , (j, i, c) => 
+                var rezka_premium = loadKit(conf.RezkaPrem, kitconf , (j, i, c) => 
                 {
                     if (j.ContainsKey("premium"))
                         i.premium = c.premium; 
                     return i; 
                 });
 
-                send(rezka, "rhsprem", "HDRezka", myinit: rezka);
+                send(rezka_premium, "rhsprem", "HDRezka", myinit: rezka_premium);
 
-                if (!rezka.enable)
+                if (rezka_premium.enable == false)
                 {
                     var myinit = await loadKit(conf.Rezka, (j, i, c) =>
                     {
@@ -1096,7 +1096,7 @@ namespace Online.Controllers
 
                     foreach (var o in online)
                     {
-                        var tk = checkSearch(memkey, links, tasks.Count, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype);
+                        var tk = checkSearch(memkey, links, tasks.Count, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, source_id, year, serial, life, rchtype);
                         tasks.Add(tk);
                     }
 
@@ -1120,14 +1120,14 @@ namespace Online.Controllers
 
         #region checkSearch
         async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, int indexList, dynamic init, int index, string name, string uri, string plugin,
-                               string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
+                               string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source, string source_id, int year, int serial, bool life, string rchtype)
         {
             try
             {
                 string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}");
                 var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", AppInit.rootPasswd)) : null;
 
-                string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={id}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
+                string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={HttpUtility.UrlEncode(id)}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&source_id={HttpUtility.UrlEncode(source_id)}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
                 string res = await Http.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
 
                 if (string.IsNullOrEmpty(res))

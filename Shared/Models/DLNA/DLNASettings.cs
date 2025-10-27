@@ -6,6 +6,8 @@
 
         public string path { get; set; }
 
+        public string mediaPattern { get; set; }
+
         public bool autoupdatetrackers { get; set; }
 
         public bool addTrackersToMagnet { get; set; }

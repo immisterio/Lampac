@@ -26,8 +26,6 @@ namespace DLNA.Controllers
 {
     public class DLNAController : BaseController
     {
-        static readonly string mediaPattern = "^\\.(aac|flac|mpga|mpega|mp2|mp3|m4a|oga|ogg|opus|spx|opus|weba|wav|dif|dv|fli|mp4|mpeg|mpg|mpe|mpv|mkv|ts|m4s|m2ts|mts|ogv|webm|avi|qt|mov)$";
-
         #region DLNAController
         static string dlna_path => AppInit.conf.dlna.path;
 
@@ -437,7 +435,7 @@ namespace DLNA.Controllers
 
                 foreach (string file in Directory.GetFiles(_path))
                 {
-                    if (!Regex.IsMatch(Path.GetExtension(file), mediaPattern))
+                    if (!Regex.IsMatch(Path.GetExtension(file), AppInit.conf.dlna.mediaPattern))
                         continue;
 
                     if (new FileInfo(file).Length > 0)
@@ -481,7 +479,7 @@ namespace DLNA.Controllers
 
             foreach (string file in Directory.GetFiles($"{dlna_path}/" + path))
             {
-                if (!Regex.IsMatch(Path.GetExtension(file), mediaPattern))
+                if (!Regex.IsMatch(Path.GetExtension(file), AppInit.conf.dlna.mediaPattern))
                     continue;
 
                 string name = Path.GetFileName(file);
@@ -896,7 +894,7 @@ namespace DLNA.Controllers
                                 if (_indexs.Count == lastCount)
                                     break;
 
-                                if (!Regex.IsMatch(Path.GetExtension(manager.Files[i].Path), mediaPattern))
+                                if (!Regex.IsMatch(Path.GetExtension(manager.Files[i].Path), AppInit.conf.dlna.mediaPattern))
                                     continue;
 
                                 _indexs.Add(i);

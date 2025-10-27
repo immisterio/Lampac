@@ -483,7 +483,8 @@ namespace Shared
         { 
             enable = true, path = "dlna",
             uploadSpeed = 125000 * 10,
-            autoupdatetrackers = true, intervalUpdateTrackers = 90, addTrackersToMagnet = true, 
+            autoupdatetrackers = true, intervalUpdateTrackers = 90, addTrackersToMagnet = true,
+            mediaPattern = "^\\.(aac|flac|mpga|mpega|mp2|mp3|m4a|oga|ogg|opus|spx|opus|weba|wav|dif|dv|fli|mp4|mpeg|mpg|mpe|mpv|mkv|ts|m4s|m2ts|mts|ogv|webm|avi|qt|mov)$",
             cover = new CoverSettings() 
             {
                 enable = true, preview = true, 
@@ -502,7 +503,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "9e9604b1d634cc6ebd7c581ab3a59c135a87c6ae"
+            tree = "d8cf442a1b3cdb0a2149d1979ff701560b80698b"
         };
 
         public OnlineConf online = new OnlineConf()

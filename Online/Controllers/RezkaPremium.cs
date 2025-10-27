@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Net;
-using System.Management;
-using Shared.Models.Online.Settings;
 using Shared.Models.Online.Rezka;
+using Shared.Models.Online.Settings;
+using System.Management;
+using System.Net;
 
 namespace Online.Controllers
 {
@@ -160,11 +160,17 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string source_id = null)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
+
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(source_id))
+            {
+                if (source.ToLower() is "rezka" or "hdrezka")
+                    href = source_id;
+            }
 
             var proxyManager = new ProxyManager(init);
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);

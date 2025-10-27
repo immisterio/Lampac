@@ -11,6 +11,8 @@ namespace Shared.Models.Catalog
 
         public bool debug { get; set; }
 
+        public bool search_lazy { get; set; } = true;
+
         public int timeout { get; set; } = 10;
 
         public List<Microsoft.Playwright.Cookie> cookies { get; set; }

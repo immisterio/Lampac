@@ -72,7 +72,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string source_id = null)
         {
             #region Initialization
             var init = await Initialization();
@@ -104,6 +104,12 @@ namespace Online.Controllers
                 }
             }
             #endregion
+
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(source_id))
+            {
+                if (source.ToLower() is "rezka" or "hdrezka")
+                    href = source_id;
+            }
 
             var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);

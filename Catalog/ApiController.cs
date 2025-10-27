@@ -63,6 +63,8 @@ namespace Catalog.Controllers
                                 if (init.search != null)
                                     siteObj["search"] = $"{host}/catalog/list?plugin={HttpUtility.UrlEncode(site)}";
 
+                                siteObj["search_lazy"] = init.search_lazy;
+
                                 if (!string.IsNullOrEmpty(init.catalog_key))
                                     siteObj["catalog_key"] = init.catalog_key;
 
@@ -123,6 +125,8 @@ namespace Catalog.Controllers
 
                 if (s.obj.ContainsKey("search"))
                     result[s.key]["search"] = s.obj["search"];
+
+                result[s.key]["search_lazy"] = s.obj["search_lazy"];
 
                 string catalog_key = s.obj.ContainsKey("catalog_key") ? s.obj["catalog_key"]?.ToString() : null;
                 string defaultName = s.obj.ContainsKey("defaultName") ? s.obj["defaultName"]?.ToString() : null;
