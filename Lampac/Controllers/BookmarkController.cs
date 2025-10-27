@@ -208,7 +208,7 @@ namespace Lampac.Controllers
             where = where.Trim();
             string normalized = where.ToLowerInvariant();
 
-            if (BookmarkCategories.Contains(normalized))
+            if (normalized == "card" || BookmarkCategories.Contains(normalized))
                 return JsonFailure();
 
             var valueToken = job.TryGetValue("data", out var token)
@@ -308,7 +308,7 @@ namespace Lampac.Controllers
                         {
                             string edata = JsonConvert.SerializeObject(new 
                             { 
-                                type = HttpContext.Request.Path.Value.StartsWith("/bookmark/added") ? "added" : "add", 
+                                type = isAddedRequest ? "added" : "add", 
                                 readBody.json, 
                                 profile_id = getProfileid(requestInfo, HttpContext) 
                             });
