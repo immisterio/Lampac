@@ -257,9 +257,10 @@ namespace Lampac.Controllers
 
         #endregion
 
-        #region Add
+        #region Add/Added
         [HttpPost]
         [Route("/bookmark/add")]
+        [Route("/bookmark/added")]
         public async Task<ActionResult> Add(string connectionId)
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
@@ -300,74 +301,13 @@ namespace Lampac.Controllers
 
                         if (readBody.json != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new { type = "add", readBody.json, profile_id = getProfileid(requestInfo, HttpContext) });
-                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
-                        }
-                    }
-                }
+                            string edata = JsonConvert.SerializeObject(new 
+                            { 
+                                type = HttpContext.Request.Path.Value.StartsWith("/bookmark/added") ? "added" : "add", 
+                                readBody.json, 
+                                profile_id = getProfileid(requestInfo, HttpContext) 
+                            });
 
-                return JsonSuccess();
-            }
-            finally
-            {
-                try
-                {
-                    semaphore.Release();
-                }
-                finally
-                {
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
-                }
-            }
-        }
-        #endregion
-
-        #region Added
-        [HttpPost]
-        [Route("/bookmark/added")]
-        public async Task<ActionResult> Added(string connectionId)
-        {
-            if (string.IsNullOrEmpty(requestInfo.user_uid))
-                return JsonFailure();
-
-            var readBody = await ReadPayloadAsync();
-
-            var payload = readBody.payload;
-            if (payload == null)
-                return JsonFailure();
-
-            var cardId = payload.ResolveCardId();
-            if (cardId == null)
-                return JsonFailure();
-
-            string category = NormalizeCategory(payload.Where);
-
-            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
-            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
-
-            try
-            {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
-
-                using (var sqlDb = new SyncUserContext())
-                {
-                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
-                    bool changed = false;
-
-                    if (payload.Card != null)
-                        changed |= EnsureCard(data, payload.Card, cardId.Value);
-
-                    if (!string.IsNullOrEmpty(category))
-                        changed |= AddToCategory(data, category, cardId.Value);
-
-                    if (changed)
-                    {
-                        Save(sqlDb, entity, data);
-
-                        if (readBody.json != null)
-                        {
-                            string edata = JsonConvert.SerializeObject(new { type = "added", readBody.json, profile_id = getProfileid(requestInfo, HttpContext) });
                             _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
