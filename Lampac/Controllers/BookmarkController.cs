@@ -281,6 +281,8 @@ namespace Lampac.Controllers
             string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
             var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
+            bool isAddedRequest = HttpContext?.Request?.Path.Value?.StartsWith("/bookmark/added", StringComparison.OrdinalIgnoreCase) == true;
+
             try
             {
                 await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
@@ -294,6 +296,9 @@ namespace Lampac.Controllers
 
                     if (!string.IsNullOrEmpty(category))
                         changed |= AddToCategory(data, category, cardId.Value);
+
+                    if (isAddedRequest)
+                        changed |= MoveIdToFrontInAllCategories(data, cardId.Value);
 
                     if (changed)
                     {
@@ -559,6 +564,46 @@ namespace Lampac.Controllers
 
             array.Insert(0, id);
             return true;
+        }
+
+        static bool MoveIdToFrontInAllCategories(JObject data, long id)
+        {
+            if (data == null)
+                return false;
+
+            bool changed = false;
+
+            foreach (var category in BookmarkCategories)
+            {
+                if (data[category] is JArray array)
+                    changed |= MoveIdToFront(array, id);
+            }
+
+            return changed;
+        }
+
+        static bool MoveIdToFront(JArray array, long id)
+        {
+            if (array == null)
+                return false;
+
+            string idStr = id.ToString(CultureInfo.InvariantCulture);
+
+            for (int i = 0; i < array.Count; i++)
+            {
+                var token = array[i];
+                if (token?.ToString() == idStr)
+                {
+                    if (i == 0)
+                        return false;
+
+                    token.Remove();
+                    array.Insert(0, token);
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         static bool RemoveFromCategory(JObject data, string category, long id)
