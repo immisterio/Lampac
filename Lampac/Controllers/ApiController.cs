@@ -246,7 +246,9 @@ namespace Lampac.Controllers
                 if (usecubproxy)
                 {
                     bulder = bulder.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
+                    bulder = bulder.Replace("Utils$1.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
                     bulder = bulder.Replace("Utils$2.protocol() + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
+                    bulder = bulder.Replace("Utils$1.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
                     bulder = bulder.Replace("Utils$2.protocol() + object$2.cub_domain", $"'{host}/cub/red'");
                     bulder = bulder.Replace("object$2.cub_domain", $"'{AppInit.conf.cub.mirror}'");
                 }
@@ -262,6 +264,11 @@ namespace Lampac.Controllers
 
                 bulder = bulder.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa
                 bulder = bulder.Replace("return status$1;", "return true;"); // отключение рекламы
+                bulder = bulder.Replace("if (!Storage.get('metric_uid', ''))", "return;"); // metric
+                bulder = bulder.Replace("function log(data) {", "function log(data) { return;");
+                bulder = bulder.Replace("function stat$1(method, name) {", "function stat$1(method, name) { return;");
+                bulder = bulder.Replace("function video(preroll, num, started, ended) {", "function video(preroll, num, started, ended) { return;");
+                bulder = bulder.Replace("if (domain) {", "if (false) {");
 
                 bulder = bulder.Replace("{localhost}", host);
 

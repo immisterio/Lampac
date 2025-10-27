@@ -133,12 +133,35 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
+                #region blacklist
                 if (uri.StartsWith("api/plugins/blacklist"))
                 {
                     httpContext.Response.ContentType = "application/json; charset=utf-8";
                     await httpContext.Response.WriteAsync("[]", ctsHttp.Token);
                     return;
                 }
+                #endregion
+
+                #region ads/log/metric
+                if (uri.StartsWith("api/metric/") || uri.StartsWith("api/ad/stat"))
+                {
+                    await httpContext.Response.WriteAsJsonAsync(new { secuses = true });
+                    return;
+                }
+
+                if (uri.StartsWith("api/ad/vast"))
+                {
+                    await httpContext.Response.WriteAsJsonAsync(new 
+                    { 
+                        secuses = true,
+                        ad = new string[] { },
+                        day_of_month = DateTime.Now.Day,
+                        days_in_month =  31,
+                        month = DateTime.Now.Month
+                    });
+                    return;
+                }
+                #endregion
 
                 var proxyManager = new ProxyManager("cub_api", init);
                 var proxy = proxyManager.Get();

@@ -62,6 +62,14 @@ namespace Tracks.Controllers
             if (string.IsNullOrEmpty(src))
                 return BadRequest(new { error = "src" });
 
+            if (src.Contains("/proxy/") && src.Contains(".mkv"))
+            {
+                string hash = Regex.Match(src, "/proxy/([^\n\r]+\\.mkv)").Groups[1].Value;
+                src = ProxyLink.Decrypt(hash, null)?.uri;
+                if (string.IsNullOrWhiteSpace(src))
+                    return BadRequest(new { error = "src decrypt" });
+            }
+
             var defaults = AppInit.conf.transcoding;
 
             var (job, error) = await _service.Start(new TranscodingStartRequest() 
