@@ -94,7 +94,7 @@ namespace Lampac.Controllers
 
                                         EnsureDefaultArrays(loaded);
 
-                                        // migrate card objects if present
+                                        #region migrate card objects
                                         if (favorite["card"] is JArray srcCards)
                                         {
                                             foreach (var c in srcCards.Children<JObject>().ToList())
@@ -109,31 +109,52 @@ namespace Lampac.Controllers
                                                 }
                                             }
                                         }
+                                        #endregion
 
-                                        // migrate categories
-                                        foreach (var category in BookmarkCategories)
+                                        #region migrate categories
+                                        foreach (var prop in favorite.Properties())
                                         {
-                                            if (favorite[category] is JArray srcArray)
-                                            {
-                                                var dest = GetCategoryArray(loaded, category);
-                                                foreach (var t in srcArray.ToList())
-                                                {
-                                                    var idStr = t?.ToString();
-                                                    if (string.IsNullOrWhiteSpace(idStr))
-                                                        continue;
+                                            var name = prop.Name;
 
-                                                    if (long.TryParse(idStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var idVal))
+                                            if (string.Equals(name, "card", StringComparison.OrdinalIgnoreCase))
+                                                continue;
+
+                                            var srcValue = prop.Value;
+
+                                            if (BookmarkCategories.Contains(name))
+                                            {
+                                                if (srcValue is JArray srcArray)
+                                                {
+                                                    var dest = GetCategoryArray(loaded, name);
+                                                    foreach (var t in srcArray)
                                                     {
-                                                        bool exists = dest.Any(dt => dt.ToString() == idVal.ToString(CultureInfo.InvariantCulture));
-                                                        if (!exists)
+                                                        var idStr = t?.ToString();
+                                                        if (string.IsNullOrWhiteSpace(idStr))
+                                                            continue;
+
+                                                        if (long.TryParse(idStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var idVal))
                                                         {
-                                                            dest.Add(idVal);
-                                                            changed = true;
+                                                            bool exists = dest.Any(dt => dt.ToString() == idVal.ToString(CultureInfo.InvariantCulture));
+                                                            if (!exists)
+                                                            {
+                                                                dest.Add(idVal);
+                                                                changed = true;
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
+                                            else
+                                            {
+                                                var existing = loaded[name];
+                                                if (existing == null || !JToken.DeepEquals(existing, srcValue))
+                                                {
+                                                    loaded[name] = srcValue.DeepClone();
+                                                    changed = true;
+                                                }
+                                            }
                                         }
+                                        #endregion
 
                                         if (changed)
                                             Save(sqlDb, entity, loaded);
@@ -509,11 +530,10 @@ namespace Lampac.Controllers
 
         static string NormalizeCategory(string category)
         {
-            if (string.IsNullOrWhiteSpace(category))
+            if (string.IsNullOrWhiteSpace(category) || category.Trim().ToLower() == "card")
                 return null;
 
-            var normalized = category.Trim().ToLowerInvariant();
-            return BookmarkCategories.Contains(normalized) ? normalized : null;
+            return category.Trim().ToLowerInvariant();
         }
 
         static bool EnsureCard(JObject data, JObject card, long id, bool insert = true)
@@ -550,7 +570,7 @@ namespace Lampac.Controllers
 
         static bool AddToCategory(JObject data, string category, long id)
         {
-            if (data == null || string.IsNullOrEmpty(category) || !BookmarkCategories.Contains(category))
+            if (data == null || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
                 return false;
 
             var array = GetCategoryArray(data, category);
@@ -573,9 +593,12 @@ namespace Lampac.Controllers
 
             bool changed = false;
 
-            foreach (var category in BookmarkCategories)
+            foreach (var prop in data.Properties())
             {
-                if (data[category] is JArray array)
+                if (string.Equals(prop.Name, "card", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (prop.Value is JArray array)
                     changed |= MoveIdToFront(array, id);
             }
 
@@ -608,7 +631,7 @@ namespace Lampac.Controllers
 
         static bool RemoveFromCategory(JObject data, string category, long id)
         {
-            if (data == null || string.IsNullOrEmpty(category) || !BookmarkCategories.Contains(category))
+            if (data == null || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
                 return false;
 
             if (data[category] is not JArray array)
