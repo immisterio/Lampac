@@ -9,7 +9,6 @@ using Shared.Engine;
 using Shared.Models;
 using Shared.Models.SQL;
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -97,16 +96,9 @@ namespace Lampac.Controllers
                                         #region migrate card objects
                                         if (favorite["card"] is JArray srcCards)
                                         {
-                                            foreach (var c in srcCards.Children<JObject>().ToList())
+                                            foreach (var c in srcCards.Children<JObject>())
                                             {
-                                                var idToken = c?["id"];
-                                                if (idToken != null)
-                                                {
-                                                    if (long.TryParse(idToken.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var cid))
-                                                    {
-                                                        changed |= EnsureCard(loaded, c, cid, insert: false);
-                                                    }
-                                                }
+                                                changed |= EnsureCard(loaded, c, c?["id"]?.ToString(), insert: false);
                                             }
                                         }
                                         #endregion
@@ -132,14 +124,10 @@ namespace Lampac.Controllers
                                                         if (string.IsNullOrWhiteSpace(idStr))
                                                             continue;
 
-                                                        if (long.TryParse(idStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var idVal))
+                                                        if (dest.Any(dt => dt.ToString() == idStr) == false)
                                                         {
-                                                            bool exists = dest.Any(dt => dt.ToString() == idVal.ToString(CultureInfo.InvariantCulture));
-                                                            if (!exists)
-                                                            {
-                                                                dest.Add(idVal);
-                                                                changed = true;
-                                                            }
+                                                            dest.Add(idStr);
+                                                            changed = true;
                                                         }
                                                     }
                                                 }
@@ -313,13 +301,13 @@ namespace Lampac.Controllers
                     var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
                     bool changed = false;
 
-                    changed |= EnsureCard(data, payload.Card, cardId.Value);
+                    changed |= EnsureCard(data, payload.Card, cardId);
 
                     if (!string.IsNullOrEmpty(category))
-                        changed |= AddToCategory(data, category, cardId.Value);
+                        changed |= AddToCategory(data, category, cardId);
 
                     if (isAddedRequest)
-                        changed |= MoveIdToFrontInAllCategories(data, cardId.Value);
+                        changed |= MoveIdToFrontInAllCategories(data, cardId);
 
                     if (changed)
                     {
@@ -393,12 +381,12 @@ namespace Lampac.Controllers
                     bool changed = false;
 
                     if (!string.IsNullOrEmpty(category))
-                        changed |= RemoveFromCategory(data, category, cardId.Value);
+                        changed |= RemoveFromCategory(data, category, cardId);
 
                     if (string.Equals(method, "card", StringComparison.Ordinal))
                     {
-                        changed |= RemoveIdFromAllCategories(data, cardId.Value);
-                        changed |= RemoveCard(data, cardId.Value);
+                        changed |= RemoveIdFromAllCategories(data, cardId);
+                        changed |= RemoveCard(data, cardId);
                     }
 
                     if (changed)
@@ -536,13 +524,12 @@ namespace Lampac.Controllers
             return category.Trim().ToLowerInvariant();
         }
 
-        static bool EnsureCard(JObject data, JObject card, long id, bool insert = true)
+        static bool EnsureCard(JObject data, JObject card, string idStr, bool insert = true)
         {
-            if (data == null || card == null)
+            if (data == null || card == null || string.IsNullOrWhiteSpace(idStr))
                 return false;
 
             var cardArray = GetCardArray(data);
-            string idStr = id.ToString(CultureInfo.InvariantCulture);
             var newCard = (JObject)card.DeepClone();
 
             foreach (var existing in cardArray.Children<JObject>().ToList())
@@ -568,13 +555,12 @@ namespace Lampac.Controllers
             return true;
         }
 
-        static bool AddToCategory(JObject data, string category, long id)
+        static bool AddToCategory(JObject data, string category, string idStr)
         {
-            if (data == null || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
+            if (data == null || string.IsNullOrWhiteSpace(idStr) || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
                 return false;
 
             var array = GetCategoryArray(data, category);
-            string idStr = id.ToString(CultureInfo.InvariantCulture);
 
             foreach (var token in array)
             {
@@ -582,11 +568,15 @@ namespace Lampac.Controllers
                     return false;
             }
 
-            array.Insert(0, id);
+            if (long.TryParse(idStr, out long _id) && _id > 0)
+                array.Insert(0, _id);
+            else
+                array.Insert(0, idStr);
+
             return true;
         }
 
-        static bool MoveIdToFrontInAllCategories(JObject data, long id)
+        static bool MoveIdToFrontInAllCategories(JObject data, string idStr)
         {
             if (data == null)
                 return false;
@@ -599,18 +589,16 @@ namespace Lampac.Controllers
                     continue;
 
                 if (prop.Value is JArray array)
-                    changed |= MoveIdToFront(array, id);
+                    changed |= MoveIdToFront(array, idStr);
             }
 
             return changed;
         }
 
-        static bool MoveIdToFront(JArray array, long id)
+        static bool MoveIdToFront(JArray array, string idStr)
         {
             if (array == null)
                 return false;
-
-            string idStr = id.ToString(CultureInfo.InvariantCulture);
 
             for (int i = 0; i < array.Count; i++)
             {
@@ -629,18 +617,18 @@ namespace Lampac.Controllers
             return false;
         }
 
-        static bool RemoveFromCategory(JObject data, string category, long id)
+        static bool RemoveFromCategory(JObject data, string category, string idStr)
         {
-            if (data == null || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
+            if (data == null || string.IsNullOrWhiteSpace(idStr) || string.IsNullOrEmpty(category) || category.Trim().ToLower() == "card")
                 return false;
 
             if (data[category] is not JArray array)
                 return false;
 
-            return RemoveFromArray(array, id);
+            return RemoveFromArray(array, idStr);
         }
 
-        static bool RemoveIdFromAllCategories(JObject data, long id)
+        static bool RemoveIdFromAllCategories(JObject data, string idStr)
         {
             if (data == null)
                 return false;
@@ -652,20 +640,19 @@ namespace Lampac.Controllers
                 if (property.Name == "card")
                     continue;
 
-                if (property.Value is JArray array && RemoveFromArray(array, id))
+                if (property.Value is JArray array && RemoveFromArray(array, idStr))
                     changed = true;
             }
 
             return changed;
         }
 
-        static bool RemoveCard(JObject data, long id)
+        static bool RemoveCard(JObject data, string idStr)
         {
             if (data == null)
                 return false;
 
             var cardArray = GetCardArray(data);
-            string idStr = id.ToString(CultureInfo.InvariantCulture);
 
             foreach (var card in cardArray.Children<JObject>().ToList())
             {
@@ -700,10 +687,8 @@ namespace Lampac.Controllers
             return array;
         }
 
-        static bool RemoveFromArray(JArray array, long id)
+        static bool RemoveFromArray(JArray array, string idStr)
         {
-            string idStr = id.ToString(CultureInfo.InvariantCulture);
-
             foreach (var token in array.ToList())
             {
                 if (token.ToString() == idStr)
@@ -811,19 +796,22 @@ namespace Lampac.Controllers
 
             public string NormalizedMethod => string.IsNullOrWhiteSpace(Method) ? null : Method.Trim().ToLowerInvariant();
 
-            public long? ResolveCardId()
+            public string ResolveCardId()
             {
-                if (!string.IsNullOrWhiteSpace(CardIdRaw) && long.TryParse(CardIdRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
-                    return parsed;
+                if (!string.IsNullOrWhiteSpace(CardIdRaw))
+                    return CardIdRaw;
 
                 var token = Card?["id"];
                 if (token != null)
                 {
                     if (token.Type == JTokenType.Integer)
-                        return token.Value<long>();
+                        return token.Value<long>().ToString();
 
-                    if (long.TryParse(token.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out parsed))
-                        return parsed;
+                    string _id = token.ToString();
+                    if (string.IsNullOrWhiteSpace(_id))
+                        return null;
+
+                    return _id;
                 }
 
                 return null;
