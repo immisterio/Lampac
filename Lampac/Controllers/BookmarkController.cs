@@ -82,8 +82,7 @@ namespace Lampac.Controllers
                             {
                                 var root = JsonConvert.DeserializeObject<JObject>(content);
 
-                                // older format may wrap data under "favorite"; support both
-                                var favorite = root["favorite"] as JObject ?? root;
+                                var favorite = (JObject)root["favorite"];
 
                                 using (var sqlDb = new SyncUserContext())
                                 {
@@ -664,7 +663,7 @@ namespace Lampac.Controllers
 
         JsonResult JsonSuccess() => Json(new { success = true });
 
-        JsonResult JsonFailure() => Json(new { success = false });
+        ActionResult JsonFailure() => ContentTo(JsonConvert.SerializeObject(new { success = false }));
 
         async Task<(BookmarkEventPayload payload, string json)> ReadPayloadAsync()
         {

@@ -14,6 +14,8 @@ namespace Catalog
             if (string.IsNullOrEmpty(site))
                 return null;
 
+            site = site.Trim().ToLowerInvariant();
+
             if (!File.Exists($"catalog/sites/{site}.yaml"))
                 return null;
 

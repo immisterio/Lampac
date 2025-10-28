@@ -319,7 +319,7 @@ namespace Shared.Engine.Online
 
                         string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
 
-                        if (init.hls)
+                        if (init.hls && !Regex.IsMatch(l, "/(HDR10p?|HEVC)/"))
                         {
                             var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
                             if (m.Success)
@@ -444,7 +444,7 @@ namespace Shared.Engine.Online
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
 
-                            if (init.hls)
+                            if (init.hls && !Regex.IsMatch(l, "/(HDR10p?|HEVC)/"))
                             {
                                 var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
                                 if (m.Success)
