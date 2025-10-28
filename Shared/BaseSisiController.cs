@@ -95,6 +95,7 @@ namespace Shared
             if (AppInit.conf.multiaccess && rcache && !init.rhub)
                 memoryCache.Set(ResponseCache.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(15));
 
+            HttpContext.Response.StatusCode = 500;
             return Json(model);
         }
         #endregion

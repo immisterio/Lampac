@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Shared.Engine
 {
@@ -34,7 +35,13 @@ namespace Shared.Engine
             if (string.IsNullOrEmpty(base64Text))
                 return string.Empty;
 
-            return Encoding.UTF8.GetString(Convert.FromBase64String(base64Text));
+            try
+            {
+                return Encoding.UTF8.GetString(Convert.FromBase64String(base64Text));
+            }
+            catch { }
+
+            return string.Empty;
         }
 
         public static string Base64(string text)

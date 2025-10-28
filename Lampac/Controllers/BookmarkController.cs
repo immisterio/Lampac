@@ -676,18 +676,18 @@ namespace Lampac.Controllers
 
         async Task<(BookmarkEventPayload payload, string json)> ReadPayloadAsync()
         {
-            string body = null;
+            string json = null;
             var payload = new BookmarkEventPayload();
 
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
             {
                 try
                 {
-                    body = await reader.ReadToEndAsync();
+                    json = await reader.ReadToEndAsync();
 
-                    var job = JsonConvert.DeserializeObject<JObject>(body);
+                    var job = JsonConvert.DeserializeObject<JObject>(json);
                     if (job == null)
-                        return (payload, body);
+                        return (payload, json);
 
                     payload.Method = job.Value<string>("method");
                     payload.CardIdRaw = job.Value<string>("id") ?? job.Value<string>("card_id");
@@ -702,7 +702,7 @@ namespace Lampac.Controllers
                 catch { }
             }
 
-            return (payload, body);
+            return (payload, json);
         }
         #endregion
 

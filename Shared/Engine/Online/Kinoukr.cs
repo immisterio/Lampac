@@ -212,13 +212,20 @@ namespace Shared.Engine.Online
             if (player == null)
                 return null;
 
-            if (Regex.IsMatch(content, "file: ?'\\["))
+            if (Regex.IsMatch(content, "file: ?'"))
             {
                 Models.Online.Tortuga.Voice[] root = null;
 
                 try
                 {
-                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                    string file = Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value;
+                    if (file.EndsWith("=="))
+                    {
+                        file = Regex.Replace(file, "==$", "");
+                        file = string.Join("", CrypTo.DecodeBase64(file).Reverse());
+                    }
+
+                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(file);
                     if (root == null || root.Length == 0)
                         return null;
                 }
@@ -275,7 +282,15 @@ namespace Shared.Engine.Online
 
                 string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(hls))
-                    return string.Empty;
+                {
+                    string base64 = Regex.Match(result.content, "file: ?\"([^\"]+)\"").Groups[1].Value;
+                           base64 = Regex.Replace(base64, "==$", "");
+
+                    hls = string.Join("", CrypTo.DecodeBase64(base64).Reverse());
+
+                    if (string.IsNullOrWhiteSpace(hls))
+                        return string.Empty;
+                }
 
                 #region subtitle
                 var subtitles = new SubtitleTpl();
