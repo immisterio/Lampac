@@ -10,7 +10,7 @@ namespace Online.Controllers
     {
         [HttpGet]
         [Route("lite/kinobase")]
-        async public ValueTask<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, string t = null, bool rjson = false, bool similar = false, string source = null, string source_id = null)
+        async public ValueTask<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, string t = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             var init = await loadKit(AppInit.conf.Kinobase);
             if (await IsBadInitialization(init, rch: false))
@@ -19,10 +19,10 @@ namespace Online.Controllers
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
-            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(source_id))
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
                 if (source.ToLower() == "kinobase")
-                    href = source_id;
+                    href = id;
             }
 
             var proxyManager = new ProxyManager(AppInit.conf.Kinobase);

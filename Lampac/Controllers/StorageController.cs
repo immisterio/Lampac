@@ -33,12 +33,7 @@ namespace Lampac.Controllers
         {
             string outFile = getFilePath(path, pathfile, false);
             if (outFile == null || !IO.File.Exists(outFile))
-            {
-                if (IO.File.Exists($"{outFile}.migration"))
-                    outFile = $"{outFile}.migration";
-                else
-                    return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
-            }
+                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
 
             var file = new FileInfo(outFile);
             var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };

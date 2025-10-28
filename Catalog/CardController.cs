@@ -24,14 +24,12 @@ namespace Catalog.Controllers
 
             return await InvkSemaphore(init, memKey, async () =>
             {
-                #region html
-                if (!hybridCache.TryGetValue(memKey, out string html, inmemory: false))
+                if (!hybridCache.TryGetValue(memKey, out JObject jo, inmemory: false))
                 {
                     string url = $"{init.host}/{uri}";
 
                     reset:
-                    html =
-                        rch.enable ? await rch.Get(url, httpHeaders(init))
+                    string html = rch.enable ? await rch.Get(url, httpHeaders(init))
                         : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data, cookies: init.cookies)
                         : await Http.Get(url, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
 
@@ -49,139 +47,138 @@ namespace Catalog.Controllers
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, html, cacheTime(init.cache_time, init: init), inmemory: false);
-                }
-                #endregion
+                    var doc = new HtmlDocument();
+                    doc.LoadHtml(html);
 
-                var doc = new HtmlDocument();
-                doc.LoadHtml(html);
+                    var node = doc.DocumentNode;
+                    var parse = init.card_parse;
 
-                var node = doc.DocumentNode;
-                var parse = init.card_parse;
+                    string name = ModInit.nodeValue(node, parse.name, host)?.ToString();
+                    string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
+                    string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
 
-                string name = ModInit.nodeValue(node, parse.name, host)?.ToString();
-                string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
-                string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
+                    #region img
+                    string img = ModInit.nodeValue(node, parse.image, host)?.ToString();
 
-                #region img
-                string img = ModInit.nodeValue(node, parse.image, host)?.ToString();
-
-                if (img != null)
-                {
-                    img = img.Replace("&amp;", "&").Replace("\\", "");
-
-                    if (img.StartsWith("../"))
-                        img = $"{init.host}/{img.Replace("../", "")}";
-                    else if (img.StartsWith("//"))
-                        img = $"https:{img}";
-                    else if (img.StartsWith("/"))
-                        img = init.host + img;
-                    else if (!img.StartsWith("http"))
-                        img = $"{init.host}/{img}";
-                }
-                #endregion
-
-                var jo = new JObject()
-                {
-                    ["id"] = CrypTo.md5($"{plugin}:{uri}"),
-                    ["url"] = $"{host}/catalog/card?plugin={plugin}&uri={HttpUtility.UrlEncode(uri)}&type={type}",
-                    ["source_id"] = uri,
-                    ["img"] = PosterApi.Size(host, img),
-
-                    ["vote_average"] = 0,
-                    ["genres"] = new JArray(),
-                    ["production_countries"] = new JArray(),
-                    ["production_companies"] = new JArray()
-                };
-
-                string overview = ModInit.nodeValue(node, parse.description, host)?.ToString();
-                if (!string.IsNullOrEmpty(overview))
-                    jo["overview"] = overview;
-
-                if (type == "tv")
-                {
-                    jo["first_air_date"] = year;
-                    jo["name"] = name;
-
-                    if (!string.IsNullOrEmpty(original_name))
-                        jo["original_name"] = original_name;
-                }
-                else
-                {
-                    jo["release_date"] = year;
-                    jo["title"] = name;
-
-                    if (!string.IsNullOrEmpty(original_name))
-                        jo["original_title"] = original_name;
-                }
-
-                if (init.card_args != null)
-                {
-                    foreach (var arg in init.card_args)
+                    if (img != null)
                     {
-                        object val = ModInit.nodeValue(node, arg, host);
-                        if (val != null)
+                        img = img.Replace("&amp;", "&").Replace("\\", "");
+
+                        if (img.StartsWith("../"))
+                            img = $"{init.host}/{img.Replace("../", "")}";
+                        else if (img.StartsWith("//"))
+                            img = $"https:{img}";
+                        else if (img.StartsWith("/"))
+                            img = init.host + img;
+                        else if (!img.StartsWith("http"))
+                            img = $"{init.host}/{img}";
+                    }
+                    #endregion
+
+                    jo = new JObject()
+                    {
+                        ["id"] = uri.Trim(),
+                        ["img"] = PosterApi.Size(host, img),
+
+                        ["vote_average"] = 0,
+                        ["genres"] = new JArray(),
+                        ["production_countries"] = new JArray(),
+                        ["production_companies"] = new JArray()
+                    };
+
+                    string overview = ModInit.nodeValue(node, parse.description, host)?.ToString();
+                    if (!string.IsNullOrEmpty(overview))
+                        jo["overview"] = overview;
+
+                    if (type == "tv")
+                    {
+                        jo["first_air_date"] = year;
+                        jo["name"] = name;
+
+                        if (!string.IsNullOrEmpty(original_name))
+                            jo["original_name"] = original_name;
+                    }
+                    else
+                    {
+                        jo["release_date"] = year;
+                        jo["title"] = name;
+
+                        if (!string.IsNullOrEmpty(original_name))
+                            jo["original_title"] = original_name;
+                    }
+
+                    #region card_args
+                    if (init.card_args != null)
+                    {
+                        foreach (var arg in init.card_args)
                         {
-                            if (arg.name_arg is "kp_rating" or "imdb_rating")
+                            object val = ModInit.nodeValue(node, arg, host);
+                            if (val != null)
                             {
-                                string rating = val?.ToString();
-                                if (!string.IsNullOrEmpty(rating))
+                                if (arg.name_arg is "kp_rating" or "imdb_rating")
                                 {
-                                    rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
-                                    if (rating.Length == 1)
-                                        rating = $"{rating}.0";
-
-                                    jo[arg.name_arg] = JToken.FromObject(rating);
-                                }
-                            }
-                            else if (val is string && (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages"))
-                            {
-                                string arrayStr = val?.ToString();
-                                var array = new JArray();
-
-                                if (!string.IsNullOrEmpty(arrayStr))
-                                {
-                                    foreach (string str in arrayStr.Split(","))
+                                    string rating = val?.ToString();
+                                    if (!string.IsNullOrEmpty(rating))
                                     {
-                                        if (string.IsNullOrWhiteSpace(str))
-                                            continue;
+                                        rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
+                                        if (rating.Length == 1)
+                                            rating = $"{rating}.0";
 
-                                        array.Add(new JObject() { ["name"] = str.Trim() });
+                                        jo[arg.name_arg] = JToken.FromObject(rating);
                                     }
-
-                                    jo[arg.name_arg] = array;
                                 }
-                            }
-                            else if (val is string && (arg.name_arg is "origin_country" or "languages"))
-                            {
-                                string arrayStr = val?.ToString();
-                                var array = new JArray();
-
-                                if (!string.IsNullOrEmpty(arrayStr))
+                                else if (val is string && (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages"))
                                 {
-                                    foreach (string str in arrayStr.Split(","))
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(str))
-                                            array.Add(str.Trim());
-                                    }
+                                    string arrayStr = val?.ToString();
+                                    var array = new JArray();
 
-                                    if (array.Count > 0)
+                                    if (!string.IsNullOrEmpty(arrayStr))
+                                    {
+                                        foreach (string str in arrayStr.Split(","))
+                                        {
+                                            if (string.IsNullOrWhiteSpace(str))
+                                                continue;
+
+                                            array.Add(new JObject() { ["name"] = str.Trim() });
+                                        }
+
                                         jo[arg.name_arg] = array;
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                jo[arg.name_arg] = JToken.FromObject(val);
+                                else if (val is string && (arg.name_arg is "origin_country" or "languages"))
+                                {
+                                    string arrayStr = val?.ToString();
+                                    var array = new JArray();
+
+                                    if (!string.IsNullOrEmpty(arrayStr))
+                                    {
+                                        foreach (string str in arrayStr.Split(","))
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(str))
+                                                array.Add(str.Trim());
+                                        }
+
+                                        if (array.Count > 0)
+                                            jo[arg.name_arg] = array;
+                                    }
+                                }
+                                else
+                                {
+                                    jo[arg.name_arg] = JToken.FromObject(val);
+                                }
                             }
                         }
                     }
+                    #endregion
+
+                    if (init.tmdb_injects != null && init.tmdb_injects.Length > 0)
+                        await Injects(year, jo, init.tmdb_injects);
+
+                    if (!jo.ContainsKey("tagline") && !string.IsNullOrEmpty(original_name))
+                        jo["tagline"] = original_name;
+
+                    hybridCache.Set(memKey, jo, cacheTime(init.cache_time, init: init), inmemory: false);
                 }
-
-                if (init.tmdb_injects != null && init.tmdb_injects.Length > 0)
-                    await Injects(year, jo, init.tmdb_injects);
-
-                if (!jo.ContainsKey("tagline") && !string.IsNullOrEmpty(original_name))
-                    jo["tagline"] = original_name;
 
                 return ContentTo(JsonConvert.SerializeObject(jo));
             });
@@ -250,7 +247,7 @@ namespace Catalog.Controllers
             long id = 0;
             string cat = string.Empty;
 
-            if (!string.IsNullOrEmpty(imdbId) && imdbId.StartsWith("tt"))
+            if (!string.IsNullOrWhiteSpace(imdbId) && imdbId.StartsWith("tt"))
             {
                 var find = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/find/{imdbId}?external_source=imdb_id&api_key={AppInit.conf.tmdb.api_key}", timeoutSeconds: 5, headers: header);
                 if (find != null)
@@ -272,10 +269,10 @@ namespace Catalog.Controllers
             }
             else if (jo.ContainsKey("original_title") || jo.ContainsKey("original_name"))
             {
-                string originalTitle = jo["original_title"]?.ToString() ?? jo["original_name"]?.ToString();
                 string type = jo.ContainsKey("original_title") ? "movie" : "tv";
+                string originalTitle = jo.Value<string>(type == "movie" ? "original_title" : "original_name");
 
-                if (!string.IsNullOrEmpty(originalTitle) && int.TryParse(year, out int _year) && _year > 0)
+                if (!string.IsNullOrEmpty(originalTitle) && int.TryParse(year.Split("-")[0], out int _year) && _year > 0)
                 {
                     var searchMovie = await Http.Get<JObject>($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/3/search/{type}?query={HttpUtility.UrlEncode(originalTitle)}&api_key={AppInit.conf.tmdb.api_key}", timeoutSeconds: 5, headers: header);
                     if (searchMovie != null && searchMovie.ContainsKey("results"))
@@ -296,10 +293,16 @@ namespace Catalog.Controllers
 
                                 // date is usually in format YYYY-MM-DD, take first 4 chars
                                 string yearStr = date.Length >= 4 ? date.Substring(0, 4) : date;
-                                if (int.TryParse(yearStr, out int itemYear) && (itemYear == _year || itemYear == _year+1 || itemYear == _year-1))
+                                if (int.TryParse(yearStr, out int itemYear) && itemYear == _year)
                                 {
-                                    foundId = item.Value<long>("id");
-                                    break;
+                                    string _s1 = StringConvert.SearchName(originalTitle);
+                                    string _s2 = StringConvert.SearchName(item.Value<string>(type == "movie" ? "original_title" : "original_name"));
+
+                                    if (!string.IsNullOrEmpty(_s1) && !string.IsNullOrEmpty(_s2) && _s1 == _s2)
+                                    {
+                                        foundId = item.Value<long>("id");
+                                        break;
+                                    }
                                 }
                             }
 

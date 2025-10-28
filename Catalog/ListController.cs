@@ -133,25 +133,20 @@ namespace Catalog.Controllers
                     var jo = new JObject()
                     {
                         ["id"] = pl.id,
-                        ["img"] = pl.img,
-                        ["url"] = pl.card
+                        ["img"] = pl.img
                     };
 
                     if (pl.is_serial)
                     {
                         jo["first_air_date"] = pl.year;
                         jo["name"] = pl.title;
-                        
-                        if (!string.IsNullOrEmpty(pl.original_title))
-                            jo["original_name"] = pl.original_title;
+                        jo["original_name"] = string.IsNullOrWhiteSpace(pl.original_title) ? pl.title : pl.original_title;
                     }
                     else
                     {
                         jo["release_date"] = pl.year;
                         jo["title"] = pl.title;
-
-                        if (!string.IsNullOrEmpty(pl.original_title))
-                            jo["original_title"] = pl.original_title;
+                        jo["original_title"] = string.IsNullOrWhiteSpace(pl.original_title) ? pl.title : pl.original_title;
                     }
 
                     if (pl.args != null)
@@ -278,12 +273,11 @@ namespace Catalog.Controllers
 
                     var pl = new PlaylistItem()
                     {
-                        id = CrypTo.md5($"{plugin}:{href}"),
+                        id = href,
                         title = clearText(name),
                         original_title = clearText(original_name),
                         img = PosterApi.Size(host, img),
                         year = clearText(year),
-                        card = $"{host}/catalog/card?plugin={plugin}&uri={HttpUtility.UrlEncode(href)}&type={(is_serial == true ? "tv" : "movie")}",
                         is_serial = is_serial == true
                     };
 

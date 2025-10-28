@@ -160,16 +160,16 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string source_id = null)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
         {
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(source_id))
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
                 if (source.ToLower() is "rezka" or "hdrezka")
-                    href = source_id;
+                    href = id;
             }
 
             var proxyManager = new ProxyManager(init);
