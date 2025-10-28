@@ -57,8 +57,11 @@ namespace Lampac.Controllers
         [Route("/bookmark/list")]
         public async Task<ActionResult> List(string filed)
         {
+            if (!AppInit.conf.sync_user.enable)
+                return ContentTo("{}");
+
             #region migration storage to sql
-            if (AppInit.conf.syncBeta && !string.IsNullOrEmpty(requestInfo.user_uid))
+            if (AppInit.conf.sync_user.version != 1 && !string.IsNullOrEmpty(requestInfo.user_uid))
             {
                 string profile_id = getProfileid(requestInfo, HttpContext);
                 string id = requestInfo.user_uid + profile_id;
@@ -180,7 +183,7 @@ namespace Lampac.Controllers
         [Route("/bookmark/set")]
         public async Task<ActionResult> Set(string connectionId)
         {
-            if (string.IsNullOrEmpty(requestInfo.user_uid))
+            if (string.IsNullOrEmpty(requestInfo.user_uid) || !AppInit.conf.sync_user.enable)
                 return JsonFailure();
 
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
@@ -199,8 +202,14 @@ namespace Lampac.Controllers
                     var job = JsonConvert.DeserializeObject<JObject>(body);
 
                     string where = job.Value<string>("where").Trim().ToLowerInvariant();
-                    if (string.IsNullOrWhiteSpace(where) || where == "card" || BookmarkCategories.Contains(where))
+                    if (string.IsNullOrWhiteSpace(where))
                         return JsonFailure();
+
+                    if (AppInit.conf.sync_user.fullset == false)
+                    {
+                        if (where == "card" || BookmarkCategories.Contains(where))
+                            return JsonFailure("enable sync_user.fullset in init.conf");
+                    }
 
                     if (job.TryGetValue("data", out var dataValue))
                     {
@@ -247,7 +256,7 @@ namespace Lampac.Controllers
         [Route("/bookmark/added")]
         public async Task<ActionResult> Add(string connectionId)
         {
-            if (string.IsNullOrEmpty(requestInfo.user_uid))
+            if (string.IsNullOrEmpty(requestInfo.user_uid) || !AppInit.conf.sync_user.enable)
                 return JsonFailure();
 
             var readBody = await ReadPayloadAsync();
@@ -320,7 +329,7 @@ namespace Lampac.Controllers
         [Route("/bookmark/remove")]
         public async Task<ActionResult> Remove(string connectionId)
         {
-            if (string.IsNullOrEmpty(requestInfo.user_uid))
+            if (string.IsNullOrEmpty(requestInfo.user_uid) || !AppInit.conf.sync_user.enable)
                 return JsonFailure();
 
             var readBody = await ReadPayloadAsync();
@@ -663,7 +672,7 @@ namespace Lampac.Controllers
 
         JsonResult JsonSuccess() => Json(new { success = true });
 
-        ActionResult JsonFailure() => ContentTo(JsonConvert.SerializeObject(new { success = false }));
+        ActionResult JsonFailure(string message = null) => ContentTo(JsonConvert.SerializeObject(new { success = false, message }));
 
         async Task<(BookmarkEventPayload payload, string json)> ReadPayloadAsync()
         {

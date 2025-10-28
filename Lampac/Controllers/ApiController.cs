@@ -701,13 +701,13 @@ namespace Lampac.Controllers
 
             StringBuilder sb;
 
-            if (lite == false && AppInit.conf.syncBeta)
+            if (lite || AppInit.conf.sync_user.version == 1)
             {
-                sb = new StringBuilder(FileCache.ReadAllText("plugins/sync_v2/sync.js"));
+                sb = new StringBuilder(FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js"));
             }
             else
             {
-                sb = new StringBuilder(FileCache.ReadAllText($"plugins/{(lite ? "sync_lite" : "sync")}.js"));
+                sb = new StringBuilder(FileCache.ReadAllText("plugins/sync_v2/sync.js"));
             }
 
             sb.Replace("{sync-invc}", FileCache.ReadAllText("plugins/sync-invc.js"))
@@ -726,13 +726,13 @@ namespace Lampac.Controllers
         {
             StringBuilder sb;
 
-            if (AppInit.conf.syncBeta)
+            if (AppInit.conf.sync_user.version == 1)
             {
-                sb = new StringBuilder(FileCache.ReadAllText("plugins/sync_v2/invc-ws.js"));
+                sb = new StringBuilder(FileCache.ReadAllText("plugins/invc-ws.js"));
             }    
             else
             {
-                sb = new StringBuilder(FileCache.ReadAllText("plugins/invc-ws.js"));
+                sb = new StringBuilder(FileCache.ReadAllText("plugins/sync_v2/invc-ws.js"));
             }
 
             sb.Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js"))

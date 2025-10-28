@@ -339,8 +339,6 @@ namespace Shared
             frontend = null // cloudflare|nginx
         };
 
-        public bool syncBeta = true;
-
         public bool multiaccess = false;
 
         public bool mikrotik = false;
@@ -406,6 +404,8 @@ namespace Shared
             enable = true,
             websoket = "nws" // signalr|nws
         };
+
+        public SyncUserConf sync_user = new SyncUserConf() { enable = true, version = 2 };
 
         public StorageConf storage = new StorageConf() { enable = true, max_size = 7_000000, brotli = false, md5name = true };
 
