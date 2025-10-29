@@ -162,6 +162,68 @@ namespace Catalog
 
             return value?.Trim();
         }
+
+        public static object nodeValue(JToken node, SingleNodeSettings nd, string host)
+        {
+            if (node == null || nd == null)
+                return null;
+
+            var current = node is JProperty property ? property.Value : node;
+
+            JToken valueToken = null;
+
+            if (!string.IsNullOrEmpty(nd.node))
+            {
+                valueToken = current.SelectToken(nd.node);
+            }
+            else
+            {
+                if (nd.attributes != null)
+                {
+                    foreach (var attr in nd.attributes)
+                    {
+                        valueToken = current[attr];
+                        if (valueToken != null)
+                            break;
+                    }
+                }
+
+                if (valueToken == null && !string.IsNullOrEmpty(nd.attribute))
+                    valueToken = current[nd.attribute];
+            }
+
+            if (valueToken == null)
+                return null;
+
+            string value = valueToken switch
+            {
+                JValue jValue => jValue.Value?.ToString(),
+                JProperty jProp => jProp.Value?.ToString(),
+                _ => valueToken.ToString(Formatting.None)
+            };
+
+            if (string.IsNullOrEmpty(value))
+                return null;
+
+            if (nd.format != null)
+            {
+                var options = ScriptOptions.Default
+                    .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                    .AddImports("Shared")
+                    .AddImports("Shared.Engine")
+                    .AddImports("Shared.Models")
+                    .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll"))
+                    .AddImports("Newtonsoft.Json")
+                    .AddImports("Newtonsoft.Json.Linq");
+
+                return CSharpEval.Execute<object>(nd.format, new CatalogNodeValue(value, host), options);
+            }
+
+            if (valueToken is JValue)
+                return value?.Trim();
+
+            return valueToken;
+        }
         #endregion
     }
 }
