@@ -82,14 +82,36 @@ namespace Catalog.Controllers
                         : await Http.Get(url.Replace("{page}", page.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
                     #endregion
 
-                    #region HtmlDocument
-                    var doc = new HtmlDocument();
+                    #region ParseContent
+                    HtmlDocument doc = null;
+                    JToken json = null;
 
-                    if (html != null)
-                        doc.LoadHtml(html);
+                    if (contentParse?.jsonPath == true)
+                    {
+                        if (!string.IsNullOrEmpty(html))
+                        {
+                            try
+                            {
+                                json = JToken.Parse(html);
+                            }
+                            catch (JsonReaderException)
+                            {
+                                json = null;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        doc = new HtmlDocument();
+
+                        if (html != null)
+                            doc.LoadHtml(html);
+                    }
                     #endregion
 
-                    cache.playlists = goPlaylist(cat, doc, requestInfo, host, contentParse, init, html, plugin);
+                    cache.playlists = contentParse?.jsonPath == true
+                        ? goPlaylistJson(cat, json, requestInfo, host, contentParse, init, html, plugin)
+                        : goPlaylist(cat, doc, requestInfo, host, contentParse, init, html, plugin);
 
                     if (cache.playlists == null || cache.playlists.Count == 0)
                     {
@@ -104,7 +126,9 @@ namespace Catalog.Controllers
 
                     if (contentParse.total_pages != null)
                     {
-                        string _p = ModInit.nodeValue(doc.DocumentNode, contentParse.total_pages, host)?.ToString() ?? "";
+                        string _p = contentParse.jsonPath
+                            ? ModInit.nodeValue(json, contentParse.total_pages, host)?.ToString() ?? ""
+                            : ModInit.nodeValue(doc.DocumentNode, contentParse.total_pages, host)?.ToString() ?? "";
                         if (int.TryParse(_p, out int _pages) && _pages > 0)
                             cache.total_pages = _pages;
                     }
@@ -168,6 +192,157 @@ namespace Catalog.Controllers
             });
         }
 
+
+        #region goPlaylistJson
+        static List<PlaylistItem> goPlaylistJson(string cat, JToken json, in RequestModel requestInfo, string host, ContentParseSettings parse, CatalogSettings init, in string html, string plugin)
+        {
+            if (parse == null || json == null)
+                return null;
+
+            if (init.debug)
+                Console.WriteLine(html);
+
+            string eval = parse.eval;
+            if (!string.IsNullOrEmpty(eval) && eval.EndsWith(".cs"))
+                eval = FileCache.ReadAllText($"catalog/sites/{eval}");
+
+            if (string.IsNullOrEmpty(parse.nodes))
+            {
+                if (string.IsNullOrEmpty(eval))
+                    return null;
+
+                var options = ScriptOptions.Default
+                    .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                    .AddImports("Shared")
+                    .AddImports("Shared.Models")
+                    .AddImports("Shared.Engine")
+                    .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll"))
+                    .AddImports("Newtonsoft.Json")
+                    .AddImports("Newtonsoft.Json.Linq");
+
+                return CSharpEval.Execute<List<PlaylistItem>>(eval, new CatalogPlaylistJson(init, plugin, host, html, json, new List<PlaylistItem>()), options);
+            }
+
+            var nodes = json.SelectTokens(parse.nodes)?.ToList();
+            if (nodes == null || nodes.Count == 0)
+                return null;
+
+            var playlists = new List<PlaylistItem>(nodes.Count);
+
+            foreach (var node in nodes)
+            {
+                string name = ModInit.nodeValue(node, parse.name, host)?.ToString();
+                string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
+                string href = ModInit.nodeValue(node, parse.href, host)?.ToString();
+                string img = ModInit.nodeValue(node, parse.image, host)?.ToString();
+                string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
+
+                if (init.debug)
+                    Console.WriteLine($"\n\nname: {name}\noriginal_name: {original_name}\nhref: {href}\nimg: {img}\nyear: {year}\n\n{node.ToString(Formatting.None)}");
+
+                if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(href))
+                {
+                    #region href
+                    if (href.StartsWith("../"))
+                        href = href.Replace("../", "");
+                    else if (href.StartsWith("//"))
+                        href = Regex.Replace(href, "//[^/]+/", "");
+                    else if (href.StartsWith("http"))
+                        href = Regex.Replace(href, "https?://[^/]+/", "");
+                    else if (href.StartsWith("/"))
+                        href = href.Substring(1);
+                    #endregion
+
+                    #region img
+                    if (img != null)
+                    {
+                        img = img.Replace("&amp;", "&").Replace("\\", "");
+
+                        if (img.StartsWith("../"))
+                            img = $"{init.host}/{img.Replace("../", "")}";
+                        else if (img.StartsWith("//"))
+                            img = $"https:{img}";
+                        else if (img.StartsWith("/"))
+                            img = init.host + img;
+                        else if (!img.StartsWith("http"))
+                            img = $"{init.host}/{img}";
+                    }
+                    #endregion
+
+                    if (!init.ignore_no_picture && string.IsNullOrEmpty(img))
+                        continue;
+
+                    string clearText(string text)
+                    {
+                        if (string.IsNullOrEmpty(text))
+                            return text;
+
+                        text = text.Replace("&nbsp;", "");
+                        return Regex.Replace(text, "<[^>]+>", "");
+                    }
+
+                    #region is_serial
+                    bool? is_serial = null;
+
+                    if (cat != null)
+                    {
+                        if (init.movie_cats != null && init.movie_cats.Contains(cat))
+                            is_serial = false;
+                        else if (init.serial_cats != null && init.serial_cats.Contains(cat))
+                            is_serial = true;
+                    }
+
+                    if (is_serial == null && parse.serial_regex != null)
+                        is_serial = Regex.IsMatch(node.ToString(Formatting.None), parse.serial_regex, RegexOptions.IgnoreCase);
+                    #endregion
+
+                    var pl = new PlaylistItem()
+                    {
+                        id = href,
+                        title = clearText(name),
+                        original_title = clearText(original_name),
+                        img = PosterApi.Size(host, img),
+                        year = clearText(year),
+                        is_serial = is_serial == true
+                    };
+
+                    if (parse.args != null)
+                    {
+                        foreach (var arg in parse.args)
+                        {
+                            object val = ModInit.nodeValue(node, arg, host);
+                            if (val != null)
+                            {
+                                if (pl.args == null)
+                                    pl.args = new Dictionary<string, object>();
+
+                                pl.args[arg.name_arg] = val;
+                            }
+                        }
+                    }
+
+                    if (eval != null)
+                    {
+                        var options = ScriptOptions.Default
+                            .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                            .AddImports("Shared")
+                            .AddImports("Shared.Models")
+                            .AddImports("Shared.Engine")
+                            .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll"))
+                            .AddImports("Newtonsoft.Json")
+                            .AddImports("Newtonsoft.Json.Linq");
+
+                        pl = CSharpEval.Execute<PlaylistItem>(eval, new CatalogChangePlaylisJson(init, plugin, host, html, nodes, pl, node), options);
+                    }
+
+                    if (pl != null)
+                        playlists.Add(pl);
+                }
+            }
+
+            return playlists;
+        }
+        #endregion
 
         #region goPlaylist
         static List<PlaylistItem> goPlaylist(string cat, HtmlDocument doc, in RequestModel requestInfo, string host, ContentParseSettings parse, CatalogSettings init, in string html, string plugin)
