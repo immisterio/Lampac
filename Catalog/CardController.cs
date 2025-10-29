@@ -28,8 +28,16 @@ namespace Catalog.Controllers
                 {
                     string url = $"{init.host}/{uri}";
 
+                    if (init.args != null)
+                        url = url.Contains("?") ? $"{url}&{init.args}" : $"{url}?{init.args}";
+
+                    if (init.card_parse.initUrl != null)
+                        url = CSharpEval.Execute<string>(init.card_parse.initUrl, new CatalogInitUrlCard(init.host, init.args, uri, HttpContext.Request.Query, type));
+
                     reset:
-                    string html = rch.enable ? await rch.Get(url, httpHeaders(init))
+
+                    string html = rch.enable 
+                        ? await rch.Get(url, httpHeaders(init))
                         : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data, cookies: init.cookies)
                         : await Http.Get(url, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
 
@@ -115,6 +123,22 @@ namespace Catalog.Controllers
                     }
                     #endregion
 
+                    #region clearText
+                    string clearText(string text)
+                    {
+                        if (string.IsNullOrEmpty(text))
+                            return text;
+
+                        text = text.Replace("&nbsp;", "");
+                        text = Regex.Replace(text, "<[^>]+>", "");
+                        text = HttpUtility.HtmlDecode(text);
+                        return text.Trim();
+                    }
+
+                    name = clearText(name);
+                    original_name = clearText(original_name);
+                    #endregion
+
                     jo = new JObject()
                     {
                         ["id"] = uri.Trim(),
@@ -163,8 +187,8 @@ namespace Catalog.Controllers
                             {
                                 if (arg.name_arg is "kp_rating" or "imdb_rating")
                                 {
-                                    string rating = val?.ToString();
-                                    if (!string.IsNullOrEmpty(rating))
+                                    string rating = val?.ToString()?.Trim();
+                                    if (!string.IsNullOrEmpty(rating) && rating != "-")
                                     {
                                         rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
                                         if (rating.Length == 1)
@@ -185,7 +209,7 @@ namespace Catalog.Controllers
                                             if (string.IsNullOrWhiteSpace(str))
                                                 continue;
 
-                                            array.Add(new JObject() { ["name"] = str.Trim() });
+                                            array.Add(new JObject() { ["name"] = clearText(str) });
                                         }
 
                                         jo[arg.name_arg] = array;

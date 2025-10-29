@@ -16,4 +16,6 @@ namespace Shared.Models.CSharpGlobals
     public record CatalogGlobalsMenuRoute(string host, string plugin, string url, string search, string cat, string sort, IQueryCollection query, int page);
 
     public record CatalogNodeValue(string value, string host);
+
+    public record CatalogInitUrlCard(string host, string args, string uri, IQueryCollection query, string type);
 }

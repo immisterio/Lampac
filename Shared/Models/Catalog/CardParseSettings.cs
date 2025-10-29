@@ -14,6 +14,6 @@
 
         public SingleNodeSettings description { get; set; }
 
-        public string eval { get; set; }
+        public string initUrl { get; set; }
     }
 }

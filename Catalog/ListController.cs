@@ -78,6 +78,9 @@ namespace Catalog.Controllers
                     if (init.routeEval != null)
                         url = CSharpEval.Execute<string>(init.routeEval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
 
+                    if (init.args != null)
+                        url = url.Contains("?") ? $"{url}&{init.args}" : $"{url}?{init.args}";
+
                     reset:
                     string html = null;
 
@@ -110,7 +113,7 @@ namespace Catalog.Controllers
                         {
                             json = JToken.Parse(html);
                         }
-                        catch (JsonReaderException)
+                        catch
                         {
                             json = null;
                         }
@@ -294,7 +297,9 @@ namespace Catalog.Controllers
                             return text;
 
                         text = text.Replace("&nbsp;", "");
-                        return Regex.Replace(text, "<[^>]+>", "");
+                        text = Regex.Replace(text, "<[^>]+>", "");
+                        text = HttpUtility.HtmlDecode(text);
+                        return text.Trim();
                     }
 
                     #region is_serial

@@ -11,6 +11,8 @@ namespace Shared.Models.Catalog
 
         public bool debug { get; set; }
 
+        public string args { get; set; }
+
         public bool? jsonPath { get; set; }
 
         public bool search_lazy { get; set; } = true;

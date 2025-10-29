@@ -21,7 +21,7 @@ namespace Online.Controllers
         {
             if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
-                if (source.ToLower() == "filmix")
+                if (source.ToLower() is "filmix" or "filmixapp")
                 {
                     if (!int.TryParse(id, out postid))
                         int.TryParse(Regex.Match(id, "/([0-9]+)-").Groups[1].Value, out postid);
