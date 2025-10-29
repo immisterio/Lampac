@@ -173,7 +173,7 @@ namespace Online.Controllers
 
             var proxy = proxyManager.Get();
 
-            string memKey = $"getstv:view:stream:{id}";
+            string memKey = $"getstv:view:stream:{id}:{init.token}";
 
             return await InvkSemaphore(init, memKey, async () =>
             {

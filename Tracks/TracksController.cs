@@ -30,7 +30,7 @@ namespace Tracks.Controllers
 
 
         [Route("ffprobe")]
-        async public Task<ActionResult> Ffprobe(string media)
+        async public Task<ActionResult> Ffprobe(string media, bool showerror)
         {
             if (!AppInit.conf.ffprobe.enable || string.IsNullOrWhiteSpace(media) || !media.StartsWith("http") || media.Contains("/transcoding/"))
                 return ContentTo("{}");
@@ -39,7 +39,7 @@ namespace Tracks.Controllers
         }
 
 
-        public static async Task<string> FfprobeJson(string host, HttpContext httpContext, HybridCache hybridCache, string media)
+        public static async Task<string> FfprobeJson(string host, HttpContext httpContext, HybridCache hybridCache, string media, bool showerror = false)
         {
             string magnethash = null;
 
@@ -47,7 +47,7 @@ namespace Tracks.Controllers
             {
                 string path = Regex.Match(media, "\\?path=([^&]+)").Groups[1].Value;
                 if (!System.IO.File.Exists("dlna/" + HttpUtility.UrlDecode(path)))
-                    return "{}";
+                    return showerror ? "path" : "{}";
 
                 magnethash = path;
             }
@@ -63,8 +63,10 @@ namespace Tracks.Controllers
                 string hash = Regex.Match(media, "/proxy/([^\n\r]+\\.mkv)").Groups[1].Value;
                 media = ProxyLink.Decrypt(hash, null)?.uri;
                 if (string.IsNullOrWhiteSpace(media))
-                    return "{}";
+                    return showerror ? "media" : "{}";
             }
+
+            string argumentList = string.Empty;
 
             string memKey = $"tracks:ffprobe:{media}";
             if (!hybridCache.TryGetValue(memKey, out string outPut, inmemory: false))
@@ -103,7 +105,7 @@ namespace Tracks.Controllers
                 {
                     if (!Uri.TryCreate(media, UriKind.Absolute, out var uri) ||
                         (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-                        return "{}";
+                        return showerror ? "uri" : "{}";
 
                     var process = new System.Diagnostics.Process();
                     process.StartInfo.UseShellExecute = false;
@@ -118,6 +120,8 @@ namespace Tracks.Controllers
                     process.StartInfo.ArgumentList.Add("-show_format");
                     process.StartInfo.ArgumentList.Add("-show_streams");
                     process.StartInfo.ArgumentList.Add(AccsDbInvk.Args(uri.AbsoluteUri, httpContext));
+
+                    argumentList = process.StartInfo.FileName + " " + string.Join(" ", process.StartInfo.ArgumentList);
 
                     process.Start();
 
@@ -142,7 +146,7 @@ namespace Tracks.Controllers
                 }
             }
 
-            return string.IsNullOrEmpty(outPut) ? "{}" : outPut;
+            return string.IsNullOrEmpty(outPut) ? (showerror ? argumentList : "{}") : outPut;
         }
     }
 }
