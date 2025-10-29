@@ -278,15 +278,12 @@ namespace Lampac.Controllers
                 {
                     var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
                     bool changed = false;
-                    bool hasValidPayload = false;
 
                     foreach (var payload in readBody.payloads)
                     {
                         var cardId = payload.ResolveCardId();
                         if (cardId == null)
                             continue;
-
-                        hasValidPayload = true;
 
                         changed |= EnsureCard(data, payload.Card, cardId);
 
@@ -296,9 +293,6 @@ namespace Lampac.Controllers
                         if (isAddedRequest)
                             changed |= MoveIdToFrontInAllCategories(data, cardId);
                     }
-
-                    if (!hasValidPayload)
-                        return JsonFailure();
 
                     if (changed)
                     {
@@ -362,15 +356,12 @@ namespace Lampac.Controllers
                         return JsonSuccess();
 
                     bool changed = false;
-                    bool hasValidPayload = false;
 
                     foreach (var payload in readBody.payloads)
                     {
                         var cardId = payload.ResolveCardId();
                         if (cardId == null)
                             continue;
-
-                        hasValidPayload = true;
 
                         if (payload.Where != null)
                             changed |= RemoveFromCategory(data, payload.Where, cardId);
@@ -381,9 +372,6 @@ namespace Lampac.Controllers
                             changed |= RemoveCard(data, cardId);
                         }
                     }
-
-                    if (!hasValidPayload)
-                        return JsonFailure();
 
                     if (changed)
                     {
