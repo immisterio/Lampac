@@ -9,6 +9,7 @@ using Shared.Engine;
 using Shared.Models;
 using Shared.Models.SQL;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -261,10 +262,7 @@ namespace Lampac.Controllers
 
             var readBody = await ReadPayloadAsync();
 
-            var payload = readBody.payload;
-
-            var cardId = payload.ResolveCardId();
-            if (cardId == null)
+            if (readBody.payloads.Count == 0)
                 return JsonFailure();
 
             bool isAddedRequest = HttpContext?.Request?.Path.Value?.StartsWith("/bookmark/added", StringComparison.OrdinalIgnoreCase) == true;
@@ -280,14 +278,27 @@ namespace Lampac.Controllers
                 {
                     var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
                     bool changed = false;
+                    bool hasValidPayload = false;
 
-                    changed |= EnsureCard(data, payload.Card, cardId);
+                    foreach (var payload in readBody.payloads)
+                    {
+                        var cardId = payload.ResolveCardId();
+                        if (cardId == null)
+                            continue;
 
-                    if (payload.Where != null)
-                        changed |= AddToCategory(data, payload.Where, cardId);
+                        hasValidPayload = true;
 
-                    if (isAddedRequest)
-                        changed |= MoveIdToFrontInAllCategories(data, cardId);
+                        changed |= EnsureCard(data, payload.Card, cardId);
+
+                        if (payload.Where != null)
+                            changed |= AddToCategory(data, payload.Where, cardId);
+
+                        if (isAddedRequest)
+                            changed |= MoveIdToFrontInAllCategories(data, cardId);
+                    }
+
+                    if (!hasValidPayload)
+                        return JsonFailure();
 
                     if (changed)
                     {
@@ -334,10 +345,7 @@ namespace Lampac.Controllers
 
             var readBody = await ReadPayloadAsync();
 
-            var payload = readBody.payload;
-
-            var cardId = payload.ResolveCardId();
-            if (cardId == null)
+            if (readBody.payloads.Count == 0)
                 return JsonFailure();
 
             string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
@@ -354,15 +362,28 @@ namespace Lampac.Controllers
                         return JsonSuccess();
 
                     bool changed = false;
+                    bool hasValidPayload = false;
 
-                    if (payload.Where != null)
-                        changed |= RemoveFromCategory(data, payload.Where, cardId);
-
-                    if (payload.Method == "card")
+                    foreach (var payload in readBody.payloads)
                     {
-                        changed |= RemoveIdFromAllCategories(data, cardId);
-                        changed |= RemoveCard(data, cardId);
+                        var cardId = payload.ResolveCardId();
+                        if (cardId == null)
+                            continue;
+
+                        hasValidPayload = true;
+
+                        if (payload.Where != null)
+                            changed |= RemoveFromCategory(data, payload.Where, cardId);
+
+                        if (payload.Method == "card")
+                        {
+                            changed |= RemoveIdFromAllCategories(data, cardId);
+                            changed |= RemoveCard(data, cardId);
+                        }
                     }
+
+                    if (!hasValidPayload)
+                        return JsonFailure();
 
                     if (changed)
                     {
@@ -674,10 +695,10 @@ namespace Lampac.Controllers
 
         ActionResult JsonFailure(string message = null) => ContentTo(JsonConvert.SerializeObject(new { success = false, message }));
 
-        async Task<(BookmarkEventPayload payload, string json)> ReadPayloadAsync()
+        async Task<(IReadOnlyList<BookmarkEventPayload> payloads, string json)> ReadPayloadAsync()
         {
             string json = null;
-            var payload = new BookmarkEventPayload();
+            var payloads = new List<BookmarkEventPayload>();
 
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
             {
@@ -685,24 +706,45 @@ namespace Lampac.Controllers
                 {
                     json = await reader.ReadToEndAsync();
 
-                    var job = JsonConvert.DeserializeObject<JObject>(json);
-                    if (job == null)
-                        return (payload, json);
+                    if (string.IsNullOrWhiteSpace(json))
+                        return (payloads, json);
 
-                    payload.Method = job.Value<string>("method");
-                    payload.CardIdRaw = job.Value<string>("id") ?? job.Value<string>("card_id");
+                    var token = JsonConvert.DeserializeObject<JToken>(json);
+                    if (token == null)
+                        return (payloads, json);
 
-                    payload.Where = (job.Value<string>("where") ?? job.Value<string>("list"))?.Trim()?.ToLowerInvariant();
-                    if (string.IsNullOrEmpty(payload.Where) || payload.Where == "card")
-                        payload.Where = null;
-
-                    if (job.TryGetValue("card", out var cardToken) && cardToken != null)
-                        payload.Card = (JObject)cardToken;
+                    if (token.Type == JTokenType.Array)
+                    {
+                        foreach (var obj in token.Children<JObject>())
+                            payloads.Add(ParsePayload(obj));
+                    }
+                    else if (token is JObject job)
+                    {
+                        payloads.Add(ParsePayload(job));
+                    }
                 }
                 catch { }
             }
 
-            return (payload, json);
+            return (payloads, json);
+        }
+
+        static BookmarkEventPayload ParsePayload(JObject job)
+        {
+            var payload = new BookmarkEventPayload
+            {
+                Method = job.Value<string>("method"),
+                CardIdRaw = job.Value<string>("id") ?? job.Value<string>("card_id")
+            };
+
+            payload.Where = (job.Value<string>("where") ?? job.Value<string>("list"))?.Trim()?.ToLowerInvariant();
+            if (string.IsNullOrEmpty(payload.Where) || payload.Where == "card")
+                payload.Where = null;
+
+            if (job.TryGetValue("card", out var cardToken) && cardToken is JObject cardObj)
+                payload.Card = cardObj;
+
+            return payload;
         }
         #endregion
 
