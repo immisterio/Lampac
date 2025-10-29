@@ -213,7 +213,7 @@ namespace Catalog.Controllers
                 string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
 
                 if (init.debug)
-                    Console.WriteLine($"\n\nname: {name}\nhref: {href}\nimg: {img}\nyear: {year}\n\n{node.OuterHtml}");
+                    Console.WriteLine($"\n\nname: {name}\noriginal_name: {original_name}\nhref: {href}\nimg: {img}\nyear: {year}\n\n{node.OuterHtml}");
 
                 if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(href))
                 {

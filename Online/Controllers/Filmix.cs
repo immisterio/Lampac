@@ -27,8 +27,17 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/filmix")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
+            if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.ToLower() == "filmix")
+                {
+                    if (!int.TryParse(id, out postid))
+                        int.TryParse(Regex.Match(id, "/([0-9]+)-").Groups[1].Value, out postid);
+                }
+            }
+
             var init = await loadKit(AppInit.conf.Filmix, (j, i, c) =>
             {
                 if (j.ContainsKey("reserve"))
