@@ -52,17 +52,53 @@ namespace Catalog.Controllers
                     if (jsonPath == null)
                         jsonPath = init.jsonPath;
 
-                    var doc = new HtmlDocument();
-                    doc.LoadHtml(html);
+                    #region parse doc/json
+                    HtmlNode node = null;
+                    JToken json = null;
 
-                    var node = doc.DocumentNode;
+                    if (jsonPath == true)
+                    {
+                        try
+                        {
+                            json = JToken.Parse(html);
+                        }
+                        catch (JsonReaderException)
+                        {
+                            json = null;
+                        }
+                    }
+                    else
+                    {
+                        var doc = new HtmlDocument();
+                        doc.LoadHtml(html);
 
-                    string name = ModInit.nodeValue(node, parse.name, host)?.ToString();
-                    string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
-                    string year = ModInit.nodeValue(node, parse.year, host)?.ToString();
+                        node = doc.DocumentNode;
+                    }
+                    #endregion
+
+                    #region name / original_name / year
+                    string name;
+                    string original_name;
+                    string year;
+
+                    if (jsonPath == true)
+                    {
+                        name = ModInit.nodeValue(json, parse.name, host)?.ToString();
+                        original_name = ModInit.nodeValue(json, parse.original_name, host)?.ToString();
+                        year = ModInit.nodeValue(json, parse.year, host)?.ToString();
+                    }
+                    else
+                    {
+                        name = ModInit.nodeValue(node, parse.name, host)?.ToString();
+                        original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();
+                        year = ModInit.nodeValue(node, parse.year, host)?.ToString();
+                    }
+                    #endregion
 
                     #region img
-                    string img = ModInit.nodeValue(node, parse.image, host)?.ToString();
+                    string img = jsonPath == true
+                        ? ModInit.nodeValue(json, parse.image, host)?.ToString()
+                        : ModInit.nodeValue(node, parse.image, host)?.ToString();
 
                     if (img != null)
                     {
@@ -90,7 +126,10 @@ namespace Catalog.Controllers
                         ["production_companies"] = new JArray()
                     };
 
-                    string overview = ModInit.nodeValue(node, parse.description, host)?.ToString();
+                    string overview = jsonPath == true
+                        ? ModInit.nodeValue(json, parse.description, host)?.ToString()
+                        : ModInit.nodeValue(node, parse.description, host)?.ToString();
+
                     if (!string.IsNullOrEmpty(overview))
                         jo["overview"] = overview;
 
@@ -116,7 +155,10 @@ namespace Catalog.Controllers
                     {
                         foreach (var arg in init.card_args)
                         {
-                            object val = ModInit.nodeValue(node, arg, host);
+                            object val = jsonPath == true
+                                ? ModInit.nodeValue(json, arg, host)
+                                : ModInit.nodeValue(node, arg, host);
+
                             if (val != null)
                             {
                                 if (arg.name_arg is "kp_rating" or "imdb_rating")

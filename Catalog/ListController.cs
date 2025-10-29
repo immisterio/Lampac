@@ -106,16 +106,13 @@ namespace Catalog.Controllers
 
                     if (jsonPath == true)
                     {
-                        if (!string.IsNullOrEmpty(html))
+                        try
                         {
-                            try
-                            {
-                                json = JToken.Parse(html);
-                            }
-                            catch (JsonReaderException)
-                            {
-                                json = null;
-                            }
+                            json = JToken.Parse(html);
+                        }
+                        catch (JsonReaderException)
+                        {
+                            json = null;
                         }
                     }
                     else
