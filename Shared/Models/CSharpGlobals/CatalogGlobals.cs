@@ -2,7 +2,6 @@ using HtmlAgilityPack;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Catalog;
-using System.Collections.Generic;
 
 namespace Shared.Models.CSharpGlobals
 {

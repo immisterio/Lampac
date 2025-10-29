@@ -92,7 +92,7 @@ namespace Catalog
         }
         #endregion
 
-        #region nodeValue
+        #region nodeValue - HtmlNode
         public static object nodeValue(HtmlNode node, SingleNodeSettings nd, string host)
         {
             string value = null;
@@ -162,7 +162,9 @@ namespace Catalog
 
             return value?.Trim();
         }
+        #endregion
 
+        #region nodeValue - JToken
         public static object nodeValue(JToken node, SingleNodeSettings nd, string host)
         {
             if (node == null || nd == null)

@@ -47,11 +47,15 @@ namespace Catalog.Controllers
                     if (!rch.enable)
                         proxyManager.Success();
 
+                    var parse = init.card_parse;
+                    bool? jsonPath = parse.jsonPath;
+                    if (jsonPath == null)
+                        jsonPath = init.jsonPath;
+
                     var doc = new HtmlDocument();
                     doc.LoadHtml(html);
 
                     var node = doc.DocumentNode;
-                    var parse = init.card_parse;
 
                     string name = ModInit.nodeValue(node, parse.name, host)?.ToString();
                     string original_name = ModInit.nodeValue(node, parse.original_name, host)?.ToString();

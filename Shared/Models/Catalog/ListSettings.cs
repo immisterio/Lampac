@@ -8,6 +8,8 @@
 
         public string uri { get; set; }
 
+        public string data { get; set; }
+
         public ContentParseSettings contentParse { get; set; }
     }
 }

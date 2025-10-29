@@ -39,11 +39,14 @@ namespace Catalog.Controllers
 
                     #region html
                     string url = $"{init.host}/{(page == 1 && init.list?.firstpage != null ? init.list?.firstpage : init.list?.uri)}";
+                    string data = null;
 
                     if (!string.IsNullOrEmpty(search))
                     {
                         string uri = page == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
                         url = $"{init.host}/{uri}".Replace("{search}", HttpUtility.UrlEncode(search));
+
+                        data = init.search?.data?.Replace("{search}", HttpUtility.UrlEncode(search));
                     }
                     else if (!string.IsNullOrEmpty(cat))
                     {
@@ -76,17 +79,32 @@ namespace Catalog.Controllers
                         url = CSharpEval.Execute<string>(init.routeEval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
 
                     reset:
-                    string html =
-                        rch.enable ? await rch.Get(url.Replace("{page}", page.ToString()), httpHeaders(init))
-                        : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url.Replace("{page}", page.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies)
-                        : await Http.Get(url.Replace("{page}", page.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                    string html = null;
+
+                    if (!string.IsNullOrEmpty(data))
+                    {
+                        html = rch.enable
+                            ? await rch.Post(url.Replace("{page}", page.ToString()), data, httpHeaders(init))
+                            : await Http.Post(url.Replace("{page}", page.ToString()), data: data, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                    }
+                    else
+                    {
+                        html = rch.enable
+                            ? await rch.Get(url.Replace("{page}", page.ToString()), httpHeaders(init))
+                            : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url.Replace("{page}", page.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies)
+                            : await Http.Get(url.Replace("{page}", page.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                    }
                     #endregion
 
-                    #region ParseContent
+                    bool? jsonPath = contentParse.jsonPath;
+                    if (jsonPath == null)
+                        jsonPath = init.jsonPath;
+
+                    #region parse doc/json
                     HtmlDocument doc = null;
                     JToken json = null;
 
-                    if (contentParse?.jsonPath == true)
+                    if (jsonPath == true)
                     {
                         if (!string.IsNullOrEmpty(html))
                         {
@@ -109,7 +127,7 @@ namespace Catalog.Controllers
                     }
                     #endregion
 
-                    cache.playlists = contentParse?.jsonPath == true
+                    cache.playlists = jsonPath == true
                         ? goPlaylistJson(cat, json, requestInfo, host, contentParse, init, html, plugin)
                         : goPlaylist(cat, doc, requestInfo, host, contentParse, init, html, plugin);
 
@@ -126,9 +144,10 @@ namespace Catalog.Controllers
 
                     if (contentParse.total_pages != null)
                     {
-                        string _p = contentParse.jsonPath
+                        string _p = jsonPath == true
                             ? ModInit.nodeValue(json, contentParse.total_pages, host)?.ToString() ?? ""
                             : ModInit.nodeValue(doc.DocumentNode, contentParse.total_pages, host)?.ToString() ?? "";
+
                         if (int.TryParse(_p, out int _pages) && _pages > 0)
                             cache.total_pages = _pages;
                     }

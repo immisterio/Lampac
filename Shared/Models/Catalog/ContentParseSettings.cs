@@ -4,8 +4,7 @@
     {
         public string serial_regex { get; set; }
 
-        public bool jsonPath { get; set; }
-
+        public bool? jsonPath { get; set; }
 
         public string nodes { get; set; }
 
