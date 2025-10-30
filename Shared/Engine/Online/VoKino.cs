@@ -76,13 +76,13 @@ namespace Shared.Engine.Online
         }
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(long kinopoisk_id, string balancer, string t)
+        public async ValueTask<EmbedModel> Embed(string origid, long kinopoisk_id, string balancer, string t)
         {
             try
             {
                 if (string.IsNullOrEmpty(balancer))
                 {
-                    string json = await onget($"{apihost}/v2/view/{kinopoisk_id}?token={token}");
+                    string json = await onget($"{apihost}/v2/view/{origid ?? kinopoisk_id.ToString()}?token={token}");
                     if (json == null)
                     {
                         requesterror?.Invoke();
@@ -116,7 +116,7 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    string uri = $"{apihost}/v2/online/{balancer}/{kinopoisk_id}?token={token}";
+                    string uri = $"{apihost}/v2/online/{balancer}/{origid ?? kinopoisk_id.ToString()}?token={token}";
                     if (!string.IsNullOrEmpty(t))
                         uri += $"&{t}";
 
@@ -144,7 +144,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel result, long kinopoisk_id, string title, string original_title, string balancer, string t, int s, VastConf vast = null, bool rjson = false)
+        public string Html(EmbedModel result, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s, VastConf vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
                 return string.Empty;
@@ -159,7 +159,7 @@ namespace Shared.Engine.Online
 
                 foreach (var similar in result.similars)
                 {
-                    string link = host + $"lite/vokino?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&balancer={similar.balancer}";
+                    string link = host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&balancer={similar.balancer}";
 
                     stpl.Append(similar.title, string.Empty, string.Empty, link);
                 }
@@ -182,7 +182,7 @@ namespace Shared.Engine.Online
                     if (translation.playlist_url != null && translation.playlist_url.Contains("?"))
                     {
                         string _t = HttpUtility.UrlEncode(translation.playlist_url.Split("?")[1]);
-                        vtpl.Append(translation.title, translation.selected, host + $"lite/vokino?rjson={rjson}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={_t}&s={s}");
+                        vtpl.Append(translation.title, translation.selected, host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={_t}&s={s}");
                     }
                 }
             }
@@ -200,7 +200,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(sname))
                             sname = Regex.Match(ch.title, "([0-9]+)$").Groups[1].Value;
 
-                        tpl.Append(ch.title, host + $"lite/vokino?rjson={rjson}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}", sname);
+                        tpl.Append(ch.title, host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}", sname);
                     }
 
                     return rjson ? tpl.ToJson() : tpl.ToHtml();

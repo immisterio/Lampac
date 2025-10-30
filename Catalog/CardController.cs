@@ -150,22 +150,6 @@ namespace Catalog.Controllers
                     }
                     #endregion
 
-                    #region clearText
-                    string clearText(string text)
-                    {
-                        if (string.IsNullOrEmpty(text))
-                            return text;
-
-                        text = text.Replace("&nbsp;", "");
-                        text = Regex.Replace(text, "<[^>]+>", "");
-                        text = HttpUtility.HtmlDecode(text);
-                        return text.Trim();
-                    }
-
-                    name = clearText(name);
-                    original_name = clearText(original_name);
-                    #endregion
-
                     jo = new JObject()
                     {
                         ["id"] = uri.Trim(),
@@ -210,71 +194,7 @@ namespace Catalog.Controllers
                                 ? ModInit.nodeValue(json, arg, host)
                                 : ModInit.nodeValue(node, arg, host);
 
-                            if (val != null)
-                            {
-                                if (arg.name_arg is "kp_rating" or "imdb_rating")
-                                {
-                                    string rating = val?.ToString()?.Trim();
-                                    if (!string.IsNullOrEmpty(rating) && rating != "-" && rating != "0")
-                                    {
-                                        rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
-                                        if (rating.Length == 1)
-                                            rating = $"{rating}.0";
-
-                                        jo[arg.name_arg] = JToken.FromObject(rating);
-                                    }
-                                }
-                                else if (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages")
-                                {
-                                    if (val is string)
-                                    {
-                                        string arrayStr = val?.ToString();
-                                        var array = new JArray();
-
-                                        if (!string.IsNullOrEmpty(arrayStr))
-                                        {
-                                            foreach (string str in arrayStr.Split(","))
-                                            {
-                                                if (string.IsNullOrWhiteSpace(str))
-                                                    continue;
-
-                                                array.Add(new JObject() { ["name"] = clearText(str) });
-                                            }
-
-                                            jo[arg.name_arg] = array;
-                                        }
-                                    }
-                                    else if (IsStringList(val as JToken))
-                                    {
-                                        var array = new JArray();
-                                        foreach (var item in (JArray)val)
-                                            array.Add(new JObject() { ["name"] = clearText(item.ToString()) });
-
-                                        jo[arg.name_arg] = array;
-                                    }
-                                }
-                                else if (val is string && (arg.name_arg is "origin_country" or "languages"))
-                                {
-                                    string arrayStr = val?.ToString();
-                                    var array = new JArray();
-
-                                    if (!string.IsNullOrEmpty(arrayStr))
-                                    {
-                                        foreach (string str in arrayStr.Split(","))
-                                        {
-                                            if (!string.IsNullOrWhiteSpace(str))
-                                                array.Add(str.Trim());
-                                        }
-
-                                        if (array.Count > 0)
-                                            jo[arg.name_arg] = array;
-                                    }
-                                }
-                                else
-                                {
-                                    jo[arg.name_arg] = JToken.FromObject(val);
-                                }
-                            }
+                            ModInit.setArgsValue(arg, val, jo);
                         }
                     }
                     #endregion
@@ -472,18 +392,6 @@ namespace Catalog.Controllers
                     }
                 }
             }
-        }
-        #endregion
-
-
-        #region IsStringList
-        bool IsStringList(JToken token)
-        {
-            if (token?.Type != JTokenType.Array)
-                return false;
-
-            var array = token as JArray;
-            return array?.All(item => item.Type == JTokenType.String) == true;
         }
         #endregion
     }

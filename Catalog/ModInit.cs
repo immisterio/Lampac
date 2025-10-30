@@ -92,6 +92,7 @@ namespace Catalog
         }
         #endregion
 
+
         #region nodeValue - HtmlNode
         public static object nodeValue(HtmlNode node, SingleNodeSettings nd, string host)
         {
@@ -225,6 +226,114 @@ namespace Catalog
                 return value?.Trim();
 
             return valueToken;
+        }
+        #endregion
+
+
+        #region setArgsValue
+        public static void setArgsValue(SingleNodeSettings arg, object val, JObject jo)
+        {
+            if (val != null)
+            {
+                if (arg.name_arg is "kp_rating" or "imdb_rating")
+                {
+                    string rating = val?.ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(rating) && rating != "0" && rating != "0.0" && double.TryParse(rating.Replace(".", ","), out _))
+                    {
+                        rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
+                        if (rating.Length == 1)
+                            rating = $"{rating}.0";
+
+                        jo[arg.name_arg] = JToken.FromObject(rating.Replace(",", "."));
+                    }
+                }
+                else if (arg.name_arg is "vote_average")
+                {
+                    string value = val?.ToString()?.Trim()?.Replace(".", ",");
+                    if (!string.IsNullOrEmpty(value) && double.TryParse(value, out double _v) && _v > 0)
+                        jo[arg.name_arg] = JToken.FromObject(_v);
+                }
+                else if (arg.name_arg is "runtime" or "PG")
+                {
+                    string value = val?.ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(value) && long.TryParse(value, out long _v) && _v > 0)
+                        jo[arg.name_arg] = JToken.FromObject(_v);
+                }
+                else if (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages")
+                {
+                    if (val is string)
+                    {
+                        string arrayStr = val?.ToString();
+                        var array = new JArray();
+
+                        if (!string.IsNullOrEmpty(arrayStr))
+                        {
+                            foreach (string str in arrayStr.Split(","))
+                            {
+                                if (string.IsNullOrWhiteSpace(str))
+                                    continue;
+
+                                array.Add(new JObject() { ["name"] = clearText(str) });
+                            }
+
+                            jo[arg.name_arg] = array;
+                        }
+                    }
+                    else if (IsStringList(val as JToken))
+                    {
+                        var array = new JArray();
+                        foreach (var item in (JArray)val)
+                            array.Add(new JObject() { ["name"] = clearText(item.ToString()) });
+
+                        jo[arg.name_arg] = array;
+                    }
+                }
+                else if (val is string && (arg.name_arg is "origin_country" or "languages"))
+                {
+                    string arrayStr = val?.ToString();
+                    var array = new JArray();
+
+                    if (!string.IsNullOrEmpty(arrayStr))
+                    {
+                        foreach (string str in arrayStr.Split(","))
+                        {
+                            if (!string.IsNullOrWhiteSpace(str))
+                                array.Add(str.Trim());
+                        }
+
+                        if (array.Count > 0)
+                            jo[arg.name_arg] = array;
+                    }
+                }
+                else
+                {
+                    jo[arg.name_arg] = JToken.FromObject(val);
+                }
+            }
+        }
+        #endregion
+
+        #region IsStringList
+        static bool IsStringList(JToken token)
+        {
+            if (token?.Type != JTokenType.Array)
+                return false;
+
+            var array = token as JArray;
+            return array?.All(item => item.Type == JTokenType.String) == true;
+        }
+        #endregion
+
+        #region clearText
+        public static string clearText(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            text = text.Replace("&nbsp;", "");
+            text = Regex.Replace(text, "<[^>]+>", "");
+            text = HttpUtility.HtmlDecode(text);
+            return text.Trim();
         }
         #endregion
     }

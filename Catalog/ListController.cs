@@ -372,14 +372,11 @@ namespace Catalog.Controllers
                     {
                         foreach (var arg in parse.args)
                         {
-                            object val = ModInit.nodeValue(node, arg, host);
-                            if (val != null)
-                            {
-                                if (pl.args == null)
-                                    pl.args = new Dictionary<string, object>();
+                            if (pl.args == null)
+                                pl.args = new JObject();
 
-                                pl.args[arg.name_arg] = val;
-                            }
+                            object val = ModInit.nodeValue(node, arg, host);
+                            ModInit.setArgsValue(arg, val, pl.args);
                         }
                     }
 
@@ -484,17 +481,6 @@ namespace Catalog.Controllers
                     if (!init.ignore_no_picture && string.IsNullOrEmpty(img))
                         continue;
 
-                    string clearText(string text)
-                    {
-                        if (string.IsNullOrEmpty(text))
-                            return text;
-
-                        text = text.Replace("&nbsp;", "");
-                        text = Regex.Replace(text, "<[^>]+>", "");
-                        text = HttpUtility.HtmlDecode(text);
-                        return text.Trim();
-                    }
-
                     #region is_serial
                     bool? is_serial = null;
 
@@ -519,10 +505,10 @@ namespace Catalog.Controllers
                     var pl = new PlaylistItem()
                     {
                         id = href,
-                        title = clearText(name),
-                        original_title = clearText(original_name),
+                        title = ModInit.clearText(name),
+                        original_title = ModInit.clearText(original_name),
                         img = PosterApi.Size(host, img),
-                        year = clearText(year),
+                        year = ModInit.clearText(year),
                         is_serial = is_serial == true
                     };
 
@@ -530,14 +516,11 @@ namespace Catalog.Controllers
                     {
                         foreach (var arg in parse.args)
                         {
-                            object val = ModInit.nodeValue(node, arg, host);
-                            if (val != null)
-                            {
-                                if (pl.args == null)
-                                    pl.args = new Dictionary<string, object>();
+                            if (pl.args == null)
+                                pl.args = new JObject();
 
-                                pl.args[arg.name_arg] = val;
-                            }
+                            object val = ModInit.nodeValue(node, arg, host);
+                            ModInit.setArgsValue(arg, val, pl.args);
                         }
                     }
 

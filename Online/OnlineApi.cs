@@ -807,8 +807,12 @@ namespace Online.Controllers
             }
 
             #region VoKino
-            if (kinopoisk_id > 0)
+            if (kinopoisk_id > 0 || source.ToLower() == "vokino")
             {
+                string vid = kinopoisk_id.ToString();
+                if (source.ToLower() == "vokino" && !string.IsNullOrEmpty(id))
+                    vid = id;
+
                 var myinit = loadKit(conf.VoKino, kitconf , (j, i, c) => 
                 {
                     if (j.ContainsKey("online"))
@@ -827,11 +831,11 @@ namespace Online.Controllers
                         }
                         else
                         {
-                            if (!hybridCache.TryGetValue($"vokino:view:{kinopoisk_id}", out JObject view))
+                            if (!hybridCache.TryGetValue($"vokino:view:{vid}", out JObject view))
                             {
-                                view = await Http.Get<JObject>($"{myinit.corsHost()}/v2/view/{kinopoisk_id}?token={myinit.token}", timeoutSeconds: 4);
+                                view = await Http.Get<JObject>($"{myinit.corsHost()}/v2/view/{vid}?token={myinit.token}", timeoutSeconds: 4);
                                 if (view != null)
-                                    hybridCache.Set($"vokino:view:{kinopoisk_id}", view, cacheTime(20));
+                                    hybridCache.Set($"vokino:view:{vid}", view, cacheTime(20));
                             }
 
                             if (view != null && view.ContainsKey("online") && view["online"] is JObject onlineObj)

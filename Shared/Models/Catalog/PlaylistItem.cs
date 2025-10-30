@@ -1,4 +1,6 @@
-﻿namespace Shared.Models.Catalog
+﻿using Newtonsoft.Json.Linq;
+
+namespace Shared.Models.Catalog
 {
     public class PlaylistItem
     {
@@ -16,6 +18,6 @@
 
         public string card { get; set; }
 
-        public Dictionary<string, object> args { get; set; }
+        public JObject args { get; set; }
     }
 }

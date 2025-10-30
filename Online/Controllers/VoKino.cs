@@ -40,8 +40,14 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public ValueTask<ActionResult> Index(bool checksearch, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false)
+        async public ValueTask<ActionResult> Index(bool checksearch, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false, string source = null, string id = null)
         {
+            if (string.IsNullOrEmpty(origid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.ToLower() == "vokino")
+                    origid = id;
+            }
+
             var init = await loadKit(AppInit.conf.VoKino, (j, i, c) => 
             {
                 if (j.ContainsKey("online"))
@@ -52,7 +58,10 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (kinopoisk_id == 0 || string.IsNullOrEmpty(init.token))
+            if (string.IsNullOrEmpty(init.token))
+                return OnError();
+
+            if (kinopoisk_id == 0 || string.IsNullOrEmpty(origid))
                 return OnError();
 
             if (balancer is "filmix" or "ashdi" or "monframe")
@@ -75,18 +84,18 @@ namespace Online.Controllers
             );
 
             reset:
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{balancer}:{t}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{origid}:{balancer}:{t}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(kinopoisk_id, balancer, t);
+                return await oninvk.Embed(origid, kinopoisk_id, balancer, t);
             });
 
             if (IsRhubFallback(cache, init))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson), gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson), gbcache: !rch.enable);
         }
     }
 }
