@@ -13,7 +13,8 @@ namespace Catalog.Controllers
             var sb = new StringBuilder(FileCache.ReadAllText("plugins/catalog.js"));
 
             sb.Replace("{localhost}", host)
-              .Replace("{token}", HttpUtility.UrlEncode(token));
+              .Replace("{token}", HttpUtility.UrlEncode(token))
+              .Replace("catalogs:{}", $"catalogs:{jsonCatalogs()}");
 
             return Content(sb.ToString(), "application/javascript; charset=utf-8");
         }
@@ -23,11 +24,17 @@ namespace Catalog.Controllers
         [Route("catalog")]
         public ActionResult Index()
         {
+            return ContentTo(jsonCatalogs());
+        }
+
+
+        string jsonCatalogs()
+        {
             var result = new JObject();
 
             string dir = Path.Combine(AppContext.BaseDirectory, "catalog", "sites");
             if (!Directory.Exists(dir))
-                return ContentTo(result.ToString(Formatting.Indented));
+                return result.ToString(Formatting.None);
 
             #region sites
             var sites = new List<(string key, JObject obj, int index)>();
@@ -222,7 +229,7 @@ namespace Catalog.Controllers
             }
             #endregion
 
-            return ContentTo(result.ToString(Formatting.Indented));
+            return result.ToString(Formatting.None);
         }
     }
 }

@@ -176,23 +176,23 @@ namespace Catalog
 
             if (!string.IsNullOrEmpty(nd.node))
             {
-                valueToken = current.SelectToken(nd.node);
+                current = current.SelectToken(nd.node);
+                if (current == null)
+                    return null;
             }
-            else
-            {
-                if (nd.attributes != null)
-                {
-                    foreach (var attr in nd.attributes)
-                    {
-                        valueToken = current[attr];
-                        if (valueToken != null)
-                            break;
-                    }
-                }
 
-                if (valueToken == null && !string.IsNullOrEmpty(nd.attribute))
-                    valueToken = current[nd.attribute];
+            if (nd.attributes != null)
+            {
+                foreach (var attr in nd.attributes)
+                {
+                    valueToken = current[attr];
+                    if (valueToken != null)
+                        break;
+                }
             }
+
+            if (valueToken == null && !string.IsNullOrEmpty(nd.attribute))
+                valueToken = current[nd.attribute];
 
             if (valueToken == null)
                 return null;

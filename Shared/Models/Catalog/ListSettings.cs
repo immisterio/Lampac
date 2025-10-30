@@ -2,7 +2,9 @@
 {
     public class ListSettings
     {
-        public int total_pages { get; set; } = 0;
+        public int total_pages { get; set; }
+
+        public int count_page { get; set; }
 
         public string firstpage { get; set; }
 

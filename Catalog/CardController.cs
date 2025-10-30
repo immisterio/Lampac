@@ -197,20 +197,31 @@ namespace Catalog.Controllers
                                         jo[arg.name_arg] = JToken.FromObject(rating);
                                     }
                                 }
-                                else if (val is string && (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages"))
+                                else if (arg.name_arg is "genres" or "created_by" or "production_countries" or "production_companies" or "networks" or "spoken_languages")
                                 {
-                                    string arrayStr = val?.ToString();
-                                    var array = new JArray();
-
-                                    if (!string.IsNullOrEmpty(arrayStr))
+                                    if (val is string)
                                     {
-                                        foreach (string str in arrayStr.Split(","))
-                                        {
-                                            if (string.IsNullOrWhiteSpace(str))
-                                                continue;
+                                        string arrayStr = val?.ToString();
+                                        var array = new JArray();
 
-                                            array.Add(new JObject() { ["name"] = clearText(str) });
+                                        if (!string.IsNullOrEmpty(arrayStr))
+                                        {
+                                            foreach (string str in arrayStr.Split(","))
+                                            {
+                                                if (string.IsNullOrWhiteSpace(str))
+                                                    continue;
+
+                                                array.Add(new JObject() { ["name"] = clearText(str) });
+                                            }
+
+                                            jo[arg.name_arg] = array;
                                         }
+                                    }
+                                    else if (IsStringList(val as JToken))
+                                    {
+                                        var array = new JArray();
+                                        foreach (var item in (JArray)val)
+                                            array.Add(new JObject() { ["name"] = clearText(item.ToString()) });
 
                                         jo[arg.name_arg] = array;
                                     }
@@ -434,6 +445,18 @@ namespace Catalog.Controllers
                     }
                 }
             }
+        }
+        #endregion
+
+
+        #region IsStringList
+        bool IsStringList(JToken token)
+        {
+            if (token?.Type != JTokenType.Array)
+                return false;
+
+            var array = token as JArray;
+            return array?.All(item => item.Type == JTokenType.String) == true;
         }
         #endregion
     }

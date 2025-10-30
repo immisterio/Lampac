@@ -162,7 +162,13 @@ namespace Online.Controllers
                             {
                                 try
                                 {
-                                    if (route.Request.Url.Contains(".m3u8") || route.Request.Url.Contains(".mp4"))
+                                    if (!string.IsNullOrEmpty(location))
+                                    {
+                                        await route.AbortAsync();
+                                        return;
+                                    }
+
+                                    if (route.Request.Url.Contains(".m3u8") || (route.Request.Url.Contains(".mp4") && !route.Request.Url.Contains(".ts")))
                                         location = route.Request.Url;
 
                                     if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))

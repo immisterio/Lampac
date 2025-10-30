@@ -503,7 +503,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "c97d2dbc9cd05fccde329813b1f824ad352350d7"
+            tree = "229e020897c5088a1dd9d4388b579b50c07ec997"
         };
 
         public OnlineConf online = new OnlineConf()

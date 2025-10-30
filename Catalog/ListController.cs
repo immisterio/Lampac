@@ -159,13 +159,31 @@ namespace Catalog.Controllers
                 }
 
                 #region total_pages
-                int total_pages = init.list?.total_pages ?? 0;
+                int? total_pages = init.list?.total_pages ?? 0;
 
                 if (search != null && init.search != null)
                     total_pages = init.search.total_pages;
 
                 if (total_pages == 0)
                     total_pages = cache.total_pages;
+                #endregion
+
+                #region next_page
+                bool? next_page = null;
+
+                if (search != null)
+                {
+                    if (init.search != null && init.search.count_page > 0 && cache.playlists.Count >= init.search.count_page)
+                        next_page = true;
+                }
+                else
+                {
+                    if (init.list != null && init.list.count_page > 0 && cache.playlists.Count >= init.list.count_page)
+                        next_page = true;
+                }
+
+                if (next_page == true && total_pages == 0)
+                    total_pages = null;
                 #endregion
 
                 #region results
@@ -206,7 +224,13 @@ namespace Catalog.Controllers
                 {
                     page,
                     results,
-                    total_pages
+                    total_pages,
+                    next_page
+
+                }, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    DefaultValueHandling = DefaultValueHandling.Ignore
                 }));
             });
         }
@@ -315,6 +339,12 @@ namespace Catalog.Controllers
 
                     if (is_serial == null && parse.serial_regex != null)
                         is_serial = Regex.IsMatch(node.ToString(Formatting.None), parse.serial_regex, RegexOptions.IgnoreCase);
+
+                    if (is_serial == null && parse.serial_key != null)
+                    {
+                        if (ModInit.nodeValue(node, parse.serial_key, host) != null)
+                            is_serial = true;
+                    }
                     #endregion
 
                     var pl = new PlaylistItem()
@@ -449,7 +479,9 @@ namespace Catalog.Controllers
                             return text;
 
                         text = text.Replace("&nbsp;", "");
-                        return Regex.Replace(text, "<[^>]+>", "");
+                        text = Regex.Replace(text, "<[^>]+>", "");
+                        text = HttpUtility.HtmlDecode(text);
+                        return text.Trim();
                     }
 
                     #region is_serial
@@ -465,6 +497,12 @@ namespace Catalog.Controllers
 
                     if (is_serial == null && parse.serial_regex != null)
                         is_serial = Regex.IsMatch(node.OuterHtml, parse.serial_regex, RegexOptions.IgnoreCase);
+
+                    if (is_serial == null && parse.serial_key != null)
+                    {
+                        if (ModInit.nodeValue(node, parse.serial_key, host) != null)
+                            is_serial = true;
+                    }
                     #endregion
 
                     var pl = new PlaylistItem()
