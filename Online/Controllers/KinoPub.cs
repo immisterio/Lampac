@@ -51,8 +51,14 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool origsource = false, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
+            if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.ToLower() == "kinopub")
+                    int.TryParse(id, out postid);
+            }
+
             var init = await loadKit(AppInit.conf.KinoPub, (j, i, c) =>
             {
                 if (j.ContainsKey("filetype"))

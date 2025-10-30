@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
+using System.Net.Http;
 
 namespace Catalog.Controllers
 {
@@ -27,6 +28,7 @@ namespace Catalog.Controllers
                 if (!hybridCache.TryGetValue(memKey, out JObject jo, inmemory: false))
                 {
                     string url = $"{init.host}/{uri}";
+                    var headers = httpHeaders(init);
 
                     if (init.args != null)
                         url = url.Contains("?") ? $"{url}&{init.args}" : $"{url}?{init.args}";
@@ -34,12 +36,29 @@ namespace Catalog.Controllers
                     if (init.card_parse.initUrl != null)
                         url = CSharpEval.Execute<string>(init.card_parse.initUrl, new CatalogInitUrlCard(init.host, init.args, uri, HttpContext.Request.Query, type));
 
+                    if (init.card_parse.initHeader != null)
+                        headers = CSharpEval.Execute<List<HeadersModel>>(init.card_parse.initHeader, new CatalogInitHeader(url, headers));
+
                     reset:
 
-                    string html = rch.enable 
-                        ? await rch.Get(url, httpHeaders(init))
-                        : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data, cookies: init.cookies)
-                        : await Http.Get(url, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                    string html = null;
+
+                    if (!string.IsNullOrEmpty(init.card_parse.postData))
+                    {
+                        string mediaType = init.card_parse.postData.StartsWith("{") || init.card_parse.postData.StartsWith("[") ? "application/json" : "application/x-www-form-urlencoded";
+                        var httpdata = new StringContent(init.card_parse.postData, Encoding.UTF8, mediaType);
+
+                        html = rch.enable
+                            ? await rch.Post(url, init.card_parse.postData, headers, useDefaultHeaders: init.useDefaultHeaders)
+                            : await Http.Post(url, httpdata, headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, useDefaultHeaders: init.useDefaultHeaders);
+                    }
+                    else
+                    {
+                        html = rch.enable
+                            ? await rch.Get(url, headers, useDefaultHeaders: init.useDefaultHeaders)
+                            : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url, headers, proxy.data, cookies: init.cookies)
+                            : await Http.Get(url, headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, useDefaultHeaders: init.useDefaultHeaders);
+                    }
 
                     if (html == null)
                     {
@@ -69,10 +88,18 @@ namespace Catalog.Controllers
                         try
                         {
                             json = JToken.Parse(html);
+
+                            if (!string.IsNullOrEmpty(parse.node))
+                            {
+                                json = json.SelectToken(parse.node);
+                                if (json == null)
+                                    return BadRequest("parse.node");
+                            }
                         }
-                        catch (JsonReaderException)
+                        catch
                         {
                             json = null;
+                            return BadRequest("json");
                         }
                     }
                     else
@@ -188,7 +215,7 @@ namespace Catalog.Controllers
                                 if (arg.name_arg is "kp_rating" or "imdb_rating")
                                 {
                                     string rating = val?.ToString()?.Trim();
-                                    if (!string.IsNullOrEmpty(rating) && rating != "-")
+                                    if (!string.IsNullOrEmpty(rating) && rating != "-" && rating != "0")
                                     {
                                         rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
                                         if (rating.Length == 1)

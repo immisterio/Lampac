@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
+using System.Net.Http;
 
 namespace Catalog.Controllers
 {
@@ -38,15 +39,19 @@ namespace Catalog.Controllers
                     #endregion
 
                     #region html
+                    var headers = httpHeaders(init);
+                    var parse = init.list;
+
                     string url = $"{init.host}/{(page == 1 && init.list?.firstpage != null ? init.list?.firstpage : init.list?.uri)}";
-                    string data = null;
+                    string data = init.list?.postData;
 
                     if (!string.IsNullOrEmpty(search))
                     {
                         string uri = page == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
                         url = $"{init.host}/{uri}".Replace("{search}", HttpUtility.UrlEncode(search));
 
-                        data = init.search?.data?.Replace("{search}", HttpUtility.UrlEncode(search));
+                        data = init.search?.postData?.Replace("{search}", HttpUtility.UrlEncode(search));
+                        parse = init.search;
                     }
                     else if (!string.IsNullOrEmpty(cat))
                     {
@@ -68,34 +73,40 @@ namespace Catalog.Controllers
                             if (!eval.Contains("$\"") && eval.Contains("{") && eval.Contains("}"))
                                 eval = $"return $\"{eval}\";";
 
-                            url = CSharpEval.BaseExecute<string>(eval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
+                            url = CSharpEval.BaseExecute<string>(eval, new CatalogGlobalsMenuRoute(init.host, plugin, init.args, url, search, cat, sort, HttpContext.Request.Query, page));
                         }
 
                         if (!url.StartsWith("http"))
                             url = $"{init.host}/{url}";
                     }
 
-                    if (init.routeEval != null)
-                        url = CSharpEval.Execute<string>(init.routeEval, new CatalogGlobalsMenuRoute(init.host, plugin, url, search, cat, sort, HttpContext.Request.Query, page));
-
                     if (init.args != null)
                         url = url.Contains("?") ? $"{url}&{init.args}" : $"{url}?{init.args}";
+
+                    if (parse?.initUrl != null)
+                        url = CSharpEval.Execute<string>(parse.initUrl, new CatalogGlobalsMenuRoute(init.host, plugin, init.args, url, search, cat, sort, HttpContext.Request.Query, page));
+
+                    if (parse?.initHeader != null)
+                        headers = CSharpEval.Execute<List<HeadersModel>>(parse.initHeader, new CatalogInitHeader(url, headers));
 
                     reset:
                     string html = null;
 
                     if (!string.IsNullOrEmpty(data))
                     {
+                        string mediaType = data.StartsWith("{") || data.StartsWith("[") ? "application/json" : "application/x-www-form-urlencoded";
+                        var httpdata = new StringContent(data, Encoding.UTF8, mediaType);
+
                         html = rch.enable
-                            ? await rch.Post(url.Replace("{page}", page.ToString()), data, httpHeaders(init))
-                            : await Http.Post(url.Replace("{page}", page.ToString()), data: data, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                            ? await rch.Post(url.Replace("{page}", page.ToString()), data, headers, useDefaultHeaders: init.useDefaultHeaders)
+                            : await Http.Post(url.Replace("{page}", page.ToString()), httpdata, headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, useDefaultHeaders: init.useDefaultHeaders);
                     }
                     else
                     {
                         html = rch.enable
-                            ? await rch.Get(url.Replace("{page}", page.ToString()), httpHeaders(init))
-                            : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url.Replace("{page}", page.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies)
-                            : await Http.Get(url.Replace("{page}", page.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                            ? await rch.Get(url.Replace("{page}", page.ToString()), headers, useDefaultHeaders: init.useDefaultHeaders)
+                            : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url.Replace("{page}", page.ToString()), headers, proxy.data, cookies: init.cookies)
+                            : await Http.Get(url.Replace("{page}", page.ToString()), headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, useDefaultHeaders: init.useDefaultHeaders);
                     }
                     #endregion
 

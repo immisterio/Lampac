@@ -19,11 +19,11 @@ namespace Shared.Models.Catalog
 
         public int timeout { get; set; } = 10;
 
+        public bool useDefaultHeaders { get; set; } = true;
+
         public List<Microsoft.Playwright.Cookie> cookies { get; set; }
 
         public bool ignore_no_picture { get; set; } = true;
-
-        public string routeEval { get; set; }
 
 
         public string[] serial_cats { get; set; }
