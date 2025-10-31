@@ -32,6 +32,7 @@ namespace DLNA.Controllers
         static string defTrackers = "tr=http://retracker.local/announce&tr=http%3A%2F%2Fbt4.t-ru.org%2Fann%3Fmagnet&tr=http://retracker.mgts.by:80/announce&tr=http://tracker.city9x.com:2710/announce&tr=http://tracker.electro-torrent.pl:80/announce&tr=http://tracker.internetwarriors.net:1337/announce&tr=http://tracker2.itzmx.com:6961/announce&tr=udp://opentor.org:2710&tr=udp://public.popcorn-tracker.org:6969/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=http://bt.svao-ix.ru/announce&tr=udp://explodie.org:6969/announce&tr=wss://tracker.btorrent.xyz&tr=wss://tracker.openwebtorrent.com";
 
         static ClientEngine torrentEngine;
+        static DateTime lastBullderClientEngineCall = DateTime.MinValue;
 
         public static void Initialization()
         {
@@ -62,6 +63,27 @@ namespace DLNA.Controllers
                     {
                         await Task.Delay(TimeSpan.FromMinutes(5));
                         await removeClientEngine();
+                    }
+                    catch { }
+                }
+            });
+
+            ThreadPool.QueueUserWorkItem(async _ =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1));
+
+                        if (torrentEngine == null)
+                            continue;
+
+                        if (lastBullderClientEngineCall == DateTime.MinValue || DateTime.UtcNow - lastBullderClientEngineCall < TimeSpan.FromMinutes(10))
+                            continue;
+
+                        if (!HasActiveTorrentTasks())
+                            await removeClientEngine();
                     }
                     catch { }
                 }
@@ -180,6 +202,8 @@ namespace DLNA.Controllers
         #region bullderClientEngine
         static Task bullderClientEngine(int connectionTimeout = 10)
         {
+            lastBullderClientEngineCall = DateTime.UtcNow;
+
             if (torrentEngine != null)
                 return Task.CompletedTask;
 
@@ -195,6 +219,26 @@ namespace DLNA.Controllers
 
             torrentEngine = new ClientEngine(engineSettingsBuilder.ToSettings());
             return torrentEngine.StartAllAsync();
+        }
+        #endregion
+
+        #region HasActiveTorrentTasks
+        static bool HasActiveTorrentTasks()
+        {
+            try
+            {
+                if (torrentEngine?.Torrents == null)
+                    return false;
+
+                foreach (var torrent in torrentEngine.Torrents)
+                {
+                    if (torrent.State == TorrentState.Metadata || torrent.State == TorrentState.Downloading || torrent.State == TorrentState.Starting || torrent.State == TorrentState.Hashing)
+                        return true;
+                }
+            }
+            catch { }
+
+            return false;
         }
         #endregion
 
