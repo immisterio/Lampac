@@ -71,9 +71,13 @@ namespace DLNA.Controllers
                 return;
 
             #region Resume download
+            var _files = Directory.GetFiles("cache/metadata", "*.torrent");
+            if (_files.Length == 0)
+                return;
+
             bullderClientEngine();
 
-            foreach (string path in Directory.GetFiles("cache/metadata", "*.torrent"))
+            foreach (string path in _files)
             {
                 var t = Torrent.Load(path);
                 var manager = AppInit.conf.dlna.mode == "stream" ? torrentEngine.AddStreamingAsync(t, $"{dlna_path}/").Result : torrentEngine.AddAsync(t, $"{dlna_path}/").Result;
@@ -151,9 +155,6 @@ namespace DLNA.Controllers
                     catch { }
                 };
             }
-
-            if (torrentEngine != null)
-                torrentEngine.StartAllAsync();
             #endregion
         }
         #endregion

@@ -61,7 +61,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (kinopoisk_id == 0 || string.IsNullOrEmpty(origid))
+            if (kinopoisk_id == 0 && string.IsNullOrEmpty(origid))
                 return OnError();
 
             if (balancer is "filmix" or "ashdi" or "monframe")
