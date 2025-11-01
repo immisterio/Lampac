@@ -26,6 +26,8 @@ namespace Shared.Models.SQL
             }
         }
 
+        public static void Initialization() { }
+
         public static void FullDispose()
         {
             Read?.Dispose();

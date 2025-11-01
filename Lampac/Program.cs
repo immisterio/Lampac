@@ -147,6 +147,15 @@ namespace Lampac
                 File.WriteAllText("data/vers-minor.txt", "1");
             #endregion
 
+            #region SQL
+            ExternalidsDb.Initialization();
+            HybridCacheDb.Initialization();
+            SisiDb.Initialization();
+            ProxyLinkDb.Initialization();
+            PlaywrightDb.Initialization();
+            SyncUserDb.Initialization();
+            #endregion
+
             #region migration
             if (File.Exists("vers.txt") || File.Exists("isdocker"))
             {
