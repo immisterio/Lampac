@@ -9,5 +9,7 @@
         public Dictionary<string, string> format { get; set; }
 
         public string defaultName { get; set; }
+
+        public string catalog { get; set; }
     }
 }

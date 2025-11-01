@@ -9,13 +9,15 @@ namespace Shared.Models.Catalog
             cache_time = 5;
         }
 
-        public bool debug { get; set; }
-
         public string args { get; set; }
+
+        public bool hide { get; set; }
 
         public bool? jsonPath { get; set; }
 
         public bool search_lazy { get; set; } = true;
+
+        public bool debug { get; set; }
 
         public int timeout { get; set; } = 10;
 

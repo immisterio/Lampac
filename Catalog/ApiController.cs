@@ -48,7 +48,7 @@ namespace Catalog.Controllers
                         continue;
 
                     var init = ModInit.goInit(site);
-                    if (init == null || !init.enable || init.menu == null)
+                    if (init == null || !init.enable || init.menu == null || init.hide)
                         continue;
 
                     var siteObj = new JObject();
@@ -68,7 +68,7 @@ namespace Catalog.Controllers
                                 catObj = new JObject();
 
                                 if (init.search != null)
-                                    siteObj["search"] = $"{host}/catalog/list?plugin={HttpUtility.UrlEncode(site)}";
+                                    siteObj["search"] = $"/catalog/list?plugin={HttpUtility.UrlEncode(menuItem.catalog ?? site)}";
 
                                 siteObj["search_lazy"] = init.search_lazy;
 
@@ -81,7 +81,7 @@ namespace Catalog.Controllers
                                 siteObj[catName] = catObj;
                             }
 
-                            string baseUrl = $"{host}/catalog/list?plugin={HttpUtility.UrlEncode(site)}&cat={HttpUtility.UrlEncode(catCode)}";
+                            string baseUrl = $"/catalog/list?plugin={HttpUtility.UrlEncode(menuItem.catalog ?? site)}&cat={HttpUtility.UrlEncode(catCode)}";
 
                             bool addBaseEntry = true;
                             if (menuItem.format != null)
@@ -140,72 +140,61 @@ namespace Catalog.Controllers
 
                 var menu = new JObject();
                 var main = new JObject();
-                var movie = new JObject();
-                var tv = new JObject();
-                var anime = new JObject();
-                var cartoons = new JObject();
 
                 foreach (var prop in s.obj.Properties())
                 {
-                    if (prop.Name == "search" || prop.Name == "search_lazy" || prop.Name == "catalog_key" || prop.Name == "defaultName")
-                        continue;
-
                     if (!(prop.Value is JObject catObj))
                         continue;
 
                     foreach (var inner in catObj.Properties())
                     {
-                        if (prop.Name != inner.Name)
-                            main[$"{prop.Name} • {inner.Name.ToLower()}"] = inner.Value;
+                        string pname = prop.Name;
+                        if (pname.StartsWith("["))
+                            pname = prop.Name.Split(']')[1].Trim();
+
+                        if (pname != inner.Name)
+                            main[$"{pname} • {inner.Name.ToLower()}"] = inner.Value;
                         else
-                            main[prop.Name] = inner.Value;
+                            main[pname] = inner.Value;
 
-                        if (!menu.ContainsKey(prop.Name) || (catalog_key != null && catalog_key == inner.Name))
-                            menu[prop.Name] = inner.Value;
+                        if (!menu.ContainsKey(pname) || (catalog_key != null && catalog_key == inner.Name))
+                            menu[pname] = inner.Value;
                     }
 
-                    if (prop.Name == "Фильмы")
+                    var categoryMap = new Dictionary<string, string>
                     {
-                        foreach (var inner in catObj.Properties())
-                        {
-                            if (prop.Name != inner.Name)
-                                movie[inner.Name] = inner.Value;
-                            else
-                                movie[defaultName ?? inner.Name] = inner.Value;
-                        }
+                        { "Фильмы", "movie" },
+                        { "Сериалы", "tv" },
+                        { "Мультфильмы", "cartoons" },
+                        { "Аниме", "anime" },
+                        { "Релизы", "relise" }
+                    };
+
+                    string targetCat, targetName = null;
+
+                    if (categoryMap.TryGetValue(prop.Name, out targetCat))
+                        targetName = prop.Name;
+
+                    if (prop.Name.StartsWith("["))
+                    {
+                        targetCat = prop.Name.Split(']')[0].Trim('[');
+                        targetName = prop.Name.Split(']')[1];
                     }
 
-                    if (prop.Name == "Сериалы")
+                    if (!string.IsNullOrEmpty(targetName) && !string.IsNullOrEmpty(targetCat))
                     {
-                        foreach (var inner in catObj.Properties())
-                        {
-                            if (prop.Name != inner.Name)
-                                tv[inner.Name] = inner.Value;
-                            else
-                                tv[defaultName ?? inner.Name] = inner.Value;
-                        }
-                    }
+                        var targetObj = new JObject();
 
-                    if (prop.Name == "Мультфильмы")
-                    {
                         foreach (var inner in catObj.Properties())
                         {
-                            if (prop.Name != inner.Name)
-                                cartoons[inner.Name] = inner.Value;
+                            if (targetName.Trim() != inner.Name)
+                                targetObj[inner.Name] = inner.Value;
                             else
-                                cartoons[defaultName ?? inner.Name] = inner.Value;
+                                targetObj[defaultName ?? inner.Name] = inner.Value;
                         }
-                    }
 
-                    if (prop.Name == "Аниме")
-                    {
-                        foreach (var inner in catObj.Properties())
-                        {
-                            if (prop.Name != inner.Name)
-                                anime[inner.Name] = inner.Value;
-                            else
-                                anime[defaultName ?? inner.Name] = inner.Value;
-                        }
+                        if (targetObj.HasValues)
+                            result[s.key][targetCat.Trim()] = targetObj;
                     }
                 }
 
@@ -214,18 +203,6 @@ namespace Catalog.Controllers
 
                 if (main.HasValues)
                     result[s.key]["main"] = main;
-
-                if (movie.HasValues)
-                    result[s.key]["movie"] = movie;
-
-                if (tv.HasValues)
-                    result[s.key]["tv"] = tv;
-
-                if (cartoons.HasValues)
-                    result[s.key]["cartoons"] = cartoons;
-
-                if (anime.HasValues)
-                    result[s.key]["anime"] = anime;
             }
             #endregion
 
