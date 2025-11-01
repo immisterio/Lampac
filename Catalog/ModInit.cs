@@ -16,14 +16,21 @@ namespace Catalog
 
             site = site.Trim().ToLowerInvariant();
 
-            if (!File.Exists($"catalog/sites/{site}.yaml"))
-                return null;
-
             var hybridCache = new HybridCache();
 
             string memKey = $"catalog:goInit:{site}";
             if (!hybridCache.TryGetValue(memKey, out CatalogSettings init))
             {
+                // Если файл не найден по имени, пробуем найти по displayname в *.yaml
+                if (!File.Exists($"catalog/sites/{site}.yaml"))
+                {
+                    string found = FindSiteByDisplayName(site);
+                    if (string.IsNullOrEmpty(found))
+                        return null;
+
+                    site = found;
+                }
+
                 var deserializer = new DeserializerBuilder().Build();
 
                 // Чтение основного YAML-файла
@@ -76,6 +83,37 @@ namespace Catalog
             }
 
             return init;
+        }
+        #endregion
+
+        #region FindSiteByDisplayName
+        static string FindSiteByDisplayName(string site)
+        {
+            var deserializer = new DeserializerBuilder().Build();
+
+            foreach (var folder in new[] { "catalog/sites", "catalog/override" })
+            {
+                if (!Directory.Exists(folder))
+                    continue;
+
+                foreach (var file in Directory.EnumerateFiles(folder, "*.yaml"))
+                {
+                    try
+                    {
+                        var yaml = File.ReadAllText(file);
+                        var dict = deserializer.Deserialize<Dictionary<object, object>>(yaml);
+                        if (dict != null && dict.TryGetValue("displayname", out var dnObj) && dnObj != null)
+                        {
+                            var dn = dnObj.ToString().Trim().ToLowerInvariant();
+                            if (dn == site)
+                                return Path.GetFileNameWithoutExtension(file);
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            return null;
         }
         #endregion
 
