@@ -87,7 +87,7 @@ namespace Lampac.Engine.Middlewares
             #region handler
             var handler = new HttpClientHandler()
             {
-                AutomaticDecompression = DecompressionMethods.All,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                 AllowAutoRedirect = false
             };
 
@@ -123,25 +123,6 @@ namespace Lampac.Engine.Middlewares
             }
             else
             {
-                #region Кеш файла
-                string md5file = httpContext.Request.Path.Value.Replace("/proxy/", "");
-                bool ists = md5file.EndsWith(".ts") || md5file.EndsWith(".m4s");
-
-                string md5key = ists ? fixuri(decryptLink) : CrypTo.md5(decryptLink.uri);
-                bool cache_stream = ists && !string.IsNullOrEmpty(md5key) && md5key.Length > 3;
-
-                string foldercache = cache_stream ? $"cache/hls/{md5key.Substring(0, 3)}" : string.Empty;
-                string cachefile = cache_stream ? ($"{foldercache}/{md5key.Substring(3)}" + Path.GetExtension(md5file)) : string.Empty;
-
-                if (cache_stream && File.Exists(cachefile))
-                {
-                    httpContext.Response.Headers["PX-Cache"] = "HIT";
-                    httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
-                    await httpContext.Response.SendFileAsync(cachefile).ConfigureAwait(false);
-                    return;
-                }
-                #endregion
-
                 #region Video OR
                 if (servUri.Contains(" or "))
                 {
@@ -209,6 +190,9 @@ namespace Lampac.Engine.Middlewares
                             }
 
                             response.Content.Headers.TryGetValues("Content-Type", out var contentType);
+
+                            bool ists = httpContext.Request.Path.Value.EndsWith(".ts") || httpContext.Request.Path.Value.EndsWith(".m4s");
+
                             if (!ists && (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")))
                             {
                                 #region m3u8/txt
@@ -234,9 +218,16 @@ namespace Lampac.Engine.Middlewares
 
                                         string hls = editm3u(Encoding.UTF8.GetString(array), httpContext, decryptLink);
 
-                                        httpContext.Response.StatusCode = (int)response.StatusCode;
                                         httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
-                                        //httpContext.Response.ContentLength = hls.Length;
+                                        httpContext.Response.StatusCode = (int)response.StatusCode;
+                                        httpContext.Response.ContentLength = hls.Length;
+
+                                        if (response.Headers.AcceptRanges != null)
+                                            httpContext.Response.Headers["accept-ranges"] = "bytes";
+
+                                        if (httpContext.Response.StatusCode == 206)
+                                            httpContext.Response.Headers["content-range"] = $"bytes 0-{hls.Length - 1}/{hls.Length}";
+
                                         await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                                     }
                                     else
@@ -287,49 +278,6 @@ namespace Lampac.Engine.Middlewares
                                     {
                                         httpContext.Response.StatusCode = (int)response.StatusCode;
                                         await httpContext.Response.WriteAsync("error proxy", httpContext.RequestAborted).ConfigureAwait(false);
-                                    }
-                                }
-                                #endregion
-                            }
-                            else if (ists && cache_stream)
-                            {
-                                #region ts
-                                using (HttpContent content = response.Content)
-                                {
-                                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
-                                    {
-                                        if (response.Content.Headers.ContentLength > init.maxlength_ts)
-                                        {
-                                            httpContext.Response.StatusCode = 502;
-                                            httpContext.Response.ContentType = "text/plain";
-                                            await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
-                                            return;
-                                        }
-
-                                        byte[] buffer = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
-
-                                        httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        httpContext.Response.Headers["PX-Cache"] = "MISS";
-                                        httpContext.Response.ContentType = md5file.EndsWith(".m4s") ? "video/mp4" : "video/mp2t";
-                                        //httpContext.Response.ContentLength = buffer.Length;
-                                        await httpContext.Response.Body.WriteAsync(buffer, httpContext.RequestAborted).ConfigureAwait(false);
-
-                                        try
-                                        {
-                                            if (!File.Exists(cachefile))
-                                            {
-                                                Directory.CreateDirectory(foldercache);
-
-                                                using (var fileStream = new FileStream(cachefile, FileMode.Create, FileAccess.Write, FileShare.None))
-                                                    await fileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-                                            }
-                                        }
-                                        catch { try { File.Delete(cachefile); } catch { } }
-                                    }
-                                    else
-                                    {
-                                        httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        await httpContext.Response.WriteAsync("error proxy ts", httpContext.RequestAborted).ConfigureAwait(false);
                                     }
                                 }
                                 #endregion
@@ -425,39 +373,6 @@ namespace Lampac.Engine.Middlewares
             });
 
             return m3u8;
-        }
-        #endregion
-
-        #region fixuri
-        static string fixuri(ProxyLinkModel decryptLink)
-        {
-            string uri = decryptLink.uri;
-            var confs = AppInit.conf.serverproxy?.cache_hls;
-
-            if (confs != null && confs.Count >= 0)
-            {
-                foreach (var conf in confs)
-                {
-                    if (!conf.enable || decryptLink.plugin != conf.plugin || conf.tasks == null)
-                        continue;
-
-                    string key = uri;
-                    foreach (var task in conf.tasks)
-                    {
-                        if (task.type == "match")
-                            key = Regex.Match(key, task.pattern, RegexOptions.IgnoreCase).Groups[task.index].Value;
-                        else
-                            key = Regex.Replace(key, task.pattern, task.replacement, RegexOptions.IgnoreCase);
-                    }
-
-                    if (string.IsNullOrEmpty(key) || uri == key)
-                        continue;
-
-                    return CrypTo.md5($"{decryptLink.plugin}:{key}");
-                }
-            }
-
-            return null;
         }
         #endregion
 

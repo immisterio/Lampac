@@ -113,6 +113,21 @@ namespace Lampac
                 UseCookies = false
             });
 
+            services.AddHttpClient("http3", client =>
+            {
+                client.DefaultRequestVersion = HttpVersion.Version30;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
+                EnableMultipleHttp2Connections = true,
+                UseCookies = false
+            });
+
             services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
             #endregion
 
@@ -126,7 +141,7 @@ namespace Lampac
             {
                 services.AddResponseCompression(options =>
                 {
-                    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/vnd.apple.mpegurl", "image/svg+xml"]);
+                    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["image/svg+xml"]);
                 });
             }
 

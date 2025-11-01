@@ -186,7 +186,7 @@ namespace Lampac.Engine.Middlewares
 
                     var handler = new HttpClientHandler()
                     {
-                        AutomaticDecompression = DecompressionMethods.All,
+                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
                         AllowAutoRedirect = false
                     };
 

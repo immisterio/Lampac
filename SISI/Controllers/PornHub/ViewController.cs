@@ -29,7 +29,9 @@ namespace SISI.Controllers.PornHub
                 {
                     reset:
                     stream_links = await PornHubTo.StreamLinks("phub/vidosik", "phub", init.corsHost(), vkey, url =>
-                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
+                        rch.enable 
+                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                            : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
                     );
 
                     if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)

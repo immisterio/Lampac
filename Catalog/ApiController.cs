@@ -147,7 +147,7 @@ namespace Catalog.Controllers
 
                 foreach (var prop in s.obj.Properties())
                 {
-                    if (prop.Name == "search" || prop.Name == "catalog_key" || prop.Name == "defaultName")
+                    if (prop.Name == "search" || prop.Name == "search_lazy" || prop.Name == "catalog_key" || prop.Name == "defaultName")
                         continue;
 
                     if (!(prop.Value is JObject catObj))

@@ -21,8 +21,6 @@ namespace Shared.Models.ServerProxy
 
         public ServerproxyBufferingConf buffering { get; set; } = new ServerproxyBufferingConf();
 
-        public List<HlsCacheConf> cache_hls { get; set; }
-
         public int maxlength_m3u { get; set; }
 
         public int maxlength_ts { get; set; }

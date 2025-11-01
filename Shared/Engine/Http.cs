@@ -283,7 +283,7 @@ namespace Shared.Engine
             {
                 var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
-                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler, MaxResponseContentBufferSize);
+                var client = FrendlyHttp.HttpMessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
                 if (cookieContainer != null)
                 {
@@ -439,7 +439,7 @@ namespace Shared.Engine
             {
                 var handler = Handler(url, proxy, ref loglines, cookieContainer);
 
-                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler, MaxResponseContentBufferSize);
+                var client = FrendlyHttp.HttpMessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
                 if (cookieContainer != null)
                 {
