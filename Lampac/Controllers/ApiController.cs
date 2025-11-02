@@ -267,7 +267,6 @@ namespace Lampac.Controllers
                 bulder = bulder.Replace("if (!Storage.get('metric_uid', ''))", "return;"); // metric
                 bulder = bulder.Replace("function log(data) {", "function log(data) { return;");
                 bulder = bulder.Replace("function stat$1(method, name) {", "function stat$1(method, name) { return;");
-                bulder = bulder.Replace("function video(preroll, num, started, ended) {", "function video(preroll, num, started, ended) { return;");
                 bulder = bulder.Replace("if (domain) {", "if (false) {");
 
                 bulder = bulder.Replace("{localhost}", host);

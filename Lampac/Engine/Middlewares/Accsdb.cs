@@ -212,6 +212,12 @@ namespace Lampac.Engine.Middlewares
                 return islock;
             }
 
+            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|(ts|transcoding|dlna|storage|bookmark|tmdb|cub)/|timecode)"))
+            {
+                islock = false;
+                return islock;
+            }
+
             HashSet<string> ips = null;
             HashSet<string> urls = null;
 
@@ -318,13 +324,6 @@ namespace Lampac.Engine.Middlewares
 
         bool IsLockReqHour(string account_email, string uri, out bool islock, out HashSet<string> urls)
         {
-            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|(ts|transcoding|dlna|storage|bookmark|tmdb|cub)/|timecode)"))
-            {
-                urls = new HashSet<string>();
-                islock = false;
-                return islock;
-            }
-
             string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}";
 
             if (memoryCache.TryGetValue(memKeyLocIP, out urls))
