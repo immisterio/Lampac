@@ -215,48 +215,39 @@ namespace Lampac.Controllers
                         jobs.Add(singleJob);
                     }
 
-                    if (jobs.Count == 0)
-                        return JsonFailure();
-
-                    var operations = new List<(string where, JToken dataValue)>();
-
-                    foreach (var job in jobs)
-                    {
-                        string where = job.Value<string>("where")?.Trim()?.ToLowerInvariant();
-                        if (string.IsNullOrWhiteSpace(where))
-                            return JsonFailure();
-
-                        if (AppInit.conf.sync_user.fullset == false)
-                        {
-                            if (where == "card" || BookmarkCategories.Contains(where))
-                                return JsonFailure("enable sync_user.fullset in init.conf");
-                        }
-
-                        if (!job.TryGetValue("data", out var dataValue))
-                            return JsonFailure();
-
-                        operations.Add((where, dataValue.DeepClone()));
-                    }
-
-                    if (operations.Count == 0)
-                        return JsonFailure();
-
                     using (var sqlDb = new SyncUserContext())
                     {
                         var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
 
-                        foreach (var operation in operations)
-                            data[operation.where] = operation.dataValue.DeepClone();
+                        foreach (var job in jobs)
+                        {
+                            string where = job.Value<string>("where")?.Trim()?.ToLowerInvariant();
+                            if (string.IsNullOrWhiteSpace(where))
+                                return JsonFailure();
+
+                            if (AppInit.conf.sync_user.fullset == false)
+                            {
+                                if (where == "card" || BookmarkCategories.Contains(where))
+                                    return JsonFailure("enable sync_user.fullset in init.conf");
+                            }
+
+                            if (!job.TryGetValue("data", out var dataValue))
+                                return JsonFailure();
+
+                            data[where] = dataValue;
+
+                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvert.SerializeObject(new 
+                            { 
+                                type = "set", 
+                                where, 
+                                data = dataValue, 
+                                profile_id = getProfileid(requestInfo, HttpContext) 
+                            })).ConfigureAwait(false);
+                        }
 
                         EnsureDefaultArrays(data);
 
                         Save(sqlDb, entity, data);
-                    }
-
-                    foreach (var operation in operations)
-                    {
-                        string edata = JsonConvert.SerializeObject(new { type = "set", where = operation.where, data = operation.dataValue, profile_id = getProfileid(requestInfo, HttpContext) });
-                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                     }
 
                     return JsonSuccess();
