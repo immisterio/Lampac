@@ -200,36 +200,66 @@ namespace Lampac.Controllers
                 {
                     await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
-                    var job = JsonConvert.DeserializeObject<JObject>(body);
-
-                    string where = job.Value<string>("where").Trim().ToLowerInvariant();
-                    if (string.IsNullOrWhiteSpace(where))
+                    var token = JsonConvert.DeserializeObject<JToken>(body);
+                    if (token == null)
                         return JsonFailure();
 
-                    if (AppInit.conf.sync_user.fullset == false)
+                    var jobs = new List<JObject>();
+                    if (token.Type == JTokenType.Array)
                     {
-                        if (where == "card" || BookmarkCategories.Contains(where))
-                            return JsonFailure("enable sync_user.fullset in init.conf");
+                        foreach (var obj in token.Children<JObject>())
+                            jobs.Add(obj);
+                    }
+                    else if (token is JObject singleJob)
+                    {
+                        jobs.Add(singleJob);
                     }
 
-                    if (job.TryGetValue("data", out var dataValue))
+                    if (jobs.Count == 0)
+                        return JsonFailure();
+
+                    var operations = new List<(string where, JToken dataValue)>();
+
+                    foreach (var job in jobs)
                     {
-                        using (var sqlDb = new SyncUserContext())
+                        string where = job.Value<string>("where")?.Trim()?.ToLowerInvariant();
+                        if (string.IsNullOrWhiteSpace(where))
+                            return JsonFailure();
+
+                        if (AppInit.conf.sync_user.fullset == false)
                         {
-                            var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
-
-                            data[where] = dataValue;
-
-                            EnsureDefaultArrays(data);
-
-                            Save(sqlDb, entity, data);
+                            if (where == "card" || BookmarkCategories.Contains(where))
+                                return JsonFailure("enable sync_user.fullset in init.conf");
                         }
 
-                        string edata = JsonConvert.SerializeObject(new { type = "set", where, data = dataValue, profile_id = getProfileid(requestInfo, HttpContext) });
-                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                        if (!job.TryGetValue("data", out var dataValue))
+                            return JsonFailure();
 
-                        return JsonSuccess();
+                        operations.Add((where, dataValue.DeepClone()));
                     }
+
+                    if (operations.Count == 0)
+                        return JsonFailure();
+
+                    using (var sqlDb = new SyncUserContext())
+                    {
+                        var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
+
+                        foreach (var operation in operations)
+                            data[operation.where] = operation.dataValue.DeepClone();
+
+                        EnsureDefaultArrays(data);
+
+                        Save(sqlDb, entity, data);
+                    }
+
+                    foreach (var operation in operations)
+                    {
+                        string edata = JsonConvert.SerializeObject(new { type = "set", where = operation.where, data = operation.dataValue, profile_id = getProfileid(requestInfo, HttpContext) });
+                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                    }
+
+                    return JsonSuccess();
                 }
                 catch { }
                 finally
