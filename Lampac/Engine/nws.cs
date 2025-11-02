@@ -336,7 +336,7 @@ namespace Lampac.Engine
 
         public static Task SendEvents(string connectionId, string uid, string name, string data)
         {
-            if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(name) || (data != null && data.Length > 10_000000))
+            if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(name))
                 return Task.CompletedTask;
 
             var targets = event_clients.Where(i => i.Value == uid && (connectionId == null || i.Key != connectionId)).Select(i => i.Key).ToArray();
@@ -358,7 +358,7 @@ namespace Lampac.Engine
 
         static Task SendEventToConnection(string connectionId, string uid, string name, string data)
         {
-            if (string.IsNullOrEmpty(connectionId) || string.IsNullOrEmpty(name) || (data != null && data.Length > 10_000000))
+            if (string.IsNullOrEmpty(connectionId) || string.IsNullOrEmpty(name))
                 return Task.CompletedTask;
 
             if (_connections.TryGetValue(connectionId, out var client))

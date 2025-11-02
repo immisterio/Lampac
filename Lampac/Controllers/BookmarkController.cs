@@ -61,6 +61,8 @@ namespace Lampac.Controllers
             if (!AppInit.conf.sync_user.enable)
                 return ContentTo("{}");
 
+            string userUid = getUserid(requestInfo, HttpContext);
+
             #region migration storage to sql
             if (AppInit.conf.sync_user.version != 1 && !string.IsNullOrEmpty(requestInfo.user_uid))
             {
@@ -72,7 +74,7 @@ namespace Lampac.Controllers
 
                 if (System.IO.File.Exists(storageFile) && !System.IO.File.Exists($"{storageFile}.migration"))
                 {
-                    string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
+                    string semaphoreKey = $"BookmarkController:{userUid}";
                     var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
                     try
@@ -90,7 +92,7 @@ namespace Lampac.Controllers
 
                                 using (var sqlDb = new SyncUserContext())
                                 {
-                                    var (entity, loaded) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
+                                    var (entity, loaded) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
                                     bool changed = false;
 
                                     EnsureDefaultArrays(loaded);
@@ -128,7 +130,11 @@ namespace Lampac.Controllers
 
                                                     if (dest.Any(dt => dt.ToString() == idStr) == false)
                                                     {
-                                                        dest.Add(idStr);
+                                                        if (long.TryParse(idStr, out long _id) && _id > 0)
+                                                            dest.Insert(0, _id);
+                                                        else
+                                                            dest.Insert(0, idStr);
+
                                                         changed = true;
                                                     }
                                                 }
@@ -139,7 +145,7 @@ namespace Lampac.Controllers
                                             var existing = loaded[name];
                                             if (existing == null || !JToken.DeepEquals(existing, srcValue))
                                             {
-                                                loaded[name] = srcValue.DeepClone();
+                                                loaded[name] = srcValue;
                                                 changed = true;
                                             }
                                         }
@@ -171,6 +177,10 @@ namespace Lampac.Controllers
             }
             #endregion
 
+            bool IsDbInitialization = SyncUserDb.Read.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
+            if (!IsDbInitialization)
+                return Json(new { dbInNotInitialization = true });
+
             var data = GetBookmarksForResponse(SyncUserDb.Read);
             if (!string.IsNullOrEmpty(filed))
                 return ContentTo(data[filed].ToString(Formatting.None));
@@ -193,7 +203,9 @@ namespace Lampac.Controllers
                 if (string.IsNullOrWhiteSpace(body))
                     return JsonFailure();
 
-                string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
+                string userUid = getUserid(requestInfo, HttpContext);
+
+                string semaphoreKey = $"BookmarkController:{userUid}";
                 var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
 
                 try
@@ -215,9 +227,13 @@ namespace Lampac.Controllers
                         jobs.Add(singleJob);
                     }
 
+                    bool IsDbInitialization = false;
+
                     using (var sqlDb = new SyncUserContext())
                     {
-                        var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
+                        IsDbInitialization = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
+
+                        var (entity, data) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
 
                         foreach (var job in jobs)
                         {
@@ -225,7 +241,7 @@ namespace Lampac.Controllers
                             if (string.IsNullOrWhiteSpace(where))
                                 return JsonFailure();
 
-                            if (AppInit.conf.sync_user.fullset == false)
+                            if (IsDbInitialization && AppInit.conf.sync_user.fullset == false)
                             {
                                 if (where == "card" || BookmarkCategories.Contains(where))
                                     return JsonFailure("enable sync_user.fullset in init.conf");
@@ -235,19 +251,21 @@ namespace Lampac.Controllers
                                 return JsonFailure();
 
                             data[where] = dataValue;
-
-                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvert.SerializeObject(new 
-                            { 
-                                type = "set", 
-                                where, 
-                                data = dataValue, 
-                                profile_id = getProfileid(requestInfo, HttpContext) 
-                            })).ConfigureAwait(false);
                         }
 
                         EnsureDefaultArrays(data);
 
                         Save(sqlDb, entity, data);
+                    }
+
+                    if (IsDbInitialization)
+                    {
+                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvert.SerializeObject(new
+                        {
+                            type = "set",
+                            data = token,
+                            profile_id = getProfileid(requestInfo, HttpContext)
+                        })).ConfigureAwait(false);
                     }
 
                     return JsonSuccess();
@@ -319,13 +337,13 @@ namespace Lampac.Controllers
                     {
                         Save(sqlDb, entity, data);
 
-                        if (readBody.json != null)
+                        if (readBody.token != null)
                         {
                             string edata = JsonConvert.SerializeObject(new 
                             { 
-                                type = isAddedRequest ? "added" : "add", 
-                                readBody.json, 
-                                profile_id = getProfileid(requestInfo, HttpContext) 
+                                type = isAddedRequest ? "added" : "add",
+                                profile_id = getProfileid(requestInfo, HttpContext),
+                                data = readBody.token
                             });
 
                             _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
@@ -398,9 +416,15 @@ namespace Lampac.Controllers
                     {
                         Save(sqlDb, entity, data);
 
-                        if (readBody.json != null)
+                        if (readBody.token != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new { type = "remove", readBody.json, profile_id = getProfileid(requestInfo, HttpContext) });
+                            string edata = JsonConvert.SerializeObject(new 
+                            { 
+                                type = "remove",
+                                profile_id = getProfileid(requestInfo, HttpContext),
+                                data = readBody.token
+                            });
+
                             _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
@@ -704,23 +728,23 @@ namespace Lampac.Controllers
 
         ActionResult JsonFailure(string message = null) => ContentTo(JsonConvert.SerializeObject(new { success = false, message }));
 
-        async Task<(IReadOnlyList<BookmarkEventPayload> payloads, string json)> ReadPayloadAsync()
+        async Task<(IReadOnlyList<BookmarkEventPayload> payloads, JToken token)> ReadPayloadAsync()
         {
-            string json = null;
+            JToken token = null;
             var payloads = new List<BookmarkEventPayload>();
 
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
             {
                 try
                 {
-                    json = await reader.ReadToEndAsync();
+                    string json = await reader.ReadToEndAsync();
 
                     if (string.IsNullOrWhiteSpace(json))
-                        return (payloads, json);
+                        return (payloads, token);
 
-                    var token = JsonConvert.DeserializeObject<JToken>(json);
+                    token = JsonConvert.DeserializeObject<JToken>(json);
                     if (token == null)
-                        return (payloads, json);
+                        return (payloads, token);
 
                     if (token.Type == JTokenType.Array)
                     {
@@ -735,7 +759,7 @@ namespace Lampac.Controllers
                 catch { }
             }
 
-            return (payloads, json);
+            return (payloads, token);
         }
 
         static BookmarkEventPayload ParsePayload(JObject job)
