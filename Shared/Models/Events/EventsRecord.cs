@@ -46,5 +46,5 @@ namespace Shared.Models.Events
 
     public record EventProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage);
 
-    public record EventTranscoding(Collection<string> args, TranscodingStartContext context);
+    public record EventTranscoding(Collection<string> args, int? startNumber, TranscodingStartContext context);
 }

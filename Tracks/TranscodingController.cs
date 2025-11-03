@@ -240,12 +240,14 @@ namespace Tracks.Controllers
             builder.AppendLine($"#EXT-X-VERSION:{(job.Context.HlsOptions.fmp4 ? 7 : 3)}");
             builder.AppendLine($"#EXT-X-TARGETDURATION:{segDur}");
             builder.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
-            builder.AppendLine($"#EXT-X-MAP:URI=\"{AccsDbInvk.Args("init.mp4", HttpContext)}\"");
+
+            if (job.Context.HlsOptions.fmp4)
+                builder.AppendLine($"#EXT-X-MAP:URI=\"{AccsDbInvk.Args("init.mp4", HttpContext)}\"");
 
             for (int i = 0; i < (duration / segDur); i++)
             {
                 builder.AppendLine($"#EXTINF:{segDur}.0,");
-                builder.AppendLine(AccsDbInvk.Args($"seg_{i:d5}.m4s", HttpContext));
+                builder.AppendLine(AccsDbInvk.Args($"seg_{i:d5}.{(job.Context.HlsOptions.fmp4 ? "m4s" : "ts")}", HttpContext));
             }
 
             builder.AppendLine("#EXT-X-ENDLIST");

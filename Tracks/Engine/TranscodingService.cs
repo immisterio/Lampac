@@ -778,7 +778,7 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("index.m3u8");
             #endregion
 
-            InvkEvent.Transcoding(new EventTranscoding(args, context));
+            InvkEvent.Transcoding(new EventTranscoding(args, startNumber, context));
 
             return process;
         }
