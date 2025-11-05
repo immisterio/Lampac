@@ -7,14 +7,17 @@ namespace Online.Controllers
     {
         [HttpGet]
         [Route("lite/kinoukr")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, string t, int s = -1, string href = null, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, string t, int s = -1, string href = null, bool origsource = false, bool rjson = false, string source = null, string id = null)
         {
             var init = await loadKit(AppInit.conf.Kinoukr);
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
-                return OnError();
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.ToLower() == "kinoukr")
+                    clarification = 1;
+            }
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
@@ -35,12 +38,12 @@ namespace Online.Controllers
             );
 
             reset:
-            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{year}:{href}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{original_title}:{year}:{href}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())
                     return res.Fail(rch.connectionMsg);
 
-                return await oninvk.Embed(clarification == 1 ? title : original_title, year, href);
+                return await oninvk.EmbedKurwa(clarification, title, original_title, year, href);
             });
 
             if (IsRhubFallback(cache, init))

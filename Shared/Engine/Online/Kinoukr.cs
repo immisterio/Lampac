@@ -52,7 +52,7 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return null;
 
-            return await EmbedKurwa(original_title, year, href);
+            return null;
 
             string link = href;
             var result = new EmbedModel();
@@ -161,14 +161,18 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedKurwa
-        public async ValueTask<EmbedModel> EmbedKurwa(string original_title, int year, string href)
+        public async ValueTask<EmbedModel> EmbedKurwa(int clarification, string title, string original_title, int year, string href)
         {
             string iframeUri = href;
             var result = new EmbedModel();
 
             if (string.IsNullOrEmpty(iframeUri))
             {
-                string json = await onget.Invoke($"http://194.246.82.144/ukr?eng_name={HttpUtility.UrlEncode(original_title)}");
+                string arg = clarification == 1 || string.IsNullOrWhiteSpace(original_title) 
+                    ? $"name={HttpUtility.UrlEncode(title)}" 
+                    : $"eng_name={HttpUtility.UrlEncode(original_title)}";
+
+                string json = await onget.Invoke("http://194.246.82.144/ukr?" + arg);
                 if (json == null)
                 {
                     requesterror?.Invoke();
@@ -181,12 +185,17 @@ namespace Shared.Engine.Online
                 {
                     foreach (var item in JsonSerializer.Deserialize<BobrKurwa[]>(json))
                     {
-                        result.similars.Add(new Similar()
+                        var model = new Similar()
                         {
                             href = item.tortuga ?? item.ashdi,
                             title = $"{item.name} / {item.eng_name}",
                             year = item.year
-                        });
+                        };
+
+                        if (item.year == year.ToString())
+                            result.similars.Insert(0, model);
+                        else
+                            result.similars.Add(model);
                     }
                 }
                 catch { }
@@ -194,7 +203,7 @@ namespace Shared.Engine.Online
                 if (result.similars.Count == 0)
                     return new EmbedModel() { IsEmpty = true };
 
-                if (result.similars.Count > 1)
+                if (result.similars.Count > 1 && result.similars[0].year != year.ToString())
                     return result;
 
                 iframeUri = result.similars[0].href;
@@ -208,35 +217,64 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string player = StringConvert.FindLastText(content, "new TortugaCore", "</script>");
-            if (player == null)
-                return null;
-
-            if (Regex.IsMatch(content, "file: ?'"))
+            if (iframeUri.Contains("ashdi"))
             {
-                Models.Online.Tortuga.Voice[] root = null;
+                result.source_type = "ashdi";
 
-                try
+                if (Regex.IsMatch(content, "file: ?'\\["))
                 {
-                    string file = Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value;
-                    if (file.EndsWith("=="))
+                    Models.Online.Ashdi.Voice[] root = null;
+
+                    try
                     {
-                        file = Regex.Replace(file, "==$", "");
-                        file = string.Join("", CrypTo.DecodeBase64(file).Reverse());
+                        root = JsonSerializer.Deserialize<Models.Online.Ashdi.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                        if (root == null || root.Length == 0)
+                            return null;
                     }
+                    catch { return null; }
 
-                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(file);
-                    if (root == null || root.Length == 0)
-                        return null;
+                    result.serial_ashdi = root;
                 }
-                catch { return null; }
+                else
+                {
+                    result.content = content;
+                    onlog?.Invoke("content: " + result.content);
+                }
 
-                result.serial = root;
+                return result;
             }
             else
             {
-                result.content = player;
-                onlog?.Invoke("content: " + result.content);
+                result.source_type = "tortuga";
+
+                if (Regex.IsMatch(content, "file: ?'"))
+                {
+                    Models.Online.Tortuga.Voice[] root = null;
+
+                    try
+                    {
+                        string file = Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value;
+                        if (file.EndsWith("=="))
+                        {
+                            file = Regex.Replace(file, "==$", "");
+                            file = string.Join("", CrypTo.DecodeBase64(file).Reverse());
+                        }
+
+                        root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(file);
+                        if (root == null || root.Length == 0)
+                            return null;
+                    }
+                    catch { return null; }
+
+                    result.serial = root;
+                }
+                else
+                {
+                    string player = StringConvert.FindLastText(content, "new TortugaCore", "</script>");
+
+                    result.content = player ?? content;
+                    onlog?.Invoke("content: " + result.content);
+                }
             }
 
             return result;
@@ -251,9 +289,10 @@ namespace Shared.Engine.Online
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_href = HttpUtility.UrlEncode(href);
 
             #region similar
-            if (result.content == null && result.serial == null)
+            if (result.content == null && result.serial == null && result.serial_ashdi == null)
             {
                 if (string.IsNullOrWhiteSpace(href) && result.similars != null && result.similars.Count > 0)
                 {
@@ -273,17 +312,29 @@ namespace Shared.Engine.Online
             }
             #endregion
 
+            if (result.source_type == "ashdi")
+            {
+                var invk = new AshdiInvoke(host, apihost, onget, onstreamfile, onlog: onlog, requesterror: requesterror);
+                int.TryParse(t, out int _t);
+
+                var md = new Models.Online.Ashdi.EmbedModel()
+                {
+                    content = result.content,
+                    serial = result.serial_ashdi
+                };
+
+                return invk.Html(md, 0, title, original_title, _t, s, vast, rjson, host + $"lite/kinoukr?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}");
+            }
+
             if (result.content != null)
             {
                 #region Фильм
-                onlog?.Invoke("movie");
-
                 var mtpl = new MovieTpl(title, original_title, 1);
 
-                string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
+                string hls = Regex.Match(result.content, "file: ?(\"|')(?<hls>https?://[^\"']+/index\\.m3u8)(\"|')").Groups["hls"].Value;
                 if (string.IsNullOrWhiteSpace(hls))
                 {
-                    string base64 = Regex.Match(result.content, "file: ?\"([^\"]+)\"").Groups[1].Value;
+                    string base64 = Regex.Match(result.content, "file: ?(\"|')(?<base64>[^\"']+)(\"|')").Groups["base64"].Value;
                            base64 = Regex.Replace(base64, "==$", "");
 
                     hls = string.Join("", CrypTo.DecodeBase64(base64).Reverse());
@@ -315,8 +366,6 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string enc_href = HttpUtility.UrlEncode(href);
-
                 try
                 {
                     if (s == -1)

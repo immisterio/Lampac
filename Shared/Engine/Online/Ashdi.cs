@@ -73,7 +73,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel md, long kinopoisk_id, string title, string original_title, int t, int s, VastConf vast = null, bool rjson = false)
+        public string Html(EmbedModel md, long kinopoisk_id, string title, string original_title, int t, int s, VastConf vast = null, bool rjson = false, string mybaseurl = null)
         {
             if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
                 return string.Empty;
@@ -136,7 +136,8 @@ namespace Shared.Engine.Online
                                 if (string.IsNullOrEmpty(numberseason))
                                     continue;
 
-                                string link = host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={numberseason}";
+                                string baseUrl = mybaseurl ?? (host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}");
+                                string link = $"{mybaseurl}&s={numberseason}";
 
                                 tpl.Append(season.title, link, numberseason);
                             }
@@ -157,7 +158,8 @@ namespace Shared.Engine.Online
                             if (t == -1)
                                 t = i;
 
-                            string link = host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={i}";
+                            string baseUrl = mybaseurl ?? (host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}");
+                            string link = $"{mybaseurl}&s={s}&t={i}";
 
                             vtpl.Append(md.serial[i].title, t == i, link);
                         }
