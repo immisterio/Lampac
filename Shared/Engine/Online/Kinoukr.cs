@@ -281,6 +281,31 @@ namespace Shared.Engine.Online
         }
         #endregion
 
+        #region getIframeSource
+        public async ValueTask<string> getIframeSource(string link)
+        {
+            if (string.IsNullOrWhiteSpace(link))
+                return null;
+
+            string news = await onget.Invoke(link);
+            if (news == null)
+            {
+                requesterror?.Invoke();
+                return null;
+            }
+
+            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"").Groups[1].Value;
+            if (string.IsNullOrEmpty(iframeUri))
+            {
+                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(iframeUri))
+                    return null;
+            }
+
+            return iframeUri;
+        }
+        #endregion
+
         #region Html
         public string Html(EmbedModel result, int clarification, string title, string original_title, int year, string t, int s, string href, VastConf vast = null, bool rjson = false)
         {

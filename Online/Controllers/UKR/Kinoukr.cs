@@ -13,12 +13,6 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
-            {
-                if (source.ToLower() == "kinoukr")
-                    clarification = 1;
-            }
-
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
@@ -36,6 +30,12 @@ namespace Online.Controllers
                requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
                //onlog: (l) => { Console.WriteLine(l); return string.Empty; }
             );
+
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.ToLower() == "kinoukr")
+                    href = await InvokeCache($"kinoukr:source:{id}", cacheTime(180, init: init), () => oninvk.getIframeSource($"{init.host}/{id}"));
+            }
 
             reset:
             var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{original_title}:{year}:{href}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
