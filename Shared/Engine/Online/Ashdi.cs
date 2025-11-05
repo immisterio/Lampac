@@ -137,7 +137,7 @@ namespace Shared.Engine.Online
                                     continue;
 
                                 string baseUrl = mybaseurl ?? (host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}");
-                                string link = $"{mybaseurl}&s={numberseason}";
+                                string link = $"{baseUrl}&s={numberseason}";
 
                                 tpl.Append(season.title, link, numberseason);
                             }
@@ -159,7 +159,7 @@ namespace Shared.Engine.Online
                                 t = i;
 
                             string baseUrl = mybaseurl ?? (host + $"lite/ashdi?rjson={rjson}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}");
-                            string link = $"{mybaseurl}&s={s}&t={i}";
+                            string link = $"{baseUrl}&s={s}&t={i}";
 
                             vtpl.Append(md.serial[i].title, t == i, link);
                         }

@@ -807,7 +807,7 @@ namespace Online.Controllers
             }
 
             #region VoKino
-            if (kinopoisk_id > 0 || source.ToLower() == "vokino")
+            if (kinopoisk_id > 0 || (source != null && source.ToLower() == "vokino"))
             {
                 string vid = kinopoisk_id.ToString();
                 if (source.ToLower() == "vokino" && !string.IsNullOrEmpty(id))
