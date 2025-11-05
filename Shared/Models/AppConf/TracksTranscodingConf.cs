@@ -37,7 +37,8 @@ namespace Shared.Models.AppConf
             ["demuxer"] = ["-threads 0", "-fflags +genpts"],
             ["input"] = ["-avoid_negative_ts disabled"],
             ["output"] = [
-                "-map 0:v:0", "-map 0:a:{audio_index}", "-dn -sn", 
+                "-map 0:v:0", "-map 0:a:{audio_index}",
+                "-dn", "-sn",
                 "-map_metadata -1", "-map_chapters -1", "-max_muxing_queue_size 2048"
             ],
         };
@@ -117,7 +118,7 @@ namespace Shared.Models.AppConf
         {
             ["default"] = ["-c:v libx264", "-preset veryfast", "-tune zerolatency", "-pix_fmt yuv420p"],
             
-            ["yuv420p10le"] = [
+            ["h264_yuv420p10le"] = [
                 "-vf", "scale=in_color_matrix=bt2020nc:out_color_matrix=bt709:in_range=pc:out_range=tv,format=yuv420p",
                 "-c:v libx264", "-preset veryfast", "-tune zerolatency", "-pix_fmt yuv420p",
                 "-x264-params", "colorprim=bt709:transfer=bt709:colormatrix=bt709",

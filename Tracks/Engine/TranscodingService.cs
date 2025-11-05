@@ -595,10 +595,6 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
                     }
                 }
             }
-            else
-            {
-                args.Add("-sn");
-            }
             #endregion
 
             #region HLS map
@@ -768,8 +764,16 @@ omit_endlist — не добавлять #EXT-X-ENDLIST, чтобы плейли
             args.Add("-master_pl_name");
             args.Add("index.m3u8");
 
-            args.Add("-hls_fmp4_init_filename");
-            args.Add("init.mp4");
+            if (context.HlsOptions.fmp4)
+            {
+                args.Add("-hls_fmp4_init_filename");
+                args.Add("init.mp4");
+            }
+            else
+            {
+                args.Add("-hls_playlist_type");
+                args.Add("vod");
+            }
 
             args.Add("-hls_segment_filename");
             args.Add(context.HlsOptions.fmp4 ? "seg_%05d.m4s" : "seg_%05d.ts");

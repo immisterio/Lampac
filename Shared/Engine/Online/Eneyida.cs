@@ -222,24 +222,16 @@ namespace Shared.Engine.Online
                     {
                         #region Сезоны
                         var tpl = new SeasonTpl();
-                        var hashseason = new HashSet<string>();
 
-                        foreach (var voice in result.serial)
+                        foreach (var season in result.serial)
                         {
-                            foreach (var season in voice.folder)
-                            {
-                                if (hashseason.Contains(season.title))
-                                    continue;
+                            string numberseason = Regex.Match(season.title, "^([0-9]+)").Groups[1].Value;
+                            if (string.IsNullOrEmpty(numberseason))
+                                continue;
 
-                                hashseason.Add(season.title);
-                                string numberseason = Regex.Match(season.title, "^([0-9]+)").Groups[1].Value;
-                                if (string.IsNullOrEmpty(numberseason))
-                                    continue;
+                            string link = host + $"lite/eneyida?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
 
-                                string link = host + $"lite/eneyida?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={numberseason}";
-
-                                tpl.Append(season.title, link, numberseason);
-                            }
+                            tpl.Append(season.title, link, numberseason);
                         }
 
                         return rjson ? tpl.ToJson() : tpl.ToHtml();
@@ -247,25 +239,24 @@ namespace Shared.Engine.Online
                     }
                     else
                     {
+                        var season = result.serial.First(i => i.title.StartsWith($"{s} "));
+
                         #region Перевод
                         var vtpl = new VoiceTpl();
 
-                        for (int i = 0; i < result.serial.Length; i++)
+                        for (int i = 0; i < season.folder.Length; i++)
                         {
-                            if (result.serial[i].folder.FirstOrDefault(i => i.title.StartsWith($"{s} ")).title == null)
-                                continue;
-
                             if (t == -1)
                                 t = i;
 
                             string link = host + $"lite/eneyida?rjson={rjson}&clarification={clarification}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={i}";
 
-                            vtpl.Append(result.serial[i].title, t == i, link);
+                            vtpl.Append(season.folder[i].title, t == i, link);
                         }
                         #endregion
 
                         string sArch = s.ToString();
-                        var episodes = result.serial[t].folder.First(i => i.title.StartsWith($"{s} ")).folder;
+                        var episodes = season.folder[t].folder;
 
                         var etpl = new EpisodeTpl(episodes.Length);
 
@@ -288,7 +279,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(episode.file);
-                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         if (rjson)

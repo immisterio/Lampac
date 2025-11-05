@@ -7,11 +7,17 @@ namespace Online.Controllers
     {
         [HttpGet]
         [Route("lite/eneyida")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int t = -1, int s = -1, string href = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             var init = await loadKit(AppInit.conf.Eneyida);
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
+
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.ToLower() == "eneyida")
+                    href = $"{init.host}/{id}";
+            }
 
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return OnError();
