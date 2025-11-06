@@ -503,7 +503,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
-            tree = "1026306bc47e69ff11ffb08c8c774eaa3fcae8c6"
+            tree = "d20091ce486c56d890333faeba55a038087ebdae"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -1028,7 +1028,7 @@ namespace Shared
         /// <summary>
         /// Omega
         /// </summary>
-        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su", streamproxy: true);
+        public OnlinesSettings Playembed { get; set; } = new OnlinesSettings("Playembed", "https://vidora.su", streamproxy: true, enable: false);
 
 
         /// <summary>

@@ -6,7 +6,7 @@ namespace Online.Controllers
 {
     public class BaseENGController : BaseOnlineController
     {
-        async public ValueTask<ActionResult> ViewTmdb(OnlinesSettings _init, bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", int? hls_manifest_timeout = null, string extension = "m3u8")
+        async public ValueTask<ActionResult> ViewTmdb(OnlinesSettings _init, bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", int? hls_manifest_timeout = null, string extension = "m3u8")
         {
             if (checksearch)
                 return Content("data-json=");
@@ -14,6 +14,9 @@ namespace Online.Controllers
             var init = await loadKit(_init);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            if (tmdb_id > 0)
+                id = tmdb_id;
 
             if (hls_manifest_timeout == null)
                 hls_manifest_timeout = (int)TimeSpan.FromSeconds(20).TotalMilliseconds;

@@ -100,23 +100,30 @@ namespace Shared.PlaywrightCore
                     var startInfo = new ProcessStartInfo
                     {
                         FileName = executablePath,
-                        Arguments = $"--proxy-server=127.0.0.1:{proxyPort} " +
-                                    $"--proxy-bypass-list=\"localhost;127.0.0.1;*.microsoft.com;{proxyBypassList}\" " +
-                                    $"--incognito " +
-                                    $"--ignore-certificate-errors " +
-                                    $"--ignore-ssl-errors " +
-                                    $"--disable-web-security " +
-                                    $"--no-first-run " +
-                                    $"--no-default-browser-check " +
-                                    $"--disable-background-mode " +
-                                    $"--no-sandbox " +
-                                    (AppInit.conf.chromium.Headless ? "--headless " : "") +
-                                    $"\"{targetUrl}\"",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         CreateNoWindow = false
                     };
+
+                    startInfo.ArgumentList.Add($"--proxy-server=127.0.0.1:{proxyPort}");
+                    startInfo.ArgumentList.Add($"--proxy-bypass-list=localhost;127.0.0.1;*.microsoft.com;{proxyBypassList}");
+                    startInfo.ArgumentList.Add("--incognito");
+                    startInfo.ArgumentList.Add("--ignore-certificate-errors");
+                    startInfo.ArgumentList.Add("--ignore-ssl-errors");
+                    startInfo.ArgumentList.Add("--disable-web-security");
+                    startInfo.ArgumentList.Add("--no-first-run");
+                    startInfo.ArgumentList.Add("--no-default-browser-check");
+                    startInfo.ArgumentList.Add("--disable-background-mode");
+                    startInfo.ArgumentList.Add("--no-sandbox");
+
+                    if (AppInit.conf.chromium.Headless)
+                    {
+                        startInfo.ArgumentList.Add("--headless");
+                        startInfo.ArgumentList.Add($"--user-agent=\"{Http.UserAgent}\"");
+                    }
+
+                    startInfo.ArgumentList.Add(targetUrl);
 
                     process = Process.Start(startInfo);
                     if (process == null)

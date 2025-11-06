@@ -8,10 +8,10 @@ namespace Online.Controllers
     {
         [HttpGet]
         [Route("lite/autoembed")]
-        public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+        public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             var init = AppInit.conf.Autoembed;
-            return ViewTmdb(init, checksearch, id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
+            return ViewTmdb(init, checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
 
 
@@ -75,11 +75,12 @@ namespace Online.Controllers
                         {
                             try
                             {
-                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                if (cache.file != null || await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
                                     return;
 
-                                if ((route.Request.Url.Contains("hakunaymatata.") && (route.Request.Url.Contains(".mp4") || route.Request.Url.Contains(".m3u"))) ||
-                                    route.Request.Url.Contains("/embed-proxy?url="))
+                                if ((Regex.IsMatch(route.Request.Url, "(hakunaymatata|kphimplayer)") && route.Request.Url.Contains(".mp4")) 
+                                    || route.Request.Url.Contains("/embed-proxy?url=")
+                                    || route.Request.Url.Contains(".m3u8"))
                                 {
                                     cache.headers = HeadersModel.Init(
                                         ("sec-fetch-dest", "empty"),

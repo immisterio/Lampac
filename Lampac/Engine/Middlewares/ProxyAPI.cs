@@ -220,7 +220,7 @@ namespace Lampac.Engine.Middlewares
 
                                         httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
                                         httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        httpContext.Response.ContentLength = hls.Length;
+                                        //httpContext.Response.ContentLength = hls.Length;
 
                                         if (response.Headers.AcceptRanges != null)
                                             httpContext.Response.Headers["accept-ranges"] = "bytes";
@@ -456,7 +456,7 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition")
+                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
                         continue;
 
                     if (header.Key.ToLower().StartsWith("x-") || header.Key.ToLower().StartsWith("alt-"))

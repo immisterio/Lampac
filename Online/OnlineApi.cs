@@ -594,7 +594,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public ValueTask<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
+        async public ValueTask<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";
@@ -1041,34 +1041,37 @@ namespace Online.Controllers
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
-                    send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
+                if (tmdb_id > 0 || (source is "tmdb" or "cub"))
+                {
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
+                        send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
-                    send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Vidsrc.overridehost) || conf.Vidsrc.overridehosts?.Length > 0)
+                        send(conf.Vidsrc, "vidsrc", "VidSrc (ENG)");
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
-                    send(conf.VidLink, "vidlink", "VidLink (ENG)");
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VidLink.overridehost) || conf.VidLink.overridehosts?.Length > 0)
+                        send(conf.VidLink, "vidlink", "VidLink (ENG)");
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
-                    send(conf.Videasy, "videasy", "Videasy (ENG)");
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videasy.overridehost) || conf.Videasy.overridehosts?.Length > 0)
+                        send(conf.Videasy, "videasy", "Videasy (ENG)");
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
-                    send(conf.MovPI, "movpi", "MovPI (ENG)");
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.MovPI.overridehost) || conf.MovPI.overridehosts?.Length > 0)
+                        send(conf.MovPI, "movpi", "MovPI (ENG)");
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
-                    send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Smashystream.overridehost) || conf.Smashystream.overridehosts?.Length > 0)
+                        send(conf.Smashystream, "smashystream", "SmashyStream (ENG)");
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
-                    send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Autoembed.overridehost) || conf.Autoembed.overridehosts?.Length > 0)
+                        send(conf.Autoembed, "autoembed", "AutoEmbed (ENG)");
 
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost) || conf.Playembed.overridehosts?.Length > 0)
-                    send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
+                    if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Playembed.overridehost) || conf.Playembed.overridehosts?.Length > 0)
+                        send(conf.Playembed, "playembed", "PlayEmbed (ENG)");
 
-                if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost) || conf.Twoembed.overridehosts?.Length > 0)
-                    send(conf.Twoembed, "twoembed", "2Embed (ENG)");
+                    if (Firefox.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Twoembed.overridehost) || conf.Twoembed.overridehosts?.Length > 0)
+                        send(conf.Twoembed, "twoembed", "2Embed (ENG)");
 
-                send(conf.Rgshows, "rgshows", "RgShows (ENG)");
+                    send(conf.Rgshows, "rgshows", "RgShows (ENG)");
+                }
             }
             #endregion
 
@@ -1100,7 +1103,7 @@ namespace Online.Controllers
 
                     foreach (var o in online)
                     {
-                        var tk = checkSearch(memkey, links, tasks.Count, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, title, original_title, original_language, source, year, serial, life, rchtype);
+                        var tk = checkSearch(memkey, links, tasks.Count, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, tmdb_id, title, original_title, original_language, source, year, serial, life, rchtype);
                         tasks.Add(tk);
                     }
 
@@ -1124,14 +1127,14 @@ namespace Online.Controllers
 
         #region checkSearch
         async Task checkSearch(string memkey, List<(string code, int index, bool work)> links, int indexList, dynamic init, int index, string name, string uri, string plugin,
-                               string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, string source,  int year, int serial, bool life, string rchtype)
+                               string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, string source,  int year, int serial, bool life, string rchtype)
         {
             try
             {
                 string srq = uri.Replace("{localhost}", $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}");
                 var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("localrequest", AppInit.rootPasswd)) : null;
 
-                string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={HttpUtility.UrlEncode(id)}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
+                string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={HttpUtility.UrlEncode(id)}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&tmdb_id={tmdb_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
                 string res = await Http.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
 
                 if (string.IsNullOrEmpty(res))

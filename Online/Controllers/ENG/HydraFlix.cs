@@ -8,9 +8,9 @@ namespace Online.Controllers
     {
         [HttpGet]
         [Route("lite/hydraflix")]
-        public ValueTask<ActionResult> Index(bool checksearch, long id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+        public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Hydraflix, checksearch, id, imdb_id, title, original_title, serial, s, rjson, method: "call", extension: "m3u8");
+            return ViewTmdb(AppInit.conf.Hydraflix, checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call", extension: "m3u8");
         }
 
 
@@ -74,11 +74,11 @@ namespace Online.Controllers
                         #region Scraping
                         using (var browser = new Scraping(uri, "\\.(mpd|m3u|mp4)", null))
                         {
-                            browser.OnRequest += e =>
-                            {
-                                if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)"))
-                                    e.Ok(string.Empty);
-                            };
+                            //browser.OnRequest += e =>
+                            //{
+                            //    if (Regex.IsMatch(e.HttpClient.Request.Url, "\\.(css|woff2|jpe?g|png|ico)"))
+                            //        e.Ok(string.Empty);
+                            //};
 
                             var scrap = await browser.WaitPageResult(20);
 
