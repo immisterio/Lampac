@@ -40,11 +40,17 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/getstv")]
-        async public ValueTask<ActionResult> Index(string orid, string title, string original_title, int year, int t = -1, int s = -1, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string orid, string title, string original_title, int year, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             var init = await loadKit(AppInit.conf.GetsTV);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            if (string.IsNullOrEmpty(orid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.ToLower() == "getstv")
+                    orid = id;
+            }
 
             if (string.IsNullOrEmpty(orid))
             {
