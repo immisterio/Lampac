@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -16,6 +17,7 @@ namespace Lampac.Controllers
     {
         #region timecode.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("timecode.js")]
         [Route("timecode/js/{token}")]
         public ActionResult timecode(string token)

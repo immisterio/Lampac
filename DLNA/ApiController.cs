@@ -1,4 +1,5 @@
 ﻿using DLNA.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Driver;
@@ -183,6 +184,7 @@ namespace DLNA.Controllers
 
         #region dlna.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("dlna.js")]
         [Route("dlna/js/{token}")]
         public ActionResult Plugin(string token)

@@ -29,6 +29,11 @@ namespace Lampac.Engine.Middlewares
             return builder.UseMiddleware<RequestInfo>();
         }
 
+        public static IApplicationBuilder UseAnonymousRequest(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<AnonymousRequest>();
+        }
+
         public static IApplicationBuilder UseAlwaysRjson(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<AlwaysRjson>();

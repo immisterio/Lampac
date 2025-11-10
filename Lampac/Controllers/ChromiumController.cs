@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Shared;
 
 namespace Lampac.Controllers
 {
     public class ChromiumController : BaseController
     {
+        [AllowAnonymous]
         [Route("/api/chromium/ping")]
         public string Ping() => "pong";
 
 
+        [AllowAnonymous]
         [Route("/api/chromium/iframe")]
         public ActionResult RenderIframe(string src)
         {

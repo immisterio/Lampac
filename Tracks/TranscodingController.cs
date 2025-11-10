@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json;
@@ -35,6 +36,7 @@ namespace Tracks.Controllers
         #endregion
 
         #region transcoding.js
+        [AllowAnonymous]
         [HttpGet("/transcoding.js")]
         [HttpGet("js/{token}")]
         public ActionResult TranscodingJs(string token)

@@ -28,7 +28,7 @@ namespace Lampac.Engine.Middlewares
                 return _next(httpContext);
 
             var requestInfo = httpContext.Features.Get<RequestModel>();
-            if (requestInfo.IsLocalRequest)
+            if (requestInfo.IsLocalRequest || requestInfo.IsAnonymousRequest)
                 return _next(httpContext);
 
             if (waf.whiteIps != null && waf.whiteIps.Contains(requestInfo.IP))

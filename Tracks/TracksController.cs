@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Engine;
@@ -13,6 +14,7 @@ namespace Tracks.Controllers
     public class TracksController : BaseController
     {
         [HttpGet]
+        [AllowAnonymous]
         [Route("tracks.js")]
         [Route("tracks/js/{token}")]
         public ActionResult Tracks(string token)

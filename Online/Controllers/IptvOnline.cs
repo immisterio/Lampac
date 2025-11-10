@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Settings;
@@ -11,6 +12,7 @@ namespace Online.Controllers
     {
         #region Bind
         [HttpGet]
+        [AllowAnonymous]
         [Route("lite/iptvonline/bind")]
         public ActionResult Bind(string KEY, string ID)
         {

@@ -32,7 +32,7 @@ namespace Lampac.Engine.Middlewares
         public Task Invoke(HttpContext httpContext)
         {
             var requestInfo = httpContext.Features.Get<RequestModel>();
-            if (requestInfo.IsLocalRequest)
+            if (requestInfo.IsLocalRequest || requestInfo.IsAnonymousRequest)
                 return _next(httpContext);
 
             #region manifest / admin
@@ -83,10 +83,10 @@ namespace Lampac.Engine.Middlewares
             #region ws / nws
             if (httpContext.Request.Path.Value.StartsWith("/ws") || httpContext.Request.Path.Value.StartsWith("/nws"))
             {
-                if (!AppInit.conf.weblog.enable && !AppInit.conf.rch.enable && !AppInit.conf.storage.enable)
-                    return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
+                if (AppInit.conf.weblog.enable || AppInit.conf.rch.enable || AppInit.conf.storage.enable || AppInit.conf.sync_user.enable)
+                    return _next(httpContext);
 
-                return _next(httpContext);
+                return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
             }
             #endregion
 
@@ -110,6 +110,7 @@ namespace Lampac.Engine.Middlewares
                 if (httpContext.Request.Path.Value.StartsWith("/testaccsdb") && accsdb.shared_passwd != null && requestInfo.user_uid == accsdb.shared_passwd)
                 {
                     requestInfo.IsLocalRequest = true;
+                    httpContext.Features.Set(requestInfo);
                     return _next(httpContext);
                 }
 
@@ -117,83 +118,81 @@ namespace Lampac.Engine.Middlewares
                     return _next(httpContext);
 
                 if (!string.IsNullOrEmpty(accsdb.whitepattern) && Regex.IsMatch(httpContext.Request.Path.Value, accsdb.whitepattern, RegexOptions.IgnoreCase))
+                {
+                    requestInfo.IsAnonymousRequest = true;
+                    httpContext.Features.Set(requestInfo);
                     return _next(httpContext);
+                }
 
                 if (Regex.IsMatch(httpContext.Request.Path.Value, jacpattern))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value.EndsWith("/personal.lampa"))
+                bool limitip = false;
+
+                var user = requestInfo.user;
+
+                if (requestInfo.user_uid != null && accsdb.white_uids != null && accsdb.white_uids.Contains(requestInfo.user_uid))
                     return _next(httpContext);
 
-                if (httpContext.Request.Path.Value != "/" && !Regex.IsMatch(httpContext.Request.Path.Value, "^/((api/chromium|proxy-dash|ts|ws|nws|headers|myip|geo|version|weblog|stats|admin|rch|merchant/payconfirm|bind|cub|corseu|media)(/|$)|(ping|extensions|kit)$|on/|(lite|online|sisi|timecode|bookmark|sync|tmdbproxy|dlna|ts|tracks|transcoding|backup|catalog|invc-ws)/js/|(streampay|b2pay|cryptocloud|freekassa|litecoin)/|lite/(withsearch|filmixpro|fxapi/lowlevel/|kinopubpro|vokinotk|rhs/bind|iptvonline/bind|getstv/bind)|([^/]+/)?app\\.min\\.js|([^/]+/)?css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
+                string uri = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
+
+                if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
                 {
-                    bool limitip = false;
-
-                    var user = requestInfo.user;
-
-                    if (requestInfo.user_uid != null && accsdb.white_uids != null && accsdb.white_uids.Contains(requestInfo.user_uid))
-                        return _next(httpContext);
-
-                    string uri = httpContext.Request.Path.Value+httpContext.Request.QueryString.Value;
-
-                    if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
+                    if (httpContext.Request.Path.Value.StartsWith("/proxy/") || httpContext.Request.Path.Value.StartsWith("/proxyimg"))
                     {
-                        if (httpContext.Request.Path.Value.StartsWith("/proxy/") || httpContext.Request.Path.Value.StartsWith("/proxyimg"))
-                        {
-                            string hash = Regex.Replace(httpContext.Request.Path.Value, "/(proxy|proxyimg([^/]+)?)/", "");
-                            if (AppInit.conf.serverproxy.encrypt || ProxyLink.Decrypt(hash, requestInfo.IP)?.uri != null)
-                                return _next(httpContext);
-                        }
-
-                        if (uri.StartsWith("/tmdb/api.themoviedb.org/") || uri.StartsWith("/tmdb/api/"))
-                        {
-                            httpContext.Response.Redirect("https://api.themoviedb.org/" + Regex.Replace(httpContext.Request.Path.Value, "^/tmdb/[^/]+/", ""));
-                            return Task.CompletedTask;
-                        }
-
-                        if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
-                        {
-                            if (uri.StartsWith("/tmdb/image.tmdb.org/") || uri.StartsWith("/tmdb/img/"))
-                            {
-                                httpContext.Response.Redirect("https://image.tmdb.org/" + Regex.Replace(httpContext.Request.Path.Value, "^/tmdb/[^/]+/", ""));
-                                return Task.CompletedTask;
-                            }
-
-                            httpContext.Response.StatusCode = 404;
-                            httpContext.Response.ContentType = "application/octet-stream";
-                            return Task.CompletedTask;
-                        }
-
-                        #region msg
-                        string msg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." 
-                            : string.IsNullOrEmpty(requestInfo.user_uid) ? accsdb.authMesage 
-                            : accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{host}", httpContext.Request.Host.Value);
-
-                        if (user != null)
-                        {
-                            if (user.ban)
-                                msg = user.ban_msg ?? "Вы заблокированы";
-
-                            else if (DateTime.UtcNow > user.expires)
-                                msg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
-                        }
-                        #endregion
-
-                        #region denymsg
-                        string denymsg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : null;
-
-                        if (user != null)
-                        {
-                            if (user.ban)
-                                denymsg = user.ban_msg ?? "Вы заблокированы";
-
-                            else if (DateTime.UtcNow > user.expires)
-                                denymsg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
-                        }
-                        #endregion
-
-                        return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, denymsg, user }, httpContext.RequestAborted);
+                        string hash = Regex.Replace(httpContext.Request.Path.Value, "/(proxy|proxyimg([^/]+)?)/", "");
+                        if (AppInit.conf.serverproxy.encrypt || ProxyLink.Decrypt(hash, requestInfo.IP)?.uri != null)
+                            return _next(httpContext);
                     }
+
+                    if (uri.StartsWith("/tmdb/api.themoviedb.org/") || uri.StartsWith("/tmdb/api/"))
+                    {
+                        httpContext.Response.Redirect("https://api.themoviedb.org/" + Regex.Replace(httpContext.Request.Path.Value, "^/tmdb/[^/]+/", ""));
+                        return Task.CompletedTask;
+                    }
+
+                    if (Regex.IsMatch(httpContext.Request.Path.Value, "\\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)"))
+                    {
+                        if (uri.StartsWith("/tmdb/image.tmdb.org/") || uri.StartsWith("/tmdb/img/"))
+                        {
+                            httpContext.Response.Redirect("https://image.tmdb.org/" + Regex.Replace(httpContext.Request.Path.Value, "^/tmdb/[^/]+/", ""));
+                            return Task.CompletedTask;
+                        }
+
+                        httpContext.Response.StatusCode = 404;
+                        httpContext.Response.ContentType = "application/octet-stream";
+                        return Task.CompletedTask;
+                    }
+
+                    #region msg
+                    string msg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт."
+                        : string.IsNullOrEmpty(requestInfo.user_uid) ? accsdb.authMesage
+                        : accsdb.denyMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{host}", httpContext.Request.Host.Value);
+
+                    if (user != null)
+                    {
+                        if (user.ban)
+                            msg = user.ban_msg ?? "Вы заблокированы";
+
+                        else if (DateTime.UtcNow > user.expires)
+                            msg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                    }
+                    #endregion
+
+                    #region denymsg
+                    string denymsg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт." : null;
+
+                    if (user != null)
+                    {
+                        if (user.ban)
+                            denymsg = user.ban_msg ?? "Вы заблокированы";
+
+                        else if (DateTime.UtcNow > user.expires)
+                            denymsg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                    }
+                    #endregion
+
+                    return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, denymsg, user }, httpContext.RequestAborted);
                 }
             }
 

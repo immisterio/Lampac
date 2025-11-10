@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Engine;
 using System.IO;
@@ -11,6 +12,7 @@ namespace Lampac.Controllers
     public class RchApi : BaseController
     {
         [HttpGet]
+        [AllowAnonymous]
         [Route("rch/check/connected")]
         public ActionResult СheckСonnected()
         {
@@ -23,6 +25,7 @@ namespace Lampac.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("rch/result")]
         public ActionResult WriteResult([FromForm]string id, [FromForm]string value)
         {
@@ -43,6 +46,7 @@ namespace Lampac.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("rch/gzresult")]
         async public Task<ActionResult> WriteZipResult([FromQuery]string id)
         {

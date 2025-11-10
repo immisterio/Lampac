@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Shared;
 
 namespace Lampac.Controllers
@@ -6,6 +7,7 @@ namespace Lampac.Controllers
     public class WebLogController : BaseController
     {
         [HttpGet]
+        [AllowAnonymous]
         [Route("weblog")]
         public ActionResult WebLog(string token, string pattern, string receive = "http")
         {

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -17,6 +18,7 @@ namespace Online.Controllers
     {
         #region online.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("online.js")]
         [Route("online/js/{token}")]
         public ContentResult Online(string token)
@@ -121,6 +123,7 @@ namespace Online.Controllers
 
         #region lite.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("lite.js")]
         [Route("lite/js/{token}")]
         public ActionResult Lite(string token)
@@ -384,6 +387,7 @@ namespace Online.Controllers
         #endregion
 
         #region WithSearch
+        [AllowAnonymous]
         [Route("lite/withsearch")]
         public ActionResult WithSearch()
         {
@@ -562,6 +566,7 @@ namespace Online.Controllers
 
         #region events
         [HttpGet]
+        [AllowAnonymous]
         [Route("lifeevents")]
         public ActionResult LifeEvents(string memkey, long id, string imdb_id, long kinopoisk_id, int serial)
         {

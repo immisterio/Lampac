@@ -1,16 +1,17 @@
 ﻿using Lampac.Engine;
 using Lampac.Engine.Middlewares;
-using Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System;
-using System.Collections.Generic;
-using System.Net.NetworkInformation;
-using System.Linq;
+using Shared;
+using Shared.Engine;
 using Shared.Models.AppConf;
 using Shared.PlaywrightCore;
-using Shared.Engine;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.NetworkInformation;
 
 namespace Lampac.Controllers
 {
@@ -29,6 +30,7 @@ namespace Lampac.Controllers
         }
 
         #region browser/context
+        [AllowAnonymous]
         [Route("/stats/browser/context")]
         public ActionResult BrowserContext()
         {
@@ -60,6 +62,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region request
+        [AllowAnonymous]
         [Route("/stats/request")]
         public ActionResult Requests()
         {
@@ -99,6 +102,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region rch
+        [AllowAnonymous]
         [Route("/stats/rch")]
         public ActionResult Rhc()
         {

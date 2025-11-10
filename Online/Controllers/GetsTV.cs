@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -10,6 +11,7 @@ namespace Online.Controllers
     {
         #region Bind
         [HttpGet]
+        [AllowAnonymous]
         [Route("/lite/getstv/bind")]
         async public Task<ActionResult> Bind(string login, string pass)
         {

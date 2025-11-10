@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Filmix;
 
@@ -8,6 +9,7 @@ namespace Online.Controllers
     {
         #region filmixpro
         [HttpGet]
+        [AllowAnonymous]
         [Route("lite/filmixpro")]
         async public Task<ActionResult> Pro()
         {

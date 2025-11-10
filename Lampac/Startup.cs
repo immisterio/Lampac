@@ -434,6 +434,8 @@ namespace Lampac
             app.UseModHeaders();
             app.UseRequestStatistics();
             app.UseRequestInfo();
+            app.UseAnonymousRequest();
+
             app.UseAlwaysRjson();
             app.UseModule(first: true);
             app.UseOverrideResponse(first: true);

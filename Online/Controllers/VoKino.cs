@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.VoKino;
 
@@ -10,6 +11,7 @@ namespace Online.Controllers
 
         #region vokinotk
         [HttpGet]
+        [AllowAnonymous]
         [Route("lite/vokinotk")]
         async public Task<ActionResult> Token(string login, string pass)
         {

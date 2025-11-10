@@ -184,8 +184,8 @@ namespace Lampac.Engine.Middlewares
 
                     if (width == 0 && height == 0)
                     {
-                    #region bypass
-                    bypass_reset:
+                        #region bypass
+                        bypass_reset:
                         var handler = Http.Handler(href, proxy);
 
                         var client = FrendlyHttp.HttpMessageClient("base", handler);
@@ -287,7 +287,7 @@ namespace Lampac.Engine.Middlewares
                     }
                     else
                     {
-                    #region rsize
+                        #region rsize
                         rsize_reset:
                         var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
                         if (array == null)

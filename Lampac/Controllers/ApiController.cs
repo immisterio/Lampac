@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Caching.Memory;
@@ -25,6 +26,7 @@ namespace Lampac.Controllers
     public class ApiController : BaseController
     {
         #region Index
+        [AllowAnonymous]
         [Route("/")]
         public ActionResult Index()
         {
@@ -49,6 +51,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region Extensions
+        [AllowAnonymous]
         [Route("/extensions")]
         public ActionResult Extensions()
         {
@@ -57,15 +60,19 @@ namespace Lampac.Controllers
         #endregion
 
         #region Version / Headers / geo / myip / reqinfo / personal.lampa
+        [AllowAnonymous]
         [Route("/version")]
         public ActionResult Version() => Content($"{appversion}.{minorversion}");
 
+        [AllowAnonymous]
         [Route("/ping")]
         public ActionResult PingPong() => Content("pong");
 
+        [AllowAnonymous]
         [Route("/headers")]
         public ActionResult Headers() => Json(HttpContext.Request.Headers);
 
+        [AllowAnonymous]
         [Route("/geo")]
         public ActionResult Geo(string select, string ip)
         {
@@ -86,6 +93,7 @@ namespace Lampac.Controllers
             });
         }
 
+        [AllowAnonymous]
         [Route("/myip")]
         public ActionResult MyIP() => Content(requestInfo.IP);
 
@@ -96,6 +104,7 @@ namespace Lampac.Controllers
             DefaultValueHandling = DefaultValueHandling.Ignore
         }));
 
+        [AllowAnonymous]
         [Route("/personal.lampa")]
         [Route("/lampa-main/personal.lampa")]
         [Route("/{myfolder}/personal.lampa")]
@@ -180,6 +189,7 @@ namespace Lampac.Controllers
 
 
         #region app.min.js
+        [AllowAnonymous]
         [Route("/app.min.js")]
         [Route("{type}/app.min.js")]
         public ContentResult LampaApp(string type)
@@ -285,6 +295,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region app.css
+        [AllowAnonymous]
         [Route("/css/app.css")]
         [Route("{type}/css/app.css")]
         public ContentResult LampaAppCss(string type)
@@ -352,6 +363,7 @@ namespace Lampac.Controllers
 
         #region samsung.wgt
         [HttpGet]
+        [AllowAnonymous]
         [Route("samsung.wgt")]
         public ActionResult SamsWgt(string overwritehost)
         {
@@ -415,6 +427,7 @@ namespace Lampac.Controllers
 
         #region MSX
         [HttpGet]
+        [AllowAnonymous]
         [Route("msx/start.json")]
         public ActionResult MSX()
         {
@@ -424,6 +437,7 @@ namespace Lampac.Controllers
 
         #region startpage.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("startpage.js")]
         public ActionResult StartPage()
         {
@@ -433,6 +447,7 @@ namespace Lampac.Controllers
 
         #region lampainit.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("lampainit.js")]
         public ActionResult LamInit(bool lite)
         {
@@ -564,6 +579,7 @@ namespace Lampac.Controllers
 
         #region on.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("on.js")]
         [Route("on/js/{token}")]
         [Route("on/h/{token}")]
@@ -673,6 +689,7 @@ namespace Lampac.Controllers
 
         #region backup.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("backup.js")]
         [Route("backup/js/{token}")]
         public ActionResult Backup(string token)
@@ -691,6 +708,7 @@ namespace Lampac.Controllers
 
         #region sync.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("sync.js")]
         [Route("sync/js/{token}")]
         public ActionResult SyncJS(string token, bool lite)
@@ -719,6 +737,7 @@ namespace Lampac.Controllers
 
         #region invc-ws.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("invc-ws.js")]
         [Route("invc-ws/js/{token}")]
         public ActionResult InvcSyncJS(string token)
@@ -745,6 +764,7 @@ namespace Lampac.Controllers
 
         #region invc-rch.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("invc-rch.js")]
         public ActionResult InvcRchJS()
         {

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared.Models.Online.Rezka;
 using Shared.Models.Online.Settings;
@@ -108,6 +109,7 @@ namespace Online.Controllers
 
         #region RezkaBind
         [HttpGet]
+        [AllowAnonymous]
         [Route("/lite/rhs/bind")]
         async public Task<ActionResult> RezkaBind(string login, string pass)
         {

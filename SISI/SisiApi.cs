@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -17,6 +18,7 @@ namespace SISI
     {
         #region sisi.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("sisi.js")]
         [Route("sisi/js/{token}")]
         public ContentResult Sisi(string token, bool lite)
@@ -101,6 +103,7 @@ namespace SISI
 
         #region modification.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("sisi/plugins/modification.js")]
         public ActionResult SisiModification()
         {

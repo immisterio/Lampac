@@ -33,7 +33,7 @@ namespace SISI
                 .Where(i => i.user == md5user)
                 .ToList();
 
-            int total_pages = Math.Max(1, bookmarksQuery.Count / pageSize);
+            int total_pages = Math.Max(0, bookmarksQuery.Count / pageSize) + 1;
 
             SisiDb.Read.ChangeTracker.Clear();
 

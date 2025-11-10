@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared;
@@ -22,6 +23,7 @@ namespace TorrServer.Controllers
     {
         #region ts.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("ts.js")]
         [Route("ts/js/{token}")]
         public ActionResult Plugin(string token)

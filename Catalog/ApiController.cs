@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Catalog.Controllers
 {
@@ -6,6 +7,7 @@ namespace Catalog.Controllers
     {
         #region catalog.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("catalog.js")]
         [Route("catalog/js/{token}")]
         public ActionResult CatalogJS(string token)

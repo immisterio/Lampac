@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.KinoPub;
 using System.Net;
@@ -13,6 +14,7 @@ namespace Online.Controllers
 
         #region kinopubpro
         [HttpGet]
+        [AllowAnonymous]
         [Route("lite/kinopubpro")]
         async public Task<ActionResult> Pro(string code, string name)
         {
