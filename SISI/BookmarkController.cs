@@ -33,6 +33,8 @@ namespace SISI
                 .Where(i => i.user == md5user)
                 .ToList();
 
+            int total_pages = Math.Max(1, bookmarksQuery.Count / pageSize);
+
             SisiDb.Read.ChangeTracker.Clear();
 
             #region Модель
@@ -118,7 +120,8 @@ namespace SISI
                     preview = pl.preview != null && pl.preview.StartsWith("bookmarks/") ? $"{host}/{pl.preview}" : null,
                     pl.model,
                     bookmark = new Bookmark() { uid = pl.bookmark.uid }
-                }).ToArray()
+                }).ToArray(),
+                total_pages
             });
         }
 

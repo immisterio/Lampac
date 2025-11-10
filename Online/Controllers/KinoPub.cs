@@ -145,33 +145,34 @@ namespace Online.Controllers
 
             string uri = $"{init.corsHost()}/v1/items/media-links?mid={mid}&access_token={token}";
 
-            var cache = await InvokeCache<JObject>($"kinopub:media-links:{mid}:{token}", cacheTime(20, init: init), proxyManager, async res =>
-            {
-                return await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
-            });
+            var root = await InvokeCache($"kinopub:media-links:{mid}:{token}", cacheTime(20, init: init), 
+                () => Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
+            );
 
-            if (!cache.IsSuccess || cache.Value == null)
+            if (root == null || !root.ContainsKey("subtitles"))
+            {
+                proxyManager.Refresh();
+                return ContentTo("[]");
+            }
+
+            var subs = root["subtitles"] as JArray;
+
+            if (subs == null || subs.Count == 0)
                 return ContentTo("[]");
 
-            var root = cache.Value;
+            var tpl = new SubtitleTpl(subs.Count);
 
-            var subs = root.Value<JArray>("subtitles");
-            var tpl = new SubtitleTpl(subs?.Count ?? 0);
-
-            if (subs != null)
+            foreach (var s in subs.OfType<JObject>())
             {
-                foreach (var s in subs)
+                try
                 {
-                    try
-                    {
-                        string lang = s.Value<string>("lang");
-                        string url = s.Value<string>("url");
+                    string lang = s.Value<string>("lang");
+                    string url = s.Value<string>("url");
 
-                        if (!string.IsNullOrEmpty(url))
-                            tpl.Append(lang, HostStreamProxy(init, url, proxy: proxy));
-                    }
-                    catch { }
+                    if (!string.IsNullOrEmpty(url))
+                        tpl.Append(lang, HostStreamProxy(init, url, proxy: proxy));
                 }
+                catch { }
             }
 
             return ContentTo(tpl.ToJson());
