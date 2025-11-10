@@ -22,7 +22,7 @@ namespace Lampac.Engine.Middlewares
             if (endpoint != null && endpoint.Metadata.GetMetadata<IAllowAnonymous>() != null)
                 requestInfo.IsAnonymousRequest = true;
 
-            if (httpContext.Request.Path.Value == "/" || httpContext.Request.Path.Value == "favicon.ico")
+            if (httpContext.Request.Path.Value == "/" || httpContext.Request.Path.Value == "/favicon.ico")
                 requestInfo.IsAnonymousRequest = true;
 
             if (httpContext.Request.Path.Value == "/.well-known/appspecific/com.chrome.devtools.json")

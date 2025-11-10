@@ -812,10 +812,10 @@ namespace Online.Controllers
             }
 
             #region VoKino
-            if (kinopoisk_id > 0 || (source != null && source.ToLower() == "vokino"))
+            if (kinopoisk_id > 0 || source?.ToLower() == "vokino")
             {
                 string vid = kinopoisk_id.ToString();
-                if (source.ToLower() == "vokino" && !string.IsNullOrEmpty(id))
+                if (source?.ToLower() == "vokino" && !string.IsNullOrEmpty(id))
                     vid = id;
 
                 var myinit = loadKit(conf.VoKino, kitconf , (j, i, c) => 
@@ -1046,7 +1046,7 @@ namespace Online.Controllers
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)
             {
-                if (tmdb_id > 0 || (source is "tmdb" or "cub"))
+                if (tmdb_id > 0 || (source != null && (source is "tmdb" or "cub")))
                 {
                     if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Hydraflix.overridehost) || conf.Hydraflix.overridehosts?.Length > 0)
                         send(conf.Hydraflix, "hydraflix", "HydraFlix (ENG)");
