@@ -118,7 +118,8 @@ namespace Shared.Engine
 
         public RchClient(string connectionId) 
         {
-            this.connectionId = connectionId;
+            if (!string.IsNullOrEmpty(connectionId) && clients.ContainsKey(connectionId))
+                this.connectionId = connectionId;
         }
 
         public RchClient(HttpContext context, string host, BaseSettings init, in RequestModel requestInfo, int? keepalive = null)
@@ -128,8 +129,6 @@ namespace Shared.Engine
             enableRhub = init.rhub;
             rhub_fallback = init.rhub_fallback;
             ip = requestInfo.IP;
-            string _ip = ip = requestInfo.IP;
-            connectionId = clients.LastOrDefault(i => i.Value.ip == _ip).Key;
 
             if (enableRhub && rhub_fallback && init.rhub_geo_disable != null)
             {
@@ -261,6 +260,12 @@ namespace Shared.Engine
             if (hub == null)
                 return null;
 
+            if (string.IsNullOrEmpty(connectionId) || !clients.ContainsKey(connectionId))
+                connectionId = NwsClient().connectionId;
+
+            if (string.IsNullOrEmpty(connectionId))
+                return null;
+
             string rchId = Guid.NewGuid().ToString();
 
             try
@@ -306,10 +311,11 @@ namespace Shared.Engine
         }
         #endregion
 
+
         #region IsNotConnected
         public bool IsNotConnected() => IsNotConnected(ip);
 
-        public bool IsNotConnected(string ip)
+        bool IsNotConnected(string ip)
         {
             if (!enableRhub)
                 return false; // rch не используется
@@ -317,7 +323,7 @@ namespace Shared.Engine
             if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return true; // заглушка для checksearch
 
-            return clients.Values.LastOrDefault(i => i.ip == ip).ip == null;
+            return NwsClient().connectionId == null;
         }
         #endregion
 
@@ -360,12 +366,26 @@ namespace Shared.Engine
         #region InfoConnected
         public RchClientInfo InfoConnected()
         {
+            return NwsClient().data.rch_info;
+        }
+        #endregion
+
+        #region NwsClient
+        public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) NwsClient()
+        {
+            if (httpContext.Request.Query.ContainsKey("nws_id"))
+            {
+                string nws_id = httpContext.Request.Query["nws_id"].ToString()?.ToLower()?.Trim();
+                if (!string.IsNullOrEmpty(nws_id) && clients.ContainsKey(nws_id))
+                    return (nws_id, clients[nws_id]);
+            }
+
             string _ip = ip;
             var client = clients.LastOrDefault(i => i.Value.ip == _ip);
-            if (client.Value.info.rchtype == null)
-                return default;
+            if (client.Value.info.rchtype != null)
+                return (client.Key, client.Value);
 
-            return client.Value.info;
+            return default;
         }
         #endregion
     }

@@ -38,6 +38,13 @@ namespace Shared.Engine
                     args.Append($"&box_mac={HttpUtility.UrlEncode(box_mac)}");
             }
 
+            if (httpContext.Request.Query.ContainsKey("nws_id") && !uri.Contains("nws_id="))
+            {
+                string nws_id = httpContext.Request.Query["nws_id"].ToString()?.ToLower()?.Trim();
+                if (!string.IsNullOrEmpty(nws_id))
+                    args.Append($"&nws_id={HttpUtility.UrlEncode(nws_id)}");
+            }
+
             if (args.Length == 0)
                 return uri;
 
