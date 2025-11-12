@@ -261,7 +261,7 @@ namespace Shared.Engine
                 return null;
 
             if (string.IsNullOrEmpty(connectionId) || !clients.ContainsKey(connectionId))
-                connectionId = NwsClient().connectionId;
+                connectionId = SocketClient().connectionId;
 
             if (string.IsNullOrEmpty(connectionId))
                 return null;
@@ -323,7 +323,7 @@ namespace Shared.Engine
             if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return true; // заглушка для checksearch
 
-            return NwsClient().connectionId == null;
+            return SocketClient().connectionId == null;
         }
         #endregion
 
@@ -366,24 +366,29 @@ namespace Shared.Engine
         #region InfoConnected
         public RchClientInfo InfoConnected()
         {
-            return NwsClient().data.rch_info;
+            return SocketClient().data.rch_info;
         }
         #endregion
 
-        #region NwsClient
-        public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) NwsClient()
+        #region SocketClient
+        public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) SocketClient()
         {
-            if (httpContext.Request.Query.ContainsKey("nws_id"))
+            if (AppInit.conf.rch.websoket == "nws")
             {
-                string nws_id = httpContext.Request.Query["nws_id"].ToString()?.ToLower()?.Trim();
-                if (!string.IsNullOrEmpty(nws_id) && clients.ContainsKey(nws_id))
-                    return (nws_id, clients[nws_id]);
+                if (httpContext.Request.Query.ContainsKey("nws_id"))
+                {
+                    string nws_id = httpContext.Request.Query["nws_id"].ToString()?.ToLower()?.Trim();
+                    if (!string.IsNullOrEmpty(nws_id) && clients.ContainsKey(nws_id))
+                        return (nws_id, clients[nws_id]);
+                }
             }
-
-            string _ip = ip;
-            var client = clients.LastOrDefault(i => i.Value.ip == _ip);
-            if (client.Value.info.rchtype != null)
-                return (client.Key, client.Value);
+            else
+            {
+                string _ip = ip;
+                var client = clients.LastOrDefault(i => i.Value.ip == _ip);
+                if (client.Value.info.rchtype != null)
+                    return (client.Key, client.Value);
+            }
 
             return default;
         }
