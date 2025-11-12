@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Utilities.IO;
 using Shared.Models.Online.Lumex;
 using Shared.PlaywrightCore;
 

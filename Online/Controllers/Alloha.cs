@@ -249,16 +249,22 @@ namespace Online.Controllers
 
                     if (skipTime != null && skipTime.Contains("-"))
                     {
-                        var t = skipTime.Split('-');
-                        if (t.Length == 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
-                            segments.skip(start, end);
+                        foreach (string skp in skipTime.Split(","))
+                        {
+                            var t = skp.Trim().Split('-');
+                            if (t.Length >= 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
+                                segments.skip(start, end);
+                        }
                     }
 
                     if (removeTime != null && removeTime.Contains("-"))
                     {
-                        var t = removeTime.Split('-');
-                        if (t.Length == 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
-                            segments.ad(start, end);
+                        foreach (string skp in skipTime.Split(","))
+                        {
+                            var t = skp.Split('-');
+                            if (t.Length >= 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
+                                segments.ad(start, end);
+                        }
                     }
                     #endregion
 
