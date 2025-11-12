@@ -252,17 +252,17 @@ namespace Online.Controllers
                         foreach (string skp in skipTime.Split(","))
                         {
                             var t = skp.Trim().Split('-');
-                            if (t.Length >= 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
+                            if (t.Length >= 2 && int.TryParse(t[0].Trim(), out int start) && int.TryParse(t[1].Trim(), out int end))
                                 segments.skip(start, end);
                         }
                     }
 
                     if (removeTime != null && removeTime.Contains("-"))
                     {
-                        foreach (string skp in skipTime.Split(","))
+                        foreach (string skp in removeTime.Split(","))
                         {
-                            var t = skp.Split('-');
-                            if (t.Length >= 2 && int.TryParse(t[0], out int start) && int.TryParse(t[1], out int end))
+                            var t = skp.Trim().Split('-');
+                            if (t.Length >= 2 && int.TryParse(t[0].Trim(), out int start) && int.TryParse(t[1].Trim(), out int end))
                                 segments.ad(start, end);
                         }
                     }
