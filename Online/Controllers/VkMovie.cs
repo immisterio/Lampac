@@ -178,16 +178,21 @@ namespace Online.Controllers
                     return false;
 
                 var data = root["data"];
-                string token = data? ["access_token"]?.ToString();
-                var expires = data? ["expires"]?.ToObject<long?>();
 
-                if (string.IsNullOrEmpty(token) || expires == null)
+                string token = data?["access_token"]?.ToString();
+                if (string.IsNullOrEmpty(token))
                     return false;
 
                 access_token = token;
 
+                long? expires = data?["expires"]?.ToObject<long?>()
+                    ?? data?["expired_at"]?.ToObject<long?>()
+                    ?? -1;
+
                 // "expires":1760171110 (24ч) | 20ч
-                token_expires = DateTimeOffset.FromUnixTimeSeconds(expires.Value).UtcDateTime.AddHours(-4);
+                token_expires = expires == -1 
+                    ? DateTime.UtcNow.AddHours(10) 
+                    : DateTimeOffset.FromUnixTimeSeconds(expires.Value).UtcDateTime.AddHours(-4);
 
                 return true;
             }
