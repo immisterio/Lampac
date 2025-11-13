@@ -27,5 +27,7 @@
         public Dictionary<string, string> qualitys { get; set; }
 
         public Bookmark bookmark { get; set; }
+
+        public string history_uid { get; set; }
     }
 }

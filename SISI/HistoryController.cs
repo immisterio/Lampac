@@ -76,13 +76,8 @@ namespace SISI
                     pl.quality,
                     pl.preview,
                     pl.model,
-                    bookmark = new Bookmark() 
-                    {
-                        href = pl.bookmark.href,
-                        image = pl.bookmark.image,
-                        site = pl.bookmark.site
-                    },
-                    history_uid = pl.bookmark.uid
+                    pl.bookmark,
+                    pl.history_uid
                 }).ToArray(),
                 total_pages
             });
@@ -103,14 +98,7 @@ namespace SISI
 
             if (!sqlDb.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
             {
-                var b = data.bookmark;
-                data.bookmark = new Bookmark()
-                {
-                    href = b.href,
-                    image = b.image,
-                    site = b.site,
-                    uid = uid
-                };
+                data.history_uid = uid;
 
                 sqlDb.historys.Add(new SisiHistorySqlModel
                 {
