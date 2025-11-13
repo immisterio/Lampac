@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Alloha;
@@ -283,21 +284,20 @@ namespace Online.Controllers
                     init.streamproxy = true; // force streamproxy
 
                     string memKey = $"alloha:black_magic:{proxy.data.ip}:{token_movie}:{t}:{s}:{e}";
-                    if (!hybridCache.TryGetValue(memKey, out (JToken hlsSource, JToken tracks, List<HeadersModel> streamHeaders) cache))
+                    if (!hybridCache.TryGetValue(memKey, out (string hls, List<HeadersModel> headers) cache))
                     {
                         if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                             return OnError();
 
                         using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
-                            var headers = HeadersModel.Init(Http.defaultFullHeaders,
-                                ("sec-fetch-dest", "iframe"),
-                                ("sec-fetch-mode", "navigate"),
-                                ("sec-fetch-site", "cross-site"),
-                                ("referer", $"https://alloha.tv/")
-                            );
+                            string targetHost = "https://alloha.tv";
 
-                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: headers.ToDictionary()).ConfigureAwait(false);
+                            string targetUrl = $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}";
+                            if (s > 0)
+                                targetUrl += $"&season={s}&episode={e}";
+
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: Http.defaultFullHeaders).ConfigureAwait(false);
                             if (page == null)
                                 return null;
 
@@ -305,106 +305,84 @@ namespace Online.Controllers
                             {
                                 try
                                 {
-                                    if (browser.IsCompleted || route.Request.Url.Contains("/master.m3u8") || route.Request.Url.Contains("blank.mp4") || route.Request.Url.Contains("googleapis.com"))
+                                    if (browser.IsCompleted || route.Request.Url.Contains("blank.mp4") || route.Request.Url.Contains("googleapis.com"))
                                     {
                                         PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
                                         await route.AbortAsync();
                                         return;
                                     }
 
-                                    if (route.Request.Url.Contains("/apis/movies/"))
+                                    if (route.Request.Url.StartsWith(targetHost))
                                     {
-                                        await route.ContinueAsync();
-                                        var response = await page.WaitForResponseAsync(route.Request.Url);
-                                        string result = response != null ? await response.TextAsync() : string.Empty;
-                                        browser.SetPageResult(result);
-                                        PlaywrightBase.WebLog(route.Request, response, result);
-                                        return;
+                                        await route.FulfillAsync(new RouteFulfillOptions
+                                        {
+                                            Body = PlaywrightBase.IframeHtml(targetUrl)
+                                        });
                                     }
+                                    else
+                                    {
+                                        if (route.Request.Url.Contains("/m/"))
+                                        {
+                                            await route.ContinueAsync();
 
-                                    if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                        return;
+                                            var response = await page.WaitForResponseAsync(route.Request.Url);
+                                            if (response != null && response.Headers.ContainsKey("location"))
+                                            {
+                                                response = await page.WaitForResponseAsync(response.Headers["location"]);
+                                                if (response != null)
+                                                {
+                                                    cache.headers = HeadersModel.Init(Http.defaultFullHeaders,
+                                                        ("sec-fetch-dest", "empty"),
+                                                        ("sec-fetch-mode", "cors"),
+                                                        ("sec-fetch-site", "cross-site")
+                                                    );
 
-                                    await route.ContinueAsync();
+                                                    foreach (var item in response.Request.Headers)
+                                                    {
+                                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                            continue;
+
+                                                        if (!Http.defaultFullHeaders.ContainsKey(item.Key.ToLower()))
+                                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                                    }
+
+                                                    PlaywrightBase.ConsoleLog($"Playwright: SET {response.Request.Url}", cache.headers);
+                                                    browser.SetPageResult(response.Request.Url);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                                return;
+
+                                            await route.ContinueAsync();
+                                        }
+                                    }
                                 }
                                 catch { }
                             });
 
-                            string targetUrl = $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}";
-                            if (s > 0)
-                                targetUrl += $"&season={s}&episode={e}";
-
-                            PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(targetUrl/* + "&autoplay=1"*/));
-
-                            try
-                            {
-                                var root = JsonConvert.DeserializeObject<JObject>(await browser.WaitPageResult(20));
-
-                                foreach (var item in root["hlsSource"])
-                                {
-                                    if (item?.Value<bool>("default") == true)
-                                    {
-                                        cache.hlsSource = item;
-                                        break;
-                                    }
-                                }
-
-                                if (cache.hlsSource == null)
-                                    cache.hlsSource = root["hlsSource"].First;
-
-                                if (root.ContainsKey("tracks"))
-                                    cache.tracks = root["tracks"];
-                            }
-                            catch { }
+                            PlaywrightBase.GotoAsync(page, targetHost);
+                            cache.hls = await browser.WaitPageResult();
                         }
 
-                        if (cache.hlsSource == null)
+                        if (string.IsNullOrEmpty(cache.hls))
                             return OnError();
-
-                        cache.streamHeaders = HeadersModel.Init(Http.defaultFullHeaders,
-                            ("origin", init.linkhost),
-                            ("referer", $"{init.linkhost}/?token_movie={token_movie}&translation={t}&token={init.token}"),
-                            ("sec-fetch-dest", "empty"),
-                            ("sec-fetch-mode", "cors"),
-                            ("sec-fetch-site", "cross-site")
-                        );
 
                         hybridCache.Set(memKey, cache, cacheTime(20, init: init));
                     }
 
                     var streamquality = new StreamQualityTpl();
-
-                    foreach (var q in cache.hlsSource["quality"].ToObject<Dictionary<string, string>>())
-                    {
-                        if (!init.m4s && (q.Key is "2160" or "1440"))
-                            continue;
-
-                        string link = init.reserve ? q.Value : Regex.Match(q.Value, "(https?://[^\n\r\t ]+/[^\\.]+\\.m3u8)").Groups[1].Value;
-                        streamquality.Append(HostStreamProxy(init, link, headers: cache.streamHeaders), $"{q.Key}p");
-                    }
+                    streamquality.Append(HostStreamProxy(init, cache.hls, headers: cache.headers), "auto");
 
                     if (play)
                         return RedirectToPlay(streamquality.Firts().link);
 
-                    #region subtitle
-                    var subtitles = new SubtitleTpl();
-
-                    try
-                    {
-                        if (cache.tracks != null)
-                        {
-                            foreach (var sub in cache.tracks)
-                                subtitles.Append(sub.Value<string>("label"), HostStreamProxy(init, sub.Value<string>("src"), headers: cache.streamHeaders));
-                        }
-                    }
-                    catch { }
-                    #endregion
-
-                    return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, cache.hlsSource.Value<string>("label"),
-                           streamquality: streamquality,
-                           subtitles: subtitles,
-                           vast: init.vast,
-                           headers: cache.streamHeaders
+                    return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, title ?? original_title,
+                        streamquality: streamquality,
+                        vast: init.vast,
+                        headers: cache.headers
                     ));
                     #endregion
                 }

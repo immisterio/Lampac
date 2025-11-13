@@ -18,8 +18,8 @@ namespace Shared.Engine
         {
             ["sec-ch-ua-mobile"] = "?0",
             ["sec-ch-ua-platform"] = "\"Windows\"",
-            ["sec-ch-ua"] = "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"",
-            ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+            ["sec-ch-ua"] = "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
         };
 
         public static readonly Dictionary<string, string> defaultFullHeaders = new Dictionary<string, string>(defaultHeaders)
