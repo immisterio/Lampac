@@ -301,6 +301,9 @@ namespace Online.Controllers
                             if (page == null)
                                 return null;
 
+                            string q = init.m4s ? "2160" : "1080";
+                            await page.AddInitScriptAsync($"localStorage.setItem('allplay', '{{\"captionParam\":{{\"fontSize\":\"100%\",\"colorText\":\"Белый\",\"colorBackground\":\"Черный\",\"opacityText\":\"100%\",\"opacityBackground\":\"75%\",\"styleText\":\"Без контура\",\"weightText\":\"Обычный текст\"}},\"quality\":{q},\"volume\":0.5,\"muted\":false}}');");
+
                             await page.RouteAsync("**/*", async route =>
                             {
                                 try
