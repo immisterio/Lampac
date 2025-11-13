@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Shared.Models.SQL;
-using System;
-using System.Linq;
 using System.Threading;
 
 namespace SISI
@@ -15,7 +13,7 @@ namespace SISI
             Directory.CreateDirectory("wwwroot/bookmarks/img");
             Directory.CreateDirectory("wwwroot/bookmarks/preview");
 
-            cleanupTimer ??= new Timer(_ => CleanupHistory(), null, TimeSpan.Zero, TimeSpan.FromHours(1));
+            cleanupTimer ??= new Timer(_ => CleanupHistory(), null, TimeSpan.FromMinutes(20), TimeSpan.FromHours(1));
         }
 
         private static void CleanupHistory()
@@ -23,11 +21,13 @@ namespace SISI
             try
             {
                 var threshold = DateTime.UtcNow.AddDays(-30);
-                var sqlDb = SisiDb.Write;
 
-                sqlDb?.historys
-                    .Where(i => i.created < threshold)
-                    .ExecuteDelete();
+                using (var sqlDb = new SisiContext())
+                {
+                    sqlDb.historys
+                        .Where(i => i.created < threshold)
+                        .ExecuteDelete();
+                }
             }
             catch (Exception ex)
             {
