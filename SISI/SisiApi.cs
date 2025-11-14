@@ -80,7 +80,7 @@ namespace SISI
                     .Replace("{invc-rch_nws}", FileCache.ReadAllText("plugins/invc-rch_nws.js", saveCache: false))
                     .Replace("{push_all}", init.push_all.ToString().ToLower())
                     .Replace("{localhost}", host)
-                    .Replace("{historySave}", AppInit.conf.sisi.history.ToString().ToLower());
+                    .Replace("{historySave}", AppInit.conf.sisi.history.enable.ToString().ToLower());
 
                 if (init.forced_checkRchtype)
                     bulder = bulder.Replace("window.rchtype", "Defined.rchtype");
