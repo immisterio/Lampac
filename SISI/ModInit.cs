@@ -20,11 +20,12 @@ namespace SISI
         {
             try
             {
-                var threshold = DateTime.UtcNow.AddDays(-30);
+                var threshold = DateTime.UtcNow.AddDays(-AppInit.conf.sisi.history.days);
 
                 using (var sqlDb = new SisiContext())
                 {
                     sqlDb.historys
+                        .AsNoTracking()
                         .Where(i => i.created < threshold)
                         .ExecuteDelete();
                 }

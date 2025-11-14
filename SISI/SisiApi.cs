@@ -130,7 +130,7 @@ namespace SISI
                 new ChannelItem("Закладки", $"{host}/sisi/bookmarks", 0)
             };
 
-            if (conf.sisi.history)
+            if (conf.sisi.history.enable)
                 channels.Add(new ChannelItem("История", $"{host}/sisi/historys", 1));
 
             #region modules

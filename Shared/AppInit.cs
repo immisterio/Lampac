@@ -517,11 +517,11 @@ namespace Shared
 
         public SisiConf sisi { get; set; } = new SisiConf()
         {
-            NextHUB = true, spider = true,
-            lgbt = true, history = true,
+            NextHUB = true, spider = true, lgbt = true,
             component = "sisi", iconame = "", push_all = true,
             heightPicture = 240, rsize = true, rsize_disable = ["Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx", "Porndig", "Youjizz", "Veporn", "Pornk"],
-            bookmarks = new BookmarksConf() { saveimage = true, savepreview = true }
+            bookmarks = new BookmarksConf() { saveimage = true, savepreview = true },
+            history = new HistoryConf() { enable = true, days = 30 }
         };
 
         public AccsConf accsdb = new AccsConf() 

@@ -12,7 +12,7 @@ namespace SISI
         public ActionResult List(int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
-            if (md5user == null || !AppInit.conf.sisi.history)
+            if (md5user == null || !AppInit.conf.sisi.history.enable)
                 return OnError("access denied");
 
             #region historys
@@ -42,9 +42,9 @@ namespace SISI
 
                     try
                     {
-                        var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(json);
-                        if (bookmark != null)
-                            historys.Add(bookmark);
+                        var history = JsonConvert.DeserializeObject<PlaylistItem>(json);
+                        if (history != null)
+                            historys.Add(history);
                     }
                     catch { }
                 }
@@ -89,7 +89,7 @@ namespace SISI
         public ActionResult Add([FromBody] PlaylistItem data)
         {
             string md5user = getuser();
-            if (md5user == null || !AppInit.conf.sisi.history || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
+            if (md5user == null || !AppInit.conf.sisi.history.enable || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
                 return OnError("access denied");
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
@@ -123,7 +123,7 @@ namespace SISI
         public ActionResult Remove(string id)
         {
             string md5user = getuser();
-            if (md5user == null || !AppInit.conf.sisi.history || string.IsNullOrEmpty(id))
+            if (md5user == null || !AppInit.conf.sisi.history.enable || string.IsNullOrEmpty(id))
                 return OnError("access denied");
 
             var sqlDb = SisiDb.Write;

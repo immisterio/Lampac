@@ -6,8 +6,6 @@
 
         public bool lgbt { get; set; }
 
-        public bool history { get; set; }
-
         public bool NextHUB { get; set; }
 
         public string[] NextHUB_sites_enabled { get; set; }
@@ -40,6 +38,8 @@
 
 
         public BookmarksConf bookmarks { get; set; }
+
+        public HistoryConf history { get; set; }
 
 
         public Dictionary<string, string> appReplace { get; set; }
