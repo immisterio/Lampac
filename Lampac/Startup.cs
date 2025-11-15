@@ -517,7 +517,6 @@ namespace Lampac
             Firefox.FullDispose();
             nws.FullDispose();
             soks.FullDispose();
-            CollectionDb.Dispose();
             SisiDb.FullDispose();
             ExternalidsDb.FullDispose();
             HybridCacheDb.FullDispose();

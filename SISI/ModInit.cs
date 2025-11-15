@@ -13,7 +13,7 @@ namespace SISI
             Directory.CreateDirectory("wwwroot/bookmarks/img");
             Directory.CreateDirectory("wwwroot/bookmarks/preview");
 
-            cleanupTimer ??= new Timer(_ => CleanupHistory(), null, TimeSpan.FromMinutes(20), TimeSpan.FromHours(1));
+            cleanupTimer = new Timer(_ => CleanupHistory(), null, TimeSpan.FromMinutes(20), TimeSpan.FromHours(1));
         }
 
         private static void CleanupHistory()

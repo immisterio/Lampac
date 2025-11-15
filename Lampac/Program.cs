@@ -21,6 +21,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Lampac
@@ -136,6 +137,7 @@ namespace Lampac
             else
             {
                 AppInit.rootPasswd = File.ReadAllText("passwd");
+                AppInit.rootPasswd = Regex.Replace(AppInit.rootPasswd, "[\n\r\t ]+", "").Trim();
             }
             #endregion
 
@@ -157,7 +159,7 @@ namespace Lampac
             #endregion
 
             #region migration
-            if (File.Exists("vers.txt") || File.Exists("isdocker"))
+            if (Directory.Exists("cache/storage") || Directory.Exists("cache/bookmarks/sisi"))
             {
                 Console.WriteLine("run migration");
 
@@ -185,6 +187,8 @@ namespace Lampac
                     }
 
                     CopyAll(sourceDir, targetDir);
+
+                    Directory.Move("cache/storage", "cache/storage.bak");
                 }
                 #endregion
 
@@ -240,20 +244,10 @@ namespace Lampac
 
                     SisiDb.Write.SaveChanges();
                     SisiDb.Write.ChangeTracker.Clear();
+
+                    Directory.Move("cache/bookmarks/sisi", "cache/bookmarks/sisi.bak");
                 }
                 #endregion
-
-                if (File.Exists("vers.txt"))
-                    File.Delete("vers.txt");
-            }
-
-            if (File.Exists("database/app.db"))
-            {
-                CollectionDb.Configure();
-                MigrateSyncUsers();
-                MigrateSisiUsers();
-                CollectionDb.Dispose();
-                File.Delete("database/app.db");
             }
             #endregion
 
@@ -506,118 +500,6 @@ namespace Lampac
             {
                 _updateKitDb = false;
             }
-        }
-        #endregion
-
-
-        #region [Codex AI] Migrate LiteDb to EFCore
-        static void MigrateSyncUsers()
-        {
-            var collection = CollectionDb.sync_users;
-            if (collection == null)
-                return;
-
-            Console.WriteLine("run migration sync_users");
-
-            var existing = new HashSet<string>(
-                SyncUserDb.Read.timecodes
-                          .AsNoTracking()
-                          .Select(i => $"{i.user}:{i.card}:{i.item}")
-            );
-
-            foreach (var user in collection.FindAll())
-            {
-                try
-                {
-                    if (string.IsNullOrEmpty(user?.id) || user.timecodes == null || user.timecodes.Count == 0)
-                        continue;
-
-                    DateTime updated = DateTime.UtcNow;
-
-                    foreach (var card in user.timecodes)
-                    {
-                        if (string.IsNullOrEmpty(card.Key) || card.Value == null)
-                            continue;
-
-                        foreach (var item in card.Value)
-                        {
-                            if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
-                                continue;
-
-                            if (!existing.Add($"{user.id}:{card.Key}:{item.Key}"))
-                                continue;
-
-                            SyncUserDb.Write.timecodes.Add(new SyncUserTimecodeSqlModel
-                            {
-                                user = user.id,
-                                card = card.Key,
-                                item = item.Key,
-                                data = item.Value,
-                                updated = updated
-                            });
-                        }
-                    }
-                }
-                catch { }
-            }
-
-            SyncUserDb.Write.SaveChanges();
-            SyncUserDb.Write.ChangeTracker.Clear();
-        }
-
-
-        static void MigrateSisiUsers()
-        {
-            var collection = CollectionDb.sisi_users;
-            if (collection == null)
-                return;
-
-            Console.WriteLine("run migration sisi_users");
-
-            var existing = new HashSet<string>(
-                SisiDb.Read.bookmarks
-                      .AsNoTracking()
-                      .Select(i => $"{i.user}:{i.uid}")
-            );
-
-            foreach (var user in collection.FindAll())
-            {
-                try
-                {
-                    if (string.IsNullOrEmpty(user?.Id) || user.Bookmarks == null || user.Bookmarks.Count == 0)
-                        continue;
-
-                    DateTime created = DateTime.UtcNow;
-                    int offset = 0;
-
-                    for (int i = 0; i < user.Bookmarks.Count; i++)
-                    {
-                        var bookmark = user.Bookmarks[i];
-
-                        if (bookmark?.bookmark == null || string.IsNullOrEmpty(bookmark.bookmark.uid))
-                            continue;
-
-                        if (!existing.Add($"{user.Id}:{bookmark.bookmark.uid}"))
-                            continue;
-
-                        SisiDb.Write.bookmarks.Add(new SisiBookmarkSqlModel
-                        {
-                            user = user.Id,
-                            uid = bookmark.bookmark.uid,
-                            created = created.AddSeconds(-offset),
-                            json = JsonConvert.SerializeObject(bookmark),
-                            name = bookmark.name,
-                            model = bookmark.model?.name
-                        });
-
-                        offset++;
-                    }
-                }
-                catch { }
-            }
-
-            SisiDb.Write.SaveChanges();
-            SisiDb.Write.ChangeTracker.Clear();
         }
         #endregion
     }

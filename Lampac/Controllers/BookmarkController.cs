@@ -131,9 +131,9 @@ namespace Lampac.Controllers
                                                     if (dest.Any(dt => dt.ToString() == idStr) == false)
                                                     {
                                                         if (long.TryParse(idStr, out long _id) && _id > 0)
-                                                            dest.Insert(0, _id);
+                                                            dest.Add(_id);
                                                         else
-                                                            dest.Insert(0, idStr);
+                                                            dest.Add(idStr);
 
                                                         changed = true;
                                                     }
