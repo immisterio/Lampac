@@ -522,7 +522,6 @@ namespace Lampac
             HybridCacheDb.FullDispose();
             PlaywrightDb.FullDispose();
             ProxyLinkDb.FullDispose();
-            SyncUserDb.FullDispose();
         }
     }
 }
