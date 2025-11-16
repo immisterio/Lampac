@@ -913,7 +913,7 @@ namespace Shared
 
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5")
         {
-            enable = true,
+            enable = false,
             hls = true, scheme = "http",
             priorityBrowser = "http",
             geostreamproxy = ["ALL"]

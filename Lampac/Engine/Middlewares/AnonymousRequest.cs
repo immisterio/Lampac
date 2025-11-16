@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Shared.Models;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -8,6 +9,8 @@ namespace Lampac.Engine.Middlewares
 {
     public class AnonymousRequest
     {
+        static bool manifestInitial = false;
+
         private readonly RequestDelegate _next;
         public AnonymousRequest(RequestDelegate next)
         {
@@ -17,6 +20,23 @@ namespace Lampac.Engine.Middlewares
         public Task Invoke(HttpContext httpContext)
         {
             var requestInfo = httpContext.Features.Get<RequestModel>();
+
+            if (!manifestInitial)
+            {
+                if (!File.Exists("module/manifest.json"))
+                {
+                    if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
+                    {
+                        requestInfo.IsAnonymousRequest = true;
+                        httpContext.Features.Set(requestInfo);
+                        return _next(httpContext);
+                    }
+
+                    httpContext.Response.Redirect("/admin/manifest/install");
+                    return Task.CompletedTask;
+                }
+                else { manifestInitial = true; }
+            }
 
             var endpoint = httpContext.GetEndpoint();
             if (endpoint != null && endpoint.Metadata.GetMetadata<IAllowAnonymous>() != null)
