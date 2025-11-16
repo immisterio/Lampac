@@ -1,6 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Threading;
 
 namespace Shared.Models.SQL
 {
@@ -40,7 +42,14 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=database/SyncUser.sql");
+            optionsBuilder.UseSqlite(new SqliteConnectionStringBuilder
+            {
+                DataSource = "database/SyncUser.sql",
+                Cache = SqliteCacheMode.Shared,
+                DefaultTimeout = 10,
+                Pooling = true
+            }.ToString());
+
             optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
 
@@ -53,6 +62,27 @@ namespace Shared.Models.SQL
             modelBuilder.Entity<SyncUserBookmarkSqlModel>()
                         .HasIndex(t => t.user)
                         .IsUnique();
+        }
+
+
+        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+
+        async public Task<int> SaveChangesLocks()
+        {
+            try
+            {
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+
+                return await base.SaveChangesAsync();
+            }
+            catch
+            {
+                return 0;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
     }
 

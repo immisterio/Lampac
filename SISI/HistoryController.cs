@@ -86,7 +86,7 @@ namespace SISI
 
         [HttpPost]
         [Route("sisi/history/add")]
-        public ActionResult Add([FromBody] PlaylistItem data)
+        async public Task<ActionResult> Add([FromBody] PlaylistItem data)
         {
             string md5user = getuser();
             if (md5user == null || !AppInit.conf.sisi.history.enable || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
@@ -94,12 +94,12 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            using (var sqlDb = new SisiContext())
+            if (!SisiDb.Read.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
             {
-                if (!sqlDb.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
-                {
-                    data.history_uid = uid;
+                data.history_uid = uid;
 
+                using (var sqlDb = new SisiContext())
+                {
                     sqlDb.historys.Add(new SisiHistorySqlModel
                     {
                         user = md5user,
@@ -108,7 +108,7 @@ namespace SISI
                         json = JsonConvert.SerializeObject(data)
                     });
 
-                    sqlDb.SaveChanges();
+                    await sqlDb.SaveChangesLocks();
                 }
             }
 
@@ -120,17 +120,27 @@ namespace SISI
 
 
         [Route("sisi/history/remove")]
-        public ActionResult Remove(string id)
+        async public Task<ActionResult> Remove(string id)
         {
             string md5user = getuser();
             if (md5user == null || !AppInit.conf.sisi.history.enable || string.IsNullOrEmpty(id))
                 return OnError("access denied");
 
-            using (var sqlDb = new SisiContext())
+            try
             {
-                sqlDb.historys
-                    .Where(i => i.user == md5user && i.uid == id)
-                    .ExecuteDelete();
+                await SisiContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+
+                using (var sqlDb = new SisiContext())
+                {
+                    sqlDb.historys
+                        .Where(i => i.user == md5user && i.uid == id)
+                        .ExecuteDelete();
+                }
+            }
+            catch { }
+            finally
+            {
+                SisiContext.semaphore.Release();
             }
 
             return Json(new

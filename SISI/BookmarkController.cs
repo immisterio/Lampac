@@ -136,68 +136,68 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            using (var sqlDb = new SisiContext())
+            if (!SisiDb.Read.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
             {
-                if (!sqlDb.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
+                string newimage = null;
+
+                #region download image
+                if (AppInit.conf.sisi.bookmarks.saveimage)
                 {
-                    string newimage = null;
+                    string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
 
-                    #region download image
-                    if (AppInit.conf.sisi.bookmarks.saveimage)
+                    if (System.IO.File.Exists($"wwwroot/{pimg}"))
                     {
-                        string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
-
-                        if (System.IO.File.Exists($"wwwroot/{pimg}"))
+                        newimage = pimg;
+                    }
+                    else
+                    {
+                        var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
+                        if (image != null)
                         {
+                            Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
+                            System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
                             newimage = pimg;
+                        }
+                    }
+                }
+                #endregion
+
+                #region download preview
+                if (AppInit.conf.sisi.bookmarks.savepreview)
+                {
+                    if (data.preview != null)
+                    {
+                        string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
+
+                        if (System.IO.File.Exists($"wwwroot/{path}"))
+                        {
+                            data.preview = path;
                         }
                         else
                         {
-                            var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
-                            if (image != null)
+                            var preview = await Http.Download(data.preview, timeoutSeconds: 8);
+                            if (preview != null)
                             {
-                                Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                                System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
-                                newimage = pimg;
-                            }
-                        }
-                    }
-                    #endregion
-
-                    #region download preview
-                    if (AppInit.conf.sisi.bookmarks.savepreview)
-                    {
-                        if (data.preview != null)
-                        {
-                            string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
-
-                            if (System.IO.File.Exists($"wwwroot/{path}"))
-                            {
+                                Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
+                                System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
                                 data.preview = path;
                             }
-                            else
-                            {
-                                var preview = await Http.Download(data.preview, timeoutSeconds: 8);
-                                if (preview != null)
-                                {
-                                    Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
-                                    System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
-                                    data.preview = path;
-                                }
-                            }
                         }
                     }
-                    #endregion
+                }
+                #endregion
 
-                    var b = data.bookmark;
-                    data.bookmark = new Bookmark()
-                    {
-                        href = b.href,
-                        image = newimage ?? b.image,
-                        site = b.site,
-                        uid = uid
-                    };
+                var b = data.bookmark;
+                data.bookmark = new Bookmark()
+                {
+                    href = b.href,
+                    image = newimage ?? b.image,
+                    site = b.site,
+                    uid = uid
+                };
 
+                using (var sqlDb = new SisiContext())
+                {
                     sqlDb.bookmarks.Add(new SisiBookmarkSqlModel
                     {
                         user = md5user,
@@ -208,7 +208,7 @@ namespace SISI
                         model = data.model?.name
                     });
 
-                    sqlDb.SaveChanges();
+                    await sqlDb.SaveChangesLocks();
                 }
             }
 
@@ -220,17 +220,27 @@ namespace SISI
 
 
         [Route("sisi/bookmark/remove")]
-        public ActionResult Remove(string id)
+        async public Task<ActionResult> Remove(string id)
         {
             string md5user = getuser();
             if (md5user == null || string.IsNullOrEmpty(id))
                 return OnError("access denied");
 
-            using (var sqlDb = new SisiContext())
+            try
             {
-                sqlDb.bookmarks
-                    .Where(i => i.user == md5user && i.uid == id)
-                    .ExecuteDelete();
+                await SisiContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+
+                using (var sqlDb = new SisiContext())
+                {
+                    sqlDb.bookmarks
+                        .Where(i => i.user == md5user && i.uid == id)
+                        .ExecuteDelete();
+                }
+            }
+            catch { }
+            finally
+            {
+                SisiContext.semaphore.Release();
             }
 
             return Json(new

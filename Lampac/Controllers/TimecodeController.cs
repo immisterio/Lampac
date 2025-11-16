@@ -9,6 +9,8 @@ using Shared.Models.SQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace Lampac.Controllers
@@ -50,38 +52,47 @@ namespace Lampac.Controllers
 
         [HttpPost]
         [Route("/timecode/add")]
-        public ActionResult Set([FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
+        async public Task<ActionResult> Set([FromQuery] string card_id, [FromForm] string id, [FromForm] string data)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(data))
-                return Content("{\"secuses\": false}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false}");
 
             if (string.IsNullOrEmpty(card_id))
-                return Content("{\"secuses\": false}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false}");
 
             string userId = getUserid(requestInfo, HttpContext);
 
-            bool secuses;
+            bool success = false;
 
-            using (var sqlDb = new SyncUserContext())
+            try
             {
-                sqlDb.timecodes
-                    .Where(i => i.user == userId && i.card == card_id && i.item == id)
-                    .ExecuteDelete();
+                await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-                var entity = new SyncUserTimecodeSqlModel
+                using (var sqlDb = new SyncUserContext())
                 {
-                    user = userId,
-                    card = card_id,
-                    item = id,
-                    data = data,
-                    updated = DateTime.UtcNow
-                };
+                    sqlDb.timecodes
+                        .Where(i => i.user == userId && i.card == card_id && i.item == id)
+                        .ExecuteDelete();
 
-                sqlDb.timecodes.Add(entity);
-                secuses = sqlDb.SaveChanges() > 0;
+                    sqlDb.timecodes.Add(new SyncUserTimecodeSqlModel
+                    {
+                        user = userId,
+                        card = card_id,
+                        item = id,
+                        data = data,
+                        updated = DateTime.UtcNow
+                    });
+
+                    success = sqlDb.SaveChanges() > 0;
+                }
+            }
+            catch { }
+            finally
+            {
+                SyncUserContext.semaphore.Release();
             }
 
-            return Json(new { secuses });
+            return ContentTo($"{{\"success\": {success.ToString().ToLower()}}}");
         }
 
 

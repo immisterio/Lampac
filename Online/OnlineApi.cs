@@ -300,7 +300,7 @@ namespace Online.Controllers
                                             value = imdb_id
                                         });
 
-                                        sqlDb.SaveChanges();
+                                        await sqlDb.SaveChangesLocks();
                                     }
                                 }
                             }
@@ -370,7 +370,7 @@ namespace Online.Controllers
                                         value = kpid
                                     });
 
-                                    sqlDb.SaveChanges();
+                                    await sqlDb.SaveChangesLocks();
                                 }
                             }
                         }

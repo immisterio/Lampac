@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.Threading;
 
 namespace Shared.Models.SQL
 {
@@ -12,7 +14,7 @@ namespace Shared.Models.SQL
             try
             {
                 var sqlDb = new ExternalidsContext();
-                sqlDb.Database.EnsureCreated();
+                    sqlDb.Database.EnsureCreated();
 
                 Read = sqlDb;
             }
@@ -37,8 +39,36 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=cache/Externalids.sql");
+            optionsBuilder.UseSqlite(new SqliteConnectionStringBuilder
+            {
+                DataSource = "cache/Externalids.sql",
+                Cache = SqliteCacheMode.Shared,
+                DefaultTimeout = 10,
+                Pooling = true
+            }.ToString());
+
             optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+        }
+
+
+        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+
+        async public Task<int> SaveChangesLocks()
+        {
+            try
+            {
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+
+                return await base.SaveChangesAsync();
+            }
+            catch
+            {
+                return 0;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
     }
 

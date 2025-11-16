@@ -14,7 +14,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -53,6 +52,7 @@ namespace Lampac.Controllers
             "thrown"
         };
 
+
         #region List
         [HttpGet]
         [Route("/bookmark/list")]
@@ -74,12 +74,9 @@ namespace Lampac.Controllers
 
                 if (System.IO.File.Exists(storageFile) && !System.IO.File.Exists($"{storageFile}.migration"))
                 {
-                    string semaphoreKey = $"BookmarkController:{userUid}";
-                    var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
-
                     try
                     {
-                        await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+                        await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
                         if (System.IO.File.Exists(storageFile) && !System.IO.File.Exists($"{storageFile}.migration"))
                         {
@@ -163,15 +160,7 @@ namespace Lampac.Controllers
                     catch { }
                     finally
                     {
-                        try
-                        {
-                            semaphore.Release();
-                        }
-                        finally
-                        {
-                            if (semaphore.CurrentCount == 1)
-                                _semaphoreLocks.TryRemove(semaphoreKey, out _);
-                        }
+                        SyncUserContext.semaphore.Release();
                     }
                 }
             }
@@ -203,34 +192,31 @@ namespace Lampac.Controllers
                 if (string.IsNullOrWhiteSpace(body))
                     return JsonFailure();
 
-                string userUid = getUserid(requestInfo, HttpContext);
+                var token = JsonConvert.DeserializeObject<JToken>(body);
+                if (token == null)
+                    return JsonFailure();
 
-                string semaphoreKey = $"BookmarkController:{userUid}";
-                var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
+                var jobs = new List<JObject>();
+                if (token.Type == JTokenType.Array)
+                {
+                    foreach (var obj in token.Children<JObject>())
+                        jobs.Add(obj);
+                }
+                else if (token is JObject singleJob)
+                {
+                    jobs.Add(singleJob);
+                }
+
+                bool IsDbInitialization = false;
 
                 try
                 {
-                    await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
-
-                    var token = JsonConvert.DeserializeObject<JToken>(body);
-                    if (token == null)
-                        return JsonFailure();
-
-                    var jobs = new List<JObject>();
-                    if (token.Type == JTokenType.Array)
-                    {
-                        foreach (var obj in token.Children<JObject>())
-                            jobs.Add(obj);
-                    }
-                    else if (token is JObject singleJob)
-                    {
-                        jobs.Add(singleJob);
-                    }
-
-                    bool IsDbInitialization = false;
+                    await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
                     using (var sqlDb = new SyncUserContext())
                     {
+                        string userUid = getUserid(requestInfo, HttpContext);
+
                         IsDbInitialization = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
 
                         var (entity, data) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
@@ -257,35 +243,28 @@ namespace Lampac.Controllers
 
                         Save(sqlDb, entity, data);
                     }
-
-                    if (IsDbInitialization)
-                    {
-                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvert.SerializeObject(new
-                        {
-                            type = "set",
-                            data = token,
-                            profile_id = getProfileid(requestInfo, HttpContext)
-                        })).ConfigureAwait(false);
-                    }
-
-                    return JsonSuccess();
                 }
-                catch { }
+                catch 
+                {
+                    return JsonFailure();
+                }
                 finally
                 {
-                    try
-                    {
-                        semaphore.Release();
-                    }
-                    finally
-                    {
-                        if (semaphore.CurrentCount == 1)
-                            _semaphoreLocks.TryRemove(semaphoreKey, out _);
-                    }
+                    SyncUserContext.semaphore.Release();
                 }
-            }
 
-            return JsonFailure();
+                if (IsDbInitialization)
+                {
+                    _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvert.SerializeObject(new
+                    {
+                        type = "set",
+                        data = token,
+                        profile_id = getProfileid(requestInfo, HttpContext)
+                    })).ConfigureAwait(false);
+                }
+
+                return JsonSuccess();
+            }
         }
 
         #endregion
@@ -306,12 +285,9 @@ namespace Lampac.Controllers
 
             bool isAddedRequest = HttpContext?.Request?.Path.Value?.StartsWith("/bookmark/added", StringComparison.OrdinalIgnoreCase) == true;
 
-            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
-            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
-
             try
             {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+                await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
                 using (var sqlDb = new SyncUserContext())
                 {
@@ -339,8 +315,8 @@ namespace Lampac.Controllers
 
                         if (readBody.token != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new 
-                            { 
+                            string edata = JsonConvert.SerializeObject(new
+                            {
                                 type = isAddedRequest ? "added" : "add",
                                 profile_id = getProfileid(requestInfo, HttpContext),
                                 data = readBody.token
@@ -353,17 +329,13 @@ namespace Lampac.Controllers
 
                 return JsonSuccess();
             }
+            catch 
+            {
+                return JsonFailure();
+            }
             finally
             {
-                try
-                {
-                    semaphore.Release();
-                }
-                finally
-                {
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
-                }
+                SyncUserContext.semaphore.Release();
             }
         }
         #endregion
@@ -381,12 +353,9 @@ namespace Lampac.Controllers
             if (readBody.payloads.Count == 0)
                 return JsonFailure();
 
-            string semaphoreKey = $"BookmarkController:{getUserid(requestInfo, HttpContext)}";
-            var semaphore = _semaphoreLocks.GetOrAdd(semaphoreKey, _ => new SemaphoreSlim(1, 1));
-
             try
             {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+                await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
                 using (var sqlDb = new SyncUserContext())
                 {
@@ -418,8 +387,8 @@ namespace Lampac.Controllers
 
                         if (readBody.token != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new 
-                            { 
+                            string edata = JsonConvert.SerializeObject(new
+                            {
                                 type = "remove",
                                 profile_id = getProfileid(requestInfo, HttpContext),
                                 data = readBody.token
@@ -432,17 +401,13 @@ namespace Lampac.Controllers
 
                 return JsonSuccess();
             }
+            catch 
+            {
+                return JsonFailure();
+            }
             finally
             {
-                try
-                {
-                    semaphore.Release();
-                }
-                finally
-                {
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(semaphoreKey, out _);
-                }
+                SyncUserContext.semaphore.Release();
             }
         }
         #endregion
