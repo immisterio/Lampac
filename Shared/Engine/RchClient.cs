@@ -373,6 +373,8 @@ namespace Shared.Engine
         #region SocketClient
         public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) SocketClient()
         {
+            string _ip = ip;
+
             if (AppInit.conf.rch.websoket == "nws")
             {
                 if (httpContext.Request.Query.ContainsKey("nws_id"))
@@ -380,11 +382,14 @@ namespace Shared.Engine
                     string nws_id = httpContext.Request.Query["nws_id"].ToString()?.ToLower()?.Trim();
                     if (!string.IsNullOrEmpty(nws_id) && clients.ContainsKey(nws_id))
                         return (nws_id, clients[nws_id]);
+
+                    var client = clients.LastOrDefault(i => i.Value.ip == _ip);
+                    if (client.Value.info.rchtype != null)
+                        return (client.Key, client.Value);
                 }
             }
             else
             {
-                string _ip = ip;
                 var client = clients.LastOrDefault(i => i.Value.ip == _ip);
                 if (client.Value.info.rchtype != null)
                     return (client.Key, client.Value);
