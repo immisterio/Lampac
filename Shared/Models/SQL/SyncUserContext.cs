@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -6,18 +7,16 @@ namespace Shared.Models.SQL
 {
     public static class SyncUserDb
     {
-        public static SyncUserContext Read { get; private set; }
-
-        public static void Initialization() 
+        public static void Initialization()
         {
             Directory.CreateDirectory("database");
 
             try
             {
-                var sqlDb = new SyncUserContext();
+                using (var sqlDb = new SyncUserContext())
+                {
                     sqlDb.Database.EnsureCreated();
-
-                Read = sqlDb;
+                }
             }
             catch (Exception ex)
             {
@@ -25,12 +24,24 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void FullDispose()
+
+        public static SyncUserContext GetSyncUserContext(this HttpContext httpContext)
         {
-            Read?.Dispose();
+            if (httpContext.Items[nameof(SyncUserContext)] is SyncUserContext context)
+                return context;
+
+            context = new SyncUserContext();
+            httpContext.Items[nameof(SyncUserContext)] = context;
+
+            httpContext.Response.OnCompleted(() =>
+            {
+                context?.Dispose();
+                return Task.CompletedTask;
+            });
+
+            return context;
         }
     }
-
 
     public class SyncUserContext : DbContext
     {

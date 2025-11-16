@@ -90,71 +90,69 @@ namespace Lampac.Controllers
 
                                 var favorite = (JObject)root["favorite"];
 
-                                using (var sqlDb = new SyncUserContext())
+                                var sqlDb = HttpContext.GetSyncUserContext();
+                                var (entity, loaded) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
+                                bool changed = false;
+
+                                EnsureDefaultArrays(loaded);
+
+                                #region migrate card objects
+                                if (favorite["card"] is JArray srcCards)
                                 {
-                                    var (entity, loaded) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
-                                    bool changed = false;
-
-                                    EnsureDefaultArrays(loaded);
-
-                                    #region migrate card objects
-                                    if (favorite["card"] is JArray srcCards)
+                                    foreach (var c in srcCards.Children<JObject>())
                                     {
-                                        foreach (var c in srcCards.Children<JObject>())
-                                        {
-                                            changed |= EnsureCard(loaded, c, c?["id"]?.ToString(), insert: false);
-                                        }
+                                        changed |= EnsureCard(loaded, c, c?["id"]?.ToString(), insert: false);
                                     }
-                                    #endregion
+                                }
+                                #endregion
 
-                                    #region migrate categories
-                                    foreach (var prop in favorite.Properties())
+                                #region migrate categories
+                                foreach (var prop in favorite.Properties())
+                                {
+                                    var name = prop.Name.Trim().ToLowerInvariant();
+
+                                    if (string.Equals(name, "card", StringComparison.OrdinalIgnoreCase))
+                                        continue;
+
+                                    var srcValue = prop.Value;
+
+                                    if (BookmarkCategories.Contains(name))
                                     {
-                                        var name = prop.Name.Trim().ToLowerInvariant();
-
-                                        if (string.Equals(name, "card", StringComparison.OrdinalIgnoreCase))
-                                            continue;
-
-                                        var srcValue = prop.Value;
-
-                                        if (BookmarkCategories.Contains(name))
+                                        if (srcValue is JArray srcArray)
                                         {
-                                            if (srcValue is JArray srcArray)
+                                            var dest = GetCategoryArray(loaded, name);
+                                            foreach (var t in srcArray)
                                             {
-                                                var dest = GetCategoryArray(loaded, name);
-                                                foreach (var t in srcArray)
+                                                var idStr = t?.ToString();
+                                                if (string.IsNullOrWhiteSpace(idStr))
+                                                    continue;
+
+                                                if (dest.Any(dt => dt.ToString() == idStr) == false)
                                                 {
-                                                    var idStr = t?.ToString();
-                                                    if (string.IsNullOrWhiteSpace(idStr))
-                                                        continue;
+                                                    if (long.TryParse(idStr, out long _id) && _id > 0)
+                                                        dest.Add(_id);
+                                                    else
+                                                        dest.Add(idStr);
 
-                                                    if (dest.Any(dt => dt.ToString() == idStr) == false)
-                                                    {
-                                                        if (long.TryParse(idStr, out long _id) && _id > 0)
-                                                            dest.Add(_id);
-                                                        else
-                                                            dest.Add(idStr);
-
-                                                        changed = true;
-                                                    }
+                                                    changed = true;
                                                 }
                                             }
                                         }
-                                        else
+                                    }
+                                    else
+                                    {
+                                        var existing = loaded[name];
+                                        if (existing == null || !JToken.DeepEquals(existing, srcValue))
                                         {
-                                            var existing = loaded[name];
-                                            if (existing == null || !JToken.DeepEquals(existing, srcValue))
-                                            {
-                                                loaded[name] = srcValue;
-                                                changed = true;
-                                            }
+                                            loaded[name] = srcValue;
+                                            changed = true;
                                         }
                                     }
-                                    #endregion
-
-                                    if (changed)
-                                        Save(sqlDb, entity, loaded);
                                 }
+                                #endregion
+
+                                if (changed)
+                                    Save(sqlDb, entity, loaded);
 
                                 System.IO.File.Create($"{storageFile}.migration");
                             }
@@ -177,11 +175,13 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            bool IsDbInitialization = SyncUserDb.Read.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
+            var readDb = HttpContext.GetSyncUserContext();
+            bool IsDbInitialization = readDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
+
             if (!IsDbInitialization)
                 return Json(new { dbInNotInitialization = true });
 
-            var data = GetBookmarksForResponse(SyncUserDb.Read);
+            var data = GetBookmarksForResponse();
             if (!string.IsNullOrEmpty(filed))
                 return ContentTo(data[filed].ToString(Formatting.None));
 
@@ -229,34 +229,32 @@ namespace Lampac.Controllers
 
                     bool IsDbInitialization = false;
 
-                    using (var sqlDb = new SyncUserContext())
+                    var sqlDb = HttpContext.GetSyncUserContext();
+                    IsDbInitialization = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
+
+                    var (entity, data) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
+
+                    foreach (var job in jobs)
                     {
-                        IsDbInitialization = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
+                        string where = job.Value<string>("where")?.Trim()?.ToLowerInvariant();
+                        if (string.IsNullOrWhiteSpace(where))
+                            return JsonFailure();
 
-                        var (entity, data) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
-
-                        foreach (var job in jobs)
+                        if (IsDbInitialization && AppInit.conf.sync_user.fullset == false)
                         {
-                            string where = job.Value<string>("where")?.Trim()?.ToLowerInvariant();
-                            if (string.IsNullOrWhiteSpace(where))
-                                return JsonFailure();
-
-                            if (IsDbInitialization && AppInit.conf.sync_user.fullset == false)
-                            {
-                                if (where == "card" || BookmarkCategories.Contains(where))
-                                    return JsonFailure("enable sync_user.fullset in init.conf");
-                            }
-
-                            if (!job.TryGetValue("data", out var dataValue))
-                                return JsonFailure();
-
-                            data[where] = dataValue;
+                            if (where == "card" || BookmarkCategories.Contains(where))
+                                return JsonFailure("enable sync_user.fullset in init.conf");
                         }
 
-                        EnsureDefaultArrays(data);
+                        if (!job.TryGetValue("data", out var dataValue))
+                            return JsonFailure();
 
-                        Save(sqlDb, entity, data);
+                        data[where] = dataValue;
                     }
+
+                    EnsureDefaultArrays(data);
+
+                    Save(sqlDb, entity, data);
 
                     if (IsDbInitialization)
                     {
@@ -313,41 +311,39 @@ namespace Lampac.Controllers
             {
                 await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
-                using (var sqlDb = new SyncUserContext())
+                var sqlDb = HttpContext.GetSyncUserContext();
+                var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
+                bool changed = false;
+
+                foreach (var payload in readBody.payloads)
                 {
-                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
-                    bool changed = false;
+                    var cardId = payload.ResolveCardId();
+                    if (cardId == null)
+                        continue;
 
-                    foreach (var payload in readBody.payloads)
+                    changed |= EnsureCard(data, payload.Card, cardId);
+
+                    if (payload.Where != null)
+                        changed |= AddToCategory(data, payload.Where, cardId);
+
+                    if (isAddedRequest)
+                        changed |= MoveIdToFrontInAllCategories(data, cardId);
+                }
+
+                if (changed)
+                {
+                    Save(sqlDb, entity, data);
+
+                    if (readBody.token != null)
                     {
-                        var cardId = payload.ResolveCardId();
-                        if (cardId == null)
-                            continue;
-
-                        changed |= EnsureCard(data, payload.Card, cardId);
-
-                        if (payload.Where != null)
-                            changed |= AddToCategory(data, payload.Where, cardId);
-
-                        if (isAddedRequest)
-                            changed |= MoveIdToFrontInAllCategories(data, cardId);
-                    }
-
-                    if (changed)
-                    {
-                        Save(sqlDb, entity, data);
-
-                        if (readBody.token != null)
+                        string edata = JsonConvert.SerializeObject(new
                         {
-                            string edata = JsonConvert.SerializeObject(new 
-                            { 
-                                type = isAddedRequest ? "added" : "add",
-                                profile_id = getProfileid(requestInfo, HttpContext),
-                                data = readBody.token
-                            });
+                            type = isAddedRequest ? "added" : "add",
+                            profile_id = getProfileid(requestInfo, HttpContext),
+                            data = readBody.token
+                        });
 
-                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
-                        }
+                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                     }
                 }
 
@@ -388,45 +384,43 @@ namespace Lampac.Controllers
             {
                 await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
 
-                using (var sqlDb = new SyncUserContext())
+                var sqlDb = HttpContext.GetSyncUserContext();
+                var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: false);
+                if (entity == null)
+                    return JsonSuccess();
+
+                bool changed = false;
+
+                foreach (var payload in readBody.payloads)
                 {
-                    var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: false);
-                    if (entity == null)
-                        return JsonSuccess();
+                    var cardId = payload.ResolveCardId();
+                    if (cardId == null)
+                        continue;
 
-                    bool changed = false;
+                    if (payload.Where != null)
+                        changed |= RemoveFromCategory(data, payload.Where, cardId);
 
-                    foreach (var payload in readBody.payloads)
+                    if (payload.Method == "card")
                     {
-                        var cardId = payload.ResolveCardId();
-                        if (cardId == null)
-                            continue;
-
-                        if (payload.Where != null)
-                            changed |= RemoveFromCategory(data, payload.Where, cardId);
-
-                        if (payload.Method == "card")
-                        {
-                            changed |= RemoveIdFromAllCategories(data, cardId);
-                            changed |= RemoveCard(data, cardId);
-                        }
+                        changed |= RemoveIdFromAllCategories(data, cardId);
+                        changed |= RemoveCard(data, cardId);
                     }
+                }
 
-                    if (changed)
+                if (changed)
+                {
+                    Save(sqlDb, entity, data);
+
+                    if (readBody.token != null)
                     {
-                        Save(sqlDb, entity, data);
-
-                        if (readBody.token != null)
+                        string edata = JsonConvert.SerializeObject(new
                         {
-                            string edata = JsonConvert.SerializeObject(new 
-                            { 
-                                type = "remove",
-                                profile_id = getProfileid(requestInfo, HttpContext),
-                                data = readBody.token
-                            });
+                            type = "remove",
+                            profile_id = getProfileid(requestInfo, HttpContext),
+                            data = readBody.token
+                        });
 
-                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
-                        }
+                        _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                     }
                 }
 
@@ -468,12 +462,14 @@ namespace Lampac.Controllers
             return string.Empty;
         }
 
-        JObject GetBookmarksForResponse(SyncUserContext sqlDb)
+        JObject GetBookmarksForResponse()
         {
             if (string.IsNullOrEmpty(requestInfo.user_uid))
                 return CreateDefaultBookmarks();
 
             string user_id = getUserid(requestInfo, HttpContext);
+
+            var sqlDb = HttpContext.GetSyncUserContext();
             var entity = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == user_id);
             var data = entity != null ? DeserializeBookmarks(entity.data) : CreateDefaultBookmarks();
             EnsureDefaultArrays(data);
