@@ -1,15 +1,60 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using DnsClient;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Lumex;
 using Shared.PlaywrightCore;
+using System.Threading;
 
 namespace Online.Controllers
 {
     public class Lumex : BaseOnlineController
     {
+        static Lumex()
+        {
+            FixHostEvent();
+        }
+
+        static Dictionary<string, string> ips = null;
+
+        public static void FixHostEvent()
+        {
+            if (ips != null) 
+                return;
+
+            ips = new Dictionary<string, string>();
+
+            InvkEvent.ProxyApiCreateHttpRequest += async httpRequestModel =>
+            {
+                if (!httpRequestModel.uri.Host.Contains("mediaaly.pro"))
+                    return;
+
+                string targetHost = httpRequestModel.uri.Host.Replace("mediaaly.pro", "saicdn.com");
+
+                if (!ips.TryGetValue(targetHost, out string dns_ip))
+                {
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                    {
+                        var lookup = new LookupClient();
+                        var queryType = await lookup.QueryAsync(targetHost, QueryType.A, cancellationToken: cts.Token);
+
+                        dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+
+                        if (string.IsNullOrEmpty(dns_ip))
+                            return;
+
+                        ips.TryAdd(targetHost, dns_ip);
+                    }
+                }
+
+                var newUri = new Uri(httpRequestModel.requestMessage.RequestUri.AbsoluteUri.Replace(httpRequestModel.uri.Host, dns_ip));
+                httpRequestModel.requestMessage.RequestUri = newUri;
+            };
+        }
+
+
         #region database
         static List<DatumDB> databaseCache;
 

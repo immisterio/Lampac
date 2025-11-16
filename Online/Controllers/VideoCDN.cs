@@ -11,7 +11,12 @@ namespace Online.Controllers
 {
     public class VideoCDN : BaseOnlineController
     {
-        static VideoCDN() { Directory.CreateDirectory("cache/logs/VideoCDN"); }
+        static VideoCDN() 
+        { 
+            Directory.CreateDirectory("cache/logs/VideoCDN");
+
+            Lumex.FixHostEvent();
+        }
 
         #region Initialization
         async ValueTask<LumexSettings> Initialization()

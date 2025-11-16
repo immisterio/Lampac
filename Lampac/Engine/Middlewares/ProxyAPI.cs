@@ -108,7 +108,7 @@ namespace Lampac.Engine.Middlewares
 
                 var client = FrendlyHttp.HttpMessageClient("proxy", handler);
 
-                using (var request = CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
+                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
                 {
                     using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                     {
@@ -149,7 +149,7 @@ namespace Lampac.Engine.Middlewares
                         // base => AllowAutoRedirect = true
                         var clientor = FrendlyHttp.HttpMessageClient("base", hdlr);
 
-                        using (var requestor = CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
+                        using (var requestor = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
                         {
                             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(7)))
                             {
@@ -177,7 +177,7 @@ namespace Lampac.Engine.Middlewares
 
                 var client = FrendlyHttp.HttpMessageClient("proxy", handler);
 
-                using (var request = CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase)))
+                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase)))
                 {
                     using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                     {
@@ -378,7 +378,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CreateProxyHttpRequest
-        static HttpRequestMessage CreateProxyHttpRequest(string plugin, HttpContext context, List<HeadersModel> headers, Uri uri, bool ismedia)
+        async static Task<HttpRequestMessage> CreateProxyHttpRequest(string plugin, HttpContext context, List<HeadersModel> headers, Uri uri, bool ismedia)
         {
             var request = context.Request;
 
@@ -438,7 +438,7 @@ namespace Lampac.Engine.Middlewares
             //requestMessage.Version = new Version(2, 0);
             //Console.WriteLine(JsonConvert.SerializeObject(requestMessage.Headers, Formatting.Indented));
 
-            InvkEvent.ProxyApi(new EventProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage));
+            await InvkEvent.ProxyApi(new EventProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage));
 
             return requestMessage;
         }

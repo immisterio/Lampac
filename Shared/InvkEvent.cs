@@ -200,15 +200,21 @@ namespace Shared
         #endregion
 
         #region ProxyApi
-        public static void ProxyApi(object model)
+        public static event Func<EventProxyApiCreateHttpRequest, Task> ProxyApiCreateHttpRequest;
+
+        public static Task ProxyApi(object model)
         {
             string code = null;
 
-            if (model.GetType() == typeof(EventProxyApiCreateHttpRequest))
+            if (model is EventProxyApiCreateHttpRequest httpRequestModel)
+            {
                 code = conf?.ProxyApi?.CreateHttpRequest;
+                if (ProxyApiCreateHttpRequest != null)
+                    return ProxyApiCreateHttpRequest.Invoke(httpRequestModel);
+            }
 
             if (string.IsNullOrEmpty(code))
-                return;
+                return Task.CompletedTask;
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
@@ -219,7 +225,7 @@ namespace Shared
                 .AddReferences(typeof(System.Net.Cookie).Assembly).AddImports("System.Net")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
-            Invoke(code, model, option);
+            return InvokeAsync(code, model, option);
         }
         #endregion
 
