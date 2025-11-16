@@ -26,7 +26,7 @@ namespace Online.Controllers
 
             ips = new Dictionary<string, string>();
 
-            InvkEvent.ProxyApiCreateHttpRequest += async httpRequestModel =>
+            EventListener.ProxyApiCreateHttpRequest += async httpRequestModel =>
             {
                 if (!httpRequestModel.uri.Host.Contains("mediaaly.pro"))
                     return;

@@ -13,7 +13,7 @@ using YamlDotNet.Serialization;
 
 namespace Shared
 {
-    public class InvkEvent
+    public static class InvkEvent
     {
         #region static
         static InvkEvent()
@@ -188,8 +188,12 @@ namespace Shared
 
 
         #region LoadKit
+        public static event Action<EventLoadKit> LoadKitEvent;
+
         public static void LoadKit(EventLoadKit model)
         {
+            EventListener.LoadKit?.Invoke(model);
+
             if (conf?.LoadKit == null)
                 return;
 
@@ -200,21 +204,20 @@ namespace Shared
         #endregion
 
         #region ProxyApi
-        public static event Func<EventProxyApiCreateHttpRequest, Task> ProxyApiCreateHttpRequest;
-
-        public static Task ProxyApi(object model)
+        async public static Task ProxyApi(object model)
         {
             string code = null;
 
             if (model is EventProxyApiCreateHttpRequest httpRequestModel)
             {
                 code = conf?.ProxyApi?.CreateHttpRequest;
-                if (ProxyApiCreateHttpRequest != null)
-                    return ProxyApiCreateHttpRequest.Invoke(httpRequestModel);
+
+                if (EventListener.ProxyApiCreateHttpRequest != null)
+                    await EventListener.ProxyApiCreateHttpRequest.Invoke(httpRequestModel);
             }
 
             if (string.IsNullOrEmpty(code))
-                return Task.CompletedTask;
+                return;
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
@@ -225,7 +228,7 @@ namespace Shared
                 .AddReferences(typeof(System.Net.Cookie).Assembly).AddImports("System.Net")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
-            return InvokeAsync(code, model, option);
+            await InvokeAsync(code, model, option);
         }
         #endregion
 
@@ -233,7 +236,12 @@ namespace Shared
         public static Task<ActionResult> BadInitialization(EventBadInitialization model)
         {
             if (conf?.Controller?.BadInitialization == null)
+            {
+                if (EventListener.BadInitialization != null)
+                    return EventListener.BadInitialization.Invoke(model);
+
                 return Task.FromResult(default(ActionResult));
+            }
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(ActionResult).Assembly).AddImports("Microsoft.AspNetCore.Mvc")
@@ -249,7 +257,7 @@ namespace Shared
         public static string HostStreamProxy(EventHostStreamProxy model)
         {
             if (conf?.Controller?.HostStreamProxy == null)
-                return null;
+                return EventListener.HostStreamProxy?.Invoke(model);
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
@@ -266,7 +274,12 @@ namespace Shared
         public static Task<string> MyLocalIp(EventMyLocalIp model)
         {
             if (string.IsNullOrEmpty(conf?.Controller?.MyLocalIp))
+            {
+                if (EventListener.MyLocalIp != null)
+                    return EventListener.MyLocalIp.Invoke(model);
+
                 return Task.FromResult(default(string));
+            }
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
@@ -282,7 +295,7 @@ namespace Shared
         public static List<HeadersModel> HttpHeaders(EventControllerHttpHeaders model)
         {
             if (string.IsNullOrEmpty(conf?.Controller?.HttpHeaders))
-                return default;
+                return EventListener.HttpHeaders?.Invoke(model);
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
@@ -298,7 +311,12 @@ namespace Shared
         public static Task<bool> Middleware(bool first, EventMiddleware model)
         {
             if ((first ? conf?.Middleware?.first : conf?.Middleware?.end) == null)
+            {
+                if (EventListener.Middleware != null)
+                    return EventListener.Middleware.Invoke(first, model);
+
                 return Task.FromResult(default(bool));
+            }
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
@@ -338,7 +356,7 @@ namespace Shared
             }
 
             if (string.IsNullOrEmpty(code))
-                return null;
+                return EventListener.AppReplace?.Invoke(e, model);
 
             return Invoke<string>(code, model, ScriptOptions.Default.AddReferences(typeof(File).Assembly).AddImports("System.IO"));
         }
