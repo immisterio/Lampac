@@ -359,9 +359,12 @@ namespace Shared.PlaywrightCore
 
                                 var now = DateTime.Now;
 
-                                await PlaywrightDb.Write.files
-                                     .Where(i => now > i.ex)
-                                     .ExecuteDeleteAsync();
+                                using (var sqlDb = new PlaywrightContext())
+                                {
+                                    await sqlDb.files
+                                        .Where(i => now > i.ex)
+                                        .ExecuteDeleteAsync();
+                                }
                             }
                         }
                         catch { }
@@ -396,18 +399,18 @@ namespace Shared.PlaywrightCore
                                     var content = await response.BodyAsync();
                                     if (content != null)
                                     {
-                                        var sqlDb = PlaywrightDb.Write;
-
-                                        sqlDb.files.Add(new PlaywrightSqlModel()
+                                        using (var sqlDb = new PlaywrightContext())
                                         {
-                                            Id = memkey,
-                                            ex = DateTime.Now.AddHours(1),
-                                            headers = JsonSerializer.Serialize(response.Headers.ToDictionary()),
-                                            content = content
-                                        });
+                                            sqlDb.files.Add(new PlaywrightSqlModel()
+                                            {
+                                                Id = memkey,
+                                                ex = DateTime.Now.AddHours(1),
+                                                headers = JsonSerializer.Serialize(response.Headers.ToDictionary()),
+                                                content = content
+                                            });
 
-                                        await sqlDb.SaveChangesAsync();
-                                        sqlDb.ChangeTracker.Clear();
+                                            await sqlDb.SaveChangesAsync();
+                                        }
                                     }
                                 }
                             }

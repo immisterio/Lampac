@@ -5,17 +5,16 @@ namespace Shared.Models.SQL
 {
     public static class ProxyLinkDb
     {
-        public static readonly ProxyLinkContext Read, Write;
+        public static ProxyLinkContext Read { get; private set; }
 
-        static ProxyLinkDb()
+        public static void Initialization() 
         {
             try
             {
-                Write = new ProxyLinkContext();
-                Write.ChangeTracker.AutoDetectChangesEnabled = false;
-                Write.Database.EnsureCreated();
+                var sqlDb = new ProxyLinkContext();
+                    sqlDb.Database.EnsureCreated();
 
-                Read = new ProxyLinkContext();
+                Read = sqlDb;
             }
             catch (Exception ex)
             {
@@ -23,12 +22,9 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void Initialization() { }
-
         public static void FullDispose()
         {
             Read?.Dispose();
-            Write?.Dispose();
         }
     }
 

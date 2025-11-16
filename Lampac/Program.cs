@@ -201,49 +201,51 @@ namespace Lampac
                                 .Select(i => $"{i.user}:{i.uid}")
                     );
 
-                    foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
+                    using (var sqlDb = new SisiContext())
                     {
-                        string folderName = Path.GetFileName(folder);
-
-                        foreach (string file in Directory.GetFiles(folder))
+                        foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
                         {
-                            try
+                            string folderName = Path.GetFileName(folder);
+
+                            foreach (string file in Directory.GetFiles(folder))
                             {
-                                string md5user = folderName + Path.GetFileName(file);
-                                var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
-
-                                if (bookmarks == null || bookmarks.Count == 0)
-                                    continue;
-
-                                DateTime now = DateTime.UtcNow;
-
-                                for (int i = 0; i < bookmarks.Count; i++)
+                                try
                                 {
-                                    var pl = bookmarks[i];
+                                    string md5user = folderName + Path.GetFileName(file);
+                                    var bookmarks = JsonConvert.DeserializeObject<List<PlaylistItem>>(File.ReadAllText(file));
 
-                                    if (pl?.bookmark == null || string.IsNullOrEmpty(pl.bookmark.uid))
+                                    if (bookmarks == null || bookmarks.Count == 0)
                                         continue;
 
-                                    if (!existing.Add($"{md5user}:{pl.bookmark.uid}"))
-                                        continue;
+                                    DateTime now = DateTime.UtcNow;
 
-                                    SisiDb.Write.bookmarks.Add(new SisiBookmarkSqlModel
+                                    for (int i = 0; i < bookmarks.Count; i++)
                                     {
-                                        user = md5user,
-                                        uid = pl.bookmark.uid,
-                                        created = now.AddSeconds(-i),
-                                        json = JsonConvert.SerializeObject(pl),
-                                        name = pl.name,
-                                        model = pl.model?.name
-                                    });
-                                }
-                            }
-                            catch { }
-                        }
-                    }
+                                        var pl = bookmarks[i];
 
-                    SisiDb.Write.SaveChanges();
-                    SisiDb.Write.ChangeTracker.Clear();
+                                        if (pl?.bookmark == null || string.IsNullOrEmpty(pl.bookmark.uid))
+                                            continue;
+
+                                        if (!existing.Add($"{md5user}:{pl.bookmark.uid}"))
+                                            continue;
+
+                                        sqlDb.bookmarks.Add(new SisiBookmarkSqlModel
+                                        {
+                                            user = md5user,
+                                            uid = pl.bookmark.uid,
+                                            created = now.AddSeconds(-i),
+                                            json = JsonConvert.SerializeObject(pl),
+                                            name = pl.name,
+                                            model = pl.model?.name
+                                        });
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+
+                        sqlDb.SaveChanges();
+                    }
 
                     Directory.Move("cache/bookmarks/sisi", "cache/bookmarks/sisi.bak");
                 }

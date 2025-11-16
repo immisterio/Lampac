@@ -60,24 +60,26 @@ namespace Lampac.Controllers
 
             string userId = getUserid(requestInfo, HttpContext);
 
-            var sqlDb = SyncUserDb.Write;
+            bool secuses;
 
-            sqlDb.timecodes
-                .Where(i => i.user == userId && i.card == card_id && i.item == id)
-                .ExecuteDelete();
-
-            var entity = new SyncUserTimecodeSqlModel
+            using (var sqlDb = new SyncUserContext())
             {
-                user = userId,
-                card = card_id,
-                item = id,
-                data = data,
-                updated = DateTime.UtcNow
-            };
+                sqlDb.timecodes
+                    .Where(i => i.user == userId && i.card == card_id && i.item == id)
+                    .ExecuteDelete();
 
-            sqlDb.timecodes.Add(entity);
+                var entity = new SyncUserTimecodeSqlModel
+                {
+                    user = userId,
+                    card = card_id,
+                    item = id,
+                    data = data,
+                    updated = DateTime.UtcNow
+                };
 
-            bool secuses = sqlDb.SaveChanges() > 0;
+                sqlDb.timecodes.Add(entity);
+                secuses = sqlDb.SaveChanges() > 0;
+            }
 
             return Json(new { secuses });
         }

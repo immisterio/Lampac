@@ -292,16 +292,16 @@ namespace Online.Controllers
                                 imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
                                 if (!string.IsNullOrEmpty(imdb_id))
                                 {
-                                    var sqlDb = ExternalidsDb.Write;
-
-                                    sqlDb.Add(new ExternalidsSqlModel()
+                                    using (var sqlDb = new ExternalidsContext())
                                     {
-                                        Id = $"{id}_{serial}",
-                                        value = imdb_id
-                                    });
+                                        sqlDb.Add(new ExternalidsSqlModel()
+                                        {
+                                            Id = $"{id}_{serial}",
+                                            value = imdb_id
+                                        });
 
-                                    sqlDb.SaveChanges();
-                                    sqlDb.ChangeTracker.Clear();
+                                        sqlDb.SaveChanges();
+                                    }
                                 }
                             }
                         }

@@ -37,51 +37,51 @@ namespace Shared.Engine
             {
                 updatingDb = true;
 
-                var sqlDb = HybridCacheDb.Write;
-                sqlDb.ChangeTracker.Clear();
-
-                if (DateTime.Now > _nextClearDb)
+                using (var sqlDb = new HybridCacheContext())
                 {
-                    _nextClearDb = DateTime.Now.AddMinutes(20);
-
-                    var now = DateTime.Now;
-
-                    await sqlDb.files
-                         .Where(i => now > i.ex)
-                         .ExecuteDeleteAsync();
-                }
-                else
-                {
-                    var array = tempDb.ToArray().Where(t => t.Value.extend >= DateTime.Now);
-                    if (array.Any())
+                    if (DateTime.Now > _nextClearDb)
                     {
-                        var delete_ids = array.Select(k => k.Key).ToHashSet();
-                        if (delete_ids.Count > 0)
-                        {
-                            await sqlDb.files
-                                .Where(x => delete_ids.Contains(x.Id))
-                                .ExecuteDeleteAsync();
-                        }
+                        _nextClearDb = DateTime.Now.AddMinutes(20);
 
-                        var hash_ids = new HashSet<string>();
+                        var now = DateTime.Now;
 
-                        foreach (var t in array)
+                        await sqlDb.files
+                            .Where(i => now > i.ex)
+                            .ExecuteDeleteAsync();
+                    }
+                    else
+                    {
+                        var array = tempDb.ToArray().Where(t => t.Value.extend >= DateTime.Now);
+                        if (array.Any())
                         {
-                            if (hash_ids.Add(t.Key))
+                            var delete_ids = array.Select(k => k.Key).ToHashSet();
+                            if (delete_ids.Count > 0)
                             {
-                                sqlDb.files.Add(new HybridCacheSqlModel()
-                                {
-                                    Id = t.Key,
-                                    ex = t.Value.cache.ex,
-                                    value = t.Value.cache.value
-                                });
+                                await sqlDb.files
+                                    .Where(x => delete_ids.Contains(x.Id))
+                                    .ExecuteDeleteAsync();
                             }
+
+                            var hash_ids = new HashSet<string>();
+
+                            foreach (var t in array)
+                            {
+                                if (hash_ids.Add(t.Key))
+                                {
+                                    sqlDb.files.Add(new HybridCacheSqlModel()
+                                    {
+                                        Id = t.Key,
+                                        ex = t.Value.cache.ex,
+                                        value = t.Value.cache.value
+                                    });
+                                }
+                            }
+
+                            await sqlDb.SaveChangesAsync();
+
+                            foreach (var t in array)
+                                tempDb.TryRemove(t.Key, out _);
                         }
-
-                        await sqlDb.SaveChangesAsync();
-
-                        foreach (var t in array)
-                            tempDb.TryRemove(t.Key, out _);
                     }
                 }
             }

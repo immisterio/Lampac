@@ -5,48 +5,49 @@ namespace Shared.Models.SQL
 {
     public static class SisiDb
     {
-        public static readonly SisiContext Read, Write;
+        public static SisiContext Read { get; private set; }
 
-        static SisiDb()
+        public static void Initialization() 
         {
             Directory.CreateDirectory("database");
 
             try
             {
-                Write = new SisiContext();
-                Write.ChangeTracker.AutoDetectChangesEnabled = false;
-                Write.Database.EnsureCreated();
-
-                #region migrate historys table
-                try
+                using (var sqlDb = new SisiContext())
                 {
-                    using (var conn = Write.Database.GetDbConnection())
+                    sqlDb.Database.EnsureCreated();
+
+                    #region migrate historys table
+                    try
                     {
-                        conn.Open();
-                        using (var cmd = conn.CreateCommand())
+                        using (var conn = sqlDb.Database.GetDbConnection())
                         {
-                            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='historys';";
-                            var res = cmd.ExecuteScalar();
-                            if (res == null)
+                            conn.Open();
+                            using (var cmd = conn.CreateCommand())
                             {
-                                cmd.CommandText = @"CREATE TABLE IF NOT EXISTS historys (
+                                cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='historys';";
+                                var res = cmd.ExecuteScalar();
+                                if (res == null)
+                                {
+                                    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS historys (
                                                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                                                         user TEXT NOT NULL,
                                                         uid TEXT NOT NULL,
                                                         created TEXT,
                                                         json TEXT
                                                     );";
-                                cmd.ExecuteNonQuery();
+                                    cmd.ExecuteNonQuery();
 
-                                cmd.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_historys_user_uid ON historys(user, uid);";
-                                cmd.ExecuteNonQuery();
+                                    cmd.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_historys_user_uid ON historys(user, uid);";
+                                    cmd.ExecuteNonQuery();
+                                }
                             }
+                            conn.Close();
                         }
-                        conn.Close();
                     }
+                    catch { }
+                    #endregion
                 }
-                catch { }
-                #endregion
 
                 Read = new SisiContext();
             }
@@ -56,12 +57,9 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void Initialization() { }
-
         public static void FullDispose()
         {
             Read?.Dispose();
-            Write?.Dispose();
         }
     }
 

@@ -5,17 +5,16 @@ namespace Shared.Models.SQL
 {
     public static class PlaywrightDb
     {
-        public static readonly PlaywrightContext Read, Write;
+        public static PlaywrightContext Read { get; private set; }
 
-        static PlaywrightDb()
+        public static void Initialization() 
         {
             try
             {
-                Write = new PlaywrightContext();
-                Write.ChangeTracker.AutoDetectChangesEnabled = false;
-                Write.Database.EnsureCreated();
+                var sqlDb = new PlaywrightContext();
+                    sqlDb.Database.EnsureCreated();
 
-                Read = new PlaywrightContext();
+                Read = sqlDb;
             }
             catch (Exception ex)
             {
@@ -23,12 +22,9 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void Initialization() { }
-
         public static void FullDispose()
         {
             Read?.Dispose();
-            Write?.Dispose();
         }
     }
 

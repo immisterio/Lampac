@@ -5,17 +5,16 @@ namespace Shared.Models.SQL
 {
     public static class HybridCacheDb
     {
-        public static readonly HybridCacheContext Read, Write;
+        public static HybridCacheContext Read { get; private set; }
 
-        static HybridCacheDb()
+        public static void Initialization() 
         {
             try
             {
-                Write = new HybridCacheContext();
-                Write.ChangeTracker.AutoDetectChangesEnabled = false;
-                Write.Database.EnsureCreated();
+                var sqlDb = new HybridCacheContext();
+                    sqlDb.Database.EnsureCreated();
 
-                Read = new HybridCacheContext();
+                Read = sqlDb;
             }
             catch (Exception ex)
             {
@@ -23,12 +22,9 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void Initialization() { }
-
         public static void FullDispose()
         {
             Read?.Dispose();
-            Write?.Dispose();
         }
     }
 

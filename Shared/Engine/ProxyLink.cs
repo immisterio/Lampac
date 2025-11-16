@@ -207,58 +207,58 @@ namespace Shared.Engine
 
                 cronRound++;
 
-                var sqlDb = ProxyLinkDb.Write;
-                sqlDb.ChangeTracker.Clear();
-
-                if (DateTime.Now > _nextClearDb)
+                using (var sqlDb = new ProxyLinkContext())
                 {
-                    _nextClearDb = DateTime.Now.AddHours(1);
-
-                    var now = DateTime.Now;
-
-                    await sqlDb.links
-                         .Where(i => now > i.ex)
-                         .ExecuteDeleteAsync();
-                }
-                else
-                {
-                    foreach (var link in links.ToArray())
+                    if (DateTime.Now > _nextClearDb)
                     {
-                        try
+                        _nextClearDb = DateTime.Now.AddHours(1);
+
+                        var now = DateTime.Now;
+
+                        await sqlDb.links
+                             .Where(i => now > i.ex)
+                             .ExecuteDeleteAsync();
+                    }
+                    else
+                    {
+                        foreach (var link in links.ToArray())
                         {
-                            if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
+                            try
                             {
-                                if (DateTime.Now > link.Value.ex)
-                                    links.TryRemove(link.Key, out _);
-                            }
-                            else
-                            {
-                                if (tempLinks.Contains(link.Key))
-                                    links.TryRemove(link.Key, out _);
+                                if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
+                                {
+                                    if (DateTime.Now > link.Value.ex)
+                                        links.TryRemove(link.Key, out _);
+                                }
                                 else
                                 {
-                                    link.Value.id = link.Key;
-
-                                    await sqlDb.links
-                                        .Where(x => x.Id == link.Key)
-                                        .ExecuteDeleteAsync();
-
-                                    sqlDb.links.Add(new ProxyLinkSqlModel()
-                                    {
-                                        Id = link.Key,
-                                        ex = link.Value.ex,
-                                        json = JsonSerializer.Serialize(link.Value)
-                                    });
-
-                                    if (await sqlDb.SaveChangesAsync() > 0)
-                                    {
-                                        tempLinks.Add(link.Key);
+                                    if (tempLinks.Contains(link.Key))
                                         links.TryRemove(link.Key, out _);
+                                    else
+                                    {
+                                        link.Value.id = link.Key;
+
+                                        await sqlDb.links
+                                            .Where(x => x.Id == link.Key)
+                                            .ExecuteDeleteAsync();
+
+                                        sqlDb.links.Add(new ProxyLinkSqlModel()
+                                        {
+                                            Id = link.Key,
+                                            ex = link.Value.ex,
+                                            json = JsonSerializer.Serialize(link.Value)
+                                        });
+
+                                        if (await sqlDb.SaveChangesAsync() > 0)
+                                        {
+                                            tempLinks.Add(link.Key);
+                                            links.TryRemove(link.Key, out _);
+                                        }
                                     }
                                 }
                             }
+                            catch (Exception ex) { Console.WriteLine($"ProxyLink: {ex}"); }
                         }
-                        catch (Exception ex) { Console.WriteLine($"ProxyLink: {ex}"); }
                     }
                 }
             }

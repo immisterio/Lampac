@@ -24,9 +24,9 @@ namespace SISI
                 .Take(pageSize * 20)
                 .ToList();
 
-            int total_pages = Math.Max(0, historysQuery.Count / pageSize) + 1;
-
             SisiDb.Read.ChangeTracker.Clear();
+
+            int total_pages = Math.Max(0, historysQuery.Count / pageSize) + 1;
 
             var items = historysQuery
                 .OrderByDescending(i => i.created)
@@ -94,22 +94,22 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            var sqlDb = SisiDb.Write;
-
-            if (!sqlDb.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
+            using (var sqlDb = new SisiContext())
             {
-                data.history_uid = uid;
-
-                sqlDb.historys.Add(new SisiHistorySqlModel
+                if (!sqlDb.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
                 {
-                    user = md5user,
-                    uid = uid,
-                    created = DateTime.UtcNow,
-                    json = JsonConvert.SerializeObject(data)
-                });
+                    data.history_uid = uid;
 
-                sqlDb.SaveChanges();
-                sqlDb.ChangeTracker.Clear();
+                    sqlDb.historys.Add(new SisiHistorySqlModel
+                    {
+                        user = md5user,
+                        uid = uid,
+                        created = DateTime.UtcNow,
+                        json = JsonConvert.SerializeObject(data)
+                    });
+
+                    sqlDb.SaveChanges();
+                }
             }
 
             return Json(new
@@ -126,11 +126,12 @@ namespace SISI
             if (md5user == null || !AppInit.conf.sisi.history.enable || string.IsNullOrEmpty(id))
                 return OnError("access denied");
 
-            var sqlDb = SisiDb.Write;
-
-            sqlDb.historys
-                .Where(i => i.user == md5user && i.uid == id)
-                .ExecuteDelete();
+            using (var sqlDb = new SisiContext())
+            {
+                sqlDb.historys
+                    .Where(i => i.user == md5user && i.uid == id)
+                    .ExecuteDelete();
+            }
 
             return Json(new
             {

@@ -5,17 +5,16 @@ namespace Shared.Models.SQL
 {
     public static class ExternalidsDb
     {
-        public static readonly ExternalidsContext Read, Write;
+        public static ExternalidsContext Read { get; private set; }
 
-        static ExternalidsDb()
+        public static void Initialization() 
         {
             try
             {
-                Write = new ExternalidsContext();
-                Write.ChangeTracker.AutoDetectChangesEnabled = false;
-                Write.Database.EnsureCreated();
+                var sqlDb = new ExternalidsContext();
+                sqlDb.Database.EnsureCreated();
 
-                Read = new ExternalidsContext();
+                Read = sqlDb;
             }
             catch (Exception ex)
             {
@@ -23,12 +22,9 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void Initialization() { }
-
         public static void FullDispose()
         {
             Read?.Dispose();
-            Write?.Dispose();
         }
     }
 

@@ -6,19 +6,18 @@ namespace Shared.Models.SQL
 {
     public static class SyncUserDb
     {
-        public static readonly SyncUserContext Read, Write;
+        public static SyncUserContext Read { get; private set; }
 
-        static SyncUserDb()
+        public static void Initialization() 
         {
             Directory.CreateDirectory("database");
 
             try
             {
-                Write = new SyncUserContext();
-                Write.ChangeTracker.AutoDetectChangesEnabled = false;
-                Write.Database.EnsureCreated();
+                var sqlDb = new SyncUserContext();
+                    sqlDb.Database.EnsureCreated();
 
-                Read = new SyncUserContext();
+                Read = sqlDb;
             }
             catch (Exception ex)
             {
@@ -26,12 +25,9 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void Initialization() { }
-
         public static void FullDispose()
         {
             Read?.Dispose();
-            Write?.Dispose();
         }
     }
 
