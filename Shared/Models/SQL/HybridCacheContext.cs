@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shared.Models.SQL
 {
-    public static class HybridCacheDb
+    public partial class HybridCacheContext
     {
         public static HybridCacheContext Read { get; private set; }
 
@@ -29,7 +29,7 @@ namespace Shared.Models.SQL
     }
 
 
-    public class HybridCacheContext : DbContext
+    public partial class HybridCacheContext : DbContext
     {
         public DbSet<HybridCacheSqlModel> files { get; set; }
 

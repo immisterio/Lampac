@@ -472,7 +472,10 @@ namespace Shared
         {
             var code = conf?.Transcoding?.CreateProcess;
             if (string.IsNullOrEmpty(code))
+            {
+                EventListener.TranscodingCreateProcess?.Invoke(model);
                 return;
+            }
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(Collection<string>).Assembly).AddImports("System.Collections.ObjectModel")

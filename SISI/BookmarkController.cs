@@ -28,12 +28,12 @@ namespace SISI
             #region bookmarks
             var bookmarks = new List<PlaylistItem>();
 
-            var bookmarksQuery = SisiDb.Read.bookmarks
+            var bookmarksQuery = SisiContext.Read.bookmarks
                 .AsNoTracking()
                 .Where(i => i.user == md5user)
                 .ToList();
 
-            SisiDb.Read.ChangeTracker.Clear();
+            SisiContext.Read.ChangeTracker.Clear();
 
             int total_pages = Math.Max(0, bookmarksQuery.Count / pageSize) + 1;
 
@@ -136,7 +136,7 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            if (!SisiDb.Read.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
+            if (!SisiContext.Read.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
             {
                 string newimage = null;
 

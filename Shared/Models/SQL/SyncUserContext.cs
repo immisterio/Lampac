@@ -6,8 +6,10 @@ using System.Threading;
 
 namespace Shared.Models.SQL
 {
-    public static class SyncUserDb
+    public partial class SyncUserContext
     {
+        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+
         public static SyncUserContext Read { get; private set; }
 
         public static void Initialization() 
@@ -27,6 +29,24 @@ namespace Shared.Models.SQL
             }
         }
 
+        async public Task<int> SaveChangesLocks()
+        {
+            try
+            {
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+
+                return await base.SaveChangesAsync();
+            }
+            catch
+            {
+                return 0;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
         public static void FullDispose()
         {
             Read?.Dispose();
@@ -34,7 +54,7 @@ namespace Shared.Models.SQL
     }
 
 
-    public class SyncUserContext : DbContext
+    public partial class SyncUserContext : DbContext
     {
         public DbSet<SyncUserTimecodeSqlModel> timecodes { get; set; }
 
@@ -62,27 +82,6 @@ namespace Shared.Models.SQL
             modelBuilder.Entity<SyncUserBookmarkSqlModel>()
                         .HasIndex(t => t.user)
                         .IsUnique();
-        }
-
-
-        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-
-        async public Task<int> SaveChangesLocks()
-        {
-            try
-            {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
-
-                return await base.SaveChangesAsync();
-            }
-            catch
-            {
-                return 0;
-            }
-            finally
-            {
-                semaphore.Release();
-            }
         }
     }
 

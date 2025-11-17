@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shared.Models.SQL
 {
-    public static class ProxyLinkDb
+    public partial class ProxyLinkContext
     {
         public static ProxyLinkContext Read { get; private set; }
 
@@ -29,7 +29,7 @@ namespace Shared.Models.SQL
     }
 
 
-    public class ProxyLinkContext : DbContext
+    public partial class ProxyLinkContext : DbContext
     {
         public DbSet<ProxyLinkSqlModel> links { get; set; }
 

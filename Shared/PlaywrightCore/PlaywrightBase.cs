@@ -370,8 +370,8 @@ namespace Shared.PlaywrightCore
                         catch { }
                         #endregion
 
-                        var doc = PlaywrightDb.Read.files.Find(memkey);
-                        PlaywrightDb.Read.ChangeTracker.Clear();
+                        var doc = PlaywrightContext.Read.files.Find(memkey);
+                        PlaywrightContext.Read.ChangeTracker.Clear();
 
                         if (doc?.content != null)
                         {

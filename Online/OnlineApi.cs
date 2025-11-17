@@ -274,8 +274,8 @@ namespace Online.Controllers
 
                 if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out long _testid) && _testid > 0)
                 {
-                    imdb_id = ExternalidsDb.Read.imdb.Find($"{id}_{serial}")?.value;
-                    ExternalidsDb.Read.ChangeTracker.Clear();
+                    imdb_id = ExternalidsContext.Read.imdb.Find($"{id}_{serial}")?.value;
+                    ExternalidsContext.Read.ChangeTracker.Clear();
 
                     if (string.IsNullOrEmpty(imdb_id))
                     {

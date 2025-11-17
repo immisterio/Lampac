@@ -143,8 +143,8 @@ namespace Shared.Engine
                 {
                     if (!AppInit.conf.mikrotik)
                     {
-                        var link = ProxyLinkDb.Read.links.Find(hash);
-                        ProxyLinkDb.Read.ChangeTracker.Clear();
+                        var link = ProxyLinkContext.Read.links.Find(hash);
+                        ProxyLinkContext.Read.ChangeTracker.Clear();
 
                         if (link != null && link.ex > DateTime.Now)
                         {

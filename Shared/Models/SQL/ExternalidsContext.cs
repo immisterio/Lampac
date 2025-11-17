@@ -5,8 +5,10 @@ using System.Threading;
 
 namespace Shared.Models.SQL
 {
-    public static class ExternalidsDb
+    public partial class ExternalidsContext
     {
+        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+
         public static ExternalidsContext Read { get; private set; }
 
         public static void Initialization() 
@@ -24,35 +26,6 @@ namespace Shared.Models.SQL
             }
         }
 
-        public static void FullDispose()
-        {
-            Read?.Dispose();
-        }
-    }
-
-
-    public class ExternalidsContext : DbContext
-    {
-        public DbSet<ExternalidsSqlModel> imdb { get; set; }
-
-        public DbSet<ExternalidsSqlModel> kinopoisk { get; set; }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlite(new SqliteConnectionStringBuilder
-            {
-                DataSource = "cache/Externalids.sql",
-                Cache = SqliteCacheMode.Shared,
-                DefaultTimeout = 10,
-                Pooling = true
-            }.ToString());
-
-            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-        }
-
-
-        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-
         async public Task<int> SaveChangesLocks()
         {
             try
@@ -69,6 +42,32 @@ namespace Shared.Models.SQL
             {
                 semaphore.Release();
             }
+        }
+
+        public static void FullDispose()
+        {
+            Read?.Dispose();
+        }
+    }
+
+
+    public partial class ExternalidsContext : DbContext
+    {
+        public DbSet<ExternalidsSqlModel> imdb { get; set; }
+
+        public DbSet<ExternalidsSqlModel> kinopoisk { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlite(new SqliteConnectionStringBuilder
+            {
+                DataSource = "cache/Externalids.sql",
+                Cache = SqliteCacheMode.Shared,
+                DefaultTimeout = 10,
+                Pooling = true
+            }.ToString());
+
+            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
     }
 

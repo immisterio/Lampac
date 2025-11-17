@@ -177,8 +177,8 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    var doc = HybridCacheDb.Read.files.Find(md5key);
-                    HybridCacheDb.Read.ChangeTracker.Clear();
+                    var doc = HybridCacheContext.Read.files.Find(md5key);
+                    HybridCacheContext.Read.ChangeTracker.Clear();
 
                     return deserializeCache(doc, out value);
                 }

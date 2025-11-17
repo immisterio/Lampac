@@ -5,8 +5,10 @@ using System.Threading;
 
 namespace Shared.Models.SQL
 {
-    public static class SisiDb
+    public partial class SisiContext
     {
+        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+
         public static SisiContext Read { get; private set; }
 
         public static void Initialization() 
@@ -59,6 +61,24 @@ namespace Shared.Models.SQL
             }
         }
 
+        async public Task<int> SaveChangesLocks()
+        {
+            try
+            {
+                await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+
+                return await base.SaveChangesAsync();
+            }
+            catch
+            {
+                return 0;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
         public static void FullDispose()
         {
             Read?.Dispose();
@@ -66,7 +86,7 @@ namespace Shared.Models.SQL
     }
 
 
-    public class SisiContext : DbContext
+    public partial class SisiContext : DbContext
     {
         public DbSet<SisiBookmarkSqlModel> bookmarks { get; set; }
 
@@ -94,27 +114,6 @@ namespace Shared.Models.SQL
             modelBuilder.Entity<SisiHistorySqlModel>()
                         .HasIndex(h => new { h.user, h.uid })
                         .IsUnique();
-        }
-
-
-        public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-
-        async public Task<int> SaveChangesLocks()
-        {
-            try
-            {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
-
-                return await base.SaveChangesAsync();
-            }
-            catch 
-            {
-                return 0;
-            }
-            finally
-            {
-                semaphore.Release();
-            }
         }
     }
 

@@ -39,7 +39,7 @@ namespace Lampac.Controllers
 
             string userId = getUserid(requestInfo, HttpContext);
 
-            Dictionary<string, string> timecodes = SyncUserDb.Read.timecodes
+            Dictionary<string, string> timecodes = SyncUserContext.Read.timecodes
                 .AsNoTracking()
                 .Where(i => i.user == userId && i.card == card_id)
                 .ToDictionary(i => i.item, i => i.data);

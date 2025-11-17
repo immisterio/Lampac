@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
 using Shared.Models.Events;
+using Shared.Models.JacRed;
 
 namespace Shared
 {
@@ -21,5 +22,9 @@ namespace Shared
         public static Func<bool, EventMiddleware, Task<bool>> Middleware;
 
         public static Func<string, EventAppReplace, string> AppReplace;
+
+        public static Action<TorrentDetails> RedApiAddTorrents;
+
+        public static Action<EventTranscoding> TranscodingCreateProcess;
     }
 }

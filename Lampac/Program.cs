@@ -150,12 +150,12 @@ namespace Lampac
             #endregion
 
             #region SQL
-            ExternalidsDb.Initialization();
-            HybridCacheDb.Initialization();
-            SisiDb.Initialization();
-            ProxyLinkDb.Initialization();
-            PlaywrightDb.Initialization();
-            SyncUserDb.Initialization();
+            ExternalidsContext.Initialization();
+            HybridCacheContext.Initialization();
+            SisiContext.Initialization();
+            ProxyLinkContext.Initialization();
+            PlaywrightContext.Initialization();
+            SyncUserContext.Initialization();
             #endregion
 
             #region migration
@@ -196,7 +196,7 @@ namespace Lampac
                 if (Directory.Exists("cache/bookmarks/sisi"))
                 {
                     var existing = new HashSet<string>(
-                        SisiDb.Read.bookmarks
+                        SisiContext.Read.bookmarks
                                 .AsNoTracking()
                                 .Select(i => $"{i.user}:{i.uid}")
                     );

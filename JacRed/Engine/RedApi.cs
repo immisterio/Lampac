@@ -54,6 +54,10 @@ namespace JacRed.Engine
                     if (!InvkEvent.RedApi("addtorrent", t))
                         return;
                 }
+                else
+                {
+                    EventListener.RedApiAddTorrents?.Invoke(t);
+                }
 
                 if (torrents.TryGetValue(t.url, out TorrentDetails val))
                 {

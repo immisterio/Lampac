@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shared.Models.SQL
 {
-    public static class PlaywrightDb
+    public partial class PlaywrightContext
     {
         public static PlaywrightContext Read { get; private set; }
 
@@ -29,7 +29,7 @@ namespace Shared.Models.SQL
     }
 
 
-    public class PlaywrightContext : DbContext
+    public partial class PlaywrightContext : DbContext
     {
         public DbSet<PlaywrightSqlModel> files { get; set; }
 

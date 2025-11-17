@@ -517,12 +517,12 @@ namespace Lampac
             Firefox.FullDispose();
             nws.FullDispose();
             soks.FullDispose();
-            SisiDb.FullDispose();
-            ExternalidsDb.FullDispose();
-            HybridCacheDb.FullDispose();
-            PlaywrightDb.FullDispose();
-            ProxyLinkDb.FullDispose();
-            SyncUserDb.FullDispose();
+            SisiContext.FullDispose();
+            ExternalidsContext.FullDispose();
+            HybridCacheContext.FullDispose();
+            PlaywrightContext.FullDispose();
+            ProxyLinkContext.FullDispose();
+            SyncUserContext.FullDispose();
         }
     }
 }

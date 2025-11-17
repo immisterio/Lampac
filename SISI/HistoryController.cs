@@ -18,13 +18,13 @@ namespace SISI
             #region historys
             var historys = new List<PlaylistItem>();
 
-            var historysQuery = SisiDb.Read.historys
+            var historysQuery = SisiContext.Read.historys
                 .AsNoTracking()
                 .Where(i => i.user == md5user)
                 .Take(pageSize * 20)
                 .ToList();
 
-            SisiDb.Read.ChangeTracker.Clear();
+            SisiContext.Read.ChangeTracker.Clear();
 
             int total_pages = Math.Max(0, historysQuery.Count / pageSize) + 1;
 
@@ -94,7 +94,7 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            if (!SisiDb.Read.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
+            if (!SisiContext.Read.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
             {
                 data.history_uid = uid;
 
