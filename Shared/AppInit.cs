@@ -892,6 +892,10 @@ namespace Shared
             geostreamproxy = ["ALL"]
         };
 
+        /// <summary>
+        /// aHR0cHM6Ly91YWtpbm9nby5lYw==
+        /// aHR0cHM6Ly91YWtpbm9nby5vbmxpbmU=
+        /// </summary>
         public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|")
         {
             streamproxy = true
@@ -918,7 +922,7 @@ namespace Shared
 
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5")
         {
-            enable = true,
+            enable = false,
             streamproxy = true,
             hls = true, scheme = "http",
             priorityBrowser = "http",
