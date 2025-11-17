@@ -892,6 +892,11 @@ namespace Shared
             geostreamproxy = ["ALL"]
         };
 
+        public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|")
+        {
+            streamproxy = true
+        };
+
         /// <summary>
         /// Получение учетной записи
         /// 
