@@ -373,6 +373,15 @@ namespace Shared.Engine
         #region SocketClient
         public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) SocketClient()
         {
+            // new RchClient(connectionId);
+            if (!string.IsNullOrEmpty(connectionId))
+            {
+                if (clients.ContainsKey(connectionId))
+                    return (connectionId, clients[connectionId]);
+
+                return default;
+            }
+
             string _ip = ip;
 
             if (AppInit.conf.rch.websoket == "nws")

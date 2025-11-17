@@ -184,11 +184,11 @@ namespace Online.Controllers
                 }
 
                 if (iframe == null)
-                    return OnError(proxyManager, refresh_proxy: !rch.enable);
+                    return res.Fail("iframe");
 
                 string hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
-                    return OnError();
+                    return res.Fail("hls");
 
                 return hls;
             });
