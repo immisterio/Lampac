@@ -410,12 +410,8 @@ namespace Shared
             {
                 code = conf?.Http?.Response;
 
-                if (string.IsNullOrEmpty(code))
-                {
-                    return EventListener.HttpResponse != null
-                        ? EventListener.HttpResponse.Invoke((EventHttpResponse)model)
-                        : Task.CompletedTask;
-                }
+                if (string.IsNullOrEmpty(code) && EventListener.HttpResponse != null)
+                    return EventListener.HttpResponse.Invoke((EventHttpResponse)model);
             }
 
             if (string.IsNullOrEmpty(code))

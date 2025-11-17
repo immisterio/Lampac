@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
 using Shared.Models.Events;
 using Shared.Models.JacRed;
-using System;
-using System.Threading.Tasks;
 
 namespace Shared
 {
