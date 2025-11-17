@@ -66,7 +66,12 @@ namespace Online.Controllers
                     #region Фильм
                     var mtpl = new MovieTpl(title, original_title, 1);
 
-                    string stream = HostStreamProxy(init, cache.Value.First.Value<string>("m3u8MasterFilePath"), proxy: proxy);
+                    string file = cache.Value.First["episodeVariants"]
+                        .OrderByDescending(i => i.Value<string>("filepath").Contains(".m3u8"))
+                        .First()
+                        .Value<string>("filepath");
+
+                    string stream = HostStreamProxy(init, file, proxy: proxy);
 
                     mtpl.Append("1080p", stream, vast: init.vast);
 
@@ -104,7 +109,11 @@ namespace Online.Controllers
                         foreach (var episode in episodes.OrderBy(i => i.Value<int>("order")))
                         {
                             string name = episode.Value<string>("title");
-                            string file = episode.Value<string>("m3u8MasterFilePath");
+
+                            string file = episode["episodeVariants"]
+                                .OrderByDescending(i => i.Value<string>("filepath").Contains(".m3u8"))
+                                .First()
+                                .Value<string>("filepath");
 
                             if (string.IsNullOrEmpty(file))
                                 continue;
