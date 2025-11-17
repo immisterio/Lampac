@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
 using Shared.Models.Events;
 using Shared.Models.JacRed;
+using System;
+using System.Threading.Tasks;
 
 namespace Shared
 {
@@ -26,5 +28,19 @@ namespace Shared
         public static Action<TorrentDetails> RedApiAddTorrents;
 
         public static Action<EventTranscoding> TranscodingCreateProcess;
+
+        public static Action<EventHttpHandler> HttpHandler;
+
+        public static Action<EventHttpHeaders> HttpRequestHeaders;
+
+        public static Func<EventHttpResponse, Task> HttpResponse;
+
+        public static Func<EventExternalids, (string imdb_id, string kinopoisk_id)> Externalids;
+
+        public static Func<EventStreamQuality, (bool? next, string link)> StreamQuality;
+
+        public static Func<EventStreamQualityFirts, (string link, string quality)?> StreamQualityFirts;
+
+        public static Func<string, EventHybridCache, (DateTimeOffset ex, string value)> HybridCache;
     }
 }

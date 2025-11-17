@@ -369,10 +369,26 @@ namespace Shared
             var modelType = model.GetType();
 
             if (modelType == typeof(EventHttpHandler))
+            {
                 code = conf?.Http?.Handler;
 
+                if (string.IsNullOrEmpty(code))
+                {
+                    EventListener.HttpHandler?.Invoke((EventHttpHandler)model);
+                    return;
+                }
+            }
+
             else if (modelType == typeof(EventHttpHeaders))
+            {
                 code = conf?.Http?.Headers;
+
+                if (string.IsNullOrEmpty(code))
+                {
+                    EventListener.HttpRequestHeaders?.Invoke((EventHttpHeaders)model);
+                    return;
+                }
+            }
 
             if (string.IsNullOrEmpty(code))
                 return;
@@ -391,7 +407,16 @@ namespace Shared
             var modelType = model.GetType();
 
             if (modelType == typeof(EventHttpResponse))
+            {
                 code = conf?.Http?.Response;
+
+                if (string.IsNullOrEmpty(code))
+                {
+                    return EventListener.HttpResponse != null
+                        ? EventListener.HttpResponse.Invoke((EventHttpResponse)model)
+                        : Task.CompletedTask;
+                }
+            }
 
             if (string.IsNullOrEmpty(code))
                 return Task.CompletedTask;
@@ -430,11 +455,22 @@ namespace Shared
         #region Externalids
         public static void Externalids(string id, ref string imdb_id, ref string kinopoisk_id, int serial)
         {
-            if (conf?.Controller?.Externalids == null)
-                return;
-
             var md = new EventExternalids(id, imdb_id, kinopoisk_id, serial);
-            var result = Invoke<(string imdb_id, string kinopoisk_id)>(conf.Controller.Externalids, md);
+
+            (string imdb_id, string kinopoisk_id) result;
+
+            if (string.IsNullOrEmpty(conf?.Controller?.Externalids))
+            {
+                if (EventListener.Externalids == null)
+                    return;
+
+                result = EventListener.Externalids.Invoke(md);
+            }
+            else
+            {
+                result = Invoke<(string imdb_id, string kinopoisk_id)>(conf.Controller.Externalids, md);
+            }
+
             if (result == default || (result.imdb_id == null && result.kinopoisk_id == null))
                 return;
 
@@ -447,7 +483,7 @@ namespace Shared
         public static (bool? next, string link) StreamQuality(EventStreamQuality model)
         {
             if (string.IsNullOrEmpty(conf?.StreamQualityTpl))
-                return default;
+                return EventListener.StreamQuality?.Invoke(model) ?? default;
 
             var option = ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events").AddImports("Shared.Models.Templates");
@@ -458,7 +494,7 @@ namespace Shared
         public static (string link, string quality)? StreamQualityFirts(EventStreamQualityFirts model)
         {
             if (string.IsNullOrEmpty(conf?.StreamQualityFirts))
-                return default;
+                return EventListener.StreamQualityFirts?.Invoke(model);
 
             var option = ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events").AddImports("Shared.Models.Templates");
@@ -491,6 +527,8 @@ namespace Shared
         {
             string code = null;
 
+            var model = new EventHybridCache(key, value, ex);
+
             switch (e)
             {
                 case "read":
@@ -503,14 +541,14 @@ namespace Shared
             }
 
             if (string.IsNullOrEmpty(code))
-                return default;
+                return EventListener.HybridCache?.Invoke(e, model) ?? default;
 
             var option = ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine")
                 .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
-            return Invoke<(DateTimeOffset ex, string value)>(code, new EventHybridCache(key, value, ex), option);
+            return Invoke<(DateTimeOffset ex, string value)>(code, model, option);
         }
         #endregion
 
