@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Shared;
 using Shared.Engine;
 using Shared.Models;
+using Shared.Models.Events;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -71,14 +72,14 @@ namespace Lampac.Engine
 
                     _connections.TryAdd(connectionId, connection);
 
-                    EventListener.NwsConnected?.Invoke((connectionId, ip, requestInfo, connection, cancellationSource.Token));
+                    InvkEvent.NwsConnected(new EventNwsConnected(connectionId, ip, requestInfo, connection, cancellationSource.Token));
 
                     await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
                     await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
                 }
                 finally
                 {
-                    EventListener.NwsDisconnected?.Invoke(connectionId);
+                    InvkEvent.NwsDisconnected(new EventNwsDisconnected(connectionId));
                     Cleanup(connectionId);
                 }
             }

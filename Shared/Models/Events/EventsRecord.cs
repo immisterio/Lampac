@@ -9,6 +9,7 @@ using Shared.Models.Online.Settings;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 
 namespace Shared.Models.Events
 {
@@ -47,4 +48,12 @@ namespace Shared.Models.Events
     public record EventProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage);
 
     public record EventTranscoding(Collection<string> args, int? startNumber, TranscodingStartContext context);
+
+    public record EventRchRegistry(string connectionId, string ip, string host, RchClientInfo info, NwsConnection connection);
+
+    public record EventRchDisconnected(string connectionId);
+
+    public record EventNwsConnected(string connectionId, string ip, RequestModel requestInfo, NwsConnection connection, CancellationToken token);
+
+    public record EventNwsDisconnected(string connectionId);
 }

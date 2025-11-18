@@ -516,6 +516,71 @@ namespace Shared
         }
         #endregion
 
+        #region Rch
+        public static void RchRegistry(EventRchRegistry model)
+        {
+            var code = conf?.Rch?.Registry;
+            if (string.IsNullOrEmpty(code))
+            {
+                EventListener.RchRegistry?.Invoke((model.connectionId, model.ip, model.host, model.info, model.connection));
+                return;
+            }
+
+            var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine").AddImports("Shared.Models").AddImports("Shared.Models.Events");
+
+            Invoke(code, model, option);
+        }
+
+        public static void RchDisconnected(EventRchDisconnected model)
+        {
+            var code = conf?.Rch?.Disconnected;
+            if (string.IsNullOrEmpty(code))
+            {
+                EventListener.RchDisconnected?.Invoke(model.connectionId);
+                return;
+            }
+
+            var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events");
+
+            Invoke(code, model, option);
+        }
+        #endregion
+
+        #region Nws
+        public static void NwsConnected(EventNwsConnected model)
+        {
+            var code = conf?.Nws?.Connected;
+            if (string.IsNullOrEmpty(code))
+            {
+                EventListener.NwsConnected?.Invoke((model.connectionId, model.ip, model.requestInfo, model.connection, model.token));
+                return;
+            }
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(CancellationToken).Assembly).AddImports("System.Threading")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models").AddImports("Shared.Models.Events");
+
+            Invoke(code, model, option);
+        }
+
+        public static void NwsDisconnected(EventNwsDisconnected model)
+        {
+            var code = conf?.Nws?.Disconnected;
+            if (string.IsNullOrEmpty(code))
+            {
+                EventListener.NwsDisconnected?.Invoke(model.connectionId);
+                return;
+            }
+
+            var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events");
+
+            Invoke(code, model, option);
+        }
+        #endregion
+
         #region HybridCache
         public static (DateTimeOffset ex, string value) HybridCache(string e, string key, string value, DateTimeOffset ex)
         {
