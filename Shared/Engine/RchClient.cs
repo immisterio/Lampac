@@ -399,14 +399,14 @@ namespace Shared.Engine
                         return (nws_id, clients[nws_id]);
 
                     var client = clients.LastOrDefault(i => i.Value.ip == _ip);
-                    if (client.Value.info.rchtype != null)
+                    if (client.Value.info?.rchtype != null)
                         return (client.Key, client.Value);
                 }
             }
             else
             {
                 var client = clients.LastOrDefault(i => i.Value.ip == _ip);
-                if (client.Value.info.rchtype != null)
+                if (client.Value.info?.rchtype != null)
                     return (client.Key, client.Value);
             }
 
