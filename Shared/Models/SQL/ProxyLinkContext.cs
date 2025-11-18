@@ -13,18 +13,11 @@ namespace Shared.Models.SQL
             {
                 var sqlDb = new ProxyLinkContext();
                     sqlDb.Database.EnsureCreated();
-
-                Read = sqlDb;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"ProxyLinkDb initialization failed: {ex.Message}");
             }
-        }
-
-        public static void FullDispose()
-        {
-            Read?.Dispose();
         }
     }
 

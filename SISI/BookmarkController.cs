@@ -27,13 +27,15 @@ namespace SISI
 
             #region bookmarks
             var bookmarks = new List<PlaylistItem>();
+            var bookmarksQuery = new List<SisiBookmarkSqlModel>();
 
-            var bookmarksQuery = SisiContext.Read.bookmarks
-                .AsNoTracking()
-                .Where(i => i.user == md5user)
-                .ToList();
-
-            SisiContext.Read.ChangeTracker.Clear();
+            using (var sqlDb = new SisiContext())
+            {
+                bookmarksQuery = sqlDb.bookmarks
+                    .AsNoTracking()
+                    .Where(i => i.user == md5user)
+                    .ToList();
+            }
 
             int total_pages = Math.Max(0, bookmarksQuery.Count / pageSize) + 1;
 
@@ -136,68 +138,68 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            if (!SisiContext.Read.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
+            using (var sqlDb = new SisiContext())
             {
-                string newimage = null;
-
-                #region download image
-                if (AppInit.conf.sisi.bookmarks.saveimage)
+                if (!sqlDb.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
                 {
-                    string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
+                    string newimage = null;
 
-                    if (System.IO.File.Exists($"wwwroot/{pimg}"))
+                    #region download image
+                    if (AppInit.conf.sisi.bookmarks.saveimage)
                     {
-                        newimage = pimg;
-                    }
-                    else
-                    {
-                        var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
-                        if (image != null)
+                        string pimg = $"bookmarks/img/{uid.Substring(0, 2)}/{uid.Substring(2)}.jpg";
+
+                        if (System.IO.File.Exists($"wwwroot/{pimg}"))
                         {
-                            Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                            System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
                             newimage = pimg;
-                        }
-                    }
-                }
-                #endregion
-
-                #region download preview
-                if (AppInit.conf.sisi.bookmarks.savepreview)
-                {
-                    if (data.preview != null)
-                    {
-                        string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
-
-                        if (System.IO.File.Exists($"wwwroot/{path}"))
-                        {
-                            data.preview = path;
                         }
                         else
                         {
-                            var preview = await Http.Download(data.preview, timeoutSeconds: 8);
-                            if (preview != null)
+                            var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
+                            if (image != null)
                             {
-                                Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
-                                System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
-                                data.preview = path;
+                                Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
+                                System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
+                                newimage = pimg;
                             }
                         }
                     }
-                }
-                #endregion
+                    #endregion
 
-                var b = data.bookmark;
-                data.bookmark = new Bookmark()
-                {
-                    href = b.href,
-                    image = newimage ?? b.image,
-                    site = b.site,
-                    uid = uid
-                };
+                    #region download preview
+                    if (AppInit.conf.sisi.bookmarks.savepreview)
+                    {
+                        if (data.preview != null)
+                        {
+                            string path = $"bookmarks/preview/{uid.Substring(0, 2)}/{uid.Substring(2)}.{(data.preview.Contains(".webm") ? "webm" : "mp4")}";
 
-                using (var sqlDb = new SisiContext())
-                {
+                            if (System.IO.File.Exists($"wwwroot/{path}"))
+                            {
+                                data.preview = path;
+                            }
+                            else
+                            {
+                                var preview = await Http.Download(data.preview, timeoutSeconds: 8);
+                                if (preview != null)
+                                {
+                                    Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
+                                    System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
+                                    data.preview = path;
+                                }
+                            }
+                        }
+                    }
+                    #endregion
+
+                    var b = data.bookmark;
+                    data.bookmark = new Bookmark()
+                    {
+                        href = b.href,
+                        image = newimage ?? b.image,
+                        site = b.site,
+                        uid = uid
+                    };
+
                     sqlDb.bookmarks.Add(new SisiBookmarkSqlModel
                     {
                         user = md5user,

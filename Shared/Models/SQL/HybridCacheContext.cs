@@ -5,26 +5,17 @@ namespace Shared.Models.SQL
 {
     public partial class HybridCacheContext
     {
-        public static HybridCacheContext Read { get; private set; }
-
         public static void Initialization() 
         {
             try
             {
                 var sqlDb = new HybridCacheContext();
                     sqlDb.Database.EnsureCreated();
-
-                Read = sqlDb;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"HybridCacheDb initialization failed: {ex.Message}");
             }
-        }
-
-        public static void FullDispose()
-        {
-            Read?.Dispose();
         }
     }
 

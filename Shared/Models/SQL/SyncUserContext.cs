@@ -10,8 +10,6 @@ namespace Shared.Models.SQL
     {
         public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
 
-        public static SyncUserContext Read { get; private set; }
-
         public static void Initialization() 
         {
             Directory.CreateDirectory("database");
@@ -20,8 +18,6 @@ namespace Shared.Models.SQL
             {
                 var sqlDb = new SyncUserContext();
                     sqlDb.Database.EnsureCreated();
-
-                Read = sqlDb;
             }
             catch (Exception ex)
             {
@@ -45,11 +41,6 @@ namespace Shared.Models.SQL
             {
                 semaphore.Release();
             }
-        }
-
-        public static void FullDispose()
-        {
-            Read?.Dispose();
         }
     }
 

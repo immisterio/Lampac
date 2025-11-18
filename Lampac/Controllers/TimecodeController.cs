@@ -9,7 +9,6 @@ using Shared.Models.SQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -39,12 +38,17 @@ namespace Lampac.Controllers
 
             string userId = getUserid(requestInfo, HttpContext);
 
-            Dictionary<string, string> timecodes = SyncUserContext.Read.timecodes
-                .AsNoTracking()
-                .Where(i => i.user == userId && i.card == card_id)
-                .ToDictionary(i => i.item, i => i.data);
+            Dictionary<string, string> timecodes = null;
 
-            if (timecodes.Count == 0)
+            using (var sqlDb = new SyncUserContext())
+            {
+                sqlDb.timecodes
+                    .AsNoTracking()
+                    .Where(i => i.user == userId && i.card == card_id)
+                    .ToDictionary(i => i.item, i => i.data);
+            }
+
+            if (timecodes == null || timecodes.Count == 0)
                 return Json(new { });
 
             return Json(timecodes);

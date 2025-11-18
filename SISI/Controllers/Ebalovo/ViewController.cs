@@ -22,7 +22,7 @@ namespace SISI.Controllers.Ebalovo
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.enable && 484 > rch.InfoConnected().apkVersion)
+            if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)
             {
                 rch.Disabled(); // на версиях ниже java.lang.OutOfMemoryError
                 if (!init.rhub_fallback)

@@ -9,16 +9,12 @@ namespace Shared.Models.SQL
     {
         public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
 
-        public static ExternalidsContext Read { get; private set; }
-
         public static void Initialization() 
         {
             try
             {
                 var sqlDb = new ExternalidsContext();
                     sqlDb.Database.EnsureCreated();
-
-                Read = sqlDb;
             }
             catch (Exception ex)
             {
@@ -42,11 +38,6 @@ namespace Shared.Models.SQL
             {
                 semaphore.Release();
             }
-        }
-
-        public static void FullDispose()
-        {
-            Read?.Dispose();
         }
     }
 

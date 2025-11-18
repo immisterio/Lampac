@@ -20,7 +20,7 @@ namespace Lampac.Controllers
             if (rch.IsNotConnected())
                 return ContentTo(rch.connectionMsg);
 
-            var info = rch.InfoConnected();
+            var info = rch.InfoConnected() ?? new RchClientInfo();
             return Json(new { info.version, info.apkVersion, info.rchtype });
         }
 

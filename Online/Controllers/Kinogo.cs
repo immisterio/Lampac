@@ -78,7 +78,7 @@ namespace Online.Controllers
 
             #region embed
             reset_embed:
-            var cache = await InvokeCache<JArray>(href, cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<JArray>(rch.ipkey(href, proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string targetHref = $"{init.corsHost()}/{href}";
 

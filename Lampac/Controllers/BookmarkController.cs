@@ -166,15 +166,18 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            bool IsDbInitialization = SyncUserContext.Read.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
-            if (!IsDbInitialization)
-                return Json(new { dbInNotInitialization = true });
+            using (var sqlDb = new SyncUserContext())
+            {
+                bool IsDbInitialization = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
+                if (!IsDbInitialization)
+                    return Json(new { dbInNotInitialization = true });
 
-            var data = GetBookmarksForResponse(SyncUserContext.Read);
-            if (!string.IsNullOrEmpty(filed))
-                return ContentTo(data[filed].ToString(Formatting.None));
+                var data = GetBookmarksForResponse(sqlDb);
+                if (!string.IsNullOrEmpty(filed))
+                    return ContentTo(data[filed].ToString(Formatting.None));
 
-            return ContentTo(data.ToString(Formatting.None));
+                return ContentTo(data.ToString(Formatting.None));
+            }
         }
         #endregion
 

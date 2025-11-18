@@ -9,8 +9,6 @@ namespace Shared.Models.SQL
     {
         public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
 
-        public static SisiContext Read { get; private set; }
-
         public static void Initialization() 
         {
             Directory.CreateDirectory("database");
@@ -52,8 +50,6 @@ namespace Shared.Models.SQL
                     catch { }
                     #endregion
                 }
-
-                Read = new SisiContext();
             }
             catch (Exception ex)
             {
@@ -77,11 +73,6 @@ namespace Shared.Models.SQL
             {
                 semaphore.Release();
             }
-        }
-
-        public static void FullDispose()
-        {
-            Read?.Dispose();
         }
     }
 

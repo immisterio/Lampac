@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Events;
 using Shared.Models;
 using Shared.Models.Base;
+using Shared.Models.Events;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -77,7 +77,8 @@ namespace Shared.Engine
 
         public static void Registry(string ip, string connectionId, string host = null, string json = null, NwsConnection connection = null)
         {
-            RchClientInfo info = default;
+            var info = new RchClientInfo();
+
             if (json != null)
             {
                 try
@@ -95,6 +96,9 @@ namespace Shared.Engine
                         return;
                 }
             }
+
+            if (info == null)
+                info = new RchClientInfo() { version = -1 };
 
             clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i, j) => (ip, host, info, connection));
             InvkEvent.RchRegistry(new EventRchRegistry(connectionId, ip, host, info, connection));
@@ -124,8 +128,7 @@ namespace Shared.Engine
 
         public RchClient(string connectionId) 
         {
-            if (!string.IsNullOrEmpty(connectionId) && clients.ContainsKey(connectionId))
-                this.connectionId = connectionId;
+            this.connectionId = connectionId;
         }
 
         public RchClient(HttpContext context, string host, BaseSettings init, in RequestModel requestInfo, int? keepalive = null)
@@ -345,7 +348,7 @@ namespace Shared.Engine
                 return false; // заглушка для checksearch
 
             var info = InfoConnected();
-            if (string.IsNullOrEmpty(info.rchtype))
+            if (info == null || string.IsNullOrEmpty(info.rchtype))
                 return false; // клиент не в сети
 
             // разрешен возврат на сервер
@@ -379,28 +382,21 @@ namespace Shared.Engine
         #region SocketClient
         public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) SocketClient()
         {
-            // new RchClient(connectionId);
-            if (!string.IsNullOrEmpty(connectionId))
-            {
-                if (clients.ContainsKey(connectionId))
-                    return (connectionId, clients[connectionId]);
-
-                return default;
-            }
-
             string _ip = ip;
 
             if (AppInit.conf.rch.websoket == "nws")
             {
+                if (!string.IsNullOrEmpty(connectionId) && clients.ContainsKey(connectionId))
+                    return (connectionId, clients[connectionId]);
+
+                if (httpContext == null)
+                    return default;
+
                 if (httpContext.Request.Query.ContainsKey("nws_id"))
                 {
                     string nws_id = httpContext.Request.Query["nws_id"].ToString()?.ToLower()?.Trim();
                     if (!string.IsNullOrEmpty(nws_id) && clients.ContainsKey(nws_id))
                         return (nws_id, clients[nws_id]);
-
-                    var client = clients.LastOrDefault(i => i.Value.ip == _ip);
-                    if (client.Value.info?.rchtype != null)
-                        return (client.Key, client.Value);
                 }
             }
             else

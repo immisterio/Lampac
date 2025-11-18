@@ -96,7 +96,7 @@ namespace Online.Controllers
 
                 if (requestInfo.Country == "RU")
                 {
-                    if (rch.InfoConnected().rchtype != "apk")
+                    if (rch.InfoConnected()?.rchtype != "apk")
                         return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
 
                     if (await getCookie(init) == null)

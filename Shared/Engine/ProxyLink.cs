@@ -143,14 +143,16 @@ namespace Shared.Engine
                 {
                     if (!AppInit.conf.mikrotik)
                     {
-                        var link = ProxyLinkContext.Read.links.Find(hash);
-                        ProxyLinkContext.Read.ChangeTracker.Clear();
-
-                        if (link != null && link.ex > DateTime.Now)
+                        using (var sqlDb = new ProxyLinkContext())
                         {
-                            val = JsonSerializer.Deserialize<ProxyLinkModel>(link.json);
-                            val.id = link.Id;
-                            val.ex = link.ex;
+                            var link = sqlDb.links.Find(hash);
+
+                            if (link != null && link.ex > DateTime.Now)
+                            {
+                                val = JsonSerializer.Deserialize<ProxyLinkModel>(link.json);
+                                val.id = link.Id;
+                                val.ex = link.ex;
+                            }
                         }
                     }
                 }

@@ -55,10 +55,7 @@ namespace Lampac.Engine
                 string connectionId = Guid.NewGuid().ToString("N");
 
                 if (context.Request.Query.TryGetValue("id", out var _connectionId) && !string.IsNullOrEmpty(_connectionId.ToString()))
-                {
                     connectionId = _connectionId.ToString();
-                    Cleanup(connectionId);
-                }
 
                 try
                 {
@@ -70,7 +67,7 @@ namespace Lampac.Engine
                     var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
                     connection.SetCancellationSource(cancellationSource);
 
-                    _connections.TryAdd(connectionId, connection);
+                    _connections.AddOrUpdate(connectionId, connection, (k, v) => connection);
 
                     InvkEvent.NwsConnected(new EventNwsConnected(connectionId, ip, requestInfo, connection, cancellationSource.Token));
 
@@ -79,8 +76,8 @@ namespace Lampac.Engine
                 }
                 finally
                 {
-                    InvkEvent.NwsDisconnected(new EventNwsDisconnected(connectionId));
                     Cleanup(connectionId);
+                    InvkEvent.NwsDisconnected(new EventNwsDisconnected(connectionId));
                 }
             }
         }
@@ -419,7 +416,7 @@ namespace Lampac.Engine
                 {
                     if (_connections.TryGetValue(connectionId, out var connection))
                     {
-                        if (DateTime.UtcNow.AddMinutes(-10) >= connection.LastActivityUtc)
+                        if (DateTime.UtcNow.AddMinutes(-2) >= connection.LastActivityUtc)
                             connection.Cancel();
                     }
                 }

@@ -195,14 +195,14 @@ namespace Lampac
                 #region cache/bookmarks/sisi
                 if (Directory.Exists("cache/bookmarks/sisi"))
                 {
-                    var existing = new HashSet<string>(
-                        SisiContext.Read.bookmarks
-                                .AsNoTracking()
-                                .Select(i => $"{i.user}:{i.uid}")
-                    );
-
                     using (var sqlDb = new SisiContext())
                     {
+                        var existing = new HashSet<string>(
+                            sqlDb.bookmarks
+                                 .AsNoTracking()
+                                 .Select(i => $"{i.user}:{i.uid}")
+                        );
+
                         foreach (string folder in Directory.GetDirectories("cache/bookmarks/sisi"))
                         {
                             string folderName = Path.GetFileName(folder);

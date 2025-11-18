@@ -5,26 +5,17 @@ namespace Shared.Models.SQL
 {
     public partial class PlaywrightContext
     {
-        public static PlaywrightContext Read { get; private set; }
-
         public static void Initialization() 
         {
             try
             {
                 var sqlDb = new PlaywrightContext();
                     sqlDb.Database.EnsureCreated();
-
-                Read = sqlDb;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"PlaywrightDb initialization failed: {ex.Message}");
             }
-        }
-
-        public static void FullDispose()
-        {
-            Read?.Dispose();
         }
     }
 

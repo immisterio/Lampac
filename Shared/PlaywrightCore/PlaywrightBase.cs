@@ -370,8 +370,10 @@ namespace Shared.PlaywrightCore
                         catch { }
                         #endregion
 
-                        var doc = PlaywrightContext.Read.files.Find(memkey);
-                        PlaywrightContext.Read.ChangeTracker.Clear();
+                        PlaywrightSqlModel doc = null;
+
+                        using (var sqlDb = new PlaywrightContext())
+                            doc = sqlDb.files.Find(memkey);
 
                         if (doc?.content != null)
                         {
