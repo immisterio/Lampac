@@ -12,7 +12,7 @@ namespace Lampac.Engine.CRON
     {
         public static void Run()
         {
-            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(40));
+            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(2), TimeSpan.FromHours(1));
         }
 
         static Timer _cronTimer;
@@ -51,6 +51,7 @@ namespace Lampac.Engine.CRON
                 }
 
                 await update("https://immisterio.github.io/bwa/fx.js");
+                await update("https://adultjs.onrender.com", path: "adult.js");
                 await update("https://nb557.github.io/plugins/online_mod.js");
                 await update("http://github.freebie.tom.ru/want.js");
                 await update("https://nb557.github.io/plugins/reset_subs.js");
