@@ -353,9 +353,6 @@ namespace Online.Controllers
                     if (page == null)
                         return default;
 
-                    string hls;
-                    var headers = new List<HeadersModel>();
-
                     string q = init.m4s ? "2160" : "1080";
                     await page.AddInitScriptAsync($"localStorage.setItem('allplay', '{{\"captionParam\":{{\"fontSize\":\"100%\",\"colorText\":\"Белый\",\"colorBackground\":\"Черный\",\"opacityText\":\"100%\",\"opacityBackground\":\"75%\",\"styleText\":\"Без контура\",\"weightText\":\"Обычный текст\"}},\"quality\":{q},\"volume\":0.5,\"muted\":false}}');");
 
@@ -417,7 +414,7 @@ namespace Online.Controllers
 
         private void Page_Response(object sender, IResponse e)
         {
-            if (e.Url.Contains("/master.m3u8"))
+            if (e.Request.Method == "GET" && e.Url.Contains("/master.m3u8"))
             {
                 var headers = HeadersModel.Init(Http.defaultFullHeaders,
                     ("sec-fetch-dest", "empty"),

@@ -213,12 +213,15 @@ namespace Online.Controllers
 
                     #region Перевод
                     var vtpl = new VoiceTpl();
+                    var hashSet = new HashSet<int>();
 
                     foreach (var episode in episodes)
                     {
                         foreach (var voice in episode["folder"])
                         {
                             int voice_id = voice.Value<int>("voice_id");
+                            if (!hashSet.Add(voice_id))
+                                continue;
 
                             if (t == -1)
                                 t = voice_id;
