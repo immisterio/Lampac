@@ -993,9 +993,8 @@ namespace Shared
 
         public AllohaSettings Mirage { get; set; } = new AllohaSettings("Mirage", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22txdguloolrq0dv1doodunqrz1rqolqh", "6892d506bbdd5790e0ca047ff39462", "", true, true)
         {
-            rip = true,
+            enable = true,
             streamproxy = true,
-            reserve = true,
             headers = Http.defaultFullHeaders
         };
 

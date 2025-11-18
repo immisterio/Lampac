@@ -534,7 +534,6 @@ namespace Online.Controllers
             send(AppInit.conf.GetsTV, "getstv-search");
             send(AppInit.conf.Kinobase);
             send(AppInit.conf.Alloha, "alloha-search");
-            send(AppInit.conf.Mirage, "mirage-search");
             send(AppInit.conf.Collaps, "collaps-search");
             send(AppInit.conf.VeoVeo, "veoveo-spider");
 
@@ -930,7 +929,8 @@ namespace Online.Controllers
             }
             #endregion
 
-            send(conf.Mirage);
+            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled)
+                send(conf.Mirage);
 
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinobase.overridehost) || conf.Kinobase.overridehosts?.Length > 0)
                 send(conf.Kinobase);
