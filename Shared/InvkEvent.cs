@@ -369,23 +369,13 @@ namespace Shared
             if (modelType == typeof(EventHttpHandler))
             {
                 code = conf?.Http?.Handler;
-
-                if (string.IsNullOrEmpty(code))
-                {
-                    EventListener.HttpHandler?.Invoke((EventHttpHandler)model);
-                    return;
-                }
+                EventListener.HttpHandler?.Invoke((EventHttpHandler)model);
             }
 
             else if (modelType == typeof(EventHttpHeaders))
             {
                 code = conf?.Http?.Headers;
-
-                if (string.IsNullOrEmpty(code))
-                {
-                    EventListener.HttpRequestHeaders?.Invoke((EventHttpHeaders)model);
-                    return;
-                }
+                EventListener.HttpRequestHeaders?.Invoke((EventHttpHeaders)model);
             }
 
             if (string.IsNullOrEmpty(code))
@@ -449,21 +439,15 @@ namespace Shared
         #region Externalids
         public static void Externalids(string id, ref string imdb_id, ref string kinopoisk_id, int serial)
         {
+            (string imdb_id, string kinopoisk_id) result = default;
+
             var md = new EventExternalids(id, imdb_id, kinopoisk_id, serial);
 
-            (string imdb_id, string kinopoisk_id) result;
-
-            if (string.IsNullOrEmpty(conf?.Controller?.Externalids))
-            {
-                if (EventListener.Externalids == null)
-                    return;
-
+            if (EventListener.Externalids != null)
                 result = EventListener.Externalids.Invoke(md);
-            }
-            else
-            {
+
+            if (!string.IsNullOrEmpty(conf?.Controller?.Externalids))
                 result = Invoke<(string imdb_id, string kinopoisk_id)>(conf.Controller.Externalids, md);
-            }
 
             if (result == default || (result.imdb_id == null && result.kinopoisk_id == null))
                 return;
@@ -500,12 +484,11 @@ namespace Shared
         #region Transcoding
         public static void Transcoding(EventTranscoding model)
         {
+            EventListener.TranscodingCreateProcess?.Invoke(model);
+
             var code = conf?.Transcoding?.CreateProcess;
             if (string.IsNullOrEmpty(code))
-            {
-                EventListener.TranscodingCreateProcess?.Invoke(model);
                 return;
-            }
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(Collection<string>).Assembly).AddImports("System.Collections.ObjectModel")
@@ -519,30 +502,30 @@ namespace Shared
         #region Rch
         public static void RchRegistry(EventRchRegistry model)
         {
+            EventListener.RchRegistry?.Invoke(model);
+
             var code = conf?.Rch?.Registry;
             if (string.IsNullOrEmpty(code))
-            {
-                EventListener.RchRegistry?.Invoke((model.connectionId, model.ip, model.host, model.info, model.connection));
                 return;
-            }
 
             var option = ScriptOptions.Default
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine").AddImports("Shared.Models").AddImports("Shared.Models.Events");
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                .AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
 
             Invoke(code, model, option);
         }
 
         public static void RchDisconnected(EventRchDisconnected model)
         {
+            EventListener.RchDisconnected?.Invoke(model.connectionId);
+
             var code = conf?.Rch?.Disconnected;
             if (string.IsNullOrEmpty(code))
-            {
-                EventListener.RchDisconnected?.Invoke(model.connectionId);
                 return;
-            }
 
             var option = ScriptOptions.Default
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events");
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll"))
+                .AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
 
             Invoke(code, model, option);
         }
@@ -551,31 +534,29 @@ namespace Shared
         #region Nws
         public static void NwsConnected(EventNwsConnected model)
         {
+            EventListener.NwsConnected?.Invoke(model);
+
             var code = conf?.Nws?.Connected;
             if (string.IsNullOrEmpty(code))
-            {
-                EventListener.NwsConnected?.Invoke((model.connectionId, model.ip, model.requestInfo, model.connection, model.token));
                 return;
-            }
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(CancellationToken).Assembly).AddImports("System.Threading")
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models").AddImports("Shared.Models.Events");
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
 
             Invoke(code, model, option);
         }
 
         public static void NwsDisconnected(EventNwsDisconnected model)
         {
+            EventListener.NwsDisconnected?.Invoke(model.connectionId);
+
             var code = conf?.Nws?.Disconnected;
             if (string.IsNullOrEmpty(code))
-            {
-                EventListener.NwsDisconnected?.Invoke(model.connectionId);
                 return;
-            }
 
             var option = ScriptOptions.Default
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events");
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
 
             Invoke(code, model, option);
         }

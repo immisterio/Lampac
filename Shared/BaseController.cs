@@ -28,7 +28,7 @@ namespace Shared
 
         public static string appversion => "149";
 
-        public static string minorversion => "23";
+        public static string minorversion => "24";
 
         public HybridCache hybridCache { get; private set; }
 
