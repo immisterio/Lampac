@@ -177,10 +177,11 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    var doc = HybridCacheContext.Read.files.Find(md5key);
-                    HybridCacheContext.Read.ChangeTracker.Clear();
-
-                    return deserializeCache(doc, out value);
+                    using (var sqlDb = new HybridCacheContext())
+                    {
+                        var doc = sqlDb.files.Find(md5key);
+                        return deserializeCache(doc, out value);
+                    }
                 }
             }
             catch { }

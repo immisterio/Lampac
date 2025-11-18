@@ -96,15 +96,15 @@ namespace Shared.Engine
                 }
             }
 
+            clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i, j) => (ip, host, info, connection));
             InvkEvent.RchRegistry(new EventRchRegistry(connectionId, ip, host, info, connection));
-            clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i,j) => (ip, host, info, connection));
         }
 
 
         public static void OnDisconnected(string connectionId)
         {
-            InvkEvent.RchDisconnected(new EventRchDisconnected(connectionId));
             clients.TryRemove(connectionId, out _);
+            InvkEvent.RchDisconnected(new EventRchDisconnected(connectionId));
         }
         #endregion
 
