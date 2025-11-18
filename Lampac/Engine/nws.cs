@@ -23,13 +23,13 @@ namespace Lampac.Engine
             WriteIndented = false
         };
 
-        static readonly ConcurrentDictionary<string, NwsConnection> _connections = new ConcurrentDictionary<string, NwsConnection>();
+        public static readonly ConcurrentDictionary<string, NwsConnection> _connections = new ConcurrentDictionary<string, NwsConnection>();
 
         static readonly Timer ConnectionMonitorTimer = new Timer(ConnectionMonitorCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
 
-        public static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
+        public readonly static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
 
-        static readonly ConcurrentDictionary<string, string> event_clients = new ConcurrentDictionary<string, string>();
+        public readonly static ConcurrentDictionary<string, string> event_clients = new ConcurrentDictionary<string, string>();
 
         public static int ConnectionCount => _connections.Count;
         #endregion
@@ -71,11 +71,14 @@ namespace Lampac.Engine
 
                     _connections.TryAdd(connectionId, connection);
 
+                    EventListener.NwsConnected?.Invoke((connectionId, ip, requestInfo, connection, cancellationSource.Token));
+
                     await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
                     await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
                 }
                 finally
                 {
+                    EventListener.NwsDisconnected?.Invoke(connectionId);
                     Cleanup(connectionId);
                 }
             }

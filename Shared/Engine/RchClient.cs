@@ -9,13 +9,16 @@ using System.Threading;
 
 namespace Shared.Engine
 {
-    public struct RchClientInfo
+    public class RchClientInfo
     {
         public int version { get; set; }
         public string host { get; set; }
         public string rchtype { get; set; }
         public int apkVersion { get; set; }
         public string player { get; set; }
+
+        public object ob { get; set; }
+        public Dictionary<string, object> obs { get; set; }
     }
 
     public struct RchClient
@@ -66,9 +69,9 @@ namespace Shared.Engine
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        public static ConcurrentDictionary<string, (string ip, string host, RchClientInfo info, NwsConnection connection)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo, NwsConnection)>();
+        public static readonly ConcurrentDictionary<string, (string ip, string host, RchClientInfo info, NwsConnection connection)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo, NwsConnection)>();
 
-        public static ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
+        public static readonly ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
 
         public static void Registry(string ip, string connectionId, string host = null, string json = null, NwsConnection connection = null)
@@ -92,12 +95,14 @@ namespace Shared.Engine
                 }
             }
 
+            EventListener.RchRegistry?.Invoke((connectionId, ip, host, info, connection));
             clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i,j) => (ip, host, info, connection));
         }
 
 
         public static void OnDisconnected(string connectionId)
         {
+            EventListener.RchDisconnected?.Invoke(connectionId);
             clients.TryRemove(connectionId, out _);
         }
         #endregion

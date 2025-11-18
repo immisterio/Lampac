@@ -188,8 +188,6 @@ namespace Shared
 
 
         #region LoadKit
-        public static event Action<EventLoadKit> LoadKitEvent;
-
         public static void LoadKit(EventLoadKit model)
         {
             EventListener.LoadKit?.Invoke(model);

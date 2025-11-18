@@ -771,7 +771,7 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("Redheadsound", "kwwsv=22uhgkhdgvrxqg1vwxglr")
+        public OnlinesSettings Redheadsound { get; set; } = new OnlinesSettings("Redheadsound", "kwwsv=22uhgkhdgvrxqg1vwxglr", enable: false)
         {
             headers = HeadersModel.Init("referer", "{host}/").ToDictionary()
         };

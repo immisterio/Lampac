@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
 using Shared.Models.JacRed;
+using System.Threading;
 
 namespace Shared
 {
@@ -40,5 +42,14 @@ namespace Shared
         public static Func<EventStreamQualityFirts, (string link, string quality)?> StreamQualityFirts;
 
         public static Func<string, EventHybridCache, (DateTimeOffset ex, string value)> HybridCache;
+
+
+        public static Action<(string connectionId, string ip, string host, RchClientInfo info, NwsConnection connection)> RchRegistry;
+
+        public static Action<string> RchDisconnected;
+
+        public static Action<(string connectionId, string ip, RequestModel requestInfo, NwsConnection connection, CancellationToken token)> NwsConnected;
+
+        public static Action<string> NwsDisconnected;
     }
 }
