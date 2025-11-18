@@ -23,6 +23,10 @@
         public EventModelProxyApi ProxyApi { get; set; }
 
         public EventModelTranscoding Transcoding { get; set; }
+
+        public EventModelRch Rch { get; set; }
+
+        public EventModelNws Nws { get; set; }
     }
 
     public class EventModelController()
@@ -96,5 +100,19 @@
     public class EventModelTranscoding()
     {
         public string CreateProcess { get; set; }
+    }
+
+    public class EventModelRch()
+    {
+        public string Registry { get; set; }
+
+        public string Disconnected { get; set; }
+    }
+
+    public class EventModelNws()
+    {
+        public string Connected { get; set; }
+
+        public string Disconnected { get; set; }
     }
 }

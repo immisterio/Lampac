@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Models.Events;
 using Shared.Models;
 using Shared.Models.Base;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Shared;
 
 namespace Shared.Engine
 {
@@ -95,14 +97,14 @@ namespace Shared.Engine
                 }
             }
 
-            EventListener.RchRegistry?.Invoke((connectionId, ip, host, info, connection));
+            InvkEvent.RchRegistry(new EventRchRegistry(connectionId, ip, host, info, connection));
             clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i,j) => (ip, host, info, connection));
         }
 
 
         public static void OnDisconnected(string connectionId)
         {
-            EventListener.RchDisconnected?.Invoke(connectionId);
+            InvkEvent.RchDisconnected(new EventRchDisconnected(connectionId));
             clients.TryRemove(connectionId, out _);
         }
         #endregion
