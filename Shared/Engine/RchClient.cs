@@ -342,6 +342,13 @@ namespace Shared.Engine
             if (!AppInit.conf.rch.requiredConnected)
                 return false; // Обязательное подключение отключено
 
+            if (httpContext != null)
+            {
+                var requestInfo = httpContext.Features.Get<RequestModel>();
+                if (requestInfo.IsLocalRequest)
+                    return false;
+            }
+
             return SocketClient().connectionId == null;
         }
         #endregion
