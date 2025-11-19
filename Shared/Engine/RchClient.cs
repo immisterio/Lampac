@@ -336,6 +336,19 @@ namespace Shared.Engine
         }
         #endregion
 
+        #region IsRequiredConnected
+        public bool IsRequiredConnected()
+        {
+            if (!AppInit.conf.rch.requiredConnected)
+                return false; // Обязательное подключение отключено
+
+            if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+                return true; // заглушка для checksearch
+
+            return SocketClient().connectionId == null;
+        }
+        #endregion
+
         #region IsNotSupport
         public bool IsNotSupport(string rch_deny, out string rch_msg)
         {

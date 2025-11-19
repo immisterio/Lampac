@@ -75,11 +75,11 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init, rch: init.rhub && init.rhub_fallback))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             List<Result> content = null;
@@ -136,11 +136,15 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
             var init = await Initialization();
-            if (await IsBadInitialization(init, rch: init.rhub && init.rhub_fallback))
+            if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
+
+            if (rch.IsNotConnected() && init.rhub_fallback && play)
+                rch.Disabled();
+
+            if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
