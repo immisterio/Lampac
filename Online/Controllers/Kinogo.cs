@@ -36,7 +36,7 @@ namespace Online.Controllers
             #region search
             if (string.IsNullOrEmpty(href))
             {
-                if (string.IsNullOrEmpty(title) || year == 0)
+                if (string.IsNullOrEmpty(title))
                     return OnError("search params");
 
                 reset_search:
@@ -155,7 +155,7 @@ namespace Online.Controllers
                     string voice = source.Value<string>("title");
                     string file = source.Value<string>("file");
 
-                    if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(file))
+                    if (string.IsNullOrEmpty(voice) || string.IsNullOrEmpty(file))
                         continue;
 
                     if (file.StartsWith("//"))
@@ -164,7 +164,6 @@ namespace Online.Controllers
                     #region subtitle
                     var subtitles = new SubtitleTpl();
                     string _subs = source.Value<string>("subtitle");
-
                     if (!string.IsNullOrEmpty(_subs))
                     {
                         var match = new Regex("\\[([^\\]]+)\\]([^\\[\\,]+)").Match(_subs);
@@ -310,7 +309,7 @@ namespace Online.Controllers
                 if (!string.IsNullOrEmpty(img))
                     img = AppInit.conf.Kinogo.corsHost() + img;
 
-                string uri = host + $"lite/kinogo?href={HttpUtility.UrlEncode(href)}";
+                string uri = $"{host}/lite/kinogo?href={HttpUtility.UrlEncode(href)}";
                 similar.Append(name, blockYear, string.Empty, uri, PosterApi.Size(img));
 
                 if (StringConvert.SearchName(name).Contains(stitle) && blockYear == year.ToString())

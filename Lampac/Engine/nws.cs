@@ -55,7 +55,10 @@ namespace Lampac.Engine
                 string connectionId = Guid.NewGuid().ToString("N");
 
                 if (context.Request.Query.TryGetValue("id", out var _connectionId) && !string.IsNullOrEmpty(_connectionId.ToString()))
+                {
                     connectionId = _connectionId.ToString();
+                    Cleanup(connectionId);
+                }
 
                 try
                 {

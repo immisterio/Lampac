@@ -11,7 +11,7 @@ namespace Lampac.Engine.CRON
     {
         public static void Run()
         {
-            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(2), TimeSpan.FromHours(1));
+            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(5), TimeSpan.FromHours(1));
         }
 
         static Timer _cronTimer;
@@ -31,7 +31,7 @@ namespace Lampac.Engine.CRON
                 if (externalids != null && externalids.Count > 0)
                     await File.WriteAllTextAsync("data/externalids.json", JsonConvert.SerializeObject(externalids));
 
-                var cdnmovies = await Http.Download("http://194.246.82.144/externalids.json");
+                var cdnmovies = await Http.Download("http://194.246.82.144/cdnmovies.json");
                 if (cdnmovies != null && cdnmovies.Length > 0)
                     await File.WriteAllBytesAsync("data/cdnmovies.json", cdnmovies);
 

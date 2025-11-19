@@ -107,8 +107,8 @@ namespace Shared.Engine
 
         public static void OnDisconnected(string connectionId)
         {
-            clients.TryRemove(connectionId, out _);
-            InvkEvent.RchDisconnected(new EventRchDisconnected(connectionId));
+            if (clients.TryRemove(connectionId, out _))
+                InvkEvent.RchDisconnected(new EventRchDisconnected(connectionId));
         }
         #endregion
 

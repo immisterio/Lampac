@@ -531,6 +531,7 @@ namespace Online.Controllers
             send(AppInit.conf.RezkaPrem, "rhsprem");
 
             send(AppInit.conf.KinoPub);
+            send(AppInit.conf.Kinogo);
             send(AppInit.conf.GetsTV, "getstv-search");
             send(AppInit.conf.Kinobase);
             send(AppInit.conf.Alloha, "alloha-search");
