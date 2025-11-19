@@ -78,7 +78,7 @@ namespace Online.Controllers
                 return Content("data-json=");
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             string accessToken = await getToken(proxy);
@@ -206,7 +206,16 @@ namespace Online.Controllers
                 return OnError("hash", gbcache: false);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
+
             if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             var proxyManager = new ProxyManager(init);

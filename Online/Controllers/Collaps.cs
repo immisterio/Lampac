@@ -23,6 +23,14 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
+
             if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
                 return await Search(title, origsource, rjson);
 
@@ -31,10 +39,6 @@ namespace Online.Controllers
                 init.dash = true;
             else if (init.two)
                 init.dash = false;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotSupport("web,cors", out string rch_error))
-                return ShowError(rch_error);
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
@@ -52,9 +56,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed(imdb_id, kinopoisk_id, orid);
             });
 
@@ -84,15 +85,16 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo);
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
+            reset: 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var cache = await InvokeCache<ResultSearch[]>($"collaps:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"{init.apihost}/list?token={init.token}&name={HttpUtility.UrlEncode(title)}";
                 var root = rch.enable ? await rch.Get<JObject>(uri) : await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
                 if (root == null || !root.ContainsKey("results"))

@@ -406,7 +406,9 @@ namespace Online.Controllers
             if (!AppInit.conf.online.spider)
                 return ContentTo("{}");
 
-            bool rhub = false;
+            var rch = new RchClient(HttpContext, host, new BaseSettings() { rhub = true }, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             var user = requestInfo.user;
             var piders = new List<(string name, string uri, int index)>();
@@ -461,9 +463,6 @@ namespace Online.Controllers
                     catch (Exception ex) { Console.WriteLine($"Modules {entry.mod?.NamespacePath(entry.mod.online)}: {ex.Message}\n\n"); }
                 }
             }
-
-            if (spiderArgs.requireRhub)
-                rhub = true;
             #endregion
 
             #region send
@@ -491,9 +490,6 @@ namespace Online.Controllers
                             return;
                     }
                 }
-
-                if (init.rhub)
-                    rhub = true;
 
                 string url = null;
                 string displayname = init.displayname ?? init.plugin;
@@ -539,25 +535,13 @@ namespace Online.Controllers
             send(AppInit.conf.VeoVeo, "veoveo-spider");
 
             if (!string.IsNullOrEmpty(AppInit.conf.VideoCDN.token))
-            {
-                if (!AppInit.conf.VideoCDN.disable_protection)
-                    rhub = true;
-
                 send(AppInit.conf.VideoCDN);
-            }
 
             if (AppInit.conf.Lumex.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled)
                 send(AppInit.conf.Lumex);
 
             send(AppInit.conf.VDBmovies);
             send(AppInit.conf.HDVB, "hdvb-search");
-
-            if (rhub)
-            {
-                var rch = new RchClient(HttpContext, host, new BaseSettings() { rhub = true }, requestInfo);
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
-            }
 
             return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
         }

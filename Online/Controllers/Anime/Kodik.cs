@@ -79,7 +79,7 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+            if (rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             List<Result> content = null;
@@ -140,10 +140,6 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() && init.rhub_fallback && play)
-                rch.Disabled();
-
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 

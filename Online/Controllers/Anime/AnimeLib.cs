@@ -29,7 +29,7 @@ namespace Online.Controllers
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
@@ -206,9 +206,19 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-            if (rch.IsNotConnected() && init.rhub_fallback && play)
-                rch.Disabled();
+            reset: 
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             var cache = await InvokeCache<Player[]>($"animelib:video:{id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {

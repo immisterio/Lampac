@@ -18,6 +18,10 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var headers_stream = httpHeaders(init.host, init.headers_stream);
 
             if (pid == 0)

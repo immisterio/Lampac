@@ -14,6 +14,10 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -23,9 +27,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<JObject>($"cdnvideohub:view:{kinopoisk_id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"{init.corsHost()}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}";
 
                 var root = rch.enable 
@@ -163,12 +164,22 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: 
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
-
-            if (rch.IsNotConnected() && init.rhub_fallback && play)
-                rch.Disabled();
 
             var cache = await InvokeCache<string>(rch.ipkey($"cdnvideohub:video:{vkId}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {

@@ -34,7 +34,7 @@ namespace SISI.Controllers.NextHUB
             var proxy = proxyManager.BaseGet();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             if (init.view.initUrlEval != null)

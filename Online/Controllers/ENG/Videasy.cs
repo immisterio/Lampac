@@ -27,6 +27,10 @@ namespace Online.Controllers
             if (id == 0)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 

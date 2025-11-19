@@ -89,6 +89,10 @@ namespace Online.Controllers
                     return OnError("Chromium disabled");
             }
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 

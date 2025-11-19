@@ -23,6 +23,10 @@ namespace Online.Controllers
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -112,9 +116,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"fancdn:{title}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 var result = !string.IsNullOrEmpty(init.token) && kinopoisk_id > 0 ? await oninvk.EmbedToken(kinopoisk_id, init.token) : await oninvk.EmbedSearch(title, original_title, year, serial);
                 if (result == null)
                     return res.Fail("result");

@@ -24,6 +24,10 @@ namespace Online.Controllers
             var proxy = proxyManager.BaseGet();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -38,9 +42,6 @@ namespace Online.Controllers
             reset: 
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"videodb:view:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed(kinopoisk_id);
             });
 
@@ -64,10 +65,24 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(link))
                 return OnError();
 
+            bool play = HttpContext.Request.Path.Value.Contains(".m3u8");
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
+
+            if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -91,9 +106,6 @@ namespace Online.Controllers
 
                         if (rch.enable)
                         {
-                            if (rch.IsNotConnected())
-                                return ContentTo(rch.connectionMsg);
-
                             var res = await rch.Headers(link, null, headers);
                             location = res.currentUrl;
                         }
@@ -165,7 +177,7 @@ namespace Online.Controllers
 
                 string hls = HostStreamProxy(init, location, proxy: proxy.proxy);
 
-                if (HttpContext.Request.Path.Value.Contains(".m3u8"))
+                if (play)
                     return RedirectToPlay(hls);
 
                 return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast));

@@ -42,6 +42,10 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 

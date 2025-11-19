@@ -14,6 +14,10 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -40,9 +44,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<EmbedModel>($"kinoukr:view:{title}:{original_title}:{year}:{href}:{clarification}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.EmbedKurwa(clarification, title, original_title, year, href);
             });
 

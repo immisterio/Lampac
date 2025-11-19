@@ -13,6 +13,10 @@ namespace SISI.Controllers.XvideosRED
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             string plugin = init.plugin;
             bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);
             string memKey = $"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}";

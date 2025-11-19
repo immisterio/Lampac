@@ -18,6 +18,10 @@ namespace Online.Controllers
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -35,9 +39,6 @@ namespace Online.Controllers
                     reset:
                     var cache = await InvokeCache<List<(string name, string uri, string season)>>($"kinotochka:seasons:{title}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                     {
-                        if (rch.IsNotConnected())
-                            return res.Fail(rch.connectionMsg);
-
                         List<(string, string, string)> links = null;
 
                         if (kinopoisk_id > 0) // https://kinovibe.co/embed.html
@@ -118,9 +119,6 @@ namespace Online.Controllers
                     reset: 
                     var cache = await InvokeCache<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                     {
-                        if (rch.IsNotConnected())
-                            return res.Fail(rch.connectionMsg);
-
                         string news = rch.enable ? await rch.Get(newsuri, httpHeaders(init)) : await Http.Get(newsuri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                         if (news == null)
                         {
@@ -193,9 +191,6 @@ namespace Online.Controllers
                 reset:
                 var cache = await InvokeCache<EmbedModel>($"kinotochka:view:{kinopoisk_id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     string uri = $"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}";
                     string embed = rch.enable ? await rch.Get(uri, httpHeaders(init)) : await Http.Get(uri, timeoutSeconds: 8, proxy: proxy, cookie: cookie, headers: httpHeaders(init));
                     if (embed == null)

@@ -14,6 +14,10 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (string.IsNullOrEmpty(news))
             {
                 if (string.IsNullOrEmpty(title))

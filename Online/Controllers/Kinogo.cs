@@ -24,6 +24,7 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 

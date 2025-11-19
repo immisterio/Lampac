@@ -17,6 +17,9 @@ namespace Online.Controllers
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
@@ -32,9 +35,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<EmbedModel>($"ashdi:view:{kinopoisk_id}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed(kinopoisk_id);
             });
 

@@ -19,6 +19,10 @@ namespace Online.Controllers
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
                 if (source.ToLower() == "kinobase")

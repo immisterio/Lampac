@@ -15,6 +15,10 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -27,9 +31,6 @@ namespace Online.Controllers
                 #region Поиск
                 var cache = await InvokeCache<List<(string title, string year, string uri, string s, string img)>>($"animebesst:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
                     string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (search == null)
@@ -99,9 +100,6 @@ namespace Online.Controllers
                 #region Серии
                 var cache = await InvokeCache<List<(string episode, string name, string uri)>>($"animebesst:playlist:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     string news = rch.enable ? await rch.Get(uri) : await Http.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
                     if (news == null)
                         return res.Fail("news");
@@ -161,12 +159,22 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            reset: var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+            reset: 
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
-
-            if (rch.IsNotConnected() && init.rhub_fallback && play)
-                rch.Disabled();
 
             var cache = await InvokeCache<string>($"animebesst:video:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {

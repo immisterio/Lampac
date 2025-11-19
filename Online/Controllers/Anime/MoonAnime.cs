@@ -22,6 +22,10 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (animeid == 0)
             {
                 #region Поиск
@@ -201,6 +205,10 @@ namespace Online.Controllers
 
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             string memKey = $"moonanime:vod:{vod}";
 

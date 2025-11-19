@@ -175,7 +175,10 @@ namespace Online.Controllers
             }
 
             var proxyManager = new ProxyManager(init);
+
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             if (rch.enable)
             {
@@ -202,9 +205,6 @@ namespace Online.Controllers
             {
                 var search = await InvokeCache<SearchModel>($"rhsprem:search:{title}:{original_title}:{clarification}:{year}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     var content = await oninvk.Search(title, original_title, clarification, year);
                     if (content == null || (content.IsEmpty && content.content != null))
                         return res.Fail(content.content ?? "content");
@@ -245,9 +245,6 @@ namespace Online.Controllers
 
             var cache = await InvokeCache<EmbedModel>($"rhsprem:{href}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res => 
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed(href, search_uri);
             });
 
@@ -274,8 +271,9 @@ namespace Online.Controllers
             var oninvk = onrezka.invk;
 
             var proxyManager = new ProxyManager(init);
+
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             var cache_root = await InvokeCache<Episodes>($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
@@ -307,10 +305,19 @@ namespace Online.Controllers
                 return OnError("authorization error ;(", weblog: onrezka.log);
 
             var oninvk = onrezka.invk;
-
             var proxyManager = new ProxyManager(init);
+
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
+
             if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{onrezka.cookie}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>

@@ -27,6 +27,10 @@ namespace Online.Controllers
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 

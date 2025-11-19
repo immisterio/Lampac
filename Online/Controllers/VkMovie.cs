@@ -25,6 +25,10 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -36,9 +40,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<CatalogVideo[]>(rch.ipkey($"vkmovie:view:{searchTitle}:{year}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={client_id}";
                 string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={access_token}";
 

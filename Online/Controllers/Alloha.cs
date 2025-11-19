@@ -41,6 +41,10 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (similar)
                 return await SpiderSearch(title, origsource, rjson);
 
@@ -152,6 +156,10 @@ namespace Online.Controllers
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             var proxy = proxyManager.BaseGet();
 

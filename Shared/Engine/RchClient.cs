@@ -342,9 +342,6 @@ namespace Shared.Engine
             if (!AppInit.conf.rch.requiredConnected)
                 return false; // Обязательное подключение отключено
 
-            if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
-                return true; // заглушка для checksearch
-
             return SocketClient().connectionId == null;
         }
         #endregion

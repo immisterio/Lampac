@@ -17,6 +17,10 @@ namespace Online.Controllers
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -36,9 +40,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed(title, year);
             });
 

@@ -16,11 +16,12 @@ namespace SISI.Controllers.Ebalovo
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return OnError(rch_error);
-
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
 
             if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)
             {

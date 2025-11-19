@@ -16,11 +16,12 @@ namespace SISI.Controllers.Porntrex
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: init.apnstream ? -1 : null);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return OnError(rch_error);
-
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
 
             string memKey = rch.ipkey($"porntrex:view:{uri}", proxyManager);
 

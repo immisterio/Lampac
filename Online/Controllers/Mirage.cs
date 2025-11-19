@@ -27,6 +27,10 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (similar)
                 return await SpiderSearch(title, origsource, rjson);
 
@@ -274,6 +278,10 @@ namespace Online.Controllers
             var init = await Initialization();
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out (string hls, List<HeadersModel> headers) movie))

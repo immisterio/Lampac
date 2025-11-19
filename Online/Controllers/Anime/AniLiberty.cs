@@ -17,6 +17,8 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             if (releases == 0)
             {
@@ -28,9 +30,6 @@ namespace Online.Controllers
                 reset:
                 var cache = await InvokeCache<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     string req_uri = $"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}";
                     var search = rch.enable ? await rch.Get<JArray>(req_uri, httpHeaders(init)) :
                                               await Http.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
@@ -99,9 +98,6 @@ namespace Online.Controllers
                 reset: 
                 var cache = await InvokeCache<JObject>($"aniliberty:releases:{releases}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     string req_uri = $"{init.corsHost()}/api/v1/anime/releases/{releases}";
 
                     var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :

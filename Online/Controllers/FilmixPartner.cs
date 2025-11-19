@@ -26,6 +26,10 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (postid == 0)
             {
                 var res = await InvokeCache($"fxapi:search:{title}:{original_title}:{similar}", cacheTime(40, init: init), () => Search(title, original_title, year, similar));

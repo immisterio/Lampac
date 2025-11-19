@@ -21,6 +21,10 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -34,9 +38,6 @@ namespace Online.Controllers
                 string memKey = $"rutubemovie:view:{searchTitle}:{year}:{(rch.enable ? requestInfo.Country : "")}";
                 var cache = await InvokeCache<Result[]>(memKey, cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     string uri = $"api/search/video/?content_type=video&duration=movie&query={HttpUtility.UrlEncode($"{title} {year}")}";
                     var root = rch.enable ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) : 
                                             await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
@@ -100,11 +101,11 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
+            reset:
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            reset:
             var cache = await InvokeCache<string>($"rutubemovie:play:{linkid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string uri = $"api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp";

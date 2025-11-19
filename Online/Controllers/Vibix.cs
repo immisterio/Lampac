@@ -25,7 +25,12 @@ namespace Online.Controllers
                 return OnError();
 
             var proxy = proxyManager.Get();
+
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -34,9 +39,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) :
                                            await Http.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 

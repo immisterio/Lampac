@@ -54,6 +54,10 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("cors,web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -86,9 +90,6 @@ namespace Online.Controllers
             {
                 var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{year}:{clarification}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     return await oninvk.Search(title, original_title, clarification, year, similar);
                 });
 
@@ -103,9 +104,6 @@ namespace Online.Controllers
 
             var cache = await InvokeCache<RootObject>($"filmix:post:{postid}:{token}", cacheTime(20, init: init), rch.enable ? null : proxyManager, onget: async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Post(postid);
             });
 

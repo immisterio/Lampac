@@ -30,7 +30,7 @@ namespace SISI.Controllers.NextHUB
                 return OnError("search disable");
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             var proxyManager = new ProxyManager(init);

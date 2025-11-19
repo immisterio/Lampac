@@ -35,6 +35,10 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var oninvk = InitRemuxInvoke();
 
             var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", cacheTime(40, init: init), () => oninvk.Embed(title, original_title, year, href), proxyManager);
@@ -52,6 +56,10 @@ namespace Online.Controllers
             var init = await loadKit(AppInit.conf.iRemux);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             var oninvk = InitRemuxInvoke();
 

@@ -19,11 +19,12 @@ namespace SISI.Controllers.PornHub
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return OnError(rch_error);
-
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
             string memKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
@@ -66,6 +67,10 @@ namespace SISI.Controllers.PornHub
             var init = await loadKit(AppInit.conf.PornHubPremium);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))

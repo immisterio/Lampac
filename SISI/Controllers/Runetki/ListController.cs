@@ -20,11 +20,12 @@ namespace SISI.Controllers.Runetki
             var proxy = proxyManager.BaseGet();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return OnError(rch_error);
-
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
 
             string memKey = $"{init.plugin}:list:{sort}:{pg}";
 

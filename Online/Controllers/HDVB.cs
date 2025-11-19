@@ -16,15 +16,16 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (similar || kinopoisk_id == 0)
-                return await SpiderSearch(title, origsource, rjson);
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
-            if (rch.IsNotConnected())
-                return ContentTo(rch.connectionMsg);
+            if (similar || kinopoisk_id == 0)
+                return await SpiderSearch(title, origsource, rjson);
 
             #region search
             reset:
@@ -133,43 +134,52 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
+
             var proxy = proxyManager.Get();
 
             string memKey = $"video:view:video:{iframe}";
 
             return await InvkSemaphore(init, memKey, async () =>
             {
-            if (!hybridCache.TryGetValue(memKey, out string urim3u8))
-            {
-                var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-                if (rch.IsNotSupport("web,cors", out string rch_error))
-                    return ShowError(rch_error);
-
-                if (rch.IsNotConnected())
-                    return ContentTo(rch.connectionMsg);
-
-                var header = httpHeaders(init, HeadersModel.Init(
-                    ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                    ("sec-fetch-dest", "document"),
-                    ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "none")
-                ));
-
-                reset:
-                string html = rch.enable ? await rch.Get(iframe, header) :
-                                           await Http.Get(iframe, timeoutSeconds: 8, proxy: proxy, headers: header);
-
-                if (html != null)
+                if (!hybridCache.TryGetValue(memKey, out string urim3u8))
                 {
-                    string vid = "vid11";
-                    string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
-                    string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                    string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                    file = Regex.Replace(file, "^/playlist/", "/");
-                    file = Regex.Replace(file, "\\.txt$", "");
+                    var header = httpHeaders(init, HeadersModel.Init(
+                        ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                        ("sec-fetch-dest", "document"),
+                        ("sec-fetch-mode", "navigate"),
+                        ("sec-fetch-site", "none")
+                    ));
 
-                    if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(csrftoken))
+                    reset:
+                    string html = rch.enable ? await rch.Get(iframe, header) :
+                                               await Http.Get(iframe, timeoutSeconds: 8, proxy: proxy, headers: header);
+
+                    if (html != null)
                     {
+                        string vid = "vid11";
+                        string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
+                        string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                        string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                        file = Regex.Replace(file, "^/playlist/", "/");
+                        file = Regex.Replace(file, "\\.txt$", "");
+
+                        if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(csrftoken))
+                        {
                             string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
 
                             header = httpHeaders(init, HeadersModel.Init(
@@ -182,7 +192,7 @@ namespace Online.Controllers
                                 ("x-csrf-token", csrftoken)
                             ));
 
-                            urim3u8 = rch.enable ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) : 
+                            urim3u8 = rch.enable ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) :
                                                    await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
 
                             if (urim3u8 != null)
@@ -195,7 +205,7 @@ namespace Online.Controllers
 
                                     if (!string.IsNullOrEmpty(file))
                                     {
-                                        urim3u8 = rch.enable ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) : 
+                                        urim3u8 = rch.enable ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) :
                                                                await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
                                     }
                                 }
@@ -243,6 +253,22 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
+            if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
+
             var proxy = proxyManager.Get();
 
             string memKey = $"video:view:serial:{iframe}:{t}:{s}:{e}";
@@ -251,18 +277,6 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(memKey, out string urim3u8))
                 {
-                    var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-                    if (rch.IsNotSupport("web,cors", out string rch_error))
-                        return ShowError(rch_error);
-
-                    if (rch.IsNotConnected())
-                    {
-                        if (init.rhub_fallback && play)
-                            rch.Disabled();
-                        else
-                            return ContentTo(rch.connectionMsg);
-                    }
-
                     string vid = "vid11";
 
                     #region playlist
@@ -383,6 +397,10 @@ namespace Online.Controllers
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web,cors", out string rch_error))
                 return ShowError(rch_error);
 
@@ -392,9 +410,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<JArray>($"hdvb:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}";
                 var root = rch.enable ? await rch.Get<JArray>(uri) :
                                         await Http.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxyManager.Get());

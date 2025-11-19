@@ -48,6 +48,10 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (string.IsNullOrEmpty(orid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
                 if (source.ToLower() == "getstv")
@@ -178,6 +182,10 @@ namespace Online.Controllers
             var init = await loadKit(AppInit.conf.GetsTV);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (!play && rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             var proxy = proxyManager.Get();
 

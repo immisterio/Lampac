@@ -73,6 +73,9 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxy = proxyManager.Get();
 
             string token = init.token;
@@ -94,9 +97,6 @@ namespace Online.Controllers
             {
                 var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{year}:{clarification}:{imdb_id}:{kinopoisk_id}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
-                    if (rch.IsNotConnected())
-                        return res.Fail(rch.connectionMsg);
-
                     return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id);
                 });
 
@@ -116,9 +116,6 @@ namespace Online.Controllers
 
             var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}:{token}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Post(postid);
             });
 

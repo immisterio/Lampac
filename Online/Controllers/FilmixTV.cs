@@ -44,6 +44,10 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.user_apitv))
                 return OnError("user_apitv", gbcache: false);
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 

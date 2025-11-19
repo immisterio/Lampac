@@ -21,6 +21,10 @@ namespace Online.Controllers
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
@@ -136,6 +140,10 @@ namespace Online.Controllers
             iframe = AesTo.Decrypt(iframe);
             if (string.IsNullOrEmpty(iframe))
                 return OnError();
+
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
 
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();

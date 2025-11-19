@@ -34,10 +34,6 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotSupport("web,cors", out string rch_error))
-                return ShowError(rch_error);
-
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
@@ -113,12 +109,16 @@ namespace Online.Controllers
             }
             #endregion
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport("web,cors", out string rch_error))
+                return ShowError(rch_error);
+
             reset: 
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{orid}:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
                 if (!string.IsNullOrEmpty(orid))
                     uri = $"{init.corsHost()}/content/{orid}/iframe";

@@ -86,7 +86,7 @@ namespace Online.Controllers
                 return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             if (rch.enable)
@@ -184,7 +184,7 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-            if (rch.IsNotConnected())
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", cacheTime(20, init: init), () => oninvk.SerialEmbed(id, t));
@@ -213,7 +213,16 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
+
             if (rch.IsNotConnected())
+            {
+                if (init.rhub_fallback && play)
+                    rch.Disabled();
+                else
+                    return ContentTo(rch.connectionMsg);
+            }
+
+            if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             string realip = (init.xrealip && init.corseu) ? requestInfo.IP : "";

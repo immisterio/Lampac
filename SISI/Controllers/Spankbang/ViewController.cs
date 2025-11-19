@@ -17,7 +17,8 @@ namespace SISI.Controllers.Spankbang
             var proxy = proxyManager.BaseGet();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected())
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
             string memKey = $"spankbang:view:{uri}";

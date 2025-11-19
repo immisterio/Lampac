@@ -26,6 +26,10 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
@@ -42,9 +46,6 @@ namespace Online.Controllers
             reset:
             var cache = await InvokeCache<EmbedModel>($"eneyida:view:{title}:{year}:{href}:{clarification}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 return await oninvk.Embed((similar || clarification == 1) ? title : original_title, year, href, similar);
             });
 

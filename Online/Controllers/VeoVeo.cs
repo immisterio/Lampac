@@ -28,7 +28,7 @@ namespace Online.Controllers
         async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
         {
             var init = await loadKit(AppInit.conf.VeoVeo);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
@@ -46,11 +46,18 @@ namespace Online.Controllers
                 movieid = movie.Value.id;
             }
 
+            var rch = new RchClient(HttpContext, host, init, requestInfo);
+            if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                return ContentTo(rch.connectionMsg);
+
             #region media
-            var cache = await InvokeCache<JArray>($"{init.plugin}:view:{movieid}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCache<JArray>($"{init.plugin}:view:{movieid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movieid}";
-                var root = await Http.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                
+                var root = rch.enable 
+                    ? await rch.Get<JArray>(init.cors(uri), httpHeaders(init))
+                    : await Http.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (root == null || root.Count == 0)
                     return res.Fail("data");
