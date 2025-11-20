@@ -42,7 +42,7 @@ namespace Lampac.Controllers
 
             using (var sqlDb = new SyncUserContext())
             {
-                sqlDb.timecodes
+                timecodes = sqlDb.timecodes
                     .AsNoTracking()
                     .Where(i => i.user == userId && i.card == card_id)
                     .ToDictionary(i => i.item, i => i.data);
