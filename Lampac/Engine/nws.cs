@@ -72,9 +72,10 @@ namespace Lampac.Engine
 
                     _connections.AddOrUpdate(connectionId, connection, (k, v) => connection);
 
+                    await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
+
                     InvkEvent.NwsConnected(new EventNwsConnected(connectionId, ip, requestInfo, connection, cancellationSource.Token));
 
-                    await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
                     await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
                 }
                 finally
