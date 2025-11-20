@@ -17,6 +17,10 @@ namespace Shared.Engine
         public string rchtype { get; set; }
         public int apkVersion { get; set; }
         public string player { get; set; }
+        public string account_email { get; set; }
+        public string unic_id { get; set; }
+        public string profile_id { get; set; }
+        public string token { get; set; }
 
         public object ob { get; set; }
         public Dictionary<string, object> obs { get; set; }
@@ -164,6 +168,11 @@ namespace Shared.Engine
 
 
         #region Eval
+        public void EvalRun(string data)
+        {
+            _= SendHub("evalrun", data).ConfigureAwait(false);
+        }
+
         async public Task<string> Eval(string data)
         {
             return await SendHub("eval", data).ConfigureAwait(false);
@@ -264,7 +273,7 @@ namespace Shared.Engine
         #endregion
 
         #region SendHub
-        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false)
+        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false, bool waiting = true)
         {
             if (hub == null)
                 return null;
@@ -300,6 +309,9 @@ namespace Shared.Engine
                 }
 
                 hub.Invoke(null, (connectionId, rchId, url, data, send_headers, returnHeaders));
+
+                if (!waiting)
+                    return null;
 
                 string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
                 rchIds.TryRemove(rchId, out _);

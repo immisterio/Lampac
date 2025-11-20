@@ -155,10 +155,23 @@ namespace SISI
 
         string getuser()
         {
-            if (!string.IsNullOrEmpty(requestInfo.user_uid))
-                return CrypTo.md5(requestInfo.user_uid);
+            string user_id = requestInfo.user_uid;
+            if (string.IsNullOrEmpty(user_id))
+                return null;
 
-            return null;
+            string profile_id = getProfileid();
+            if (!string.IsNullOrEmpty(profile_id))
+                return CrypTo.md5($"{user_id}_{profile_id}");
+
+            return CrypTo.md5(user_id);
+        }
+
+        string getProfileid()
+        {
+            if (HttpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id) && profile_id != "0")
+                return profile_id;
+
+            return string.Empty;
         }
     }
 }
