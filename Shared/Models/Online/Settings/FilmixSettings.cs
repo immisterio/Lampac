@@ -14,6 +14,9 @@ namespace Shared.Models.Online.Settings
                 this.host = host.StartsWith("http") ? host : Decrypt(host);
         }
 
+        public int hidefreeStart { get; set; } = 20;
+
+        public int hidefreeEnd { get; set; } = 23;
 
         public string[] tokens { get; set; }
 

@@ -865,7 +865,21 @@ namespace Online.Controllers
                     return i; 
                 });
 
-                send(myinit, myinit: myinit, rch_access: "apk");
+                if (string.IsNullOrEmpty(myinit.token) && (myinit.tokens == null || myinit.tokens.Length == 0) && conf.Filmix.hidefreeStart > 0)
+                {
+                    TimeZoneInfo kievTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Kiev");
+                    DateTime kievTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, kievTimeZone);
+
+                    if (kievTime.Hour >= conf.Filmix.hidefreeStart && kievTime.Hour < conf.Filmix.hidefreeEnd) { }
+                    else
+                    {
+                        send(myinit, myinit: myinit, rch_access: "apk");
+                    }
+                }
+                else
+                {
+                    send(myinit, myinit: myinit, rch_access: "apk");
+                }
             }
 
             send(conf.FilmixTV, "filmixtv");
