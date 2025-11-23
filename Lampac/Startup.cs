@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.CodeAnalysis;
@@ -19,6 +20,7 @@ using Newtonsoft.Json;
 using Shared;
 using Shared.Engine;
 using Shared.Models.Module;
+using Shared.Models.Module.Entrys;
 using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
@@ -29,12 +31,16 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Lampac
 {
     public class Startup
     {
         #region Startup
+        static IApplicationBuilder _app = null;
+
         public static bool IsShutdown { get; private set; }
 
         public IConfiguration Configuration { get; }
@@ -309,6 +315,7 @@ namespace Lampac
                                 mod.index = mod.index != 0 ? mod.index : (100 + AppInit.modules.Count);
                                 AppInit.modules.Add(mod);
                                 mvcBuilder.AddApplicationPart(mod.assembly);
+                                WatchersDynamicModule(null, mvcBuilder, mod, path);
                             }
                         }
                     }
@@ -351,6 +358,7 @@ namespace Lampac
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime)
         {
+            _app = app;
             memoryCache = memory;
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
@@ -373,24 +381,7 @@ namespace Lampac
                         if (mod.dll == "Tracks.dll" || mod.dll == "TorrServer.dll")
                             mod.version = 2;
 
-                        if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
-                        {
-                            if (mod.version >= 2)
-                            {
-                                m.Invoke(null, [ new InitspaceModel()
-                                {
-                                    path = $"module/{mod.dll}",
-                                    soks = new soks(),
-                                    nws = new nws(),
-                                    memoryCache = memoryCache,
-                                    configuration = Configuration,
-                                    services = serviceCollection,
-                                    app = app
-                                }]);
-                            }
-                            else
-                                m.Invoke(null, []);
-                        }
+                        LoadedModule(app, mod);
                     }
                     catch (Exception ex) { Console.WriteLine($"Module {mod.NamespacePath(mod.initspace)}: {ex.Message}\n\n"); }
                 }
@@ -504,7 +495,8 @@ namespace Lampac
         }
 
 
-        private void OnShutdown()
+        #region OnShutdown
+        void OnShutdown()
         {
             if (Program._reload)
                 return;
@@ -516,6 +508,163 @@ namespace Lampac
             Firefox.FullDispose();
             nws.FullDispose();
             soks.FullDispose();
+
+            DisposeModule(null);
         }
+        #endregion
+
+        #region WatchRebuildModule
+        static readonly Dictionary<string, FileSystemWatcher> moduleWatchers = new();
+
+        static readonly object moduleWatcherLock = new object();
+
+        void WatchersDynamicModule(IApplicationBuilder app, IMvcBuilder mvcBuilder, RootModule mod, string path)
+        {
+            if (!mod.dynamic)
+                return;
+
+            path = Path.GetFullPath(path);
+
+            lock (moduleWatcherLock)
+            {
+                if (moduleWatchers.ContainsKey(path))
+                    return;
+
+                var watcher = new FileSystemWatcher(path, "*.cs")
+                {
+                    IncludeSubdirectories = true,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
+                };
+
+                CancellationTokenSource debounceCts = null;
+                object debounceLock = new object();
+
+                void Recompile(object sender, FileSystemEventArgs e)
+                {
+                    string _file = e.FullPath.Replace("\\", "/").Replace(path.Replace("\\", "/"), "").Replace(Environment.CurrentDirectory.Replace("\\", "/"), "");
+                    if (Regex.IsMatch(_file, "(\\.vs|bin|obj|Properties)/", RegexOptions.IgnoreCase))
+                        return;
+
+                    CancellationTokenSource cts;
+
+                    lock (debounceLock)
+                    {
+                        debounceCts?.Cancel();
+                        debounceCts = new CancellationTokenSource();
+                        cts = debounceCts;
+                    }
+
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+
+                        if (cts.IsCancellationRequested)
+                            return;
+
+                        watcher.EnableRaisingEvents = false;
+
+                        try
+                        {
+                            var parts = mvcBuilder.PartManager.ApplicationParts
+                                .OfType<AssemblyPart>()
+                                .Where(p => p.Assembly == mod.assembly)
+                                .ToList();
+
+                            var assembly = CSharpEval.Compilation(mod);
+                            if (assembly != null)
+                            {
+                                DisposeModule(mod);
+
+                                foreach (var part in parts)
+                                    mvcBuilder.PartManager.ApplicationParts.Remove(part);
+
+                                mod.assembly = assembly;
+                                mvcBuilder.PartManager.ApplicationParts.Add(new AssemblyPart(mod.assembly));
+
+                                LoadedModule(app, mod);
+
+                                MiddlewaresModuleEntry.EnsureCache(forced: true);
+                                OnlineModuleEntry.EnsureCache(forced: true);
+
+                                Console.WriteLine("rebuild module: " + mod.dll);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to rebuild module {mod.dll}: {ex.Message}");
+                        }
+                        finally
+                        {
+                            watcher.EnableRaisingEvents = true;
+                        }
+                    });
+                }
+
+                watcher.Changed += Recompile;
+                watcher.Created += Recompile;
+                watcher.Deleted += Recompile;
+                watcher.Renamed += Recompile;
+
+                watcher.EnableRaisingEvents = true;
+                moduleWatchers[path] = watcher;
+            }
+        }
+        #endregion
+
+        #region LoadedModule
+        void LoadedModule(IApplicationBuilder app, RootModule mod)
+        {
+            if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
+            {
+                if (mod.version >= 2)
+                {
+                    m.Invoke(null, [
+                        new InitspaceModel()
+                        {
+                            path = $"module/{mod.dll}",
+                            soks = new soks(),
+                            nws = new nws(),
+                            memoryCache = memoryCache,
+                            configuration = Configuration,
+                            services = serviceCollection,
+                            app = app ?? _app
+                        }
+                    ]);
+                }
+                else
+                    m.Invoke(null, []);
+            }
+        }
+        #endregion
+
+        #region DisposeModule
+        void DisposeModule(RootModule module)
+        {
+            if (AppInit.modules == null)
+                return;
+
+            if (module != null)
+            {
+                try
+                {
+                    if (module.initspace != null && module.assembly.GetType(module.NamespacePath(module.initspace)) is Type t && t.GetMethod("Dispose") is MethodInfo m)
+                        m.Invoke(null, []);
+                }
+                catch { }
+            }
+            else
+            {
+                foreach (var mod in AppInit.modules)
+                {
+                    try
+                    {
+                        if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("Dispose") is MethodInfo m)
+                            m.Invoke(null, []);
+                    }
+                    catch { }
+                }
+            }
+        }
+        #endregion
     }
 }

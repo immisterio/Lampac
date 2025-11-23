@@ -6,6 +6,8 @@ namespace Shared.Models.Module
     {
         public bool enable { get; set; }
 
+        public bool dynamic { get; set; }
+
         public int index { get; set; }
 
         public int version { get; set; }

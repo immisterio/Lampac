@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Shared.Models.Module;
 
-namespace Online
+namespace Shared.Models.Module.Entrys
 {
     public class OnlineModuleEntry
     {
@@ -20,14 +19,17 @@ namespace Online
         public static List<OnlineModuleEntry> onlineModulesCache = null;
         static readonly object _onlineModulesCacheLock = new object();
 
-        public static void EnsureCache()
+        public static void EnsureCache(bool forced = false)
         {
-            if (onlineModulesCache != null || AppInit.modules == null)
+            if (AppInit.modules == null)
+                return;
+
+            if (forced == false && onlineModulesCache != null)
                 return;
 
             lock (_onlineModulesCacheLock)
             {
-                if (onlineModulesCache != null)
+                if (forced == false && onlineModulesCache != null)
                     return;
 
                 onlineModulesCache = new List<OnlineModuleEntry>();
