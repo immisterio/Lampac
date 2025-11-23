@@ -36,7 +36,7 @@ namespace Shared.Models.Module.Entrys
 
                 try
                 {
-                    foreach (var mod in AppInit.modules.Where(i => i.online != null))
+                    foreach (var mod in AppInit.modules.Where(i => i.online != null && i.enable))
                     {
                         try
                         {

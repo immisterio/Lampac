@@ -8,13 +8,14 @@ namespace Lampac.Engine
     {
         public static DynamicActionDescriptorChangeProvider Instance { get; } = new DynamicActionDescriptorChangeProvider();
 
-        public CancellationTokenSource TokenSource { get; private set; } = new CancellationTokenSource();
+        private CancellationTokenSource tokenSource = new CancellationTokenSource();
+        public CancellationTokenSource TokenSource => tokenSource;
 
-        public IChangeToken GetChangeToken() => new CancellationChangeToken(TokenSource.Token);
+        public IChangeToken GetChangeToken() => new CancellationChangeToken(tokenSource.Token);
 
         public void NotifyChanges()
         {
-            var previous = Interlocked.Exchange(ref TokenSource, new CancellationTokenSource());
+            var previous = Interlocked.Exchange(ref tokenSource, new CancellationTokenSource());
             previous.Cancel();
         }
     }

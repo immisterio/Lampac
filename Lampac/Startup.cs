@@ -534,11 +534,14 @@ namespace Lampac
                 if (moduleWatchers.ContainsKey(path))
                     return;
 
-                var watcher = new FileSystemWatcher(path, "*.cs")
+                var watcher = new FileSystemWatcher(path)
                 {
                     IncludeSubdirectories = true,
                     NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
                 };
+
+                watcher.Filters.Add("*.cs");
+                watcher.Filters.Add("manifest.json");
 
                 CancellationTokenSource debounceCts = null;
                 object debounceLock = new object();
@@ -574,6 +577,40 @@ namespace Lampac
                                 .Where(p => p.Assembly == mod.assembly)
                                 .ToList();
 
+                            #region update manifest.json
+                            string manifestPath = Path.Combine(path, "manifest.json");
+                            RootModule manifestMod = null;
+
+                            if (File.Exists(manifestPath))
+                            {
+                                try
+                                {
+                                    manifestMod = JsonConvert.DeserializeObject<RootModule>(File.ReadAllText(manifestPath));
+
+                                    var excludedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                                    {
+                                        nameof(RootModule.dynamic),
+                                        nameof(RootModule.index),
+                                        nameof(RootModule.dll),
+                                        nameof(RootModule.assembly),
+                                        nameof(RootModule.initspace)
+                                    };
+
+                                    foreach (var property in typeof(RootModule).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                                    {
+                                        if (!property.CanRead || !property.CanWrite || excludedProperties.Contains(property.Name))
+                                            continue;
+
+                                        property.SetValue(mod, property.GetValue(manifestMod));
+                                    }
+                                }
+                                catch (Exception manifestEx)
+                                {
+                                    Console.WriteLine($"Failed to update manifest for {mod.dll}: {manifestEx.Message}");
+                                }
+                            }
+                            #endregion
+
                             var assembly = CSharpEval.Compilation(mod);
                             if (assembly != null)
                             {
@@ -582,16 +619,18 @@ namespace Lampac
                                 foreach (var part in parts)
                                     mvcBuilder.PartManager.ApplicationParts.Remove(part);
 
-                                mod.assembly = assembly;
-                                mvcBuilder.PartManager.ApplicationParts.Add(new AssemblyPart(mod.assembly));
+                                if (manifestMod != null)
+                                    mod.initspace = manifestMod.initspace;
 
+                                mod.assembly = assembly;
                                 LoadedModule(app, mod);
+
+                                mvcBuilder.PartManager.ApplicationParts.Add(new AssemblyPart(mod.assembly));
+                                DynamicActionDescriptorChangeProvider.Instance.NotifyChanges();
 
                                 MiddlewaresModuleEntry.EnsureCache(forced: true);
                                 OnlineModuleEntry.EnsureCache(forced: true);
                                 SisiModuleEntry.EnsureCache(forced: true);
-
-                                DynamicActionDescriptorChangeProvider.Instance.NotifyChanges();
 
                                 Console.WriteLine("rebuild module: " + mod.dll);
                             }
@@ -621,6 +660,9 @@ namespace Lampac
         #region LoadedModule
         void LoadedModule(IApplicationBuilder app, RootModule mod)
         {
+            if (mod == null)
+                return;
+
             if (mod.initspace != null && mod.assembly.GetType(mod.NamespacePath(mod.initspace)) is Type t && t.GetMethod("loaded") is MethodInfo m)
             {
                 if (mod.version >= 2)

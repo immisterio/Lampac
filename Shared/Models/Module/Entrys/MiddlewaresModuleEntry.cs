@@ -31,7 +31,7 @@ namespace Shared.Models.Module.Entrys
 
                 middlewareModulesCache = new List<MiddlewaresModuleEntry>();
 
-                foreach (var mod in AppInit.modules.Where(i => i.middlewares != null))
+                foreach (var mod in AppInit.modules.Where(i => i.middlewares != null && i.enable))
                 {
                     try
                     {
