@@ -1,13 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Shared;
-using Shared.Models;
-using Shared.Models.Module;
 using Shared.Models.SISI.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Shared.Models.Module.Entrys
 {
