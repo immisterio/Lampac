@@ -585,6 +585,7 @@ namespace Lampac
 
                                 MiddlewaresModuleEntry.EnsureCache(forced: true);
                                 OnlineModuleEntry.EnsureCache(forced: true);
+                                SisiModuleEntry.EnsureCache(forced: true);
 
                                 Console.WriteLine("rebuild module: " + mod.dll);
                             }
