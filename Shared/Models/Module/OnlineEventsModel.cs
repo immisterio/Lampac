@@ -2,7 +2,7 @@
 {
     public class OnlineEventsModel
     {
-        public OnlineEventsModel(string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial, bool life, bool islite, string account_email, string uid, string token)
+        public OnlineEventsModel(string id, string imdb_id, long kinopoisk_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial, bool life, bool islite, string account_email, string uid, string token, string nws_id)
         {
             this.id = id;
             this.imdb_id = imdb_id;
@@ -19,6 +19,7 @@
             this.account_email = account_email;
             this.uid = uid;
             this.token = token;
+            this.nws_id = nws_id;
         }
 
         public string id { get; set; }
@@ -36,5 +37,6 @@
         public string account_email { get; set; }
         public string uid { get; set; }
         public string token { get; set; }
+        public string nws_id { get; set; }
     }
 }

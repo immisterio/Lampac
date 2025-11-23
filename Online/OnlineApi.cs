@@ -584,7 +584,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/events")]
-        async public ValueTask<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null)
+        async public ValueTask<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null, string nws_id = null)
         {
             var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";
@@ -627,7 +627,7 @@ namespace Online.Controllers
 
             if (OnlineModuleEntry.onlineModulesCache != null && OnlineModuleEntry.onlineModulesCache.Count > 0)
             {
-                var args = new OnlineEventsModel(id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, rchtype, serial, life, islite, account_email, uid, token);
+                var args = new OnlineEventsModel(id, imdb_id, kinopoisk_id, title, original_title, original_language, year, source, rchtype, serial, life, islite, account_email, uid, token, nws_id);
 
                 foreach (var entry in OnlineModuleEntry.onlineModulesCache)
                 {
@@ -866,21 +866,19 @@ namespace Online.Controllers
                     return i; 
                 });
 
+                bool showFilmix = true;
+
                 if (string.IsNullOrEmpty(myinit.token) && (myinit.tokens == null || myinit.tokens.Length == 0) && conf.Filmix.hidefreeStart > 0)
                 {
-                    TimeZoneInfo kievTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Kiev");
-                    DateTime kievTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, kievTimeZone);
-
-                    if (kievTime.Hour >= conf.Filmix.hidefreeStart && kievTime.Hour < conf.Filmix.hidefreeEnd) { }
-                    else
+                    if (TimeZoneTo.ByIds(["Europe/Kyiv", "Europe/Kiev", "FLE Standard Time"], out DateTime kievTime))
                     {
-                        send(myinit, myinit: myinit, rch_access: "apk");
+                        if (kievTime.Hour >= conf.Filmix.hidefreeStart && kievTime.Hour < conf.Filmix.hidefreeEnd)
+                            showFilmix = false;
                     }
                 }
-                else
-                {
+
+                if (showFilmix)
                     send(myinit, myinit: myinit, rch_access: "apk");
-                }
             }
 
             send(conf.FilmixTV, "filmixtv");
