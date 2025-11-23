@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.Module;
+using Shared.Models.Module.Entrys;
 using Shared.PlaywrightCore;
 using System.Reflection;
 using System.Text;
@@ -134,44 +135,50 @@ namespace SISI
                 channels.Add(new ChannelItem("История", $"{host}/sisi/historys", 1));
 
             #region modules
-            if (AppInit.modules != null)
+            SisiModuleEntry.EnsureCache();
+
+            if (SisiModuleEntry.sisiModulesCache != null && SisiModuleEntry.sisiModulesCache.Count > 0)
             {
                 var args = new SisiEventsModel(rchtype, account_email, uid, token);
 
-                foreach (RootModule mod in AppInit.modules.Where(i => i.sisi != null))
+                foreach (var entry in SisiModuleEntry.sisiModulesCache)
                 {
                     try
                     {
-                        if (mod.assembly.GetType(mod.NamespacePath(mod.sisi)) is Type t)
+                        if (entry.Invoke != null)
                         {
-                            if (mod.version >= 3)
+                            try
                             {
-                                if (t.GetMethod("Invoke") is MethodInfo m)
-                                {
-                                    var result = (List<ChannelItem>)m.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
-                                    if (result != null && result.Count > 0)
-                                        channels.AddRange(result);
-                                }
+                                var result = entry.Invoke(HttpContext, memoryCache, requestInfo, host, args);
+                                if (result != null && result.Count > 0)
+                                    channels.AddRange(result);
+                            }
+                            catch { }
+                        }
 
-                                if (t.GetMethod("InvokeAsync") is MethodInfo es)
-                                {
-                                    var result = await (Task<List<ChannelItem>>)es.Invoke(null, new object[] { HttpContext, memoryCache, requestInfo, host, args });
-                                    if (result != null && result.Count > 0)
-                                        channels.AddRange(result);
-                                }
-                            }
-                            else
+                        if (entry.InvokeAsync != null)
+                        {
+                            try
                             {
-                                if (t.GetMethod("Events") is MethodInfo m)
-                                {
-                                    var result = (List<ChannelItem>)m.Invoke(null, new object[] { host });
-                                    if (result != null && result.Count > 0)
-                                        channels.AddRange(result);
-                                }
+                                var result = await entry.InvokeAsync(HttpContext, memoryCache, requestInfo, host, args);
+                                if (result != null && result.Count > 0)
+                                    channels.AddRange(result);
                             }
+                            catch { }
+                        }
+
+                        if (entry.Events != null)
+                        {
+                            try
+                            {
+                                var result = entry.Events(host);
+                                if (result != null && result.Count > 0)
+                                    channels.AddRange(result);
+                            }
+                            catch { }
                         }
                     }
-                    catch (Exception ex) { Console.WriteLine($"Modules {mod.NamespacePath(mod.sisi)}: {ex.Message}\n\n"); }
+                    catch (Exception ex) { Console.WriteLine($"Modules {entry.mod?.NamespacePath(entry.mod.sisi)}: {ex.Message}\n\n"); }
                 }
             }
             #endregion
