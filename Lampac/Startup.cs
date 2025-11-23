@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.CodeAnalysis;
@@ -157,6 +158,9 @@ namespace Lampac
                 o.MaximumReceiveMessageSize = 1024 * 1024 * 10; // 10MB
                 o.StreamBufferCapacity = 1024 * 1024;           // 1MB
             });
+
+            services.AddSingleton<IActionDescriptorChangeProvider>(DynamicActionDescriptorChangeProvider.Instance);
+            services.AddSingleton(DynamicActionDescriptorChangeProvider.Instance);
 
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
 
@@ -586,6 +590,8 @@ namespace Lampac
                                 MiddlewaresModuleEntry.EnsureCache(forced: true);
                                 OnlineModuleEntry.EnsureCache(forced: true);
                                 SisiModuleEntry.EnsureCache(forced: true);
+
+                                DynamicActionDescriptorChangeProvider.Instance.NotifyChanges();
 
                                 Console.WriteLine("rebuild module: " + mod.dll);
                             }
