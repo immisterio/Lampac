@@ -46,10 +46,11 @@ namespace Shared
 
         public static Action<string> RchDisconnected;
 
+
         public static Action<EventNwsConnected> NwsConnected;
 
-        public static Action<string> NwsDisconnected;
-
         public static Action<EventNwsMessage> NwsMessage;
+
+        public static Action<string> NwsDisconnected;
     }
 }

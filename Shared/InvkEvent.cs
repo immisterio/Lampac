@@ -548,20 +548,6 @@ namespace Shared
             Invoke(code, model, option);
         }
 
-        public static void NwsDisconnected(EventNwsDisconnected model)
-        {
-            EventListener.NwsDisconnected?.Invoke(model.connectionId);
-
-            var code = conf?.Nws?.Disconnected;
-            if (string.IsNullOrEmpty(code))
-                return;
-
-            var option = ScriptOptions.Default
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
-
-            Invoke(code, model, option);
-        }
-
         public static void NwsMessage(EventNwsMessage model)
         {
             EventListener.NwsMessage?.Invoke(model);
@@ -572,6 +558,20 @@ namespace Shared
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(JsonElement).Assembly).AddImports("System.Text.Json")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
+
+            Invoke(code, model, option);
+        }
+
+        public static void NwsDisconnected(EventNwsDisconnected model)
+        {
+            EventListener.NwsDisconnected?.Invoke(model.connectionId);
+
+            var code = conf?.Nws?.Disconnected;
+            if (string.IsNullOrEmpty(code))
+                return;
+
+            var option = ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
 
             Invoke(code, model, option);
