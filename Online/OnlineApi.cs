@@ -866,19 +866,16 @@ namespace Online.Controllers
                     return i; 
                 });
 
-                bool showFilmix = true;
-
                 if (string.IsNullOrEmpty(myinit.token) && (myinit.tokens == null || myinit.tokens.Length == 0) && conf.Filmix.hidefreeStart > 0)
                 {
                     if (TimeZoneTo.ByIds(["Europe/Kyiv", "Europe/Kiev", "FLE Standard Time"], out DateTime kievTime))
                     {
                         if (kievTime.Hour >= conf.Filmix.hidefreeStart && kievTime.Hour < conf.Filmix.hidefreeEnd)
-                            showFilmix = false;
+                            myinit.enable = false;
                     }
                 }
 
-                if (showFilmix)
-                    send(myinit, myinit: myinit, rch_access: "apk");
+                send(myinit, myinit: myinit, rch_access: "apk");
             }
 
             send(conf.FilmixTV, "filmixtv");
