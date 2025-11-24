@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Threading;
 
@@ -5,9 +6,13 @@ namespace Shared.Models
 {
     public interface INws
     {
+        ConcurrentDictionary<string, NwsConnection> AllConnections();
+
         void WebLog(string message, string plugin);
 
         Task EventsAsync(string connectionId, string uid, string name, string data);
+
+        Task SendAsync(string connectionId, string method, params object[] args);
     }
 
     public class NwsConnection : IDisposable

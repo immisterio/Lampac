@@ -39,6 +39,16 @@ namespace Lampac.Engine
         public void WebLog(string message, string plugin) => SendLog(message, plugin);
 
         public Task EventsAsync(string connectionId, string uid, string name, string data) => SendEvents(connectionId, uid, name, data);
+
+        public Task SendAsync(string connectionId, string method, params object[] args)
+        {
+            if (connectionId != null && _connections.TryGetValue(connectionId, out var client))
+                return SendAsync(client, method, args);
+
+            return Task.CompletedTask;
+        }
+
+        public ConcurrentDictionary<string, NwsConnection> AllConnections() => _connections;
         #endregion
 
         #region handle
@@ -290,7 +300,7 @@ namespace Lampac.Engine
         }
         #endregion
 
-        #region send
+        #region SendAsync
         static async Task SendAsync(NwsConnection connection, string method, params object[] args)
         {
             if (connection.Socket.State != WebSocketState.Open || string.IsNullOrEmpty(method))
