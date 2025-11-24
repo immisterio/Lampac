@@ -173,6 +173,8 @@ namespace Lampac.Engine
                 if (document.RootElement.TryGetProperty("args", out var argsProp) && argsProp.ValueKind == JsonValueKind.Array)
                     args = argsProp;
 
+                InvkEvent.NwsMessage(new EventNwsMessage(connection.ConnectionId, payload, method, args));
+
                 await InvokeAsync(connection, method, args).ConfigureAwait(false);
             }
             catch (JsonException)

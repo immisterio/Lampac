@@ -10,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Text.Json;
 
 namespace Shared.Models.Events
 {
@@ -56,4 +57,6 @@ namespace Shared.Models.Events
     public record EventNwsConnected(string connectionId, string ip, RequestModel requestInfo, NwsConnection connection, CancellationToken token);
 
     public record EventNwsDisconnected(string connectionId);
+
+    public record EventNwsMessage(string connectionId, string payload, string method, JsonElement args);
 }

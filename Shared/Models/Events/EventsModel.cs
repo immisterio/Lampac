@@ -114,5 +114,7 @@
         public string Connected { get; set; }
 
         public string Disconnected { get; set; }
+
+        public string Message { get; set; }
     }
 }
