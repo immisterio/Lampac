@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading;
 using YamlDotNet.Serialization;
 
@@ -556,6 +557,21 @@ namespace Shared
                 return;
 
             var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
+
+            Invoke(code, model, option);
+        }
+
+        public static void NwsMessage(EventNwsMessage model)
+        {
+            EventListener.NwsMessage?.Invoke(model);
+
+            var code = conf?.Nws?.Message;
+            if (string.IsNullOrEmpty(code))
+                return;
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(JsonElement).Assembly).AddImports("System.Text.Json")
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine");
 
             Invoke(code, model, option);
