@@ -23,7 +23,7 @@ namespace Shared.Engine
         public string token { get; set; }
 
         public object ob { get; set; }
-        public Dictionary<string, object> obs { get; set; }
+        public Dictionary<string, object> obs { get; set; } = new Dictionary<string, object>();
     }
 
     public struct RchClient
