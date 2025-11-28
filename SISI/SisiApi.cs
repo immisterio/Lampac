@@ -68,7 +68,10 @@ namespace SISI
                     bulder = bulder.Replace("Lampa.Search.addSource(Search);", "");
 
                 if (init.component != "sisi")
+                {
+                    bulder = bulder.Replace("use_api: 'lampac'", $"'use_api: '{init.component}'");
                     bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
+                }
 
                 if (!string.IsNullOrEmpty(init.iconame))
                 {
