@@ -993,41 +993,21 @@ namespace Shared.Engine.SISI
             if (html == null)
                 return null;
 
-            string hls = Regex.Match(html, "\"hls\",\"videoUrl\":\"([^\"]+urlset\\\\/master\\.m3u[^\"]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(hls))
+            var qualitys = new Dictionary<string, string>();
+
+            foreach (string q in new string[] { "1080", "720", "480", "240" })
             {
-                var qualitys = new Dictionary<string, string>();
-
-                foreach (string q in new string[] { "1080", "720", "480", "240" })
-                {
-                    string video = Regex.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"").Groups[1].Value;
-                    if (!string.IsNullOrEmpty(video))
-                        qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
-                }
-
-                if (qualitys.Count > 0)
-                {
-                    return new StreamItem()
-                    {
-                        qualitys = qualitys,
-                        recomends = Playlist(video_uri, list_uri, html, related: true)
-                    };
-                }
+                string video = Regex.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"").Groups[1].Value;
+                if (!string.IsNullOrEmpty(video))
+                    qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
             }
 
-            if (string.IsNullOrEmpty(hls))
-            {
-                hls = getDirectLinks(html);
-                if (string.IsNullOrEmpty(hls))
-                    return null;
-            }
+            if (qualitys.Count == 0)
+                return null;
 
             return new StreamItem()
             {
-                qualitys = new Dictionary<string, string>()
-                {
-                    ["auto"] = hls.Replace("\\", "").Replace("///", "//")
-                },
+                qualitys = qualitys,
                 recomends = Playlist(video_uri, list_uri, html, related: true)
             };
         }

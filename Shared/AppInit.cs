@@ -503,6 +503,7 @@ namespace Shared
             autoupdate = true,
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
+            git = "yumata/lampa",
             tree = "f67f4ab646b272979f33a4795f664e0739013fd8"
         };
 

@@ -4,6 +4,8 @@
     {
         public bool autoupdate { get; set; }
 
+        public string git { get; set; }
+
         public string tree { get; set; }
 
         public int intervalupdate { get; set; }
