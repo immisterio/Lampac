@@ -69,7 +69,7 @@ namespace SISI
 
                 if (init.component != "sisi")
                 {
-                    bulder = bulder.Replace("use_api: 'lampac'", $"'use_api: '{init.component}'");
+                    bulder = bulder.Replace("use_api: 'lampac'", $"use_api: '{init.component}'");
                     bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
                 }
 
