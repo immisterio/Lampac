@@ -504,7 +504,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "e12cdc3de9afe8ed5aba61b1e6d5f42bdca51ea1"
+            tree = "a9fb24f401cd4be71904259156a4bb8661c7f066"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -923,11 +923,10 @@ namespace Shared
 
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5")
         {
-            enable = false,
-            streamproxy = true,
+            enable = true,
             hls = true, scheme = "http",
             priorityBrowser = "http",
-            //geostreamproxy = ["ALL"]
+            geostreamproxy = ["ALL"]
         };
 
         public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "http://api.vokino.org", streamproxy: true);

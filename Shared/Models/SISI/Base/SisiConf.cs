@@ -29,6 +29,8 @@
 
         public string component { get; set; }
 
+        public string vipcontent { get; set; }
+
         public string iconame { get; set; }
 
 

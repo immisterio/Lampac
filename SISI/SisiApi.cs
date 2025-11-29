@@ -73,6 +73,9 @@ namespace SISI
                     bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
                 }
 
+                if (!string.IsNullOrEmpty(init.vipcontent))
+                    bulder = bulder.Replace("var content = [^\n\r]+", init.vipcontent);
+
                 if (!string.IsNullOrEmpty(init.iconame))
                 {
                     bulder = bulder.Replace("Defined.use_api == 'pwa'", "true")

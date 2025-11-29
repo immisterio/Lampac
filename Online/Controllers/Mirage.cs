@@ -97,7 +97,25 @@ namespace Online.Controllers
                     {
                         var tpl = new SeasonTpl(q);
 
-                        for (int i = 1; i <= frame.active.Value<int>("seasons"); i++)
+                        var seasonNumbers = new HashSet<int>();
+
+                        foreach (var translation in seasons)
+                        {
+                            var file = translation.Value["file"];
+                            if (file == null)
+                                continue;
+
+                            foreach (var season in file.ToObject<Dictionary<string, object>>())
+                            {
+                                if (int.TryParse(season.Key, out int seasonNumber))
+                                    seasonNumbers.Add(seasonNumber);
+                            }
+                        }
+
+                        if (!seasonNumbers.Any())
+                            seasonNumbers.Add(frame.active.Value<int>("seasons"));
+
+                        foreach (int i in seasonNumbers.OrderBy(i => i))
                             tpl.Append($"{i} сезон", $"{host}/lite/mirage?rjson={rjson}&s={i}{defaultargs}", i.ToString());
 
                         return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());

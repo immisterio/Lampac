@@ -15,7 +15,7 @@ namespace Online.Controllers
         { 
             Directory.CreateDirectory("cache/logs/VideoCDN");
 
-            Lumex.FixHostEvent();
+            //Lumex.FixHostEvent();
         }
 
         #region Initialization

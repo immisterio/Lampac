@@ -12,47 +12,47 @@ namespace Online.Controllers
 {
     public class Lumex : BaseOnlineController
     {
-        static Lumex()
-        {
-            FixHostEvent();
-        }
+        //static Lumex()
+        //{
+        //    FixHostEvent();
+        //}
 
-        static Dictionary<string, string> ips = null;
+        //static Dictionary<string, string> ips = null;
 
-        public static void FixHostEvent()
-        {
-            if (ips != null) 
-                return;
+        //public static void FixHostEvent()
+        //{
+        //    if (ips != null) 
+        //        return;
 
-            ips = new Dictionary<string, string>();
+        //    ips = new Dictionary<string, string>();
 
-            EventListener.ProxyApiCreateHttpRequest += async httpRequestModel =>
-            {
-                if (!httpRequestModel.uri.Host.Contains("mediaaly.pro"))
-                    return;
+        //    EventListener.ProxyApiCreateHttpRequest += async httpRequestModel =>
+        //    {
+        //        if (!httpRequestModel.uri.Host.Contains("mediaaly.pro"))
+        //            return;
 
-                string targetHost = httpRequestModel.uri.Host.Replace("mediaaly.pro", "saicdn.com");
+        //        string targetHost = httpRequestModel.uri.Host.Replace("mediaaly.pro", "saicdn.com");
 
-                if (!ips.TryGetValue(targetHost, out string dns_ip))
-                {
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
-                    {
-                        var lookup = new LookupClient();
-                        var queryType = await lookup.QueryAsync(targetHost, QueryType.A, cancellationToken: cts.Token);
+        //        if (!ips.TryGetValue(targetHost, out string dns_ip))
+        //        {
+        //            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+        //            {
+        //                var lookup = new LookupClient();
+        //                var queryType = await lookup.QueryAsync(targetHost, QueryType.A, cancellationToken: cts.Token);
 
-                        dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+        //                dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-                        if (string.IsNullOrEmpty(dns_ip))
-                            return;
+        //                if (string.IsNullOrEmpty(dns_ip))
+        //                    return;
 
-                        ips.TryAdd(targetHost, dns_ip);
-                    }
-                }
+        //                ips.TryAdd(targetHost, dns_ip);
+        //            }
+        //        }
 
-                var newUri = new Uri(httpRequestModel.requestMessage.RequestUri.AbsoluteUri.Replace(httpRequestModel.uri.Host, dns_ip));
-                httpRequestModel.requestMessage.RequestUri = newUri;
-            };
-        }
+        //        var newUri = new Uri(httpRequestModel.requestMessage.RequestUri.AbsoluteUri.Replace(httpRequestModel.uri.Host, dns_ip));
+        //        httpRequestModel.requestMessage.RequestUri = newUri;
+        //    };
+        //}
 
 
         #region database
