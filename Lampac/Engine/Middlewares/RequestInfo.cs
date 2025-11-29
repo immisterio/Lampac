@@ -102,18 +102,31 @@ namespace Lampac.Engine.Middlewares
             };
 
             #region Weblog Request
-            if (!IsLocalRequest && nws.weblog_clients.Count > 0)
+            if (!IsLocalRequest)
             {
-                var logBuilder = new System.Text.StringBuilder();
-                logBuilder.AppendLine($"{DateTime.Now}");
-                logBuilder.AppendLine($"IP: {clientIp} {req.Country}");
-                logBuilder.AppendLine($"URL: {AppInit.Host(httpContext)}{httpContext.Request.Path}{httpContext.Request.QueryString}\n");
+                string builderLog()
+                {
+                    var logBuilder = new System.Text.StringBuilder();
+                    logBuilder.AppendLine($"{DateTime.Now}");
+                    logBuilder.AppendLine($"IP: {clientIp} {req.Country}");
+                    logBuilder.AppendLine($"URL: {AppInit.Host(httpContext)}{httpContext.Request.Path}{httpContext.Request.QueryString}\n");
 
-                foreach (var header in httpContext.Request.Headers)
-                    logBuilder.AppendLine($"{header.Key}: {header.Value}");
+                    foreach (var header in httpContext.Request.Headers)
+                        logBuilder.AppendLine($"{header.Key}: {header.Value}");
 
-                //Console.WriteLine(logBuilder.ToString());
-                nws.SendLog(logBuilder.ToString(), "request");
+                    return logBuilder.ToString();
+                }
+
+                if (AppInit.conf.rch.websoket == "signalr")
+                {
+                    if (soks.weblog_clients.Count > 0)
+                        soks.SendLog(builderLog(), "request");
+                }
+                else
+                {
+                    if (nws.weblog_clients.Count > 0)
+                        nws.SendLog(builderLog(), "request");
+                }
             }
             #endregion
 

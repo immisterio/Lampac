@@ -51,6 +51,7 @@ namespace Lampac.Controllers
     </div>
     <div id='log'></div>
     <script src='/js/nws-client-es5.js'></script>
+    <script src='/signalr-6.0.25_es5.js'></script>
     <script>
         let pattern = document.getElementById('patternInput').value.trim();
         let receive = document.getElementById('receiveSelect').value;
@@ -114,35 +115,91 @@ namespace Lampac.Controllers
             }}
         }}
 
-        const client = new NativeWsClient(""/nws"", {{
-            autoReconnect: true,
-            reconnectDelay: 2000,
-
-            onOpen: function () {{
-                send('WebSocket connected');
-                outageReported = false;
-                client.invoke('RegistryWebLog', '{token}');
-            }},
-
-            onClose: function () {{
-                reportOutageOnce('Connection closed');
-            }},
-
-            onError: function (err) {{
-                reportOutageOnce('Connection error: ' + (err && err.message ? err.message : String(err)));
-            }}
-        }});
-
-        client.on('Receive', function (message, e) {{
-            if (receive === e) send(message);
-        }});
-
-        client.connect();
+        {(AppInit.conf.rch.websoket == "signalr" ? signalCode : nwsCode)}
     </script>
 </body>
 </html>";
 
             return Content(html, "text/html; charset=utf-8");
         }
+
+
+        static string nwsCode => @"
+const client = new NativeWsClient(""/nws"", {
+    autoReconnect: true,
+    reconnectDelay: 2000,
+
+    onOpen: function () {
+        send('WebSocket connected');
+        outageReported = false;
+        client.invoke('RegistryWebLog', '{token}');
+    },
+
+    onClose: function () {
+        reportOutageOnce('Connection closed');
+    },
+
+    onError: function (err) {
+        reportOutageOnce('Connection error: ' + (err && err.message ? err.message : String(err)));
+    }
+});
+
+client.on('Receive', function (message, e) {
+    if (receive === e) send(message);
+});
+
+client.connect();
+";
+
+        static string signalCode => @"
+const hubConnection = new signalR.HubConnectionBuilder()
+    .withUrl('/ws')
+    .build();
+
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 150; // 5 minutes
+const reconnectDelay = 2000;      // 2 seconds
+
+function startConnection() {
+    hubConnection.start()
+        .then(function () {
+            if (reconnectAttempts != 0)
+                send('WebSocket connected');
+            reconnectAttempts = 0; // Reset counter on successful connection
+            hubConnection.invoke('RegistryWebLog', '{token}');
+        })
+        .catch(function (err) {
+            console.log(`${err.toString()}\n\nAttempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...`);
+            attemptReconnect();
+        });
+}
+
+function attemptReconnect() {
+    if (reconnectAttempts < maxReconnectAttempts) {
+        reconnectAttempts++;
+        setTimeout(function() {
+            startConnection();
+        }, reconnectDelay);
+    } else {
+        send('Max reconnection attempts reached. Please refresh the page.');
+    }
+}
+
+hubConnection.on('Receive', function(message, e) {
+    if(receive === e) send(message);
+});
+
+hubConnection.onclose(function(err) {
+    if (err) {
+        send('Connection closed due to error: ' + err.toString());
+    } else {
+        send('Connection closed');
+    }
+    attemptReconnect();
+});
+
+// Start initial connection
+startConnection();
+";
     }
 }

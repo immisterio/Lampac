@@ -6,6 +6,8 @@ namespace Shared.Models
     {
         IHubCallerClients AllClients { get; }
 
+        void WebLog(string message, string plugin);
+
         Task EventsAsync(string connectionId, string uid, string name, string data);
     }
 }
