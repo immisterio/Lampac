@@ -504,7 +504,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "a9fb24f401cd4be71904259156a4bb8661c7f066"
+            tree = "75d5d89df89ceecda55c5ab80cecd09d76a97ff6"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -944,7 +944,15 @@ namespace Shared
         /// <summary>
         /// aHR0cHM6Ly92aWJpeC5vcmcvYXBpL2V4dGVybmFsL2RvY3VtZW50YXRpb24=
         /// </summary>
-        public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", token: "2281|zjwU6jDRmNwgdoRYkQ2ySJoyu1rXiwj8qJBMN9M36bc52415", streamproxy: true);
+        public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", token: "2281|zjwU6jDRmNwgdoRYkQ2ySJoyu1rXiwj8qJBMN9M36bc52415", streamproxy: true)
+        {
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
+                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+                ("sec-fetch-storage-access", "active"),
+                ("upgrade-insecure-requests", "1"),
+                ("referer", "https://vk.com")
+            ).ToDictionary()
+        };
 
         /// <summary>
         /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
