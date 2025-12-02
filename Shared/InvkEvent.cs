@@ -188,6 +188,20 @@ namespace Shared
         #endregion
 
 
+        #region LoadKitInit
+        public static void LoadKitInit(EventLoadKit model)
+        {
+            EventListener.LoadKitInit?.Invoke(model);
+
+            if (conf?.LoadKitInit == null)
+                return;
+
+            Invoke(conf?.LoadKitInit, model, ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Base")
+                .AddReferences(typeof(File).Assembly).AddImports("System.IO"));
+        }
+        #endregion
+
         #region LoadKit
         public static void LoadKit(EventLoadKit model)
         {

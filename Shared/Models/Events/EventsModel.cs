@@ -2,6 +2,8 @@
 {
     public class EventsModel()
     {
+        public string LoadKitInit { get; set; }
+
         public string LoadKit { get; set; }
 
         public string PidTor { get; set; }

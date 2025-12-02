@@ -7,6 +7,8 @@ namespace Shared
 {
     public class EventListener
     {
+        public static Action<EventLoadKit> LoadKitInit;
+
         public static Action<EventLoadKit> LoadKit;
 
         public static Func<EventProxyApiCreateHttpRequest, Task> ProxyApiCreateHttpRequest;
