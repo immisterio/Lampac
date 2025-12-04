@@ -395,13 +395,9 @@ namespace Shared.Engine.SISI
             if (html == null)
                 return null;
 
-            string stream_link = Regex.Match(html, "\"h264\":\\[\\{\"url\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+            string stream_link = Regex.Match(html, "rel=\"preload\" href=\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
             if (!stream_link.Contains(".m3u"))
-            {
-                stream_link = Regex.Match(html, "rel=\"preload\" href=\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                if (!stream_link.Contains(".m3u"))
-                    return null;
-            }
+                return null;
 
             if (stream_link.StartsWith("/"))
                 stream_link = host + stream_link;
