@@ -437,9 +437,11 @@ namespace Lampac
             #region UseStaticFiles
             app.UseStaticFiles(new StaticFileOptions
             {
+                ServeUnknownFileTypes = true,
+                DefaultContentType = "application/octet-stream",
                 ContentTypeProvider = new FileExtensionContentTypeProvider() 
                 {
-                    Mappings = 
+                    Mappings =
                     {
                         [".m4s"]  = "video/mp4",
                         [".ts"]   = "video/mp2t",
@@ -454,7 +456,41 @@ namespace Lampac
                         [".flv"]  = "video/x-flv",
                         [".ogv"]  = "video/ogg",
                         [".m2ts"] = "video/MP2T",
-                        [".vob"]  = "video/x-ms-vob"
+                        [".vob"]  = "video/x-ms-vob",
+
+                        [".apk"]  = "application/vnd.android.package-archive",
+                        [".aab"]  = "application/vnd.android.appbundle",
+                        [".xapk"]  = "application/vnd.android.package-archive",
+                        [".apkm"]  = "application/vnd.android.package-archive",
+                        [".obb"]  = "application/octet-stream",
+
+                        [".exe"]  = "application/vnd.microsoft.portable-executable",
+                        [".msi"]  = "application/x-msi",
+                        [".bat"]  = "application/x-msdownload",
+                        [".cmd"]  = "application/x-msdownload",
+                        [".msix"]        = "application/msix",
+                        [".msixbundle"]  = "application/msixbundle",
+                        [".appx"]        = "application/appx",
+                        [".appxbundle"]  = "application/appxbundle",
+
+                        [".deb"]  = "application/vnd.debian.binary-package",
+                        [".rpm"]  = "application/x-rpm",
+                        [".sh"]   = "application/x-sh",
+                        [".bin"]  = "application/octet-stream",
+                        [".run"]  = "application/x-msdownload",
+                        [".appimage"] = "application/octet-stream",
+
+                        [".pkg"]  = "application/octet-stream",
+                        [".dmg"]  = "application/x-apple-diskimage",
+
+                        [".zip"] = "application/zip",
+                        [".rar"] = "application/vnd.rar",
+                        [".7z"]  = "application/x-7z-compressed",
+                        [".gz"]  = "application/gzip",
+                        [".tar"] = "application/x-tar",
+                        [".tgz"] = "application/gzip",
+
+                        [".iso"] = "application/x-iso9660-image"
                     }
                 }
             });

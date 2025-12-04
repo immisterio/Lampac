@@ -178,7 +178,7 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(memKey, out (List<(string q, string url)> streams, SegmentTpl segments) cache))
                     {
-                        string deadline = DateTime.Now.AddHours(2).ToString("yyyy MM dd HH").Replace(" ", "");
+                        string deadline = DateTime.Now.AddHours(4).ToString("yyyy MM dd HH").Replace(" ", "");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
                         var root = await Http.Get<JObject>($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true", timeoutSeconds: 8, proxy: proxy);
@@ -233,7 +233,7 @@ namespace Online.Controllers
                         }
 
                         proxyManager.Success();
-                        hybridCache.Set(memKey, cache, cacheTime(20, init: init));
+                        hybridCache.Set(memKey, cache, cacheTime(120, init: init));
                     }
 
                     var streamquality = new StreamQualityTpl();

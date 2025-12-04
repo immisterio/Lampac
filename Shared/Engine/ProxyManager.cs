@@ -287,8 +287,10 @@ namespace Shared.Engine
                     database.AddOrUpdate(key, val, (k, v) => val);
                 }
                 catch { }
-
-                memoryCache.Remove(mkey);
+                finally
+                {
+                    memoryCache.Remove(mkey);
+                }
             });
         }
     }
