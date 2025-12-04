@@ -2,8 +2,6 @@
 {
     public class EmbedModel
     {
-        public string content { get; set; }
-
-        public Seasons[] serial { get; set; }
+        public Seasons[] playlist { get; set; }
     }
 }

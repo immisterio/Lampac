@@ -504,7 +504,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "75d5d89df89ceecda55c5ab80cecd09d76a97ff6"
+            tree = "f1190b3dcb79b044bbe15bf76cba91626d0d76a3"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -897,7 +897,7 @@ namespace Shared
         /// aHR0cHM6Ly91YWtpbm9nby5lYw==
         /// aHR0cHM6Ly91YWtpbm9nby5vbmxpbmU=
         /// </summary>
-        public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|")
+        public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|", enable: false)
         {
             streamproxy = true
         };
@@ -946,12 +946,7 @@ namespace Shared
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", token: "2281|zjwU6jDRmNwgdoRYkQ2ySJoyu1rXiwj8qJBMN9M36bc52415", streamproxy: true)
         {
-            headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("sec-fetch-storage-access", "active"),
-                ("upgrade-insecure-requests", "1"),
-                ("referer", "https://vk.com")
-            ).ToDictionary()
+            headers = Http.defaultFullHeaders
         };
 
         /// <summary>

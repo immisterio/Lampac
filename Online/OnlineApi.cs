@@ -992,7 +992,7 @@ namespace Online.Controllers
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videoseed.overridehost) || conf.Videoseed.overridehosts?.Length > 0)
                 send(conf.Videoseed);
 
-            send(conf.Vibix, rch_access: "apk,cors");
+            send(conf.Vibix, rch_access: "apk");
             send(conf.VeoVeo);
 
             if (serial == -1 || serial == 0)

@@ -34,42 +34,34 @@ namespace Online.Controllers
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
-            string iframe_url = data.iframe_url;
+            string iframe_url = Regex.Replace(data.iframe_url, "^(https?)://[^\\.]+\\.", "$1://667992715.");
 
             reset:
             var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                string html = rch.enable ? await rch.Get(init.cors(iframe_url), httpHeaders(init)) :
-                                           await Http.Get(init.cors(iframe_url), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                string api_url = iframe_url
+                    .Replace("/embed/", "/api/v1/embed/")
+                    .Replace("/embed-serials/", "/api/v1/embed-serials/");
 
-                if (html == null)
-                    return res.Fail("html");
+                api_url += $"?kp={CrypTo.unic(6).ToLower()}";
 
-                string file = null;
+                var api_headers = httpHeaders(init, HeadersModel.Init(
+                    ("accept", "*/*"),
+                    ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                    ("sec-fetch-dest", "empty"),
+                    ("sec-fetch-mode", "cors"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("referer", iframe_url)
+                ));
 
-                if (data.type == "movie")
-                {
-                    file = html.Split(",file:")?[1]?.Split("function")?[0];
-                    if (string.IsNullOrEmpty(file) || !file.Contains("/get_file/"))
-                        return res.Fail("file");
+                var root = rch.enable 
+                    ? await rch.Get<JObject>(init.cors(api_url), api_headers) 
+                    : await Http.Get<JObject>(init.cors(api_url), timeoutSeconds: 8, proxy: proxy, headers: api_headers, httpversion: 2);
 
-                    return new EmbedModel() { content = file };
-                }
-                else
-                {
-                    string json = Regex.Match(html, "new Playerjs\\(([^\n\r]+)").Groups[1].Value.Split(");")[0];
+                if (root == null || !root.ContainsKey("data") || root["data"]?["playlist"] == null)
+                    return res.Fail("root");
 
-                    var jObj = JObject.Parse(json);
-                    var fileToken = jObj["file"];
-                    if (fileToken == null)
-                        return res.Fail("file");
-
-                    try
-                    {
-                        return new EmbedModel() { serial = fileToken.ToObject<Seasons[]>() };
-                    }
-                    catch { return res.Fail("DeserializeObject"); }
-                }
+                return new EmbedModel() { playlist = root["data"]["playlist"].ToObject<Seasons[]>() };
             });
 
             if (IsRhubFallback(cache, init))
@@ -82,17 +74,20 @@ namespace Online.Controllers
                 {
                     var mtpl = new MovieTpl(title, original_title, 1);
 
-                    var streams = new StreamQualityTpl();
-
-                    foreach (string q in new string[] { "1080", "720", "480" })
+                    foreach (var movie in cache.Value.playlist)
                     {
-                        var g = new Regex($"{q}p?\\](https?://[^,\t ]+\\.mp4)").Match(cache.Value.content).Groups;
+                        var streams = new StreamQualityTpl();
 
-                        if (!string.IsNullOrEmpty(g[1].Value))
-                            streams.Append(HostStreamProxy(init, g[1].Value, proxy: proxy), $"{q}p");
+                        foreach (string q in new string[] { "1080", "720", "480" })
+                        {
+                            var g = new Regex($"{q}p?\\](https?://[^,\\[\t ]+\\.mp4)").Match(movie.file).Groups;
+
+                            if (!string.IsNullOrEmpty(g[1].Value))
+                                streams.Append(HostStreamProxy(init, g[1].Value, proxy: proxy), $"{q}p");
+                        }
+
+                        mtpl.Append(movie.title, streams.Firts().link, streamquality: streams, vast: init.vast);
                     }
-
-                    mtpl.Append("По умолчанию", streams.Firts().link, streamquality: streams, vast: init.vast);
 
                     return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
 
@@ -106,12 +101,12 @@ namespace Online.Controllers
                 {
                     string enc_title = HttpUtility.UrlEncode(title);
                     string enc_original_title = HttpUtility.UrlEncode(original_title);
-                    
+
                     if (s == -1)
                     {
-                        var tpl = new SeasonTpl(cache.Value.serial.Length);
+                        var tpl = new SeasonTpl(cache.Value.playlist.Length);
 
-                        foreach (var season in cache.Value.serial)
+                        foreach (var season in cache.Value.playlist)
                         {
                             string name = season.title;
                             if (int.TryParse(Regex.Match(name, "([0-9]+)$").Groups[1].Value, out int _s) && _s > 0)
@@ -128,7 +123,7 @@ namespace Online.Controllers
                         var etpl = new EpisodeTpl();
                         string sArhc = s.ToString();
 
-                        foreach (var season in cache.Value.serial)
+                        foreach (var season in cache.Value.playlist)
                         {
                             if (!season.title.EndsWith($" {s}"))
                                 continue;

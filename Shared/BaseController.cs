@@ -28,7 +28,7 @@ namespace Shared
 
         public static string appversion => "149";
 
-        public static string minorversion => "33";
+        public static string minorversion => "34";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -706,10 +706,10 @@ namespace Shared
 
             IsKitConf = true;
 
+            InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, conf, requestInfo, hybridCache));
+
             if (func != null)
                 return func.Invoke(conf, init, conf.ToObject<T>());
-
-            InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, conf, requestInfo, hybridCache));
 
             return init;
         }
