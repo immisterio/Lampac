@@ -26,33 +26,42 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("class=\"video-item responsive-page\"");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            if (html.Contains("class=\"main-container\""))
+                html = html.Split("class=\"main-container\"")[1];
 
-            foreach (string row in rows.Skip(1))
+            var nodes = HtmlParse.Nodes(html, "//div[@data-testid='video-item']");
+            var playlists = new List<PlaylistItem>(nodes.Count);
+
+            foreach (var node in nodes)
             {
-                var g = Regex.Match(row, "<a href=\"/(?<link>[^\"]+)\" title=\"(?<title>[^\"]+)\"").Groups;
-
+                var g = Regex.Match(node.row.InnerHtml, "<a href=\"/(?<link>[^\"]+)\" title=\"(?<title>[^\"]+)\"").Groups;
                 if (!string.IsNullOrWhiteSpace(g["link"].Value) && !string.IsNullOrWhiteSpace(g["title"].Value))
                 {
-                    string quality = Regex.Match(row, "<span class=\"video-badge h\">([^<]+)</span>").Groups[1].Value;
-                    string duration = Regex.Match(row, "<span class=\"video-badge l\">([^<]+)</span>").Groups[1].Value.Trim();
-                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value;
+                    #region image
+                    string img = node.Regex("([\n\r\t ]+)src=\"([^\"]+)\"", 2);
+                    if (!img.Contains("/w:"))
+                        img = node.Regex("data-src=\"([^\"]+)\"");
+
                     img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/");
+                    #endregion
+
+                    string preview = node.Regex("data-preview=\"([^\"]+)\"");
+                    if (string.IsNullOrEmpty(preview))
+                        preview = node.Regex("<source data-src=\"([^\"]+)\"");
 
                     var pl = new PlaylistItem()
                     {
                         name = g["title"].Value,
                         video = $"{uri}?uri={g["link"].Value}",
-                        quality = string.IsNullOrEmpty(quality) ? null : quality,
+                        quality = node.SelectText(".//*[@data-testid='video-item-resolution']"),
                         picture = img,
-                        preview = Regex.Match(row, "data-preview=\"([^\"]+)\"").Groups[1].Value,
-                        time = duration,
+                        preview = preview,
+                        time = node.SelectText(".//*[@data-testid='video-item-length']"),
                         json = true,
                         related = true,
                         bookmark = new Bookmark()

@@ -89,7 +89,7 @@ namespace Online.Controllers
                         mtpl.Append(movie.title, streams.Firts().link, streamquality: streams, vast: init.vast);
                     }
 
-                    return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
+                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 
                 }, origsource: origsource, gbcache: !rch.enable);
                 #endregion

@@ -1,9 +1,9 @@
 ﻿using Shared.Models.Base;
+using Shared.Models.Online.Ashdi;
 using Shared.Models.Templates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
-using Shared.Models.Online.Ashdi;
 
 namespace Shared.Engine.Online
 {
@@ -55,14 +55,14 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (!content.Contains("file:'[{"))
+            if (!Regex.IsMatch(content, "file:([\t ]+)?'\\[\\{"))
                 return new EmbedModel() { content = content };
 
             Voice[] root = null;
 
             try
             {
-                root = JsonSerializer.Deserialize<Voice[]>(Regex.Match(content, "file:'([^\n\r]+)',").Groups[1].Value);
+                root = JsonSerializer.Deserialize<Voice[]>(Regex.Match(content, "file:([\t ]+)?'([^\n\r]+)',").Groups[2].Value);
                 if (root == null || root.Length == 0)
                     return null;
             }

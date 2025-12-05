@@ -779,9 +779,9 @@ namespace Shared.Engine.SISI
 
             string stream_link = null;
 
-            foreach (var item in new string[] { "video_url", "video_alt_url" })
+            foreach (string q in new string[] { "video_alt_url", "video_url" })
             {
-                stream_link = Regex.Match(html, "video_alt_url:([\t ]+)?('|\")(?<link>[^\"']+)").Groups["link"].Value;
+                stream_link = Regex.Match(html, $"{q}:([\t ]+)?('|\")(?<link>[^\"']+)").Groups["link"].Value;
                 if (!string.IsNullOrEmpty(stream_link))
                     break;
             }
