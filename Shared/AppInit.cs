@@ -713,15 +713,15 @@ namespace Shared
             two = true,
             apihost = "https://api.bhcesh.me",
             token = "eedefb541aeba871dcfc756e6b31c02e",
-            headers = HeadersModel.Init(
-                ("Origin", "{host}"),
-                ("Referer", "{host}/"),
-                ("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1")
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
+                ("Origin", "https://kinokrad.my")
             ).ToDictionary(),
-            headers_stream = HeadersModel.Init(
-                ("Origin", "{host}"),
-                ("Referer", "{host}/"),
-                ("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1")
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
+                ("Origin", "https://kinokrad.my"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site"),
+                ("accept", "*/*")
             ).ToDictionary()
         };
 
