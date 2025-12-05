@@ -34,12 +34,10 @@ namespace Online.Controllers
             if (rch.IsNotSupport("web", out string rch_error))
                 return ShowError(rch_error);
 
-            string iframe_url = Regex.Replace(data.iframe_url, "^(https?)://[^\\.]+\\.", "$1://667992715.");
-
             reset:
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{data.iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
             {
-                string api_url = iframe_url
+                string api_url = data.iframe_url
                     .Replace("/embed/", "/api/v1/embed/")
                     .Replace("/embed-serials/", "/api/v1/embed-serials/");
 
@@ -51,7 +49,7 @@ namespace Online.Controllers
                     ("sec-fetch-dest", "empty"),
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
-                    ("referer", iframe_url)
+                    ("referer", data.iframe_url)
                 ));
 
                 var root = rch.enable 
@@ -80,10 +78,10 @@ namespace Online.Controllers
 
                         foreach (string q in new string[] { "1080", "720", "480" })
                         {
-                            var g = new Regex($"{q}p?\\](https?://[^,\\[\t ]+\\.mp4)").Match(movie.file).Groups;
+                            var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+\\.mp4)").Match(movie.file).Groups;
 
-                            if (!string.IsNullOrEmpty(g[1].Value))
-                                streams.Append(HostStreamProxy(init, g[1].Value, proxy: proxy), $"{q}p");
+                            if (!string.IsNullOrEmpty(g["file"].Value))
+                                streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), $"{q}p");
                         }
 
                         mtpl.Append(movie.title, streams.Firts().link, streamquality: streams, vast: init.vast);
