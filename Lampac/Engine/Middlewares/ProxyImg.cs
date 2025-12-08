@@ -336,6 +336,10 @@ namespace Lampac.Engine.Middlewares
 
                         proxyManager.Success();
                         httpContext.Response.ContentType = contentType;
+
+                        if (AppInit.conf.serverproxy.responseContentLength)
+                            httpContext.Response.ContentLength = array.Length;
+
                         await httpContext.Response.Body.WriteAsync(array, ctsHttp.Token);
                         #endregion
                     }

@@ -14,6 +14,8 @@ namespace Shared.Models.ServerProxy
 
         public bool showOrigUri { get; set; }
 
+        public bool responseContentLength { get; set; }
+
         public ServerproxyImageConf image { get; set; } = new ServerproxyImageConf();
 
 

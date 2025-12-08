@@ -127,7 +127,7 @@ namespace SISI
 
 
         [Route("sisi")]
-        async public ValueTask<ActionResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
+        async public ValueTask<JsonResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
         {
             var conf = AppInit.conf;
             JObject kitconf = await loadKitConf();

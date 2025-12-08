@@ -220,13 +220,15 @@ namespace Lampac.Engine.Middlewares
 
                                         httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
                                         httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        //httpContext.Response.ContentLength = hls.Length;
 
                                         if (response.Headers.AcceptRanges != null)
                                             httpContext.Response.Headers["accept-ranges"] = "bytes";
 
                                         if (httpContext.Response.StatusCode == 206)
                                             httpContext.Response.Headers["content-range"] = $"bytes 0-{hls.Length - 1}/{hls.Length}";
+
+                                        if (init.responseContentLength)
+                                            httpContext.Response.ContentLength = hls.Length;
 
                                         await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
                                     }
@@ -271,7 +273,10 @@ namespace Lampac.Engine.Middlewares
                                         }
 
                                         httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
-                                        //httpContext.Response.ContentLength = mpd.Length;
+
+                                        if (init.responseContentLength)
+                                            httpContext.Response.ContentLength = mpd.Length;
+
                                         await httpContext.Response.WriteAsync(mpd, httpContext.RequestAborted).ConfigureAwait(false);
                                     }
                                     else
@@ -456,7 +461,10 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
+                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition")
+                        continue;
+
+                    if (!AppInit.conf.serverproxy.responseContentLength && header.Key.ToLower() == "content-length")
                         continue;
 
                     if (header.Key.ToLower().StartsWith("x-") || header.Key.ToLower().StartsWith("alt-"))
