@@ -1,13 +1,13 @@
-﻿using Shared;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Shared;
+using Shared.Engine;
 using Shared.Models;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Shared.Engine;
 
 namespace Lampac.Engine.Middlewares
 {
@@ -47,13 +47,15 @@ namespace Lampac.Engine.Middlewares
                     }
 
                     string ipKey = $"Accsdb:auth:IP:{requestInfo.IP}";
-                    if (!memoryCache.TryGetValue(ipKey, out HashSet<string> passwds))
-                        passwds = new HashSet<string>();
+                    if (!memoryCache.TryGetValue(ipKey, out ConcurrentDictionary<string, byte> passwds))
+                    {
+                        passwds = new ConcurrentDictionary<string, byte>();
+                        memoryCache.Set(ipKey, passwds, DateTime.Today.AddDays(1));
+                    }
 
-                    passwds.Add(passwd);
-                    memoryCache.Set(ipKey, passwds, DateTime.Today.AddDays(1));
+                    passwds.TryAdd(passwd, 0);
 
-                    if (passwds.Count > 5)
+                    if (passwds.Count > 10)
                         return httpContext.Response.WriteAsync("Too many attempts, try again tomorrow.", httpContext.RequestAborted);
                 }
 
@@ -121,7 +123,7 @@ namespace Lampac.Engine.Middlewares
 
                 string uri = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
 
-                if (user == null || user.ban || DateTime.UtcNow > user.expires || IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip))
+                if (IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip) || user == null || user.ban || DateTime.UtcNow > user.expires)
                 {
                     if (httpContext.Request.Path.Value.StartsWith("/proxy/") || httpContext.Request.Path.Value.StartsWith("/proxyimg"))
                     {
@@ -202,9 +204,6 @@ namespace Lampac.Engine.Middlewares
                 return islock;
             }
 
-            HashSet<string> ips = null;
-            HashSet<string> urls = null;
-
             #region setLogs
             void setLogs(string name)
             {
@@ -227,34 +226,27 @@ namespace Lampac.Engine.Middlewares
             {
                 string key = $"Accsdb:lock_day:{account_email}:{DateTime.Now.Day}";
 
-                if (memoryCache.TryGetValue(key, out HashSet<int> lockhour))
+                if (!memoryCache.TryGetValue(key, out ConcurrentDictionary<int, byte> lockhour))
                 {
-                    if (update)
-                    {
-                        lockhour.Add(DateTime.Now.Hour);
-                        memoryCache.Set(key, lockhour, DateTime.Now.AddDays(1));
-                    }
-
-                    return lockhour.Count;
-                }
-                else if (update)
-                {
-                    lockhour = new HashSet<int>() { DateTime.Now.Hour };
+                    lockhour = new ConcurrentDictionary<int, byte>();
                     memoryCache.Set(key, lockhour, DateTime.Now.AddDays(1));
-                    return lockhour.Count;
                 }
 
-                return 0;
+                if (update)
+                    lockhour.TryAdd(DateTime.Now.Hour, 0);
+
+                return lockhour.Count;
             }
             #endregion
 
-            if (IsLockIpHour(account_email, userip, out islock, out ips) | IsLockReqHour(account_email, uri, out islock, out urls))
+            if (IsLockIpHour(account_email, userip, out islock, out ConcurrentDictionary<string, byte> ips) | 
+                IsLockReqHour(account_email, uri, out islock, out ConcurrentDictionary<string, byte> urls))
             {
                 setLogs("lock_hour");
                 countlock_day(update: true);
 
-                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.ips.log", ips);
-                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.urls.log", urls);
+                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.ips.log", ips.Keys);
+                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.urls.log", urls.Keys);
 
                 return islock;
             }
@@ -281,50 +273,44 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        bool IsLockIpHour(string account_email, string userip, out bool islock, out HashSet<string> ips)
+        bool IsLockIpHour(string account_email, string userip, out bool islock, out ConcurrentDictionary<string, byte> ips)
         {
             string memKeyLocIP = $"Accsdb:IsLockIpHour:{account_email}:{DateTime.Now.Hour}";
 
-            if (memoryCache.TryGetValue(memKeyLocIP, out ips))
+            if (!memoryCache.TryGetValue(memKeyLocIP, out ips))
             {
-                ips.Add(userip);
+                ips = new ConcurrentDictionary<string, byte>();
                 memoryCache.Set(memKeyLocIP, ips, DateTime.Now.AddHours(1));
-
-                if (ips.Count > AppInit.conf.accsdb.maxip_hour)
-                {
-                    islock = true;
-                    return islock;
-                }
             }
-            else
+
+            ips.TryAdd(userip, 0);
+
+            if (ips.Count > AppInit.conf.accsdb.maxip_hour)
             {
-                ips = new HashSet<string>() { userip };
-                memoryCache.Set(memKeyLocIP, ips, DateTime.Now.AddHours(1));
+                islock = true;
+                return islock;
             }
 
             islock = false;
             return islock;
         }
 
-        bool IsLockReqHour(string account_email, string uri, out bool islock, out HashSet<string> urls)
+        bool IsLockReqHour(string account_email, string uri, out bool islock, out ConcurrentDictionary<string, byte> urls)
         {
             string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}";
 
-            if (memoryCache.TryGetValue(memKeyLocIP, out urls))
+            if (!memoryCache.TryGetValue(memKeyLocIP, out urls))
             {
-                urls.Add(uri);
+                urls = new ConcurrentDictionary<string, byte>();
                 memoryCache.Set(memKeyLocIP, urls, DateTime.Now.AddHours(1));
-
-                if (urls.Count > AppInit.conf.accsdb.maxrequest_hour)
-                {
-                    islock = true;
-                    return islock;
-                }
             }
-            else
+
+            urls.TryAdd(uri, 0);
+
+            if (urls.Count > AppInit.conf.accsdb.maxrequest_hour)
             {
-                urls = new HashSet<string>() { uri };
-                memoryCache.Set(memKeyLocIP, urls, DateTime.Now.AddHours(1));
+                islock = true;
+                return islock;
             }
 
             islock = false;
