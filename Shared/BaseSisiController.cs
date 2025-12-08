@@ -80,7 +80,7 @@ namespace Shared
         #endregion
 
         #region OnError
-        public JsonResult OnError(string msg, ProxyManager? proxyManager, bool refresh_proxy = true, bool rcache = true)
+        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true)
         {
             if (refresh_proxy && !init.rhub)
                 proxyManager?.Refresh();

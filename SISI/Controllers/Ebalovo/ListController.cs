@@ -37,7 +37,7 @@ namespace SISI.Controllers.Ebalovo
                         ("upgrade-insecure-requests", "1")
                     ));
 
-                    string ehost = await RootController.goHost(init.corsHost());
+                    string ehost = await RootController.goHost(init.corsHost(), proxy);
 
                     reset:
                     string html = await EbalovoTo.InvokeHtml(ehost, search, sort, c, pg, url =>

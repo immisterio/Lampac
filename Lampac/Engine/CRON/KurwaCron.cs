@@ -11,7 +11,7 @@ namespace Lampac.Engine.CRON
     {
         public static void Run()
         {
-            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(5), TimeSpan.FromHours(1));
+            _cronTimer = new Timer(cron, null, TimeSpan.FromHours(1), TimeSpan.FromHours(5));
         }
 
         static Timer _cronTimer;

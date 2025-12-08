@@ -115,7 +115,7 @@ namespace Lampac.Controllers
             }}
         }}
 
-        {(AppInit.conf.rch.websoket == "signalr" ? signalCode : nwsCode)}
+        {(AppInit.conf.rch.websoket == "signalr" ? signalCode(token) : nwsCode(token))}
     </script>
 </body>
 </html>";
@@ -124,34 +124,34 @@ namespace Lampac.Controllers
         }
 
 
-        static string nwsCode => @"
-const client = new NativeWsClient(""/nws"", {
+        static string nwsCode(string token) => $@"
+const client = new NativeWsClient(""/nws"", {{
     autoReconnect: true,
     reconnectDelay: 2000,
 
-    onOpen: function () {
+    onOpen: function () {{
         send('WebSocket connected');
         outageReported = false;
         client.invoke('RegistryWebLog', '{token}');
-    },
+    }},
 
-    onClose: function () {
+    onClose: function () {{
         reportOutageOnce('Connection closed');
-    },
+    }},
 
-    onError: function (err) {
+    onError: function (err) {{
         reportOutageOnce('Connection error: ' + (err && err.message ? err.message : String(err)));
-    }
-});
+    }}
+}});
 
-client.on('Receive', function (message, e) {
+client.on('Receive', function (message, e) {{
     if (receive === e) send(message);
-});
+}});
 
 client.connect();
 ";
 
-        static string signalCode => @"
+        static string signalCode(string token) => $@"
 const hubConnection = new signalR.HubConnectionBuilder()
     .withUrl('/ws')
     .build();
@@ -160,45 +160,44 @@ let reconnectAttempts = 0;
 const maxReconnectAttempts = 150; // 5 minutes
 const reconnectDelay = 2000;      // 2 seconds
 
-function startConnection() {
+function startConnection() {{
     hubConnection.start()
-        .then(function () {
+        .then(function () {{
             if (reconnectAttempts != 0)
                 send('WebSocket connected');
             reconnectAttempts = 0; // Reset counter on successful connection
             hubConnection.invoke('RegistryWebLog', '{token}');
-        })
-        .catch(function (err) {
-            console.log(`${err.toString()}\n\nAttempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...`);
+        }})
+        .catch(function (err) {{
+            console.log(`${{err.toString()}}\n\nAttempting to reconnect (${{reconnectAttempts}}/${{maxReconnectAttempts}})...`);
             attemptReconnect();
-        });
-}
+        }});
+}}
 
-function attemptReconnect() {
-    if (reconnectAttempts < maxReconnectAttempts) {
+function attemptReconnect() {{
+    if (reconnectAttempts < maxReconnectAttempts) {{
         reconnectAttempts++;
-        setTimeout(function() {
+        setTimeout(function() {{
             startConnection();
-        }, reconnectDelay);
-    } else {
+        }}, reconnectDelay);
+    }} else {{
         send('Max reconnection attempts reached. Please refresh the page.');
-    }
-}
+    }}
+}}
 
-hubConnection.on('Receive', function(message, e) {
+hubConnection.on('Receive', function(message, e) {{
     if(receive === e) send(message);
-});
+}});
 
-hubConnection.onclose(function(err) {
-    if (err) {
+hubConnection.onclose(function(err) {{
+    if (err) {{
         send('Connection closed due to error: ' + err.toString());
-    } else {
+    }} else {{
         send('Connection closed');
-    }
+    }}
     attemptReconnect();
-});
+}});
 
-// Start initial connection
 startConnection();
 ";
     }

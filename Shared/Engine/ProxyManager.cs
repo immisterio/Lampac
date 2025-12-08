@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace Shared.Engine
 {
-    public struct ProxyManager
+    public class ProxyManager
     {
         #region static
         static IMemoryCache memoryCache;
@@ -120,7 +120,7 @@ namespace Shared.Engine
                         if (p?.actions != null && p.actions.Count > 0)
                         {
                             val.errors = 0;
-                            start_action(ConfigureProxy(p), key, val.proxyip);
+                            start_action(ConfigureProxy(p), key);
                             return;
                         }
 
@@ -175,7 +175,7 @@ namespace Shared.Engine
 
 
 
-        static ProxySettings ConfigureProxy(ProxySettings orig)
+        ProxySettings ConfigureProxy(ProxySettings orig)
         {
             if (orig == null)
                 return null;
@@ -202,7 +202,7 @@ namespace Shared.Engine
                         }
                     }
 
-                    memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(list.Count == 0 ? 4 : 15));
+                    memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(15));
                 }
 
                 p.list = list.ToArray();
@@ -230,7 +230,7 @@ namespace Shared.Engine
         }
 
 
-        static void start_action(ProxySettings p, string key, string current_proxyip = null)
+        void start_action(ProxySettings p, string key, string current_proxyip = null)
         {
             if (p == null)
                 return;
