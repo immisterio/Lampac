@@ -188,7 +188,7 @@ namespace Lampac.Engine.Middlewares
                         bypass_reset:
                         var handler = Http.Handler(href, proxy);
 
-                        var client = FrendlyHttp.HttpMessageClient("base", handler);
+                        var client = FrendlyHttp.HttpMessageClient("proxyimg", handler);
 
                         var req = new HttpRequestMessage(HttpMethod.Get, href)
                         {
@@ -222,6 +222,9 @@ namespace Lampac.Engine.Middlewares
 
                                 if (response.Headers.TryGetValues("Content-Type", out var contype))
                                     httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
+
+                                if (AppInit.conf.serverproxy.responseContentLength && response.Content.Headers.ContentLength.HasValue)
+                                    httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
 
                                 if (cacheimg)
                                 {
@@ -261,17 +264,20 @@ namespace Lampac.Engine.Middlewares
 
                                             if (saveCache && memoryStream.Length > 1000)
                                             {
-                                                try
+                                                if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == memoryStream.Length)
                                                 {
-                                                    if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
+                                                    try
                                                     {
-                                                        File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                                        if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
+                                                        {
+                                                            File.WriteAllBytes(outFile, memoryStream.ToArray());
 
-                                                        if (AppInit.conf.multiaccess)
-                                                            cacheFiles.TryAdd(md5key, 0);
+                                                            if (AppInit.conf.multiaccess)
+                                                                cacheFiles.TryAdd(md5key, 0);
+                                                        }
                                                     }
+                                                    catch { File.Delete(outFile); }
                                                 }
-                                                catch { File.Delete(outFile); }
                                             }
                                         }
                                         catch { }

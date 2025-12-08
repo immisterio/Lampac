@@ -354,7 +354,7 @@ namespace Lampac.Engine.Middlewares
 
                     var handler = Http.Handler(uri, proxyManager.Get());
 
-                    var client = FrendlyHttp.HttpMessageClient(init.httpversion == 2 ? "http2" : "base", handler);
+                    var client = FrendlyHttp.HttpMessageClient(init.httpversion == 2 ? "http2proxyimg" : "proxyimg", handler);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, uri)
                     {

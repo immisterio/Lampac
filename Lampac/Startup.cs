@@ -65,7 +65,16 @@ namespace Lampac
             services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
-                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                AutomaticDecompression = DecompressionMethods.None,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
+                UseCookies = false
+            });
+
+            services.AddHttpClient("proxyimg").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.None,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
                 PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                 UseCookies = false
@@ -98,6 +107,21 @@ namespace Lampac
             {
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
+                EnableMultipleHttp2Connections = true,
+                UseCookies = false
+            });
+
+            services.AddHttpClient("http2proxyimg", client =>
+            {
+                client.DefaultRequestVersion = HttpVersion.Version20;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.None,
                 SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
                 PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                 EnableMultipleHttp2Connections = true,
