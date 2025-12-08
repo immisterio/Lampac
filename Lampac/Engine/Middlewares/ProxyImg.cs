@@ -26,8 +26,6 @@ namespace Lampac.Engine.Middlewares
 
         static ConcurrentDictionary<string, long> cacheFiles = new ConcurrentDictionary<string, long>();
 
-        static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
-
         static Timer cleanupTimer;
 
         static ProxyImg()
@@ -165,7 +163,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1)) : null;
+                var semaphore = cacheimg ?  new SemaphorManager(href, TimeSpan.FromMinutes(1)) : null;
 
                 try
                 {
@@ -177,7 +175,7 @@ namespace Lampac.Engine.Middlewares
                     }
 
                     if (semaphore != null)
-                        await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
+                        await semaphore.WaitAsync();
 
                     #region cacheFiles
                     if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
@@ -369,17 +367,7 @@ namespace Lampac.Engine.Middlewares
                 finally
                 {
                     if (semaphore != null)
-                    {
-                        try
-                        {
-                            semaphore.Release();
-                        }
-                        finally
-                        {
-                            if (semaphore.CurrentCount == 1)
-                                _semaphoreLocks.TryRemove(href, out _);
-                        }
-                    }
+                        semaphore.Release();
                 }
             }
         }

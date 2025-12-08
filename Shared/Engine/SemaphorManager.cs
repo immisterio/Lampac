@@ -1,28 +1,78 @@
-using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Shared.Engine
 {
-    public static class Semaphor
+    public class SemaphorManager
     {
-        public static Task Invoke(string key, TimeSpan timeSpan, Func<Task> func) => SemaphorManager.Invoke(key, timeSpan, func);
-
-        public static Task<T> Invoke<T>(string key, TimeSpan timeSpan, Func<Task<T>> func) => SemaphorManager.Invoke(key, timeSpan, func);
-    }
-
-    internal static class SemaphorManager
-    {
+        #region static
         private static readonly ConcurrentDictionary<string, SemaphoreEntry> _semaphoreLocks = new();
-        private static readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(1);
-        private static readonly TimeSpan _expiration = TimeSpan.FromMinutes(5);
-        private static readonly Timer _cleanupTimer = new(_ => Cleanup(), null, _cleanupInterval, _cleanupInterval);
+        private static readonly Timer _cleanupTimer = new(_ => Cleanup(), null, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(20));
 
-        public static async Task Invoke(string key, TimeSpan timeSpan, Func<Task> func)
+        static void Cleanup()
         {
-            var semaphore = GetSemaphoreEntry(key);
+            var threshold = DateTime.UtcNow - TimeSpan.FromMinutes(2);
 
+            foreach (var kvp in _semaphoreLocks.ToArray())
+            {
+                if (kvp.Value.LastUsed < threshold && _semaphoreLocks.TryRemove(kvp.Key, out var removed))
+                    removed.Dispose();
+            }
+        }
+        #endregion
+
+        SemaphoreEntry semaphore { get; set; }
+        TimeSpan timeSpan;
+
+
+        public SemaphorManager(string key)
+        {
+            timeSpan = TimeSpan.FromSeconds(40);
+            semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
+        }
+
+        public SemaphorManager(string key, TimeSpan timeSpan)
+        {
+            this.timeSpan = timeSpan;
+            semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
+        }
+
+
+        public Task WaitAsync()
+        {
+            return semaphore.WaitAsync(timeSpan);
+        }
+
+        public Task WaitAsync(TimeSpan timeSpan)
+        {
+            return semaphore.WaitAsync(timeSpan);
+        }
+
+        public void Release()
+        {
+            try
+            {
+                semaphore.Release();
+            }
+            catch { }
+        }
+
+
+        async public Task Invoke(Action action)
+        {
+            try
+            {
+                await semaphore.WaitAsync(timeSpan);
+                action();
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        async public Task Invoke(Func<Task> func)
+        {
             try
             {
                 await semaphore.WaitAsync(timeSpan);
@@ -34,10 +84,22 @@ namespace Shared.Engine
             }
         }
 
-        public static async Task<T> Invoke<T>(string key, TimeSpan timeSpan, Func<Task<T>> func)
-        {
-            var semaphore = GetSemaphoreEntry(key);
 
+        async public Task<T> Invoke<T>(Func<T> func)
+        {
+            try
+            {
+                await semaphore.WaitAsync(timeSpan);
+                return func();
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        async public Task<T> Invoke<T>(Func<Task<T>> func)
+        {
             try
             {
                 await semaphore.WaitAsync(timeSpan);
@@ -49,26 +111,8 @@ namespace Shared.Engine
             }
         }
 
-        private static SemaphoreEntry GetSemaphoreEntry(string key)
-        {
-            var entry = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
-            entry.Touch();
-            return entry;
-        }
 
-        private static void Cleanup()
-        {
-            var threshold = DateTime.UtcNow - _expiration;
-
-            foreach (var kvp in _semaphoreLocks)
-            {
-                if (kvp.Value.LastUsed < threshold && _semaphoreLocks.TryRemove(kvp.Key, out var removed))
-                {
-                    removed.Dispose();
-                }
-            }
-        }
-
+        #region SemaphoreEntry
         private sealed class SemaphoreEntry : IDisposable
         {
             private readonly SemaphoreSlim _semaphore;
@@ -103,5 +147,6 @@ namespace Shared.Engine
                 _semaphore.Dispose();
             }
         }
+        #endregion
     }
 }

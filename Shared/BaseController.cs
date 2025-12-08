@@ -324,7 +324,7 @@ namespace Shared
         #region InvokeCache
         public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, Func<CacheResult<T>, ValueTask<dynamic>> onget) => InvokeCache(key, time, null, onget);
 
-        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager? proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
+        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
         {
             var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
 
@@ -372,7 +372,7 @@ namespace Shared
             }
         }
 
-        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager? proxyManager = null, bool? memory = null)
+        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool? memory = null)
         {
             var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
 
