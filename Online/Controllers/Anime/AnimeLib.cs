@@ -11,7 +11,7 @@ namespace Online.Controllers
 {
     public class AnimeLib : BaseOnlineController
     {
-        private static readonly SemaphoreSlim TokenSemaphore = new SemaphoreSlim(1, 1);
+        static readonly SemaphoreSlim TokenSemaphore = new SemaphoreSlim(1, 1);
 
         ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeLib);
 

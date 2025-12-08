@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models.Online.FilmixTV;
 using Shared.Models.Online.Settings;
 using System.Text;
+using System.Threading;
 using F = System.IO.File;
 
 namespace Online.Controllers
@@ -13,7 +14,7 @@ namespace Online.Controllers
     /// </summary>
     public class FilmixTV : BaseOnlineController
     {
-        private static readonly System.Threading.SemaphoreSlim _accessTokenLock = new System.Threading.SemaphoreSlim(1, 1);
+        static readonly SemaphoreSlim _accessTokenLock = new SemaphoreSlim(1, 1);
 
         [HttpGet]
         [Route("lite/filmixtv")]

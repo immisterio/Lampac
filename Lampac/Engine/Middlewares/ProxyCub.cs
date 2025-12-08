@@ -25,8 +25,6 @@ namespace Lampac.Engine.Middlewares
 
         static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
 
-        static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
-
         static Timer cleanupTimer;
 
         static ProxyCub() 
@@ -278,11 +276,11 @@ namespace Lampac.Engine.Middlewares
                     string memkey = $"cubproxy:{domain}:{uri}";
                     (string content, int statusCode, string contentType) cache = default;
 
-                    var semaphore = _semaphoreLocks.GetOrAdd(memkey, _ => new SemaphoreSlim(1, 1));
+                    var semaphore = new SemaphorManager(memkey, TimeSpan.FromSeconds(20));
 
                     try
                     {
-                        await semaphore.WaitAsync(TimeSpan.FromSeconds(20));
+                        await semaphore.WaitAsync();
 
                         if (!hybridCache.TryGetValue(memkey, out cache, inmemory: false))
                         {
@@ -349,15 +347,7 @@ namespace Lampac.Engine.Middlewares
                     }
                     finally
                     {
-                        try
-                        {
-                            semaphore.Release();
-                        }
-                        finally
-                        {
-                            if (semaphore.CurrentCount == 1)
-                                _semaphoreLocks.TryRemove(memkey, out _);
-                        }
+                        semaphore.Release();
                     }
 
                     httpContext.Response.StatusCode = cache.statusCode;

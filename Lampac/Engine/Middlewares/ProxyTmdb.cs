@@ -28,8 +28,6 @@ namespace Lampac.Engine.Middlewares
 
         static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
 
-        static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
-
         static Timer cleanupTimer;
 
         static ProxyTmdb()
@@ -146,11 +144,11 @@ namespace Lampac.Engine.Middlewares
                 {
                     string dnskey = $"tmdb/api:dns:{init.DNS}";
 
-                    var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
+                    var _spredns = new SemaphorManager(dnskey, TimeSpan.FromMinutes(1));
 
                     try
                     {
-                        await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
+                        await _spredns.WaitAsync();
 
                         if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
@@ -173,15 +171,7 @@ namespace Lampac.Engine.Middlewares
                     catch { }
                     finally
                     {
-                        try
-                        {
-                            _spredns.Release();
-                        }
-                        finally
-                        {
-                            if (_spredns.CurrentCount == 1)
-                                _semaphoreLocks.TryRemove(dnskey, out _);
-                        }
+                        _spredns.Release();
                     }
                 }
                 #endregion
@@ -275,11 +265,11 @@ namespace Lampac.Engine.Middlewares
                 {
                     string dnskey = $"tmdb/img:dns:{init.DNS}";
 
-                    var _spredns = _semaphoreLocks.GetOrAdd(dnskey, _ => new SemaphoreSlim(1, 1));
+                    var _spredns = new SemaphorManager(dnskey, TimeSpan.FromMinutes(1));
 
                     try
                     {
-                        await _spredns.WaitAsync(TimeSpan.FromMinutes(1));
+                        await _spredns.WaitAsync();
 
                         if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
@@ -302,15 +292,7 @@ namespace Lampac.Engine.Middlewares
                     catch { }
                     finally
                     {
-                        try
-                        {
-                            _spredns.Release();
-                        }
-                        finally
-                        {
-                            if (_spredns.CurrentCount == 1)
-                                _semaphoreLocks.TryRemove(dnskey, out _);
-                        }
+                        _spredns.Release();
                     }
                 }
                 #endregion
@@ -338,12 +320,12 @@ namespace Lampac.Engine.Middlewares
                 var proxyManager = new ProxyManager("tmdb_img", init);
 
                 bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
-                var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(uri, _ => new SemaphoreSlim(1, 1)) : null;
+                var semaphore = cacheimg ? new SemaphorManager(uri, TimeSpan.FromMinutes(1)) : null;
 
                 try
                 {
                     if (semaphore != null)
-                        await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
+                        await semaphore.WaitAsync();
 
                     if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                     {
@@ -471,17 +453,7 @@ namespace Lampac.Engine.Middlewares
                 finally
                 {
                     if (semaphore != null)
-                    {
-                        try
-                        {
-                            semaphore.Release();
-                        }
-                        finally
-                        {
-                            if (semaphore.CurrentCount == 1)
-                                _semaphoreLocks.TryRemove(uri, out _);
-                        }
-                    }
+                        semaphore.Release();
                 }
             }
         }

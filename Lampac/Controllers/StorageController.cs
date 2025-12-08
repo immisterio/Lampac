@@ -6,10 +6,8 @@ using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
 using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using IO = System.IO;
 
@@ -18,8 +16,6 @@ namespace Lampac.Controllers
     public class StorageController : BaseController
     {
         #region StorageController
-        static readonly ConcurrentDictionary<string, SemaphoreSlim> _fileLocks = new();
-
         static StorageController()
         {
             Directory.CreateDirectory("database/storage");
@@ -77,11 +73,11 @@ namespace Lampac.Controllers
                 }
             }
 
-            var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
+            var semaphore = new SemaphorManager(outFile, TimeSpan.FromMinutes(1));
 
             try
             {
-                await fileLock.WaitAsync(TimeSpan.FromMinutes(1));
+                await semaphore.WaitAsync();
 
                 if (AppInit.conf.storage.brotli)
                     BrotliTo.Compress(outFile, array);
@@ -98,15 +94,7 @@ namespace Lampac.Controllers
             }
             finally
             {
-                try
-                {
-                    fileLock.Release();
-                }
-                finally
-                {
-                    if (fileLock.CurrentCount == 1)
-                        _fileLocks.TryRemove(outFile, out _);
-                }
+                semaphore.Release();
             }
 
             #region events
@@ -189,11 +177,11 @@ namespace Lampac.Controllers
                 }
             }
 
-            var fileLock = _fileLocks.GetOrAdd(outFile, _ => new SemaphoreSlim(1, 1));
+            var semaphore = new SemaphorManager(outFile, TimeSpan.FromMinutes(1));
 
             try
             {
-                await fileLock.WaitAsync(TimeSpan.FromMinutes(1));
+                await semaphore.WaitAsync();
 
                 if (AppInit.conf.storage.brotli)
                     BrotliTo.Compress(outFile, array);
@@ -210,10 +198,7 @@ namespace Lampac.Controllers
             }
             finally
             {
-                fileLock.Release();
-
-                if (fileLock.CurrentCount == 1)
-                    _fileLocks.TryRemove(outFile, out _);
+                semaphore.Release();
             }
 
             var inf = new FileInfo(outFile);

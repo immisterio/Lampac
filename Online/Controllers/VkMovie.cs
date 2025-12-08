@@ -154,9 +154,11 @@ namespace Online.Controllers
                 return true;
 
             var sem = _semaphoreLocks.GetOrAdd("vkmovie:anonym_token", _ => new System.Threading.SemaphoreSlim(1, 1));
-            await sem.WaitAsync();
+
             try
             {
+                await sem.WaitAsync(TimeSpan.FromSeconds(40));
+
                 // double-check after acquiring semaphore
                 if (!string.IsNullOrEmpty(access_token) && token_expires > DateTime.UtcNow)
                     return true;

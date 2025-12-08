@@ -326,11 +326,11 @@ namespace Shared
 
         async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
         {
-            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
 
             try
             {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+                await semaphore.WaitAsync();
 
                 if (hybridCache.TryGetValue(key, out T _val, memory))
                 {
@@ -360,25 +360,17 @@ namespace Shared
             }
             finally
             {
-                try
-                {
-                    semaphore.Release();
-                }
-                finally
-                {
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(key, out _);
-                }
+                semaphore.Release();
             }
         }
 
         async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool? memory = null)
         {
-            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
 
             try
             {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+                await semaphore.WaitAsync();
 
                 if (hybridCache.TryGetValue(key, out T val, memory))
                     return val;
@@ -393,15 +385,7 @@ namespace Shared
             }
             finally
             {
-                try
-                {
-                    semaphore.Release();
-                }
-                finally
-                {
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(key, out _);
-                }
+                semaphore.Release();
             }
         }
         #endregion
@@ -415,24 +399,16 @@ namespace Shared
                     return await func.Invoke();
             }
 
-            var semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
 
             try
             {
-                await semaphore.WaitAsync(TimeSpan.FromSeconds(40));
+                await semaphore.WaitAsync();
                 return await func.Invoke();
             }
             finally
             {
-                try
-                {
-                    semaphore.Release();
-                }
-                finally
-                {
-                    if (semaphore.CurrentCount == 1)
-                        _semaphoreLocks.TryRemove(key, out _);
-                }
+                semaphore.Release();
             }
         }
         #endregion
