@@ -24,7 +24,7 @@ namespace Lampac.Engine.Middlewares
         #region ProxyImg
         static FileSystemWatcher fileWatcher;
 
-        static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
+        static ConcurrentDictionary<string, long> cacheFiles = new ConcurrentDictionary<string, long>();
 
         static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
@@ -38,7 +38,7 @@ namespace Lampac.Engine.Middlewares
             Directory.CreateDirectory("cache/img");
 
             foreach (var item in Directory.EnumerateFiles("cache/img", "*"))
-                cacheFiles.TryAdd(Path.GetFileName(item), 0);
+                cacheFiles.TryAdd(Path.GetFileName(item), new FileInfo(item).Length);
 
             fileWatcher = new FileSystemWatcher
             {
@@ -47,7 +47,11 @@ namespace Lampac.Engine.Middlewares
                 EnableRaisingEvents = true
             };
 
-            fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
+            //fileWatcher.Created += (s, e) => 
+            //{ 
+            //    cacheFiles.TryAdd(e.Name, 0); 
+            //};
+
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
 
             cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(60), TimeSpan.FromMinutes(60));
@@ -147,13 +151,19 @@ namespace Lampac.Engine.Middlewares
                 if (width > 0 || height > 0)
                     contentType = href.Contains(".png") ? "image/png" : "image/jpeg";
 
+                #region cacheFiles
                 if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                 {
                     httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContext.Response.ContentType = contentType;
+
+                    if (AppInit.conf.serverproxy.responseContentLength && cacheFiles.ContainsKey(md5key))
+                        httpContext.Response.ContentLength = cacheFiles[md5key];
+
                     await httpContext.Response.SendFileAsync(outFile);
                     return;
                 }
+                #endregion
 
                 var semaphore = cacheimg ? _semaphoreLocks.GetOrAdd(href, _ => new SemaphoreSlim(1, 1)) : null;
 
@@ -169,13 +179,19 @@ namespace Lampac.Engine.Middlewares
                     if (semaphore != null)
                         await semaphore.WaitAsync(TimeSpan.FromMinutes(1));
 
+                    #region cacheFiles
                     if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                     {
                         httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                         httpContext.Response.ContentType = contentType;
+
+                        if (AppInit.conf.serverproxy.responseContentLength && cacheFiles.ContainsKey(md5key))
+                            httpContext.Response.ContentLength = cacheFiles[md5key];
+
                         await httpContext.Response.SendFileAsync(outFile);
                         return;
                     }
+                    #endregion
 
                     httpContext.Response.Headers["X-Cache-Status"] = cacheimg ? "MISS" : "bypass";
 
@@ -220,8 +236,10 @@ namespace Lampac.Engine.Middlewares
 
                                 httpContext.Response.StatusCode = (int)response.StatusCode;
 
-                                if (response.Headers.TryGetValues("Content-Type", out var contype))
+                                if (response.Content.Headers.TryGetValues("Content-Type", out var contype))
                                     httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
+                                else
+                                    httpContext.Response.ContentType = contentType;
 
                                 if (AppInit.conf.serverproxy.responseContentLength && response.Content.Headers.ContentLength.HasValue)
                                     httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
@@ -273,7 +291,7 @@ namespace Lampac.Engine.Middlewares
                                                             File.WriteAllBytes(outFile, memoryStream.ToArray());
 
                                                             if (AppInit.conf.multiaccess)
-                                                                cacheFiles.TryAdd(md5key, 0);
+                                                                cacheFiles.TryAdd(md5key, memoryStream.Length);
                                                         }
                                                     }
                                                     catch { File.Delete(outFile); }
@@ -296,7 +314,7 @@ namespace Lampac.Engine.Middlewares
                         #region rsize
                         rsize_reset:
                         var array = await Download(href, proxy: proxy, headers: decryptLink?.headers);
-                        if (array == null)
+                        if (array == null || 1000 > array.Length)
                         {
                             if (url_reserve != null)
                             {
@@ -313,19 +331,16 @@ namespace Lampac.Engine.Middlewares
                             return;
                         }
 
-                        if (array.Length > 1000)
+                        if (AppInit.conf.imagelibrary == "NetVips")
                         {
-                            if (AppInit.conf.imagelibrary == "NetVips")
-                            {
-                                array = NetVipsImage(href, array, width, height);
-                            }
-                            else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                            {
-                                array = ImageMagick(array, width, height, cacheimg ? outFile : null);
-                            }
+                            array = NetVipsImage(href, array, width, height);
+                        }
+                        else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                        {
+                            array = ImageMagick(array, width, height, cacheimg ? outFile : null);
                         }
 
-                        if (array.Length > 1000 && cacheimg)
+                        if (cacheimg)
                         {
                             try
                             {
@@ -334,13 +349,14 @@ namespace Lampac.Engine.Middlewares
                                     File.WriteAllBytes(outFile, array);
 
                                     if (AppInit.conf.multiaccess)
-                                        cacheFiles.TryAdd(md5key, 0);
+                                        cacheFiles.TryAdd(md5key, array.Length);
                                 }
                             }
                             catch { try { File.Delete(outFile); } catch { } }
                         }
 
                         proxyManager.Success();
+
                         httpContext.Response.ContentType = contentType;
 
                         if (AppInit.conf.serverproxy.responseContentLength)

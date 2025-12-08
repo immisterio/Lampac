@@ -112,13 +112,14 @@ namespace Shared.Engine
 
         #region Compilation
         public static List<PortableExecutableReference> appReferences;
+        static readonly object lockCompilationObj = new();
 
         public static Assembly Compilation(RootModule mod)
         {
             string path = $"{Environment.CurrentDirectory}/module/{mod.dll}";
             if (Directory.Exists(path))
             {
-                lock (typeof(CSharpEval))
+                lock (lockCompilationObj)
                 {
                     var syntaxTree = new List<SyntaxTree>();
 
