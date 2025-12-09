@@ -169,10 +169,10 @@ namespace JacRed.Controllers
                         client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
 
                         var postParams = new Dictionary<string, string>
-                    {
-                        { "login", jackett.Animelayer.login.u },
-                        { "password", jackett.Animelayer.login.p }
-                    };
+                        {
+                            { "login", jackett.Animelayer.login.u },
+                            { "password", jackett.Animelayer.login.p }
+                        };
 
                         using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {

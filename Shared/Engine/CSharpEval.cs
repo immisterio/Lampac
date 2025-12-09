@@ -119,19 +119,19 @@ namespace Shared.Engine
             string path = $"{Environment.CurrentDirectory}/module/{mod.dll}";
             if (Directory.Exists(path))
             {
+                var syntaxTree = new List<SyntaxTree>();
+
+                foreach (string file in Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories))
+                {
+                    string _file = file.Replace("\\", "/").Replace(path.Replace("\\", "/"), "").Replace(Environment.CurrentDirectory.Replace("\\", "/"), "");
+                    if (Regex.IsMatch(_file, "(\\.vs|bin|obj|Properties)/", RegexOptions.IgnoreCase))
+                        continue;
+
+                    syntaxTree.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(file)));
+                }
+
                 lock (lockCompilationObj)
                 {
-                    var syntaxTree = new List<SyntaxTree>();
-
-                    foreach (string file in Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories))
-                    {
-                        string _file = file.Replace("\\", "/").Replace(path.Replace("\\", "/"), "").Replace(Environment.CurrentDirectory.Replace("\\", "/"), "");
-                        if (Regex.IsMatch(_file, "(\\.vs|bin|obj|Properties)/", RegexOptions.IgnoreCase))
-                            continue;
-
-                        syntaxTree.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(file)));
-                    }
-
                     if (appReferences == null)
                     {
                         var dependencyContext = DependencyContext.Default;

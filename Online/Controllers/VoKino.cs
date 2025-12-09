@@ -70,7 +70,7 @@ namespace Online.Controllers
                 init.streamproxy = false;
 
             if (checksearch /*&& balancer != "vokino"*/)
-                return Content("data-json="); // заглушка от 429 и +1 к просмотру
+                return Content("data-json="); // заглушка от 429 и от +1 к просмотру
 
             var proxy = proxyManager.Get();
 

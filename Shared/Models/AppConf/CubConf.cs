@@ -22,6 +22,8 @@ namespace Shared.Models.AppConf
 
         public int cache_img { get; set; }
 
+        public bool responseContentLength { get; set; }
+
 
         public bool useproxy { get; set; }
 

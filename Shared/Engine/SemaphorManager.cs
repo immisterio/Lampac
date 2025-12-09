@@ -22,31 +22,43 @@ namespace Shared.Engine
         #endregion
 
         SemaphoreEntry semaphore { get; set; }
-        TimeSpan timeSpan;
+        CancellationToken cancellationToken;
 
 
         public SemaphorManager(string key)
         {
-            timeSpan = TimeSpan.FromSeconds(40);
+            cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(40)).Token;
             semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
         }
 
         public SemaphorManager(string key, TimeSpan timeSpan)
         {
-            this.timeSpan = timeSpan;
+            cancellationToken = new CancellationTokenSource(timeSpan).Token;
             semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
         }
 
-
-        public Task WaitAsync()
+        public SemaphorManager(string key, CancellationToken cancellationToken)
         {
-            return semaphore.WaitAsync(timeSpan);
+            this.cancellationToken = cancellationToken;
+            semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
         }
+
 
         public Task WaitAsync(TimeSpan timeSpan)
         {
             return semaphore.WaitAsync(timeSpan);
         }
+
+        public Task WaitAsync(CancellationToken cancellationToken)
+        {
+            return semaphore.WaitAsync(cancellationToken);
+        }
+
+        public Task WaitAsync()
+        {
+            return semaphore.WaitAsync(cancellationToken);
+        }
+
 
         public void Release()
         {
@@ -62,7 +74,7 @@ namespace Shared.Engine
         {
             try
             {
-                await semaphore.WaitAsync(timeSpan);
+                await semaphore.WaitAsync(cancellationToken);
                 action();
             }
             finally
@@ -75,7 +87,7 @@ namespace Shared.Engine
         {
             try
             {
-                await semaphore.WaitAsync(timeSpan);
+                await semaphore.WaitAsync(cancellationToken);
                 await func();
             }
             finally
@@ -89,7 +101,7 @@ namespace Shared.Engine
         {
             try
             {
-                await semaphore.WaitAsync(timeSpan);
+                await semaphore.WaitAsync(cancellationToken);
                 return func();
             }
             finally
@@ -102,7 +114,7 @@ namespace Shared.Engine
         {
             try
             {
-                await semaphore.WaitAsync(timeSpan);
+                await semaphore.WaitAsync(cancellationToken);
                 return await func();
             }
             finally
@@ -134,6 +146,12 @@ namespace Shared.Engine
             {
                 Touch();
                 return _semaphore.WaitAsync(timeSpan);
+            }
+
+            public Task WaitAsync(CancellationToken cancellationToken)
+            {
+                Touch();
+                return _semaphore.WaitAsync(cancellationToken);
             }
 
             public void Release()

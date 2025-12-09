@@ -26,7 +26,7 @@ namespace Lampac.Engine.Middlewares
         #region ProxyTmdb
         static FileSystemWatcher fileWatcher;
 
-        static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
+        static ConcurrentDictionary<string, long> cacheFiles = new ();
 
         static Timer cleanupTimer;
 
@@ -38,7 +38,7 @@ namespace Lampac.Engine.Middlewares
             Directory.CreateDirectory("cache/tmdb");
 
             foreach (var item in Directory.EnumerateFiles("cache/tmdb", "*"))
-                cacheFiles.TryAdd(Path.GetFileName(item), 0);
+                cacheFiles.TryAdd(Path.GetFileName(item), new FileInfo(item).Length);
 
             fileWatcher = new FileSystemWatcher
             {
@@ -47,7 +47,7 @@ namespace Lampac.Engine.Middlewares
                 EnableRaisingEvents = true
             };
 
-            fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
+            //fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
 
             cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(60), TimeSpan.FromMinutes(60));
@@ -106,7 +106,7 @@ namespace Lampac.Engine.Middlewares
         {
             using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContex.RequestAborted))
             {
-                ctsHttp.CancelAfter(TimeSpan.FromSeconds(90));
+                ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
                 httpContex.Response.ContentType = "application/json; charset=utf-8";
 
                 var init = AppInit.conf.tmdb;
@@ -144,7 +144,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     string dnskey = $"tmdb/api:dns:{init.DNS}";
 
-                    var _spredns = new SemaphorManager(dnskey, TimeSpan.FromMinutes(1));
+                    var _spredns = new SemaphorManager(dnskey, ctsHttp.Token);
 
                     try
                     {
@@ -152,17 +152,14 @@ namespace Lampac.Engine.Middlewares
 
                         if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
-                            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
-                            {
-                                var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                                var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A, cancellationToken: cts.Token);
-                                dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                            var queryType = await lookup.QueryAsync("api.themoviedb.org", QueryType.A, cancellationToken: ctsHttp.Token);
+                            dns_ip = queryType?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-                                if (!string.IsNullOrEmpty(dns_ip))
-                                    Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                                else
-                                    Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
-                            }
+                            if (!string.IsNullOrEmpty(dns_ip))
+                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                            else
+                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                         }
 
                         if (!string.IsNullOrEmpty(dns_ip))
@@ -230,7 +227,7 @@ namespace Lampac.Engine.Middlewares
         {
             using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContex.RequestAborted))
             {
-                ctsHttp.CancelAfter(TimeSpan.FromSeconds(90));
+                ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
 
                 var init = AppInit.conf.tmdb;
                 if (!init.enable)
@@ -251,12 +248,18 @@ namespace Lampac.Engine.Middlewares
 
                 httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
+                #region cacheFiles
                 if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                 {
                     httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                    await httpContex.Response.SendFileAsync(outFile);
+
+                    if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
+                        httpContex.Response.ContentLength = cacheFiles[md5key];
+
+                    await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
                     return;
                 }
+                #endregion
 
                 string tmdb_ip = init.IMG_IP;
 
@@ -265,7 +268,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     string dnskey = $"tmdb/img:dns:{init.DNS}";
 
-                    var _spredns = new SemaphorManager(dnskey, TimeSpan.FromMinutes(1));
+                    var _spredns = new SemaphorManager(dnskey, ctsHttp.Token);
 
                     try
                     {
@@ -273,17 +276,14 @@ namespace Lampac.Engine.Middlewares
 
                         if (!Startup.memoryCache.TryGetValue(dnskey, out string dns_ip))
                         {
-                            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(50)))
-                            {
-                                var lookup = new LookupClient(IPAddress.Parse(init.DNS));
-                                var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A);
-                                dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
+                            var lookup = new LookupClient(IPAddress.Parse(init.DNS));
+                            var result = await lookup.QueryAsync("image.tmdb.org", QueryType.A, cancellationToken: ctsHttp.Token);
+                            dns_ip = result?.Answers?.ARecords()?.FirstOrDefault()?.Address?.ToString();
 
-                                if (!string.IsNullOrEmpty(dns_ip))
-                                    Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
-                                else
-                                    Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
-                            }
+                            if (!string.IsNullOrEmpty(dns_ip))
+                                Startup.memoryCache.Set(dnskey, dns_ip, DateTime.Now.AddMinutes(Math.Max(init.DNS_TTL, 5)));
+                            else
+                                Startup.memoryCache.Set(dnskey, string.Empty, DateTime.Now.AddMinutes(5));
                         }
 
                         if (!string.IsNullOrEmpty(dns_ip))
@@ -320,19 +320,25 @@ namespace Lampac.Engine.Middlewares
                 var proxyManager = new ProxyManager("tmdb_img", init);
 
                 bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
-                var semaphore = cacheimg ? new SemaphorManager(uri, TimeSpan.FromMinutes(1)) : null;
+                var semaphore = cacheimg ? new SemaphorManager(uri, ctsHttp.Token) : null;
 
                 try
                 {
                     if (semaphore != null)
                         await semaphore.WaitAsync();
 
+                    #region cacheFiles
                     if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
                     {
                         httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                        await httpContex.Response.SendFileAsync(outFile);
+
+                        if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
+                            httpContex.Response.ContentLength = cacheFiles[md5key];
+
+                        await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
                         return;
                     }
+                    #endregion
 
                     var handler = Http.Handler(uri, proxyManager.Get());
 
@@ -345,55 +351,60 @@ namespace Lampac.Engine.Middlewares
 
                     Http.DefaultRequestHeaders(uri, req, null, null, headers);
 
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                    using (HttpResponseMessage response = await client.SendAsync(req, ctsHttp.Token))
                     {
-                        using (HttpResponseMessage response = await client.SendAsync(req, cts.Token))
+                        if (response.StatusCode == HttpStatusCode.OK)
+                            proxyManager.Success();
+                        else
+                            proxyManager.Refresh();
+
+                        httpContex.Response.StatusCode = (int)response.StatusCode;
+
+                        if (init.responseContentLength && response.Content.Headers.ContentLength.HasValue)
+                            httpContex.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+
+                        if (response.StatusCode == HttpStatusCode.OK && cacheimg)
                         {
-                            if (response.StatusCode == HttpStatusCode.OK)
-                                proxyManager.Success();
-                            else
-                                proxyManager.Refresh();
+                            #region cache
+                            httpContex.Response.Headers["X-Cache-Status"] = "MISS";
 
-                            if (response.StatusCode == HttpStatusCode.OK && cacheimg)
+                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                (int)response.Content.Headers.ContentLength.Value :
+                                50_000; // 50kB
+
+                            using (var memoryStream = new MemoryStream(initialCapacity))
                             {
-                                #region cache
-                                httpContex.Response.Headers["X-Cache-Status"] = "MISS";
-
-                                int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                    (int)response.Content.Headers.ContentLength.Value :
-                                    50_000; // 50kB
-
-                                using (var memoryStream = new MemoryStream(initialCapacity))
+                                try
                                 {
-                                    try
+                                    bool saveCache = true;
+
+                                    using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token))
                                     {
-                                        bool saveCache = true;
+                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                        using (var responseStream = await response.Content.ReadAsStreamAsync())
+                                        try
                                         {
-                                            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                            int bytesRead;
 
-                                            try
+                                            while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
                                             {
-                                                int bytesRead;
-
-                                                while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
-                                                {
-                                                    memoryStream.Write(buffer, 0, bytesRead);
-                                                    await httpContex.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
-                                                }
-                                            }
-                                            catch
-                                            {
-                                                saveCache = false;
-                                            }
-                                            finally
-                                            {
-                                                ArrayPool<byte>.Shared.Return(buffer);
+                                                memoryStream.Write(buffer, 0, bytesRead);
+                                                await httpContex.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
                                             }
                                         }
+                                        catch
+                                        {
+                                            saveCache = false;
+                                        }
+                                        finally
+                                        {
+                                            ArrayPool<byte>.Shared.Return(buffer);
+                                        }
+                                    }
 
-                                        if (saveCache && memoryStream.Length > 1000)
+                                    if (saveCache && memoryStream.Length > 1000)
+                                    {
+                                        if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == memoryStream.Length)
                                         {
                                             try
                                             {
@@ -409,35 +420,37 @@ namespace Lampac.Engine.Middlewares
                                                                 // тестируем jpg/png на целостность
                                                                 byte[] temp = image.JpegsaveBuffer();
                                                                 if (temp == null || temp.Length == 0)
-                                                                    return;
+                                                                    saveCache = false;
                                                             }
                                                             catch
                                                             {
-                                                                return;
+                                                                saveCache = false;
                                                             }
                                                         }
                                                     }
                                                     #endregion
 
-                                                    File.WriteAllBytes(outFile, memoryStream.ToArray());
+                                                    if (saveCache)
+                                                    {
+                                                        await File.WriteAllBytesAsync(outFile, memoryStream.ToArray());
 
-                                                    if (AppInit.conf.multiaccess)
-                                                        cacheFiles.TryAdd(md5key, 0);
+                                                        if (AppInit.conf.multiaccess)
+                                                            cacheFiles.TryAdd(md5key, memoryStream.Length);
+                                                    }
                                                 }
                                             }
                                             catch { File.Delete(outFile); }
                                         }
                                     }
-                                    catch { }
                                 }
-                                #endregion
+                                catch { }
                             }
-                            else
-                            {
-                                httpContex.Response.StatusCode = (int)response.StatusCode;
-                                httpContex.Response.Headers["X-Cache-Status"] = "bypass";
-                                await response.Content.CopyToAsync(httpContex.Response.Body, ctsHttp.Token);
-                            }
+                            #endregion
+                        }
+                        else
+                        {
+                            httpContex.Response.Headers["X-Cache-Status"] = "bypass";
+                            await response.Content.CopyToAsync(httpContex.Response.Body, ctsHttp.Token);
                         }
                     }
                 }

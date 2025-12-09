@@ -4,6 +4,7 @@ using Shared.Models.Online;
 using Shared.Models.Online.Rezka;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -26,7 +27,7 @@ namespace Shared.Engine.Online
 
         public string requestlog = string.Empty;
 
-        static Dictionary<long, string> basereferer = new Dictionary<long, string>();
+        static readonly ConcurrentDictionary<long, string> basereferer = new();
 
         void log(string msg)
         {

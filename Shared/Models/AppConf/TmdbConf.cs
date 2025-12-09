@@ -32,6 +32,8 @@ namespace Shared.Models.AppConf
 
         public bool check_img { get; set; }
 
+        public bool responseContentLength { get; set; }
+
 
         public bool useproxy { get; set; }
 

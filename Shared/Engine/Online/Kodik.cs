@@ -3,6 +3,7 @@ using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Templates;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -13,7 +14,7 @@ namespace Shared.Engine.Online
     public struct KodikInvoke
     {
         #region KodikInvoke
-        static Dictionary<string, string> psingles = new Dictionary<string, string>();
+        static readonly ConcurrentDictionary<string, string> psingles = new ();
         static readonly HybridCache hybridCache = new HybridCache();
         readonly IEnumerable<Result> fallbackDatabase;
 

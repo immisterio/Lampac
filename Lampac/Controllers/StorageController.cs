@@ -25,11 +25,11 @@ namespace Lampac.Controllers
 
         #region Get
         [Route("/storage/get")]
-        public ActionResult Get(string path, string pathfile, bool responseInfo)
+        async public Task<ActionResult> Get(string path, string pathfile, bool responseInfo)
         {
             string outFile = getFilePath(path, pathfile, false);
             if (outFile == null || !IO.File.Exists(outFile))
-                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
             var file = new FileInfo(outFile);
             var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };
@@ -37,7 +37,32 @@ namespace Lampac.Controllers
             if (responseInfo)
                 return Json(new { success = true, uid = requestInfo.user_uid, fileInfo });
 
-            string data = AppInit.conf.storage.brotli ? BrotliTo.Decompress(outFile) : IO.File.ReadAllText(outFile);
+            string data;
+
+            if (AppInit.conf.storage.brotli)
+            {
+                data = await BrotliTo.DecompressAsync(outFile);
+            }
+            else
+            {
+                var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
+
+                try
+                {
+                    await semaphore.WaitAsync();
+
+                    data = await IO.File.ReadAllTextAsync(outFile);
+                }
+                catch
+                {
+                    HttpContext.Response.StatusCode = 500;
+                    return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }
 
             return Json(new { success = true, uid = requestInfo.user_uid, fileInfo, data });
         }
@@ -73,28 +98,30 @@ namespace Lampac.Controllers
                 }
             }
 
-            var semaphore = new SemaphorManager(outFile, TimeSpan.FromMinutes(1));
-
-            try
+            if (AppInit.conf.storage.brotli)
             {
-                await semaphore.WaitAsync();
+                await BrotliTo.CompressAsync(outFile, array);
+            }
+            else
+            {
+                var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
 
-                if (AppInit.conf.storage.brotli)
-                    BrotliTo.Compress(outFile, array);
-                else
+                try
                 {
+                    await semaphore.WaitAsync();
+
                     using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
                         fileStream.Write(array, 0, array.Length);
                 }
-            }
-            catch
-            {
-                HttpContext.Response.StatusCode = 500;
-                return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
-            }
-            finally
-            {
-                semaphore.Release();
+                catch
+                {
+                    HttpContext.Response.StatusCode = 500;
+                    return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
             }
 
             #region events
@@ -129,11 +156,11 @@ namespace Lampac.Controllers
         #region TempGet
         [HttpGet]
         [Route("/storage/temp/{key}")]
-        public ActionResult TempGet(string key, bool responseInfo)
+        async public Task<ActionResult> TempGet(string key, bool responseInfo)
         {
             string outFile = getFilePath("temp", null, false, user_uid: key);
             if (outFile == null || !IO.File.Exists(outFile))
-                return Content("{\"success\": false, \"msg\": \"outFile\"}", "application/json; charset=utf-8");
+                return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
             var file = new FileInfo(outFile);
             var fileInfo = new { file.Name, path = outFile, file.Length, changeTime = new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds() };
@@ -141,7 +168,32 @@ namespace Lampac.Controllers
             if (responseInfo)
                 return Json(new { success = true, uid = requestInfo.user_uid, fileInfo });
 
-            string data = AppInit.conf.storage.brotli ? BrotliTo.Decompress(outFile) : IO.File.ReadAllText(outFile);
+            string data;
+
+            if (AppInit.conf.storage.brotli)
+            {
+                data = await BrotliTo.DecompressAsync(outFile);
+            }
+            else
+            {
+                var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
+
+                try
+                {
+                    await semaphore.WaitAsync();
+
+                    data = await IO.File.ReadAllTextAsync(outFile);
+                }
+                catch
+                {
+                    HttpContext.Response.StatusCode = 500;
+                    return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }
 
             return Json(new { success = true, uid = requestInfo.user_uid, fileInfo, data });
         }
@@ -177,28 +229,30 @@ namespace Lampac.Controllers
                 }
             }
 
-            var semaphore = new SemaphorManager(outFile, TimeSpan.FromMinutes(1));
-
-            try
+            if (AppInit.conf.storage.brotli)
             {
-                await semaphore.WaitAsync();
+                await BrotliTo.CompressAsync(outFile, array);
+            }
+            else
+            {
+                var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
 
-                if (AppInit.conf.storage.brotli)
-                    BrotliTo.Compress(outFile, array);
-                else
+                try
                 {
+                    await semaphore.WaitAsync();
+
                     using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
                         fileStream.Write(array, 0, array.Length);
                 }
-            }
-            catch
-            {
-                HttpContext.Response.StatusCode = 500;
-                return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
-            }
-            finally
-            {
-                semaphore.Release();
+                catch
+                {
+                    HttpContext.Response.StatusCode = 500;
+                    return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
             }
 
             var inf = new FileInfo(outFile);

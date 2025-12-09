@@ -101,7 +101,7 @@ namespace Tracks.Controllers
                     magnethash = CrypTo.md5(media);
 
                 if (System.IO.File.Exists(getFolder(magnethash)))
-                    outPut = BrotliTo.Decompress(getFolder(magnethash));
+                    outPut = await BrotliTo.DecompressAsync(getFolder(magnethash));
 
                 if (string.IsNullOrWhiteSpace(outPut))
                 {
@@ -138,7 +138,7 @@ namespace Tracks.Controllers
 
                     if (!string.IsNullOrWhiteSpace(outPut) && !string.IsNullOrWhiteSpace(magnethash))
                     {
-                        BrotliTo.Compress(getFolder(magnethash), outPut);
+                        await BrotliTo.CompressAsync(getFolder(magnethash), outPut);
                     }
                     else
                     {

@@ -23,7 +23,7 @@ namespace Lampac.Engine.Middlewares
         #region ProxyCub
         static FileSystemWatcher fileWatcher;
 
-        static ConcurrentDictionary<string, byte> cacheFiles = new ConcurrentDictionary<string, byte>();
+        static ConcurrentDictionary<string, long> cacheFiles = new ();
 
         static Timer cleanupTimer;
 
@@ -32,7 +32,7 @@ namespace Lampac.Engine.Middlewares
             Directory.CreateDirectory("cache/cub");
 
             foreach (var item in Directory.EnumerateFiles("cache/cub", "*"))
-                cacheFiles.TryAdd(Path.GetFileName(item), 0);
+                cacheFiles.TryAdd(Path.GetFileName(item), new FileInfo(item).Length);
 
             fileWatcher = new FileSystemWatcher
             {
@@ -41,10 +41,10 @@ namespace Lampac.Engine.Middlewares
                 EnableRaisingEvents = true
             };
 
-            fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
+            //fileWatcher.Created += (s, e) => { cacheFiles.TryAdd(e.Name, 0); };
             fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
 
-            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(30));
+            cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(60), TimeSpan.FromMinutes(60));
         }
 
         static void cleanup(object state)
@@ -69,7 +69,7 @@ namespace Lampac.Engine.Middlewares
         {
             using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
             {
-                ctsHttp.CancelAfter(TimeSpan.FromSeconds(90));
+                ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
 
                 var hybridCache = new HybridCache();
                 var requestInfo = httpContext.Features.Get<RequestModel>();
@@ -178,14 +178,18 @@ namespace Lampac.Engine.Middlewares
                     {
                         httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                         httpContext.Response.ContentType = getContentType(uri);
-                        await httpContext.Response.SendFileAsync(outFile);
+
+                        if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
+                            httpContext.Response.ContentLength = cacheFiles[md5key];
+
+                        await httpContext.Response.SendFileAsync(outFile, ctsHttp.Token);
                         return;
                     }
 
                     var handler = new HttpClientHandler()
                     {
-                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                        AllowAutoRedirect = false
+                        AutomaticDecompression = DecompressionMethods.None,
+                        AllowAutoRedirect = true
                     };
 
                     handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
@@ -200,72 +204,75 @@ namespace Lampac.Engine.Middlewares
                     var client = FrendlyHttp.HttpMessageClient("proxy", handler);
                     var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
 
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token))
                     {
-                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token))
+                        if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false && response.StatusCode == HttpStatusCode.OK)
                         {
-                            if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false && response.StatusCode == HttpStatusCode.OK)
+                            #region cache
+                            httpContext.Response.ContentType = getContentType(uri);
+                            httpContext.Response.Headers["X-Cache-Status"] = "MISS";
+
+                            if (init.responseContentLength && response.Content.Headers.ContentLength.HasValue)
+                                httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+
+                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
+                                (int)response.Content.Headers.ContentLength.Value :
+                                20_000; // 20kB
+
+                            using (var memoryStream = new MemoryStream(initialCapacity))
                             {
-                                #region cache
-                                httpContext.Response.ContentType = getContentType(uri);
-                                httpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                                int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                    (int)response.Content.Headers.ContentLength.Value :
-                                    20_000; // 20kB
-
-                                using (var memoryStream = new MemoryStream(initialCapacity))
+                                try
                                 {
-                                    try
+                                    bool saveCache = true;
+
+                                    using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token))
                                     {
-                                        bool saveCache = true;
+                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                        using (var responseStream = await response.Content.ReadAsStreamAsync())
+                                        try
                                         {
-                                            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                            int bytesRead;
 
-                                            try
+                                            while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
                                             {
-                                                int bytesRead;
-
-                                                while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
-                                                {
-                                                    memoryStream.Write(buffer, 0, bytesRead);
-                                                    await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
-                                                }
-                                            }
-                                            catch
-                                            {
-                                                saveCache = false;
-                                            }
-                                            finally
-                                            {
-                                                ArrayPool<byte>.Shared.Return(buffer);
+                                                memoryStream.Write(buffer, 0, bytesRead);
+                                                await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
                                             }
                                         }
+                                        catch
+                                        {
+                                            saveCache = false;
+                                        }
+                                        finally
+                                        {
+                                            ArrayPool<byte>.Shared.Return(buffer);
+                                        }
+                                    }
 
-                                        if (saveCache && memoryStream.Length > 1000)
+                                    if (saveCache && memoryStream.Length > 1000)
+                                    {
+                                        if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == memoryStream.Length)
                                         {
                                             try
                                             {
                                                 if (!cacheFiles.ContainsKey(md5key))
                                                 {
-                                                    File.WriteAllBytes(outFile, memoryStream.ToArray());
-                                                    cacheFiles.TryAdd(md5key, 0);
+                                                    await File.WriteAllBytesAsync(outFile, memoryStream.ToArray());
+                                                    cacheFiles.TryAdd(md5key, memoryStream.Length);
                                                 }
                                             }
                                             catch { File.Delete(outFile); }
                                         }
                                     }
-                                    catch { }
                                 }
-                                #endregion
+                                catch { }
                             }
-                            else
-                            {
-                                httpContext.Response.Headers["X-Cache-Status"] = "bypass";
-                                await CopyProxyHttpResponse(httpContext, response);
-                            }
+                            #endregion
+                        }
+                        else
+                        {
+                            httpContext.Response.Headers["X-Cache-Status"] = "bypass";
+                            await CopyProxyHttpResponse(httpContext, response, ctsHttp.Token);
                         }
                     }
                     #endregion
@@ -276,7 +283,7 @@ namespace Lampac.Engine.Middlewares
                     string memkey = $"cubproxy:{domain}:{uri}";
                     (string content, int statusCode, string contentType) cache = default;
 
-                    var semaphore = new SemaphorManager(memkey, TimeSpan.FromSeconds(20));
+                    var semaphore = new SemaphorManager(memkey, ctsHttp.Token);
 
                     try
                     {
@@ -425,18 +432,21 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region CopyProxyHttpResponse
-        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage)
+        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage, CancellationToken cancellationToken)
         {
             var response = context.Response;
+
             response.StatusCode = (int)responseMessage.StatusCode;
-            response.ContentLength = responseMessage.Content.Headers.ContentLength;
+
+            if (AppInit.conf.cub.responseContentLength)
+                response.ContentLength = responseMessage.Content.Headers.ContentLength;
 
             #region UpdateHeaders
             void UpdateHeaders(HttpHeaders headers)
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition")
+                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
                         continue;
 
                     if (header.Key.ToLower().StartsWith("x-"))
@@ -457,7 +467,7 @@ namespace Lampac.Engine.Middlewares
             UpdateHeaders(responseMessage.Headers);
             UpdateHeaders(responseMessage.Content.Headers);
 
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
+            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync(cancellationToken))
             {
                 if (response.Body == null)
                     throw new ArgumentNullException("destination");
@@ -474,22 +484,18 @@ namespace Lampac.Engine.Middlewares
                 if (!response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnwritableStream");
 
-                using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted))
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                try
                 {
-                    ctsHttp.CancelAfter(TimeSpan.FromSeconds(90));
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                    int bytesRead;
 
-                    try
-                    {
-                        int bytesRead;
-
-                        while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) != 0)
-                            await response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(buffer);
-                    }
+                    while ((bytesRead = await responseStream.ReadAsync(buffer, cancellationToken)) != 0)
+                        await response.Body.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
         }

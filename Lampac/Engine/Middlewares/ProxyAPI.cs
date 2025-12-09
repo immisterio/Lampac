@@ -110,9 +110,11 @@ namespace Lampac.Engine.Middlewares
 
                 using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
                 {
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                    using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                     {
-                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                        ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
+
+                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                         {
                             httpContext.Response.Headers["PX-Cache"] = "BYPASS";
                             await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
@@ -179,9 +181,11 @@ namespace Lampac.Engine.Middlewares
 
                 using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase)))
                 {
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                    using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                     {
-                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                        ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
+
+                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                         {
                             if ((int)response.StatusCode is 301 or 302 or 303 or 0 || response.Headers.Location != null)
                             {
@@ -204,15 +208,15 @@ namespace Lampac.Engine.Middlewares
                                         {
                                             httpContext.Response.StatusCode = 502;
                                             httpContext.Response.ContentType = "text/plain";
-                                            await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
+                                            await httpContext.Response.WriteAsync("bigfile", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }
 
-                                        var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                        var array = await content.ReadAsByteArrayAsync(ctsHttp.Token).ConfigureAwait(false);
                                         if (array == null)
                                         {
                                             httpContext.Response.StatusCode = 502;
-                                            await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                            await httpContext.Response.WriteAsync("error proxy m3u8", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }
 
@@ -230,12 +234,12 @@ namespace Lampac.Engine.Middlewares
                                         if (init.responseContentLength)
                                             httpContext.Response.ContentLength = hls.Length;
 
-                                        await httpContext.Response.WriteAsync(hls, httpContext.RequestAborted).ConfigureAwait(false);
+                                        await httpContext.Response.WriteAsync(hls, ctsHttp.Token).ConfigureAwait(false);
                                     }
                                     else
                                     {
                                         httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        await httpContext.Response.WriteAsync("error proxy m3u8", httpContext.RequestAborted).ConfigureAwait(false);
+                                        await httpContext.Response.WriteAsync("error proxy m3u8", ctsHttp.Token).ConfigureAwait(false);
                                     }
                                 }
                                 #endregion
@@ -250,15 +254,15 @@ namespace Lampac.Engine.Middlewares
                                         if (response.Content.Headers.ContentLength > init.maxlength_m3u)
                                         {
                                             httpContext.Response.ContentType = "text/plain";
-                                            await httpContext.Response.WriteAsync("bigfile", httpContext.RequestAborted).ConfigureAwait(false);
+                                            await httpContext.Response.WriteAsync("bigfile", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }
 
-                                        var array = await content.ReadAsByteArrayAsync(httpContext.RequestAborted).ConfigureAwait(false);
+                                        var array = await content.ReadAsByteArrayAsync(ctsHttp.Token).ConfigureAwait(false);
                                         if (array == null)
                                         {
                                             httpContext.Response.StatusCode = 502;
-                                            await httpContext.Response.WriteAsync("error proxy mpd", httpContext.RequestAborted).ConfigureAwait(false);
+                                            await httpContext.Response.WriteAsync("error proxy mpd", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }
 
@@ -277,12 +281,12 @@ namespace Lampac.Engine.Middlewares
                                         if (init.responseContentLength)
                                             httpContext.Response.ContentLength = mpd.Length;
 
-                                        await httpContext.Response.WriteAsync(mpd, httpContext.RequestAborted).ConfigureAwait(false);
+                                        await httpContext.Response.WriteAsync(mpd, ctsHttp.Token).ConfigureAwait(false);
                                     }
                                     else
                                     {
                                         httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        await httpContext.Response.WriteAsync("error proxy", httpContext.RequestAborted).ConfigureAwait(false);
+                                        await httpContext.Response.WriteAsync("error proxy", ctsHttp.Token).ConfigureAwait(false);
                                     }
                                 }
                                 #endregion
@@ -454,17 +458,16 @@ namespace Lampac.Engine.Middlewares
         {
             var response = context.Response;
             response.StatusCode = (int)responseMessage.StatusCode;
-            response.ContentLength = responseMessage.Content.Headers.ContentLength;
+
+            if (AppInit.conf.serverproxy.responseContentLength)
+                response.ContentLength = responseMessage.Content.Headers.ContentLength;
 
             #region UpdateHeaders
             void UpdateHeaders(HttpHeaders headers)
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition")
-                        continue;
-
-                    if (!AppInit.conf.serverproxy.responseContentLength && header.Key.ToLower() == "content-length")
+                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
                         continue;
 
                     if (header.Key.ToLower().StartsWith("x-") || header.Key.ToLower().StartsWith("alt-"))
@@ -486,7 +489,7 @@ namespace Lampac.Engine.Middlewares
             UpdateHeaders(responseMessage.Headers);
             UpdateHeaders(responseMessage.Content.Headers);
 
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync(context.RequestAborted).ConfigureAwait(false))
             {
                 if (response.Body == null)
                     throw new ArgumentNullException("destination");
