@@ -349,7 +349,14 @@ namespace Lampac.Engine.Middlewares
                         Version = init.httpversion == 1 ? HttpVersion.Version11 : new Version(init.httpversion, 0)
                     };
 
-                    Http.DefaultRequestHeaders(uri, req, null, null, headers);
+                    foreach (var h in headers)
+                    {
+                        if (!req.Headers.TryAddWithoutValidation(h.name, h.val))
+                        {
+                            if (req.Content?.Headers != null)
+                                req.Content.Headers.TryAddWithoutValidation(h.name, h.val);
+                        }
+                    }
 
                     using (HttpResponseMessage response = await client.SendAsync(req, ctsHttp.Token))
                     {
@@ -360,7 +367,7 @@ namespace Lampac.Engine.Middlewares
 
                         httpContex.Response.StatusCode = (int)response.StatusCode;
 
-                        if (init.responseContentLength && response.Content.Headers.ContentLength.HasValue)
+                        if (init.responseContentLength && response.Content?.Headers?.ContentLength > 0)
                             httpContex.Response.ContentLength = response.Content.Headers.ContentLength.Value;
 
                         if (response.StatusCode == HttpStatusCode.OK && cacheimg)

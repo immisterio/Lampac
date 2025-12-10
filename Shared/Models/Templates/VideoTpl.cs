@@ -1,4 +1,5 @@
-﻿using Shared.Models.Base;
+﻿using Shared.Engine;
+using Shared.Models.Base;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -15,7 +16,7 @@ namespace Shared.Models.Templates
                 title,
                 method,
                 url,
-                headers = headers != null ? headers.ToDictionary(k => k.name, v => v.val) : null,
+                headers = headers != null ? Http.NormalizeHeaders(headers.ToDictionary(k => k.name, v => v.val)) : null,
                 quality = streamquality?.ToObject(emptyToNull: true) ?? new StreamQualityTpl(new List<(string, string)>() { (url, quality??"auto") }).ToObject(),
                 subtitles = subtitles?.ToObject(emptyToNull: true),
                 subtitles_call,

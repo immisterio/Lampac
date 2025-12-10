@@ -402,14 +402,16 @@ namespace JacRed.Controllers
                     {
                         client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                         client.MaxResponseContentBufferSize = 2000000; // 2MB
-                        client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
+
+                        foreach (var h in Http.defaultFullHeaders)
+                            client.DefaultRequestHeaders.TryAddWithoutValidation(h.Key, h.Value);
 
                         var postParams = new Dictionary<string, string>
-                    {
-                        { "login_username", jackett.Rutracker.login.u },
-                        { "login_password", jackett.Rutracker.login.p },
-                        { "login", "Вход" }
-                    };
+                        {
+                            { "login_username", jackett.Rutracker.login.u },
+                            { "login_password", jackett.Rutracker.login.p },
+                            { "login", "Вход" }
+                        };
 
                         using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {

@@ -2,8 +2,8 @@
 using Shared;
 using Shared.Engine;
 using Shared.Models;
-using Shared.Models.Proxy;
 using Shared.Models.Events;
+using Shared.Models.Proxy;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -87,7 +87,7 @@ namespace Lampac.Engine.Middlewares
             #region handler
             var handler = new HttpClientHandler()
             {
-                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                AutomaticDecompression = DecompressionMethods.None,
                 AllowAutoRedirect = false
             };
 
@@ -108,7 +108,7 @@ namespace Lampac.Engine.Middlewares
 
                 var client = FrendlyHttp.HttpMessageClient("proxy", handler);
 
-                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
+                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true).ConfigureAwait(false))
                 {
                     using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                     {
@@ -128,30 +128,28 @@ namespace Lampac.Engine.Middlewares
                 #region Video OR
                 if (servUri.Contains(" or "))
                 {
-                    var hdlr = new HttpClientHandler()
-                    {
-                        AllowAutoRedirect = true,
-                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
-                    };
-
-                    hdlr.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-                    if (decryptLink.proxy != null)
-                    {
-                        hdlr.UseProxy = true;
-                        hdlr.Proxy = decryptLink.proxy;
-                    }
-                    else { hdlr.UseProxy = false; }
-
                     string[] links = servUri.Split(" or ");
                     servUri = links[0].Trim();
 
                     try
                     {
-                        // base => AllowAutoRedirect = true
+                        var hdlr = new HttpClientHandler()
+                        {
+                            AllowAutoRedirect = true
+                        };
+
+                        hdlr.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
+                        if (decryptLink.proxy != null)
+                        {
+                            hdlr.UseProxy = true;
+                            hdlr.Proxy = decryptLink.proxy;
+                        }
+                        else { hdlr.UseProxy = false; }
+
                         var clientor = FrendlyHttp.HttpMessageClient("base", hdlr);
 
-                        using (var requestor = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
+                        using (var requestor = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true).ConfigureAwait(false))
                         {
                             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(7)))
                             {
@@ -179,7 +177,7 @@ namespace Lampac.Engine.Middlewares
 
                 var client = FrendlyHttp.HttpMessageClient("proxy", handler);
 
-                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase)))
+                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase)).ConfigureAwait(false))
                 {
                     using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                     {
@@ -193,18 +191,22 @@ namespace Lampac.Engine.Middlewares
                                 return;
                             }
 
-                            response.Content.Headers.TryGetValues("Content-Type", out var contentType);
+                            IEnumerable<string> _contentType = null;
+                            if (response.Content?.Headers != null)
+                                response.Content.Headers.TryGetValues("Content-Type", out _contentType);
+
+                            string contentType = _contentType?.FirstOrDefault()?.ToLower();
 
                             bool ists = httpContext.Request.Path.Value.EndsWith(".ts") || httpContext.Request.Path.Value.EndsWith(".m4s");
 
-                            if (!ists && (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType.First().ToLower() is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")))
+                            if (!ists && (httpContext.Request.Path.Value.Contains(".m3u") || (contentType != null && contentType is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "text/plain")))
                             {
                                 #region m3u8/txt
                                 using (HttpContent content = response.Content)
                                 {
                                     if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
                                     {
-                                        if (response.Content.Headers.ContentLength > init.maxlength_m3u)
+                                        if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
                                         {
                                             httpContext.Response.StatusCode = 502;
                                             httpContext.Response.ContentType = "text/plain";
@@ -222,7 +224,7 @@ namespace Lampac.Engine.Middlewares
 
                                         string hls = editm3u(Encoding.UTF8.GetString(array), httpContext, decryptLink);
 
-                                        httpContext.Response.ContentType = contentType == null ? "application/vnd.apple.mpegurl" : contentType.First();
+                                        httpContext.Response.ContentType = contentType ?? "application/vnd.apple.mpegurl";
                                         httpContext.Response.StatusCode = (int)response.StatusCode;
 
                                         if (response.Headers.AcceptRanges != null)
@@ -231,7 +233,7 @@ namespace Lampac.Engine.Middlewares
                                         if (httpContext.Response.StatusCode == 206)
                                             httpContext.Response.Headers["content-range"] = $"bytes 0-{hls.Length - 1}/{hls.Length}";
 
-                                        if (init.responseContentLength)
+                                        if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
                                             httpContext.Response.ContentLength = hls.Length;
 
                                         await httpContext.Response.WriteAsync(hls, ctsHttp.Token).ConfigureAwait(false);
@@ -244,14 +246,14 @@ namespace Lampac.Engine.Middlewares
                                 }
                                 #endregion
                             }
-                            else if (httpContext.Request.Path.Value.Contains(".mpd") || (contentType != null && contentType.First().ToLower() is "application/dash+xml"))
+                            else if (httpContext.Request.Path.Value.Contains(".mpd") || (contentType != null && contentType == "application/dash+xml"))
                             {
                                 #region dash
                                 using (HttpContent content = response.Content)
                                 {
                                     if (response.StatusCode == HttpStatusCode.OK)
                                     {
-                                        if (response.Content.Headers.ContentLength > init.maxlength_m3u)
+                                        if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
                                         {
                                             httpContext.Response.ContentType = "text/plain";
                                             await httpContext.Response.WriteAsync("bigfile", ctsHttp.Token).ConfigureAwait(false);
@@ -276,9 +278,9 @@ namespace Lampac.Engine.Middlewares
                                             m = m.NextMatch();
                                         }
 
-                                        httpContext.Response.ContentType = contentType == null ? "application/dash+xml" : contentType.First();
+                                        httpContext.Response.ContentType = contentType ?? "application/dash+xml";
 
-                                        if (init.responseContentLength)
+                                        if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
                                             httpContext.Response.ContentLength = mpd.Length;
 
                                         await httpContext.Response.WriteAsync(mpd, ctsHttp.Token).ConfigureAwait(false);
@@ -401,43 +403,59 @@ namespace Lampac.Engine.Middlewares
             }
 
             #region Headers
-            if (headers != null && headers.Count > 0)
             {
-                foreach (var item in headers)
-                    requestMessage.Headers.TryAddWithoutValidation(item.name, item.val);
-            }
-
-            if (ismedia || headers != null)
-            {
-                foreach (var header in request.Headers)
+                var addHeaders = new Dictionary<string, string[]>() 
                 {
-                    if (header.Key.ToLower() is "range")
+                    ["accept"] = ["*/*"],
+                    ["accept-language"] = ["ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"]
+                };
+
+                if (headers != null && headers.Count > 0)
+                {
+                    foreach (var h in headers)
+                        addHeaders[h.name.ToLower().Trim()] = [h.val];
+                }
+
+                if (ismedia || headers != null)
+                {
+                    foreach (var header in request.Headers)
                     {
-                        if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
-                            requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                        if (header.Key.ToLower() == "range")
+                            addHeaders[header.Key.ToLower().Trim()] = header.Value.ToArray();
+                    }
+                }
+                else
+                {
+                    foreach (var header in request.Headers)
+                    {
+                        if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
+                            continue;
+
+                        if (header.Key.ToLower().StartsWith("x-"))
+                            continue;
+
+                        if (header.Key.ToLower() == "range")
+                        {
+                            addHeaders[header.Key.ToLower().Trim()] = header.Value.ToArray();
+                            continue;
+                        }
+
+                        addHeaders.TryAdd(header.Key.ToLower().Trim(), header.Value.ToArray());
+                    }
+                }
+
+                foreach (var h in Http.defaultFullHeaders)
+                    addHeaders[h.Key.ToLower().Trim()] = [h.Value];
+
+                foreach (var h in Http.NormalizeHeaders(addHeaders))
+                {
+                    if (!requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                    {
+                        if (requestMessage.Content?.Headers != null)
+                            requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
                     }
                 }
             }
-            else
-            {
-                foreach (var header in request.Headers)
-                {
-                    if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
-                        continue;
-
-                    if (header.Key.ToLower().StartsWith("x-"))
-                        continue;
-
-                    if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
-                    {
-                        //Console.WriteLine(header.Key + ": " + String.Join(" ", header.Value.ToArray()));
-                        requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-                    }
-                }
-            }
-
-            if (!requestMessage.Headers.Contains("User-Agent"))
-                requestMessage.Headers.TryAddWithoutValidation("User-Agent", Http.UserAgent);
             #endregion
 
             requestMessage.Headers.Host = uri.Authority;
@@ -447,7 +465,7 @@ namespace Lampac.Engine.Middlewares
             //requestMessage.Version = new Version(2, 0);
             //Console.WriteLine(JsonConvert.SerializeObject(requestMessage.Headers, Formatting.Indented));
 
-            await InvkEvent.ProxyApi(new EventProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage));
+            await InvkEvent.ProxyApi(new EventProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage)).ConfigureAwait(false);
 
             return requestMessage;
         }
@@ -459,8 +477,19 @@ namespace Lampac.Engine.Middlewares
             var response = context.Response;
             response.StatusCode = (int)responseMessage.StatusCode;
 
-            if (AppInit.conf.serverproxy.responseContentLength)
-                response.ContentLength = responseMessage.Content.Headers.ContentLength;
+            #region responseContentLength
+            if (AppInit.conf.serverproxy.responseContentLength && responseMessage.Content?.Headers?.ContentLength > 0)
+            {
+                IEnumerable<string> contentType = null;
+                if (responseMessage.Content?.Headers != null)
+                    responseMessage.Content.Headers.TryGetValues("Content-Type", out contentType);
+
+                string type = contentType?.FirstOrDefault()?.ToLower();
+
+                if (string.IsNullOrEmpty(type) || !AppInit.CompressionMimeTypes.Contains(type))
+                    response.ContentLength = responseMessage.Content.Headers.ContentLength;
+            }
+            #endregion
 
             #region UpdateHeaders
             void UpdateHeaders(HttpHeaders headers)
@@ -510,7 +539,7 @@ namespace Lampac.Engine.Middlewares
 
                 if (bunit?.enable == true && 
                    ((!string.IsNullOrEmpty(bunit.pattern) && Regex.IsMatch(context.Request.Path.Value, bunit.pattern, RegexOptions.IgnoreCase)) || 
-                   context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || responseMessage.Content.Headers.ContentLength > 40_000000))
+                   context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || responseMessage.Content?.Headers?.ContentLength > 40_000000))
                 {
                     #region buffering
                     var channel = Channel.CreateBounded<(byte[] Buffer, int Length)>(new BoundedChannelOptions(capacity: bunit.length)

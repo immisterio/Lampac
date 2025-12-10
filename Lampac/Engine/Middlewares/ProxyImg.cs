@@ -233,12 +233,15 @@ namespace Lampac.Engine.Middlewares
                             httpContext.Response.StatusCode = (int)response.StatusCode;
 
                             if (response.Content.Headers.TryGetValues("Content-Type", out var contype))
-                                httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
+                                httpContext.Response.ContentType = contype?.FirstOrDefault()?.ToLower()?.Trim() ?? contentType;
                             else
                                 httpContext.Response.ContentType = contentType;
 
-                            if (AppInit.conf.serverproxy.responseContentLength && response.Content.Headers.ContentLength.HasValue)
-                                httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+                            if (AppInit.conf.serverproxy.responseContentLength && response.Content?.Headers?.ContentLength > 0)
+                            {
+                                if (!AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
+                                    httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+                            }
 
                             if (cacheimg)
                             {
@@ -384,11 +387,7 @@ namespace Lampac.Engine.Middlewares
                     Version = HttpVersion.Version11
                 };
 
-                if (headers != null)
-                {
-                    foreach (var h in headers)
-                        req.Headers.TryAddWithoutValidation(h.name, h.val);
-                }
+                Http.DefaultRequestHeaders(url, req, null, null, headers);
 
                 using (HttpResponseMessage response = await client.SendAsync(req, cancellationToken))
                 {

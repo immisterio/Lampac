@@ -7,6 +7,7 @@ using Shared.Models;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -212,8 +213,11 @@ namespace Lampac.Engine.Middlewares
                             httpContext.Response.ContentType = getContentType(uri);
                             httpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
-                            if (init.responseContentLength && response.Content.Headers.ContentLength.HasValue)
-                                httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+                            if (init.responseContentLength && response.Content?.Headers?.ContentLength > 0)
+                            {
+                                if (!AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
+                                    httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+                            }
 
                             int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
                                 (int)response.Content.Headers.ContentLength.Value :
@@ -322,7 +326,7 @@ namespace Lampac.Engine.Middlewares
 
                             cache.content = result.content;
                             cache.statusCode = (int)result.response.StatusCode;
-                            cache.contentType = result.response.Content.Headers.ContentType.ToString();
+                            cache.contentType = result.response.Content?.Headers?.ContentType?.ToString() ?? getContentType(uri);
 
                             if (domain.StartsWith("tmdb") || domain.StartsWith("tmapi") || domain.StartsWith("apitmdb"))
                             {
@@ -356,6 +360,9 @@ namespace Lampac.Engine.Middlewares
                     {
                         semaphore.Release();
                     }
+
+                    if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(cache.contentType))
+                        httpContext.Response.ContentLength = cache.content.Length;
 
                     httpContext.Response.StatusCode = cache.statusCode;
                     httpContext.Response.ContentType = cache.contentType;
@@ -400,12 +407,15 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (viewru)
-                request.Headers["cookie"] = "viewru=1";
+                request.Headers["Cookie"] = "viewru=1";
+
+            if (!string.IsNullOrEmpty(requestInfo.Country))
+                request.Headers["Cf-Connecting-Ip"] = requestInfo.IP;
 
             #region Headers
             foreach (var header in request.Headers)
             {
-                if (header.Key.ToLower() is "host" or "origin" or "content-disposition" or "accept-encoding")
+                if (header.Key.ToLower() is "host" or "origin" or "referer" or "content-disposition" or "accept-encoding")
                     continue;
 
                 if (viewru && header.Key.ToLower() == "cookie")
@@ -414,13 +424,13 @@ namespace Lampac.Engine.Middlewares
                 if (header.Key.ToLower().StartsWith("x-"))
                     continue;
 
-                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
-                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                {
+                    if (requestMessage.Content?.Headers != null)
+                        requestMessage.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                }
             }
             #endregion
-
-            if (!string.IsNullOrEmpty(requestInfo.Country))
-                requestMessage.Headers.Add("cf-connecting-ip", requestInfo.IP);
 
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
@@ -435,11 +445,21 @@ namespace Lampac.Engine.Middlewares
         async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage, CancellationToken cancellationToken)
         {
             var response = context.Response;
-
             response.StatusCode = (int)responseMessage.StatusCode;
 
-            if (AppInit.conf.cub.responseContentLength)
-                response.ContentLength = responseMessage.Content.Headers.ContentLength;
+            #region responseContentLength
+            if (AppInit.conf.cub.responseContentLength && responseMessage.Content?.Headers?.ContentLength > 0)
+            {
+                IEnumerable<string> contentType = null;
+                if (responseMessage.Content?.Headers != null)
+                    responseMessage.Content.Headers.TryGetValues("Content-Type", out contentType);
+
+                string type = contentType?.FirstOrDefault()?.ToLower();
+
+                if (string.IsNullOrEmpty(type) || !AppInit.CompressionMimeTypes.Contains(type))
+                    response.ContentLength = responseMessage.Content.Headers.ContentLength;
+            }
+            #endregion
 
             #region UpdateHeaders
             void UpdateHeaders(HttpHeaders headers)

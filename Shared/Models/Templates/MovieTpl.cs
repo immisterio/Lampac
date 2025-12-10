@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.Web;
 using Shared.Models.Base;
+using Shared.Engine;
 
 namespace Shared.Models.Templates
 {
@@ -58,7 +59,7 @@ namespace Shared.Models.Templates
                     i.method,
                     url = i.link,
                     i.stream,
-                    headers = i.headers != null ? i.headers.ToDictionary(k => k.name, v => v.val) : null,
+                    headers = i.headers != null ? Http.NormalizeHeaders(i.headers.ToDictionary(k => k.name, v => v.val)) : null,
                     quality = i.streamquality?.ToObject(emptyToNull: true),
                     subtitles = i.subtitles?.ToObject(emptyToNull: true),
                     i.subtitles_call,
@@ -103,7 +104,7 @@ namespace Shared.Models.Templates
                     i.method,
                     url = i.link,
                     i.stream,
-                    headers = i.headers != null ? i.headers.ToDictionary(k => k.name, v => v.val) : null,
+                    headers = i.headers != null ? Http.NormalizeHeaders(i.headers.ToDictionary(k => k.name, v => v.val)) : null,
                     quality = i.streamquality?.ToObject(emptyToNull: true),
                     subtitles = i.subtitles?.ToObject(emptyToNull: true),
                     i.subtitles_call,

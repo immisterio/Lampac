@@ -221,20 +221,19 @@ namespace JacRed.Controllers
                     {
                         client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);
                         client.MaxResponseContentBufferSize = 2000000; // 2MB
-                        client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36");
-                        client.DefaultRequestHeaders.Add("cache-control", "no-cache");
-                        client.DefaultRequestHeaders.Add("dnt", "1");
                         client.DefaultRequestHeaders.Add("origin", jackett.Kinozal.host);
-                        client.DefaultRequestHeaders.Add("pragma", "no-cache");
                         client.DefaultRequestHeaders.Add("referer", $"{jackett.Kinozal.host}/");
                         client.DefaultRequestHeaders.Add("upgrade-insecure-requests", "1");
 
+                        foreach (var h in Http.defaultFullHeaders)
+                            client.DefaultRequestHeaders.TryAddWithoutValidation(h.Key, h.Value);
+
                         var postParams = new Dictionary<string, string>
-                    {
-                        { "username", jackett.Kinozal.login.u },
-                        { "password", jackett.Kinozal.login.p },
-                        { "returnto", "" }
-                    };
+                        {
+                            { "username", jackett.Kinozal.login.u },
+                            { "password", jackett.Kinozal.login.p },
+                            { "returnto", "" }
+                        };
 
                         using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
                         {

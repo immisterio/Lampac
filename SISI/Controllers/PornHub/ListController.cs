@@ -35,7 +35,9 @@ namespace SISI.Controllers.PornHub
                 {
                     reset:
                     string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url =>
-                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
+                        rch.enable 
+                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                            : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
                     );
 
                     cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);

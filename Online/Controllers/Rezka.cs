@@ -353,7 +353,9 @@ namespace Online.Controllers
                     using (var client = new System.Net.Http.HttpClient(clientHandler))
                     {
                         client.Timeout = TimeSpan.FromSeconds(20);
-                        client.DefaultRequestHeaders.Add("user-agent", Http.UserAgent);
+
+                        foreach (var h in Http.defaultFullHeaders)
+                            client.DefaultRequestHeaders.TryAddWithoutValidation(h.Key, h.Value);
 
                         var postParams = new Dictionary<string, string>
                         {

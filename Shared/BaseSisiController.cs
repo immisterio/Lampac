@@ -194,7 +194,7 @@ namespace Shared
             }
 
             result.qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream));
-            result.headers_stream = init.streamproxy ? null : (headers_stream?.ToDictionary() ?? init.headers_stream);
+            result.headers_stream = init.streamproxy ? null : Http.NormalizeHeaders(headers_stream?.ToDictionary() ?? init.headers_stream);
 
             return new JsonResult(result);
         }

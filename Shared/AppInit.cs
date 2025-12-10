@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.ResponseCompression;
 using Newtonsoft.Json;
 using Shared.Engine;
 using Shared.Models;
@@ -22,6 +23,8 @@ namespace Shared
     {
         #region static
         public static string rootPasswd;
+
+        public static readonly HashSet<string> CompressionMimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["image/svg+xml"]).ToHashSet();
 
         public static bool Win32NT => Environment.OSVersion.Platform == PlatformID.Win32NT;
 
@@ -441,6 +444,7 @@ namespace Shared
         public CubConf cub { get; set; } = new CubConf()
         {
             enable = false, viewru = true,
+            responseContentLength = true,
             domain = CrypTo.DecodeBase64("Y3ViLnJlZA=="), scheme = "http",
             mirror = "mirror-kurwa.men",
             cache_api = 180, cache_img = 120,
@@ -449,6 +453,7 @@ namespace Shared
         public TmdbConf tmdb { get; set; } = new TmdbConf()
         {
             enable = true,
+            responseContentLength = true,
             httpversion = 2, DNS_TTL = 20,
             cache_api = 240, cache_img = 60, check_img = false,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
@@ -458,6 +463,7 @@ namespace Shared
         {
             enable = true, verifyip = true,
             encrypt = true, encrypt_aes = true,
+            responseContentLength = true,
             buffering = new ServerproxyBufferingConf()
             {
                 enable = true, 
@@ -504,7 +510,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "c2416bb9f719d1ef89725443ef0450e20f299f3b"
+            tree = "b79adce5340aed235fa5d6c6134e74a24f82c27a"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -609,13 +615,8 @@ namespace Shared
 
         public SisiSettings Ebalovo { get; set; } = new SisiSettings("Ebalovo", "kwwsv=22zzz1hedoryr1sur")
         {
-            headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5")
-            ).ToDictionary(),
+            headers = Http.defaultFullHeaders,
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("sec-fetch-dest", "video"),
                 ("sec-fetch-mode", "no-cors"),
                 ("sec-fetch-site", "same-origin")
@@ -642,7 +643,6 @@ namespace Shared
         public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp")
         {
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/plain, */*; q=0.0"),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site")
@@ -661,20 +661,16 @@ namespace Shared
         {
             headers = HeadersModel.Init(
                 Http.defaultFullHeaders,
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
+                ("cookie", "platform=pc; accessAgeDisclaimerPH=1"),
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-site", "same-origin"),
-                ("sec-fetch-mode", "navigate"),
-                ("cookie", "platform=pc; accessAgeDisclaimerPH=1")
+                ("sec-fetch-mode", "navigate")
             ).ToDictionary()
         };
 
         public SisiSettings PornHubPremium { get; set; } = new SisiSettings("PornHubPremium", "kwwsv=22uw1sruqkxesuhplxp1frp", streamproxy: true, enable: false)
         {
             headers = HeadersModel.Init(
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Windows\""),
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
@@ -764,7 +760,6 @@ namespace Shared
         public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sodsl1fgqylghrkxe1frp", streamproxy: true)
         {
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("referer", "encrypt:kwwsv=22kgnlqr1sxe2"),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
@@ -828,14 +823,11 @@ namespace Shared
         {
             imitationHuman = true,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
                 ("accept", "*/*"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("origin", "{host}"),
                 ("referer", "{host}/"),
                 ("sec-fetch-dest", "empty"),
@@ -859,8 +851,6 @@ namespace Shared
         {
             geostreamproxy = ["ALL"],
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1")
             ).ToDictionary()
@@ -871,14 +861,10 @@ namespace Shared
             enable = false,
             imitationHuman = true,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "*/*"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("origin", "encrypt:kwwsv=22idqfgq1qhw"),
                 ("referer", "encrypt:kwwsv=22idqfgq1qhw2"),
                 ("sec-fetch-dest", "empty"),
@@ -954,12 +940,10 @@ namespace Shared
         public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", streamproxy: true, enable: false)
         {
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "*/*"),
                 ("referer", "encrypt:kwwsv=22wy040nlqrvhuldo1qhw2"),
                 ("sec-fetch-dest", "video"),
                 ("sec-fetch-mode", "no-cors"),
@@ -979,7 +963,6 @@ namespace Shared
             // hls | hls4 | mp4
             filetype = "hls",
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "none"),
@@ -1112,8 +1095,6 @@ namespace Shared
         {
             enable = false,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("origin", "encrypt:kwwsv=22dqlphole1ruj"),
                 ("referer", "encrypt:kwwsv=22dqlphole1ruj2"),
                 ("sec-fetch-dest", "empty"),
@@ -1121,9 +1102,7 @@ namespace Shared
                 ("sec-fetch-site", "cross-site")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
-                ("accept", "*/*"),
                 ("accept-encoding", "identity;q=1, *;q=0"),
-                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                 ("origin", "encrypt:kwwsv=22dqlphole1ruj"),
                 ("referer", "encrypt:kwwsv=22dqlphole1ruj2"),
                 ("sec-fetch-dest", "video"),

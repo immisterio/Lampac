@@ -12,10 +12,10 @@ namespace Shared.PlaywrightCore
         public static BrowserNewContextOptions baseContextOptions = new BrowserNewContextOptions
         {
             UserAgent = Http.UserAgent,
-            ExtraHTTPHeaders = new Dictionary<string, string>(Http.defaultHeaders)
+            ExtraHTTPHeaders = Http.NormalizeHeaders(new Dictionary<string, string>(Http.defaultHeaders)
             {
                 ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
-            }
+            })
         };
 
         static List<KeepopenPage> pages_keepopen = new();
@@ -444,7 +444,7 @@ namespace Shared.PlaywrightCore
                     #endregion
 
                     if (headers != null && headers.Count > 0)
-                        await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+                        await page.SetExtraHTTPHeadersAsync(Http.NormalizeHeaders(headers)).ConfigureAwait(false);
 
                     page.Popup += Page_Popup;
                     page.Download += Page_Download;
@@ -485,7 +485,7 @@ namespace Shared.PlaywrightCore
                     #endregion
 
                     if (headers != null && headers.Count > 0)
-                        await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+                        await page.SetExtraHTTPHeadersAsync(Http.NormalizeHeaders(headers)).ConfigureAwait(false);
 
                     page.Popup += Page_Popup;
                     page.Download += Page_Download;

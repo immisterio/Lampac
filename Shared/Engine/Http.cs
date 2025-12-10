@@ -103,6 +103,7 @@ namespace Shared.Engine
         }
         #endregion
 
+
         #region DefaultRequestHeaders
         public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
         {
@@ -112,48 +113,75 @@ namespace Shared.Engine
 
         public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
         {
+            var addHeaders = new Dictionary<string, string>();
+
             if (useDefaultHeaders)
             {
-                client.Headers.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
-                loglines += $"Accept-Language: {client.Headers.AcceptLanguage}\n";
+                addHeaders.TryAdd("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+                addHeaders.TryAdd("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
             }
 
             if (cookie != null)
-            {
-                client.Headers.TryAddWithoutValidation("cookie", cookie);
-                loglines += $"cookie: {cookie}\n";
-            }
+                addHeaders.TryAdd("cookie", cookie);
 
             if (referer != null)
-            {
-                client.Headers.TryAddWithoutValidation("referer", referer);
-                loglines += $"referer: {referer}\n";
-            }
+                addHeaders.TryAdd("referer", referer);
 
-            bool setDefaultUseragent = true;
+            if (useDefaultHeaders)
+            {
+                foreach (var h in defaultFullHeaders)
+                    addHeaders.TryAdd(h.Key.ToLower().Trim(), h.Value);
+            }
 
             if (headers != null)
             {
-                foreach (var item in headers)
-                {
-                    if (item.name.ToLower() == "user-agent")
-                        setDefaultUseragent = false;
+                foreach (var h in headers)
+                    addHeaders[h.name.ToLower().Trim()] = h.val;
+            }
 
-                    if (!client.Headers.Contains(item.name))
-                    {
-                        client.Headers.TryAddWithoutValidation(item.name, item.val);
-                        loglines += $"{item.name}: {item.val}\n";
-                    }
+            foreach (var h in NormalizeHeaders(addHeaders))
+            {
+                if (client.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                {
+                    loglines += $"{h.Key}: {h.Value}\n";
+                }
+                else if (client.Content?.Headers != null)
+                {
+                    if (client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                        loglines += $"{h.Key}: {h.Value}\n";
                 }
             }
 
-            if (useDefaultHeaders && setDefaultUseragent)
+            InvkEvent.Http(new EventHttpHeaders(url, client, cookie, referer, headers, useDefaultHeaders, Startup.memoryCache));
+        }
+        #endregion
+
+        #region NormalizeHeaders
+        public static Dictionary<string, T> NormalizeHeaders<T>(Dictionary<string, T> raw)
+        {
+            if (raw == null)
+                return null;
+
+            var result = new Dictionary<string, T>();
+
+            foreach (var kv in raw)
             {
-                client.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
-                loglines += $"User-Agent: {client.Headers.UserAgent}\n";
+                // Разбиваем имя по дефисам
+                var parts = kv.Key.Split('-');
+
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (parts[i].Length == 0) 
+                        continue;
+
+                    // Первая буква заглавная, остальные — как были
+                    parts[i] = char.ToUpper(parts[i][0]) + parts[i].Substring(1);
+                }
+
+                result[string.Join("-", parts)] = kv.Value;
             }
 
-            InvkEvent.Http(new EventHttpHeaders(url, client, cookie, referer, headers, useDefaultHeaders, Startup.memoryCache));
+            return result;
         }
         #endregion
 

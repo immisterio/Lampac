@@ -289,7 +289,7 @@ namespace Shared.PlaywrightCore
                                 page.RequestFailed += Page_RequestFailed;
 
                                 if (headers != null && headers.Count > 0)
-                                    await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+                                    await page.SetExtraHTTPHeadersAsync(Http.NormalizeHeaders(headers)).ConfigureAwait(false);
 
                                 return page;
                             }
@@ -328,7 +328,7 @@ namespace Shared.PlaywrightCore
                                 page.RequestFailed += Page_RequestFailed;
 
                                 if (headers != null && headers.Count > 0)
-                                    await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+                                    await page.SetExtraHTTPHeadersAsync(Http.NormalizeHeaders(headers)).ConfigureAwait(false);
 
                                 return page;
                             }
@@ -341,7 +341,7 @@ namespace Shared.PlaywrightCore
                 }
 
                 if (headers != null && headers.Count > 0)
-                    await page.SetExtraHTTPHeadersAsync(headers).ConfigureAwait(false);
+                    await page.SetExtraHTTPHeadersAsync(Http.NormalizeHeaders(headers)).ConfigureAwait(false);
 
                 page.Popup += Page_Popup;
                 page.Download += Page_Download;

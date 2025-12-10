@@ -291,24 +291,23 @@ namespace Shared.Engine
                 var tcs = new TaskCompletionSource<string>();
                 rchIds.TryAdd(rchId, tcs);
 
-                var send_headers = !useDefaultHeaders ? null : new Dictionary<string, string>(Http.defaultHeaders)
+                var send_headers = new Dictionary<string, string>();
+
+                if (useDefaultHeaders)
                 {
-                    { "Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" }
-                };
+                    send_headers = new Dictionary<string, string>(Http.defaultHeaders)
+                    {
+                        { "accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" }
+                    };
+                }
 
                 if (headers != null)
                 {
-                    if (send_headers == null)
-                        send_headers = new Dictionary<string, string>();
-
                     foreach (var h in headers)
-                    {
-                        if (!send_headers.ContainsKey(h.name))
-                            send_headers.TryAdd(h.name, h.val);
-                    }
+                        send_headers[h.name.ToLower().Trim()] = h.val;
                 }
 
-                hub.Invoke(null, (connectionId, rchId, url, data, send_headers, returnHeaders));
+                hub.Invoke(null, (connectionId, rchId, url, data, Http.NormalizeHeaders(send_headers), returnHeaders));
 
                 if (!waiting)
                     return null;
