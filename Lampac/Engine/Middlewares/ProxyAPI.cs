@@ -157,32 +157,7 @@ namespace Lampac.Engine.Middlewares
                         if (init.responseContentLength)
                             httpContext.Response.ContentLength = length;
 
-                        using (var fileStream = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                        {
-                            fileStream.Seek(start, SeekOrigin.Begin);
-
-                            var buffer = ArrayPool<byte>.Shared.Rent(4096);
-
-                            try
-                            {
-                                long remaining = length;
-
-                                while (remaining > 0)
-                                {
-                                    var read = await fileStream.ReadAsync(buffer, 0, (int)Math.Min(buffer.Length, remaining), httpContext.RequestAborted).ConfigureAwait(false);
-                                    if (read == 0)
-                                        break;
-
-                                    await httpContext.Response.Body.WriteAsync(buffer, 0, read, httpContext.RequestAborted).ConfigureAwait(false);
-                                    remaining -= read;
-                                }
-                            }
-                            finally
-                            {
-                                ArrayPool<byte>.Shared.Return(buffer);
-                            }
-                        }
-
+                        await httpContext.Response.SendFileAsync(cachePath, start, length, httpContext.RequestAborted).ConfigureAwait(false);
                         return;
                     }
                 }
@@ -328,15 +303,25 @@ namespace Lampac.Engine.Middlewares
 
                                         if (httpContext.Response.StatusCode is 206 or 416)
                                         {
-                                            var contentRange = response.Content.Headers.ContentRange;
+                                            var contentRange = response.Content?.Headers?.ContentRange;
                                             if (contentRange != null)
                                             {
                                                 httpContext.Response.Headers["content-range"] = contentRange.ToString();
                                             }
-                                        }
+                                            else
+                                            {
+                                                if (httpContext.Response.StatusCode == 206)
+                                                    httpContext.Response.Headers["content-range"] = $"bytes 0-{hlsArray.Length - 1}/{hlsArray.Length}";
 
-                                        if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
-                                            httpContext.Response.ContentLength = hlsArray.Length;
+                                                if (httpContext.Response.StatusCode == 416)
+                                                    httpContext.Response.Headers["content-range"] = $"bytes */{hlsArray.Length}";
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
+                                                httpContext.Response.ContentLength = hlsArray.Length;
+                                        }
 
                                         await httpContext.Response.Body.WriteAsync(hlsArray, ctsHttp.Token).ConfigureAwait(false);
                                     }
@@ -398,10 +383,20 @@ namespace Lampac.Engine.Middlewares
                                             {
                                                 httpContext.Response.Headers["content-range"] = contentRange.ToString();
                                             }
-                                        }
+                                            else
+                                            {
+                                                if (httpContext.Response.StatusCode == 206)
+                                                    httpContext.Response.Headers["content-range"] = $"bytes 0-{mpdArray.Length - 1}/{mpdArray.Length}";
 
-                                        if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
-                                            httpContext.Response.ContentLength = mpdArray.Length;
+                                                if (httpContext.Response.StatusCode == 416)
+                                                    httpContext.Response.Headers["content-range"] = $"bytes */{mpdArray.Length}";
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
+                                                httpContext.Response.ContentLength = mpdArray.Length;
+                                        }
 
                                         await httpContext.Response.Body.WriteAsync(mpdArray, ctsHttp.Token).ConfigureAwait(false);
                                     }
