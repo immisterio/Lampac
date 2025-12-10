@@ -243,6 +243,7 @@ namespace Shared.Engine.Online
         #endregion
 
 
+        #region getStreamQualityTpl
         StreamQualityTpl getStreamQualityTpl(string file)
         {
             var streamquality = new StreamQualityTpl();
@@ -273,5 +274,6 @@ namespace Shared.Engine.Online
 
             return streamquality;
         }
+        #endregion
     }
 }

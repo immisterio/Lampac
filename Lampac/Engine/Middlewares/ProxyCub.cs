@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -284,8 +285,8 @@ namespace Lampac.Engine.Middlewares
                 else
                 {
                     #region cache
-                    string memkey = $"cubproxy:{domain}:{uri}";
-                    (string content, int statusCode, string contentType) cache = default;
+                    string memkey = $"cubproxy:key2:{domain}:{uri}";
+                    (byte[] content, int statusCode, string contentType) cache = default;
 
                     var semaphore = new SemaphorManager(memkey, ctsHttp.Token);
 
@@ -324,13 +325,13 @@ namespace Lampac.Engine.Middlewares
                                 return;
                             }
 
-                            cache.content = result.content;
+                            cache.content = Encoding.UTF8.GetBytes(result.content);
                             cache.statusCode = (int)result.response.StatusCode;
                             cache.contentType = result.response.Content?.Headers?.ContentType?.ToString() ?? getContentType(uri);
 
                             if (domain.StartsWith("tmdb") || domain.StartsWith("tmapi") || domain.StartsWith("apitmdb"))
                             {
-                                if (cache.content == "{\"blocked\":true}")
+                                if (result.content == "{\"blocked\":true}")
                                 {
                                     var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
                                     string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header);
@@ -338,7 +339,7 @@ namespace Lampac.Engine.Middlewares
                                     {
                                         cache.statusCode = 200;
                                         cache.contentType = "application/json; charset=utf-8";
-                                        cache.content = json;
+                                        cache.content = Encoding.UTF8.GetBytes(json);
                                     }
                                 }
                             }
@@ -366,7 +367,7 @@ namespace Lampac.Engine.Middlewares
 
                     httpContext.Response.StatusCode = cache.statusCode;
                     httpContext.Response.ContentType = cache.contentType;
-                    await httpContext.Response.WriteAsync(cache.content, ctsHttp.Token);
+                    await httpContext.Response.Body.WriteAsync(cache.content, ctsHttp.Token);
                     #endregion
                 }
             }

@@ -147,13 +147,17 @@ namespace Online.Controllers
                 if (init.priorityBrowser == "http" && kinopoisk_id > 0)
                 {
                     content_uri = $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={kinopoisk_id}";
-                    content_headers = HeadersModel.Init(Chromium.baseContextOptions.ExtraHTTPHeaders);
-                    content_headers.Add(new HeadersModel("accept", "*/*"));
-                    content_headers.Add(new HeadersModel("origin", $"https://p.{init.iframehost}"));
-                    content_headers.Add(new HeadersModel("referer", $"https://p.{init.iframehost}/"));
-                    content_headers.Add(new HeadersModel("sec-fetch-site", "same-site "));
-                    content_headers.Add(new HeadersModel("sec-fetch-mode", "cors"));
-                    content_headers.Add(new HeadersModel("sec-fetch-dest", "empty"));
+
+                    content_headers = HeadersModel.Init(new Dictionary<string, string>(Http.defaultHeaders)
+                    {
+                        ["accept"] = "*/*",
+                        ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5",
+                        ["origin"] = $"https://p.{init.iframehost}",
+                        ["referer"] = $"https://p.{init.iframehost}/",
+                        ["sec-fetch-site"] = "same-site",
+                        ["sec-fetch-mode"] = "cors",
+                        ["sec-fetch-dest"] = "empty"
+                    });
                 }
                 else if (init.priorityBrowser == "scraping")
                 {

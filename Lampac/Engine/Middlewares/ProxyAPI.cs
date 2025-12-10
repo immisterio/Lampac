@@ -222,7 +222,7 @@ namespace Lampac.Engine.Middlewares
                                             return;
                                         }
 
-                                        string hls = editm3u(Encoding.UTF8.GetString(array), httpContext, decryptLink);
+                                        byte[] hlsArray = editm3u(Encoding.UTF8.GetString(array), httpContext, decryptLink);
 
                                         httpContext.Response.ContentType = contentType ?? "application/vnd.apple.mpegurl";
                                         httpContext.Response.StatusCode = (int)response.StatusCode;
@@ -231,12 +231,12 @@ namespace Lampac.Engine.Middlewares
                                             httpContext.Response.Headers["accept-ranges"] = "bytes";
 
                                         if (httpContext.Response.StatusCode == 206)
-                                            httpContext.Response.Headers["content-range"] = $"bytes 0-{hls.Length - 1}/{hls.Length}";
+                                            httpContext.Response.Headers["content-range"] = $"bytes 0-{hlsArray.Length - 1}/{hlsArray.Length}";
 
                                         if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
-                                            httpContext.Response.ContentLength = hls.Length;
+                                            httpContext.Response.ContentLength = hlsArray.Length;
 
-                                        await httpContext.Response.WriteAsync(hls, ctsHttp.Token).ConfigureAwait(false);
+                                        await httpContext.Response.Body.WriteAsync(hlsArray, ctsHttp.Token).ConfigureAwait(false);
                                     }
                                     else
                                     {
@@ -251,7 +251,7 @@ namespace Lampac.Engine.Middlewares
                                 #region dash
                                 using (HttpContent content = response.Content)
                                 {
-                                    if (response.StatusCode == HttpStatusCode.OK)
+                                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
                                     {
                                         if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
                                         {
@@ -278,12 +278,21 @@ namespace Lampac.Engine.Middlewares
                                             m = m.NextMatch();
                                         }
 
+                                        byte[] mpdArray = Encoding.UTF8.GetBytes(mpd);
+
                                         httpContext.Response.ContentType = contentType ?? "application/dash+xml";
+                                        httpContext.Response.StatusCode = (int)response.StatusCode;
+
+                                        if (response.Headers.AcceptRanges != null)
+                                            httpContext.Response.Headers["accept-ranges"] = "bytes";
+
+                                        if (httpContext.Response.StatusCode == 206)
+                                            httpContext.Response.Headers["content-range"] = $"bytes 0-{mpdArray.Length - 1}/{mpdArray.Length}";
 
                                         if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
-                                            httpContext.Response.ContentLength = mpd.Length;
+                                            httpContext.Response.ContentLength = mpdArray.Length;
 
-                                        await httpContext.Response.WriteAsync(mpd, ctsHttp.Token).ConfigureAwait(false);
+                                        await httpContext.Response.Body.WriteAsync(mpdArray, ctsHttp.Token).ConfigureAwait(false);
                                     }
                                     else
                                     {
@@ -316,7 +325,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region editm3u
-        static string editm3u(string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
+        static byte[] editm3u(string _m3u8, HttpContext httpContext, ProxyLinkModel decryptLink)
         {
             string proxyhost = $"{AppInit.Host(httpContext)}/proxy";
             string m3u8 = Regex.Replace(_m3u8, "(https?://[^\n\r\"\\# ]+)", m =>
@@ -383,7 +392,7 @@ namespace Lampac.Engine.Middlewares
                 return m.Groups[1].Value + validArgs($"{proxyhost}/{ProxyLink.Encrypt(uri, decryptLink)}", httpContext);
             });
 
-            return m3u8;
+            return Encoding.UTF8.GetBytes(m3u8);
         }
         #endregion
 
