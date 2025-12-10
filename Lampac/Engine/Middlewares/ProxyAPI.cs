@@ -124,13 +124,67 @@ namespace Lampac.Engine.Middlewares
             if (cacheStream.md5key != null && cacheFiles.ContainsKey(cacheStream.md5key))
             {
                 httpContext.Response.Headers["PX-Cache"] = "HIT";
+                httpContext.Response.Headers["accept-ranges"] = "bytes";
+
+                long cacheLength = cacheFiles[cacheStream.md5key];
+                string cachePath = $"cache/hls/{cacheStream.md5key}";
+
+                if (RangeHeaderValue.TryParse(httpContext.Request.Headers["Range"], out var range))
+                {
+                    var rangeItem = range.Ranges.FirstOrDefault();
+                    if (rangeItem != null)
+                    {
+                        long start = rangeItem.From ?? 0;
+                        long end = rangeItem.To ?? (cacheLength - 1);
+
+                        if (start >= cacheLength)
+                        {
+                            httpContext.Response.StatusCode = StatusCodes.Status416RangeNotSatisfiable;
+                            httpContext.Response.Headers["content-range"] = $"bytes */{cacheLength}";
+                            return;
+                        }
+
+                        if (end >= cacheLength)
+                            end = cacheLength - 1;
+
+                        long length = end - start + 1;
+
+                        httpContext.Response.StatusCode = StatusCodes.Status206PartialContent;
+                        httpContext.Response.Headers["content-range"] = $"bytes {start}-{end}/{cacheLength}";
+
+                        if (init.responseContentLength)
+                            httpContext.Response.ContentLength = length;
+
+                        await using var fileStream = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        fileStream.Seek(start, SeekOrigin.Begin);
+
+                        var buffer = ArrayPool<byte>.Shared.Rent(81920);
+                        try
+                        {
+                            long remaining = length;
+                            while (remaining > 0)
+                            {
+                                var read = await fileStream.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), httpContext.RequestAborted).ConfigureAwait(false);
+                                if (read == 0)
+                                    break;
+
+                                await httpContext.Response.Body.WriteAsync(buffer.AsMemory(0, read), httpContext.RequestAborted).ConfigureAwait(false);
+                                remaining -= read;
+                            }
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(buffer);
+                        }
+
+                        return;
+                    }
+                }
 
                 if (init.responseContentLength)
-                    httpContext.Response.ContentLength = cacheFiles[cacheStream.md5key];
+                    httpContext.Response.ContentLength = cacheLength;
 
-                // range
-
-                await httpContext.Response.SendFileAsync($"cache/hls/{cacheStream.md5key}", httpContext.RequestAborted).ConfigureAwait(false);
+                await httpContext.Response.SendFileAsync(cachePath, httpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
             #endregion
