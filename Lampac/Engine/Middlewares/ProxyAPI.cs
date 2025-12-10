@@ -118,16 +118,18 @@ namespace Lampac.Engine.Middlewares
             else { handler.UseProxy = false; }
             #endregion
 
-            (string md5key, string contentType) cacheStream = (null, null); // new event(httpContext, decryptLink)
+            (string uriKey, string contentType) cacheStream = (null, null); // new event(httpContext, decryptLink)
 
-            #region cache
-            if (cacheStream.md5key != null && cacheFiles.ContainsKey(cacheStream.md5key))
+            #region cacheFiles
+            if (cacheStream.uriKey != null && cacheFiles.ContainsKey(CrypTo.md5(cacheStream.uriKey)))
             {
+                string md5key = CrypTo.md5(cacheStream.uriKey);
+
                 httpContext.Response.Headers["PX-Cache"] = "HIT";
                 httpContext.Response.Headers["accept-ranges"] = "bytes";
 
-                long cacheLength = cacheFiles[cacheStream.md5key];
-                string cachePath = $"cache/hls/{cacheStream.md5key}";
+                long cacheLength = cacheFiles[md5key];
+                string cachePath = $"cache/hls/{md5key}";
 
                 if (RangeHeaderValue.TryParse(httpContext.Request.Headers["Range"], out var range))
                 {
@@ -155,26 +157,30 @@ namespace Lampac.Engine.Middlewares
                         if (init.responseContentLength)
                             httpContext.Response.ContentLength = length;
 
-                        await using var fileStream = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        fileStream.Seek(start, SeekOrigin.Begin);
-
-                        var buffer = ArrayPool<byte>.Shared.Rent(81920);
-                        try
+                        using (var fileStream = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            long remaining = length;
-                            while (remaining > 0)
+                            fileStream.Seek(start, SeekOrigin.Begin);
+
+                            var buffer = ArrayPool<byte>.Shared.Rent(4096);
+
+                            try
                             {
-                                var read = await fileStream.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), httpContext.RequestAborted).ConfigureAwait(false);
-                                if (read == 0)
-                                    break;
+                                long remaining = length;
 
-                                await httpContext.Response.Body.WriteAsync(buffer.AsMemory(0, read), httpContext.RequestAborted).ConfigureAwait(false);
-                                remaining -= read;
+                                while (remaining > 0)
+                                {
+                                    var read = await fileStream.ReadAsync(buffer, 0, (int)Math.Min(buffer.Length, remaining), httpContext.RequestAborted).ConfigureAwait(false);
+                                    if (read == 0)
+                                        break;
+
+                                    await httpContext.Response.Body.WriteAsync(buffer, 0, read, httpContext.RequestAborted).ConfigureAwait(false);
+                                    remaining -= read;
+                                }
                             }
-                        }
-                        finally
-                        {
-                            ArrayPool<byte>.Shared.Return(buffer);
+                            finally
+                            {
+                                ArrayPool<byte>.Shared.Return(buffer);
+                            }
                         }
 
                         return;
@@ -205,7 +211,7 @@ namespace Lampac.Engine.Middlewares
                         using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                         {
                             httpContext.Response.Headers["PX-Cache"] = "BYPASS";
-                            await CopyProxyHttpResponse(httpContext, response, cacheStream.md5key).ConfigureAwait(false);
+                            await CopyProxyHttpResponse(httpContext, response, cacheStream.uriKey).ConfigureAwait(false);
                         }
                     }
                 }
@@ -393,7 +399,7 @@ namespace Lampac.Engine.Middlewares
                             else
                             {
                                 httpContext.Response.Headers["PX-Cache"] = "BYPASS";
-                                await CopyProxyHttpResponse(httpContext, response, cacheStream.md5key).ConfigureAwait(false);
+                                await CopyProxyHttpResponse(httpContext, response, cacheStream.uriKey).ConfigureAwait(false);
                             }
                         }
                     }
@@ -569,7 +575,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region CopyProxyHttpResponse
-        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage, string md5keyFileCache)
+        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage, string uriKeyFileCache)
         {
             var response = context.Response;
             response.StatusCode = (int)responseMessage.StatusCode;
@@ -714,10 +720,11 @@ namespace Lampac.Engine.Middlewares
 
                     try
                     {
-                        if (md5keyFileCache != null)
+                        if (uriKeyFileCache != null)
                         {
                             #region cache
-                            string targetFile = $"cache/hls/{md5keyFileCache}";
+                            string md5key = CrypTo.md5(uriKeyFileCache);
+                            string targetFile = $"cache/hls/{md5key}";
                             var semaphore = new SemaphorManager(targetFile, context.RequestAborted);
 
                             try
@@ -739,7 +746,7 @@ namespace Lampac.Engine.Middlewares
 
                                 if (!responseMessage.Content.Headers.ContentLength.HasValue || responseMessage.Content.Headers.ContentLength.Value == cacheLength)
                                 {
-                                    cacheFiles[md5keyFileCache] = cacheLength;
+                                    cacheFiles[md5key] = cacheLength;
                                 }
                                 else
                                 {
