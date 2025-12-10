@@ -298,11 +298,13 @@ namespace Lampac.Engine.Middlewares
                                 #region m3u8/txt
                                 using (HttpContent content = response.Content)
                                 {
-                                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
+                                    if (response.StatusCode == HttpStatusCode.OK || 
+                                        response.StatusCode == HttpStatusCode.PartialContent || 
+                                        response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
                                     {
                                         if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
                                         {
-                                            httpContext.Response.StatusCode = 502;
+                                            httpContext.Response.StatusCode = 500;
                                             httpContext.Response.ContentType = "text/plain";
                                             await httpContext.Response.WriteAsync("bigfile", ctsHttp.Token).ConfigureAwait(false);
                                             return;
@@ -311,8 +313,8 @@ namespace Lampac.Engine.Middlewares
                                         var array = await content.ReadAsByteArrayAsync(ctsHttp.Token).ConfigureAwait(false);
                                         if (array == null)
                                         {
-                                            httpContext.Response.StatusCode = 502;
-                                            await httpContext.Response.WriteAsync("error proxy m3u8", ctsHttp.Token).ConfigureAwait(false);
+                                            httpContext.Response.StatusCode = 500;
+                                            await httpContext.Response.WriteAsync("error array m3u8", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }
 
@@ -324,8 +326,14 @@ namespace Lampac.Engine.Middlewares
                                         if (response.Headers.AcceptRanges != null)
                                             httpContext.Response.Headers["accept-ranges"] = "bytes";
 
-                                        if (httpContext.Response.StatusCode == 206)
-                                            httpContext.Response.Headers["content-range"] = $"bytes 0-{hlsArray.Length - 1}/{hlsArray.Length}";
+                                        if (httpContext.Response.StatusCode is 206 or 416)
+                                        {
+                                            var contentRange = response.Content.Headers.ContentRange;
+                                            if (contentRange != null)
+                                            {
+                                                httpContext.Response.Headers["content-range"] = contentRange.ToString();
+                                            }
+                                        }
 
                                         if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
                                             httpContext.Response.ContentLength = hlsArray.Length;
@@ -334,8 +342,8 @@ namespace Lampac.Engine.Middlewares
                                     }
                                     else
                                     {
-                                        httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        await httpContext.Response.WriteAsync("error proxy m3u8", ctsHttp.Token).ConfigureAwait(false);
+                                        // проксируем ошибку 
+                                        await CopyProxyHttpResponse(httpContext, response, null).ConfigureAwait(false);
                                     }
                                 }
                                 #endregion
@@ -345,10 +353,13 @@ namespace Lampac.Engine.Middlewares
                                 #region dash
                                 using (HttpContent content = response.Content)
                                 {
-                                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.PartialContent)
+                                    if (response.StatusCode == HttpStatusCode.OK || 
+                                        response.StatusCode == HttpStatusCode.PartialContent ||
+                                        response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
                                     {
                                         if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
                                         {
+                                            httpContext.Response.StatusCode = 500;
                                             httpContext.Response.ContentType = "text/plain";
                                             await httpContext.Response.WriteAsync("bigfile", ctsHttp.Token).ConfigureAwait(false);
                                             return;
@@ -357,8 +368,8 @@ namespace Lampac.Engine.Middlewares
                                         var array = await content.ReadAsByteArrayAsync(ctsHttp.Token).ConfigureAwait(false);
                                         if (array == null)
                                         {
-                                            httpContext.Response.StatusCode = 502;
-                                            await httpContext.Response.WriteAsync("error proxy mpd", ctsHttp.Token).ConfigureAwait(false);
+                                            httpContext.Response.StatusCode = 500;
+                                            await httpContext.Response.WriteAsync("error array mpd", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }
 
@@ -380,8 +391,14 @@ namespace Lampac.Engine.Middlewares
                                         if (response.Headers.AcceptRanges != null)
                                             httpContext.Response.Headers["accept-ranges"] = "bytes";
 
-                                        if (httpContext.Response.StatusCode == 206)
-                                            httpContext.Response.Headers["content-range"] = $"bytes 0-{mpdArray.Length - 1}/{mpdArray.Length}";
+                                        if (httpContext.Response.StatusCode is 206 or 416)
+                                        {
+                                            var contentRange = response.Content.Headers.ContentRange;
+                                            if (contentRange != null)
+                                            {
+                                                httpContext.Response.Headers["content-range"] = contentRange.ToString();
+                                            }
+                                        }
 
                                         if (init.responseContentLength && !AppInit.CompressionMimeTypes.Contains(httpContext.Response.ContentType))
                                             httpContext.Response.ContentLength = mpdArray.Length;
@@ -390,8 +407,8 @@ namespace Lampac.Engine.Middlewares
                                     }
                                     else
                                     {
-                                        httpContext.Response.StatusCode = (int)response.StatusCode;
-                                        await httpContext.Response.WriteAsync("error proxy", ctsHttp.Token).ConfigureAwait(false);
+                                        // проксируем ошибку 
+                                        await CopyProxyHttpResponse(httpContext, response, null).ConfigureAwait(false);
                                     }
                                 }
                                 #endregion
