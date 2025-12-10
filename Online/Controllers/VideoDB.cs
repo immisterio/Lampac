@@ -35,7 +35,7 @@ namespace Online.Controllers
             (
                host,
                init.apihost,
-               (url, head) => rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : black_magic(url, init, proxy),
+               (url, head) => black_magic(rch, url, init, proxy),
                streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
             );
 
@@ -186,7 +186,7 @@ namespace Online.Controllers
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async ValueTask<string> black_magic(RchClient rch, string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {
@@ -197,8 +197,11 @@ namespace Online.Controllers
                     ("referer", "{host}/")
                 ));
 
+                if (rch.enable)
+                    return await rch.Get(init.cors(uri), headers);
+
                 if (init.priorityBrowser == "http")
-                    return await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await Http.Get(init.cors(uri), httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {

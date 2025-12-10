@@ -102,12 +102,15 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public EmbedModel Embed(in string json)
+        public EmbedModel Embed(in string json, string forbidden_quality, string default_quality)
         {
             if (string.IsNullOrEmpty(json))
                 return null;
 
-            string quality = json.Contains("1080p") ? "1080p" : json.Contains("720p") ? "720p" : json.Contains("480p") ? "480p" : "360p";
+            if (string.IsNullOrEmpty(default_quality))
+                default_quality = "360p";
+
+            string quality = forbidden_quality.Contains("1080p") ? "1080p" : forbidden_quality.Contains("720p") ? "720p" : forbidden_quality.Contains("480p") ? "480p" : default_quality;
 
             try
             {
@@ -162,16 +165,7 @@ namespace Shared.Engine.Online
                     if (string.IsNullOrEmpty(m.file))
                         continue;
 
-                    var streamquality = new StreamQualityTpl();
-
-                    foreach (Match mf in Regex.Matches(m.file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
-                    {
-                        string link = mf.Groups[2].Value;
-                        if (!usehls)
-                            link = link.Replace(":hls:manifest.m3u8", "");
-
-                        streamquality.Insert(onstreamfile.Invoke(link), mf.Groups[1].Value);
-                    }
+                    var streamquality = getStreamQualityTpl(m.file);
 
                     mtpl.Append(m.title, streamquality.Firts().link, subtitles: subtitles, streamquality: streamquality, vast: vast);
                 }
@@ -231,16 +225,7 @@ namespace Shared.Engine.Online
                             if (perevod != t)
                                 continue;
 
-                            var streamquality = new StreamQualityTpl();
-
-                            foreach (Match mf in Regex.Matches(voice.file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
-                            {
-                                string link = mf.Groups[2].Value;
-                                if (!usehls)
-                                    link = link.Replace(":hls:manifest.m3u8", "");
-
-                                streamquality.Insert(onstreamfile.Invoke(link), mf.Groups[1].Value);
-                            }
+                            var streamquality = getStreamQualityTpl(voice.file);
 
                             etpl.Append($"{ename} cерия", title ?? original_title, sArhc, ename, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                         }
@@ -256,5 +241,37 @@ namespace Shared.Engine.Online
             }
         }
         #endregion
+
+
+        StreamQualityTpl getStreamQualityTpl(string file)
+        {
+            var streamquality = new StreamQualityTpl();
+
+            var target = Regex.Match(file, "\\[(?<quality>[^\\]]+)\\](?<m3u8>https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Groups;
+            string targetQuality = target["quality"].Value.Replace("p", "");
+
+            foreach (string q in new string[] { "1080", "720", "480", "360", "240" })
+            {
+                string link = target["m3u8"].Value.Replace($"/{targetQuality}.mp4:", $"/{q}.mp4:");
+                if (!usehls)
+                    link = link.Replace(":hls:manifest.m3u8", "");
+
+                streamquality.Append(onstreamfile.Invoke(link), $"{q}p");
+            }
+
+            if (streamquality.data.Count == 0)
+            {
+                foreach (Match mf in Regex.Matches(file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
+                {
+                    string link = mf.Groups[2].Value;
+                    if (!usehls)
+                        link = link.Replace(":hls:manifest.m3u8", "");
+
+                    streamquality.Insert(onstreamfile.Invoke(link), mf.Groups[1].Value);
+                }
+            }
+
+            return streamquality;
+        }
     }
 }

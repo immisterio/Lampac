@@ -510,7 +510,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "b79adce5340aed235fa5d6c6134e74a24f82c27a"
+            tree = "7fd22dc60e2a9023901a1ef885a23316e34505fb"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -821,6 +821,7 @@ namespace Shared
         /// </summary>
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=22nlqrjr1phgld", "kwwsv=2263ei6:<31reuxw1vkrz", streamproxy: true)
         {
+            priorityBrowser = "http",
             imitationHuman = true,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-storage-access", "active"),

@@ -123,8 +123,7 @@ namespace Online.Controllers
                 if (!string.IsNullOrEmpty(orid))
                     uri = $"{init.corsHost()}/content/{orid}/iframe";
 
-                string html = rch.enable ? await rch.Get(uri, httpHeaders(init, HeadersModel.Init(("referer", referer)))) : 
-                                           await black_magic(uri, referer, init, proxy);
+                string html = await black_magic(rch, uri, referer, init, proxy);
 
                 if (html == null)
                     return res.Fail("html");
@@ -133,7 +132,10 @@ namespace Online.Controllers
                 if (string.IsNullOrEmpty(file))
                     return res.Fail("file");
 
-                return oninvk.Embed(oninvk.DecodeEval(file));
+                string forbidden_quality = Regex.Match(html, "forbidden_quality:([\t ]+)?(\"|')(?<forbidden>[^\"']+)(\"|')").Groups["forbidden"].Value;
+                string default_quality = Regex.Match(html, "default_quality:([\t ]+)?(\"|')(?<quality>[^\"']+)(\"|')").Groups["quality"].Value;
+
+                return oninvk.Embed(oninvk.DecodeEval(file), forbidden_quality, default_quality);
             });
 
             if (IsRhubFallback(cache, init))
@@ -144,7 +146,7 @@ namespace Online.Controllers
 
 
         #region black_magic
-        async Task<string> black_magic(string uri, string referer, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async Task<string> black_magic(RchClient rch, string uri, string referer, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
         {
             try
             {
@@ -155,8 +157,11 @@ namespace Online.Controllers
                     ("referer", referer)
                 ));
 
+                if (rch.enable)
+                    return await rch.Get(init.cors(uri), headers);
+
                 if (init.priorityBrowser == "http")
-                    return await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await Http.Get(init.cors(uri), httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
