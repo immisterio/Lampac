@@ -246,18 +246,23 @@ namespace Lampac.Engine.Middlewares
                 string md5key = CrypTo.md5($"{path}:{query}");
                 string outFile = Path.Combine("cache", "tmdb", md5key);
 
+                bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
+
                 httpContex.Response.ContentType = path.Contains(".png") ? "image/png" : path.Contains(".svg") ? "image/svg+xml" : "image/jpeg";
 
                 #region cacheFiles
-                if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
+                if (cacheimg)
                 {
-                    httpContex.Response.Headers["X-Cache-Status"] = "HIT";
+                    if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
+                    {
+                        httpContex.Response.Headers["X-Cache-Status"] = "HIT";
 
-                    if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
-                        httpContex.Response.ContentLength = cacheFiles[md5key];
+                        if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
+                            httpContex.Response.ContentLength = cacheFiles[md5key];
 
-                    await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
-                    return;
+                        await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
+                        return;
+                    }
                 }
                 #endregion
 
@@ -319,8 +324,7 @@ namespace Lampac.Engine.Middlewares
 
                 var proxyManager = new ProxyManager("tmdb_img", init);
 
-                bool cacheimg = init.cache_img > 0 && AppInit.conf.mikrotik == false;
-                var semaphore = cacheimg ? new SemaphorManager(uri, ctsHttp.Token) : null;
+                var semaphore = cacheimg ? new SemaphorManager(outFile, ctsHttp.Token) : null;
 
                 try
                 {
@@ -328,15 +332,18 @@ namespace Lampac.Engine.Middlewares
                         await semaphore.WaitAsync();
 
                     #region cacheFiles
-                    if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
+                    if (cacheimg)
                     {
-                        httpContex.Response.Headers["X-Cache-Status"] = "HIT";
+                        if (cacheFiles.ContainsKey(md5key) || (AppInit.conf.multiaccess == false && File.Exists(outFile)))
+                        {
+                            httpContex.Response.Headers["X-Cache-Status"] = "HIT";
 
-                        if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
-                            httpContex.Response.ContentLength = cacheFiles[md5key];
+                            if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
+                                httpContex.Response.ContentLength = cacheFiles[md5key];
 
-                        await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
-                        return;
+                            await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
+                            return;
+                        }
                     }
                     #endregion
 
