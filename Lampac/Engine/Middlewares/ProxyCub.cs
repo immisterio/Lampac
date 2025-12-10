@@ -25,7 +25,7 @@ namespace Lampac.Engine.Middlewares
         #region ProxyCub
         static FileSystemWatcher fileWatcher;
 
-        static ConcurrentDictionary<string, long> cacheFiles = new ();
+        static ConcurrentDictionary<string, int> cacheFiles = new ();
 
         static Timer cleanupTimer;
 
@@ -34,7 +34,7 @@ namespace Lampac.Engine.Middlewares
             Directory.CreateDirectory("cache/cub");
 
             foreach (var item in Directory.EnumerateFiles("cache/cub", "*"))
-                cacheFiles.TryAdd(Path.GetFileName(item), new FileInfo(item).Length);
+                cacheFiles.TryAdd(Path.GetFileName(item), (int)new FileInfo(item).Length);
 
             fileWatcher = new FileSystemWatcher
             {
@@ -226,16 +226,15 @@ namespace Lampac.Engine.Middlewares
                             {
                                 await semaphore.WaitAsync().ConfigureAwait(false);
 
-                                bool saveCache = true;
-                                long cacheLength = 0;
+                                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                try
                                 {
-                                    using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
-                                    {
-                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                    int cacheLength = 0;
 
-                                        try
+                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                    {
+                                        using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                         {
                                             int bytesRead;
 
@@ -246,31 +245,25 @@ namespace Lampac.Engine.Middlewares
                                                 await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token).ConfigureAwait(false);
                                             }
                                         }
-                                        catch
-                                        {
-                                            saveCache = false;
-                                        }
-                                        finally
-                                        {
-                                            ArrayPool<byte>.Shared.Return(buffer);
-                                        }
                                     }
-                                }
 
-                                if (saveCache)
-                                {
                                     if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == cacheLength)
                                     {
-                                        cacheFiles.TryAdd(md5key, cacheLength);
+                                        cacheFiles[md5key] = cacheLength;
                                     }
                                     else
                                     {
                                         File.Delete(outFile);
                                     }
                                 }
-                                else
+                                catch
                                 {
                                     File.Delete(outFile);
+                                    throw;
+                                }
+                                finally
+                                {
+                                    ArrayPool<byte>.Shared.Return(buffer);
                                 }
                             }
                             finally

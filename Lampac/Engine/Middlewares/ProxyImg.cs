@@ -24,7 +24,7 @@ namespace Lampac.Engine.Middlewares
         #region ProxyImg
         static FileSystemWatcher fileWatcher;
 
-        static ConcurrentDictionary<string, long> cacheFiles = new ConcurrentDictionary<string, long>();
+        static ConcurrentDictionary<string, int> cacheFiles = new ConcurrentDictionary<string, int>();
 
         static Timer cleanupTimer;
 
@@ -36,7 +36,7 @@ namespace Lampac.Engine.Middlewares
             Directory.CreateDirectory("cache/img");
 
             foreach (var item in Directory.EnumerateFiles("cache/img", "*"))
-                cacheFiles.TryAdd(Path.GetFileName(item), new FileInfo(item).Length);
+                cacheFiles.TryAdd(Path.GetFileName(item), (int)new FileInfo(item).Length);
 
             fileWatcher = new FileSystemWatcher
             {
@@ -251,16 +251,15 @@ namespace Lampac.Engine.Middlewares
 
                             if (cacheimg)
                             {
-                                bool saveCache = true;
-                                long cacheLength = 0;
+                                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                try
                                 {
-                                    using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
-                                    {
-                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                    int cacheLength = 0;
 
-                                        try
+                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                    {
+                                        using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                         {
                                             int bytesRead;
 
@@ -271,32 +270,26 @@ namespace Lampac.Engine.Middlewares
                                                 await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token).ConfigureAwait(false);
                                             }
                                         }
-                                        catch
-                                        {
-                                            saveCache = false;
-                                        }
-                                        finally
-                                        {
-                                            ArrayPool<byte>.Shared.Return(buffer);
-                                        }
                                     }
-                                }
 
-                                if (saveCache)
-                                {
                                     if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == cacheLength)
                                     {
                                         if (AppInit.conf.multiaccess)
-                                            cacheFiles.TryAdd(md5key, cacheLength);
+                                            cacheFiles[md5key] = cacheLength;
                                     }
                                     else
                                     {
                                         File.Delete(outFile);
                                     }
                                 }
-                                else
+                                catch
                                 {
                                     File.Delete(outFile);
+                                    throw;
+                                }
+                                finally
+                                {
+                                    ArrayPool<byte>.Shared.Return(buffer);
                                 }
                             }
                             else
@@ -364,8 +357,8 @@ namespace Lampac.Engine.Middlewares
                                     }
                                 }
 
-                                if (AppInit.conf.multiaccess)
-                                    cacheFiles.TryAdd(md5key, array.Length);
+                                if (AppInit.conf.multiaccess) 
+                                    cacheFiles[md5key] = array.Length;
                             }
                             catch 
                             {
@@ -374,6 +367,8 @@ namespace Lampac.Engine.Middlewares
                                     await File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
                                 }
                                 catch { File.Delete(outFile); }
+
+                                throw;
                             }
                         }
                         else

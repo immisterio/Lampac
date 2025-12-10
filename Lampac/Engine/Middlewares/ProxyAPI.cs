@@ -6,6 +6,7 @@ using Shared.Models.Events;
 using Shared.Models.Proxy;
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,12 +24,28 @@ namespace Lampac.Engine.Middlewares
     public class ProxyAPI
     {
         #region ProxyAPI
-        public ProxyAPI(RequestDelegate next) { }
+        static FileSystemWatcher fileWatcher;
+
+        static ConcurrentDictionary<string, long> cacheFiles = new();
 
         static ProxyAPI()
         {
             Directory.CreateDirectory("cache/hls");
+
+            foreach (var item in Directory.EnumerateFiles("cache/hls", "*"))
+                cacheFiles.TryAdd(Path.GetFileName(item), new FileInfo(item).Length);
+
+            fileWatcher = new FileSystemWatcher
+            {
+                Path = "cache/hls",
+                NotifyFilter = NotifyFilters.FileName,
+                EnableRaisingEvents = true
+            };
+
+            fileWatcher.Deleted += (s, e) => { cacheFiles.TryRemove(e.Name, out _); };
         }
+
+        public ProxyAPI(RequestDelegate next) { }
         #endregion
 
         async public Task InvokeAsync(HttpContext httpContext)
@@ -101,6 +118,23 @@ namespace Lampac.Engine.Middlewares
             else { handler.UseProxy = false; }
             #endregion
 
+            (string md5key, string contentType) cacheStream = (null, null); // new event(httpContext, decryptLink)
+
+            #region cache
+            if (cacheStream.md5key != null && cacheFiles.ContainsKey(cacheStream.md5key))
+            {
+                httpContext.Response.Headers["PX-Cache"] = "HIT";
+
+                if (init.responseContentLength)
+                    httpContext.Response.ContentLength = cacheFiles[cacheStream.md5key];
+
+                // range
+
+                await httpContext.Response.SendFileAsync($"cache/hls/{cacheStream.md5key}", httpContext.RequestAborted).ConfigureAwait(false);
+                return;
+            }
+            #endregion
+
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
                 #region DASH
@@ -117,7 +151,7 @@ namespace Lampac.Engine.Middlewares
                         using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                         {
                             httpContext.Response.Headers["PX-Cache"] = "BYPASS";
-                            await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                            await CopyProxyHttpResponse(httpContext, response, cacheStream.md5key).ConfigureAwait(false);
                         }
                     }
                 }
@@ -305,7 +339,7 @@ namespace Lampac.Engine.Middlewares
                             else
                             {
                                 httpContext.Response.Headers["PX-Cache"] = "BYPASS";
-                                await CopyProxyHttpResponse(httpContext, response).ConfigureAwait(false);
+                                await CopyProxyHttpResponse(httpContext, response, cacheStream.md5key).ConfigureAwait(false);
                             }
                         }
                     }
@@ -481,7 +515,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region CopyProxyHttpResponse
-        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage)
+        async Task CopyProxyHttpResponse(HttpContext context, HttpResponseMessage responseMessage, string md5keyFileCache)
         {
             var response = context.Response;
             response.StatusCode = (int)responseMessage.StatusCode;
@@ -544,14 +578,14 @@ namespace Lampac.Engine.Middlewares
                 if (!response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnwritableStream");
 
-                var bunit = AppInit.conf.serverproxy?.buffering;
+                var buffering = AppInit.conf.serverproxy?.buffering;
 
-                if (bunit?.enable == true && 
-                   ((!string.IsNullOrEmpty(bunit.pattern) && Regex.IsMatch(context.Request.Path.Value, bunit.pattern, RegexOptions.IgnoreCase)) || 
+                if (buffering?.enable == true && 
+                   ((!string.IsNullOrEmpty(buffering.pattern) && Regex.IsMatch(context.Request.Path.Value, buffering.pattern, RegexOptions.IgnoreCase)) || 
                    context.Request.Path.Value.EndsWith(".mp4") || context.Request.Path.Value.EndsWith(".mkv") || responseMessage.Content?.Headers?.ContentLength > 40_000000))
                 {
                     #region buffering
-                    var channel = Channel.CreateBounded<(byte[] Buffer, int Length)>(new BoundedChannelOptions(capacity: bunit.length)
+                    var channel = Channel.CreateBounded<(byte[] Buffer, int Length)>(new BoundedChannelOptions(capacity: buffering.length)
                     {
                         FullMode = BoundedChannelFullMode.Wait,
                         SingleWriter = true,
@@ -564,7 +598,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 while (!context.RequestAborted.IsCancellationRequested)
                                 {
-                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(bunit.rent, 4096));
+                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(buffering.rent, 4096));
 
                                     try
                                     {
@@ -622,21 +656,67 @@ namespace Lampac.Engine.Middlewares
                 }
                 else
                 {
-                    #region bypass
                     byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
                     try
                     {
-                        int bytesRead;
+                        if (md5keyFileCache != null)
+                        {
+                            #region cache
+                            string targetFile = $"cache/hls/{md5keyFileCache}";
+                            var semaphore = new SemaphorManager(targetFile, context.RequestAborted);
 
-                        while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)
-                            await response.Body.WriteAsync(buffer, 0, bytesRead, context.RequestAborted).ConfigureAwait(false);
+                            try
+                            {
+                                await semaphore.WaitAsync().ConfigureAwait(false);
+
+                                int cacheLength = 0;
+
+                                using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                {
+                                    int bytesRead;
+                                    while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)
+                                    {
+                                        cacheLength += bytesRead;
+                                        await fileStream.WriteAsync(buffer, 0, bytesRead, context.RequestAborted).ConfigureAwait(false);
+                                        await response.Body.WriteAsync(buffer, 0, bytesRead, context.RequestAborted).ConfigureAwait(false);
+                                    }
+                                }
+
+                                if (!responseMessage.Content.Headers.ContentLength.HasValue || responseMessage.Content.Headers.ContentLength.Value == cacheLength)
+                                {
+                                    cacheFiles[md5keyFileCache] = cacheLength;
+                                }
+                                else
+                                {
+                                    File.Delete(targetFile);
+                                }
+                            }
+                            catch
+                            {
+                                File.Delete(targetFile);
+                                throw;
+                            }
+                            finally
+                            {
+                                semaphore.Release();
+                            }
+                            #endregion
+                        }
+                        else
+                        {
+                            #region bypass
+                            int bytesRead;
+
+                            while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)
+                                await response.Body.WriteAsync(buffer, 0, bytesRead, context.RequestAborted).ConfigureAwait(false);
+                            #endregion
+                        }
                     }
                     finally
                     {
                         ArrayPool<byte>.Shared.Return(buffer);
                     }
-                    #endregion
                 }
             }
         }
