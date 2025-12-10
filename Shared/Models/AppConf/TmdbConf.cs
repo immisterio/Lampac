@@ -30,8 +30,6 @@ namespace Shared.Models.AppConf
 
         public int cache_img { get; set; }
 
-        public bool check_img { get; set; }
-
         public bool responseContentLength { get; set; }
 
 

@@ -172,7 +172,7 @@ namespace Lampac.Engine.Middlewares
                     (path.Split(".")[0] is "imagetmdb" or "cdn" or "ad") ||
                     httpContext.Request.Headers.ContainsKey("token") || httpContext.Request.Headers.ContainsKey("profile"))
                 {
-                    #region bypass
+                    #region bypass or media cache
                     string md5key = CrypTo.md5($"{domain}:{uri}");
                     string outFile = Path.Combine("cache", "cub", md5key);
 
@@ -184,7 +184,7 @@ namespace Lampac.Engine.Middlewares
                         if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
                             httpContext.Response.ContentLength = cacheFiles[md5key];
 
-                        await httpContext.Response.SendFileAsync(outFile, ctsHttp.Token);
+                        await httpContext.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
                         return;
                     }
 
@@ -203,10 +203,10 @@ namespace Lampac.Engine.Middlewares
                     }
                     else { handler.UseProxy = false; }
 
-                    var client = FrendlyHttp.HttpMessageClient("proxy", handler);
+                    var client = FrendlyHttp.HttpMessageClient("proxyRedirect", handler);
                     var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
 
-                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token))
+                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                     {
                         if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(httpContext.Request.Method) && AppInit.conf.mikrotik == false && response.StatusCode == HttpStatusCode.OK)
                         {
@@ -220,17 +220,18 @@ namespace Lampac.Engine.Middlewares
                                     httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
                             }
 
-                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                (int)response.Content.Headers.ContentLength.Value :
-                                20_000; // 20kB
+                            var semaphore = new SemaphorManager(outFile, ctsHttp.Token);
 
-                            using (var memoryStream = new MemoryStream(initialCapacity))
+                            try
                             {
-                                try
-                                {
-                                    bool saveCache = true;
+                                await semaphore.WaitAsync().ConfigureAwait(false);
 
-                                    using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token))
+                                bool saveCache = true;
+                                long cacheLength = 0;
+
+                                using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                {
+                                    using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                     {
                                         byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
@@ -238,10 +239,11 @@ namespace Lampac.Engine.Middlewares
                                         {
                                             int bytesRead;
 
-                                            while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
+                                            while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token).ConfigureAwait(false)) > 0)
                                             {
-                                                memoryStream.Write(buffer, 0, bytesRead);
-                                                await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
+                                                cacheLength += bytesRead;
+                                                await cacheStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                                                await httpContext.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token).ConfigureAwait(false);
                                             }
                                         }
                                         catch
@@ -253,38 +255,41 @@ namespace Lampac.Engine.Middlewares
                                             ArrayPool<byte>.Shared.Return(buffer);
                                         }
                                     }
+                                }
 
-                                    if (saveCache && memoryStream.Length > 1000)
+                                if (saveCache)
+                                {
+                                    if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == cacheLength)
                                     {
-                                        if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == memoryStream.Length)
-                                        {
-                                            try
-                                            {
-                                                if (!cacheFiles.ContainsKey(md5key))
-                                                {
-                                                    await File.WriteAllBytesAsync(outFile, memoryStream.ToArray());
-                                                    cacheFiles.TryAdd(md5key, memoryStream.Length);
-                                                }
-                                            }
-                                            catch { File.Delete(outFile); }
-                                        }
+                                        cacheFiles.TryAdd(md5key, cacheLength);
+                                    }
+                                    else
+                                    {
+                                        File.Delete(outFile);
                                     }
                                 }
-                                catch { }
+                                else
+                                {
+                                    File.Delete(outFile);
+                                }
+                            }
+                            finally
+                            {
+                                semaphore.Release();
                             }
                             #endregion
                         }
                         else
                         {
                             httpContext.Response.Headers["X-Cache-Status"] = "bypass";
-                            await CopyProxyHttpResponse(httpContext, response, ctsHttp.Token);
+                            await CopyProxyHttpResponse(httpContext, response, ctsHttp.Token).ConfigureAwait(false);
                         }
                     }
                     #endregion
                 }
                 else
                 {
-                    #region cache
+                    #region cache string
                     string memkey = $"cubproxy:key2:{domain}:{uri}";
                     (byte[] content, int statusCode, string contentType) cache = default;
 
@@ -292,7 +297,7 @@ namespace Lampac.Engine.Middlewares
 
                     try
                     {
-                        await semaphore.WaitAsync();
+                        await semaphore.WaitAsync().ConfigureAwait(false);
 
                         if (!hybridCache.TryGetValue(memkey, out cache, inmemory: false))
                         {
@@ -317,7 +322,7 @@ namespace Lampac.Engine.Middlewares
                                 }
                             }
 
-                            var result = await Http.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false);
+                            var result = await Http.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
                             if (string.IsNullOrEmpty(result.content))
                             {
                                 proxyManager.Refresh();
@@ -334,7 +339,7 @@ namespace Lampac.Engine.Middlewares
                                 if (result.content == "{\"blocked\":true}")
                                 {
                                     var header = HeadersModel.Init(("localrequest", AppInit.rootPasswd));
-                                    string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header);
+                                    string json = await Http.Get($"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
                                     if (!string.IsNullOrEmpty(json))
                                     {
                                         cache.statusCode = 200;
@@ -367,7 +372,7 @@ namespace Lampac.Engine.Middlewares
 
                     httpContext.Response.StatusCode = cache.statusCode;
                     httpContext.Response.ContentType = cache.contentType;
-                    await httpContext.Response.Body.WriteAsync(cache.content, ctsHttp.Token);
+                    await httpContext.Response.Body.WriteAsync(cache.content, ctsHttp.Token).ConfigureAwait(false);
                     #endregion
                 }
             }
@@ -488,7 +493,7 @@ namespace Lampac.Engine.Middlewares
             UpdateHeaders(responseMessage.Headers);
             UpdateHeaders(responseMessage.Content.Headers);
 
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync(cancellationToken))
+            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
             {
                 if (response.Body == null)
                     throw new ArgumentNullException("destination");
@@ -511,8 +516,8 @@ namespace Lampac.Engine.Middlewares
                 {
                     int bytesRead;
 
-                    while ((bytesRead = await responseStream.ReadAsync(buffer, cancellationToken)) != 0)
-                        await response.Body.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                    while ((bytesRead = await responseStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
+                        await response.Body.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {

@@ -70,6 +70,15 @@ namespace Lampac
                 UseCookies = false
             });
 
+            services.AddHttpClient("proxyRedirect").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.None,
+                SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+                PooledConnectionLifetime = TimeSpan.FromMinutes(30),
+                UseCookies = false
+            });
+
             services.AddHttpClient("proxyimg").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 AllowAutoRedirect = true,

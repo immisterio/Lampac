@@ -337,21 +337,6 @@ namespace Lampac.Engine.Middlewares
                             array = ImageMagick(array, width, height, cacheimg ? outFile : null);
                         }
 
-                        if (cacheimg)
-                        {
-                            try
-                            {
-                                if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
-                                {
-                                    await File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
-
-                                    if (AppInit.conf.multiaccess)
-                                        cacheFiles.TryAdd(md5key, array.Length);
-                                }
-                            }
-                            catch { try { File.Delete(outFile); } catch { } }
-                        }
-
                         proxyManager.Success();
 
                         httpContext.Response.ContentType = contentType;
@@ -359,7 +344,42 @@ namespace Lampac.Engine.Middlewares
                         if (AppInit.conf.serverproxy.responseContentLength)
                             httpContext.Response.ContentLength = array.Length;
 
-                        await httpContext.Response.Body.WriteAsync(array, ctsHttp.Token).ConfigureAwait(false);
+                        if (cacheimg)
+                        {
+                            try
+                            {
+                                int offset = 0;
+                                const int chunkSize = 4096;
+
+                                using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                {
+                                    while (offset < array.Length)
+                                    {
+                                        int count = Math.Min(chunkSize, array.Length - offset);
+
+                                        await cacheStream.WriteAsync(array, offset, count, ctsHttp.Token).ConfigureAwait(false);
+                                        await httpContext.Response.Body.WriteAsync(array, offset, count, ctsHttp.Token).ConfigureAwait(false);
+
+                                        offset += count;
+                                    }
+                                }
+
+                                if (AppInit.conf.multiaccess)
+                                    cacheFiles.TryAdd(md5key, array.Length);
+                            }
+                            catch 
+                            {
+                                try
+                                {
+                                    await File.WriteAllBytesAsync(outFile, array).ConfigureAwait(false);
+                                }
+                                catch { File.Delete(outFile); }
+                            }
+                        }
+                        else
+                        {
+                            await httpContext.Response.Body.WriteAsync(array, ctsHttp.Token).ConfigureAwait(false);
+                        }
                         #endregion
                     }
                 }

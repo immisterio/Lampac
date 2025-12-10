@@ -455,7 +455,7 @@ namespace Shared
             enable = true,
             responseContentLength = true,
             httpversion = 2, DNS_TTL = 20,
-            cache_api = 240, cache_img = 60, check_img = false,
+            cache_api = 240, cache_img = 60,
             api_key = "4ef0d7355d9ffb5151e987764708ce96"
         };
 

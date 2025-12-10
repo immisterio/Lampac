@@ -1,7 +1,6 @@
 ﻿using DnsClient;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using NetVips;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
@@ -260,7 +259,7 @@ namespace Lampac.Engine.Middlewares
                         if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
                             httpContex.Response.ContentLength = cacheFiles[md5key];
 
-                        await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
+                        await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
                         return;
                     }
                 }
@@ -329,7 +328,7 @@ namespace Lampac.Engine.Middlewares
                 try
                 {
                     if (semaphore != null)
-                        await semaphore.WaitAsync();
+                        await semaphore.WaitAsync().ConfigureAwait(false);
 
                     #region cacheFiles
                     if (cacheimg)
@@ -341,7 +340,7 @@ namespace Lampac.Engine.Middlewares
                             if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
                                 httpContex.Response.ContentLength = cacheFiles[md5key];
 
-                            await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token);
+                            await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
                             return;
                         }
                     }
@@ -365,7 +364,7 @@ namespace Lampac.Engine.Middlewares
                         }
                     }
 
-                    using (HttpResponseMessage response = await client.SendAsync(req, ctsHttp.Token))
+                    using (HttpResponseMessage response = await client.SendAsync(req, ctsHttp.Token).ConfigureAwait(false))
                     {
                         if (response.StatusCode == HttpStatusCode.OK)
                             proxyManager.Success();
@@ -382,89 +381,59 @@ namespace Lampac.Engine.Middlewares
                             #region cache
                             httpContex.Response.Headers["X-Cache-Status"] = "MISS";
 
-                            int initialCapacity = response.Content.Headers.ContentLength.HasValue ?
-                                (int)response.Content.Headers.ContentLength.Value :
-                                50_000; // 50kB
+                            bool saveCache = true;
+                            long cacheLength = 0;
 
-                            using (var memoryStream = new MemoryStream(initialCapacity))
+                            using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
                             {
-                                try
+                                using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                 {
-                                    bool saveCache = true;
+                                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
 
-                                    using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token))
+                                    try
                                     {
-                                        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                        int bytesRead;
 
-                                        try
+                                        while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token).ConfigureAwait(false)) > 0)
                                         {
-                                            int bytesRead;
-
-                                            while ((bytesRead = await responseStream.ReadAsync(buffer, ctsHttp.Token)) > 0)
-                                            {
-                                                memoryStream.Write(buffer, 0, bytesRead);
-                                                await httpContex.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token);
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            saveCache = false;
-                                        }
-                                        finally
-                                        {
-                                            ArrayPool<byte>.Shared.Return(buffer);
+                                            cacheLength += bytesRead;
+                                            await cacheStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                                            await httpContex.Response.Body.WriteAsync(buffer, 0, bytesRead, ctsHttp.Token).ConfigureAwait(false);
                                         }
                                     }
-
-                                    if (saveCache && memoryStream.Length > 1000)
+                                    catch
                                     {
-                                        if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == memoryStream.Length)
-                                        {
-                                            try
-                                            {
-                                                if (cacheFiles.ContainsKey(md5key) == false || (AppInit.conf.multiaccess == false && File.Exists(outFile) == false))
-                                                {
-                                                    #region check_img
-                                                    if (init.check_img && !path.Contains(".svg"))
-                                                    {
-                                                        using (var image = Image.NewFromBuffer(memoryStream.ToArray()))
-                                                        {
-                                                            try
-                                                            {
-                                                                // тестируем jpg/png на целостность
-                                                                byte[] temp = image.JpegsaveBuffer();
-                                                                if (temp == null || temp.Length == 0)
-                                                                    saveCache = false;
-                                                            }
-                                                            catch
-                                                            {
-                                                                saveCache = false;
-                                                            }
-                                                        }
-                                                    }
-                                                    #endregion
-
-                                                    if (saveCache)
-                                                    {
-                                                        await File.WriteAllBytesAsync(outFile, memoryStream.ToArray());
-
-                                                        if (AppInit.conf.multiaccess)
-                                                            cacheFiles.TryAdd(md5key, memoryStream.Length);
-                                                    }
-                                                }
-                                            }
-                                            catch { File.Delete(outFile); }
-                                        }
+                                        saveCache = false;
+                                    }
+                                    finally
+                                    {
+                                        ArrayPool<byte>.Shared.Return(buffer);
                                     }
                                 }
-                                catch { }
+                            }
+
+                            if (saveCache)
+                            {
+                                if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentLength.Value == cacheLength)
+                                {
+                                    if (AppInit.conf.multiaccess)
+                                        cacheFiles.TryAdd(md5key, cacheLength);
+                                }
+                                else
+                                {
+                                    File.Delete(outFile);
+                                }
+                            }
+                            else
+                            {
+                                File.Delete(outFile);
                             }
                             #endregion
                         }
                         else
                         {
                             httpContex.Response.Headers["X-Cache-Status"] = "bypass";
-                            await response.Content.CopyToAsync(httpContex.Response.Body, ctsHttp.Token);
+                            await response.Content.CopyToAsync(httpContex.Response.Body, ctsHttp.Token).ConfigureAwait(false);
                         }
                     }
                 }
