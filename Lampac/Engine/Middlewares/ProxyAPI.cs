@@ -129,6 +129,7 @@ namespace Lampac.Engine.Middlewares
 
                 httpContext.Response.Headers["PX-Cache"] = "HIT";
                 httpContext.Response.Headers["accept-ranges"] = "bytes";
+                httpContext.Response.ContentType = cacheStream.contentType ?? "application/octet-stream";
 
                 long cacheLength = cacheFiles[md5key];
                 string cachePath = $"cache/hls/{md5key}";
