@@ -232,7 +232,11 @@ namespace Lampac.Engine.Middlewares
                                 {
                                     int cacheLength = 0;
 
-                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                    int bufferSize = response.Content.Headers.ContentLength.HasValue 
+                                        ? (int)response.Content.Headers.ContentLength.Value 
+                                        : 50_000; // 50kB
+
+                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
                                     {
                                         using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                         {

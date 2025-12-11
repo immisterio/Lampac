@@ -244,8 +244,8 @@ namespace Online.Controllers
                         logFileStream = new FileStream(patchlog, FileMode.Append, FileAccess.Write);
 
                     var buffer = Encoding.UTF8.GetBytes($"{data}\n");
-                    logFileStream.Write(buffer, 0, buffer.Length);
-                    logFileStream.Flush();
+                    await logFileStream.WriteAsync(buffer);
+                    await logFileStream.FlushAsync();
                 }
             }
             catch { }

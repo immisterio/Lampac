@@ -745,7 +745,7 @@ namespace Lampac.Engine.Middlewares
 
                                 int cacheLength = 0;
 
-                                using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                                using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None, 4096*20))
                                 {
                                     int bytesRead;
                                     while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)

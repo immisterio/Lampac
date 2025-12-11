@@ -111,7 +111,7 @@ namespace Lampac.Controllers
                     await semaphore.WaitAsync();
 
                     using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                        fileStream.Write(array, 0, array.Length);
+                        await fileStream.WriteAsync(array);
                 }
                 catch
                 {
@@ -242,7 +242,7 @@ namespace Lampac.Controllers
                     await semaphore.WaitAsync();
 
                     using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                        fileStream.Write(array, 0, array.Length);
+                        fileStream.WriteAsync(array);
                 }
                 catch
                 {
