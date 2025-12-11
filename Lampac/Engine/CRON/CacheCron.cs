@@ -56,7 +56,7 @@ namespace Lampac.Engine.CRON
                                     var fileinfo = new FileInfo(infile);
                                     if (DateTime.Now > fileinfo.LastWriteTime.AddMinutes(conf.minute))
                                         fileinfo.Delete();
-                                    else if (1073741824 > freeDiskSpace) // 1Gb
+                                    else if (freeDiskSpace != -1 && AppInit.conf.fileCacheInactive.freeDiskSpace > freeDiskSpace)
                                         files.TryAdd(infile, fileinfo);
                                 }
                             }
