@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
+using Shared.Models.Proxy;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
@@ -217,17 +218,33 @@ namespace Shared
         #endregion
 
         #region ProxyApi
-        async public static Task ProxyApi(object model)
+        public static (string uriKey, string contentType) ProxyApiCacheStream(HttpContext httpContext, ProxyLinkModel decryptLink)
         {
-            string code = null;
+            var cacheStreamModel = new EventProxyApiCacheStream(httpContext, decryptLink);
 
-            if (model is EventProxyApiCreateHttpRequest httpRequestModel)
-            {
-                code = conf?.ProxyApi?.CreateHttpRequest;
+            if (EventListener.ProxyApiCacheStream != null)
+                return EventListener.ProxyApiCacheStream.Invoke(cacheStreamModel);
 
-                if (EventListener.ProxyApiCreateHttpRequest != null)
-                    await EventListener.ProxyApiCreateHttpRequest.Invoke(httpRequestModel);
-            }
+            string code = conf?.ProxyApi?.CacheStream;
+
+            if (string.IsNullOrEmpty(code))
+                return (null, null);
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                .AddReferences(typeof(Task).Assembly).AddImports("System.Threading.Tasks");
+
+            return Invoke<(string uriKey, string contentType)>(code, cacheStreamModel, option);
+        }
+
+        async public static Task ProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage)
+        {
+            var httpRequestModel = new EventProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage);
+
+            if (EventListener.ProxyApiCreateHttpRequest != null)
+                await EventListener.ProxyApiCreateHttpRequest.Invoke(httpRequestModel);
+
+            string code = conf?.ProxyApi?.CreateHttpRequest;
 
             if (string.IsNullOrEmpty(code))
                 return;
@@ -241,7 +258,7 @@ namespace Shared
                 .AddReferences(typeof(System.Net.Cookie).Assembly).AddImports("System.Net")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
-            await InvokeAsync(code, model, option);
+            await InvokeAsync(code, httpRequestModel, option);
         }
         #endregion
 

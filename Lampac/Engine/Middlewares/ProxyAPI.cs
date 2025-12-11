@@ -2,7 +2,6 @@
 using Shared;
 using Shared.Engine;
 using Shared.Models;
-using Shared.Models.Events;
 using Shared.Models.Proxy;
 using System;
 using System.Buffers;
@@ -118,9 +117,12 @@ namespace Lampac.Engine.Middlewares
             else { handler.UseProxy = false; }
             #endregion
 
-            (string uriKey, string contentType) cacheStream = (null, null); // new event(httpContext, decryptLink)
-
             #region cacheFiles
+            (string uriKey, string contentType) cacheStream = InvkEvent.ProxyApiCacheStream(httpContext, decryptLink);
+
+            if (cacheStream.uriKey != null && init.showOrigUri)
+                httpContext.Response.Headers["PX-CacheStream"] = cacheStream.uriKey;
+
             if (cacheStream.uriKey != null && cacheFiles.ContainsKey(CrypTo.md5(cacheStream.uriKey)))
             {
                 string md5key = CrypTo.md5(cacheStream.uriKey);
@@ -410,7 +412,7 @@ namespace Lampac.Engine.Middlewares
                             }
                             else
                             {
-                                httpContext.Response.Headers["PX-Cache"] = "BYPASS";
+                                httpContext.Response.Headers["PX-Cache"] = cacheStream.uriKey != null ? "MISS" : "BYPASS";
                                 await CopyProxyHttpResponse(httpContext, response, cacheStream.uriKey).ConfigureAwait(false);
                             }
                         }
@@ -580,7 +582,7 @@ namespace Lampac.Engine.Middlewares
             //requestMessage.Version = new Version(2, 0);
             //Console.WriteLine(JsonConvert.SerializeObject(requestMessage.Headers, Formatting.Indented));
 
-            await InvkEvent.ProxyApi(new EventProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage)).ConfigureAwait(false);
+            await InvkEvent.ProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage).ConfigureAwait(false);
 
             return requestMessage;
         }
@@ -732,7 +734,9 @@ namespace Lampac.Engine.Middlewares
 
                     try
                     {
-                        if (uriKeyFileCache != null)
+                        if (uriKeyFileCache != null && 
+                            responseMessage.Content.Headers.ContentLength.HasValue && 
+                            AppInit.conf.serverproxy.maxlength_ts >= responseMessage.Content.Headers.ContentLength)
                         {
                             #region cache
                             string md5key = CrypTo.md5(uriKeyFileCache);

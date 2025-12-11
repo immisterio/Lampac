@@ -6,11 +6,12 @@ using Shared.Models.AppConf;
 using Shared.Models.Base;
 using Shared.Models.JacRed;
 using Shared.Models.Online.Settings;
+using Shared.Models.Proxy;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
 using System.Text.Json;
+using System.Threading;
 
 namespace Shared.Models.Events
 {
@@ -47,6 +48,8 @@ namespace Shared.Models.Events
     public record EventHttpResponse(string url, HttpContent data, HttpClient client, string result, HttpResponseMessage response, IMemoryCache memoryCache);
 
     public record EventProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage);
+
+    public record EventProxyApiCacheStream(HttpContext httpContext, ProxyLinkModel decryptLink);
 
     public record EventTranscoding(Collection<string> args, int? startNumber, TranscodingStartContext context);
 

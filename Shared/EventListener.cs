@@ -13,6 +13,8 @@ namespace Shared
 
         public static Func<EventProxyApiCreateHttpRequest, Task> ProxyApiCreateHttpRequest;
 
+        public static Func<EventProxyApiCacheStream, (string uriKey, string contentType)> ProxyApiCacheStream;
+
         public static Func<EventBadInitialization, Task<ActionResult>> BadInitialization;
 
         public static Func<EventHostStreamProxy, string> HostStreamProxy;

@@ -97,6 +97,8 @@
     public class EventModelProxyApi()
     {
         public string CreateHttpRequest { get; set; }
+
+        public string CacheStream { get; set; }
     }
 
     public class EventModelTranscoding()
