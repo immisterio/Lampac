@@ -547,6 +547,9 @@ namespace Shared
 
         public VastConf vast = new VastConf();
 
+        /// <summary>
+        /// https://infocisco.ru/prefix_network_mask.html
+        /// </summary>
         public HashSet<Known> KnownProxies { get; set; } = new HashSet<Known>() 
         {
             new Known() { ip = "10.2.0.0", prefixLength = 16 },

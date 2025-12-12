@@ -9,7 +9,7 @@ namespace SISI
     public class HistoryController : BaseSisiController
     {
         [Route("sisi/historys")]
-        public ActionResult List(int pg = 1, int pageSize = 36)
+        async public Task<ActionResult> List(int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
             if (md5user == null || !AppInit.conf.sisi.history.enable)
@@ -21,11 +21,11 @@ namespace SISI
 
             using (var sqlDb = new SisiContext())
             {
-                historysQuery = sqlDb.historys
+                historysQuery = await sqlDb.historys
                     .AsNoTracking()
                     .Where(i => i.user == md5user)
                     .Take(pageSize * 20)
-                    .ToList();
+                    .ToListAsync();
             }
 
             int total_pages = Math.Max(0, historysQuery.Count / pageSize) + 1;
@@ -71,7 +71,7 @@ namespace SISI
                 {
                     pl.name,
                     video = getvideLink(pl),
-                    picture = HostImgProxy(pl.bookmark.image, plugin: pl.bookmark.site),
+                    picture = pl.bookmark.image != null ? HostImgProxy(pl.bookmark.image, plugin: pl.bookmark.site) : null,
                     pl.time,
                     pl.json,
                     related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
@@ -98,7 +98,9 @@ namespace SISI
 
             using (var sqlDb = new SisiContext())
             {
-                if (!sqlDb.historys.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
+                bool any = await sqlDb.historys.AsNoTracking().AnyAsync(i => i.user == md5user && i.uid == uid);
+
+                if (any == false)
                 {
                     data.history_uid = uid;
 
@@ -134,9 +136,9 @@ namespace SISI
 
                 using (var sqlDb = new SisiContext())
                 {
-                    sqlDb.historys
+                    await sqlDb.historys
                         .Where(i => i.user == md5user && i.uid == id)
-                        .ExecuteDelete();
+                        .ExecuteDeleteAsync();
                 }
             }
             catch { }
