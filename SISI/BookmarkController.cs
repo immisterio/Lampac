@@ -14,7 +14,7 @@ namespace SISI
         {
             string md5user = getuser();
             if (md5user == null)
-                return OnError("access denied");
+                return OnError("access denied", statusCode: 403);
 
             var menu = new List<MenuItem>()
             {
@@ -48,7 +48,7 @@ namespace SISI
                 submenu = new List<MenuItem>(20)
             };
 
-            foreach (var m in bookmarksQuery.OrderByDescending(i => i.created).Select(i => i.model).ToHashSet())
+            foreach (var m in bookmarksQuery.OrderByDescending(i => i.created).Where(i => i.model != null).Select(i => i.model).ToHashSet())
             {
                 if (string.IsNullOrEmpty(m))
                     continue;
@@ -135,7 +135,7 @@ namespace SISI
         {
             string md5user = getuser();
             if (md5user == null || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
-                return OnError("access denied");
+                return OnError("access denied", statusCode: 403);
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
@@ -227,7 +227,7 @@ namespace SISI
         {
             string md5user = getuser();
             if (md5user == null || string.IsNullOrEmpty(id))
-                return OnError("access denied");
+                return OnError("access denied", statusCode: 403);
 
             try
             {

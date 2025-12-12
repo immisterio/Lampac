@@ -424,7 +424,7 @@ namespace Lampac
             }
             #endregion
 
-            if (!AppInit.conf.multiaccess)
+            if (!AppInit.conf.multiaccess || AppInit.conf.useDeveloperExceptionPage)
                 app.UseDeveloperExceptionPage();
 
             applicationLifetime.ApplicationStopping.Register(OnShutdown);

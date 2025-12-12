@@ -88,14 +88,14 @@ namespace Shared
             return OnError(msg, rcache: rcache);
         }
 
-        public JsonResult OnError(string msg, bool rcache = true)
+        public JsonResult OnError(string msg, bool rcache = true, int statusCode = 500)
         {
             var model = new OnErrorResult(msg);
 
             if (AppInit.conf.multiaccess && rcache && !init.rhub)
                 memoryCache.Set(ResponseCache.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(15));
 
-            HttpContext.Response.StatusCode = 500;
+            HttpContext.Response.StatusCode = statusCode;
             return Json(model);
         }
         #endregion

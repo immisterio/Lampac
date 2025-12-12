@@ -344,6 +344,8 @@ namespace Shared
 
         public bool multiaccess = false;
 
+        public bool useDeveloperExceptionPage = false;
+
         public bool mikrotik = false;
 
         public string watcherInit = "cron";// system
