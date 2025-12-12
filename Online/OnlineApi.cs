@@ -953,7 +953,7 @@ namespace Online.Controllers
             if (conf.Lumex.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Lumex.overridehost) || conf.Lumex.overridehosts?.Length > 0)
                 send(conf.Lumex);
 
-            if (conf.Kinogo.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinogo.overridehost) || conf.Kinogo.overridehosts?.Length > 0)
+            if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinogo.overridehost) || conf.Kinogo.overridehosts?.Length > 0)
                 send(conf.Kinogo, rch_access: "apk");
 
             if (kinopoisk_id > 0)

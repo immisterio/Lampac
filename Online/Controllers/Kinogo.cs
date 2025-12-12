@@ -104,19 +104,13 @@ namespace Online.Controllers
                 if (embedHtml == null)
                     return res.Fail("embed");
 
-                string playlistPath = Regex.Match(embedHtml, "\"file\":\"(/playlist/[^\"]+)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(playlistPath))
-                    return res.Fail("playlist");
+                string fileEncode = Regex.Match(embedHtml, "\"file\":\"([^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(fileEncode))
+                    return res.Fail("fileEncode");
 
-                string playlistUrl = Regex.Match(embedUrl, "^(https?://[^/]+)").Groups[1].Value + playlistPath;
-                var playlistHeaders = httpHeaders(init, HeadersModel.Init("referer", embedUrl));
-
-                string playlistJson = rch.enable 
-                    ? await rch.Get(init.cors(playlistUrl), playlistHeaders) 
-                    : await PlaywrightBrowser.Get(init, init.cors(playlistUrl), headers: playlistHeaders, proxy.data);
-
-                if (playlistJson == null)
-                    return res.Fail("playlist-json");
+                string playlistJson = await DecodeFile(init, fileEncode);
+                if (string.IsNullOrEmpty(playlistJson))
+                    return res.Fail("playlistJson");
 
                 try
                 {
@@ -325,6 +319,36 @@ namespace Online.Controllers
                 link = link,
                 similar = similar
             };
+        }
+        #endregion
+
+        #region DecodeFile
+        async Task<string> DecodeFile(OnlinesSettings init, string fileEncode)
+        {
+            try
+            {
+                using (var browser = new PlaywrightBrowser())
+                {
+                    var page = await browser.NewPageAsync(init.plugin).ConfigureAwait(false);
+                    if (page == null)
+                        return null;
+
+                    var html = $@"<!doctype html>
+                        <html lang=""ru"">
+                          <body>
+                            <script>
+                              {FileCache.ReadAllText("data/cinemar_playerjs.js")}
+                              Cinemar({{""file"":""{fileEncode}""}})
+                            </script>
+                          </body>
+                        </html>";
+
+                    await page.SetContentAsync(html).ConfigureAwait(false);
+
+                    return await page.EvaluateAsync<string>("() => JSON.stringify(window.playlist)");
+                }
+            }
+            catch { return null; }
         }
         #endregion
     }

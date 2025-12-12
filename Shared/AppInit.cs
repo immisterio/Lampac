@@ -883,7 +883,7 @@ namespace Shared
         /// aHR0cHM6Ly91YWtpbm9nby5lYw==
         /// aHR0cHM6Ly91YWtpbm9nby5vbmxpbmU=
         /// </summary>
-        public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|", enable: false)
+        public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|")
         {
             streamproxy = true
         };
