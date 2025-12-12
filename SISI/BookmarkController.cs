@@ -10,7 +10,7 @@ namespace SISI
     public class BookmarkController : BaseSisiController
     {
         [Route("sisi/bookmarks")]
-        public ActionResult List(string search, string model, int pg = 1, int pageSize = 36)
+        async public Task<ActionResult> List(string search, string model, int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
             if (md5user == null)
@@ -32,10 +32,10 @@ namespace SISI
 
             using (var sqlDb = new SisiContext())
             {
-                bookmarksQuery = sqlDb.bookmarks
+                bookmarksQuery = await sqlDb.bookmarks
                     .AsNoTracking()
                     .Where(i => i.user == md5user)
-                    .ToList();
+                    .ToListAsync();
             }
 
             int total_pages = Math.Max(0, bookmarksQuery.Count / pageSize) + 1;
@@ -115,7 +115,9 @@ namespace SISI
                 {
                     pl.name,
                     video = getvideLink(pl),
-                    picture = HostImgProxy(pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image, plugin: pl.bookmark.site),
+                    picture = pl.bookmark.image != null 
+                        ? HostImgProxy(pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image, plugin: pl.bookmark.site) 
+                        : null,
                     pl.time,
                     pl.json,
                     related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
@@ -141,7 +143,8 @@ namespace SISI
 
             using (var sqlDb = new SisiContext())
             {
-                if (!sqlDb.bookmarks.AsNoTracking().Any(i => i.user == md5user && i.uid == uid))
+                bool any = await sqlDb.bookmarks.AsNoTracking().AnyAsync(i => i.user == md5user && i.uid == uid);
+                if (any == false)
                 {
                     string newimage = null;
 
@@ -160,7 +163,7 @@ namespace SISI
                             if (image != null)
                             {
                                 Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                                System.IO.File.WriteAllBytes($"wwwroot/{pimg}", image);
+                                await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
                                 newimage = pimg;
                             }
                         }
@@ -184,7 +187,7 @@ namespace SISI
                                 if (preview != null)
                                 {
                                     Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
-                                    System.IO.File.WriteAllBytes($"wwwroot/{path}", preview);
+                                    await System.IO.File.WriteAllBytesAsync($"wwwroot/{path}", preview);
                                     data.preview = path;
                                 }
                             }
@@ -235,9 +238,9 @@ namespace SISI
 
                 using (var sqlDb = new SisiContext())
                 {
-                    sqlDb.bookmarks
+                    await sqlDb.bookmarks
                         .Where(i => i.user == md5user && i.uid == id)
-                        .ExecuteDelete();
+                        .ExecuteDeleteAsync();
                 }
             }
             catch { }
