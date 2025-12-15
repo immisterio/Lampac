@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -21,16 +23,12 @@ namespace Lampac.Engine.Middlewares
             httpContext.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
             httpContext.Response.Headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
 
-            string allowHeaders = "Accept, Origin, Content-Type, Authorization, X-Requested-With, X-Signalr-User-Agent, Cache-Control, DNT, If-Modified-Since, Keep-Alive, User-Agent, Token, Profile";
-            if (httpContext.Request.Headers.TryGetValue("Access-Control-Request-Headers", out var accessHeaders) && !string.IsNullOrEmpty(accessHeaders.ToString()))
-                allowHeaders += ", " + accessHeaders.ToString();
-
-            httpContext.Response.Headers["Access-Control-Allow-Headers"] = allowHeaders;
+            httpContext.Response.Headers["Access-Control-Allow-Headers"] = GetAllowHeaders(httpContext);
 
             if (httpContext.Request.Headers.TryGetValue("origin", out var origin))
-                httpContext.Response.Headers["Access-Control-Allow-Origin"] = origin.ToString();
+                httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(origin.ToString());
             else if (httpContext.Request.Headers.TryGetValue("referer", out var referer))
-                httpContext.Response.Headers["Access-Control-Allow-Origin"] = referer.ToString();
+                httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(referer.ToString());
             else
                 httpContext.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
@@ -46,6 +44,46 @@ namespace Lampac.Engine.Middlewares
                 return Task.CompletedTask;
 
             return _next(httpContext);
+        }
+
+
+        static string GetAllowHeaders(HttpContext httpContext)
+        {
+            var headersSet = new HashSet<string>(new[]
+            {
+                "Accept", "Origin", "Referer", 
+                "User-Agent", "Content-Type", "Cache-Control", "Dnt", "If-Modified-Since",
+                "Connection", "Upgrade", "Keep-Alive",
+                "Sec-Websocket-Extensions", "Sec-Websocket-Key", "Sec-Websocket-Version",
+                "X-Signalr-User-Agent",
+                "Authorization", "Token", "Profile",
+                "X-Requested-With"
+            }, StringComparer.OrdinalIgnoreCase);
+
+            if (httpContext.Request.Headers.TryGetValue("Access-Control-Request-Headers", out var requestedHeaders))
+            {
+                foreach (var header in requestedHeaders.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var h = header.Trim();
+                    if (!string.IsNullOrEmpty(h))
+                        headersSet.Add(h);
+                }
+            }
+
+            return string.Join(", ", headersSet);
+        }
+
+        static string GetOrigin(string url)
+        {
+            try
+            {
+                var uri = new Uri(url);
+                return $"{uri.Scheme}://{uri.Host}{(uri.IsDefaultPort ? "" : ":" + uri.Port)}";
+            }
+            catch
+            {
+                return url;
+            }
         }
     }
 }
