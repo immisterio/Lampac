@@ -164,7 +164,8 @@ namespace Lampac.Controllers
 
                     var headersModel = headers.Count > 0 ? HeadersModel.Init(headers) : null;
                     Http.DefaultRequestHeaders(url, request, null, null, headersModel, useDefaultHeaders);
-                    InvkEvent.CorseuHttpRequest(request);
+
+                    InvkEvent.CorseuHttpRequest(method, url, request);
 
                     using (var cts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
                     {
@@ -250,7 +251,7 @@ namespace Lampac.Controllers
                     };
                 }
 
-                InvkEvent.CorseuPlaywrightRequest(contextOptions, requestOptions);
+                InvkEvent.CorseuPlaywrightRequest(method, url, contextOptions, requestOptions);
 
                 await using (var requestContext = await Chromium.playwright.APIRequest.NewContextAsync(contextOptions).ConfigureAwait(false))
                 {

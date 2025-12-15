@@ -454,9 +454,9 @@ namespace Shared
         #endregion
 
         #region Corseu
-        public static void CorseuHttpRequest(HttpRequestMessage request)
+        public static void CorseuHttpRequest(string method, string url, HttpRequestMessage request)
         {
-            var model = new EventCorseuHttpRequest(request);
+            var model = new EventCorseuHttpRequest(method, url, request);
 
             EventListener.CorseuHttpRequest?.Invoke(model);
 
@@ -471,9 +471,9 @@ namespace Shared
             Invoke(code, model, option);
         }
 
-        public static void CorseuPlaywrightRequest(APIRequestNewContextOptions contextOptions, APIRequestContextOptions requestOptions)
+        public static void CorseuPlaywrightRequest(string method, string url, APIRequestNewContextOptions contextOptions, APIRequestContextOptions requestOptions)
         {
-            var model = new EventCorseuPlaywrightRequest(contextOptions, requestOptions);
+            var model = new EventCorseuPlaywrightRequest(method, url, contextOptions, requestOptions);
 
             EventListener.CorseuPlaywrightRequest?.Invoke(model);
 

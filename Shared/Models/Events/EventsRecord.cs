@@ -48,8 +48,6 @@ namespace Shared.Models.Events
 
     public record EventHttpResponse(string url, HttpContent data, HttpClient client, string result, HttpResponseMessage response, IMemoryCache memoryCache);
 
-    public record EventCorseuHttpRequest(HttpRequestMessage request);
-
     public record EventProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage);
 
     public record EventProxyApiCacheStream(HttpContext httpContext, ProxyLinkModel decryptLink);
@@ -66,5 +64,7 @@ namespace Shared.Models.Events
 
     public record EventNwsMessage(string connectionId, string payload, string method, JsonElement args);
 
-    public record EventCorseuPlaywrightRequest(APIRequestNewContextOptions contextOptions, APIRequestContextOptions requestOptions);
+    public record EventCorseuHttpRequest(string method, string url, HttpRequestMessage request);
+
+    public record EventCorseuPlaywrightRequest(string method, string url, APIRequestNewContextOptions contextOptions, APIRequestContextOptions requestOptions);
 }
