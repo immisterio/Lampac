@@ -37,6 +37,10 @@ namespace Shared
 
         public static Func<EventHttpResponse, Task> HttpResponse;
 
+        public static Action<EventCorseuHttpRequest> CorseuHttpRequest;
+
+        public static Action<EventCorseuPlaywrightRequest> CorseuPlaywrightRequest;
+
         public static Func<EventExternalids, (string imdb_id, string kinopoisk_id)> Externalids;
 
         public static Func<EventStreamQuality, (bool? next, string link)> StreamQuality;

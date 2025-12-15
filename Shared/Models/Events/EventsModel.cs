@@ -18,6 +18,8 @@
 
         public EventModelHttp Http { get; set; }
 
+        public EventModelCorseu Corseu { get; set; }
+
         public EventModelRedApi RedApi { get; set; }
 
         public EventModelHybridCache HybridCache { get; set; }
@@ -80,6 +82,13 @@
         public string Headers { get; set; }
 
         public string Response { get; set; }
+    }
+
+    public class EventModelCorseu()
+    {
+        public string HttpRequest { get; set; }
+
+        public string PlaywrightRequest { get; set; }
     }
 
     public class EventModelRedApi()

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Events;
@@ -449,6 +450,42 @@ namespace Shared
             }
 
             return InvokeAsync(code, model, option);
+        }
+        #endregion
+
+        #region Corseu
+        public static void CorseuHttpRequest(HttpRequestMessage request)
+        {
+            var model = new EventCorseuHttpRequest(request);
+
+            EventListener.CorseuHttpRequest?.Invoke(model);
+
+            string code = conf?.Corseu?.HttpRequest;
+            if (string.IsNullOrEmpty(code))
+                return;
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(HttpRequestMessage).Assembly).AddImports("System.Net.Http")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models.Events");
+
+            Invoke(code, model, option);
+        }
+
+        public static void CorseuPlaywrightRequest(APIRequestNewContextOptions contextOptions, APIRequestContextOptions requestOptions)
+        {
+            var model = new EventCorseuPlaywrightRequest(contextOptions, requestOptions);
+
+            EventListener.CorseuPlaywrightRequest?.Invoke(model);
+
+            string code = conf?.Corseu?.PlaywrightRequest;
+            if (string.IsNullOrEmpty(code))
+                return;
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(APIRequestNewContextOptions).Assembly).AddImports("Microsoft.Playwright")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models.Events");
+
+            Invoke(code, model, option);
         }
         #endregion
 
