@@ -99,6 +99,8 @@ namespace Lampac.Controllers
             if (string.IsNullOrWhiteSpace(model?.url))
                 return BadRequest("url is empty");
 
+            InvkEvent.CorseuRequest(model);
+
             string method = string.IsNullOrWhiteSpace(model.method) ? "GET" : model.method.ToUpperInvariant();
             string browser = string.IsNullOrWhiteSpace(model.browser) ? "http" : model.browser.ToLowerInvariant();
 

@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Playwright;
 using Shared.Engine;
 using Shared.Models;
+using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.Proxy;
 using System.Collections.ObjectModel;
@@ -454,6 +455,22 @@ namespace Shared
         #endregion
 
         #region Corseu
+        public static void CorseuRequest(CorseuRequest request)
+        {
+            var model = new EventCorseuRequest(request);
+
+            EventListener.CorseuRequest?.Invoke(model);
+
+            string code = conf?.Corseu?.Execute;
+            if (string.IsNullOrEmpty(code))
+                return;
+
+            var option = ScriptOptions.Default
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models.Events").AddImports("Shared.Models.Base");
+
+            Invoke(code, model, option);
+        }
+
         public static void CorseuHttpRequest(string method, string url, HttpRequestMessage request)
         {
             var model = new EventCorseuHttpRequest(method, url, request);

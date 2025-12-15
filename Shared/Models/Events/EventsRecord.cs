@@ -64,6 +64,8 @@ namespace Shared.Models.Events
 
     public record EventNwsMessage(string connectionId, string payload, string method, JsonElement args);
 
+    public record EventCorseuRequest(CorseuRequest request);
+
     public record EventCorseuHttpRequest(string method, string url, HttpRequestMessage request);
 
     public record EventCorseuPlaywrightRequest(string method, string url, APIRequestNewContextOptions contextOptions, APIRequestContextOptions requestOptions);

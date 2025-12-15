@@ -86,6 +86,8 @@
 
     public class EventModelCorseu()
     {
+        public string Execute { get; set; }
+
         public string HttpRequest { get; set; }
 
         public string PlaywrightRequest { get; set; }
