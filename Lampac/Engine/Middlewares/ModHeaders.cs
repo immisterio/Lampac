@@ -51,13 +51,8 @@ namespace Lampac.Engine.Middlewares
         {
             var headersSet = new HashSet<string>(new[]
             {
-                "Accept", "Origin", "Referer", 
-                "User-Agent", "Content-Type", "Cache-Control", "Dnt", "If-Modified-Since",
-                "Connection", "Upgrade", "Keep-Alive",
-                "Sec-Websocket-Extensions", "Sec-Websocket-Key", "Sec-Websocket-Version",
-                "X-Signalr-User-Agent",
                 "Authorization", "Token", "Profile",
-                "X-Requested-With"
+                "Content-Type", "X-Signalr-User-Agent", "X-Requested-With"
             }, StringComparer.OrdinalIgnoreCase);
 
             if (httpContext.Request.Headers.TryGetValue("Access-Control-Request-Headers", out var requestedHeaders))

@@ -470,7 +470,7 @@ namespace Shared
             {
                 enable = true, 
                 rent = 81920, // 80KB
-                length = 390  // 80KB * 390 ячеек = ~30MB
+                length = 250  // 80KB * 250 ячеек = ~20MB
             },
             image = new ServerproxyImageConf()
             {
