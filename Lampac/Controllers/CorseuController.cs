@@ -223,10 +223,12 @@ namespace Lampac.Controllers
                 var contextOptions = new APIRequestNewContextOptions
                 {
                     IgnoreHTTPSErrors = true,
-                    ExtraHTTPHeaders = contextHeaders,
-                    Timeout = timeout * 1000,
-                    UserAgent = requestHeaders.TryGetValue("user-agent", out string _useragent) ? _useragent : Http.UserAgent
+                    ExtraHTTPHeaders = Http.NormalizeHeaders(contextHeaders),
+                    Timeout = timeout * 1000
                 };
+
+                if (requestHeaders.TryGetValue("user-agent", out string _useragent))
+                    contextOptions.UserAgent = _useragent;
 
                 var requestOptions = new APIRequestContextOptions
                 {
