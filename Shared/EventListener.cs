@@ -37,6 +37,8 @@ namespace Shared
 
         public static Func<EventHttpResponse, Task> HttpResponse;
 
+        public static Action<EventCorseuRequest> CorseuRequest;
+
         public static Action<EventCorseuHttpRequest> CorseuHttpRequest;
 
         public static Action<EventCorseuPlaywrightRequest> CorseuPlaywrightRequest;
