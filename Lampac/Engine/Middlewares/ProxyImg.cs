@@ -307,7 +307,10 @@ namespace Lampac.Engine.Middlewares
                     {
                         #region rsize
                         rsize_reset:
-                        var array = await Download(href, ctsHttp.Token, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
+                        var result = await Download(href, ctsHttp.Token, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
+
+                        byte[] array = result.array;
+
                         if (array == null || 1000 > array.Length)
                         {
                             if (url_reserve != null)
@@ -325,13 +328,16 @@ namespace Lampac.Engine.Middlewares
                             return;
                         }
 
-                        if (AppInit.conf.imagelibrary == "NetVips")
+                        if ((result.contentType ?? contentType) is "image/png" or "image/webp" or "image/jpeg")
                         {
-                            array = NetVipsImage(href, array, width, height);
-                        }
-                        else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                        {
-                            array = ImageMagick(array, width, height, cacheimg ? outFile : null);
+                            if (AppInit.conf.imagelibrary == "NetVips")
+                            {
+                                array = NetVipsImage(href, array, width, height);
+                            }
+                            else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                            {
+                                array = ImageMagick(array, width, height, cacheimg ? outFile : null);
+                            }
                         }
 
                         proxyManager.Success();
@@ -392,7 +398,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region Download
-        async Task<byte[]> Download(string url, CancellationToken cancellationToken, List<HeadersModel> headers = null, WebProxy proxy = null)
+        async Task<(byte[] array, string contentType)> Download(string url, CancellationToken cancellationToken, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             try
             {
@@ -410,21 +416,31 @@ namespace Lampac.Engine.Middlewares
                 using (HttpResponseMessage response = await client.SendAsync(req, cancellationToken).ConfigureAwait(false))
                 {
                     if (response.StatusCode != HttpStatusCode.OK)
-                        return null;
+                        return default;
 
                     using (HttpContent content = response.Content)
                     {
                         byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
                         if (res == null || res.Length == 0)
-                            return null;
+                            return default;
 
-                        return res;
+                        if (content.Headers != null)
+                        {
+                            if (content.Headers.ContentLength.HasValue && content.Headers.ContentLength != res.Length)
+                                return default;
+
+                            response.Content.Headers.TryGetValues("Content-Type", out var _contentType);
+
+                            return (res, _contentType?.FirstOrDefault()?.ToLower());
+                        }
+
+                        return (res, null);
                     }
                 }
             }
             catch
             {
-                return null;
+                return default;
             }
         }
         #endregion
