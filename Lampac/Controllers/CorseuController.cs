@@ -88,7 +88,7 @@ namespace Lampac.Controllers
         #region Execute
         async Task<IActionResult> ExecuteAsync(CorseuRequest model)
         {
-            var init = AppInit.conf.сorseu;
+            var init = AppInit.conf.corseu;
 
             if (init?.tokens == null || init.tokens.Length == 0)
                 return StatusCode((int)HttpStatusCode.Forbidden);
@@ -163,8 +163,7 @@ namespace Lampac.Controllers
                     }
 
                     var headersModel = headers.Count > 0 ? HeadersModel.Init(headers) : null;
-                    string log = string.Empty;
-                    Http.DefaultRequestHeaders(url, request, null, null, headersModel, ref log, useDefaultHeaders);
+                    Http.DefaultRequestHeaders(url, request, null, null, headersModel, useDefaultHeaders);
 
                     using (var cts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
                     {

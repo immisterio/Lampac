@@ -374,7 +374,7 @@ namespace Shared
 
         public string corsehost { get; set; } = "https://cors.apn.monster";
 
-        public CorseuConf сorseu { get; set; } = new CorseuConf();
+        public CorseuConf corseu { get; set; } = new CorseuConf();
 
         public MediaApiConf media { get; set; } = new MediaApiConf();
 
