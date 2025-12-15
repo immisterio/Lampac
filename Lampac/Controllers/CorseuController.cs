@@ -112,6 +112,38 @@ namespace Lampac.Controllers
             int timeout = model.timeout.HasValue && model.timeout.Value > 5 ? model.timeout.Value : 15;
             int httpVersion = model.httpversion ?? 1;
 
+            #region rules
+            if (init?.rules != null)
+            {
+                foreach (var rule in init.rules)
+                {
+                    if (rule?.headers == null || rule.headers.Count == 0)
+                        continue;
+
+                    if (string.IsNullOrEmpty(rule.method) || string.IsNullOrEmpty(rule.url))
+                        continue;
+
+                    if (!string.Equals(rule.method, method, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (!Regex.IsMatch(model.url, rule.url, RegexOptions.IgnoreCase))
+                        continue;
+
+                    var ruleHeaders = new Dictionary<string, string>(rule.headers, StringComparer.OrdinalIgnoreCase);
+
+                    if (rule.replace)
+                    {
+                        headers = ruleHeaders;
+                    }
+                    else
+                    {
+                        foreach (var pair in ruleHeaders)
+                            headers[pair.Key] = pair.Value;
+                    }
+                }
+            }
+            #endregion
+
             string contentType = null;
             if (headers.TryGetValue("content-type", out string ct))
             {
