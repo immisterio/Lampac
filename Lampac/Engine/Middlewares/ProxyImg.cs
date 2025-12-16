@@ -135,6 +135,8 @@ namespace Lampac.Engine.Middlewares
                 #endregion
 
                 string md5key = CrypTo.md5($"{href}:{width}:{height}");
+                // httpContext, requestInfo, decryptLink, href, width, height
+
                 string outFile = Path.Combine("cache", "img", md5key);
 
                 string url_reserve = null;
