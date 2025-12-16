@@ -11,7 +11,7 @@ namespace Lampac.Engine.CRON
     {
         public static void Run()
         {
-            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(4));
+            _cronTimer = new Timer(cron, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(5));
         }
 
         static Timer _cronTimer;
@@ -45,6 +45,8 @@ namespace Lampac.Engine.CRON
                         if (conf.minute == -1 || !Directory.Exists(Path.Combine("cache", conf.path)))
                             continue;
 
+                        var ex = DateTime.Now.AddMinutes(-conf.minute);
+
                         foreach (string infile in Directory.EnumerateFiles(Path.Combine("cache", conf.path), "*", SearchOption.AllDirectories))
                         {
                             try
@@ -54,7 +56,7 @@ namespace Lampac.Engine.CRON
                                 else
                                 {
                                     var fileinfo = new FileInfo(infile);
-                                    if (DateTime.Now > fileinfo.LastWriteTime.AddMinutes(conf.minute))
+                                    if (ex > fileinfo.LastWriteTime)
                                         fileinfo.Delete();
                                     else if (freeDiskSpace != -1 && AppInit.conf.fileCacheInactive.freeDiskSpace > freeDiskSpace)
                                         files.TryAdd(infile, fileinfo);

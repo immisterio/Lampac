@@ -651,6 +651,7 @@ namespace Shared
 
             init.useproxystream = false;
             update<bool>("streamproxy", v => init.streamproxy = v);
+            update<bool>("qualitys_proxy", v => init.qualitys_proxy = v);
             if (conf.ContainsKey("geostreamproxy"))
                 init.geostreamproxy = conf["geostreamproxy"].ToObject<string[]>();
 
