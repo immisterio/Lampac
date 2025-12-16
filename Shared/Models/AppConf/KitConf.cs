@@ -6,6 +6,8 @@ namespace Shared.Models.AppConf
     {
         public bool enable { get; set; }
 
+        public bool absolute { get; set; }
+
         public string path { get; set; }
 
         public string eval_path { get; set; }

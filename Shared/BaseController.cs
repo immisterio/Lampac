@@ -13,6 +13,7 @@ using Shared.Models.Online.Settings;
 using Shared.Models.SISI.OnResult;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -615,71 +616,90 @@ namespace Shared
 
             var conf = appinit.Value<JObject>(init.plugin);
 
-            void update<T2>(string key, Action<T2> updateAction)
+            if (AppInit.conf.kit.absolute)
             {
-                if (conf.ContainsKey(key))
-                    updateAction(conf.Value<T2>(key));
-            }
+                foreach (var prop in conf.Properties())
+                {
+                    try
+                    {
+                        var propertyInfo = typeof(T).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                        if (propertyInfo?.CanWrite != true)
+                            continue;
 
-            update<bool>("enable", v => init.enable = v);
-            if (conf.ContainsKey("enable") && init.enable)
-                init.geo_hide = null;
-
-            update<string>("displayname", v => init.displayname = v);
-            update<int>("displayindex", v => init.displayindex = v);
-            update<string>("client_type", v => init.client_type = v);
-
-            update<string>("cookie", v => init.cookie = v);
-            update<string>("token", v => init.token = v);
-
-            update<string>("host", v => init.host = v);
-            update<string>("apihost", v => init.apihost = v);
-            update<string>("scheme", v => init.scheme = v);
-            update<bool>("hls", v => init.hls = v);
-
-            update<string>("overridehost", v => init.overridehost = v);
-            update<string>("overridepasswd", v => init.overridepasswd = v);
-            if (conf.ContainsKey("overridehosts"))
-                init.overridehosts = conf["overridehosts"].ToObject<string[]>();
-
-            if (conf.ContainsKey("headers"))
-                init.headers = conf["headers"].ToObject<Dictionary<string, string>>();
-
-            init.apnstream = true;
-            if (conf.ContainsKey("apn"))
-                init.apn = conf["apn"].ToObject<ApnConf>();
-
-            init.useproxystream = false;
-            update<bool>("streamproxy", v => init.streamproxy = v);
-            update<bool>("qualitys_proxy", v => init.qualitys_proxy = v);
-            if (conf.ContainsKey("geostreamproxy"))
-                init.geostreamproxy = conf["geostreamproxy"].ToObject<string[]>();
-
-            if (conf.ContainsKey("proxy"))
-            {
-                init.proxy = conf["proxy"].ToObject<ProxySettings>();
-                if (init?.proxy?.list != null && init.proxy.list.Length > 0)
-                    update<bool>("useproxy", v => init.useproxy = v);
-            }
-
-            if (init.useproxy)
-            {
-                init.rhub = false;
-                init.rhub_fallback = true;
-            }
-            else if (AppInit.conf.kit.rhub_fallback || init.rhub_fallback)
-            {
-                update<bool>("rhub", v => init.rhub = v);
-                update<bool>("rhub_fallback", v => init.rhub_fallback = v);
+                        var value = prop.Value.ToObject(propertyInfo.PropertyType);
+                        propertyInfo.SetValue(init, value);
+                    }
+                    catch { }
+                }
             }
             else
             {
-                init.rhub = true;
-                init.rhub_fallback = true;
-            }
+                void update<T2>(string key, Action<T2> updateAction)
+                {
+                    if (conf.ContainsKey(key))
+                        updateAction(conf.Value<T2>(key));
+                }
 
-            if (init.rhub)
-                update<int>("cache_time", v => init.cache_time = v);
+                update<bool>("enable", v => init.enable = v);
+                if (conf.ContainsKey("enable") && init.enable)
+                    init.geo_hide = null;
+
+                update<string>("displayname", v => init.displayname = v);
+                update<int>("displayindex", v => init.displayindex = v);
+                update<string>("client_type", v => init.client_type = v);
+
+                update<string>("cookie", v => init.cookie = v);
+                update<string>("token", v => init.token = v);
+
+                update<string>("host", v => init.host = v);
+                update<string>("apihost", v => init.apihost = v);
+                update<string>("scheme", v => init.scheme = v);
+                update<bool>("hls", v => init.hls = v);
+
+                update<string>("overridehost", v => init.overridehost = v);
+                update<string>("overridepasswd", v => init.overridepasswd = v);
+                if (conf.ContainsKey("overridehosts"))
+                    init.overridehosts = conf["overridehosts"].ToObject<string[]>();
+
+                if (conf.ContainsKey("headers"))
+                    init.headers = conf["headers"].ToObject<Dictionary<string, string>>();
+
+                init.apnstream = true;
+                if (conf.ContainsKey("apn"))
+                    init.apn = conf["apn"].ToObject<ApnConf>();
+
+                init.useproxystream = false;
+                update<bool>("streamproxy", v => init.streamproxy = v);
+                update<bool>("qualitys_proxy", v => init.qualitys_proxy = v);
+                if (conf.ContainsKey("geostreamproxy"))
+                    init.geostreamproxy = conf["geostreamproxy"].ToObject<string[]>();
+
+                if (conf.ContainsKey("proxy"))
+                {
+                    init.proxy = conf["proxy"].ToObject<ProxySettings>();
+                    if (init?.proxy?.list != null && init.proxy.list.Length > 0)
+                        update<bool>("useproxy", v => init.useproxy = v);
+                }
+
+                if (init.useproxy)
+                {
+                    init.rhub = false;
+                    init.rhub_fallback = true;
+                }
+                else if (AppInit.conf.kit.rhub_fallback || init.rhub_fallback)
+                {
+                    update<bool>("rhub", v => init.rhub = v);
+                    update<bool>("rhub_fallback", v => init.rhub_fallback = v);
+                }
+                else
+                {
+                    init.rhub = true;
+                    init.rhub_fallback = true;
+                }
+
+                if (init.rhub)
+                    update<int>("cache_time", v => init.cache_time = v);
+            }
 
             IsKitConf = true;
 
