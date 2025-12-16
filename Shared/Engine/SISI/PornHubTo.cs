@@ -133,7 +133,7 @@ namespace Shared.Engine.SISI
                 if (title == null)
                     continue;
 
-                string img = m("data-mediumthumb=\"(https?://[^\"]+)\"") ?? m("data-path=\"(https?://[^\"]+)\"")?.Replace("{index}", "3") ?? m("<img src=\"([^\"]+)\"");
+                string img = m("data-mediumthumb=\"(https?://[^\"]+)\"") ?? m("<img( [^>]+)? src=\"([^\"]+)\"", 2);
                 if (img == null)
                     continue;
 
