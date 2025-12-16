@@ -265,20 +265,28 @@ namespace Shared
         #endregion
 
         #region ProxyImg
-        public static string ProxyImgMd5(EventProxyImgMd5 model)
+        public static void ProxyImgMd5key(ref string md5key, HttpContext httpContext, RequestModel requestInfo, ProxyLinkModel decryptLink, string href, int width, int height)
         {
-            if (EventListener.ProxyImgMd5 != null)
-                return EventListener.ProxyImgMd5.Invoke(model);
+            var model = new EventProxyImgMd5key(httpContext, requestInfo, decryptLink, href, width, height);
+
+            if (EventListener.ProxyImgMd5key != null)
+            {
+                string newKey = EventListener.ProxyImgMd5key.Invoke(model);
+                if (!string.IsNullOrEmpty(newKey))
+                    md5key = newKey;
+            }
 
             string code = conf?.ProxyImg?.Md5Key;
             if (string.IsNullOrEmpty(code))
-                return null;
+                return;
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Models.Proxy").AddImports("Shared.Models.Events");
 
-            return Invoke<string>(code, model, option);
+            string eventKey = Invoke<string>(code, model, option);
+            if (!string.IsNullOrEmpty(eventKey))
+                md5key = eventKey;
         }
         #endregion
 

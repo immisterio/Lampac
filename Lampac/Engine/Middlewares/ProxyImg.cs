@@ -136,10 +136,7 @@ namespace Lampac.Engine.Middlewares
                 #endregion
 
                 string md5key = CrypTo.md5($"{href}:{width}:{height}");
-
-                string eventMd5Key = InvkEvent.ProxyImgMd5(new EventProxyImgMd5(httpContext, requestInfo, decryptLink, href, width, height));
-                if (!string.IsNullOrWhiteSpace(eventMd5Key))
-                    md5key = eventMd5Key;
+                InvkEvent.ProxyImgMd5key(ref md5key, httpContext, requestInfo, decryptLink, href, width, height);
 
                 string outFile = Path.Combine("cache", "img", md5key);
 
