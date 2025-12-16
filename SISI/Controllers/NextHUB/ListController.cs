@@ -6,6 +6,7 @@ using Microsoft.Playwright;
 using Shared.Models.CSharpGlobals;
 using Shared.Models.SISI.NextHUB;
 using Shared.PlaywrightCore;
+using System.Text;
 using System.Web;
 
 namespace SISI.Controllers.NextHUB
@@ -34,7 +35,6 @@ namespace SISI.Controllers.NextHUB
                 return ContentTo(rch.connectionMsg);
 
             var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
 
             string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";
             if (init.menu?.customs != null)
@@ -57,66 +57,8 @@ namespace SISI.Controllers.NextHUB
                         contentParse = init.model.contentParse;
                     #endregion
 
-                    #region html
-                    string url = $"{init.host}/{(pg == 1 && init.list.firstpage != null ? init.list.firstpage : init.list.uri)}";
-                    if (!string.IsNullOrEmpty(search))
-                    {
-                        string uri = pg == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
-                        url = $"{init.host}/{uri}".Replace("{search}", HttpUtility.UrlEncode(search));
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(sort))
-                            url = $"{init.host}/{sort}";
-                        else if (!string.IsNullOrEmpty(cat))
-                            url = $"{init.host}/{init.menu.formatcat(cat)}";
-                        else if (!string.IsNullOrEmpty(model))
-                        {
-                            url = $"{init.host}/{model}";
-                            if (init.model?.uri != null)
-                                url = init.model.uri.Replace("{host}", init.host).Replace("{model}", model);
-                            else if (init.model?.format != null)
-                            {
-                                string eval = $"return $\"{init.model.format}\";";
-                                url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
-                            }
-                        }
-                        else if (init.menu?.customs != null)
-                        {
-                            foreach (var c in init.menu.customs)
-                            {
-                                if (HttpContext.Request.Query.ContainsKey(c.arg))
-                                    url = $"{init.host}/{c.format.Replace("{value}", HttpContext.Request.Query[c.arg])}";
-                            }
-                        }
-
-                        if (init.menu?.route != null)
-                        {
-                            string goroute(string name)
-                            {
-                                if (init.menu.route.TryGetValue(name, out string value))
-                                    return value;
-
-                                if (init.menu.route.TryGetValue("-", out value))
-                                    return value;
-
-                                return string.Empty;
-                            }
-
-                            string eval = $"return (cat != null && sort != null) ? $\"{goroute("catsort")}\" : (model != null && sort != null) ? $\"{goroute("modelsort")}\" : model != null ? $\"{goroute("model")}\" : cat != null ? $\"{goroute("cat")}\" : sort != null ? $\"{goroute("sort")}\" : \"{url}\";";
-                            url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
-                        }
-                    }
-
-                    if (init.route?.eval != null)
-                        url = CSharpEval.Execute<string>(init.route.eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
-
                     reset:
-                    string html = rch.enable ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) :
-                               init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) :
-                               init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) :
-                                                      await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, model, pg);
-                    #endregion
+                    string html = await HttpRequest(init, rch, proxyManager, plugin, pg, search, sort, cat, model);
 
                     playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
 
@@ -583,6 +525,119 @@ namespace SISI.Controllers.NextHUB
             {
                 return null;
             }
+        }
+        #endregion
+
+        #region HttpRequest
+        async Task<string> HttpRequest(
+            NxtSettings init, RchClient rch, ProxyManager proxyManager, 
+            string plugin, int pg, string search, string sort, string cat, string model
+        )
+        {
+            var proxy = proxyManager.BaseGet();
+
+            string html; 
+            string data = !string.IsNullOrEmpty(search) ? (init.search?.data ?? init.list.data) : init.list.data;
+
+            #region encoding
+            Encoding encodingRequest = default, encodingResponse = default;
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                if (init.search?.encodingRequest != null)
+                    encodingRequest = Encoding.GetEncoding(init.search.encodingRequest);
+
+                if (init.search?.encodingResponse != null)
+                    encodingResponse = Encoding.GetEncoding(init.search.encodingResponse);
+            }
+
+            if (encodingRequest == default && init.list?.encodingRequest != null)
+                encodingRequest = Encoding.GetEncoding(init.list.encodingRequest);
+
+            if (encodingResponse == default && init.list?.encodingResponse != null)
+                encodingResponse = Encoding.GetEncoding(init.list.encodingResponse);
+            #endregion
+
+            #region формируем url
+            string url = $"{init.host}/{(pg == 1 && init.list.firstpage != null ? init.list.firstpage : init.list.uri)}";
+            if (!string.IsNullOrEmpty(search))
+            {
+                string uri = pg == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
+                string _s = encodingRequest != default ? HttpUtility.UrlEncode(search, encodingRequest) : HttpUtility.UrlEncode(search);
+                url = $"{init.host}/{uri}".Replace("{search}", _s);
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(sort))
+                    url = $"{init.host}/{sort}";
+                else if (!string.IsNullOrEmpty(cat))
+                    url = $"{init.host}/{init.menu.formatcat(cat)}";
+                else if (!string.IsNullOrEmpty(model))
+                {
+                    url = $"{init.host}/{model}";
+                    if (init.model?.uri != null)
+                        url = init.model.uri.Replace("{host}", init.host).Replace("{model}", model);
+                    else if (init.model?.format != null)
+                    {
+                        string eval = $"return $\"{init.model.format}\";";
+                        url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+                    }
+                }
+                else if (init.menu?.customs != null)
+                {
+                    foreach (var c in init.menu.customs)
+                    {
+                        if (HttpContext.Request.Query.ContainsKey(c.arg))
+                            url = $"{init.host}/{c.format.Replace("{value}", HttpContext.Request.Query[c.arg])}";
+                    }
+                }
+
+                if (init.menu?.route != null)
+                {
+                    string goroute(string name)
+                    {
+                        if (init.menu.route.TryGetValue(name, out string value))
+                            return value;
+
+                        if (init.menu.route.TryGetValue("-", out value))
+                            return value;
+
+                        return string.Empty;
+                    }
+
+                    string eval = $"return (cat != null && sort != null) ? $\"{goroute("catsort")}\" : (model != null && sort != null) ? $\"{goroute("modelsort")}\" : model != null ? $\"{goroute("model")}\" : cat != null ? $\"{goroute("cat")}\" : sort != null ? $\"{goroute("sort")}\" : \"{url}\";";
+                    url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+                }
+            }
+
+            if (init.route?.eval != null)
+                url = CSharpEval.Execute<string>(init.route.eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+            #endregion
+
+            if (!string.IsNullOrEmpty(data))
+            {
+                if (!string.IsNullOrEmpty(search))
+                {
+                    string _s = encodingRequest != default ? HttpUtility.UrlEncode(search, encodingRequest) : HttpUtility.UrlEncode(search);
+                    data = data.Replace("{search}", _s);
+                }
+
+                data = data.Replace("{page}", pg.ToString());
+
+                html = rch.enable
+                    ? await rch.Post(url.Replace("{page}", pg.ToString()), data, httpHeaders(init))
+                    : await Http.Post(url.Replace("{page}", pg.ToString()), data, encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+            }
+            else
+            {
+                html = rch.enable 
+                    ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) 
+                    : init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) 
+                    : init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) 
+                    : await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, model, pg);
+            }
+
+            return html;
         }
         #endregion
     }

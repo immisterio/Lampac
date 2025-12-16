@@ -32,6 +32,7 @@
 		<PackageReference Include="NetVips" Version="3.1.0" />
 		<PackageReference Include="NetVips.Native" Version="8.17.1" />
 		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.8" />
+		<PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.1" />
 		<PackageReference Include="System.Text.Json" Version="9.0.8" />
 		<PackageReference Include="Titanium.Web.Proxy" Version="3.2.0" />
 		<PackageReference Include="YamlDotNet" Version="16.3.0" />

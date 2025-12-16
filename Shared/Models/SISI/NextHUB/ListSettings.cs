@@ -8,6 +8,15 @@
 
         public string uri { get; set; }
 
+        /// <summary>
+        /// post
+        /// </summary>
+        public string data { get; set; }
+
+        public string encodingRequest { get; set; }
+
+        public string encodingResponse { get; set; }
+
         public string format { get; set; }
 
         public bool viewsource { get; set; } = true;
