@@ -264,6 +264,24 @@ namespace Shared
         }
         #endregion
 
+        #region ProxyImg
+        public static string ProxyImgMd5(EventProxyImgMd5 model)
+        {
+            if (EventListener.ProxyImgMd5 != null)
+                return EventListener.ProxyImgMd5.Invoke(model);
+
+            string code = conf?.ProxyImg?.Md5Key;
+            if (string.IsNullOrEmpty(code))
+                return null;
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(HttpRequest).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Models.Proxy").AddImports("Shared.Models.Events");
+
+            return Invoke<string>(code, model, option);
+        }
+        #endregion
+
         #region BadInitialization
         public static Task<ActionResult> BadInitialization(EventBadInitialization model)
         {

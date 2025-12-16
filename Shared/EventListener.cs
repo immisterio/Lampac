@@ -15,6 +15,8 @@ namespace Shared
 
         public static Func<EventProxyApiCacheStream, (string uriKey, string contentType)> ProxyApiCacheStream;
 
+        public static Func<EventProxyImgMd5, string> ProxyImgMd5;
+
         public static Func<EventBadInitialization, Task<ActionResult>> BadInitialization;
 
         public static Func<EventHostStreamProxy, string> HostStreamProxy;

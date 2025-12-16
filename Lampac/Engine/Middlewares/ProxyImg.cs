@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine;
 using Shared.Models;
+using Shared.Models.Events;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -135,7 +136,10 @@ namespace Lampac.Engine.Middlewares
                 #endregion
 
                 string md5key = CrypTo.md5($"{href}:{width}:{height}");
-                // httpContext, requestInfo, decryptLink, href, width, height
+
+                string eventMd5Key = InvkEvent.ProxyImgMd5(new EventProxyImgMd5(httpContext, requestInfo, decryptLink, href, width, height));
+                if (!string.IsNullOrWhiteSpace(eventMd5Key))
+                    md5key = eventMd5Key;
 
                 string outFile = Path.Combine("cache", "img", md5key);
 
