@@ -273,7 +273,7 @@ namespace Shared
             {
                 string newKey = EventListener.ProxyImgMd5key.Invoke(model);
                 if (!string.IsNullOrEmpty(newKey))
-                    md5key = newKey;
+                    md5key = CrypTo.md5(newKey);
             }
 
             string code = conf?.ProxyImg?.Md5Key;
@@ -286,7 +286,7 @@ namespace Shared
 
             string eventKey = Invoke<string>(code, model, option);
             if (!string.IsNullOrEmpty(eventKey))
-                md5key = eventKey;
+                md5key = CrypTo.md5(eventKey);
         }
         #endregion
 

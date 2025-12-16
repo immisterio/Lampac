@@ -3,7 +3,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine;
 using Shared.Models;
-using Shared.Models.Events;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;

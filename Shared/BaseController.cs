@@ -172,7 +172,7 @@ namespace Shared
 
             string goEncryptUri(string _uri)
             {
-                string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, headers, verifyip: false, ex: DateTime.Now.AddMinutes(20));
+                string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, headers, plugin: plugin, verifyip: false, ex: DateTime.Now.AddMinutes(20));
                 if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
                     encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
 
