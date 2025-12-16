@@ -26,6 +26,8 @@
 
         public EventModelProxyApi ProxyApi { get; set; }
 
+        public EventModelProxyImg ProxyImg { get; set; }
+
         public EventModelTranscoding Transcoding { get; set; }
 
         public EventModelRch Rch { get; set; }
@@ -110,6 +112,11 @@
         public string CreateHttpRequest { get; set; }
 
         public string CacheStream { get; set; }
+    }
+
+    public class EventModelProxyImg()
+    {
+        public string Md5Key { get; set; }
     }
 
     public class EventModelTranscoding()

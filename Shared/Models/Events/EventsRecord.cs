@@ -52,6 +52,8 @@ namespace Shared.Models.Events
 
     public record EventProxyApiCacheStream(HttpContext httpContext, ProxyLinkModel decryptLink);
 
+    public record EventProxyImgMd5(HttpContext httpContext, RequestModel requestInfo, ProxyLinkModel decryptLink, string href, int width, int height);
+
     public record EventTranscoding(Collection<string> args, int? startNumber, TranscodingStartContext context);
 
     public record EventRchRegistry(string connectionId, string ip, string host, RchClientInfo info, NwsConnection connection);
