@@ -325,7 +325,11 @@ namespace SISI
 
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
 
-            if (conf.sisi.lgbt)
+            bool lgbt = conf.sisi.lgbt;
+            if (kitconf != null && kitconf.Value<bool?>("lgbt") == false)
+                lgbt = false;
+
+            if (lgbt)
             {
                 send("phubgay", conf.PornHub, "phubgay", "apk,cors", 10_100);
                 send("phubtrans", conf.PornHub, "phubsml", "apk,cors", 10_101);
