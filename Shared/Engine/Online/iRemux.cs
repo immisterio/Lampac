@@ -1,4 +1,5 @@
-﻿using Shared.Models.Base;
+﻿using HtmlAgilityPack;
+using Shared.Models.Base;
 using Shared.Models.Online.iRemux;
 using Shared.Models.Templates;
 using System.Text.RegularExpressions;
@@ -92,11 +93,15 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string content = news.Split("page__desc")[1].Split("page__dl")[0];
-            if (!content.Contains("cloud.mail.ru/public/"))
+            var doc = new HtmlDocument();
+            doc.LoadHtml(news);
+
+            var pageDescNode = doc.DocumentNode.SelectSingleNode("//div[@class='page__desc']");
+
+            if (pageDescNode == null || !pageDescNode.InnerHtml.Contains("cloud.mail.ru/public/"))
                 return null;
 
-            result.content = content.Replace("<!--colorend--></span><!--/colorend-->", "");
+            result.content = pageDescNode.InnerHtml;
             return result;
         }
         #endregion
@@ -133,21 +138,27 @@ namespace Shared.Engine.Online
 
             var mtpl = new MovieTpl(title, original_title, 4);
 
-            foreach (Match m in Regex.Matches(result.content, $">([^<]+)(<[^>]+>)?<a href=\"https?://cloud.mail.ru/public/([^\"]+)\""))
+            foreach (var node in HtmlParse.Nodes(result.content, "//div[@class='quote']"))
             {
-                string linkid = m.Groups[3].Value;
+                string linkid = node.Regex("href=\"https?://cloud.mail.ru/public/([^\"]+)\"");
                 if (string.IsNullOrEmpty(linkid))
                     continue;
+
+                bool setAuto = true;
 
                 foreach (string q in new string[] { "2160p", "1080p", "720p", "480p" })
                 {
                     string _qs = q == "480p" ? "1400" : q;
-                    if (m.Groups[1].Value.Contains(_qs))
+                    if (node.row.InnerHtml.Contains(_qs))
                     {
                         mtpl.Append(q, host + $"lite/remux/movie?linkid={linkid}&quality={q}&title={enc_title}&original_title={enc_original_title}", "call");
+                        setAuto = false;
                         break;
                     }
                 }
+
+                if (setAuto)
+                    mtpl.Append("480p", host + $"lite/remux/movie?linkid={linkid}&quality=480p&title={enc_title}&original_title={enc_original_title}", "call");
             }
 
             return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);

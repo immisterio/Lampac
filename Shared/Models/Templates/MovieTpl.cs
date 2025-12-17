@@ -79,7 +79,12 @@ namespace Shared.Models.Templates
                 firstjson = false;
 
                 if (!string.IsNullOrEmpty(i.quality))
-                    html.Append($"<!--{i.quality}p-->");
+                {
+                    if (i.quality.EndsWith("p"))
+                        html.Append($"<!--{i.quality}-->");
+                    else
+                        html.Append($"<!--{i.quality}p-->");
+                }
             }
 
             return html.ToString() + "</div>";
