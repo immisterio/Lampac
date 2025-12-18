@@ -471,8 +471,9 @@ namespace SISI.Controllers.NextHUB
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
                 {
                     resetGotoAsync:
-                    string html = rch.enable ? await rch.Get(url, httpHeaders(init)) :
-                                               await Http.Get(url, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: 8);
+                    string html = rch.enable 
+                        ? await rch.Get(url, httpHeaders(init)) 
+                        : await Http.Get(url, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: 8);
 
                     if (string.IsNullOrEmpty(html))
                         return default;

@@ -13,8 +13,6 @@ namespace Shared.Models.SISI.NextHUB
 
         public int timeout { get; set; } = 10;
 
-        public bool streamproxy_preview { get; set; }
-
         public bool ignore_no_picture { get; set; } = true;
 
         public bool abortMedia { get; set; } = true;

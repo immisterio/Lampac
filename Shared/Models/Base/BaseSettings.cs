@@ -109,6 +109,8 @@ namespace Shared.Models.Base
 
         public bool streamproxy { get; set; }
 
+        public bool streamproxy_preview { get; set; }
+
         public bool apnstream { get; set; }
 
         public string[] geostreamproxy { get; set; }

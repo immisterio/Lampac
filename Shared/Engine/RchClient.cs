@@ -128,7 +128,7 @@ namespace Shared.Engine
 
         public string connectionMsg { get; private set; }
 
-        public string ipkey(string key, ProxyManager? proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
+        public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
 
         public RchClient(string connectionId) 
         {
