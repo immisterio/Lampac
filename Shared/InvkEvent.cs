@@ -329,8 +329,10 @@ namespace Shared
         #endregion
 
         #region HostImgProxy
-        public static string HostImgProxy(EventHostImgProxy model)
+        public static string HostImgProxy(RequestModel requestInfo, HttpContext httpContext, string uri, int height, List<HeadersModel> headers, string plugin)
         {
+            var model = new EventHostImgProxy(requestInfo, httpContext, uri, height, headers, plugin);
+
             if (conf?.Controller?.HostImgProxy == null)
                 return EventListener.HostImgProxy?.Invoke(model);
 
