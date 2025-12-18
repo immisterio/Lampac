@@ -141,7 +141,7 @@ namespace Shared.Engine
             {
                 try
                 {
-                    if (!AppInit.conf.mikrotik)
+                    if (IsUseSql(hash))
                     {
                         using (var sqlDb = new ProxyLinkContext())
                         {
@@ -179,6 +179,22 @@ namespace Shared.Engine
                 return false;
 
             return true;
+        }
+        #endregion
+
+        #region IsUseSql
+        static bool IsUseSql(string hash)
+        {
+            bool useSql = AppInit.conf.mikrotik;
+            if (useSql && AppInit.conf.serverproxy.image.noSqlDb)
+            {
+                string extension = Regex.Match(hash, "\\.([a-z0-9]+)$", RegexOptions.IgnoreCase).Groups[1].Value;
+
+                if (extension is "jpg" or "jpeg" or "png" or "webp")
+                    useSql = false;
+            }
+
+            return useSql;
         }
         #endregion
 
@@ -227,7 +243,7 @@ namespace Shared.Engine
                         {
                             try
                             {
-                                if (AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
+                                if (!IsUseSql(link.Key) || AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
                                 {
                                     if (DateTime.Now > link.Value.ex)
                                         links.TryRemove(link.Key, out _);

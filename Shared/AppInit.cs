@@ -476,7 +476,8 @@ namespace Shared
             {
                 cache = true, 
                 cache_rsize = true,
-                cache_time = 60 // minute
+                cache_time = 60, // minute
+                noSqlDb = true   // не хранить ProxyLink в sql
             },
             maxlength_m3u = 5000000, // 5mb
             maxlength_ts = 40000000  // 40mb

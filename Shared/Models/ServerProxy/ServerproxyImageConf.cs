@@ -10,6 +10,8 @@ namespace Shared.Models.ServerProxy
 
         public int cache_time { get; set; }
 
+        public bool noSqlDb { get; set; }
+
 
         public bool useproxy { get; set; }
 
