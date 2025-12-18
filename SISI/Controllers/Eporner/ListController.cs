@@ -52,7 +52,12 @@ namespace SISI.Controllers.Eporner
                     hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
                 }
 
-                return OnResult(playlists, EpornerTo.Menu(host, search, sort, c), plugin: init.plugin);
+                return OnResult(
+                    playlists, 
+                    EpornerTo.Menu(host, search, sort, c), 
+                    plugin: init.plugin, 
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
     }

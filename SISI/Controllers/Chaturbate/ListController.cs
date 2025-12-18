@@ -52,7 +52,12 @@ namespace SISI.Controllers.Chaturbate
                     hybridCache.Set(memKey, playlists, cacheTime(5, init: init), inmemory: false);
                 }
 
-                return OnResult(playlists, ChaturbateTo.Menu(host, sort), plugin: init.plugin);
+                return OnResult(
+                    playlists, 
+                    ChaturbateTo.Menu(host, sort), 
+                    plugin: init.plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
     }

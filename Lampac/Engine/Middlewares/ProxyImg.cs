@@ -217,7 +217,11 @@ namespace Lampac.Engine.Middlewares
                             Version = HttpVersion.Version11
                         };
 
-                        Http.DefaultRequestHeaders(href, req, null, null, decryptLink?.headers);
+                        bool useDefaultHeaders = true;
+                        if (decryptLink?.headers != null && decryptLink.headers.Count > 0 && decryptLink.headers.FirstOrDefault(i => i.name.ToLower() == "user-agent") != null)
+                            useDefaultHeaders = false;
+
+                        Http.DefaultRequestHeaders(href, req, null, null, decryptLink?.headers, useDefaultHeaders: useDefaultHeaders);
 
                         using (HttpResponseMessage response = await client.SendAsync(req, ctsHttp.Token).ConfigureAwait(false))
                         {
@@ -413,7 +417,12 @@ namespace Lampac.Engine.Middlewares
                     Version = HttpVersion.Version11
                 };
 
-                Http.DefaultRequestHeaders(url, req, null, null, headers);
+
+                bool useDefaultHeaders = true;
+                if (headers != null && headers.Count > 0 && headers.FirstOrDefault(i => i.name.ToLower() == "user-agent") != null)
+                    useDefaultHeaders = false;
+
+                Http.DefaultRequestHeaders(url, req, null, null, headers, useDefaultHeaders: useDefaultHeaders);
 
                 using (HttpResponseMessage response = await client.SendAsync(req, cancellationToken).ConfigureAwait(false))
                 {

@@ -184,7 +184,13 @@ namespace SISI.Controllers.NextHUB
                     total_pages = init.model.total_pages;
                 #endregion
 
-                return OnResult(playlists, menu.Count == 0 ? null : menu, plugin: init.plugin, total_pages: total_pages);
+                return OnResult(
+                    playlists, 
+                    menu.Count == 0 ? null : menu, 
+                    plugin: init.plugin, 
+                    total_pages: total_pages,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
 

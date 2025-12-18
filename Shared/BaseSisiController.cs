@@ -116,7 +116,7 @@ namespace Shared
                     name = pl.name,
                     video = HostStreamProxy(conf, pl.video, proxy: proxy),
                     model = pl.model,
-                    picture = HostImgProxy(pl.picture, plugin: conf?.plugin),
+                    picture = HostImgProxy(pl.picture, plugin: conf?.plugin, headers: httpHeaders(init.host, init.headers_image)),
                     preview = pl.preview,
                     time = pl.time,
                     json = pl.json,
@@ -132,7 +132,7 @@ namespace Shared
             return new JsonResult(result);
         }
 
-        public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, List<HeadersModel> headers = null, int total_pages = 0, string plugin = null)
+        public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, List<HeadersModel> imageHeaders = null, int total_pages = 0, string plugin = null)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
@@ -147,7 +147,7 @@ namespace Shared
                     name = pl.name,
                     video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
                     model = pl.model,
-                    picture = HostImgProxy(pl.picture, plugin: plugin, headers: headers),
+                    picture = HostImgProxy(pl.picture, plugin: plugin, headers: imageHeaders),
                     preview = pl.preview,
                     time = pl.time,
                     json = pl.json,

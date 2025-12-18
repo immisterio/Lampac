@@ -61,7 +61,13 @@ namespace SISI.Controllers.BongaCams
                     hybridCache.Set(memKey, cache, cacheTime(5, init: init), inmemory: false);
                 }
 
-                return OnResult(cache.playlists, init, BongaCamsTo.Menu(host, sort), proxy: proxy.proxy, total_pages: cache.total_pages);
+                return OnResult(
+                    cache.playlists, 
+                    init, 
+                    BongaCamsTo.Menu(host, sort), 
+                    proxy: proxy.proxy, 
+                    total_pages: cache.total_pages
+                );
             });
         }
     }

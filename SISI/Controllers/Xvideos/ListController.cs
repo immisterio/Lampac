@@ -53,7 +53,12 @@ namespace SISI.Controllers.Xvideos
                     hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
                 }
 
-                return OnResult(playlists, string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, plugin: init.plugin);
+                return OnResult(
+                    playlists, 
+                    string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, 
+                    plugin: init.plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
 
@@ -105,9 +110,12 @@ namespace SISI.Controllers.Xvideos
                     hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
                 }
 
-
-                // XvideosTo.PornstarsMenu(host, plugin, sort)
-                return OnResult(playlists, null, plugin: init.plugin);
+                return OnResult(
+                    playlists, 
+                    null, // XvideosTo.PornstarsMenu(host, plugin, sort)
+                    plugin: init.plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
     }

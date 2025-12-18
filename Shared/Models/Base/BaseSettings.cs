@@ -84,6 +84,12 @@ namespace Shared.Models.Base
         )]
         public Dictionary<string, string> headers_stream { get; set; }
 
+        [JsonProperty("headers_image",
+            ObjectCreationHandling = ObjectCreationHandling.Replace,   // ← заменить, а не дополнять
+            NullValueHandling = NullValueHandling.Ignore               // ← не затирать null-ом
+        )]
+        public Dictionary<string, string> headers_image { get; set; }
+
         public VastConf vast { get; set; }
 
         public string priorityBrowser { get; set; }

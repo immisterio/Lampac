@@ -60,7 +60,12 @@ namespace SISI.Controllers.Ebalovo
                     hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
                 }
 
-                return OnResult(playlists, string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null, plugin: init.plugin);
+                return OnResult(
+                    playlists, 
+                    string.IsNullOrEmpty(search) ? EbalovoTo.Menu(host, sort, c) : null, 
+                    plugin: init.plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
     }

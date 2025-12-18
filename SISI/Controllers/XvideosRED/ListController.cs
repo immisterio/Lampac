@@ -68,7 +68,12 @@ namespace SISI.Controllers.XvideosRED
                 if (ismain)
                     playlists = playlists.Skip((pg * 36) - 36).Take(36).ToList();
 
-                return OnResult(playlists, string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, plugin: plugin);
+                return OnResult(
+                    playlists, 
+                    string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, 
+                    plugin: plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
     }

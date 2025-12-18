@@ -512,7 +512,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "6c7358641419259e916bd8724c59890a3085d68a"
+            tree = "42b1456ffeea4dfa02eb7d212f3393428fcc4e61"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -528,7 +528,7 @@ namespace Shared
         {
             NextHUB = true, spider = true, lgbt = true,
             component = "sisi", iconame = "", push_all = true,
-            heightPicture = 240, rsize = true, rsize_disable = ["Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Porntrex", "Xnxx", "Porndig", "Youjizz", "Veporn", "Pornk"],
+            heightPicture = 240, rsize = true, rsize_disable = ["Chaturbate", "PornHub", "PornHubPremium", "HQporner", "Spankbang", "Eporner", "Porntrex", "Xnxx", "Porndig", "Youjizz", "Veporn", "Pornk"],
             bookmarks = new BookmarksConf() { saveimage = true, savepreview = true },
             history = new HistoryConf() { enable = true, days = 30 }
         };
@@ -628,7 +628,14 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Eporner { get; set; } = new SisiSettings("Eporner", "kwwsv=22zzz1hsruqhu1frp", streamproxy: true);
+        public SisiSettings Eporner { get; set; } = new SisiSettings("Eporner", "kwwsv=22zzz1hsruqhu1frp", streamproxy: true) 
+        {
+            headers_image = HeadersModel.Init(
+                ("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
+                ("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"),
+                ("Cache-Control", "max-age=0")
+            ).ToDictionary()
+        };
 
         public SisiSettings HQporner { get; set; } = new SisiSettings("HQporner", "kwwsv=22p1ktsruqhu1frp")
         {
@@ -639,6 +646,9 @@ namespace Shared
         public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true)
         {
             headers_stream = HeadersModel.Init(
+                ("referer", "{host}/")
+            ).ToDictionary(),
+            headers_image = HeadersModel.Init(
                 ("referer", "{host}/")
             ).ToDictionary()
         };
@@ -651,6 +661,11 @@ namespace Shared
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site")
+            ).ToDictionary(),
+            headers_image = HeadersModel.Init(
+                ("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
+                ("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"),
+                ("Cache-Control", "max-age=0")
             ).ToDictionary()
         };
 
@@ -670,6 +685,11 @@ namespace Shared
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-site", "same-origin"),
                 ("sec-fetch-mode", "navigate")
+            ).ToDictionary(),
+            headers_image = HeadersModel.Init(
+                ("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
+                ("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"),
+                ("Cache-Control", "max-age=0")
             ).ToDictionary()
         };
 
@@ -680,6 +700,11 @@ namespace Shared
                 ("sec-fetch-site", "none"),
                 ("sec-fetch-user", "?1"),
                 ("upgrade-insecure-requests", "1")
+            ).ToDictionary(),
+            headers_image = HeadersModel.Init(
+                ("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
+                ("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"),
+                ("Cache-Control", "max-age=0")
             ).ToDictionary()
         };
         #endregion

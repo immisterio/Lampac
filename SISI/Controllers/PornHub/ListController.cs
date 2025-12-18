@@ -57,7 +57,13 @@ namespace SISI.Controllers.PornHub
                     hybridCache.Set(memKey, cache, cacheTime(10, init: init), inmemory: false);
                 }
 
-                return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, plugin: init.plugin, total_pages: cache.total_pages);
+                return OnResult(
+                    cache.playlists, 
+                    string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, 
+                    plugin: init.plugin, 
+                    total_pages: cache.total_pages,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
 
@@ -94,7 +100,13 @@ namespace SISI.Controllers.PornHub
                 hybridCache.Set(memKey, cache, cacheTime(10, init: init), inmemory: false);
             }
 
-            return OnResult(cache.playlists, string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, "phubprem", search, sort, c, hd) : null, plugin: "phubprem", total_pages: cache.total_pages);
+            return OnResult(
+                cache.playlists, 
+                string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, "phubprem", search, sort, c, hd) : null, 
+                plugin: "phubprem", 
+                total_pages: cache.total_pages,
+                imageHeaders: httpHeaders(init.host, init.headers_image)
+            );
         }
     }
 }

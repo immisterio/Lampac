@@ -58,7 +58,7 @@ namespace SISI.Controllers.Tizam
                     hybridCache.Set(memKey, playlists, cacheTime(60, init: init), inmemory: false);
                 }
 
-                return OnResult(playlists, null, plugin: init.plugin);
+                return OnResult(playlists, null, plugin: init.plugin, imageHeaders: httpHeaders(init.host, init.headers_image));
             });
         }
 

@@ -55,7 +55,12 @@ namespace SISI.Controllers.Xhamster
                     hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
                 }
 
-                return OnResult(playlists, string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null, plugin: init.plugin);
+                return OnResult(
+                    playlists, 
+                    string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null, 
+                    plugin: init.plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
     }

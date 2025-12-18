@@ -50,7 +50,12 @@ namespace SISI.Controllers.Xnxx
                     hybridCache.Set(memKey, playlists, cacheTime(10), inmemory: false);
                 }
 
-                return OnResult(playlists, string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, plugin: init.plugin);
+                return OnResult(
+                    playlists, 
+                    string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null, 
+                    plugin: init.plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
             });
         }
     }

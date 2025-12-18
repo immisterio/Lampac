@@ -237,6 +237,7 @@ cat <<EOF > Lampac.runtimeconfig.json
 EOF
 
 # clear
+rm -rf NextHUB/examples
 rm -f data/GeoLite2-Country.mmdb
 rm -rf .playwright merchant torrserver wwwroot/bwa
 rm -rf data/widgets
