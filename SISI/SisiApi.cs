@@ -284,6 +284,8 @@ namespace SISI
                         if (init.debug)
                             Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
 
+                        init = await loadKit(init);
+
                         if (PlaywrightBrowser.Status == PlaywrightStatus.disabled || init.rhub)
                         {
                             if (init.priorityBrowser != "http" || (init.view != null && init.view.viewsource == false))
