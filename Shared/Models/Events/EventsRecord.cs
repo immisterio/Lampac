@@ -34,6 +34,8 @@ namespace Shared.Models.Events
 
     public record EventHostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers, WebProxy proxy, RequestModel requestInfo, HttpContext httpContext, HybridCache hybridCache);
 
+    public record EventHostImgProxy(RequestModel requestInfo, HttpContext httpContext, string uri, int height, List<HeadersModel> headers, string plugin);
+
     public record EventMyLocalIp(RequestModel requestInfo, HttpRequest request, HttpContext httpContext, HybridCache hybridCache);
 
     public record EventControllerHttpHeaders(string site, List<HeadersModel> headers, RequestModel requestInfo, HttpRequest request, HttpContext httpContext);

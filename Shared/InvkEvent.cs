@@ -328,6 +328,21 @@ namespace Shared
         }
         #endregion
 
+        #region HostImgProxy
+        public static string HostImgProxy(EventHostImgProxy model)
+        {
+            if (conf?.Controller?.HostImgProxy == null)
+                return EventListener.HostImgProxy?.Invoke(model);
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models").AddImports("Shared.Models.Base").AddImports("Shared.Engine")
+                .AddImports("System.Collections.Generic");
+
+            return Invoke<string>(conf.Controller.HostImgProxy, model, option);
+        }
+        #endregion
+
         #region MyLocalIp
         public static Task<string> MyLocalIp(EventMyLocalIp model)
         {

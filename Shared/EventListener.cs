@@ -21,6 +21,8 @@ namespace Shared
 
         public static Func<EventHostStreamProxy, string> HostStreamProxy;
 
+        public static Func<EventHostImgProxy, string> HostImgProxy;
+
         public static Func<EventMyLocalIp, Task<string>> MyLocalIp;
 
         public static Func<EventControllerHttpHeaders, List<HeadersModel>> HttpHeaders;

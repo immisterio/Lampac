@@ -185,6 +185,10 @@ namespace Shared
             if (plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(plugin))
                 return uri;
 
+            string eventUri = InvkEvent.HostImgProxy(new EventHostImgProxy(requestInfo, HttpContext, uri, height, headers, plugin));
+            if (eventUri != null)
+                return eventUri;
+
             if (width == 0 && height == 0 || plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin))
             {
                 if (!string.IsNullOrEmpty(init.bypass_host))

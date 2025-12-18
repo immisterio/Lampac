@@ -45,6 +45,8 @@
 
         public string HostStreamProxy { get; set; }
 
+        public string HostImgProxy { get; set; }
+
         public string MyLocalIp { get; set; }
 
         public string HttpHeaders { get; set; }
