@@ -131,6 +131,10 @@ namespace SISI
             var conf = AppInit.conf;
             JObject kitconf = await loadKitConf();
 
+            bool lgbt = conf.sisi.lgbt;
+            if (kitconf != null && kitconf.Value<bool?>("lgbt") == false)
+                lgbt = false;
+
             var channels = new List<ChannelItem>(conf.sisi.NextHUB ? 50 : 20) 
             {
                 new ChannelItem("Закладки", $"{host}/sisi/bookmarks", 0)
@@ -270,7 +274,7 @@ namespace SISI
                             continue;
 
                         string plugin = Path.GetFileNameWithoutExtension(inFile);
-                        if (!conf.sisi.lgbt && plugin == "gayporntube")
+                        if (!lgbt && plugin == "gayporntube")
                             continue;
 
                         var init = Controllers.NextHUB.Root.goInit(plugin);
@@ -280,7 +284,7 @@ namespace SISI
                         if (init.debug)
                             Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
 
-                        if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
+                        if (PlaywrightBrowser.Status == PlaywrightStatus.disabled || init.rhub)
                         {
                             if (init.priorityBrowser != "http" || (init.view != null && init.view.viewsource == false))
                             {
@@ -324,10 +328,6 @@ namespace SISI
                 send("runetki.com", conf.Runetki, "runetki", "apk");
 
             send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
-
-            bool lgbt = conf.sisi.lgbt;
-            if (kitconf != null && kitconf.Value<bool?>("lgbt") == false)
-                lgbt = false;
 
             if (lgbt)
             {

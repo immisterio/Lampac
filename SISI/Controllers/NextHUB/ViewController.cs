@@ -23,11 +23,13 @@ namespace SISI.Controllers.NextHUB
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
-            var init = Root.goInit(plugin)?.Clone();
+            var init = Root.goInit(plugin);
             if (init == null)
                 return OnError("init not found");
 
-            if (await IsBadInitialization(init, rch: false))
+            init = await loadKit(init);
+
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             var proxyManager = new ProxyManager(init);
@@ -43,6 +45,7 @@ namespace SISI.Controllers.NextHUB
             return await InvkSemaphore($"nexthub:InvkSemaphore:{url}", async () =>
             {
                 (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) video = default;
+
                 if ((init.view.priorityBrowser ?? init.priorityBrowser) == "http" && init.view.viewsource &&
                     (init.view.nodeFile != null || init.view.eval != null || init.view.regexMatch != null) &&
                      init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
@@ -58,6 +61,9 @@ namespace SISI.Controllers.NextHUB
                 }
                 else
                 {
+                    if (rch.enable)
+                        return OnError("rch not supported");
+
                     video = await goVideoToBrowser(plugin, url, init, proxyManager, proxy.data);
                     if (string.IsNullOrEmpty(video.file))
                         return OnError("file");

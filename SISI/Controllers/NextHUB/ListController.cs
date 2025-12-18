@@ -20,11 +20,13 @@ namespace SISI.Controllers.NextHUB
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
 
-            var init = Root.goInit(plugin)?.Clone();
+            var init = Root.goInit(plugin);
             if (init == null)
                 return OnError("init not found", rcache: false);
 
-            if (await IsBadInitialization(init, rch: false))
+            init = await loadKit(init);
+
+            if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
             if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(init.search?.uri))

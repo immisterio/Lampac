@@ -44,6 +44,9 @@ namespace Shared.Models.Base
 
         public string[] geo_hide { get; set; }
 
+        /// <summary>
+        /// rch_access
+        /// </summary>
         public string client_type { get; set; }
 
         public bool rip { get; set; }
