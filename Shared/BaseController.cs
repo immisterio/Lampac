@@ -175,7 +175,7 @@ namespace Shared
             {
                 var _head = headers != null && headers.Count > 0 ? headers: null;
 
-                string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, _head, plugin: plugin, verifyip: false, ex: DateTime.Now.AddMinutes(20));
+                string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, _head, plugin: plugin, verifyip: false, ex: DateTime.Now.AddMinutes(20), IsProxyImg: true);
                 if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
                     encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
 

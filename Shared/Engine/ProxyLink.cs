@@ -27,11 +27,11 @@ namespace Shared.Engine
 
 
         #region Encrypt
-        public string Encrypt(string uri, string plugin, DateTime ex = default) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin);
+        public string Encrypt(string uri, string plugin, DateTime ex = default, bool IsProxyImg = false) => Encrypt(uri, null, verifyip: false, ex: ex, plugin: plugin, IsProxyImg: IsProxyImg);
 
         public static string Encrypt(string uri, ProxyLinkModel p, bool forceMd5 = false) => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, p.verifyip, forceMd5: forceMd5);
 
-        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false)
+        public static string Encrypt(string uri, string reqip, List<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false, bool IsProxyImg = false)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return string.Empty;
@@ -68,34 +68,48 @@ namespace Shared.Engine
                 hash = CrypTo.md5(uri_clear + (verifyip && AppInit.conf.serverproxy.verifyip ? reqip : string.Empty));
             }
 
-            if (uri.Contains(".m3u8"))
-                hash += ".m3u8";
-            else if (uri.Contains(".m3u"))
-                hash += ".m3u";
-            else if (uri.Contains(".mpd"))
-                hash += ".mpd";
-            else if (uri.Contains(".webm"))
-                hash += ".webm";
-            else if (uri.Contains(".ts"))
-                hash += ".ts";
-            else if (uri.Contains(".m4s"))
-                hash += ".m4s";
-            else if (uri.Contains(".mp4"))
-                hash += ".mp4";
-            else if (uri.Contains(".mkv"))
-                hash += ".mkv";
-            else if (uri.Contains(".aac"))
-                hash += ".aac";
-            else if (uri.Contains(".jpg") || uri.Contains(".jpeg"))
-                hash += ".jpg";
-            else if (uri.Contains(".png"))
-                hash += ".png";
-            else if (uri.Contains(".webp"))
-                hash += ".webp";
-            else if (uri.Contains(".vtt"))
-                hash += ".vtt";
-            else if (uri.Contains(".srt"))
-                hash += ".srt";
+            if (IsProxyImg)
+            {
+                if (uri.Contains(".png"))
+                    hash += ".png";
+                else if (uri.Contains(".webp"))
+                    hash += ".webp";
+                else
+                    hash += ".jpg";
+            }
+            else
+            {
+                if (uri.Contains(".m3u8"))
+                    hash += ".m3u8";
+                else if (uri.Contains(".m3u"))
+                    hash += ".m3u";
+                else if (uri.Contains(".mpd"))
+                    hash += ".mpd";
+                else if (uri.Contains(".webm"))
+                    hash += ".webm";
+                else if (uri.Contains(".ts"))
+                    hash += ".ts";
+                else if (uri.Contains(".m4s"))
+                    hash += ".m4s";
+                else if (uri.Contains(".mp4"))
+                    hash += ".mp4";
+                else if (uri.Contains(".mov"))
+                    hash += ".mov";
+                else if (uri.Contains(".mkv"))
+                    hash += ".mkv";
+                else if (uri.Contains(".aac"))
+                    hash += ".aac";
+                else if (uri.Contains(".vtt"))
+                    hash += ".vtt";
+                else if (uri.Contains(".srt"))
+                    hash += ".srt";
+                else if (uri.Contains(".jpg") || uri.Contains(".jpeg"))
+                    hash += ".jpg";
+                else if (uri.Contains(".png"))
+                    hash += ".png";
+                else if (uri.Contains(".webp"))
+                    hash += ".webp";
+            }
 
             if (IsMd5)
             {
@@ -243,7 +257,7 @@ namespace Shared.Engine
                         {
                             try
                             {
-                                if (!IsUseSql(link.Key) || AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
+                                if (IsUseSql(link.Key) == false || AppInit.conf.mikrotik || link.Value.proxy != null || DateTime.Now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
                                 {
                                     if (DateTime.Now > link.Value.ex)
                                         links.TryRemove(link.Key, out _);

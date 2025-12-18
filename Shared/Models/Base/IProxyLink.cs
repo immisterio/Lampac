@@ -2,6 +2,6 @@
 {
     public interface IProxyLink
     {
-        public string Encrypt(string uri, string plugin, DateTime ex = default);
+        public string Encrypt(string uri, string plugin, DateTime ex = default, bool IsProxyImg = false);
     }
 }
