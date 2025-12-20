@@ -701,7 +701,7 @@ namespace Online.Controllers
             #endregion
 
             #region send
-            void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, string rch_access = null, BaseSettings myinit = null)
+            void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, BaseSettings myinit = null)
             {
                 var init = myinit != null ? _init : loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
@@ -710,9 +710,9 @@ namespace Online.Controllers
 
                 if (init.rhub && !init.rhub_fallback)
                 {
-                    if (rch_access != null && rchtype != null) 
+                    if (init.rch_access != null && rchtype != null) 
                     {
-                        enable = rch_access.Contains(rchtype);
+                        enable = init.rch_access.Contains(rchtype);
                         if (enable && init.rhub_geo_disable != null)
                         {
                             if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
@@ -789,8 +789,8 @@ namespace Online.Controllers
                 send(conf.AniLiberty);
                 send(conf.AnilibriaOnline, "anilibria", "Anilibria");
                 send(conf.AnimeLib);
-                send(conf.Animevost, rch_access: "apk,cors");
-                send(conf.Animebesst, rch_access: "apk");
+                send(conf.Animevost);
+                send(conf.Animebesst);
                 send(conf.AnimeGo);
                 send(conf.AniMedia);
                 send(conf.MoonAnime);
@@ -875,7 +875,7 @@ namespace Online.Controllers
                     }
                 }
 
-                send(myinit, myinit: myinit, rch_access: "apk");
+                send(myinit, myinit: myinit);
             }
 
             send(conf.FilmixTV, "filmixtv");
@@ -931,12 +931,12 @@ namespace Online.Controllers
                 send(conf.Kinobase);
 
             if (conf.VDBmovies.rhub || conf.VDBmovies.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VDBmovies.overridehost) || conf.VDBmovies.overridehosts?.Length > 0)
-                send(conf.VDBmovies, rch_access: "apk");
+                send(conf.VDBmovies);
 
             if (kinopoisk_id > 0)
             {
                 if (conf.VideoDB.rhub || conf.VideoDB.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.VideoDB.overridehost) || conf.VideoDB.overridehosts?.Length > 0)
-                    send(conf.VideoDB, rch_access: "apk");
+                    send(conf.VideoDB);
 
                 if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Zetflix.overridehost) || conf.Zetflix.overridehosts?.Length > 0)
                     send(conf.Zetflix);
@@ -945,7 +945,7 @@ namespace Online.Controllers
             if (serial == -1 || serial == 0 || !string.IsNullOrEmpty(conf.FanCDN.token) || !string.IsNullOrEmpty(conf.FanCDN.overridehost) || conf.FanCDN.overridehosts?.Length > 0)
             {
                 if (conf.FanCDN.rhub || conf.FanCDN.priorityBrowser == "http" || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.FanCDN.overridehost) || conf.FanCDN.overridehosts?.Length > 0)
-                    send(conf.FanCDN, rch_access: "apk");
+                    send(conf.FanCDN);
             }
 
             send(conf.VideoCDN);
@@ -954,15 +954,15 @@ namespace Online.Controllers
                 send(conf.Lumex);
 
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Kinogo.overridehost) || conf.Kinogo.overridehosts?.Length > 0)
-                send(conf.Kinogo, rch_access: "apk");
+                send(conf.Kinogo);
 
             if (kinopoisk_id > 0)
                 send(conf.Ashdi, "ashdi", "Ashdi (Украинский)");
 
             if (!isanime)
-                send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)", rch_access: "apk,cors");
+                send(conf.Kinoukr, "kinoukr", "Kinoukr (Украинский)");
 
-            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)", rch_access: "apk,cors");
+            send(conf.Eneyida, "eneyida", "Eneyida (Украинский)");
 
             #region Collaps
             {
@@ -975,24 +975,24 @@ namespace Online.Controllers
                     return i;
                 });
 
-                send(myinit, "collaps", $"Collaps ({(myinit.dash ? "DASH" : "HLS")})", rch_access: "apk", myinit: myinit);
+                send(myinit, "collaps", $"Collaps ({(myinit.dash ? "DASH" : "HLS")})", myinit: myinit);
 
                 if (myinit.two && !myinit.dash)
-                    send(myinit, "collaps-dash", "Collaps (DASH)", rch_access: "apk");
+                    send(myinit, "collaps-dash", "Collaps (DASH)");
             }
             #endregion
 
             if (serial == -1 || serial == 0)
             {
-                send(conf.Plvideo, "plvideo", "Plvideo", rch_access: "apk,cors");
-                send(conf.RutubeMovie, "rutubemovie", "Rutube", rch_access: "apk,cors");
-                send(conf.VkMovie, "vkmovie", "VK Видео", rch_access: "apk,cors");
+                send(conf.Plvideo, "plvideo", "Plvideo");
+                send(conf.RutubeMovie, "rutubemovie", "Rutube");
+                send(conf.VkMovie, "vkmovie", "VK Видео");
             }
 
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Videoseed.overridehost) || conf.Videoseed.overridehosts?.Length > 0)
                 send(conf.Videoseed);
 
-            send(conf.Vibix, rch_access: "apk");
+            send(conf.Vibix);
             send(conf.VeoVeo);
 
             if (serial == -1 || serial == 0)
@@ -1027,19 +1027,19 @@ namespace Online.Controllers
             #endregion
 
             if (serial == -1 || serial == 0)
-                send(conf.Redheadsound, rch_access: "apk");
+                send(conf.Redheadsound);
 
-            send(conf.HDVB, rch_access: "apk");
-            send(conf.Kinotochka, rch_access: "apk,cors");
+            send(conf.HDVB);
+            send(conf.Kinotochka);
 
             if ((serial == -1 || (serial == 1 && !isanime)) && kinopoisk_id > 0)
-                send(conf.CDNmovies, rch_access: "apk,cors");
+                send(conf.CDNmovies);
 
             if (serial == -1 || serial == 0)
                 send(conf.IframeVideo);
 
             if (kinopoisk_id > 0 && !isanime)
-                send(conf.CDNvideohub, "cdnvideohub", "VideoHUB", rch_access: "apk,cors");
+                send(conf.CDNvideohub, "cdnvideohub", "VideoHUB");
 
             #region ENG
             if ((original_language == null || original_language == "en") && conf.disableEng == false)

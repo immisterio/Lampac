@@ -45,9 +45,14 @@ namespace Shared.Models.Base
         public string[] geo_hide { get; set; }
 
         /// <summary>
-        /// rch_access
+        /// Список устройств которым выводить источник не зависимво от rhub
         /// </summary>
         public string client_type { get; set; }
+
+        /// <summary>
+        /// Список устройств которым выводить источник при включеном rhub
+        /// </summary>
+        public string rch_access { get; set; }
 
         public bool rip { get; set; }
 

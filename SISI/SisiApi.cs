@@ -193,7 +193,7 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings _init, string plugin = null, string rch_access = null, int displayindex = -1)
+            void send(string name, BaseSettings _init, string plugin = null, int displayindex = -1)
             {
                 var init = loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
@@ -205,9 +205,9 @@ namespace SISI
 
                 if (init.rhub && !init.rhub_fallback)
                 {
-                    if (rch_access != null && rchtype != null)
+                    if (init.rch_access != null && rchtype != null)
                     {
-                        enable = rch_access.Contains(rchtype);
+                        enable = init.rch_access.Contains(rchtype);
                         if (enable && init.rhub_geo_disable != null)
                         {
                             if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
@@ -296,7 +296,7 @@ namespace SISI
                             }
                         }
 
-                        send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}", init.client_type);
+                        send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}");
                     }
                     catch (YamlDotNet.Core.YamlException ex)
                     {
@@ -308,37 +308,37 @@ namespace SISI
             #endregion
 
             send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
-            send("pornhub.com", conf.PornHub, "phub", "apk,cors");
-            send("xvideos.com", conf.Xvideos, "xds", "apk,cors");
-            send("xhamster.com", conf.Xhamster, "xmr", "apk,cors");
-            send("ebalovo.porn", conf.Ebalovo, "elo", "apk");
-            send("hqporner.com", conf.HQporner, "hqr", "apk,cors");
+            send("pornhub.com", conf.PornHub, "phub");
+            send("xvideos.com", conf.Xvideos, "xds");
+            send("xhamster.com", conf.Xhamster, "xmr");
+            send("ebalovo.porn", conf.Ebalovo, "elo");
+            send("hqporner.com", conf.HQporner, "hqr");
 
             if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Spankbang.overridehost) || conf.Spankbang.overridehosts?.Length > 0)
                 send("spankbang.com", conf.Spankbang, "sbg");
 
-            send("eporner.com", conf.Eporner, "epr", "apk,cors");
-            send("porntrex.com", conf.Porntrex, "ptx", "apk");
+            send("eporner.com", conf.Eporner, "epr");
+            send("porntrex.com", conf.Porntrex, "ptx");
             send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
-            send("xnxx.com", conf.Xnxx, "xnx", "apk,cors");
-            send("tizam.pw", conf.Tizam, "tizam", "apk,cors");
+            send("xnxx.com", conf.Xnxx, "xnx");
+            send("tizam.pw", conf.Tizam, "tizam");
 
             if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.BongaCams.overridehost) || conf.BongaCams.overridehosts?.Length > 0)
-                send("bongacams.com", conf.BongaCams, "bgs", "apk");
+                send("bongacams.com", conf.BongaCams, "bgs");
 
             if (conf.Runetki.priorityBrowser == "http" || conf.Runetki.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Runetki.overridehost) || conf.Runetki.overridehosts?.Length > 0)
-                send("runetki.com", conf.Runetki, "runetki", "apk");
+                send("runetki.com", conf.Runetki, "runetki");
 
-            send("chaturbate.com", conf.Chaturbate, "chu", "apk,cors");
+            send("chaturbate.com", conf.Chaturbate, "chu");
 
             if (lgbt)
             {
-                send("phubgay", conf.PornHub, "phubgay", "apk,cors", 10_100);
-                send("phubtrans", conf.PornHub, "phubsml", "apk,cors", 10_101);
-                send("xdsgay", conf.Xvideos, "xdsgay", "apk,cors", 10_102);
-                send("xdstrans", conf.Xvideos, "xdssml", "apk,cors", 10_103);
-                send("xmrgay", conf.Xhamster, "xmrgay", "apk,cors", 10_104);
-                send("xmrtrans", conf.Xhamster, "xmrsml", "apk,cors", 10_105);
+                send("phubgay", conf.PornHub, "phubgay", 10_100);
+                send("phubtrans", conf.PornHub, "phubsml", 10_101);
+                send("xdsgay", conf.Xvideos, "xdsgay", 10_102);
+                send("xdstrans", conf.Xvideos, "xdssml", 10_103);
+                send("xmrgay", conf.Xhamster, "xmrgay", 10_104);
+                send("xmrtrans", conf.Xhamster, "xmrsml", 10_105);
             }
 
             if (conf.sisi.xdb)

@@ -198,7 +198,7 @@ namespace Lampac.Engine.Middlewares
                 return islock;
             }
 
-            if (Regex.IsMatch(uri, "^/(proxy/|proxyimg|lifeevents|externalids|sisi/(bookmarks|historys)|(ts|transcoding|dlna|storage|bookmark|tmdb|cub)/|timecode)"))
+            if (Regex.IsMatch(uri, "^/(testaccsdb|proxy/|proxyimg|lifeevents|externalids|sisi/(bookmarks|historys)|(ts|transcoding|dlna|storage|bookmark|tmdb|cub)/|timecode)"))
             {
                 islock = false;
                 return islock;

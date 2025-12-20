@@ -86,7 +86,7 @@ namespace SISI.Controllers.NextHUB
                 if (string.IsNullOrEmpty(init.plugin))
                     init.plugin = init.displayname;
 
-                if (!init.debug || !AppInit.conf.multiaccess)
+                if (!init.debug)
                 {
                     init = ModuleInvoke.Init(plugin, init);
                     hybridCache.Set(memKey, init, DateTime.Now.AddMinutes(1), inmemory: true);
