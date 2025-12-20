@@ -365,9 +365,12 @@ namespace Shared.Engine
         #endregion
 
         #region IsNotSupport
-        public bool IsNotSupport(string rch_deny, out string rch_msg)
+        public bool IsNotSupport(string? rch_deny, out string rch_msg)
         {
             rch_msg = null;
+
+            if (rch_deny == null)
+                return false;
 
             if (!enableRhub)
                 return false; // rch не используется

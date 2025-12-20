@@ -654,7 +654,7 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp");
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp", rch_access: "apk,cors,web");
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp", rch_access: "apk,cors")
         {
