@@ -160,8 +160,8 @@ namespace Shared.Models.Base
             if (string.IsNullOrWhiteSpace(crhost))
                 return host;
 
-            if (crhost.Contains("{host}"))
-                return crhost.Replace("{host}", host);
+            if (crhost.Contains("{host}") || crhost.Contains("{uri}"))
+                return crhost.Replace("{host}", host).Replace("{uri}", host);
 
             return $"{crhost}/{host}";
         }
@@ -177,8 +177,8 @@ namespace Shared.Models.Base
             if (uri.Contains(Regex.Match(crhost, "https?://([^/]+)", RegexOptions.IgnoreCase).Groups[1].Value))
                 return uri;
 
-            if (crhost.Contains("{host}"))
-                return crhost.Replace("{host}", uri);
+            if (crhost.Contains("{host}") || crhost.Contains("{uri}"))
+                return crhost.Replace("{host}", uri).Replace("{uri}", uri);
 
             return $"{crhost}/{uri}";
         }
