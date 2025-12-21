@@ -172,7 +172,7 @@ namespace Shared.Models.Base
                 return uri;
 
             if (crhost.Contains("{host}"))
-                return crhost.Replace("{host}", host);
+                return crhost.Replace("{host}", uri);
 
             return $"{crhost}/{uri}";
         }
