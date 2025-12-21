@@ -22,7 +22,7 @@ namespace SISI.Controllers.Tizam
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"tizam:view:{uri}";
+            string memKey = $"tizam:view:{uri}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

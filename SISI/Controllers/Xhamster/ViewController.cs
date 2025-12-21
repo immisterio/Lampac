@@ -23,7 +23,7 @@ namespace SISI.Controllers.Xhamster
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"xhamster:view:{uri}";
+            string memKey = $"xhamster:view:{uri}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

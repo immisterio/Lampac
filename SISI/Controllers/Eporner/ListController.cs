@@ -25,7 +25,7 @@ namespace SISI.Controllers.Eporner
 
             pg += 1;
 
-            string memKey = $"epr:{search}:{sort}:{c}:{pg}";
+            string memKey = $"epr:{search}:{sort}:{c}:{pg}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

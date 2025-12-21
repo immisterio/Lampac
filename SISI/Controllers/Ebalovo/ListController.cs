@@ -23,7 +23,7 @@ namespace SISI.Controllers.Ebalovo
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"elo:{search}:{sort}:{c}:{pg}";
+            string memKey = $"elo:{search}:{sort}:{c}:{pg}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

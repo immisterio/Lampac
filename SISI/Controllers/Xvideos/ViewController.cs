@@ -23,7 +23,7 @@ namespace SISI.Controllers.Xvideos
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"xvideos:view:{uri}";
+            string memKey = $"xvideos:view:{uri}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

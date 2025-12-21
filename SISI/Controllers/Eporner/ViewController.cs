@@ -23,7 +23,7 @@ namespace SISI.Controllers.Eporner
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"eporner:view:{uri}";
+            string memKey = $"eporner:view:{uri}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

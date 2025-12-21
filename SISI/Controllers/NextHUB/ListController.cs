@@ -42,7 +42,7 @@ namespace SISI.Controllers.NextHUB
 
             var proxyManager = new ProxyManager(init);
 
-            string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";
+            string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}:{rch.enable}";
             if (init.menu?.customs != null)
             {
                 foreach (var item in init.menu.customs)

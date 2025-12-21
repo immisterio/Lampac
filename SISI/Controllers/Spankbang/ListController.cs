@@ -24,7 +24,7 @@ namespace SISI.Controllers.Spankbang
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"sbg:{search}:{sort}:{pg}";
+            string memKey = $"sbg:{search}:{sort}:{pg}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

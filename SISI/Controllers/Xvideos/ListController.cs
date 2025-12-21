@@ -26,7 +26,7 @@ namespace SISI.Controllers.Xvideos
                 return OnError(rch_error);
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
-            string memKey = $"{plugin}:list:{search}:{sort}:{c}:{pg}";
+            string memKey = $"{plugin}:list:{search}:{sort}:{c}:{pg}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

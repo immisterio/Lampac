@@ -19,7 +19,7 @@ namespace SISI.Controllers.XvideosRED
             var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
-            string memKey = $"xdsred:view:{uri}";
+            string memKey = $"xdsred:view:{uri}:{rch.enable}";
 
             return await InvkSemaphore(memKey, async () =>
             {

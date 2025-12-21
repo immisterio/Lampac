@@ -23,7 +23,7 @@ namespace SISI.Controllers.PornHub
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"phub:vidosik:{vkey}";
+            string memKey = $"phub:vidosik:{vkey}:{rch.enable}";
             return await InvkSemaphore(memKey, async () =>
             {
                 if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
