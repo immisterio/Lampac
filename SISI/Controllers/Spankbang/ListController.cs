@@ -17,8 +17,12 @@ namespace SISI.Controllers.Spankbang
             var proxy = proxyManager.BaseGet();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport(out string rch_error))
+                return OnError(rch_error);
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
 
@@ -33,9 +37,9 @@ namespace SISI.Controllers.Spankbang
                             return rch.Get(init.cors(url), httpHeaders(init));
 
                         if (init.priorityBrowser == "http")
-                            return Http.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
-                        return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
+                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy.data);
                     });
 
                     playlists = SpankbangTo.Playlist("sbg/vidosik", html);

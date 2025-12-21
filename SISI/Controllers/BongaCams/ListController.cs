@@ -24,7 +24,7 @@ namespace SISI.Controllers.BongaCams
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
             string memKey = $"BongaCams:list:{sort}:{pg}";
@@ -39,9 +39,9 @@ namespace SISI.Controllers.BongaCams
                             return rch.Get(init.cors(url), httpHeaders(init));
 
                         if (init.priorityBrowser == "http")
-                            return Http.Get(url, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
 
-                        return PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy.data);
+                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy.data);
                     });
 
                     cache.playlists = BongaCamsTo.Playlist(html, out int total_pages);

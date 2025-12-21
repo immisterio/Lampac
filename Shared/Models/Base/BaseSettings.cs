@@ -54,6 +54,25 @@ namespace Shared.Models.Base
         /// </summary>
         public string rch_access { get; set; }
 
+        public string rchNotSupport()
+        {
+            if (string.IsNullOrWhiteSpace(rch_access))
+                return null;
+
+            var noAccess = new List<string>(3);
+
+            if (!rch_access.Contains("apk"))
+                noAccess.Add("apk");
+
+            if (!rch_access.Contains("cors"))
+                noAccess.Add("cors");
+
+            if (!rch_access.Contains("web"))
+                noAccess.Add("web");
+
+            return noAccess.Count > 0 ? string.Join(",", noAccess) : null;
+        }
+
         public bool rip { get; set; }
 
         public int cache_time { get; set; }
@@ -138,6 +157,9 @@ namespace Shared.Models.Base
             if (string.IsNullOrWhiteSpace(crhost))
                 return host;
 
+            if (crhost.Contains("{host}"))
+                return crhost.Replace("{host}", host);
+
             return $"{crhost}/{host}";
         }
 
@@ -146,6 +168,9 @@ namespace Shared.Models.Base
             string crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.conf.corsehost : null;
             if (string.IsNullOrWhiteSpace(crhost) || string.IsNullOrWhiteSpace(uri) || uri.Contains(crhost))
                 return uri;
+
+            if (crhost.Contains("{host}"))
+                return crhost.Replace("{host}", host);
 
             return $"{crhost}/{uri}";
         }

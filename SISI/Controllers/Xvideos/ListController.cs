@@ -22,7 +22,7 @@ namespace SISI.Controllers.Xvideos
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;

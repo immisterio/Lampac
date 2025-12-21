@@ -24,17 +24,21 @@ namespace SISI.Controllers.NextHUB
             if (init == null)
                 return OnError("init not found", rcache: false);
 
-            init = await loadKit(init);
-
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(init.search?.uri))
                 return OnError("search disable");
 
+            init = await loadKit(init);
+
+            if (await IsBadInitialization(init, rch: init.rch_access != null))
+                return badInitMsg;
+
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport(out string rch_error))
+                return OnError(rch_error);
 
             var proxyManager = new ProxyManager(init);
 
@@ -567,28 +571,28 @@ namespace SISI.Controllers.NextHUB
             #endregion
 
             #region формируем url
-            string url = $"{init.host}/{(pg == 1 && init.list.firstpage != null ? init.list.firstpage : init.list.uri)}";
+            string url = $"{init.corsHost()}/{(pg == 1 && init.list.firstpage != null ? init.list.firstpage : init.list.uri)}";
             if (!string.IsNullOrEmpty(search))
             {
                 string uri = pg == 1 && init.search?.firstpage != null ? init.search.firstpage : init.search?.uri;
                 string _s = encodingRequest != default ? HttpUtility.UrlEncode(search, encodingRequest) : HttpUtility.UrlEncode(search);
-                url = $"{init.host}/{uri}".Replace("{search}", _s);
+                url = $"{init.corsHost()}/{uri}".Replace("{search}", _s);
             }
             else
             {
                 if (!string.IsNullOrEmpty(sort))
-                    url = $"{init.host}/{sort}";
+                    url = $"{init.corsHost()}/{sort}";
                 else if (!string.IsNullOrEmpty(cat))
-                    url = $"{init.host}/{init.menu.formatcat(cat)}";
+                    url = $"{init.corsHost()}/{init.menu.formatcat(cat)}";
                 else if (!string.IsNullOrEmpty(model))
                 {
-                    url = $"{init.host}/{model}";
+                    url = $"{init.corsHost()}/{model}";
                     if (init.model?.uri != null)
-                        url = init.model.uri.Replace("{host}", init.host).Replace("{model}", model);
+                        url = init.model.uri.Replace("{host}", init.corsHost()).Replace("{model}", model);
                     else if (init.model?.format != null)
                     {
                         string eval = $"return $\"{init.model.format}\";";
-                        url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+                        url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.corsHost(), plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
                     }
                 }
                 else if (init.menu?.customs != null)
@@ -596,7 +600,7 @@ namespace SISI.Controllers.NextHUB
                     foreach (var c in init.menu.customs)
                     {
                         if (HttpContext.Request.Query.ContainsKey(c.arg))
-                            url = $"{init.host}/{c.format.Replace("{value}", HttpContext.Request.Query[c.arg])}";
+                            url = $"{init.corsHost()}/{c.format.Replace("{value}", HttpContext.Request.Query[c.arg])}";
                     }
                 }
 
@@ -614,12 +618,12 @@ namespace SISI.Controllers.NextHUB
                     }
 
                     string eval = $"return (cat != null && sort != null) ? $\"{goroute("catsort")}\" : (model != null && sort != null) ? $\"{goroute("modelsort")}\" : model != null ? $\"{goroute("model")}\" : cat != null ? $\"{goroute("cat")}\" : sort != null ? $\"{goroute("sort")}\" : \"{url}\";";
-                    url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+                    url = CSharpEval.BaseExecute<string>(eval, new NxtMenuRoute(init.corsHost(), plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
                 }
             }
 
             if (init.route?.eval != null)
-                url = CSharpEval.Execute<string>(init.route.eval, new NxtMenuRoute(init.host, plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
+                url = CSharpEval.Execute<string>(init.route.eval, new NxtMenuRoute(init.corsHost(), plugin, url, search, cat, sort, model, HttpContext.Request.Query, pg));
             #endregion
 
             if (!string.IsNullOrEmpty(data))

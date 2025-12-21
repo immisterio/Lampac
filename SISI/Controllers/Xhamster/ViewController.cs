@@ -20,7 +20,7 @@ namespace SISI.Controllers.Xhamster
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
             string memKey = $"xhamster:view:{uri}";

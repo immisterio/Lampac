@@ -29,28 +29,32 @@ namespace SISI.Controllers.NextHUB
 
             init = await loadKit(init);
 
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(init, rch: init.rch_access != null))
                 return badInitMsg;
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
+            if (rch.IsNotSupport(out string rch_error))
+                return OnError(rch_error);
+
             if (init.view.initUrlEval != null)
-                url = CSharpEval.Execute<string>(init.view.initUrlEval, new NxtUrlRequest(init.host, plugin, url, HttpContext.Request.Query, related));
+                url = CSharpEval.Execute<string>(init.view.initUrlEval, new NxtUrlRequest(init.corsHost(), plugin, url, HttpContext.Request.Query, related));
 
             return await InvkSemaphore($"nexthub:InvkSemaphore:{url}", async () =>
             {
+                var proxyManager = new ProxyManager(init);
+                var proxy = proxyManager.BaseGet();
+
                 (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) video = default;
 
                 if ((init.view.priorityBrowser ?? init.priorityBrowser) == "http" && init.view.viewsource &&
                     (init.view.nodeFile != null || init.view.eval != null || init.view.regexMatch != null) &&
                      init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
                 {
-                    reset: video = await goVideoToHttp(rch, plugin, url, init, proxyManager, proxy.proxy);
+                    reset: video = await goVideoToHttp(rch, plugin, init.cors(url), init, proxyManager, proxy.proxy);
                     if (string.IsNullOrEmpty(video.file))
                     {
                         if (IsRhubFallback(init))
@@ -64,7 +68,7 @@ namespace SISI.Controllers.NextHUB
                     if (rch.enable)
                         return OnError("rch not supported");
 
-                    video = await goVideoToBrowser(plugin, url, init, proxyManager, proxy.data);
+                    video = await goVideoToBrowser(plugin, init.cors(url), init, proxyManager, proxy.data);
                     if (string.IsNullOrEmpty(video.file))
                         return OnError("file");
                 }

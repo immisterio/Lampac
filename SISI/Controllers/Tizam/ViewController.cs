@@ -19,7 +19,7 @@ namespace SISI.Controllers.Tizam
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
             string memKey = $"tizam:view:{uri}";
@@ -29,8 +29,9 @@ namespace SISI.Controllers.Tizam
                 if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
                 {
                     reset:
-                    string html = rch.enable ? await rch.Get($"{init.corsHost()}/{uri}", httpHeaders(init)) :
-                                               await Http.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                    string html = rch.enable 
+                        ? await rch.Get($"{init.corsHost()}/{uri}", httpHeaders(init)) 
+                        : await Http.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
 
                     string location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
 

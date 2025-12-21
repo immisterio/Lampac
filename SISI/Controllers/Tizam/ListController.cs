@@ -23,7 +23,7 @@ namespace SISI.Controllers.Tizam
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
             string memKey = $"tizam:{pg}";
@@ -39,8 +39,9 @@ namespace SISI.Controllers.Tizam
                         uri += $"?p={page}";
 
                     reset:
-                    string html = rch.enable ? await rch.Get(init.cors(uri), httpHeaders(init)) :
-                                               await Http.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                    string html = rch.enable 
+                        ? await rch.Get(init.cors(uri), httpHeaders(init)) 
+                        : await Http.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
 
                     playlists = Playlist(html);
 

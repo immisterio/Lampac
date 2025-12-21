@@ -365,7 +365,12 @@ namespace Shared.Engine
         #endregion
 
         #region IsNotSupport
-        public bool IsNotSupport(string? rch_deny, out string rch_msg)
+        public bool IsNotSupport(out string rch_msg)
+        {
+            return IsNotSupport(init.rchNotSupport(), out rch_msg);
+        }
+
+        public bool IsNotSupport(string rch_deny, out string rch_msg)
         {
             rch_msg = null;
 
