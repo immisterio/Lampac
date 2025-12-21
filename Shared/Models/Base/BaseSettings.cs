@@ -144,6 +144,8 @@ namespace Shared.Models.Base
         public bool qualitys_proxy { get; set; } = true;
 
         public bool url_reserve { get; set; }
+
+        public string stream_access { get; set; }
         #endregion
 
         #region cors

@@ -596,7 +596,7 @@ namespace Shared
         #endregion
 
         #region SISI
-        public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp", rch_access: "apk")
+        public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp", rch_access: "apk", stream_access: "apk,cors,web")
         {
             spider = false,
             headers = HeadersModel.Init(
@@ -605,7 +605,7 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Runetki { get; set; } = new SisiSettings("Runetki", "kwwsv=22uxv1uxqhwnl81frp", rch_access: "apk")
+        public SisiSettings Runetki { get; set; } = new SisiSettings("Runetki", "kwwsv=22uxv1uxqhwnl81frp", rch_access: "apk", stream_access: "apk,cors,web")
         {
             spider = false,
             headers = HeadersModel.Init(
@@ -614,12 +614,12 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Chaturbate { get; set; } = new SisiSettings("Chaturbate", "kwwsv=22fkdwxuedwh1frp", rch_access: "apk,cors")
+        public SisiSettings Chaturbate { get; set; } = new SisiSettings("Chaturbate", "kwwsv=22fkdwxuedwh1frp", rch_access: "apk,cors", stream_access: "apk,cors,web")
         {
             spider = false,
         };
 
-        public SisiSettings Ebalovo { get; set; } = new SisiSettings("Ebalovo", "kwwsv=22zzz1hedoryr1sur", rch_access: "apk")
+        public SisiSettings Ebalovo { get; set; } = new SisiSettings("Ebalovo", "kwwsv=22zzz1hedoryr1sur", rch_access: "apk", stream_access: "apk,cors")
         {
             headers = Http.defaultFullHeaders,
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
@@ -629,7 +629,7 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Eporner { get; set; } = new SisiSettings("Eporner", "kwwsv=22zzz1hsruqhu1frp", streamproxy: true, rch_access: "apk,cors") 
+        public SisiSettings Eporner { get; set; } = new SisiSettings("Eporner", "kwwsv=22zzz1hsruqhu1frp", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors") 
         {
             headers_image = HeadersModel.Init(
                 ("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
@@ -638,13 +638,13 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings HQporner { get; set; } = new SisiSettings("HQporner", "kwwsv=22p1ktsruqhu1frp", rch_access: "apk,cors")
+        public SisiSettings HQporner { get; set; } = new SisiSettings("HQporner", "kwwsv=22p1ktsruqhu1frp", rch_access: "apk,cors", stream_access: "apk,cors,web")
         {
             geostreamproxy = ["ALL"],
             headers = HeadersModel.Init("referer", "{host}").ToDictionary()
         };
 
-        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true, rch_access: "apk")
+        public SisiSettings Porntrex { get; set; } = new SisiSettings("Porntrex", "kwwsv=22zzz1sruqwuh{1frp", streamproxy: true, rch_access: "apk", stream_access: "apk")
         {
             headers_stream = HeadersModel.Init(
                 ("referer", "{host}/")
@@ -654,9 +654,9 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp", rch_access: "apk,cors,web");
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp", rch_access: "apk,cors,web", stream_access: "apk,cors,web");
 
-        public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp", rch_access: "apk,cors")
+        public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp", rch_access: "apk,cors", stream_access: "apk,cors,web")
         {
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-dest", "empty"),
@@ -670,15 +670,15 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Xnxx { get; set; } = new SisiSettings("Xnxx", "kwwsv=22zzz1{q{{1frp", rch_access: "apk,cors");
+        public SisiSettings Xnxx { get; set; } = new SisiSettings("Xnxx", "kwwsv=22zzz1{q{{1frp", rch_access: "apk,cors", stream_access: "apk,cors,web");
 
-        public SisiSettings Tizam { get; set; } = new SisiSettings("Tizam", "kwwsv=22lq1wl}dp1lqir", streamproxy: true, rch_access: "apk,cors");
+        public SisiSettings Tizam { get; set; } = new SisiSettings("Tizam", "kwwsv=22lq1wl}dp1lqir", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors");
 
-        public SisiSettings Xvideos { get; set; } = new SisiSettings("Xvideos", "kwwsv=22zzz1{ylghrv1frp", rch_access: "apk,cors");
+        public SisiSettings Xvideos { get; set; } = new SisiSettings("Xvideos", "kwwsv=22zzz1{ylghrv1frp", rch_access: "apk,cors", stream_access: "apk,cors,web");
 
         public SisiSettings XvideosRED { get; set; } = new SisiSettings("XvideosRED", "kwwsv=22zzz1{ylghrv1uhg", enable: false);
 
-        public SisiSettings PornHub { get; set; } = new SisiSettings("PornHub", "kwwsv=22uw1sruqkxe1frp", streamproxy: true, rch_access: "apk,cors")
+        public SisiSettings PornHub { get; set; } = new SisiSettings("PornHub", "kwwsv=22uw1sruqkxe1frp", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors")
         {
             headers = HeadersModel.Init(
                 Http.defaultFullHeaders,
@@ -694,7 +694,7 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("PornHubPremium", "kwwsv=22uw1sruqkxesuhplxp1frp", streamproxy: true, enable: false)
+        public SisiSettings PornHubPremium { get; set; } = new SisiSettings("PornHubPremium", "kwwsv=22uw1sruqkxesuhplxp1frp", streamproxy: true, enable: false, stream_access: "apk,cors")
         {
             headers = HeadersModel.Init(
                 ("sec-fetch-dest", "document"),
