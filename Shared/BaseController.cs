@@ -290,6 +290,9 @@ namespace Shared
                         return $"{apn.host}/proxy/{aes}";
                     }
 
+                    if (apn.host.Contains("{uri}"))
+                        return apn.host.Replace("{uri}", link);
+
                     return $"{apn.host}/{link}";
                 }
 
