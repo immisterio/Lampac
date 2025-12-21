@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace Shared.Models.Base
 {
@@ -168,7 +169,12 @@ namespace Shared.Models.Base
         public string cors(string uri)
         {
             string crhost = !string.IsNullOrWhiteSpace(webcorshost) ? webcorshost : corseu ? AppInit.conf.corsehost : null;
-            if (string.IsNullOrWhiteSpace(crhost) || string.IsNullOrWhiteSpace(uri) || uri.Contains(crhost))
+            if (string.IsNullOrWhiteSpace(crhost) || string.IsNullOrWhiteSpace(uri))
+                return uri;
+
+            crhost = crhost.Trim();
+
+            if (uri.Contains(Regex.Match(crhost, "https?://([^/]+)", RegexOptions.IgnoreCase).Groups[1].Value))
                 return uri;
 
             if (crhost.Contains("{host}"))
