@@ -70,7 +70,18 @@ namespace Lampac.Controllers
 
         [AllowAnonymous]
         [Route("/headers")]
-        public ActionResult Headers() => Json(HttpContext.Request.Headers);
+        public ActionResult Headers(string type)
+        {
+            if (type == "text")
+            {
+                return Content(string.Join(
+                    Environment.NewLine,
+                    HttpContext.Request.Headers.Select(h => $"{h.Key}: {h.Value}")
+                ));
+            }
+
+            return Json(HttpContext.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()));
+        }
 
         [AllowAnonymous]
         [Route("/geo")]
