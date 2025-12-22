@@ -384,7 +384,7 @@ namespace Shared.Engine
             if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
                 return false; // заглушка для checksearch
 
-            if (IsNotSupportRchAccess(init.RchAccessNotSupport(), out rch_msg))
+            if (IsNotSupportRchAccess(init.RchAccessNotSupport(nocheck: true), out rch_msg))
                 return true;
 
             return IsNotSupportStreamAccess(init.StreamAccessNotSupport(), out rch_msg);

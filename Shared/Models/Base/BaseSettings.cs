@@ -58,13 +58,16 @@ namespace Shared.Models.Base
         /// </summary>
         public string rch_access { get; set; }
 
-        public string RchAccessNotSupport()
+        public string RchAccessNotSupport(bool nocheck = false)
         {
-            // rch выключен
-            // разрешен fallback
-            // указан webcorshost или включен corseu
-            if (!rhub || rhub_fallback || !string.IsNullOrWhiteSpace(webcorshost) || corseu)
-                return null;
+            if (nocheck == false)
+            {
+                // rch выключен
+                // разрешен fallback
+                // указан webcorshost или включен corseu
+                if (!rhub || rhub_fallback || !string.IsNullOrWhiteSpace(webcorshost) || corseu)
+                    return null;
+            }
 
             if (string.IsNullOrWhiteSpace(rch_access))
                 return null;
@@ -162,10 +165,10 @@ namespace Shared.Models.Base
             if (string.IsNullOrWhiteSpace(stream_access))
                 return null;
 
-            if (AppInit.conf.serverproxy.forced_apn && AppInit.conf?.apn?.host != null)
+            if (AppInit.conf.serverproxy.forced_apn && !string.IsNullOrWhiteSpace(AppInit.conf?.apn?.host))
                 return null;
 
-            if (rhub && !rhub_streamproxy && rhub_geo_disable == null) { }
+            if (rhub && !rhub_streamproxy && !rhub_fallback && rhub_geo_disable == null) { }
             else
             {
                 if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null)
