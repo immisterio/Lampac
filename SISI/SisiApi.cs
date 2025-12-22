@@ -193,9 +193,9 @@ namespace SISI
             #endregion
 
             #region send
-            void send(string name, BaseSettings _init, string plugin = null, int displayindex = -1)
+            void send(string name, BaseSettings _init, string plugin = null, int displayindex = -1, BaseSettings myinit = null)
             {
-                var init = loadKit(_init, kitconf);
+                var init = myinit != null ? _init : loadKit(_init, kitconf);
                 bool enable = init.enable && !init.rip;
                 if (!enable)
                     return;
@@ -269,44 +269,49 @@ namespace SISI
             #region NextHUB
             if (conf.sisi.NextHUB)
             {
-                foreach (string inFile in Directory.GetFiles("NextHUB/sites", "*.yaml"))
+                var semaphor = new SemaphorManager("sisi:NextHUB:sites", TimeSpan.FromSeconds(5));
+
+                await semaphor.Invoke(async () =>
                 {
-                    try
+                    foreach (string inFile in Directory.GetFiles("NextHUB/sites", "*.yaml"))
                     {
-                        if (inFile.Contains(".my."))
-                            continue;
-
-                        string plugin = Path.GetFileNameWithoutExtension(inFile);
-                        if (!lgbt && plugin == "gayporntube")
-                            continue;
-
-                        var init = Controllers.NextHUB.Root.goInit(plugin);
-                        if (init == null)
-                            continue;
-
-                        if (init.debug)
-                            Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
-
-                        init = await loadKit(init);
-
-                        if (PlaywrightBrowser.Status == PlaywrightStatus.disabled || init.rhub)
+                        try
                         {
-                            if (init.priorityBrowser != "http" || (init.view != null && init.view.viewsource == false))
-                            {
-                                if (AppInit.conf.multiaccess == false)
-                                    Console.WriteLine($"NextHUB: {plugin} - Playwright is disabled, skipping.");
+                            if (inFile.Contains(".my."))
                                 continue;
-                            }
-                        }
 
-                        send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}");
+                            string plugin = Path.GetFileNameWithoutExtension(inFile);
+                            if (!lgbt && plugin == "gayporntube")
+                                continue;
+
+                            var init = Controllers.NextHUB.Root.goInit(plugin);
+                            if (init == null)
+                                continue;
+
+                            if (init.debug)
+                                Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
+
+                            init = await loadKit(init);
+
+                            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled || init.rhub)
+                            {
+                                if (init.priorityBrowser != "http" || (init.view != null && init.view.viewsource == false))
+                                {
+                                    if (AppInit.conf.multiaccess == false)
+                                        Console.WriteLine($"NextHUB: {plugin} - Playwright is disabled, skipping.");
+                                    continue;
+                                }
+                            }
+
+                            send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}", myinit: init);
+                        }
+                        catch (YamlDotNet.Core.YamlException ex)
+                        {
+                            Console.WriteLine($"\nОшибка: {ex.Message}\nфайл: {Path.GetFileName(inFile)}\nстрока: {ex.Start.Line}");
+                        }
+                        catch (Exception ex) { Console.WriteLine($"NextHUB: error DeserializeObject {inFile}\n {ex.Message}"); }
                     }
-                    catch (YamlDotNet.Core.YamlException ex)
-                    {
-                        Console.WriteLine($"\nОшибка: {ex.Message}\nфайл: {Path.GetFileName(inFile)}\nстрока: {ex.Start.Line}");
-                    }
-                    catch (Exception ex) { Console.WriteLine($"NextHUB: error DeserializeObject {inFile}\n {ex.Message}"); }
-                }
+                });
             }
             #endregion
 

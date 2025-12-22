@@ -467,7 +467,6 @@ namespace SISI.Controllers.NextHUB
 
             try
             {
-                resetGotoAsync:
                 string memKey = $"nexthub:view18:goVideo:{url}";
 
                 if (init.view.bindingToIP)
@@ -475,6 +474,7 @@ namespace SISI.Controllers.NextHUB
 
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
                 {
+                    resetGotoAsync:
                     string html = rch.enable 
                         ? await rch.Get(url, httpHeaders(init)) 
                         : await Http.Get(url, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: 8);

@@ -35,8 +35,9 @@ namespace Online.Controllers
                 var cache = await InvokeCache<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
                 {
                     string req_uri = $"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}";
-                    var search = rch.enable ? await rch.Get<JArray>(req_uri, httpHeaders(init)) :
-                                              await Http.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    var search = rch.enable 
+                        ? await rch.Get<JArray>(req_uri, httpHeaders(init)) 
+                        : await Http.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                     if (search == null || search.Count == 0)
                         return res.Fail("search");

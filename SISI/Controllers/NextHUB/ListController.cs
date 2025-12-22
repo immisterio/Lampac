@@ -548,7 +548,6 @@ namespace SISI.Controllers.NextHUB
         {
             var proxy = proxyManager.BaseGet();
 
-            string html; 
             string data = !string.IsNullOrEmpty(search) ? (init.search?.data ?? init.list.data) : init.list.data;
 
             #region encoding
@@ -636,20 +635,18 @@ namespace SISI.Controllers.NextHUB
 
                 data = data.Replace("{page}", pg.ToString());
 
-                html = rch.enable
+                return rch.enable
                     ? await rch.Post(url.Replace("{page}", pg.ToString()), data, httpHeaders(init))
                     : await Http.Post(url.Replace("{page}", pg.ToString()), data, encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
             }
             else
             {
-                html = rch.enable 
+                return rch.enable 
                     ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) 
                     : init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) 
                     : init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) 
                     : await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, model, pg);
             }
-
-            return html;
         }
         #endregion
     }
