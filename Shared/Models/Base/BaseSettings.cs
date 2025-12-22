@@ -60,6 +60,9 @@ namespace Shared.Models.Base
 
         public string RchAccessNotSupport()
         {
+            // rch выключен
+            // разрешен fallback
+            // указан webcorshost или включен corseu
             if (!rhub || rhub_fallback || !string.IsNullOrWhiteSpace(webcorshost) || corseu)
                 return null;
 
@@ -159,8 +162,15 @@ namespace Shared.Models.Base
             if (string.IsNullOrWhiteSpace(stream_access))
                 return null;
 
-            if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null)
+            if (AppInit.conf.serverproxy.forced_apn && AppInit.conf?.apn?.host != null)
                 return null;
+
+            if (rhub && !rhub_streamproxy && rhub_geo_disable == null) { }
+            else
+            {
+                if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null)
+                    return null;
+            }
 
             var noAccess = new List<string>(3);
 
