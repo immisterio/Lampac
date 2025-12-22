@@ -365,12 +365,32 @@ namespace Shared.Engine
         #endregion
 
         #region IsNotSupport
+        /// <summary>
+        /// ⚠ УСТАРЕВШИЙ МЕТОД.
+        /// Используйте <see cref="IsNotSupportRchAccess"/>.
+        /// Метод может быть удалён в будущих версиях.
+        /// </summary>
+        [Obsolete("Метод устарел. Используйте IsNotSupportRchAccess. Может быть удалён в следующих версиях.")]
+        public bool IsNotSupport(string rch_deny, out string rch_msg)
+            => IsNotSupportRchAccess(rch_deny, out rch_msg);
+
         public bool IsNotSupport(out string rch_msg)
         {
-            return IsNotSupport(init.rchNotSupport(), out rch_msg);
+            rch_msg = null;
+
+            if (!enableRhub)
+                return false; // rch не используется
+
+            if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+                return false; // заглушка для checksearch
+
+            if (IsNotSupportRchAccess(init.RchAccessNotSupport(), out rch_msg))
+                return true;
+
+            return IsNotSupportStreamAccess(init.StreamAccessNotSupport(), out rch_msg);
         }
 
-        public bool IsNotSupport(string rch_deny, out string rch_msg)
+        public bool IsNotSupportRchAccess(string rch_deny, out string rch_msg)
         {
             rch_msg = null;
 
@@ -405,6 +425,33 @@ namespace Shared.Engine
                 rch_msg = "Только на android";
 
             return rch_deny.Contains(info.rchtype);
+        }
+
+        public bool IsNotSupportStreamAccess(string deny, out string rch_msg)
+        {
+            rch_msg = null;
+
+            if (deny == null)
+                return false;
+
+            if (!enableRhub)
+                return false; // rch не используется
+
+            if (httpContext != null && httpContext.Request.QueryString.Value.Contains("&checksearch=true"))
+                return false; // заглушка для checksearch
+
+            var info = InfoConnected();
+            if (info == null || string.IsNullOrEmpty(info.rchtype))
+                return false; // клиент не в сети
+
+            if (AppInit.conf.rch.notSupportMsg != null)
+                rch_msg = AppInit.conf.rch.notSupportMsg;
+            else if (info.rchtype == "web")
+                rch_msg = "На MSX недоступно";
+            else
+                rch_msg = "Только на android";
+
+            return deny.Contains(info.rchtype);
         }
         #endregion
 

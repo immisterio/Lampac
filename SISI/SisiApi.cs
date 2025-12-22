@@ -203,26 +203,31 @@ namespace SISI
                 if (spder == true && init.spider != true)
                     return;
 
-                if (init.rhub && !init.rhub_fallback)
+                if (rchtype != null)
                 {
-                    if (init.rch_access != null && rchtype != null)
+                    if (init.client_type != null && !init.client_type.Contains(rchtype))
+                        return;
+
+                    string rch_access = init.RchAccessNotSupport();
+                    if (rch_access != null)
                     {
-                        enable = init.rch_access.Contains(rchtype);
+                        enable = rch_access.Contains(rchtype);
                         if (enable && init.rhub_geo_disable != null)
                         {
                             if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
                                 enable = false;
                         }
                     }
+
+                    if (enable)
+                    {
+                        string streamAccess = init.StreamAccessNotSupport();
+                        if (streamAccess != null)
+                            enable = streamAccess.Contains(rchtype);
+                    }
                 }
 
-                if (!enable)
-                    return;
-
-                if (init.client_type != null && rchtype != null)
-                    enable = init.client_type.Contains(rchtype);
-
-                if (init.geo_hide != null)
+                if (enable && init.geo_hide != null)
                 {
                     if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
                         enable = false;

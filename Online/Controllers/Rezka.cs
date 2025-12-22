@@ -91,7 +91,7 @@ namespace Online.Controllers
 
             if (rch.enable)
             {
-                if (rch.IsNotSupport("web", out string rch_error))
+                if (rch.IsNotSupportRchAccess("web", out string rch_error))
                     return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
 
                 if (requestInfo.Country == "RU")

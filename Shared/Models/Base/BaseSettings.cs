@@ -56,8 +56,11 @@ namespace Shared.Models.Base
         /// </summary>
         public string rch_access { get; set; }
 
-        public string rchNotSupport()
+        public string RchAccessNotSupport()
         {
+            if (!rhub || rhub_fallback || !string.IsNullOrWhiteSpace(webcorshost) || corseu)
+                return null;
+
             if (string.IsNullOrWhiteSpace(rch_access))
                 return null;
 
@@ -148,6 +151,28 @@ namespace Shared.Models.Base
         public bool url_reserve { get; set; }
 
         public string stream_access { get; set; }
+
+        public string StreamAccessNotSupport()
+        {
+            if (string.IsNullOrWhiteSpace(stream_access))
+                return null;
+
+            if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null)
+                return null;
+
+            var noAccess = new List<string>(3);
+
+            if (!stream_access.Contains("apk"))
+                noAccess.Add("apk");
+
+            if (!stream_access.Contains("cors"))
+                noAccess.Add("cors");
+
+            if (!stream_access.Contains("web"))
+                noAccess.Add("web");
+
+            return noAccess.Count > 0 ? string.Join(",", noAccess) : null;
+        }
         #endregion
 
         #region cors
