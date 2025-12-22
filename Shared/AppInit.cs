@@ -890,12 +890,20 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22fgqprylhv0vwuhdp1rqolqh", rch_access: "apk", stream_access: "apk,cors,web")
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22fgqprylhv0vwuhdp1rqolqh", streamproxy: true, rch_access: "apk", stream_access: "apk")
         {
             geostreamproxy = ["ALL"],
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-storage-access", "active"),
                 ("upgrade-insecure-requests", "1")
+            ).ToDictionary(),
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
+                ("accept", "*/*"),
+                ("referer", "{host}"),
+                ("origin", "{host}/"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };
 
@@ -973,12 +981,12 @@ namespace Shared
         };
 
         /// <summary>
-        /// aHR0cHM6Ly92aWJpeC5vcmcvYXBpL2V4dGVybmFsL2RvY3VtZW50YXRpb24=
+        /// api: aHR0cHM6Ly92aWJpeC5vcmcvYXBpL2V4dGVybmFsL2RvY3VtZW50YXRpb24=
+        /// iframe: aHR0cHM6Ly9jb2xkZmlsbS5pbmsv
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", enable: false, rch_access: "apk", stream_access: "apk,cors,web")
         {
-            headers = Http.defaultFullHeaders,
-            headers_stream = Http.defaultFullHeaders
+            headers = Http.defaultFullHeaders
         };
 
         /// <summary>
@@ -1069,7 +1077,7 @@ namespace Shared
         /// </summary>
         public OnlinesSettings Smashystream { get; set; } = new OnlinesSettings("Smashystream", "kwwsv=22sod|hu1vpdvk|vwuhdp1frp", streamproxy: true);
 
-        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true);
+        public OnlinesSettings Autoembed { get; set; } = new OnlinesSettings("Autoembed", "kwwsv=22sod|hu1dxwrhpehg1ff", streamproxy: true, enable: false);
 
         /// <summary>
         /// Omega

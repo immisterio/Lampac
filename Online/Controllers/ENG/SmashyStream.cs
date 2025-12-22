@@ -83,7 +83,7 @@ namespace Online.Controllers
                                 if (await PlaywrightBase.AbortOrCache(page, route, fullCacheJS: true))
                                     return;
 
-                                if (route.Request.Url.Contains("master.txt"))
+                                if (route.Request.Url.Contains("master."))
                                 {
                                     cache.headers = new List<HeadersModel>();
                                     foreach (var item in route.Request.Headers)
