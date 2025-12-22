@@ -60,6 +60,9 @@ namespace Shared.Models.Base
 
         public string RchAccessNotSupport(bool nocheck = false)
         {
+            if (string.IsNullOrWhiteSpace(rch_access))
+                return null;
+
             if (nocheck == false)
             {
                 // rch выключен
@@ -68,9 +71,6 @@ namespace Shared.Models.Base
                 if (!rhub || rhub_fallback || !string.IsNullOrWhiteSpace(webcorshost) || corseu)
                     return null;
             }
-
-            if (string.IsNullOrWhiteSpace(rch_access))
-                return null;
 
             var noAccess = new List<string>(3);
 
@@ -160,19 +160,22 @@ namespace Shared.Models.Base
 
         public string stream_access { get; set; }
 
-        public string StreamAccessNotSupport()
+        public string StreamAccessNotSupport(bool nocheck = false)
         {
             if (string.IsNullOrWhiteSpace(stream_access))
                 return null;
 
-            if (AppInit.conf.serverproxy.forced_apn && !string.IsNullOrWhiteSpace(AppInit.conf?.apn?.host))
-                return null;
-
-            if (rhub && !rhub_streamproxy && !rhub_fallback && rhub_geo_disable == null) { }
-            else
+            if (nocheck == false)
             {
-                if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null)
+                if (AppInit.conf.serverproxy.forced_apn && !string.IsNullOrWhiteSpace(AppInit.conf?.apn?.host))
                     return null;
+
+                if (rhub && !rhub_streamproxy && !rhub_fallback && rhub_geo_disable == null) { }
+                else
+                {
+                    if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null)
+                        return null;
+                }
             }
 
             var noAccess = new List<string>(3);

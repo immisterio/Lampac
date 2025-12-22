@@ -417,6 +417,10 @@ namespace Shared.Engine
                 return false;
             }
 
+            // указан webcorshost или включен corseu
+            if (!string.IsNullOrWhiteSpace(init.webcorshost) || init.corseu)
+                return false;
+
             if (AppInit.conf.rch.notSupportMsg != null)
                 rch_msg = AppInit.conf.rch.notSupportMsg;
             else if (info.rchtype == "web")
