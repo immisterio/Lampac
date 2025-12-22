@@ -41,7 +41,8 @@ namespace Online.Controllers
                     .Replace("/embed/", "/api/v1/embed/")
                     .Replace("/embed-serials/", "/api/v1/embed-serials/");
 
-                api_url += $"?kp={CrypTo.unic(6).ToLower()}";
+                api_url += $"?iframe_url={HttpUtility.UrlEncode(data.iframe_url)}";
+                api_url += $"&kp={CrypTo.unic(6).ToLower()}";
 
                 var api_headers = httpHeaders(init, HeadersModel.Init(
                     ("accept", "*/*"),
@@ -78,7 +79,7 @@ namespace Online.Controllers
 
                         foreach (string q in new string[] { "1080", "720", "480" })
                         {
-                            var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+\\.mp4)").Match(movie.file).Groups;
+                            var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+)").Match(movie.file).Groups;
 
                             if (!string.IsNullOrEmpty(g["file"].Value))
                                 streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), $"{q}p");
@@ -138,7 +139,7 @@ namespace Online.Controllers
 
                                 foreach (string q in new string[] { "1080", "720", "480" })
                                 {
-                                    var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+\\.mp4)").Match(file).Groups;
+                                    var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+)").Match(file).Groups;
                                     if (!string.IsNullOrEmpty(g["file"].Value))
                                         streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), $"{q}p");
                                 }

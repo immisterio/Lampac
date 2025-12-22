@@ -86,14 +86,14 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
-            string memKey = rch.ipkey($"videodb:video:{link}", proxyManager);
+            string semaphoreKey = $"videodb:video:{link}";
 
-            return await InvkSemaphore(init, memKey, async () =>
+            return await InvkSemaphore(init, semaphoreKey, async () =>
             {
+                reset:
+                string memKey = rch.ipkey(semaphoreKey, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out string location))
                 {
-                    reset:
-
                     try
                     {
                         var headers = httpHeaders(init, HeadersModel.Init(

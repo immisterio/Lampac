@@ -719,10 +719,11 @@ namespace Shared
         /// <summary>
         /// aHR0cHM6Ly92ZW92ZW8uaW8=
         /// </summary>
-        public OnlinesSettings VeoVeo { get; set; } = new OnlinesSettings("VeoVeo", "kwwsv=22dsl1uvwsujdslsw1frp");
+        public OnlinesSettings VeoVeo { get; set; } = new OnlinesSettings("VeoVeo", "kwwsv=22dsl1uvwsujdslsw1frp", stream_access: "apk,cors,web");
 
         public RezkaSettings Rezka { get; set; } = new RezkaSettings("Rezka", "kwwsv=22kguh}nd1ph", true) 
         {
+            stream_access = "apk,cors,web",
             ajax = true, reserve = true,
             hls = true, scheme = "http",
             headers = Http.defaultHeaders
@@ -731,6 +732,7 @@ namespace Shared
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) 
         { 
             enable = false,
+            stream_access = "apk,cors,web",
             reserve = true, hls = true, scheme = "http",
             headers = Http.defaultHeaders
         };
@@ -738,6 +740,7 @@ namespace Shared
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1ox{hpeg1zv", streamproxy: true, two: false)
         {
             rch_access = "apk",
+            stream_access = "apk,cors,web",
             two = true,
             apihost = "https://api.bhcesh.me",
             token = "eedefb541aeba871dcfc756e6b31c02e",
@@ -753,12 +756,12 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("Ashdi", "kwwsv=22edvh1dvkgl1yls") 
+        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("Ashdi", "kwwsv=22edvh1dvkgl1yls", stream_access: "apk,cors,web") 
         { 
             geo_hide = ["RU", "BY"] 
         };
 
-        public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("Kinoukr", "kwwsv=22nlqrxnu1frp", rch_access: "apk,cors")
+        public OnlinesSettings Kinoukr { get; set; } = new OnlinesSettings("Kinoukr", "kwwsv=22nlqrxnu1frp", rch_access: "apk,cors", stream_access: "apk,cors,web")
         {
             geo_hide = ["RU", "BY"],
             headers = HeadersModel.Init(Http.defaultFullHeaders,
@@ -773,13 +776,13 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rch_access: "apk,cors");
+        public OnlinesSettings Eneyida { get; set; } = new OnlinesSettings("Eneyida", "kwwsv=22hqh|lgd1wy", rch_access: "apk,cors", stream_access: "apk,cors,web");
 
-        public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1yls", streamproxy: true, rch_access: "apk,cors");
+        public OnlinesSettings Kinotochka { get; set; } = new OnlinesSettings("Kinotochka", "kwwsv=22nlqryleh1yls", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors");
 
         public OnlinesSettings RutubeMovie { get; set; } = new OnlinesSettings("RutubeMovie", "kwwsv=22uxwxeh1ux", streamproxy: true, rch_access: "apk,cors");
 
-        public OnlinesSettings VkMovie { get; set; } = new OnlinesSettings("VkMovie", "kwwsv=22dsl1ynylghr1ux", streamproxy: true, rch_access: "apk,cors")
+        public OnlinesSettings VkMovie { get; set; } = new OnlinesSettings("VkMovie", "kwwsv=22dsl1ynylghr1ux", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors")
         {
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("origin", "encrypt:kwwsv=22ynylghr1ux"),
@@ -789,7 +792,7 @@ namespace Shared
 
         public OnlinesSettings Plvideo { get; set; } = new OnlinesSettings("Plvideo", "kwwsv=22dsl1j41soylghr1ux", streamproxy: true, enable: false, rch_access: "apk,cors");
 
-        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sodsl1fgqylghrkxe1frp", streamproxy: true, rch_access: "apk,cors")
+        public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sodsl1fgqylghrkxe1frp", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors")
         {
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("referer", "encrypt:kwwsv=22kgnlqr1sxe2"),
@@ -820,6 +823,7 @@ namespace Shared
         public FilmixSettings Filmix { get; set; } = new FilmixSettings("Filmix", "http://filmixapp.cyou")
         {
             rch_access = "apk",
+            stream_access = "apk,cors,web",
             reserve = true,
             headers = HeadersModel.Init(
                 ("Accept-Encoding", "gzip")
@@ -829,12 +833,16 @@ namespace Shared
         public FilmixSettings FilmixTV { get; set; } = new FilmixSettings("FilmixTV", "kwwsv=22dsl1ilopl{1wy", enable: false)
         {
             pro = true,
+            stream_access = "apk,cors,web",
             headers = HeadersModel.Init(
                 ("user-agent", "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 76.0.3809.146/6.0 TV Safari/537.36")
             ).ToDictionary()
         };
 
-        public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("FilmixPartner", "kwws=22819418914;2sduwqhubdsl", enable: false);
+        public FilmixSettings FilmixPartner { get; set; } = new FilmixSettings("FilmixPartner", "kwws=22819418914;2sduwqhubdsl", enable: false) 
+        {
+            stream_access = "apk,cors,web"
+        };
 
         /// <summary>
         /// aHR0cHM6Ly9nby56ZXQtZmxpeC5vbmxpbmU=
@@ -852,7 +860,7 @@ namespace Shared
         /// a2lub2dvLm1lZGlh
         /// aHR0cHM6Ly9maWxtLTIwMjQub3JnLw==
         /// </summary>
-        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=22nlqrjr1phgld", "kwwsv=2263ei6:<31reuxw1vkrz", streamproxy: true, rch_access: "apk")
+        public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=22nlqrjr1phgld", "kwwsv=2263ei6:<31reuxw1vkrz", streamproxy: true, rch_access: "apk", stream_access: "apk,cors,web")
         {
             priorityBrowser = "http",
             imitationHuman = true,
@@ -873,15 +881,16 @@ namespace Shared
         /// <summary>
         /// aHR0cHM6Ly9jb2xkZmlsbS5pbmsv
         /// </summary>
-        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("CDNmovies", "kwwsv=22frogfgq1{|}", rch_access: "apk,cors")
+        public OnlinesSettings CDNmovies { get; set; } = new OnlinesSettings("CDNmovies", "kwwsv=22frogfgq1{|}", enable: false, rch_access: "apk,cors")
         {
+            streamproxy = true,
             headers = HeadersModel.Init(
                 ("DNT", "1"),
                 ("Upgrade-Insecure-Requests", "1")
             ).ToDictionary()
         };
 
-        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22fgqprylhv0vwuhdp1rqolqh", rch_access: "apk")
+        public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22fgqprylhv0vwuhdp1rqolqh", rch_access: "apk", stream_access: "apk,cors,web")
         {
             geostreamproxy = ["ALL"],
             headers = HeadersModel.Init(Http.defaultFullHeaders,
@@ -908,7 +917,8 @@ namespace Shared
         };
 
         public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, hdr: true) 
-        { 
+        {
+            stream_access = "apk,cors,web",
             geostreamproxy = ["ALL"]
         };
 
@@ -916,7 +926,7 @@ namespace Shared
         /// aHR0cHM6Ly91YWtpbm9nby5lYw==
         /// aHR0cHM6Ly91YWtpbm9nby5vbmxpbmU=
         /// </summary>
-        public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|", rch_access: "apk")
+        public OnlinesSettings Kinogo { get; set; } = new OnlinesSettings("Kinogo", "kwwsv=22nlqrjr1ox{xu|", rch_access: "apk", stream_access: "apk,cors")
         {
             streamproxy = true
         };
@@ -930,6 +940,7 @@ namespace Shared
         public LumexSettings VideoCDN { get; set; } = new LumexSettings("VideoCDN", "https://api.lumex.space", "API-токен", "https://portal.lumex.host", "ID клиент")
         {
             enable = false,
+            stream_access = "apk,cors,web",
             log = false,
             verifyip = true, // ссылки привязаны к ip пользователя
             scheme = "http",
@@ -943,6 +954,7 @@ namespace Shared
         public LumexSettings Lumex { get; set; } = new LumexSettings("Lumex", "kwwsv=22sruwdo1oxph{1krvw", null, "lumex.space", "tl6h28Hn1rL5")
         {
             enable = true,
+            stream_access = "apk,cors,web",
             hls = true, scheme = "http",
             priorityBrowser = "http",
             geostreamproxy = ["ALL"]
@@ -955,7 +967,7 @@ namespace Shared
         /// <summary>
         /// aHR0cHM6Ly92aWQxNzMwODAxMzcwLmZvdHBybzEzNWFsdG8uY29tL2FwaS9pZGtwP2twX2lkPTEzOTI1NTAmZD1raW5vZ28uaW5j
         /// </summary>
-        public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5", rch_access: "apk")
+        public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5", rch_access: "apk", stream_access: "apk,cors,web")
         {
             headers = Http.defaultFullHeaders
         };
@@ -963,15 +975,16 @@ namespace Shared
         /// <summary>
         /// aHR0cHM6Ly92aWJpeC5vcmcvYXBpL2V4dGVybmFsL2RvY3VtZW50YXRpb24=
         /// </summary>
-        public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", streamproxy: true, enable: false, rch_access: "apk")
+        public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", enable: false, rch_access: "apk", stream_access: "apk,cors,web")
         {
-            headers = Http.defaultFullHeaders
+            headers = Http.defaultFullHeaders,
+            headers_stream = Http.defaultFullHeaders
         };
 
         /// <summary>
         /// aHR0cHM6Ly92aWRlb3NlZWQudHYvZmFxLnBocA==
         /// </summary>
-        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", streamproxy: true, enable: false)
+        public OnlinesSettings Videoseed { get; set; } = new OnlinesSettings("Videoseed", "kwwsv=22ylghrvhhg1wy", streamproxy: true, enable: false, stream_access: "apk,cors,web")
         {
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-storage-access", "active"),
@@ -990,12 +1003,12 @@ namespace Shared
         /// https://cdn32.lol/api- apk
         /// https://cdn4t.store/api - apk
         /// https://kpapp.link/api - smart tv
-        /// https://api.service-kp.com - старый 
+        /// https://api.service-kp.com - старый
         /// </summary>
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "https://api.srvkp.com")
         {
-            // hls | hls4 | mp4
-            filetype = "hls",
+            filetype = "hls", // hls | hls4 | mp4
+            stream_access = "apk,cors,web",
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-mode", "navigate"),
@@ -1006,7 +1019,8 @@ namespace Shared
         };
 
         public AllohaSettings Alloha { get; set; } = new AllohaSettings("Alloha", "kwwsv=22dsl1dsexjdoo1ruj", "kwwsv=22wruvr0dv1vwordgl1olyh", "", "", true, true) 
-        { 
+        {
+            stream_access = "apk,cors,web",
             reserve = true 
         };
 
@@ -1017,7 +1031,7 @@ namespace Shared
             headers = Http.defaultFullHeaders
         };
 
-        public OnlinesSettings GetsTV { get; set; } = new OnlinesSettings("GetsTV", "https://getstv.com", enable: false) 
+        public OnlinesSettings GetsTV { get; set; } = new OnlinesSettings("GetsTV", "https://getstv.com", enable: false, stream_access: "apk,cors,web") 
         {
             headers = HeadersModel.Init(
                 ("user-agent", "Mozilla/5.0 (Web0S; Linux/SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.34 Safari/537.36 WebAppManager")
@@ -1107,6 +1121,7 @@ namespace Shared
         #region Anime
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwwsv=22nrgln1lqir", "74gg<8i;7f54:4<e3<g9f:44;556:d58", "", true)
         {
+            stream_access = "apk,cors,web",
             auto_proxy = true,      // прокси UA в api 
             cdn_is_working = true,  // прокси UA в обычном 
             //geostreamproxy = ["UA"],
@@ -1120,12 +1135,12 @@ namespace Shared
         /// </summary>
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy", enable: false);
 
-        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dsl1dqloleuld1dss");
+        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dsl1dqloleuld1dss", stream_access: "apk,cors,web");
 
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
         /// </summary>
-        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj", streamproxy: true)
+        public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj", streamproxy: true, stream_access: "apk")
         {
             enable = false,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
@@ -1147,11 +1162,14 @@ namespace Shared
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1rqolqh");
 
-        public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true, rch_access: "apk,cors");
+        public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors");
 
-        public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("MoonAnime", "kwwsv=22dsl1prrqdqlph1duw", token: ";98iHI0H5h4Ef05fd7640h9D4830:;3GIG0:6:F9E") { geo_hide = new string[] { "RU", "BY" } };
+        public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("MoonAnime", "kwwsv=22dsl1prrqdqlph1duw", token: ";98iHI0H5h4Ef05fd7640h9D4830:;3GIG0:6:F9E", stream_access: "apk,cors,web") 
+        { 
+            geo_hide = ["RU", "BY"] 
+        };
 
-        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("Animebesst", "kwwsv=22dqlph41ehvw", rch_access: "apk");
+        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("Animebesst", "kwwsv=22dqlph41ehvw", rch_access: "apk", stream_access: "apk,cors,web");
 
         public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1ph", streamproxy: true, enable: false)
         {
