@@ -148,7 +148,7 @@ namespace Shared.Models.Base
 
         public ApnConf apn { get; set; }
 
-        public bool qualitys_proxy { get; set; } = true;
+        public bool qualitys_proxy { get; set; }
 
         public bool url_reserve { get; set; }
 

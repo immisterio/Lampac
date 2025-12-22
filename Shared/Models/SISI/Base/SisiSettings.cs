@@ -10,6 +10,7 @@ namespace Shared.Models.SISI.Base
             this.plugin = plugin;
             this.useproxy = useproxy;
             this.streamproxy = streamproxy;
+            this.qualitys_proxy = true;
             this.rch_access = rch_access;
             this.stream_access = stream_access;
 
