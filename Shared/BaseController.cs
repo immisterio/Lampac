@@ -605,7 +605,12 @@ namespace Shared
         async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
         {
             if (_init.kit == false && _init.rhub_fallback == false)
-                return (T)_init.Clone();
+            {
+                var _clone = (T)_init.Clone();
+                InvkEvent.LoadKitInit(new EventLoadKit(null, _clone, null, requestInfo, hybridCache));
+
+                return _clone;
+            }
 
             return loadKit((T)_init.Clone(), await loadKitConf(), func, clone: false);
         }
