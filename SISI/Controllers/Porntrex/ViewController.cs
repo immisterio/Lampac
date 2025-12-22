@@ -5,8 +5,6 @@ namespace SISI.Controllers.Porntrex
 {
     public class ViewController : BaseSisiController
     {
-        ProxyManager proxyManager = new ProxyManager("ptx", AppInit.conf.Porntrex);
-
         [HttpGet]
         [Route("ptx/vidosik")]
         async public ValueTask<ActionResult> vidosik(string uri)
@@ -23,6 +21,7 @@ namespace SISI.Controllers.Porntrex
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
+            var proxyManager = new ProxyManager(init);
             string semaphoreKey = $"porntrex:view:{uri}";
 
             return await InvkSemaphore(semaphoreKey, async () =>
@@ -76,6 +75,7 @@ namespace SISI.Controllers.Porntrex
             if (init.rhub && !init.rhub_fallback)
                 return OnError("rhub_fallback");
 
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"Porntrex:strem:{link}:{proxyManager.CurrentProxyIp}";

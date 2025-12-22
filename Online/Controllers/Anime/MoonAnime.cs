@@ -9,8 +9,6 @@ namespace Online.Controllers
             Directory.CreateDirectory("cache/logs/MoonAnime");
         }
 
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.MoonAnime);
-
         [HttpGet]
         [Route("lite/moonanime")]
         async public ValueTask<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
@@ -25,6 +23,8 @@ namespace Online.Controllers
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var proxyManager = new ProxyManager(init);
 
             if (animeid == 0)
             {
@@ -209,6 +209,8 @@ namespace Online.Controllers
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var proxyManager = new ProxyManager(init);
 
             string memKey = $"moonanime:vod:{vod}";
 

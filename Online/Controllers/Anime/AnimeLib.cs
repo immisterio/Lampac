@@ -13,8 +13,6 @@ namespace Online.Controllers
     {
         static readonly SemaphoreSlim TokenSemaphore = new SemaphoreSlim(1, 1);
 
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeLib);
-
         [HttpGet]
         [Route("lite/animelib")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false, bool similar = false)
@@ -36,6 +34,7 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
+            var proxyManager = new ProxyManager(init);
             var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
 
             if (string.IsNullOrWhiteSpace(uri))
@@ -223,6 +222,8 @@ namespace Online.Controllers
 
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var proxyManager = new ProxyManager(init);
 
             var cache = await InvokeCache<Player[]>($"animelib:video:{id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
             {

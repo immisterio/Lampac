@@ -5,8 +5,6 @@ namespace Online.Controllers
 {
     public class IframeVideo : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.IframeVideo);
-
         [HttpGet]
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
@@ -67,6 +65,7 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
@@ -117,7 +116,9 @@ namespace Online.Controllers
                 if (!string.IsNullOrWhiteSpace(init.token))
                     uri = $"{init.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={init.token}";
 
+                var proxyManager = new ProxyManager(init);
                 var proxy = proxyManager.Get();
+
                 var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null)
                     return (null, null, 0, null);

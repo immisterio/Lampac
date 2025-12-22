@@ -1,14 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Online.Vibix;
 using Shared.Models.Online.Settings;
+using Shared.Models.Online.Vibix;
 
 namespace Online.Controllers
 {
     public class Vibix : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Vibix);
-
         [HttpGet]
         [Route("lite/vibix")]
         async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
@@ -20,11 +18,12 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            var data = await search(init, imdb_id, kinopoisk_id);
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
+
+            var data = await search(proxyManager, init, imdb_id, kinopoisk_id);
             if (data == null)
                 return OnError();
-
-            var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 
@@ -158,7 +157,7 @@ namespace Online.Controllers
 
 
         #region search
-        async ValueTask<Video> search(OnlinesSettings init, string imdb_id, long kinopoisk_id)
+        async ValueTask<Video> search(ProxyManager proxyManager, OnlinesSettings init, string imdb_id, long kinopoisk_id)
         {
             string memKey = $"vibix:view:{kinopoisk_id}:{imdb_id}";
 

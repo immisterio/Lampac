@@ -25,10 +25,14 @@ namespace Shared.Engine
         bool refresh;
         Iproxy conf;
 
+        bool IsKitConf;
+        string KitCurrentProxyIp;
+
         public string[] proxyKeys;
 
-        public ProxyManager(string plugin, Iproxy conf, bool refresh = true)
+        public ProxyManager(string plugin, Iproxy conf, bool refresh = true, bool IsKitConf = false)
         {
+            this.IsKitConf = IsKitConf;
             this.plugin = plugin;
             this.conf = conf;
             this.refresh = refresh;
@@ -37,6 +41,7 @@ namespace Shared.Engine
 
         public ProxyManager(BaseSettings conf, bool refresh = true)
         {
+            IsKitConf = conf.IsKitConf;
             plugin = !string.IsNullOrEmpty(conf.plugin) ? conf.plugin : conf.host ?? conf.apihost;
             this.conf = conf;
             this.refresh = refresh;
@@ -52,12 +57,21 @@ namespace Shared.Engine
             if (!conf.useproxy && !conf.useproxystream)
                 return default;
 
+            #region proxy()
             (WebProxy proxy, (string ip, string username, string password) data) proxy(ProxySettings p_orig, string key)
             {
                 ProxySettings p = ConfigureProxy(p_orig);
 
                 if (p?.list == null || p.list.Length == 0)
                     return default;
+
+                if (IsKitConf)
+                {
+                    if (KitCurrentProxyIp == null)
+                        KitCurrentProxyIp = p.list.OrderBy(a => Guid.NewGuid()).First();
+
+                    return ConfigureWebProxy(p, KitCurrentProxyIp);
+                }
 
                 if (!database.TryGetValue(key, out ProxyManagerModel val) || val.proxyip == null || !p.list.Contains(val.proxyip))
                 {
@@ -77,9 +91,13 @@ namespace Shared.Engine
 
                 return ConfigureWebProxy(p, val.proxyip);
             }
+            #endregion
 
-
-            if (conf.proxy?.list != null && conf.proxy.list.Length > 0 || !string.IsNullOrEmpty(conf.proxy?.file) || !string.IsNullOrEmpty(conf.proxy?.url))
+            if (IsKitConf)
+            {
+                return proxy(conf.proxy, null);
+            }
+            else if (conf.proxy?.list != null && conf.proxy.list.Length > 0 || !string.IsNullOrEmpty(conf.proxy?.file) || !string.IsNullOrEmpty(conf.proxy?.url))
             {
                 return proxy(conf.proxy, $"{plugin}:conf");
             }
@@ -101,7 +119,7 @@ namespace Shared.Engine
         #region Refresh
         public void Refresh()
         {
-            if (!refresh)
+            if (!refresh || IsKitConf)
                 return;
 
             void update(ProxySettings p, string key)
@@ -149,6 +167,9 @@ namespace Shared.Engine
         #region Success
         public void Success()
         {
+            if (IsKitConf)
+                return;
+
             foreach (string key in proxyKeys)
             {
                 if (database.TryGetValue(key, out var val) && val.errors > 0)
@@ -162,6 +183,9 @@ namespace Shared.Engine
         {
             get
             {
+                if (IsKitConf)
+                    return KitCurrentProxyIp;
+
                 foreach (string key in proxyKeys)
                 {
                     if (database.TryGetValue(key, out var val))
@@ -182,30 +206,33 @@ namespace Shared.Engine
 
             ProxySettings p = (ProxySettings)orig.Clone();
 
-            if (!string.IsNullOrEmpty(p.file) && File.Exists(p.file))
-                p.list = File.ReadAllLines(p.file);
-
-            if (!string.IsNullOrEmpty(p.url))
+            if (!IsKitConf)
             {
-                string mkey = $"ProxyManager:{p.url}";
-                if (!memoryCache.TryGetValue(mkey, out List<string> list))
-                {
-                    list = new List<string>();
+                if (!string.IsNullOrEmpty(p.file) && File.Exists(p.file))
+                    p.list = File.ReadAllLines(p.file);
 
-                    string txt = Http.Get(p.url, timeoutSeconds: 5).Result;
-                    if (txt != null)
+                if (!string.IsNullOrEmpty(p.url))
+                {
+                    string mkey = $"ProxyManager:{p.url}";
+                    if (!memoryCache.TryGetValue(mkey, out List<string> list))
                     {
-                        foreach (string line in txt.Split("\n"))
+                        list = new List<string>();
+
+                        string txt = Http.Get(p.url, timeoutSeconds: 5).Result;
+                        if (txt != null)
                         {
-                            if (line.Contains(":"))
-                                list.Add(line.Trim());
+                            foreach (string line in txt.Split("\n"))
+                            {
+                                if (line.Contains(":"))
+                                    list.Add(line.Trim());
+                            }
                         }
+
+                        memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(15));
                     }
 
-                    memoryCache.Set(mkey, list, DateTime.Now.AddMinutes(15));
+                    p.list = list.ToArray();
                 }
-
-                p.list = list.ToArray();
             }
 
             return p;
@@ -232,7 +259,7 @@ namespace Shared.Engine
 
         void start_action(ProxySettings p, string key, string current_proxyip = null)
         {
-            if (p == null)
+            if (p == null || IsKitConf)
                 return;
 
             string mkey = $"ProxyManager:start_action:{key}";

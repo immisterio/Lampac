@@ -4,8 +4,6 @@ namespace Online.Controllers
 {
     public class AniMedia : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.AniMedia);
-
         [HttpGet]
         [Route("lite/animedia")]
         async public ValueTask<ActionResult> Index(string title, string news, bool rjson = false, bool similar = false)
@@ -17,6 +15,8 @@ namespace Online.Controllers
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var proxyManager = new ProxyManager(init);
 
             if (string.IsNullOrEmpty(news))
             {
@@ -146,6 +146,8 @@ namespace Online.Controllers
 
             return await InvkSemaphore(init, memKey, async () =>
             {
+                var proxyManager = new ProxyManager(init);
+
                 if (!hybridCache.TryGetValue(memKey, out string hls))
                 {
                     string embed = await Http.Get(vod, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));

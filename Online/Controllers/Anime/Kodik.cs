@@ -9,8 +9,6 @@ namespace Online.Controllers
 {
     public class Kodik : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Kodik);
-
         #region database
         static List<Result> databaseCache;
 
@@ -29,6 +27,7 @@ namespace Online.Controllers
         #region InitKodikInvoke
         public KodikInvoke InitKodikInvoke(KodikSettings init)
         {
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             return new KodikInvoke
@@ -81,6 +80,8 @@ namespace Online.Controllers
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var proxyManager = new ProxyManager(init);
 
             List<Result> content = null;
             var oninvk = InitKodikInvoke(init);
@@ -142,6 +143,8 @@ namespace Online.Controllers
             var rch = new RchClient(HttpContext, host, init, requestInfo);
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var proxyManager = new ProxyManager(init);
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
             {

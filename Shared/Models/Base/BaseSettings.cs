@@ -30,6 +30,8 @@ namespace Shared.Models.Base
 
         public bool kit { get; set; } = true;
 
+        public bool IsKitConf { get; set; }
+
         public string plugin { get; set; }
 
         public int group { get; set; }

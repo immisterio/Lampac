@@ -29,7 +29,7 @@ namespace Online.Controllers
                     href = id;
             }
 
-            var proxyManager = new ProxyManager(AppInit.conf.Kinobase);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
             var oninvk = new KinobaseInvoke

@@ -199,6 +199,7 @@ namespace Shared
             if (conf?.LoadKitInit == null)
                 return;
 
+            model.init.IsKitConf = true;
             Invoke(conf?.LoadKitInit, model, ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Base")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO"));
@@ -213,6 +214,7 @@ namespace Shared
             if (conf?.LoadKit == null)
                 return;
 
+            model.init.IsKitConf = true;
             Invoke(conf?.LoadKit, model, ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Base")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO"));

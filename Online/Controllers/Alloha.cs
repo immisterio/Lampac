@@ -10,8 +10,6 @@ namespace Online.Controllers
 {
     public class Alloha : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Alloha);
-
         #region Initialization
         ValueTask<AllohaSettings> Initialization()
         {
@@ -48,7 +46,9 @@ namespace Online.Controllers
             if (similar)
                 return await SpiderSearch(title, origsource, rjson);
 
-            var result = await search(init, orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
+            var proxyManager = new ProxyManager(init);
+
+            var result = await search(proxyManager, init, orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
                 return OnError("data", proxyManager, result.refresh_proxy);
 
@@ -161,6 +161,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.BaseGet();
 
             return await InvkSemaphore(init, $"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{init.m4s}:{directors_cut}", async () =>
@@ -443,7 +444,7 @@ namespace Online.Controllers
 
 
         #region search
-        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(AllohaSettings init, string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
+        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(ProxyManager proxyManager, AllohaSettings init, string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))

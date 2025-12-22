@@ -5,8 +5,6 @@ namespace Online.Controllers
 {
     public class AnimeGo : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.AnimeGo);
-
         [HttpGet]
         [Route("lite/animego")]
         async public ValueTask<ActionResult> Index(string title, int year, int pid, int s, string t, bool rjson = false, bool similar = false)
@@ -22,6 +20,7 @@ namespace Online.Controllers
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
+            var proxyManager = new ProxyManager(init);
             var headers_stream = httpHeaders(init.host, init.headers_stream);
 
             if (pid == 0)
@@ -196,6 +195,8 @@ namespace Online.Controllers
 
             return await InvkSemaphore(init, memKey, async () =>
             {
+                var proxyManager = new ProxyManager(init);
+
                 if (!hybridCache.TryGetValue(memKey, out string hls))
                 {
                     string embed = await Http.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(

@@ -9,9 +9,8 @@ namespace Online.Controllers
     public class Rezka : BaseOnlineController
     {
         #region InitRezkaInvoke
-        async public ValueTask<RezkaInvoke> InitRezkaInvoke(RezkaSettings init)
+        async public ValueTask<RezkaInvoke> InitRezkaInvoke(ProxyManager proxyManager, RezkaSettings init)
         {
-            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string country = init.forceua ? "UA" : requestInfo.Country;
@@ -111,8 +110,8 @@ namespace Online.Controllers
                     href = id;
             }
 
-            var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
+            var oninvk = await InitRezkaInvoke(proxyManager, init);
 
             #region search
             string search_uri = null;
@@ -180,8 +179,8 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(href))
                 return OnError();
 
-            var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
+            var oninvk = await InitRezkaInvoke(proxyManager, init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -209,8 +208,8 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var oninvk = await InitRezkaInvoke(init);
             var proxyManager = new ProxyManager(init);
+            var oninvk = await InitRezkaInvoke(proxyManager, init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
 

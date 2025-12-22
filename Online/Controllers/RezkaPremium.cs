@@ -174,8 +174,6 @@ namespace Online.Controllers
                     href = id;
             }
 
-            var proxyManager = new ProxyManager(init);
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
 
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -200,6 +198,7 @@ namespace Online.Controllers
             if (onrezka.invk == null)
                 return OnError("authorization error ;(", weblog: onrezka.log);
 
+            var proxyManager = new ProxyManager(init);
             var oninvk = onrezka.invk;
 
             #region search
@@ -272,13 +271,12 @@ namespace Online.Controllers
             if (onrezka.invk == null)
                 return OnError("authorization error ;(", weblog: onrezka.log);
 
-            var oninvk = onrezka.invk;
-
-            var proxyManager = new ProxyManager(init);
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var oninvk = onrezka.invk;
+            var proxyManager = new ProxyManager(init);
 
             var cache_root = await InvokeCache<Episodes>($"rhsprem:view:serial:{id}:{t}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
@@ -308,9 +306,6 @@ namespace Online.Controllers
             if (onrezka.invk == null)
                 return OnError("authorization error ;(", weblog: onrezka.log);
 
-            var oninvk = onrezka.invk;
-            var proxyManager = new ProxyManager(init);
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: s == -1 ? null : -1);
 
             if (rch.IsNotConnected())
@@ -323,6 +318,9 @@ namespace Online.Controllers
 
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            var oninvk = onrezka.invk;
+            var proxyManager = new ProxyManager(init);
 
             var cache = await InvokeCache<MovieModel>($"rhsprem:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{onrezka.cookie}", cacheTime(5, mikrotik: 1, init: init), rch.enable ? null : proxyManager, async res =>
             {

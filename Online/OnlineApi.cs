@@ -206,7 +206,7 @@ namespace Online.Controllers
             #region getAlloha / getVSDN / getTabus
             async Task<string> getAlloha(string imdb)
             {
-                var proxyManager = new ProxyManager("alloha", AppInit.conf.Alloha);
+                var proxyManager = new ProxyManager(AppInit.conf.Alloha);
                 string json = await Http.Get("https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&imdb=" + imdb, timeoutSeconds: 5, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
@@ -230,7 +230,7 @@ namespace Online.Controllers
                 if (string.IsNullOrEmpty(AppInit.conf.VideoCDN.token) || string.IsNullOrEmpty(AppInit.conf.VideoCDN.iframehost))
                     return null;
 
-                var proxyManager = new ProxyManager("vcdn", AppInit.conf.VideoCDN);
+                var proxyManager = new ProxyManager(AppInit.conf.VideoCDN);
                 string json = await Http.Get($"{AppInit.conf.VideoCDN.iframehost}/api/short?api_token={AppInit.conf.VideoCDN.token}&imdb_id={imdb}", timeoutSeconds: 5, proxy: proxyManager.Get());
                 if (json == null)
                     return null;
@@ -244,7 +244,7 @@ namespace Online.Controllers
 
             async Task<string> getTabus(string imdb)
             {
-                var proxyManager = new ProxyManager("collaps", AppInit.conf.Collaps);
+                var proxyManager = new ProxyManager(AppInit.conf.Collaps);
                 string json = await Http.Get("https://api.bhcesh.me/franchise/details?token=d39edcf2b6219b6421bffe15dde9f1b3&imdb_id=" + imdb.Remove(0, 2), timeoutSeconds: 5, proxy: proxyManager.Get());
                 if (json == null)
                     return null;

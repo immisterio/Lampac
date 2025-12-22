@@ -38,8 +38,6 @@ namespace Online.Controllers
         }
         #endregion
 
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.GetsTV);
-
         [HttpGet]
         [Route("lite/getstv")]
         async public ValueTask<ActionResult> Index(string orid, string title, string original_title, int year, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
@@ -52,6 +50,8 @@ namespace Online.Controllers
             if (rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
+            var proxyManager = new ProxyManager(init);
+
             if (string.IsNullOrEmpty(orid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
                 if (source.ToLower() == "getstv")
@@ -60,7 +60,7 @@ namespace Online.Controllers
 
             if (string.IsNullOrEmpty(orid))
             {
-                var result = await search(init, title, original_title, year);
+                var result = await search(proxyManager, init, title, original_title, year);
 
                 if (result.id != null && similar == false)
                     orid = result.id;
@@ -187,6 +187,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             string memKey = $"getstv:view:stream:{id}:{init.token}";
@@ -258,7 +259,9 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            var result = await search(init, title, null, 0);
+            var proxyManager = new ProxyManager(init);
+
+            var result = await search(proxyManager, init, title, null, 0);
             if (result.similar.data?.Count == 0)
                 return OnError("data");
 
@@ -268,7 +271,7 @@ namespace Online.Controllers
 
 
         #region search
-        async ValueTask<(string id, SimilarTpl similar)> search(OnlinesSettings init, string title, string original_title, int year)
+        async ValueTask<(string id, SimilarTpl similar)> search(ProxyManager proxyManager, OnlinesSettings init, string title, string original_title, int year)
         {
             if (string.IsNullOrWhiteSpace(title) || string.IsNullOrEmpty(init.token))
                 return default;

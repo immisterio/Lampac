@@ -13,7 +13,7 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var proxyManager = new ProxyManager(AppInit.conf.AniLiberty);
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);

@@ -7,8 +7,6 @@ namespace Online.Controllers
 {
     public class VoKino : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.VoKino);
-
         #region vokinotk
         [HttpGet]
         [AllowAnonymous]
@@ -23,6 +21,8 @@ namespace Online.Controllers
             }
             else
             {
+                var proxyManager = new ProxyManager(AppInit.conf.VoKino);
+
                 string deviceid = new string(DateTime.Now.ToBinary().ToString().Reverse().ToArray()).Substring(0, 8);
                 var token_request = await Http.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get(), headers: HeadersModel.Init("user-agent", "lampac"));
 
@@ -72,6 +72,7 @@ namespace Online.Controllers
             if (checksearch /*&& balancer != "vokino"*/)
                 return Content("data-json="); // заглушка от 429 и от +1 к просмотру
 
+            var proxyManager = new ProxyManager(init);
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);

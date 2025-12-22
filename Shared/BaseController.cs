@@ -613,11 +613,12 @@ namespace Shared
         public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable
         {
             var init = clone ? (T)_init.Clone() : _init;
+            init.IsKitConf = false;
             var defaultinit = InvkEvent.conf.LoadKit != null ? (clone ? _init : (T)_init.Clone()) : null;
 
             InvkEvent.LoadKitInit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));
 
-            if (init == null || !init.kit || appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
+            if (!init.kit || appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
             {
                 InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));
                 return init;
@@ -711,6 +712,7 @@ namespace Shared
             }
 
             IsKitConf = true;
+            init.IsKitConf = true;
 
             InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, conf, requestInfo, hybridCache));
 

@@ -30,9 +30,11 @@ namespace Online.Controllers
             if (rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
+            var proxyManager = new ProxyManager(init);
+
             if (postid == 0)
             {
-                var res = await InvokeCache($"fxapi:search:{title}:{original_title}:{similar}", cacheTime(40, init: init), () => Search(title, original_title, year, similar));
+                var res = await InvokeCache($"fxapi:search:{title}:{original_title}:{similar}", cacheTime(40, init: init), () => Search(proxyManager, title, original_title, year, similar));
                 if (similar)
                     return ContentTo(rjson ? res.similars.Value.ToJson() : res.similars.Value.ToHtml());
 
@@ -259,12 +261,11 @@ namespace Online.Controllers
         }
 
 
-        async ValueTask<SearchResult> Search(string title, string original_title, int year, bool similar)
+        async ValueTask<SearchResult> Search(ProxyManager proxyManager, string title, string original_title, int year, bool similar)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
-            var proxyManager = new ProxyManager("filmix", AppInit.conf.Filmix);
             var proxy = proxyManager.Get();
 
             string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi";

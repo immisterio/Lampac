@@ -4,8 +4,6 @@ namespace Online.Controllers
 {
     public class Animevost : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.Animevost);
-
         [HttpGet]
         [Route("lite/animevost")]
         async public ValueTask<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
@@ -24,6 +22,8 @@ namespace Online.Controllers
 
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
 
             reset:
             if (string.IsNullOrWhiteSpace(uri))
@@ -171,7 +171,6 @@ namespace Online.Controllers
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            reset: 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotConnected())
@@ -188,6 +187,9 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
+            var proxyManager = new ProxyManager(init);
+
+            reset:
             var cache = await InvokeCache<List<(string l, string q)>>($"animevost:video:{id}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
             {
                 if (rch.IsNotConnected())

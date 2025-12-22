@@ -1,16 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
 {
     public class iRemux : BaseOnlineController
     {
-        ProxyManager proxyManager = new ProxyManager(AppInit.conf.iRemux);
-
         #region iRemuxInvoke
-        public iRemuxInvoke InitRemuxInvoke()
+        public iRemuxInvoke InitRemuxInvoke(OnlinesSettings init, ProxyManager proxyManager)
         {
             var proxy = proxyManager.Get();
-            var init = AppInit.conf.iRemux;
 
             return new iRemuxInvoke
             (
@@ -39,7 +37,9 @@ namespace Online.Controllers
             if (rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            var oninvk = InitRemuxInvoke();
+            var proxyManager = new ProxyManager(init);
+
+            var oninvk = InitRemuxInvoke(init, proxyManager);
 
             var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", cacheTime(40, init: init), () => oninvk.Embed(title, original_title, year, href), proxyManager);
             if (content == null)
@@ -61,7 +61,9 @@ namespace Online.Controllers
             if (rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            var oninvk = InitRemuxInvoke();
+            var proxyManager = new ProxyManager(init);
+
+            var oninvk = InitRemuxInvoke(init, proxyManager);
 
             string weblink = await InvokeCache($"remux:view:{linkid}:{proxyManager.CurrentProxyIp}", cacheTime(20), () => oninvk.Weblink(linkid), proxyManager);
             if (weblink == null)
