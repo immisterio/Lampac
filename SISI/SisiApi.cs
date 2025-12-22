@@ -269,49 +269,44 @@ namespace SISI
             #region NextHUB
             if (conf.sisi.NextHUB)
             {
-                var semaphor = new SemaphorManager("sisi:NextHUB:sites", TimeSpan.FromSeconds(5));
-
-                await semaphor.Invoke(async () =>
+                foreach (string inFile in Directory.GetFiles("NextHUB/sites", "*.yaml"))
                 {
-                    foreach (string inFile in Directory.GetFiles("NextHUB/sites", "*.yaml"))
+                    try
                     {
-                        try
+                        if (inFile.Contains(".my."))
+                            continue;
+
+                        string plugin = Path.GetFileNameWithoutExtension(inFile);
+                        if (!lgbt && plugin == "gayporntube")
+                            continue;
+
+                        var init = Controllers.NextHUB.Root.goInit(plugin);
+                        if (init == null)
+                            continue;
+
+                        if (init.debug)
+                            Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
+
+                        init = await loadKit(init);
+
+                        if (PlaywrightBrowser.Status == PlaywrightStatus.disabled || init.rhub)
                         {
-                            if (inFile.Contains(".my."))
-                                continue;
-
-                            string plugin = Path.GetFileNameWithoutExtension(inFile);
-                            if (!lgbt && plugin == "gayporntube")
-                                continue;
-
-                            var init = Controllers.NextHUB.Root.goInit(plugin);
-                            if (init == null)
-                                continue;
-
-                            if (init.debug)
-                                Console.WriteLine("\n" + JsonConvert.SerializeObject(init, Formatting.Indented));
-
-                            init = await loadKit(init);
-
-                            if (PlaywrightBrowser.Status == PlaywrightStatus.disabled || init.rhub)
+                            if (init.priorityBrowser != "http" || (init.view != null && init.view.viewsource == false))
                             {
-                                if (init.priorityBrowser != "http" || (init.view != null && init.view.viewsource == false))
-                                {
-                                    if (AppInit.conf.multiaccess == false)
-                                        Console.WriteLine($"NextHUB: {plugin} - Playwright is disabled, skipping.");
-                                    continue;
-                                }
+                                if (AppInit.conf.multiaccess == false)
+                                    Console.WriteLine($"NextHUB: {plugin} - Playwright is disabled, skipping.");
+                                continue;
                             }
+                        }
 
-                            send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}", myinit: init);
-                        }
-                        catch (YamlDotNet.Core.YamlException ex)
-                        {
-                            Console.WriteLine($"\nОшибка: {ex.Message}\nфайл: {Path.GetFileName(inFile)}\nстрока: {ex.Start.Line}");
-                        }
-                        catch (Exception ex) { Console.WriteLine($"NextHUB: error DeserializeObject {inFile}\n {ex.Message}"); }
+                        send(Regex.Replace(init.host, "^https?://", ""), init, $"nexthub?plugin={plugin}", myinit: init);
                     }
-                });
+                    catch (YamlDotNet.Core.YamlException ex)
+                    {
+                        Console.WriteLine($"\nОшибка: {ex.Message}\nфайл: {Path.GetFileName(inFile)}\nстрока: {ex.Start.Line}");
+                    }
+                    catch (Exception ex) { Console.WriteLine($"NextHUB: error DeserializeObject {inFile}\n {ex.Message}"); }
+                }
             }
             #endregion
 
