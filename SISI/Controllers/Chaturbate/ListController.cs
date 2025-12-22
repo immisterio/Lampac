@@ -26,7 +26,7 @@ namespace SISI.Controllers.Chaturbate
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"Chaturbate:list:{sort}:{pg}:{rch.enable}";
+            string memKey = $"Chaturbate:list:{sort}:{pg}";
 
             return await InvkSemaphore(memKey, async () =>
             {

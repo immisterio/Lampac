@@ -23,7 +23,7 @@ namespace SISI.Controllers.Chaturbate
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"chaturbate:stream:{baba}:{rch.enable}";
+            string memKey = $"chaturbate:stream:{baba}";
 
             return await InvkSemaphore(memKey, async () =>
             {

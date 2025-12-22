@@ -27,7 +27,7 @@ namespace SISI.Controllers.Runetki
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"{init.plugin}:list:{sort}:{pg}:{rch.enable}";
+            string memKey = $"{init.plugin}:list:{sort}:{pg}";
 
             return await InvkSemaphore(memKey, async () =>
             {

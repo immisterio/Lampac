@@ -27,7 +27,7 @@ namespace SISI.Controllers.BongaCams
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"BongaCams:list:{sort}:{pg}:{rch.enable}";
+            string memKey = $"BongaCams:list:{sort}:{pg}";
 
             return await InvkSemaphore(memKey, async () => 
             {

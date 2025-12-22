@@ -27,13 +27,14 @@ namespace SISI.Controllers.PornHub
                 return OnError(rch_error);
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
-            string memKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}:{rch.enable}";
+            string semaphoreKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
 
-            return await InvkSemaphore(memKey, async () =>
+            return await InvkSemaphore(semaphoreKey, async () =>
             {
+                reset:
+                string memKey = rch.ipkey(semaphoreKey, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))
                 {
-                    reset:
                     string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url =>
                         rch.enable 
                             ? rch.Get(init.cors(url), httpHeaders(init)) 

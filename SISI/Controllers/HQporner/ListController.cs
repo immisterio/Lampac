@@ -23,7 +23,7 @@ namespace SISI.Controllers.HQporner
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"hqr:{search}:{sort}:{c}:{pg}:{rch.enable}";
+            string memKey = $"hqr:{search}:{sort}:{c}:{pg}";
 
             return await InvkSemaphore(memKey, async () =>
             {

@@ -23,7 +23,7 @@ namespace SISI.Controllers.Xnxx
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"xnx:list:{search}:{pg}:{rch.enable}";
+            string memKey = $"xnx:list:{search}:{pg}";
 
             return await InvkSemaphore(memKey, async () =>
             {

@@ -290,8 +290,8 @@ namespace Shared
                         return $"{apn.host}/proxy/{aes}";
                     }
 
-                    if (apn.host.Contains("{uri}"))
-                        return apn.host.Replace("{uri}", link);
+                    if (apn.host.Contains("{encode_uri}") || apn.host.Contains("{uri}"))
+                        return apn.host.Replace("{encode_uri}", HttpUtility.UrlEncode(link)).Replace("{uri}", link);
 
                     return $"{apn.host}/{link}";
                 }

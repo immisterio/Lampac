@@ -23,13 +23,14 @@ namespace SISI.Controllers.Eporner
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"eporner:view:{uri}:{rch.enable}";
+            string semaphoreKey = $"eporner:view:{uri}";
 
-            return await InvkSemaphore(memKey, async () =>
+            return await InvkSemaphore(semaphoreKey, async () =>
             {
+                reset:
+                string memKey = rch.ipkey(semaphoreKey, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
                 {
-                    reset:
                     stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), uri,
                                    htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                                    jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : Http.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));

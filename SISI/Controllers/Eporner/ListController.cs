@@ -25,13 +25,14 @@ namespace SISI.Controllers.Eporner
 
             pg += 1;
 
-            string memKey = $"epr:{search}:{sort}:{c}:{pg}:{rch.enable}";
+            string semaphoreKey = $"epr:{search}:{sort}:{c}:{pg}";
 
-            return await InvkSemaphore(memKey, async () =>
+            return await InvkSemaphore(semaphoreKey, async () =>
             {
+                reset:
+                string memKey = rch.ipkey(semaphoreKey, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
                 {
-                    reset:
                     string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
                         rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                     );

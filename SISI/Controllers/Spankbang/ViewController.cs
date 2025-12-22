@@ -24,7 +24,7 @@ namespace SISI.Controllers.Spankbang
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"spankbang:view:{uri}:{rch.enable}";
+            string memKey = $"spankbang:view:{uri}";
 
             return await InvkSemaphore(memKey, async () =>
             {

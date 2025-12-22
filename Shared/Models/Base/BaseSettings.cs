@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using System.Web;
 
 namespace Shared.Models.Base
 {
@@ -160,8 +161,8 @@ namespace Shared.Models.Base
             if (string.IsNullOrWhiteSpace(crhost))
                 return host;
 
-            if (crhost.Contains("{host}") || crhost.Contains("{uri}"))
-                return crhost.Replace("{host}", host).Replace("{uri}", host);
+            if (crhost.Contains("{encode_uri}") || crhost.Contains("{uri}"))
+                return crhost.Replace("{encode_uri}", HttpUtility.UrlEncode(host)).Replace("{uri}", host);
 
             return $"{crhost}/{host}";
         }
@@ -177,8 +178,8 @@ namespace Shared.Models.Base
             if (uri.Contains(Regex.Match(crhost, "https?://([^/]+)", RegexOptions.IgnoreCase).Groups[1].Value))
                 return uri;
 
-            if (crhost.Contains("{host}") || crhost.Contains("{uri}"))
-                return crhost.Replace("{host}", uri).Replace("{uri}", uri);
+            if (crhost.Contains("{encode_uri}") || crhost.Contains("{uri}"))
+                return crhost.Replace("{encode_uri}", HttpUtility.UrlEncode(uri)).Replace("{uri}", uri);
 
             return $"{crhost}/{uri}";
         }

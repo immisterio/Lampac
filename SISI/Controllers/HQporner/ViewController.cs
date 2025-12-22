@@ -24,13 +24,14 @@ namespace SISI.Controllers.HQporner
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = rch.ipkey($"HQporner:view:{uri}", proxyManager);
+            string semaphoreKey = $"HQporner:view:{uri}";
 
-            return await InvkSemaphore(memKey, async () =>
+            return await InvkSemaphore(semaphoreKey, async () =>
             {
+                reset:
+                string memKey = rch.ipkey(semaphoreKey, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
                 {
-                    reset:
                     stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri,
                                    htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
                                    iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : Http.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));

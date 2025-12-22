@@ -28,15 +28,18 @@ namespace SISI.Controllers.Xhamster
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"{plugin}:{search}:{sort}:{c}:{q}:{pg}:{rch.enable}";
+            string semaphoreKey = $"{plugin}:{search}:{sort}:{c}:{q}:{pg}";
 
-            return await InvkSemaphore(memKey, async () =>
+            return await InvkSemaphore(semaphoreKey, async () =>
             {
+                reset:
+                string memKey = rch.ipkey(semaphoreKey, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
                 {
-                    reset:
                     string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url =>
-                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                        rch.enable 
+                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                            : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                     );
 
                     playlists = XhamsterTo.Playlist("xmr/vidosik", html);

@@ -19,7 +19,7 @@ namespace SISI.Controllers.XvideosRED
 
             string plugin = init.plugin;
             bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);
-            string memKey = $"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}:{rch.enable}";
+            string memKey = $"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}";
 
             return await InvkSemaphore(memKey, async () =>
             {

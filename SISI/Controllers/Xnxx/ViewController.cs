@@ -23,7 +23,7 @@ namespace SISI.Controllers.Xnxx
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
 
-            string memKey = $"xnxx:view:{uri}:{rch.enable}";
+            string memKey = $"xnxx:view:{uri}";
 
             return await InvkSemaphore(memKey, async () =>
             {

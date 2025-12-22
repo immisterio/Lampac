@@ -30,15 +30,14 @@ namespace SISI.Controllers.Ebalovo
                     return OnError("apkVersion", false);
             }
 
-            string memKey = rch.ipkey($"ebalovo:view:{uri}", proxyManager);
-
-            return await InvkSemaphore(memKey, async () =>
+            return await InvkSemaphore($"ebalovo:view:{uri}", async () =>
             {
+                reset:
+                string memKey = rch.ipkey($"ebalovo:view:{uri}", proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
                 {
                     string ehost = await RootController.goHost(init.corsHost());
 
-                    reset:
                     stream_links = await EbalovoTo.StreamLinks("elo/vidosik", ehost, uri,
                         url =>
                         {
