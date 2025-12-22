@@ -713,79 +713,78 @@ namespace Online.Controllers
                     if (init.client_type != null && !init.client_type.Contains(rchtype))
                         return;
 
-                    string rch_access = init.RchAccessNotSupport();
-                    if (rch_access != null) 
-                    {
-                        enable = rch_access.Contains(rchtype);
-                        if (enable && init.rhub_geo_disable != null)
-                        {
-                            if (requestInfo.Country != null && init.rhub_geo_disable.Contains(requestInfo.Country))
-                                enable = false;
-                        }
-                    }
+                    string rch_deny = init.RchAccessNotSupport();
+                    if (rch_deny != null && rch_deny.Contains(rchtype))
+                        return;
 
-                    if (enable)
+                    string stream_deny = init.StreamAccessNotSupport();
+                    if (stream_deny != null && stream_deny.Contains(rchtype))
+                        return;
+
+                    if (init.rhub && !init.rhub_fallback && !init.corseu && string.IsNullOrWhiteSpace(init.webcorshost))
                     {
-                        string streamAccess = init.StreamAccessNotSupport();
-                        if (streamAccess != null)
-                            enable = streamAccess.Contains(rchtype);
+                        if (init.rhub_geo_disable != null &&
+                            requestInfo.Country != null && 
+                            init.rhub_geo_disable.Contains(requestInfo.Country))
+                        {
+                            return;
+                        }
                     }
                 }
 
-                if (enable && init.geo_hide != null)
+                if (init.geo_hide != null &&
+                    requestInfo.Country != null && 
+                    init.geo_hide.Contains(requestInfo.Country))
                 {
-                    if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
-                        enable = false;
+                    return;
                 }
 
-                if (enable)
+                if (init.group_hide)
                 {
-                    if (init.group_hide)
+                    if (init.group > 0)
                     {
-                        if (init.group > 0)
-                        {
-                            if (user == null || init.group > user.group)
-                                return;
-                        }
-                        else if (AppInit.conf.accsdb.enable)
-                        {
-                            if (user == null && string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
-                                return;
-                        }
+                        if (user == null || init.group > user.group)
+                            return;
                     }
-
-                    string url = string.Empty;
-
-                    if (string.IsNullOrEmpty(init.overridepasswd))
+                    else if (AppInit.conf.accsdb.enable)
                     {
-                        url = init.overridehost;
-                        if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
-                            url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                        if (user == null && string.IsNullOrEmpty(AppInit.conf.accsdb.premium_pattern))
+                            return;
                     }
-
-                    string displayname = init.displayname ?? name ?? init.plugin;
-
-                    if (!string.IsNullOrEmpty(url))
-                    {
-                        if (plugin == "collaps-dash")
-                        {
-                            displayname = displayname.Replace("- 720p", "- 1080p");
-                            url = url.Replace("/collaps", "/collaps-dash");
-                        }
-                    }
-                    else {
-                        url = "{localhost}/lite/" + (plugin ?? (init.plugin ?? name).ToLower()) + arg_url;
-                    }
-
-                    if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
-                    {
-                        string _p = (plugin ?? (init.plugin ?? name).ToLower());
-                        if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "vcdn" or "videocdn" or "fancdn" or "redheadsound" or "kinotochka" or "remux") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
-                            url += (url.Contains("?") ? "&" : "?") + "clarification=1";
-                    }
-
-                    online.Add((myinit, $"{displayname}{arg_title}", url, (plugin ?? init.plugin ?? name).ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
                 }
+
+                string url = string.Empty;
+
+                if (string.IsNullOrEmpty(init.overridepasswd))
+                {
+                    url = init.overridehost;
+                    if (string.IsNullOrEmpty(url) && init.overridehosts != null && init.overridehosts.Length > 0)
+                        url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
+                }
+
+                string displayname = init.displayname ?? name ?? init.plugin;
+
+                if (!string.IsNullOrEmpty(url))
+                {
+                    if (plugin == "collaps-dash")
+                    {
+                        displayname = displayname.Replace("- 720p", "- 1080p");
+                        url = url.Replace("/collaps", "/collaps-dash");
+                    }
+                }
+                else
+                {
+                    url = "{localhost}/lite/" + (plugin ?? (init.plugin ?? name).ToLower()) + arg_url;
+                }
+
+                if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
+                {
+                    string _p = (plugin ?? (init.plugin ?? name).ToLower());
+                    if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "redheadsound" or "kinopub" or "alloha" or "lumex" or "vcdn" or "videocdn" or "fancdn" or "redheadsound" or "kinotochka" or "remux") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                        url += (url.Contains("?") ? "&" : "?") + "clarification=1";
+                }
+
+                online.Add((myinit, $"{displayname}{arg_title}", url, (plugin ?? init.plugin ?? name).ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
             }
             #endregion
 
