@@ -177,8 +177,12 @@ namespace Online.Controllers
             var proxyManager = new ProxyManager(init);
 
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport(out string rch_error))
+                return ShowError(rch_error);
 
             if (rch.enable)
             {

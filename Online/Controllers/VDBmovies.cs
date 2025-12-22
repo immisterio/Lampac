@@ -110,10 +110,11 @@ namespace Online.Controllers
             #endregion
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             reset: 

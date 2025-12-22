@@ -19,7 +19,7 @@ namespace Online.Controllers
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("cors,web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             reset:
@@ -173,7 +173,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("cors,web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             var cache = await InvokeCache<string>($"animebesst:video:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>

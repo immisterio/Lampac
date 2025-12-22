@@ -73,8 +73,12 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport(out string rch_error))
+                return ShowError(rch_error);
 
             var proxy = proxyManager.Get();
 

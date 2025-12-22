@@ -21,7 +21,7 @@ namespace Online.Controllers
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             if (similar || kinopoisk_id == 0)
@@ -147,7 +147,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             var proxy = proxyManager.Get();
@@ -266,7 +266,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             var proxy = proxyManager.Get();
@@ -401,7 +401,7 @@ namespace Online.Controllers
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             var proxyManager = new ProxyManager(init);

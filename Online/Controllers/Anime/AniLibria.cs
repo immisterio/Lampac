@@ -20,8 +20,12 @@ namespace Online.Controllers
             var proxy = proxyManager.Get();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport(out string rch_error))
+                return ShowError(rch_error);
 
             var oninvk = new AniLibriaInvoke
             (

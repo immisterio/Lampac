@@ -28,7 +28,7 @@ namespace Online.Controllers
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             var oninvk = new VideoDBInvoke
@@ -83,7 +83,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web,cors", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             string memKey = rch.ipkey($"videodb:video:{link}", proxyManager);

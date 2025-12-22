@@ -18,7 +18,7 @@ namespace Online.Controllers
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             var proxyManager = new ProxyManager(init);
@@ -178,7 +178,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            if (rch.IsNotSupport("cors,web", out string rch_error))
+            if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
             var cache = await InvokeCache<string>(rch.ipkey($"cdnvideohub:video:{vkId}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>

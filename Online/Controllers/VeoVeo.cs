@@ -47,8 +47,12 @@ namespace Online.Controllers
             }
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
+
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
+
+            if (rch.IsNotSupport(out string rch_error))
+                return ShowError(rch_error);
 
             #region media
             var cache = await InvokeCache<JArray>($"{init.plugin}:view:{movieid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
