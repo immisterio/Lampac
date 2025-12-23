@@ -32,16 +32,6 @@ namespace SISI.Controllers.NextHUB
             if (await IsBadInitialization(init, rch: init.rch_access != null))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-
             string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";
             if (init.menu?.customs != null)
             {
@@ -64,7 +54,7 @@ namespace SISI.Controllers.NextHUB
                     #endregion
 
                     reset:
-                    string html = await HttpRequest(init, rch, proxyManager, plugin, pg, search, sort, cat, model);
+                    string html = await HttpRequest(init, plugin, pg, search, sort, cat, model);
 
                     playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
 
@@ -542,12 +532,9 @@ namespace SISI.Controllers.NextHUB
 
         #region HttpRequest
         async Task<string> HttpRequest(
-            NxtSettings init, RchClient rch, ProxyManager proxyManager, 
-            string plugin, int pg, string search, string sort, string cat, string model
+            NxtSettings init, string plugin, int pg, string search, string sort, string cat, string model
         )
         {
-            var proxy = proxyManager.BaseGet();
-
             string data = !string.IsNullOrEmpty(search) ? (init.search?.data ?? init.list.data) : init.list.data;
 
             #region encoding
@@ -637,15 +624,15 @@ namespace SISI.Controllers.NextHUB
 
                 return rch.enable
                     ? await rch.Post(url.Replace("{page}", pg.ToString()), data, httpHeaders(init))
-                    : await Http.Post(url.Replace("{page}", pg.ToString()), data, encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout);
+                    : await Http.Post(url.Replace("{page}", pg.ToString()), data, encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout);
             }
             else
             {
                 return rch.enable 
                     ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) 
-                    : init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy.proxy, timeoutSeconds: init.timeout) 
-                    : init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, cookies: init.cookies) 
-                    : await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy.data, search, sort, cat, model, pg);
+                    : init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout) 
+                    : init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy_data, cookies: init.cookies) 
+                    : await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy_data, search, sort, cat, model, pg);
             }
         }
         #endregion

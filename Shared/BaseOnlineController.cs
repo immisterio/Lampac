@@ -148,7 +148,7 @@ namespace Shared
             if (AppInit.conf.multiaccess && gbcache)
                 memoryCache.Set(ResponseCache.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddSeconds(20));
 
-            HttpContext.Response.StatusCode = 500;
+            HttpContext.Response.StatusCode = 503;
             return Content(msg ?? string.Empty, "text/html; charset=utf-8");
         }
         #endregion

@@ -8,23 +8,12 @@ namespace SISI.Controllers.Tizam
         [Route("tizam")]
         async public ValueTask<ActionResult> Index(string search, int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.Tizam);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
+            var init = await loadKit(AppInit.conf.Tizam);
+            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+                return badInitMsg;
 
             string memKey = $"tizam:{pg}";
 

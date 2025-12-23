@@ -290,7 +290,7 @@ namespace TorrServer.Controllers
                             }
                             catch { }
 
-                            HttpContext.Response.StatusCode = 500;
+                            HttpContext.Response.StatusCode = 503;
                             await HttpContext.Response.WriteAsync(string.Empty, HttpContext.RequestAborted).ConfigureAwait(false);
                             return;
                         }

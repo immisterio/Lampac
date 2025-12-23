@@ -10,18 +10,9 @@ namespace SISI.Controllers.Porntrex
         async public ValueTask<ActionResult> vidosik(string uri)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: init.apnstream ? -1 : null);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
             string semaphoreKey = $"porntrex:view:{uri}";
 
             return await InvkSemaphore(semaphoreKey, async () =>
@@ -72,23 +63,34 @@ namespace SISI.Controllers.Porntrex
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            if (init.rhub && !init.rhub_fallback)
-                return OnError("rhub_fallback");
+            if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)
+            {
+                rch.Disabled(); // на версиях ниже java.lang.OutOfMemoryError
+                if (!init.rhub_fallback)
+                    return OnError("apkVersion", false);
+            }
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            string memKey = $"Porntrex:strem:{link}:{proxyManager.CurrentProxyIp}";
+            string memKey = rch.ipkey($"Porntrex:strem:{link}", proxyManager);
 
             return await InvkSemaphore(memKey, async () =>
             {
                 if (!hybridCache.TryGetValue(memKey, out string location))
                 {
-                    location = await Http.GetLocation(link, timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
+                    var headers = httpHeaders(init, HeadersModel.Init(
                         ("sec-fetch-dest", "document"),
                         ("sec-fetch-mode", "navigate"),
                         ("sec-fetch-site", "none")
-                    )));
+                    ));
+
+                    if (rch.enable)
+                    {
+                        var res = await rch.Headers(init.cors(link), null, headers);
+                        location = res.currentUrl;
+                    }
+                    else
+                    {
+                        location = await Http.GetLocation(init.cors(link), timeoutSeconds: 10, httpversion: 2, proxy: proxy, headers: headers);
+                    }
 
                     if (string.IsNullOrEmpty(location) || link == location)
                         return OnError("location", proxyManager);

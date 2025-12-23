@@ -449,6 +449,7 @@ namespace Shared
 
                 if (errorCache is OnErrorResult)
                 {
+                    HttpContext.Response.StatusCode = 503;
                     badInitMsg = Json(errorCache);
                     return true;
                 }
@@ -457,7 +458,7 @@ namespace Shared
                     string msg = errorCache.ToString();
                 }
 
-                badInitMsg = Ok();
+                badInitMsg = StatusCode(503);
                 return true;
             }
 

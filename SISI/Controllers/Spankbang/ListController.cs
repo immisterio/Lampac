@@ -10,19 +10,8 @@ namespace SISI.Controllers.Spankbang
         async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Spankbang);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
 
             string memKey = $"sbg:{search}:{sort}:{pg}";
 
@@ -37,9 +26,9 @@ namespace SISI.Controllers.Spankbang
                             return rch.Get(init.cors(url), httpHeaders(init));
 
                         if (init.priorityBrowser == "http")
-                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy);
 
-                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy.data);
+                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
                     });
 
                     playlists = SpankbangTo.Playlist("sbg/vidosik", html);

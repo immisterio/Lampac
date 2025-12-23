@@ -55,7 +55,7 @@ namespace Lampac.Controllers
                 }
                 catch
                 {
-                    HttpContext.Response.StatusCode = 500;
+                    HttpContext.Response.StatusCode = 503;
                     return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
                 }
                 finally
@@ -93,7 +93,7 @@ namespace Lampac.Controllers
                 }
                 catch 
                 {
-                    HttpContext.Response.StatusCode = 500;
+                    HttpContext.Response.StatusCode = 503;
                     return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
                 }
             }
@@ -115,7 +115,7 @@ namespace Lampac.Controllers
                 }
                 catch
                 {
-                    HttpContext.Response.StatusCode = 500;
+                    HttpContext.Response.StatusCode = 503;
                     return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
                 }
                 finally
@@ -186,7 +186,7 @@ namespace Lampac.Controllers
                 }
                 catch
                 {
-                    HttpContext.Response.StatusCode = 500;
+                    HttpContext.Response.StatusCode = 503;
                     return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
                 }
                 finally
@@ -224,7 +224,7 @@ namespace Lampac.Controllers
                 }
                 catch 
                 {
-                    HttpContext.Response.StatusCode = 500;
+                    HttpContext.Response.StatusCode = 503;
                     return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
                 }
             }
@@ -246,7 +246,7 @@ namespace Lampac.Controllers
                 }
                 catch
                 {
-                    HttpContext.Response.StatusCode = 500;
+                    HttpContext.Response.StatusCode = 503;
                     return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
                 }
                 finally

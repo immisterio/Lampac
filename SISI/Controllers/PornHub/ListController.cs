@@ -12,32 +12,27 @@ namespace SISI.Controllers.PornHub
         async public ValueTask<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.PornHub);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
-            string semaphoreKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
 
-            return await InvkSemaphore(semaphoreKey, async () =>
+            string semaphoreKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
+            var semaphore = new SemaphorManager(semaphoreKey, TimeSpan.FromSeconds(30));
+
+            reset: // http запросы последовательно 
+            if (rch.enable == false)
+                await semaphore.WaitAsync();
+
+            // fallback cache
+            if (!hybridCache.TryGetValue(semaphoreKey, out (int total_pages, List<PlaylistItem> playlists) cache))
             {
-                reset:
-                string memKey = rch.ipkey(semaphoreKey, proxyManager);
-                if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))
+                // user cache разделенный по ip
+                if (rch.enable == false || !hybridCache.TryGetValue(rch.ipkey(semaphoreKey), out cache))
                 {
                     string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, url =>
-                        rch.enable 
-                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                        rch.enable
+                            ? rch.Get(init.cors(url), httpHeaders(init))
                             : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init))
                     );
 
@@ -55,17 +50,17 @@ namespace SISI.Controllers.PornHub
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, cache, cacheTime(10, init: init), inmemory: false);
+                    hybridCache.Set(rch.ipkey(semaphoreKey), cache, cacheTime(10, init: init));
                 }
+            }
 
-                return OnResult(
-                    cache.playlists, 
-                    string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null, 
-                    plugin: init.plugin, 
-                    total_pages: cache.total_pages,
-                    imageHeaders: httpHeaders(init.host, init.headers_image)
-                );
-            });
+            return OnResult(
+                cache.playlists,
+                string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null,
+                plugin: init.plugin,
+                total_pages: cache.total_pages,
+                imageHeaders: httpHeaders(init.host, init.headers_image)
+            );
         }
 
 
@@ -77,16 +72,9 @@ namespace SISI.Controllers.PornHub
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache, inmemory: false))
             {
-                var proxyManager = new ProxyManager(init);
-                var proxy = proxyManager.Get();
-
                 string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => Http.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
                 if (html == null)
                     return OnError("html", proxyManager, string.IsNullOrEmpty(search));

@@ -12,23 +12,12 @@ namespace SISI.Controllers.Ebalovo
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
             if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)
             {
                 rch.Disabled(); // на версиях ниже java.lang.OutOfMemoryError
                 if (!init.rhub_fallback)
                     return OnError("apkVersion", false);
             }
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             return await InvkSemaphore($"ebalovo:view:{uri}", async () =>
             {

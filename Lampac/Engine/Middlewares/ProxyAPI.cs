@@ -282,7 +282,7 @@ namespace Lampac.Engine.Middlewares
                                     {
                                         if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
                                         {
-                                            httpContext.Response.StatusCode = 500;
+                                            httpContext.Response.StatusCode = 503;
                                             httpContext.Response.ContentType = "text/plain";
                                             await httpContext.Response.WriteAsync("bigfile", ctsHttp.Token).ConfigureAwait(false);
                                             return;
@@ -291,7 +291,7 @@ namespace Lampac.Engine.Middlewares
                                         var array = await content.ReadAsByteArrayAsync(ctsHttp.Token).ConfigureAwait(false);
                                         if (array == null)
                                         {
-                                            httpContext.Response.StatusCode = 500;
+                                            httpContext.Response.StatusCode = 503;
                                             await httpContext.Response.WriteAsync("error array m3u8", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }
@@ -347,7 +347,7 @@ namespace Lampac.Engine.Middlewares
                                     {
                                         if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
                                         {
-                                            httpContext.Response.StatusCode = 500;
+                                            httpContext.Response.StatusCode = 503;
                                             httpContext.Response.ContentType = "text/plain";
                                             await httpContext.Response.WriteAsync("bigfile", ctsHttp.Token).ConfigureAwait(false);
                                             return;
@@ -356,7 +356,7 @@ namespace Lampac.Engine.Middlewares
                                         var array = await content.ReadAsByteArrayAsync(ctsHttp.Token).ConfigureAwait(false);
                                         if (array == null)
                                         {
-                                            httpContext.Response.StatusCode = 500;
+                                            httpContext.Response.StatusCode = 503;
                                             await httpContext.Response.WriteAsync("error array mpd", ctsHttp.Token).ConfigureAwait(false);
                                             return;
                                         }

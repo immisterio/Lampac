@@ -12,17 +12,6 @@ namespace SISI.Controllers.PornHub
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             string memKey = $"phub:vidosik:{vkey}";
             return await InvkSemaphore(memKey, async () =>
             {
@@ -64,13 +53,6 @@ namespace SISI.Controllers.PornHub
             var init = await loadKit(AppInit.conf.PornHubPremium);
             if (await IsBadInitialization(init, rch: false))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             string memKey = $"phubprem:vidosik:{vkey}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))

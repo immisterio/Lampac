@@ -16,8 +16,17 @@ namespace Shared
     {
         public BaseSettings init { get; private set; }
 
+        public RchClient rch { get; private set; }
+
+        public ProxyManager proxyManager { get; private set; }
+
+        public WebProxy proxy { get; private set; }
+
+        public (string ip, string username, string password) proxy_data { get; private set; }
+
+
         #region IsBadInitialization
-        async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null)
+        async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null, int? rch_keepalive = null)
         {
             #region module initialization
             if (AppInit.modules != null)
@@ -64,7 +73,7 @@ namespace Shared
 
             if (NoAccessGroup(init, out string error_msg))
             {
-                badInitMsg = OnError(error_msg, false);
+                badInitMsg = OnError(error_msg, rcache: false, statusCode: 401);
                 return true;
             }
 
@@ -75,20 +84,50 @@ namespace Shared
                 return true;
             }
 
+            this.rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: rch_keepalive);
+
+            if (rch == true)
+            {
+                if (this.rch.IsNotConnected() || this.rch.IsRequiredConnected())
+                {
+                    badInitMsg = ContentTo(this.rch.connectionMsg);
+                    return true;
+                }
+
+                if (this.rch.IsNotSupport(out string rch_error))
+                {
+                    badInitMsg = OnError(rch_error, rcache: false, statusCode: 403);
+                    return true;
+                }
+            }
+            else
+            {
+                if (this.rch.IsRequiredConnected())
+                {
+                    badInitMsg = ContentTo(this.rch.connectionMsg);
+                    return true;
+                }
+            }
+
+            proxyManager = new ProxyManager(init);
+            var bp = proxyManager.BaseGet();
+            proxy = bp.proxy;
+            proxy_data = bp.data;
+
             return IsCacheError(init);
         }
         #endregion
 
         #region OnError
-        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true)
+        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true, int statusCode = 503)
         {
-            if (refresh_proxy && !init.rhub)
+            if (refresh_proxy && rch.enable == false)
                 proxyManager?.Refresh();
 
-            return OnError(msg, rcache: rcache);
+            return OnError(msg, rcache: rcache, statusCode: statusCode);
         }
 
-        public JsonResult OnError(string msg, bool rcache = true, int statusCode = 500)
+        public JsonResult OnError(string msg, bool rcache = true, int statusCode = 503)
         {
             var model = new OnErrorResult(msg);
 

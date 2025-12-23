@@ -8,23 +8,12 @@ namespace SISI.Controllers.Chaturbate
         [Route("chu")]
         async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.Chaturbate);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
+            var init = await loadKit(AppInit.conf.Chaturbate);
+            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+                return badInitMsg;
 
             string memKey = $"Chaturbate:list:{sort}:{pg}";
 
@@ -33,7 +22,9 @@ namespace SISI.Controllers.Chaturbate
                 if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
                 {
                     reset: string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                        rch.enable 
+                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                            : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                     );
 
                     playlists = ChaturbateTo.Playlist("chu/potok", html);

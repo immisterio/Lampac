@@ -9,19 +9,8 @@ namespace SISI.Controllers.Ebalovo
         async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Ebalovo);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             string memKey = $"elo:{search}:{sort}:{c}:{pg}";
 
@@ -41,7 +30,9 @@ namespace SISI.Controllers.Ebalovo
 
                     reset:
                     string html = await EbalovoTo.InvokeHtml(ehost, search, sort, c, pg, url =>
-                        rch.enable ? rch.Get(init.cors(url), headers) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers)
+                        rch.enable 
+                            ? rch.Get(init.cors(url), headers) 
+                            : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: headers)
                     );
 
                     playlists = EbalovoTo.Playlist("elo/vidosik", html);

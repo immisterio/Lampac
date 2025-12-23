@@ -128,6 +128,8 @@ namespace Shared.Engine
 
         public string connectionMsg { get; private set; }
 
+        public string ipkey(string key) => enableRhub ? $"{key}:{ip}" : key;
+
         public string ipkey(string key, ProxyManager proxy) => $"{key}:{(enableRhub ? ip : proxy?.CurrentProxyIp)}";
 
         public RchClient(string connectionId) 
@@ -203,6 +205,10 @@ namespace Shared.Engine
         {
             try
             {
+                // на версиях ниже java.lang.OutOfMemoryError
+                if (484 > InfoConnected()?.apkVersion)
+                    return default;
+
                 string json = await SendHub(url, data, headers, useDefaultHeaders, true).ConfigureAwait(false);
                 if (json == null)
                     return default;

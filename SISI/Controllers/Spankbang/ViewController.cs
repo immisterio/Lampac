@@ -13,17 +13,6 @@ namespace SISI.Controllers.Spankbang
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
             string memKey = $"spankbang:view:{uri}";
 
             return await InvkSemaphore(memKey, async () =>
@@ -37,9 +26,9 @@ namespace SISI.Controllers.Spankbang
                             return rch.Get(init.cors(url), httpHeaders(init));
 
                         if (init.priorityBrowser == "http")
-                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy);
 
-                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy.data);
+                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
                     });
 
                     if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
@@ -59,7 +48,7 @@ namespace SISI.Controllers.Spankbang
                 if (related)
                     return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
 
-                return OnResult(stream_links, init, proxy.proxy);
+                return OnResult(stream_links, init, proxy);
             });
         }
     }

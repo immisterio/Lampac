@@ -9,23 +9,12 @@ namespace SISI.Controllers.BongaCams
         [Route("bgs")]
         async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.BongaCams);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
+            var init = await loadKit(AppInit.conf.BongaCams);
+            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+                return badInitMsg;
 
             string memKey = $"BongaCams:list:{sort}:{pg}";
 
@@ -39,9 +28,9 @@ namespace SISI.Controllers.BongaCams
                             return rch.Get(init.cors(url), httpHeaders(init));
 
                         if (init.priorityBrowser == "http")
-                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy.proxy);
+                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy);
 
-                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy.data);
+                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
                     });
 
                     cache.playlists = BongaCamsTo.Playlist(html, out int total_pages);
@@ -65,7 +54,7 @@ namespace SISI.Controllers.BongaCams
                     cache.playlists, 
                     init, 
                     BongaCamsTo.Menu(host, sort), 
-                    proxy: proxy.proxy, 
+                    proxy: proxy,
                     total_pages: cache.total_pages
                 );
             });

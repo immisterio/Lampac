@@ -12,17 +12,6 @@ namespace SISI.Controllers.Chaturbate
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             string memKey = $"chaturbate:stream:{baba}";
 
             return await InvkSemaphore(memKey, async () =>
@@ -31,7 +20,9 @@ namespace SISI.Controllers.Chaturbate
                 {
                     reset:
                     stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, url =>
-                        rch.enable ? rch.Get(init.cors(url), httpHeaders(init)) : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                        rch.enable 
+                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                            : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                     );
 
                     if (stream_links == null || stream_links.Count == 0)

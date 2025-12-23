@@ -32,14 +32,6 @@ namespace SISI.Controllers.NextHUB
             if (await IsBadInitialization(init, rch: init.rch_access != null))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return OnError(rch_error);
-
             if (init.view.initUrlEval != null)
                 url = CSharpEval.Execute<string>(init.view.initUrlEval, new NxtUrlRequest(init.corsHost(), plugin, url, HttpContext.Request.Query, related));
 
@@ -54,7 +46,7 @@ namespace SISI.Controllers.NextHUB
                     (init.view.nodeFile != null || init.view.eval != null || init.view.regexMatch != null) &&
                      init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
                 {
-                    reset: video = await goVideoToHttp(rch, plugin, init.cors(url), init, proxyManager, proxy.proxy);
+                    reset: video = await goVideoToHttp(plugin, init.cors(url), init);
                     if (string.IsNullOrEmpty(video.file))
                     {
                         if (IsRhubFallback(init))
@@ -68,7 +60,7 @@ namespace SISI.Controllers.NextHUB
                     if (rch.enable)
                         return OnError("rch not supported");
 
-                    video = await goVideoToBrowser(plugin, init.cors(url), init, proxyManager, proxy.data);
+                    video = await goVideoToBrowser(plugin, init.cors(url), init);
                     if (string.IsNullOrEmpty(video.file))
                         return OnError("file");
                 }
@@ -91,7 +83,7 @@ namespace SISI.Controllers.NextHUB
 
 
         #region goVideoToBrowser
-        async ValueTask<(string file, List<HeadersModel> headers, List<PlaylistItem> recomends)> goVideoToBrowser(string plugin, string url, NxtSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
+        async ValueTask<(string file, List<HeadersModel> headers, List<PlaylistItem> recomends)> goVideoToBrowser(string plugin, string url, NxtSettings init)
         {
             if (string.IsNullOrEmpty(url))
                 return default;
@@ -106,7 +98,7 @@ namespace SISI.Controllers.NextHUB
                 {
                     using (var browser = new PlaywrightBrowser(init.view.priorityBrowser ?? init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, keepopen: init.view.keepopen, deferredDispose: init.view.playbtn != null).ConfigureAwait(false);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy_data, keepopen: init.view.keepopen, deferredDispose: init.view.playbtn != null).ConfigureAwait(false);
                         if (page == default)
                             return default;
 
@@ -460,7 +452,7 @@ namespace SISI.Controllers.NextHUB
         #endregion
 
         #region goVideoToHttp
-        async ValueTask<(string file, List<HeadersModel> headers, List<PlaylistItem> recomends)> goVideoToHttp(RchClient rch, string plugin, string url, NxtSettings init, ProxyManager proxyManager, WebProxy proxy)
+        async ValueTask<(string file, List<HeadersModel> headers, List<PlaylistItem> recomends)> goVideoToHttp(string plugin, string url, NxtSettings init)
         {
             if (string.IsNullOrEmpty(url))
                 return default;
