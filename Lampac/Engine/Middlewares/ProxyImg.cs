@@ -193,6 +193,7 @@ namespace Lampac.Engine.Middlewares
                             if (AppInit.conf.serverproxy.responseContentLength && cacheFiles.ContainsKey(md5key))
                                 httpContext.Response.ContentLength = cacheFiles[md5key];
 
+                            semaphore?.Release();
                             await httpContext.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
                             return;
                         }

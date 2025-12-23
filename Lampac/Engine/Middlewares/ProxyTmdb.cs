@@ -339,6 +339,7 @@ namespace Lampac.Engine.Middlewares
                             if (init.responseContentLength && cacheFiles.ContainsKey(md5key))
                                 httpContex.Response.ContentLength = cacheFiles[md5key];
 
+                            semaphore?.Release();
                             await httpContex.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
                             return;
                         }
@@ -428,6 +429,7 @@ namespace Lampac.Engine.Middlewares
                         }
                         else
                         {
+                            semaphore?.Release();
                             httpContex.Response.Headers["X-Cache-Status"] = "bypass";
                             await response.Content.CopyToAsync(httpContex.Response.Body, ctsHttp.Token).ConfigureAwait(false);
                         }

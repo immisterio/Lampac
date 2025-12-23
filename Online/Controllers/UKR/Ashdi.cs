@@ -9,12 +9,12 @@ namespace Online.Controllers
         [Route("lite/ashdi")]
         async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
         {
+            if (kinopoisk_id == 0)
+                return OnError();
+
             var init = await loadKit(AppInit.conf.Ashdi);
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
-
-            if (kinopoisk_id == 0)
-                return OnError();
 
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 

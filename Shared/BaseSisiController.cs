@@ -9,7 +9,6 @@ using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Net;
 using System.Reflection;
-using System.Threading;
 
 namespace Shared
 {
@@ -269,7 +268,7 @@ namespace Shared
         }
         #endregion
 
-        [Obsolete("Плохо реализует rhub с включенным rhub_fallback")]
+        [Obsolete("Плохо реализует rhub с включенным rhub_fallback при использовании rch.ipkey()")]
         public Task<ActionResult> InvkSemaphore(string key, Func<ValueTask<ActionResult>> func) => InvkSemaphore(init, key, func);
     }
 }

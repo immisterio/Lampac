@@ -24,7 +24,7 @@ namespace Shared.Engine
         SemaphoreEntry semaphore { get; set; }
         CancellationToken cancellationToken;
 
-        bool regwait;
+        bool regwait, releaseLock;
 
 
         public SemaphorManager(string key)
@@ -69,8 +69,11 @@ namespace Shared.Engine
         {
             try
             {
-                if (regwait)
+                if (regwait && releaseLock == false)
+                {
+                    releaseLock = true;
                     semaphore.Release();
+                }
             }
             catch { }
         }
