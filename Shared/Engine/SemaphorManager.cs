@@ -24,6 +24,8 @@ namespace Shared.Engine
         SemaphoreEntry semaphore { get; set; }
         CancellationToken cancellationToken;
 
+        bool regwait;
+
 
         public SemaphorManager(string key)
         {
@@ -46,16 +48,19 @@ namespace Shared.Engine
 
         public Task WaitAsync(TimeSpan timeSpan)
         {
+            regwait = true;
             return semaphore.WaitAsync(timeSpan);
         }
 
         public Task WaitAsync(CancellationToken cancellationToken)
         {
+            regwait = true;
             return semaphore.WaitAsync(cancellationToken);
         }
 
         public Task WaitAsync()
         {
+            regwait = true;
             return semaphore.WaitAsync(cancellationToken);
         }
 
@@ -64,7 +69,8 @@ namespace Shared.Engine
         {
             try
             {
-                semaphore.Release();
+                if (regwait)
+                    semaphore.Release();
             }
             catch { }
         }

@@ -24,41 +24,48 @@ namespace SISI.Controllers.Xhamster
             if (rch.enable == false)
                 await semaphore.WaitAsync();
 
-            // fallback cache
-            if (!hybridCache.TryGetValue(semaphoreKey, out List<PlaylistItem> playlists))
+            try
             {
-                // user cache разделенный по ip
-                if (rch.enable == false || !hybridCache.TryGetValue(rch.ipkey(semaphoreKey), out playlists))
+                // fallback cache
+                if (!hybridCache.TryGetValue(semaphoreKey, out List<PlaylistItem> playlists))
                 {
-                    string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url =>
-                        rch.enable
-                            ? rch.Get(init.cors(url), httpHeaders(init))
-                            : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
-                    );
-
-                    playlists = XhamsterTo.Playlist("xmr/vidosik", html);
-
-                    if (playlists.Count == 0)
+                    // user cache разделенный по ip
+                    if (rch.enable == false || !hybridCache.TryGetValue(rch.ipkey(semaphoreKey), out playlists))
                     {
-                        if (IsRhubFallback(init))
-                            goto reset;
+                        string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url =>
+                            rch.enable
+                                ? rch.Get(init.cors(url), httpHeaders(init))
+                                : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                        );
 
-                        return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                        playlists = XhamsterTo.Playlist("xmr/vidosik", html);
+
+                        if (playlists.Count == 0)
+                        {
+                            if (IsRhubFallback(init))
+                                goto reset;
+
+                            return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                        }
+
+                        if (!rch.enable)
+                            proxyManager.Success();
+
+                        hybridCache.Set(rch.ipkey(semaphoreKey), playlists, cacheTime(10, init: init));
                     }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(rch.ipkey(semaphoreKey), playlists, cacheTime(10, init: init));
                 }
-            }
 
-            return OnResult(
-                playlists,
-                string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null,
-                plugin: init.plugin,
-                imageHeaders: httpHeaders(init.host, init.headers_image)
-            );
+                return OnResult(
+                    playlists,
+                    string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null,
+                    plugin: init.plugin,
+                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                );
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
     }
 }
