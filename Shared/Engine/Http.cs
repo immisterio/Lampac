@@ -159,8 +159,8 @@ namespace Shared.Engine
         #region NormalizeHeaders
         public static Dictionary<string, T> NormalizeHeaders<T>(Dictionary<string, T> raw)
         {
-            if (raw == null)
-                return null;
+            if (raw == null || raw.Count == 0)
+                return raw;
 
             var result = new Dictionary<string, T>();
 

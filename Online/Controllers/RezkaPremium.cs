@@ -60,13 +60,17 @@ namespace Online.Controllers
         List<HeadersModel> apiHeaders(RezkaSettings init, string cookie)
         {
             genUid();
-            return httpHeaders(init, HeadersModel.Init(
+            var headers = httpHeaders(init, HeadersModel.Init(
                ("X-Lampac-App", "1"),
                ("X-Lampac-Version", $"{appversion}.{minorversion}"),
                ("X-Lampac-Device-Id", $"{(AppInit.Win32NT ? "win32" : "linux")}:uid/{Regex.Replace(uid, "[^a-zA-Z0-9]+", "").Trim()}:type_uid/{typeuid}"),
-               ("X-Lampac-Cookie", cookie),
-               ("User-Agent", requestInfo.UserAgent)
+               ("X-Lampac-Cookie", cookie)
             ));
+
+            if (!init.rhub)
+                headers.Add(new HeadersModel("User-Agent", requestInfo.UserAgent));
+
+            return headers;
         }
 
         async public ValueTask<(RezkaInvoke invk, string cookie, string log)> InitRezkaInvoke(RezkaSettings init)
@@ -99,8 +103,12 @@ namespace Online.Controllers
             (
                 host,
                 init,
-                (url, _) => rch.enable ? rch.Get(url, headers) : Http.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search")),
-                (url, data, _) => rch.enable ? rch.Post(url, data, headers) : Http.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers),
+                (url, _) => rch.enable 
+                    ? rch.Get(url, headers, useDefaultHeaders: false) 
+                    : Http.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search"), useDefaultHeaders: false),
+                (url, data, _) => rch.enable 
+                    ? rch.Post(url, data, headers, useDefaultHeaders: false) 
+                    : Http.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers, useDefaultHeaders: false),
                 streamfile => HostStreamProxy(init, RezkaInvoke.fixcdn(country, init.uacdn, streamfile), proxy: proxy),
                 requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
             ), cook.cookie, null);

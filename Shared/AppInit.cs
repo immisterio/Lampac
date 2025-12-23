@@ -733,8 +733,7 @@ namespace Shared
         { 
             enable = false,
             stream_access = "apk,cors,web",
-            reserve = true, hls = true, scheme = "http",
-            headers = Http.defaultHeaders
+            reserve = true, hls = true, scheme = "http"
         };
 
         public CollapsSettings Collaps { get; set; } = new CollapsSettings("Collaps", "kwwsv=22dsl1ox{hpeg1zv", streamproxy: true, two: false)
