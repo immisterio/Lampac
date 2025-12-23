@@ -15,15 +15,17 @@ namespace SISI.Controllers.Chaturbate
             if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            string memKey = $"Chaturbate:list:{sort}:{pg}";
-
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"Chaturbate:list:{sort}:{pg}", async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
+                reset:
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
                 {
-                    reset: string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                        rch.enable 
-                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                    string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, url =>
+                        rch.enable
+                            ? rch.Get(init.cors(url), httpHeaders(init))
                             : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                     );
 
@@ -40,12 +42,12 @@ namespace SISI.Controllers.Chaturbate
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, playlists, cacheTime(5, init: init), inmemory: false);
+                    hybridCache.Set(e.key, playlists, cacheTime(5, init: init), inmemory: false);
                 }
 
                 return OnResult(
-                    playlists, 
-                    ChaturbateTo.Menu(host, sort), 
+                    playlists,
+                    ChaturbateTo.Menu(host, sort),
                     plugin: init.plugin,
                     imageHeaders: httpHeaders(init.host, init.headers_image)
                 );

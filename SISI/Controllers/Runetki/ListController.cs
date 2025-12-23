@@ -16,13 +16,14 @@ namespace SISI.Controllers.Runetki
             if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            string memKey = $"{init.plugin}:list:{sort}:{pg}";
-
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"{init.plugin}:list:{sort}:{pg}", async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache, inmemory: false))
+                reset:
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out (List<PlaylistItem> playlists, int total_pages) cache, inmemory: false))
                 {
-                    reset:
                     string html = await RunetkiTo.InvokeHtml(init.corsHost(), sort, pg, url =>
                     {
                         if (rch.enable)
@@ -48,14 +49,14 @@ namespace SISI.Controllers.Runetki
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, cache, cacheTime(5, init: init), inmemory: false);
+                    hybridCache.Set(e.key, cache, cacheTime(5, init: init), inmemory: false);
                 }
 
                 return OnResult(
-                    cache.playlists, 
-                    init, 
-                    RunetkiTo.Menu(host, sort), 
-                    proxy: proxy, 
+                    cache.playlists,
+                    init,
+                    RunetkiTo.Menu(host, sort),
+                    proxy: proxy,
                     total_pages: cache.total_pages
                 );
             });

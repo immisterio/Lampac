@@ -12,16 +12,17 @@ namespace SISI.Controllers.Xvideos
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string memKey = $"xvideos:view:{uri}";
-
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"xvideos:view:{uri}", async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
+                reset:
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out StreamItem stream_links))
                 {
-                    reset:
                     stream_links = await XvideosTo.StreamLinks("xds/vidosik", $"{host}/xds/stars", init.corsHost(), uri, url =>
-                        rch.enable 
-                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                        rch.enable
+                            ? rch.Get(init.cors(url), httpHeaders(init))
                             : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
                     );
 
@@ -36,7 +37,7 @@ namespace SISI.Controllers.Xvideos
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
+                    hybridCache.Set(e.key, stream_links, cacheTime(20, init: init));
                 }
 
                 if (related)

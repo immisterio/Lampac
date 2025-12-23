@@ -13,13 +13,14 @@ namespace SISI.Controllers.Spankbang
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string memKey = $"spankbang:view:{uri}";
-
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"spankbang:view:{uri}", async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
+                reset:
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out StreamItem stream_links))
                 {
-                    reset:
                     stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), uri, url =>
                     {
                         if (rch.enable)
@@ -42,7 +43,7 @@ namespace SISI.Controllers.Spankbang
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
+                    hybridCache.Set(e.key, stream_links, cacheTime(20, init: init));
                 }
 
                 if (related)

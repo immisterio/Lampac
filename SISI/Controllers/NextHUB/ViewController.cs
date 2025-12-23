@@ -6,7 +6,6 @@ using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Shared.Models.CSharpGlobals;
 using Shared.PlaywrightCore;
-using System.Net;
 using Shared.Models.SISI.NextHUB;
 
 namespace SISI.Controllers.NextHUB
@@ -35,18 +34,19 @@ namespace SISI.Controllers.NextHUB
             if (init.view.initUrlEval != null)
                 url = CSharpEval.Execute<string>(init.view.initUrlEval, new NxtUrlRequest(init.corsHost(), plugin, url, HttpContext.Request.Query, related));
 
-            return await InvkSemaphore($"nexthub:InvkSemaphore:{url}", async () =>
+            return await SemaphoreResult($"nexthub:InvkSemaphore:{url}", async e =>
             {
-                var proxyManager = new ProxyManager(init);
-                var proxy = proxyManager.BaseGet();
-
                 (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) video = default;
 
                 if ((init.view.priorityBrowser ?? init.priorityBrowser) == "http" && init.view.viewsource &&
                     (init.view.nodeFile != null || init.view.eval != null || init.view.regexMatch != null) &&
                      init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
                 {
-                    reset: video = await goVideoToHttp(plugin, init.cors(url), init);
+                    reset:
+                    if (rch.enable == false)
+                        await e.semaphore.WaitAsync();
+
+                    video = await goVideoToHttp(plugin, init.cors(url), init);
                     if (string.IsNullOrEmpty(video.file))
                     {
                         if (IsRhubFallback(init))
@@ -60,6 +60,7 @@ namespace SISI.Controllers.NextHUB
                     if (rch.enable)
                         return OnError("rch not supported");
 
+                    await e.semaphore.WaitAsync();
                     video = await goVideoToBrowser(plugin, init.cors(url), init);
                     if (string.IsNullOrEmpty(video.file))
                         return OnError("file");
@@ -77,7 +78,7 @@ namespace SISI.Controllers.NextHUB
                 if (related)
                     return OnResult(stream_links?.recomends, null, plugin: plugin, total_pages: 1);
 
-                return OnResult(stream_links, init, proxy.proxy, headers_stream: httpHeaders(init.host, init.headers_stream != null ? init.headers_stream : init.headers_stream));
+                return OnResult(stream_links, init, proxy, headers_stream: httpHeaders(init.host, init.headers_stream != null ? init.headers_stream : init.headers_stream));
             });
         }
 

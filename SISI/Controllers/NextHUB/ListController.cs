@@ -32,16 +32,20 @@ namespace SISI.Controllers.NextHUB
             if (await IsBadInitialization(init, rch: init.rch_access != null))
                 return badInitMsg;
 
-            string memKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";
+            string semaphoreKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";
             if (init.menu?.customs != null)
             {
                 foreach (var item in init.menu.customs)
-                    memKey += $":{HttpContext.Request.Query[item.arg]}";
+                    semaphoreKey += $":{HttpContext.Request.Query[item.arg]}";
             }
 
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult(semaphoreKey, async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
+                reset:
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
                 {
                     #region contentParse
                     var contentParse = init.list.contentParse ?? init.contentParse;
@@ -53,7 +57,6 @@ namespace SISI.Controllers.NextHUB
                         contentParse = init.model.contentParse;
                     #endregion
 
-                    reset:
                     string html = await HttpRequest(init, plugin, pg, search, sort, cat, model);
 
                     playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
@@ -69,7 +72,7 @@ namespace SISI.Controllers.NextHUB
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, playlists, cacheTime(init.cache_time, init: init), inmemory: false);
+                    hybridCache.Set(e.key, playlists, cacheTime(init.cache_time, init: init), inmemory: false);
                 }
 
                 var menu = new List<MenuItem>(3);
@@ -181,9 +184,9 @@ namespace SISI.Controllers.NextHUB
                 #endregion
 
                 return OnResult(
-                    playlists, 
-                    menu.Count == 0 ? null : menu, 
-                    plugin: init.plugin, 
+                    playlists,
+                    menu.Count == 0 ? null : menu,
+                    plugin: init.plugin,
                     total_pages: total_pages,
                     imageHeaders: httpHeaders(init.host, init.headers_image)
                 );

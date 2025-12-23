@@ -12,15 +12,17 @@ namespace SISI.Controllers.PornHub
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string memKey = $"phub:vidosik:{vkey}";
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"phub:vidosik:{vkey}", async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
+                reset:
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out StreamItem stream_links))
                 {
-                    reset:
                     stream_links = await PornHubTo.StreamLinks("phub/vidosik", "phub", init.corsHost(), vkey, url =>
-                        rch.enable 
-                            ? rch.Get(init.cors(url), httpHeaders(init)) 
+                        rch.enable
+                            ? rch.Get(init.cors(url), httpHeaders(init))
                             : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
                     );
 
@@ -35,7 +37,7 @@ namespace SISI.Controllers.PornHub
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
+                    hybridCache.Set(e.key, stream_links, cacheTime(20, init: init));
                 }
 
                 if (related)

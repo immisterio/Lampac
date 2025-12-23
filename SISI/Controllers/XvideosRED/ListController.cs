@@ -15,11 +15,12 @@ namespace SISI.Controllers.XvideosRED
 
             string plugin = init.plugin;
             bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);
-            string memKey = $"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}";
 
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}", async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out List<PlaylistItem> playlists, inmemory: false))
+                await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
                 {
                     #region Генерируем url
                     string url;
@@ -55,15 +56,15 @@ namespace SISI.Controllers.XvideosRED
                         return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, playlists, cacheTime(10, init: init), inmemory: false);
+                    hybridCache.Set(e.key, playlists, cacheTime(10, init: init), inmemory: false);
                 }
 
                 if (ismain)
                     playlists = playlists.Skip((pg * 36) - 36).Take(36).ToList();
 
                 return OnResult(
-                    playlists, 
-                    string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null, 
+                    playlists,
+                    string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null,
                     plugin: plugin,
                     imageHeaders: httpHeaders(init.host, init.headers_image)
                 );

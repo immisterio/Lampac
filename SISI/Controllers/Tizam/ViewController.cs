@@ -11,15 +11,16 @@ namespace SISI.Controllers.Tizam
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string memKey = $"tizam:view:{uri}";
-
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"tizam:view:{uri}", async e =>
             {
-                if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
+                reset:
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                if (!hybridCache.TryGetValue(e.key, out StreamItem stream_links))
                 {
-                    reset:
-                    string html = rch.enable 
-                        ? await rch.Get($"{init.corsHost()}/{uri}", httpHeaders(init)) 
+                    string html = rch.enable
+                        ? await rch.Get($"{init.corsHost()}/{uri}", httpHeaders(init))
                         : await Http.Get($"{init.corsHost()}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
 
                     string location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
@@ -43,7 +44,7 @@ namespace SISI.Controllers.Tizam
                         }
                     };
 
-                    hybridCache.Set(memKey, stream_links, cacheTime(180, init: init));
+                    hybridCache.Set(e.key, stream_links, cacheTime(180, init: init));
                 }
 
                 return OnResult(stream_links, init, proxy);

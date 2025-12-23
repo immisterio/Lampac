@@ -12,17 +12,18 @@ namespace SISI.Controllers.Eporner
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string semaphoreKey = $"eporner:view:{uri}";
-
-            return await InvkSemaphore(semaphoreKey, async () =>
+            return await SemaphoreResult($"eporner:view:{uri}", async e =>
             {
                 reset:
-                string memKey = rch.ipkey(semaphoreKey, proxyManager);
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                string memKey = rch.ipkey(e.key, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
                 {
                     stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), uri,
-                                   htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                                   jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : Http.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
+                        htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                        jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : Http.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
 
                     if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     {

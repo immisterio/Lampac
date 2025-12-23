@@ -9,6 +9,7 @@ using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Net;
 using System.Reflection;
+using System.Threading;
 
 namespace Shared
 {
@@ -252,6 +253,23 @@ namespace Shared
         }
         #endregion
 
+        #region SemaphoreResult
+        public Task<ActionResult> SemaphoreResult(string key, Func<(string key, SemaphorManager semaphore), Task<ActionResult>> func) 
+        {
+            var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(30));
+
+            try
+            {
+                return func.Invoke((key, semaphore));
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+        #endregion
+
+        [Obsolete("Плохо реализует rhub с включенным rhub_fallback")]
         public Task<ActionResult> InvkSemaphore(string key, Func<ValueTask<ActionResult>> func) => InvkSemaphore(init, key, func);
     }
 }

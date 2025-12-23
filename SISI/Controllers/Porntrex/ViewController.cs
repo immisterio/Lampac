@@ -13,12 +13,13 @@ namespace SISI.Controllers.Porntrex
             if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            string semaphoreKey = $"porntrex:view:{uri}";
-
-            return await InvkSemaphore(semaphoreKey, async () =>
+            return await SemaphoreResult($"porntrex:view:{uri}", async e =>
             {
                 reset:
-                string memKey = rch.ipkey(semaphoreKey, proxyManager);
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                string memKey = rch.ipkey(e.key, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, string> links, bool userch) cache))
                 {
                     cache.links = await PorntrexTo.StreamLinks(init.corsHost(), uri, url =>
@@ -70,10 +71,12 @@ namespace SISI.Controllers.Porntrex
                     return OnError("apkVersion", false);
             }
 
-            string memKey = rch.ipkey($"Porntrex:strem:{link}", proxyManager);
-
-            return await InvkSemaphore(memKey, async () =>
+            return await SemaphoreResult($"Porntrex:strem:{link}", async e =>
             {
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                string memKey = rch.ipkey(e.key, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out string location))
                 {
                     var headers = httpHeaders(init, HeadersModel.Init(

@@ -12,17 +12,18 @@ namespace SISI.Controllers.HQporner
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            string semaphoreKey = $"HQporner:view:{uri}";
-
-            return await InvkSemaphore(semaphoreKey, async () =>
+            return await SemaphoreResult($"HQporner:view:{uri}", async e =>
             {
                 reset:
-                string memKey = rch.ipkey(semaphoreKey, proxyManager);
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                string memKey = rch.ipkey(e.key, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out Dictionary<string, string> stream_links))
                 {
                     stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri,
-                                   htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                                   iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : Http.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
+                        htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                        iframeurl => rch.enable ? rch.Get(init.cors(iframeurl), httpHeaders(init)) : Http.Get(init.cors(iframeurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
 
                     if (stream_links == null || stream_links.Count == 0)
                     {

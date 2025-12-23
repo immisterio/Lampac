@@ -19,10 +19,13 @@ namespace SISI.Controllers.Ebalovo
                     return OnError("apkVersion", false);
             }
 
-            return await InvkSemaphore($"ebalovo:view:{uri}", async () =>
+            return await SemaphoreResult($"ebalovo:view:{uri}", async e =>
             {
                 reset:
-                string memKey = rch.ipkey($"ebalovo:view:{uri}", proxyManager);
+                if (rch.enable == false)
+                    await e.semaphore.WaitAsync();
+
+                string memKey = rch.ipkey(e.key, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
                 {
                     string ehost = await RootController.goHost(init.corsHost());
