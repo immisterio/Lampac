@@ -15,9 +15,6 @@ namespace SISI.Controllers.Chaturbate
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -25,6 +22,9 @@ namespace SISI.Controllers.Chaturbate
 
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             string memKey = $"Chaturbate:list:{sort}:{pg}";
 

@@ -15,9 +15,6 @@ namespace SISI.Controllers.PornHub
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -25,6 +22,9 @@ namespace SISI.Controllers.PornHub
 
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
             string semaphoreKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";

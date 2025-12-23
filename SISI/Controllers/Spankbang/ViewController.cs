@@ -13,9 +13,6 @@ namespace SISI.Controllers.Spankbang
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -23,6 +20,9 @@ namespace SISI.Controllers.Spankbang
 
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
 
             string memKey = $"spankbang:view:{uri}";
 

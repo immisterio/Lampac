@@ -12,9 +12,6 @@ namespace SISI.Controllers.Ebalovo
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             var rch = new RchClient(HttpContext, host, init, requestInfo);
 
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -29,6 +26,9 @@ namespace SISI.Controllers.Ebalovo
                 if (!init.rhub_fallback)
                     return OnError("apkVersion", false);
             }
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             return await InvkSemaphore($"ebalovo:view:{uri}", async () =>
             {

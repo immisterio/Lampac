@@ -14,9 +14,6 @@ namespace SISI.Controllers.Xvideos
             if (await IsBadInitialization(init, rch: true))
                 return badInitMsg;
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -24,6 +21,9 @@ namespace SISI.Controllers.Xvideos
 
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.Get();
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
             string memKey = $"{plugin}:list:{search}:{sort}:{c}:{pg}";

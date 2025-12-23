@@ -16,9 +16,6 @@ namespace SISI.Controllers.BongaCams
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
             var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
@@ -26,6 +23,9 @@ namespace SISI.Controllers.BongaCams
 
             if (rch.IsNotSupport(out string rch_error))
                 return OnError(rch_error);
+
+            var proxyManager = new ProxyManager(init);
+            var proxy = proxyManager.BaseGet();
 
             string memKey = $"BongaCams:list:{sort}:{pg}";
 
