@@ -9,9 +9,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/anilibria")]
-        async public ValueTask<ActionResult> Index(string title, string code, int year, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, string code, int year, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(title))
@@ -36,7 +36,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year, vast: init.vast, rjson: rjson, similar: similar), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, code, year, vast: init.vast, rjson: rjson, similar: similar));
         }
     }
 }

@@ -11,7 +11,7 @@ namespace Online.Controllers
     {
         public Mirage() : base(AppInit.conf.Mirage) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("m4s"))
                     i.m4s = c.m4s;
@@ -23,7 +23,7 @@ namespace Online.Controllers
         [Route("lite/mirage")]
         async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (similar)
@@ -288,7 +288,7 @@ namespace Online.Controllers
         [Route("lite/mirage/video.m3u8")]
         async public ValueTask<ActionResult> Video(long id_file, string token_movie, bool play)
         {
-            if (await IsBadInitialization(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false, rch_check: !play))
                 return badInitMsg;
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
@@ -488,7 +488,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (await IsBadInitialization(rch: false, rch_check: false))
+            if (await IsRequestBlocked(rch: false, rch_check: false))
                 return badInitMsg;
 
             var cache = await InvokeCacheResult<JArray>($"mirage:search:{title}", 40, async e =>
@@ -511,8 +511,7 @@ namespace Online.Controllers
                 }
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();
-
-            }, origsource: origsource);
+            });
         }
         #endregion
 

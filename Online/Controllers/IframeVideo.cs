@@ -12,7 +12,7 @@ namespace Online.Controllers
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             var frame = await iframe(imdb_id, kinopoisk_id);
@@ -63,7 +63,7 @@ namespace Online.Controllers
         [Route("lite/iframevideo/video.m3u8")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";

@@ -10,7 +10,7 @@ namespace Online.Controllers
     {
         public KinoPub() : base(AppInit.conf.KinoPub) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("filetype"))
                     i.filetype = c.filetype;
@@ -58,7 +58,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool origsource = false, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
@@ -66,7 +66,7 @@ namespace Online.Controllers
                     int.TryParse(id, out postid);
             }
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             string token = init.token;
@@ -109,7 +109,7 @@ namespace Online.Controllers
                 () => oninvk.Post(postid)
             );
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson));
         }
 
 
@@ -117,7 +117,7 @@ namespace Online.Controllers
         [Route("lite/kinopub/subtitles.json")]
         async public ValueTask<ActionResult> Subtitles(int mid)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             string token = init.token;

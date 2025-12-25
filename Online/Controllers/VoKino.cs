@@ -10,7 +10,7 @@ namespace Online.Controllers
     {
         public VoKino() : base(AppInit.conf.VoKino) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("online"))
                     i.online = c.online;
@@ -65,7 +65,7 @@ namespace Online.Controllers
             if (kinopoisk_id == 0 && string.IsNullOrEmpty(origid))
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))

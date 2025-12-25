@@ -10,7 +10,7 @@ namespace Online.Controllers
         [Route("lite/animebesst")]
         async public ValueTask<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             reset:
@@ -150,7 +150,7 @@ namespace Online.Controllers
         [Route("lite/animebesst/video.m3u8")]
         async public ValueTask<ActionResult> Video(string uri, string title, bool play)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (rch.IsNotConnected())

@@ -480,9 +480,9 @@ namespace Shared
         #endregion
 
         #region IsCacheError
-        public bool IsCacheError(BaseSettings init)
+        public bool IsCacheError(BaseSettings init, RchClient rch)
         {
-            if (!AppInit.conf.multiaccess || init.rhub)
+            if (!AppInit.conf.multiaccess || init.rhub || rch.enable)
                 return false;
 
             if (memoryCache.TryGetValue(ResponseCache.ErrorKey(HttpContext), out object errorCache))

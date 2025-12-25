@@ -10,7 +10,7 @@ namespace Online.Controllers
         [Route("lite/animevost")]
         async public ValueTask<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(title))
@@ -153,7 +153,7 @@ namespace Online.Controllers
         [Route("lite/animevost/video")]
         async public ValueTask<ActionResult> Video(int id, string title, bool play)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (rch.IsNotConnected())

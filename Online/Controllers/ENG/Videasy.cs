@@ -20,7 +20,7 @@ namespace Online.Controllers
         [Route("lite/videasy/video.m3u8")]
         async public ValueTask<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
-            if (await IsBadInitialization(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false, rch_check: !play))
                 return badInitMsg;
 
             if (id == 0)

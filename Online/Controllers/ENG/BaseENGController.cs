@@ -13,7 +13,7 @@ namespace Online.Controllers
             if (checksearch)
                 return Content("data-json=");
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (tmdb_id > 0)

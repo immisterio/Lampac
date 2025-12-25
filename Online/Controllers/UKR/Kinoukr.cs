@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Shared.Models.Online.Eneyida;
 
 namespace Online.Controllers
 {
@@ -9,9 +8,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinoukr")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, string t, int s = -1, string href = null, bool origsource = false, bool rjson = false, string source = null, string id = null)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, string t, int s = -1, string href = null, bool rjson = false, string source = null, string id = null)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             var oninvk = new KinoukrInvoke
@@ -42,7 +41,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson));
         }
     }
 }

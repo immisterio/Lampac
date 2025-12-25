@@ -12,7 +12,7 @@ namespace Online.Controllers
 
         public Rezka() : base(AppInit.conf.Rezka) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("premium"))
                     i.premium = c.premium;
@@ -32,7 +32,7 @@ namespace Online.Controllers
                 return i;
             };
 
-            initializationAsync = async () =>
+            requestInitializationAsync = async () =>
             {
                 string country = init.forceua ? "UA" : requestInfo.Country;
 
@@ -69,7 +69,7 @@ namespace Online.Controllers
         [Route("lite/rezka")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             #region Initialization
@@ -165,7 +165,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(href))
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             Episodes root = await InvokeCache($"rezka:view:serial:{id}:{t}", 20, 
@@ -192,7 +192,7 @@ namespace Online.Controllers
         [Route("lite/rezka/movie.m3u8")]
         async public ValueTask<ActionResult> Movie(string title, string original_title, string voice, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (rch.IsNotConnected())

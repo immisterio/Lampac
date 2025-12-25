@@ -9,7 +9,7 @@ namespace SISI.Controllers.Xnxx
         async public ValueTask<ActionResult> Index(string search, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xnxx);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             return await SemaphoreResult($"xnx:list:{search}:{pg}", async e =>

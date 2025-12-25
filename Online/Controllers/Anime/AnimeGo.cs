@@ -14,7 +14,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             var headers_stream = httpHeaders(init.host, init.headers_stream);
@@ -178,7 +178,7 @@ namespace Online.Controllers
         [Route("lite/animego/video.m3u8")]
         async public ValueTask<ActionResult> Video(string host, string token, string t, int e)
         {
-            if (await IsBadInitialization(rch: false, rch_check: false))
+            if (await IsRequestBlocked(rch: false, rch_check: false))
                 return badInitMsg;
 
             return await InvkSemaphore($"animego:video:{token}:{t}:{e}", async key =>

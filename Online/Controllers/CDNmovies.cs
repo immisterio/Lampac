@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Shared.Models.Online.CDNmovies;
 
 namespace Online.Controllers
 {
@@ -9,12 +8,12 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/cdnmovies")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t, int s = -1, int sid = -1, bool rjson = false)
         {
             if (kinopoisk_id == 0)
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             var oninvk = new CDNmoviesInvoke
@@ -36,7 +35,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson));
         }
     }
 }

@@ -11,7 +11,7 @@ namespace Online.Controllers
         [Route("lite/aniliberty")]
         async public ValueTask<ActionResult> Index(string title, int year, int releases, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (releases == 0)

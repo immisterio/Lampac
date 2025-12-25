@@ -7,7 +7,7 @@ using System.Web;
 
 namespace Shared.Models.Templates
 {
-    public struct EpisodeTpl
+    public struct EpisodeTpl : ITplResult
     {
         public List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string streamlink, string voice_name, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments, string subtitles_call)> data { get; set; }
 
@@ -60,6 +60,8 @@ namespace Shared.Models.Templates
 
             return html.ToString() + "</div>";
         }
+
+        public string ToJson() => ToJson(null);
 
         public string ToJson(in VoiceTpl? vtpl = null)
         {

@@ -28,9 +28,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vdbmovies")]
-        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool rjson = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             var oninvk = new VDBmoviesInvoke
@@ -130,7 +130,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson));
         }
 
         #region black_magic

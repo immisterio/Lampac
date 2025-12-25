@@ -43,7 +43,7 @@ namespace Online.Controllers
         [Route("lite/getstv")]
         async public ValueTask<ActionResult> Index(string orid, string title, string original_title, int year, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(orid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
@@ -172,7 +172,7 @@ namespace Online.Controllers
         [Route("lite/getstv/video.m3u8")]
         async public ValueTask<ActionResult> Video(string id, bool play)
         {
-            if (await IsBadInitialization(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false, rch_check: !play))
                 return badInitMsg;
 
             return await InvkSemaphore($"getstv:view:stream:{id}:{init.token}", async key =>
@@ -238,7 +238,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             var result = await search(title, null, 0);

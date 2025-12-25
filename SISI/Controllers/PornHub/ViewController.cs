@@ -9,7 +9,7 @@ namespace SISI.Controllers.PornHub
         async public ValueTask<ActionResult> Index(string vkey, bool related)
         {
             var init = await loadKit(AppInit.conf.PornHub);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"phub:vidosik:{vkey}", async e =>
@@ -53,7 +53,7 @@ namespace SISI.Controllers.PornHub
         async public ValueTask<ActionResult> Prem(string vkey, bool related)
         {
             var init = await loadKit(AppInit.conf.PornHubPremium);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsRequestBlocked(init, rch: false))
                 return badInitMsg;
 
             string memKey = $"phubprem:vidosik:{vkey}";

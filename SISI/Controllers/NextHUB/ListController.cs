@@ -29,7 +29,7 @@ namespace SISI.Controllers.NextHUB
 
             init = await loadKit(init);
 
-            if (await IsBadInitialization(init, rch: init.rch_access != null))
+            if (await IsRequestBlocked(init, rch: init.rch_access != null))
                 return badInitMsg;
 
             string semaphoreKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";

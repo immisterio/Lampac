@@ -9,7 +9,7 @@ namespace SISI.Controllers.Ebalovo
         async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Ebalovo);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             return await SemaphoreResult($"elo:{search}:{sort}:{c}:{pg}", async e =>

@@ -24,8 +24,8 @@ namespace Shared
 
         public BaseSettings init { get; private set; }
 
-        #region IsBadInitialization
-        async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null, int? rch_keepalive = null)
+        #region IsRequestBlocked
+        async public ValueTask<bool> IsRequestBlocked(BaseSettings init, bool? rch = null, int? rch_keepalive = null)
         {
             #region module initialization
             if (AppInit.modules != null)
@@ -83,9 +83,6 @@ namespace Shared
                 return true;
             }
 
-            if (IsCacheError(init))
-                return true;
-
             this.rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: rch_keepalive);
 
             if (rch == true)
@@ -110,6 +107,9 @@ namespace Shared
                     return true;
                 }
             }
+
+            if (IsCacheError(init, this.rch))
+                return true;
 
             proxyManager = new ProxyManager(init);
             var bp = proxyManager.BaseGet();

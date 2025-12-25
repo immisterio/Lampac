@@ -17,7 +17,7 @@ namespace Online.Controllers
 
         public VideoCDN() : base(AppInit.conf.VideoCDN) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("log"))
                     i.log = c.log;
@@ -32,7 +32,7 @@ namespace Online.Controllers
                 return i;
             };
 
-            initializationFunc = () =>
+            requestInitialization = () =>
             {
                 init.rhub = !init.disable_protection;
             };
@@ -42,7 +42,7 @@ namespace Online.Controllers
         [Route("lite/videocdn")]
         async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, bool similar = false, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.username) || string.IsNullOrEmpty(init.password))
@@ -187,7 +187,7 @@ namespace Online.Controllers
         [Route("lite/videocdn/video.m3u8")]
         async public ValueTask<ActionResult> Video(string hash, long content_id, string content_type, string playlist, int max_quality, bool play, bool serial, int s, int e, int translation_id)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (hash != CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{playlist}:{requestInfo.IP}"))

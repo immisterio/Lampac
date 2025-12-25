@@ -9,7 +9,7 @@ namespace SISI.Controllers.Xhamster
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Xhamster);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"xhamster:view:{uri}", async e =>

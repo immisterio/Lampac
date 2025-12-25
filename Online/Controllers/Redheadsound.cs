@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Shared.Models.Online.Redheadsound;
 
 namespace Online.Controllers
 {
@@ -9,12 +8,12 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int clarification, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             var oninvk = new RedheadsoundInvoke
@@ -39,7 +38,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, title, vast: init.vast, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, title, vast: init.vast, rjson: rjson));
         }
     }
 }

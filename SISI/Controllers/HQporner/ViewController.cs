@@ -9,7 +9,7 @@ namespace SISI.Controllers.HQporner
         async public ValueTask<ActionResult> Index(string uri)
         {
             var init = await loadKit(AppInit.conf.HQporner);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"HQporner:view:{uri}", async e =>

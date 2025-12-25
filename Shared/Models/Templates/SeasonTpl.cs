@@ -5,7 +5,7 @@ using System.Web;
 
 namespace Shared.Models.Templates
 {
-    public struct SeasonTpl
+    public struct SeasonTpl : ITplResult
     {
         public List<(string name, string link, int? id)> data { get; set; }
 
@@ -33,6 +33,8 @@ namespace Shared.Models.Templates
                 data.Add((name, link, id));
         }
 
+        public string ToHtml() => ToHtml(null);
+
         public string ToHtml(in VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
@@ -57,6 +59,8 @@ namespace Shared.Models.Templates
 
             return html.ToString() + "</div>";
         }
+
+        public string ToJson() => ToJson(null);
 
         public string ToJson(in VoiceTpl? vtpl = null)
         {

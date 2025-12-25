@@ -8,7 +8,7 @@ namespace SISI.Controllers.Tizam
         async public ValueTask<ActionResult> Index(string uri)
         {
             var init = await loadKit(AppInit.conf.Tizam);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"tizam:view:{uri}", async e =>

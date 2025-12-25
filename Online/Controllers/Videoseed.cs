@@ -16,7 +16,7 @@ namespace Online.Controllers
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
@@ -124,7 +124,7 @@ namespace Online.Controllers
         [Route("lite/videoseed/video/{*iframe}")]
         async public ValueTask<ActionResult> Video(string iframe)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             iframe = AesTo.Decrypt(iframe);

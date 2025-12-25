@@ -1,5 +1,4 @@
-﻿using DnsClient;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
@@ -7,7 +6,6 @@ using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Lumex;
 using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
-using System.Threading;
 
 namespace Online.Controllers
 {
@@ -76,9 +74,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/lumex")]
-        async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (init.priorityBrowser == "firefox")
@@ -276,7 +274,7 @@ namespace Online.Controllers
                 return e.Success(md);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson));
         }
 
         #region Video
@@ -288,7 +286,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(playlist) || string.IsNullOrEmpty(csrf))
                 return OnError();
 
-            if (await IsBadInitialization(rch: false, rch_check: false))
+            if (await IsRequestBlocked(rch: false, rch_check: false))
                 return badInitMsg;
 
             return await InvkSemaphore($"lumex/video:{playlist}:{csrf}", async key =>

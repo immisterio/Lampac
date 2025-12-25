@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Online.Filmix;
 using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
@@ -10,7 +9,7 @@ namespace Online.Controllers
     {
         public Filmix() : base(AppInit.conf.Filmix) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("reserve"))
                     i.reserve = c.reserve;
@@ -43,7 +42,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/filmix")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool origsource = false, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
@@ -54,7 +53,7 @@ namespace Online.Controllers
                 }
             }
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             string token = init.token;
@@ -101,7 +100,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
         }
     }
 }

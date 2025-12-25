@@ -30,7 +30,7 @@ namespace Online.Controllers
             if (id == 0)
                 return OnError();
 
-            if (await IsBadInitialization(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false, rch_check: !play))
                 return badInitMsg;
 
             string embed = $"{init.host}/v2/embed/movie/{id}?autoPlay=true&poster=false";

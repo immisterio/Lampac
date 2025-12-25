@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Models.Online.VideoDB;
 using Shared.PlaywrightCore;
 
 namespace Online.Controllers
@@ -11,12 +10,12 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/videodb")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool rjson = false, int serial = -1)
         {
             if (kinopoisk_id == 0)
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             var oninvk = new VideoDBInvoke
@@ -36,7 +35,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson));
         }
 
 
@@ -49,7 +48,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(link))
                 return OnError();
 
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             bool play = HttpContext.Request.Path.Value.Contains(".m3u8");

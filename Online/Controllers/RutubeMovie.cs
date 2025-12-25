@@ -16,7 +16,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(searchTitle) || year == 0 || serial == 1)
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             reset:
@@ -79,7 +79,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(linkid))
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             reset:

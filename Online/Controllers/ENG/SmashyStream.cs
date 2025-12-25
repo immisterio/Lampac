@@ -23,7 +23,7 @@ namespace Online.Controllers
             if (id == 0)
                 return OnError();
 
-            if (await IsBadInitialization(rch: false, rch_check: false))
+            if (await IsRequestBlocked(rch: false, rch_check: false))
                 return badInitMsg;
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)

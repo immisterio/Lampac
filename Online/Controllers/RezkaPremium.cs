@@ -60,7 +60,7 @@ namespace Online.Controllers
             }
             #endregion
 
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("uacdn"))
                     i.uacdn = c.uacdn;
@@ -74,7 +74,7 @@ namespace Online.Controllers
                 return i;
             };
 
-            initializationAsync = async () =>
+            requestInitializationAsync = async () =>
             {
                 init.host = new RezkaSettings(null, "kwwsv=22odps1df").host;
 
@@ -167,7 +167,7 @@ namespace Online.Controllers
         [Route("lite/rhsprem")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
@@ -248,7 +248,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(href))
                 return OnError("href = null");
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (onrezka.invk == null)
@@ -274,7 +274,7 @@ namespace Online.Controllers
         [Route("lite/rhsprem/movie.m3u8")]
         async public ValueTask<ActionResult> Movie(string title, string original_title, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (onrezka.invk == null)

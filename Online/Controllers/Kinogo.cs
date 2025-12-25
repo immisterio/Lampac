@@ -20,7 +20,7 @@ namespace Online.Controllers
         [Route("lite/kinogo")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int year, bool rjson, string href, bool similar, int s = -1, int t = -1)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             #region search

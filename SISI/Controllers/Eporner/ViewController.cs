@@ -9,7 +9,7 @@ namespace SISI.Controllers.Eporner
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Eporner);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"eporner:view:{uri}", async e =>

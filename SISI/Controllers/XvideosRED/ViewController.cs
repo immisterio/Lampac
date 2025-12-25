@@ -9,7 +9,7 @@ namespace SISI.Controllers.XvideosRED
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.XvideosRED);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsRequestBlocked(init, rch: false))
                 return badInitMsg;
 
             return await InvkSemaphore($"xdsred:view:{uri}", async key =>

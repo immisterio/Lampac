@@ -25,7 +25,7 @@ namespace Online.Controllers
                 }
             }
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (postid == 0)

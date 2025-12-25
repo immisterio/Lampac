@@ -33,9 +33,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/iptvonline")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial = -1, int s = -1, bool rjson = false, bool origsource = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial = -1, int s = -1, bool rjson = false)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
@@ -148,8 +148,7 @@ namespace Online.Controllers
                     }
                     #endregion
                 }
-
-            }, origsource: origsource);
+            });
         }
 
 

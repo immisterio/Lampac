@@ -10,9 +10,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vibix")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
@@ -76,9 +76,8 @@ namespace Online.Controllers
                         mtpl.Append(movie.title, streams.Firts().link, streamquality: streams, vast: init.vast);
                     }
 
-                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
-
-                }, origsource: origsource);
+                    return mtpl;
+                });
                 #endregion
             }
             else
@@ -103,7 +102,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return tpl;
                     }
                     else
                     {
@@ -136,10 +135,9 @@ namespace Online.Controllers
                             }
                         }
 
-                        return rjson ? etpl.ToJson() : etpl.ToHtml();
+                        return etpl;
                     }
-
-                }, origsource: origsource);
+                });
                 #endregion
             }
         }

@@ -9,9 +9,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/cdnvideohub")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int s = -1, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int s = -1, bool rjson = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             reset:
@@ -137,8 +137,7 @@ namespace Online.Controllers
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                     #endregion
                 }
-
-            }, origsource: origsource);
+            });
         }
 
 
@@ -147,7 +146,7 @@ namespace Online.Controllers
         [Route("lite/cdnvideohub/video.m3u8")]
         async public ValueTask<ActionResult> Video(string vkId, string title, bool play)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (rch.IsNotConnected())

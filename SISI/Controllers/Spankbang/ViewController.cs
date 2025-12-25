@@ -10,7 +10,7 @@ namespace SISI.Controllers.Spankbang
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Spankbang);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"spankbang:view:{uri}", async e =>

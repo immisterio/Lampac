@@ -13,9 +13,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/fancdn")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial, int t = -1, int s = -1, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial, int t = -1, int s = -1, bool rjson = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token) && string.IsNullOrEmpty(init.cookie))
@@ -117,7 +117,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast, headers: httpHeaders(init)), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast, headers: httpHeaders(init)));
         }
 
 

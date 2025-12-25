@@ -16,7 +16,7 @@ namespace Online.Controllers
         [Route("lite/moonanime")]
         async public ValueTask<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
@@ -193,7 +193,7 @@ namespace Online.Controllers
         [Route("lite/moonanime/video.m3u8")]
         async public ValueTask<ActionResult> Video(string vod, bool play, string title, string original_title)
         {
-            if (await IsBadInitialization(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false, rch_check: !play))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))

@@ -10,7 +10,7 @@ namespace SISI.Controllers.Porntrex
         async public ValueTask<ActionResult> vidosik(string uri)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             return await SemaphoreResult($"porntrex:view:{uri}", async e =>
@@ -61,7 +61,7 @@ namespace SISI.Controllers.Porntrex
         async public ValueTask<ActionResult> strem(string link)
         {
             var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)

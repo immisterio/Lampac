@@ -12,7 +12,7 @@ namespace SISI.Controllers.PornHub
         async public ValueTask<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.PornHub);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -76,7 +76,7 @@ namespace SISI.Controllers.PornHub
         async public ValueTask<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.PornHubPremium);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsRequestBlocked(init, rch: false))
                 return badInitMsg;
 
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";

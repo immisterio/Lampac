@@ -9,7 +9,7 @@ namespace SISI.Controllers.Eporner
         async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Eporner);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             pg += 1;

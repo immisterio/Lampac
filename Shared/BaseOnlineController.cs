@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using MongoDB.Bson;
+using MonoTorrent.Client;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
@@ -8,6 +10,7 @@ using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Online.Settings;
+using Shared.Models.Templates;
 using System.Net;
 using System.Reflection;
 
@@ -40,11 +43,11 @@ namespace Shared
 
         public T init { get; private set; }
 
-        public Func<JObject, T, T, T> loadKitFunc { get; set; }
+        public Func<JObject, T, T, T> loadKitInitialization { get; set; }
 
-        public Action initializationFunc { get; set; }
+        public Action requestInitialization { get; set; }
 
-        public Func<Task> initializationAsync { get; set; }
+        public Func<ValueTask> requestInitializationAsync { get; set; }
 
 
         public BaseOnlineController(T init)
@@ -59,10 +62,10 @@ namespace Shared
         }
 
 
-        #region IsBadInitialization
-        async public ValueTask<bool> IsBadInitialization(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
+        #region IsRequestBlocked
+        async public ValueTask<bool> IsRequestBlocked(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
         {
-            init = await loadKit(init, loadKitFunc);
+            init = await loadKit(init, loadKitInitialization);
 
             #region module initialization
             if (AppInit.modules != null)
@@ -159,13 +162,13 @@ namespace Shared
                 return true;
             }
 
-            if (IsCacheError(init))
+            if (IsCacheError(init, this.rch))
                 return true;
 
-            initializationFunc?.Invoke();
+            requestInitialization?.Invoke();
 
-            if (initializationAsync != null)
-                await initializationAsync.Invoke();
+            if (requestInitializationAsync != null)
+                await requestInitializationAsync.Invoke();
 
             return false;
         }
@@ -224,28 +227,35 @@ namespace Shared
             }
 
             if (AppInit.conf.multiaccess && gbcache == true && rch.enable == false)
-                memoryCache.Set(ResponseCache.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddSeconds(20));
+                memoryCache.Set(ResponseCache.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddSeconds(15));
 
             HttpContext.Response.StatusCode = statusCode;
-            return Content(msg ?? string.Empty, "text/html; charset=utf-8");
+            return ContentTo(msg ?? string.Empty);
         }
         #endregion
 
         #region OnResult
-        public ActionResult OnResult(CacheResult<string> cache, bool? gbcache = null)
-        {
-            if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, gbcache);
+        public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, ITplResult tpl)
+            => OnResult(cache, () => tpl);
 
-            return Content(cache.Value, "text/html; charset=utf-8");
+        public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, Func<ITplResult> tpl)
+        {
+            return OnResult(cache, () => 
+            {
+                var tplResult = tpl();
+                return HttpContext.Request.Query["rjson"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase)
+                    ? tplResult.ToJson()
+                    : tplResult.ToHtml();
+            });
         }
 
-        public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, Func<string> html, bool origsource = false, bool? gbcache = null)
+        public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, Func<string> html)
         {
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, gbcache);
+                return OnError(cache.ErrorMsg);
 
-            if (origsource && cache.Value != null)
+            if (HttpContext.Request.Query["origsource"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase) 
+                && cache.Value != null)
                 return Json(cache.Value);
 
             return ContentTo(html.Invoke());

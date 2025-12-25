@@ -9,7 +9,7 @@ namespace SISI.Controllers.Xnxx
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Xnxx);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"xnxx:view:{uri}", async e =>

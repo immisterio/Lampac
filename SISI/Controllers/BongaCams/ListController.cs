@@ -13,7 +13,7 @@ namespace SISI.Controllers.BongaCams
                 return OnError("no search", false);
 
             var init = await loadKit(AppInit.conf.BongaCams);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             return await SemaphoreResult($"BongaCams:list:{sort}:{pg}", async e =>

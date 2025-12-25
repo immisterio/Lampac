@@ -10,13 +10,13 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/hdvb")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (similar || kinopoisk_id == 0)
-                return await SpiderSearch(title, origsource, rjson);
+                return await SpiderSearch(title, rjson);
 
             reset:
 
@@ -122,7 +122,7 @@ namespace Online.Controllers
         [Route("lite/hdvb/video.m3u8")]
         async public ValueTask<ActionResult> Video(string iframe, string title, string original_title, bool play)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (rch.IsNotConnected())
@@ -235,7 +235,7 @@ namespace Online.Controllers
         [Route("lite/hdvb/serial.m3u8")]
         async public ValueTask<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (rch.IsNotConnected())
@@ -366,12 +366,12 @@ namespace Online.Controllers
         #region SpiderSearch
         [HttpGet]
         [Route("lite/hdvb-search")]
-        async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> SpiderSearch(string title,bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             reset:
@@ -409,8 +409,7 @@ namespace Online.Controllers
                 }
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();
-
-            }, origsource: origsource);
+            });
         }
         #endregion
 

@@ -7,7 +7,7 @@ using Shared.Engine;
 
 namespace Shared.Models.Templates
 {
-    public struct MovieTpl
+    public struct MovieTpl : ITplResult
     {
         string title, original_title;
 
@@ -38,7 +38,9 @@ namespace Shared.Models.Templates
             return ToHtml();
         }
 
-        public string ToHtml(bool reverse = false)
+        public string ToHtml() => ToHtml(false);
+
+        public string ToHtml(bool reverse)
         {
             if (data.Count == 0)
                 return string.Empty;
@@ -90,7 +92,9 @@ namespace Shared.Models.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson(bool reverse = false, in VoiceTpl? vtpl = null)
+        public string ToJson() => ToJson(false);
+
+        public string ToJson(bool reverse, in VoiceTpl? vtpl = null)
         {
             if (data.Count == 0)
                 return "[]";

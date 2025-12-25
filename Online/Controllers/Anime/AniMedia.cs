@@ -10,7 +10,7 @@ namespace Online.Controllers
         [Route("lite/animedia")]
         async public ValueTask<ActionResult> Index(string title, string news, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(news))
@@ -128,7 +128,7 @@ namespace Online.Controllers
         [Route("lite/animedia/video.m3u8")]
         async public ValueTask<ActionResult> Video(string vod)
         {
-            if (await IsBadInitialization(rch: false, rch_check: false))
+            if (await IsRequestBlocked(rch: false, rch_check: false))
                 return badInitMsg;
 
             return await InvkSemaphore($"animedia:{vod}", async key =>

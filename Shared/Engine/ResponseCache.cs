@@ -8,7 +8,7 @@ namespace Shared.Engine
         public static string ErrorKey(HttpContext httpContext)
         {
             string key = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
-            return "ResponseCache:errorMsg:" + Regex.Replace(key, "(\\?|&)(account_email|cub_id|box_mac|uid|token|source|rchtype)=[^&]+", "");
+            return "ResponseCache:errorMsg:" + Regex.Replace(key, "(\\?|&)(account_email|cub_id|box_mac|uid|token|source|rchtype|nws_id)=[^&]+", "");
         }
     }
 }

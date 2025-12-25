@@ -9,7 +9,7 @@ namespace SISI.Controllers.Ebalovo
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             var init = await loadKit(AppInit.conf.Ebalovo);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)

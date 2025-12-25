@@ -11,7 +11,7 @@ namespace Online.Controllers
 
         public Collaps() : base(AppInit.conf.Collaps) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("two"))
                     i.two = c.two;
@@ -21,7 +21,7 @@ namespace Online.Controllers
                 return i;
             };
 
-            initializationFunc = () => 
+            requestInitialization = () => 
             {
                 oninvk = new CollapsInvoke
                 (
@@ -40,13 +40,13 @@ namespace Online.Controllers
         [HttpGet]
         [Route("lite/collaps")]
         [Route("lite/collaps-dash")]
-        async public ValueTask<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization( rch: true))
+            if (await IsRequestBlocked( rch: true))
                 return badInitMsg;
 
             if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
-                return await Search(title, origsource, rjson);
+                return await Search(title, rjson);
 
             string module = HttpContext.Request.Path.Value.StartsWith("/lite/collaps-dash") ? "dash" : "hls";
             if (module == "dash")
@@ -69,19 +69,18 @@ namespace Online.Controllers
                     html = html.Replace("lite/collaps", "lite/collaps-dash");
 
                 return html;
-
-            }, origsource: origsource);
+            });
         }
 
 
         [HttpGet]
         [Route("lite/collaps-search")]
-        async public ValueTask<ActionResult> Search(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> Search(string title, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             reset:
@@ -114,7 +113,7 @@ namespace Online.Controllers
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();
 
-            }, origsource: origsource);
+            });
         }
     }
 }

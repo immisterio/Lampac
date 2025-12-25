@@ -8,7 +8,7 @@ namespace Online.Controllers
 
         public iRemux() : base(AppInit.conf.iRemux) 
         {
-            initializationFunc = () =>
+            requestInitialization = () =>
             {
                 oninvk = new iRemuxInvoke
                 (
@@ -29,7 +29,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return OnError();
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", 40, () => oninvk.Embed(title, original_title, year, href));
@@ -44,7 +44,7 @@ namespace Online.Controllers
         [Route("lite/remux/movie")]
         async public ValueTask<ActionResult> Movie(string linkid, string quality, string title, string original_title)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             string weblink = await InvokeCache($"remux:view:{linkid}:{proxyManager.CurrentProxyIp}", 20, () => oninvk.Weblink(linkid));

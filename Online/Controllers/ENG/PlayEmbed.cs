@@ -23,7 +23,7 @@ namespace Online.Controllers
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
-            if (await IsBadInitialization(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false, rch_check: !play))
                 return badInitMsg;
 
             string embed = $"{init.host}/movie/{id}?colour=e1216d&autoplay=true&autonextepisode=false&pausescreen=true";

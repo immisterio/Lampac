@@ -18,7 +18,7 @@ namespace Online.Controllers
         [Route("lite/animelib")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             await EnsureAnimeLibToken();
@@ -190,7 +190,7 @@ namespace Online.Controllers
         [Route("lite/animelib/video")]
         async public ValueTask<ActionResult> Video(string title, long id, string voice, bool play)
         {
-            if (await IsBadInitialization(rch: true, rch_check: false))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             await EnsureAnimeLibToken();

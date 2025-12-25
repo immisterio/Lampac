@@ -11,7 +11,7 @@ namespace SISI.Controllers.Xvideos
         async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Xvideos);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;
@@ -63,7 +63,7 @@ namespace SISI.Controllers.Xvideos
         async public ValueTask<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
             var init = await loadKit(AppInit.conf.Xvideos);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             string plugin = Regex.Match(HttpContext.Request.Path.Value, "^/([a-z]+)").Groups[1].Value;

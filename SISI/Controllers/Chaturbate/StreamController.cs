@@ -9,7 +9,7 @@ namespace SISI.Controllers.Chaturbate
         async public ValueTask<ActionResult> Index(string baba)
         {
             var init = await loadKit(AppInit.conf.Chaturbate);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsRequestBlocked(init, rch: true))
                 return badInitMsg;
 
             return await SemaphoreResult($"chaturbate:stream:{baba}", async e =>

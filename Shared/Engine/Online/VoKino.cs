@@ -244,7 +244,7 @@ namespace Shared.Engine.Online
                 }
 
                 if (rjson)
-                    return mtpl.ToJson(vtpl: vtpl);
+                    return mtpl.ToJson(false, vtpl);
 
                 return vtpl.ToHtml() + mtpl.ToHtml();
             }

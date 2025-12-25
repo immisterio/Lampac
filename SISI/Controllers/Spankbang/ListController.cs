@@ -10,7 +10,7 @@ namespace SISI.Controllers.Spankbang
         async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
         {
             var init = await loadKit(AppInit.conf.Spankbang);
-            if (await IsBadInitialization(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             return await SemaphoreResult($"sbg:{search}:{sort}:{pg}", async e =>

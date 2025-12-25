@@ -25,9 +25,9 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/veoveo")]
-        async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: true, rch_check: !similar))
+            if (await IsRequestBlocked(rch: true, rch_check: !similar))
                 return badInitMsg;
 
             if (movieid == 0)
@@ -123,8 +123,7 @@ namespace Online.Controllers
                     }
                     #endregion
                 }
-
-            }, origsource: origsource);
+            });
         }
 
         #region Spider

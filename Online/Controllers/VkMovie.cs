@@ -19,7 +19,7 @@ namespace Online.Controllers
             if (serial == 1)
                 return OnError();
 
-            if (await IsBadInitialization(rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (!await EnsureAnonymToken(init, proxy))

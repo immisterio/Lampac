@@ -16,7 +16,7 @@ namespace Online.Controllers
     {
         public FilmixTV() : base(AppInit.conf.FilmixTV) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("pro"))
                     i.pro = c.pro;
@@ -31,7 +31,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/filmixtv")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool origsource = false, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
@@ -42,7 +42,7 @@ namespace Online.Controllers
                 }
             }
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.user_apitv))
@@ -96,7 +96,7 @@ namespace Online.Controllers
                 return e.Success(oninvk.Post(json));
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast), origsource: origsource);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
         }
 
 

@@ -12,7 +12,7 @@ namespace Online.Controllers
     {
         public Alloha() : base(AppInit.conf.Alloha) 
         {
-            loadKitFunc = (j, i, c) =>
+            loadKitInitialization = (j, i, c) =>
             {
                 if (j.ContainsKey("m4s"))
                     i.m4s = c.m4s;
@@ -33,11 +33,11 @@ namespace Online.Controllers
         [Route("lite/alloha")]
         async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             if (similar)
-                return await SpiderSearch(title, origsource, rjson);
+                return await SpiderSearch(title, rjson);
 
             var result = await search(orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
@@ -144,7 +144,7 @@ namespace Online.Controllers
         [Route("lite/alloha/video.m3u8")]
         async public ValueTask<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
-            if (await IsBadInitialization(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false, rch_check: !play))
                 return badInitMsg;
 
             return await InvkSemaphore($"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{init.m4s}:{directors_cut}", async key =>
@@ -387,12 +387,12 @@ namespace Online.Controllers
         #region SpiderSearch
         [HttpGet]
         [Route("lite/alloha-search")]
-        async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> SpiderSearch(string title, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (await IsBadInitialization(rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             var cache = await InvokeCacheResult<JArray>($"alloha:search:{title}", 40, async e =>
@@ -415,8 +415,7 @@ namespace Online.Controllers
                 }
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();
-
-            }, origsource: origsource);
+            });
         }
         #endregion
 
