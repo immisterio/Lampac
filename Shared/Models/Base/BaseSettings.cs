@@ -32,6 +32,8 @@ namespace Shared.Models.Base
 
         public bool IsKitConf { get; set; }
 
+        public bool IsCloneable { get; set; }
+
         public string plugin { get; set; }
 
         public int group { get; set; }

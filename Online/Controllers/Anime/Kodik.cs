@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Online.Controllers
 {
-    public class Kodik : BaseOnlineController
+    public class Kodik : BaseOnlineController<KodikSettings>
     {
         #region database
         static List<Result> databaseCache;
@@ -24,33 +24,23 @@ namespace Online.Controllers
         }
         #endregion
 
-        #region InitKodikInvoke
-        public KodikInvoke InitKodikInvoke(KodikSettings init)
+        #region HMAC
+        static string HMAC(string key, string message)
         {
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            return new KodikInvoke
-            (
-                host,
-                init.apihost,
-                init.token,
-                init.hls,
-                init.cdn_is_working,
-                "video",
-                database,
-                (uri, head) => Http.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                (uri, data) => Http.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-                requesterror: () => proxyManager.Refresh()
-            );
+            using (var hash = new HMACSHA256(Encoding.UTF8.GetBytes(key)))
+            {
+                return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(message))).Replace("-", "").ToLower();
+            }
         }
         #endregion
 
-        #region Initialization
-        ValueTask<KodikSettings> Initialization()
+
+        #region KodikInvoke
+        KodikInvoke oninvk;
+
+        public Kodik() : base(AppInit.conf.Kodik) 
         {
-            return loadKit(AppInit.conf.Kodik, (j, i, c) =>
+            loadKitFunc = (j, i, c) =>
             {
                 if (j.ContainsKey("linkhost"))
                     i.linkhost = c.linkhost;
@@ -65,7 +55,22 @@ namespace Online.Controllers
                     i.cdn_is_working = c.cdn_is_working;
 
                 return i;
-            });
+            };
+
+            initializationFunc = () =>
+            {
+                oninvk = new KodikInvoke
+                (
+                    host,
+                    init,
+                    "video",
+                    database,
+                    (uri, head) => Http.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                    (uri, data) => Http.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                    streamfile => HostStreamProxy(streamfile),
+                    requesterror: proxyManager.Refresh
+                );
+            };
         }
         #endregion
 
@@ -73,18 +78,10 @@ namespace Online.Controllers
         [Route("lite/kodik")]
         async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-
             List<Result> content = null;
-            var oninvk = InitKodikInvoke(init);
 
             if (similar || clarification == 1 || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
             {
@@ -95,7 +92,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(title))
                         return OnError();
 
-                    res = await InvokeCache($"kodik:search:{title}", cacheTime(40, init: init), () => oninvk.Embed(title, null, clarification), proxyManager);
+                    res = await InvokeCache($"kodik:search:{title}", 40, () => oninvk.Embed(title, null, clarification));
                     if (res?.result == null || res.result.Count == 0)
                         return OnError();
                 }
@@ -104,7 +101,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(pick) && string.IsNullOrEmpty(title ?? original_title))
                         return OnError();
 
-                    res = await InvokeCache($"kodik:search2:{original_title}:{title}:{clarification}", cacheTime(40, init: AppInit.conf.Kodik), async () => 
+                    res = await InvokeCache($"kodik:search2:{original_title}:{title}:{clarification}", 40, async () => 
                     {
                         var i = await oninvk.Embed(null, original_title, clarification);
                         if (i?.result == null || i.result.Count == 0)
@@ -112,7 +109,7 @@ namespace Online.Controllers
 
                         return i;
 
-                    }, proxyManager);
+                    });
                 }
 
                 if (string.IsNullOrEmpty(pick))
@@ -122,7 +119,7 @@ namespace Online.Controllers
             }
             else
             {
-                content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", cacheTime(40, init: AppInit.conf.Kodik), () => oninvk.Embed(imdb_id, kinopoisk_id, s), proxyManager);
+                content = await InvokeCache($"kodik:search:{kinopoisk_id}:{imdb_id}", 40, () => oninvk.Embed(imdb_id, kinopoisk_id, s));
                 if (content == null || content.Count == 0)
                     return LocalRedirect(accsArgs($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}"));
             }
@@ -136,21 +133,12 @@ namespace Online.Controllers
         [Route("lite/kodik/video.m3u8")]
         async public ValueTask<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: !play))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
             {
-                var oninvk = InitKodikInvoke(init);
-
-                var streams = await InvokeCache($"kodik:video:{link}:{play}", cacheTime(40, init: init), () => oninvk.VideoParse(init.linkhost, link), proxyManager);
+                var streams = await InvokeCache($"kodik:video:{link}:{play}", 40, () => oninvk.VideoParse(init.linkhost, link));
                 if (streams == null)
                     return OnError();
 
@@ -173,13 +161,9 @@ namespace Online.Controllers
                         return OnError();
                 }
 
-                var proxy = proxyManager.Get();
-
-                string memKey = $"kodik:view:stream:{link}:{init.secret_token}:{requestInfo.IP}";
-
-                return await InvkSemaphore(init, memKey, async () =>
+                return await InvkSemaphore($"kodik:view:stream:{link}:{init.secret_token}:{requestInfo.IP}", async key =>
                 {
-                    if (!hybridCache.TryGetValue(memKey, out (List<(string q, string url)> streams, SegmentTpl segments) cache))
+                    if (!hybridCache.TryGetValue(key, out (List<(string q, string url)> streams, SegmentTpl segments) cache))
                     {
                         string deadline = DateTime.Now.AddHours(4).ToString("yyyy MM dd HH").Replace(" ", "");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
@@ -187,7 +171,7 @@ namespace Online.Controllers
                         var root = await Http.Get<JObject>($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true", timeoutSeconds: 8, proxy: proxy);
 
                         if (root == null || !root.ContainsKey("links"))
-                            return OnError("links");
+                            return OnError("links", proxyManager);
 
                         cache.streams = new List<(string q, string url)>(3);
 
@@ -201,10 +185,7 @@ namespace Online.Controllers
                         }
 
                         if (cache.streams.Count == 0)
-                        {
-                            proxyManager.Refresh();
-                            return OnError("streams");
-                        }
+                            return OnError("streams", proxyManager);
 
                         cache.streams.Reverse();
 
@@ -215,11 +196,11 @@ namespace Online.Controllers
                             {
                                 cache.segments = new SegmentTpl();
 
-                                foreach (string key in new string[] { "ad", "skip" })
+                                foreach (string segmentkey in new string[] { "ad", "skip" })
                                 {
-                                    if (segs.ContainsKey(key))
+                                    if (segs.ContainsKey(segmentkey))
                                     {
-                                        var arr = segs[key] as JArray;
+                                        var arr = segs[segmentkey] as JArray;
                                         if (arr != null)
                                         {
                                             foreach (var it in arr)
@@ -236,12 +217,12 @@ namespace Online.Controllers
                         }
 
                         proxyManager.Success();
-                        hybridCache.Set(memKey, cache, cacheTime(120, init: init));
+                        hybridCache.Set(key, cache, cacheTime(120, init: init));
                     }
 
                     var streamquality = new StreamQualityTpl();
                     foreach (var l in cache.streams)
-                        streamquality.Append(HostStreamProxy(init, l.url, proxy: proxy), l.q);
+                        streamquality.Append(HostStreamProxy(l.url), l.q);
 
                     if (play)
                         return RedirectToPlay(streamquality.Firts().link);
@@ -252,17 +233,6 @@ namespace Online.Controllers
 
                     return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, name, streamquality: streamquality, vast: init.vast, segments: cache.segments));
                 });
-            }
-        }
-        #endregion
-
-
-        #region HMAC
-        static string HMAC(string key, string message)
-        {
-            using (var hash = new HMACSHA256(Encoding.UTF8.GetBytes(key)))
-            {
-                return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(message))).Replace("-", "").ToLower();
             }
         }
         #endregion

@@ -23,7 +23,7 @@ namespace Catalog.Controllers
 
             string memKey = $"catalog:card:{plugin}:{uri}";
 
-            return await InvkSemaphore(init, memKey, async () =>
+            return await InvkSemaphore(memKey, rch, async () =>
             {
                 if (!hybridCache.TryGetValue(memKey, out JObject jo, inmemory: false))
                 {

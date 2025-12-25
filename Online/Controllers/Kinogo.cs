@@ -2,12 +2,13 @@
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
-using System.Net;
 
 namespace Online.Controllers
 {
     public class Kinogo : BaseOnlineController
     {
+        public Kinogo() : base(AppInit.conf.Kinogo) { }
+
         public class SearchModel
         {
             public string link { get; set; }
@@ -19,20 +20,8 @@ namespace Online.Controllers
         [Route("lite/kinogo")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int year, bool rjson, string href, bool similar, int s = -1, int t = -1)
         {
-            var init = await loadKit(AppInit.conf.Kinogo);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
 
             #region search
             if (string.IsNullOrEmpty(href))
@@ -41,22 +30,22 @@ namespace Online.Controllers
                     return OnError("search params");
 
                 reset_search:
-                var search = await InvokeCache<SearchModel>($"kinogo:search:{title}:{year}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+                var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", 20, async e =>
                 {
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
 
                     string searchHtml = rch.enable 
                         ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) 
-                        : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                        : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                     if (searchHtml == null)
-                        return res.Fail("search");
+                        return e.Fail("search");
 
                     var result = SearchResult(searchHtml, title, year);
                     if (result == null)
-                        return res.Fail("search-result");
+                        return e.Fail("search-result");
 
-                    return result;
+                    return e.Success(result);
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
@@ -64,7 +53,7 @@ namespace Online.Controllers
 
                 if (string.IsNullOrEmpty(search.Value?.link))
                 {
-                    if (IsRhubFallback(search, init))
+                    if (IsRhubFallback(search))
                         goto reset_search;
 
                     return OnError();
@@ -79,67 +68,63 @@ namespace Online.Controllers
 
             #region embed
             reset_embed:
-            var cache = await InvokeCache<JArray>(rch.ipkey(href, proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCacheResult<JArray>(rch.ipkey(href, proxyManager), 20, async e =>
             {
                 string targetHref = $"{init.corsHost()}/{href}";
 
                 string html = rch.enable 
                     ? await rch.Get(targetHref, httpHeaders(init)) 
-                    : await Http.Get(init.cors(targetHref), timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                    : await Http.Get(init.cors(targetHref), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (html == null) 
-                    return res.Fail("html");
+                    return e.Fail("html");
 
                 string iframe = Regex.Match(html, "<iframe [^>]+data-src=\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(iframe))
-                    return res.Fail("iframe");
+                    return e.Fail("iframe");
 
                 string embedUrl = iframe.StartsWith("//") ? $"https:{iframe}" : iframe;
                 var embedHeaders = httpHeaders(init, HeadersModel.Init("referer", targetHref));
 
                 string embedHtml = rch.enable 
                     ? await rch.Get(init.cors(embedUrl), embedHeaders) 
-                    : await PlaywrightBrowser.Get(init, init.cors(embedUrl), headers: embedHeaders, proxy.data);
+                    : await PlaywrightBrowser.Get(init, init.cors(embedUrl), headers: embedHeaders, proxy_data);
 
                 if (embedHtml == null)
-                    return res.Fail("embed");
+                    return e.Fail("embed");
 
                 string fileEncode = Regex.Match(embedHtml, "\"file\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(fileEncode))
-                    return res.Fail("fileEncode");
+                    return e.Fail("fileEncode");
 
                 string playlistJson = await DecodeFile(init, fileEncode);
                 if (string.IsNullOrEmpty(playlistJson))
-                    return res.Fail("playlistJson");
+                    return e.Fail("playlistJson");
 
                 try
                 {
                     var playlist = JArray.Parse(playlistJson);
                     if (playlist == null || playlist.Count == 0)
-                        return res.Fail("playlist");
+                        return e.Fail("playlist");
 
-                    return playlist;
+                    return e.Success(playlist);
                 }
                 catch
                 {
-                    return res.Fail("DeserializeObject");
+                    return e.Fail("DeserializeObject");
                 }
             });
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset_embed;
             #endregion
 
-            return OnResult(cache, () =>
-            {
-                return BuildResult(init, cache.Value, title, original_title, year, s, t, rjson, href, proxy.proxy);
-
-            }, gbcache: !rch.enable);
+            return OnResult(cache, () => BuildResult(cache.Value, title, original_title, year, s, t, rjson, href));
         }
 
 
         #region BuildResult
-        string BuildResult(OnlinesSettings init, JArray playlist, string title, string original_title, int year, int s, int t, bool rjson, string href, WebProxy proxy)
+        string BuildResult(JArray playlist, string title, string original_title, int year, int s, int t, bool rjson, string href)
         {
             if (playlist.First.Value<string>("file") != null)
             {
@@ -168,14 +153,14 @@ namespace Online.Controllers
                             if (srt.StartsWith("//"))
                                 srt = "https:" + srt;
 
-                            subtitles.Append(match.Groups[1].Value, HostStreamProxy(init, srt, proxy: proxy));
+                            subtitles.Append(match.Groups[1].Value, HostStreamProxy(srt));
                             match = match.NextMatch();
                         }
                     }
                     #endregion
 
                     voice = Regex.Replace(voice, "<[^>]+>", "");
-                    mtpl.Append(voice, HostStreamProxy(init, file, proxy: proxy), subtitles: subtitles, vast: init.vast);
+                    mtpl.Append(voice, HostStreamProxy(file), subtitles: subtitles, vast: init.vast);
                 }
 
                 return rjson ? mtpl.ToJson() : mtpl.ToHtml();
@@ -255,13 +240,13 @@ namespace Online.Controllers
                                 if (srt.StartsWith("//"))
                                     srt = "https:" + srt;
 
-                                subtitles.Append(match.Groups[1].Value, HostStreamProxy(init, srt, proxy: proxy));
+                                subtitles.Append(match.Groups[1].Value, HostStreamProxy(srt));
                                 match = match.NextMatch();
                             }
                         }
                         #endregion
 
-                        string stream = HostStreamProxy(init, file, proxy: proxy);
+                        string stream = HostStreamProxy(file);
                         etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, " ([0-9]+)$").Groups[1].Value, stream, subtitles: subtitles, vast: init.vast);
                     }
 

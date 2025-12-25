@@ -2,28 +2,42 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Filmix;
+using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
 {
-    public class Filmix : BaseOnlineController
+    public class Filmix : BaseOnlineController<FilmixSettings>
     {
+        public Filmix() : base(AppInit.conf.Filmix) 
+        {
+            loadKitFunc = (j, i, c) =>
+            {
+                if (j.ContainsKey("reserve"))
+                    i.reserve = c.reserve;
+
+                i.pro = c.pro;
+                i.tokens = c.tokens;
+                return i;
+            };
+        }
+
         #region filmixpro
         [HttpGet]
         [AllowAnonymous]
         [Route("lite/filmixpro")]
         async public Task<ActionResult> Pro()
         {
-            var token_request = await Http.Get<JObject>($"{AppInit.conf.Filmix.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=", useDefaultHeaders: false);
+            var token_request = await Http.Get<JObject>($"{init.corsHost()}/api/v2/token_request?user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_vendor=Xiaomi&user_dev_token=", proxy: proxy, useDefaultHeaders: false);
 
             if (token_request == null)
-                return Content($"нет доступа к {AppInit.conf.Filmix.corsHost()}", "text/html; charset=utf-8");
+                return ContentTo($"нет доступа к {init.corsHost()}");
 
             string html = "1. Откройте <a href='https://filmix.my/consoles'>https://filmix.my/consoles</a> <br>";
             html += $"2. Введите код <b>{token_request.Value<string>("user_code")}</b><br>";
             html += $"<br><br><br>Добавьте в init.conf<br><br>";
             html += "\"Filmix\": {<br>&nbsp;&nbsp;\"token\": \"" + token_request.Value<string>("code") + "\",<br>&nbsp;&nbsp;\"pro\": true<br>}";
 
-            return Content(html, "text/html; charset=utf-8");
+            return ContentTo(html);
         }
         #endregion
 
@@ -40,29 +54,8 @@ namespace Online.Controllers
                 }
             }
 
-            var init = await loadKit(AppInit.conf.Filmix, (j, i, c) =>
-            {
-                if (j.ContainsKey("reserve"))
-                    i.reserve = c.reserve;
-
-                i.pro = c.pro;
-                i.tokens = c.tokens;
-                return i;
-            });
-
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             string token = init.token;
             if (init.tokens != null && init.tokens.Length > 1)
@@ -81,17 +74,16 @@ namespace Online.Controllers
                (url, data, head) => rch.enable 
                     ? rch.Post(init.cors(url), data, (head != null ? head : httpHeaders(init)), useDefaultHeaders: false) 
                     : Http.Post(init.cors(url), data, timeoutSeconds: 8, headers: head != null ? head : httpHeaders(init), useDefaultHeaders: false),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } },
+               streamfile => HostStreamProxy(streamfile),
+               requesterror: () => proxyManager.Refresh(rch),
                rjson: rjson
             );
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"filmix:search:{title}:{original_title}:{year}:{clarification}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
-                {
-                    return await oninvk.Search(title, original_title, clarification, year, similar);
-                });
+                var search = await InvokeCacheResult($"filmix:search:{title}:{original_title}:{year}:{clarification}:{similar}", 40, 
+                    () => oninvk.Search(title, original_title, clarification, year, similar)
+                );
 
                 if (!search.IsSuccess)
                     return OnError(search.ErrorMsg);
@@ -102,15 +94,14 @@ namespace Online.Controllers
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"filmix:post:{postid}:{token}", cacheTime(20, init: init), rch.enable ? null : proxyManager, onget: async res =>
-            {
-                return await oninvk.Post(postid);
-            });
+            var cache = await InvokeCacheResult($"filmix:post:{postid}:{token}", 20, 
+                () => oninvk.Post(postid)
+            );
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast), origsource: origsource);
         }
     }
 }

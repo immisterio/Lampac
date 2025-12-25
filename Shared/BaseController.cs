@@ -27,17 +27,41 @@ namespace Shared
     {
         IServiceScope serviceScope;
 
-        public static string appversion => "150";
+        public static string appversion => "151";
 
-        public static string minorversion => "5";
+        public static string minorversion => "1";
 
         public HybridCache hybridCache { get; private set; }
 
         public IMemoryCache memoryCache { get; private set; }
 
-        public RequestModel requestInfo => HttpContext.Features.Get<RequestModel>();
+        #region requestInfo
+        RequestModel? _requestInfo;
+        public RequestModel requestInfo
+        {
+            get
+            {
+                if (_requestInfo == null)
+                    _requestInfo = HttpContext.Features.Get<RequestModel>();
 
-        public string host => AppInit.Host(HttpContext);
+                return (RequestModel)_requestInfo;
+            }
+        }
+        #endregion
+
+        #region host
+        string _host;
+        public string host 
+        { 
+            get 
+            {
+                if (_host == null)
+                    _host = AppInit.Host(HttpContext);
+
+                return _host; 
+            } 
+        }
+        #endregion
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
 
@@ -331,16 +355,45 @@ namespace Shared
         }
         #endregion
 
-        #region InvokeCache
-        public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, Func<CacheResult<T>, ValueTask<dynamic>> onget) => InvokeCache(key, time, null, onget);
-
-        async public ValueTask<CacheResult<T>> InvokeCache<T>(string key, TimeSpan time, ProxyManager proxyManager, Func<CacheResult<T>, ValueTask<dynamic>> onget, bool? memory = null)
+        #region InvokeBaseCache
+        async public ValueTask<T> InvokeBaseCache<T>(string key, TimeSpan time, RchClient rch, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool? memory = null)
         {
             var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
 
             try
             {
-                await semaphore.WaitAsync();
+                if (rch.enable == false)
+                    await semaphore.WaitAsync();
+
+                if (hybridCache.TryGetValue(key, out T val, memory))
+                    return val;
+
+                val = await onget.Invoke();
+                if (val == null || val.Equals(default(T)))
+                    return default;
+
+                if (rch.enable == false)
+                    proxyManager?.Success();
+
+                hybridCache.Set(key, val, time, memory);
+                return val;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+        #endregion
+
+        #region InvokeBaseCacheResult
+        async public ValueTask<CacheResult<T>> InvokeBaseCacheResult<T>(string key, TimeSpan time, RchClient rch, ProxyManager proxyManager, Func<CacheResult<T>, Task<CacheResult<T>>> onget, bool? memory = null)
+        {
+            var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
+
+            try
+            {
+                if (rch.enable == false)
+                    await semaphore.WaitAsync();
 
                 if (hybridCache.TryGetValue(key, out T _val, memory))
                 {
@@ -352,46 +405,38 @@ namespace Shared
 
                 var val = await onget.Invoke(new CacheResult<T>());
 
-                if (val == null)
+                if (val == null || val.Value == null)
                     return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "null" };
 
-                if (val.GetType() == typeof(CacheResult<T>))
-                    return (CacheResult<T>)val;
+                if (!val.IsSuccess)
+                {
+                    if (val.refresh_proxy && rch.enable == false)
+                        proxyManager?.Refresh();
 
-                if (val.Equals(default(T)))
-                    return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "default" };
-
-                if (typeof(T) == typeof(string) && string.IsNullOrEmpty(val.ToString()))
-                    return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "empty" };
-
-                proxyManager?.Success();
-                hybridCache.Set(key, val, time, memory);
-                return new CacheResult<T>() { IsSuccess = true, Value = val };
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        }
-
-        async public ValueTask<T> InvokeCache<T>(string key, TimeSpan time, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool? memory = null)
-        {
-            var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
-
-            try
-            {
-                await semaphore.WaitAsync();
-
-                if (hybridCache.TryGetValue(key, out T val, memory))
                     return val;
+                }
 
-                val = await onget.Invoke();
-                if (val == null || val.Equals(default(T)))
-                    return default;
+                if (val.Value.Equals(default(T)))
+                {
+                    if (val.refresh_proxy && rch.enable == false)
+                        proxyManager?.Refresh();
 
-                proxyManager?.Success();
-                hybridCache.Set(key, val, time, memory);
-                return val;
+                    return val;
+                }
+
+                if (typeof(T) == typeof(string) && string.IsNullOrWhiteSpace(val.ToString()))
+                {
+                    if (val.refresh_proxy && rch.enable == false)
+                        proxyManager?.Refresh();
+
+                    return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "empty" };
+                }
+
+                if (rch.enable == false)
+                    proxyManager?.Success();
+
+                hybridCache.Set(key, val.Value, time, memory);
+                return new CacheResult<T>() { IsSuccess = true, Value = val.Value };
             }
             finally
             {
@@ -401,13 +446,10 @@ namespace Shared
         #endregion
 
         #region InvkSemaphore
-        async public Task<ActionResult> InvkSemaphore(BaseSettings init, string key, Func<ValueTask<ActionResult>> func)
+        async public Task<ActionResult> InvkSemaphore(string key, RchClient? rch, Func<ValueTask<ActionResult>> func)
         {
-            if (init != null)
-            {
-                if (init.rhub && init.rhub_fallback == false)
-                    return await func.Invoke();
-            }
+            if (rch?.enable == true)
+                return await func.Invoke();
 
             var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
 
@@ -605,21 +647,22 @@ namespace Shared
 
         async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
         {
+            var clone = _init.IsCloneable ? _init : (T)_init.Clone();
+
             if (_init.kit == false && _init.rhub_fallback == false)
             {
-                var _clone = (T)_init.Clone();
-                InvkEvent.LoadKitInit(new EventLoadKit(null, _clone, null, requestInfo, hybridCache));
-
-                return _clone;
+                InvkEvent.LoadKitInit(new EventLoadKit(null, clone, null, requestInfo, hybridCache));
+                return clone;
             }
 
-            return loadKit((T)_init.Clone(), await loadKitConf(), func, clone: false);
+            return loadKit(clone, await loadKitConf(), func, clone: false);
         }
 
         public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable
         {
             var init = clone ? (T)_init.Clone() : _init;
             init.IsKitConf = false;
+            init.IsCloneable = true;
             var defaultinit = InvkEvent.conf.LoadKit != null ? (clone ? _init : (T)_init.Clone()) : null;
 
             InvkEvent.LoadKitInit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));

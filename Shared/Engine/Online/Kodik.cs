@@ -2,6 +2,7 @@
 using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online.Kodik;
+using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using System.Collections.Concurrent;
 using System.Text;
@@ -27,19 +28,19 @@ namespace Shared.Engine.Online
         Func<string, string> onlog;
         Action requesterror;
 
-        public KodikInvoke(string host, string apihost, string token, bool hls, bool cdn_is_working, string videopath, IEnumerable<Result> fallbackDatabase, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KodikInvoke(string host, KodikSettings init, string videopath, IEnumerable<Result> fallbackDatabase, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
-            this.apihost = apihost;
-            this.token = token;
+            this.apihost = init.apihost;
+            this.token = init.token;
             this.videopath = videopath;
             this.fallbackDatabase = fallbackDatabase;
             this.onget = onget;
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
-            this.usehls = hls;
-            this.cdn_is_working = cdn_is_working;
+            this.usehls = init.hls;
+            this.cdn_is_working = init.cdn_is_working;
             this.requesterror = requesterror;
         }
         #endregion

@@ -513,7 +513,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "f505bd4f43fc053cf4eaebd92ec3d2e0e8b8141d"
+            tree = "5472e537e8ec21fa25289676962ed02ddeb4bf09"
         };
 
         public OnlineConf online = new OnlineConf()
@@ -755,8 +755,8 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("Ashdi", "kwwsv=22edvh1dvkgl1yls", stream_access: "apk,cors,web") 
-        { 
+        public OnlinesSettings Ashdi { get; set; } = new OnlinesSettings("Ashdi", "kwwsv=22edvh1dvkgl1yls", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors") 
+        {
             geo_hide = ["RU", "BY"] 
         };
 

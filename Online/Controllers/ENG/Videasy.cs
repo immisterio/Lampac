@@ -1,18 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared.PlaywrightCore;
-using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
 {
     public class Videasy : BaseENGController
     {
+        public Videasy() : base(AppInit.conf.Videasy) { }
+
         [HttpGet]
         [Route("lite/videasy")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Videasy, checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
+            return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
-
 
         #region Video
         [HttpGet]
@@ -20,27 +20,19 @@ namespace Online.Controllers
         [Route("lite/videasy/video.m3u8")]
         async public ValueTask<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
-            var init = await loadKit(AppInit.conf.Videasy);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: !play))
                 return badInitMsg;
 
             if (id == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
             string embed = $"{init.host}/movie/{id}";
             if (s > 0)
                 embed = $"{init.host}/tv/{id}/{s}/{e}";
 
-            return await InvkSemaphore(init, embed, async () =>
+            return await InvkSemaphore(embed, async () =>
             {
-                var cache = await black_magic(embed, init, proxyManager, proxy.data);
+                var cache = await black_magic(embed);
                 if (cache.m3u8 == null)
                     return StatusCode(502);
 
@@ -48,7 +40,7 @@ namespace Online.Controllers
                 if (headers_stream.Count == 0)
                     headers_stream = cache.headers;
 
-                string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
+                string hls = HostStreamProxy(cache.m3u8, headers: headers_stream);
 
                 if (play)
                     return RedirectToPlay(hls);
@@ -59,7 +51,7 @@ namespace Online.Controllers
         #endregion
 
         #region black_magic
-        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -71,7 +63,7 @@ namespace Online.Controllers
                 {
                     using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy, deferredDispose: true);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy_data, deferredDispose: true);
                         if (page == null)
                             return default;
 

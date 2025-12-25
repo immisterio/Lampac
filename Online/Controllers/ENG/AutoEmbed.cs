@@ -1,46 +1,37 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
 
 namespace Online.Controllers
 {
     public class AutoEmbed : BaseENGController
     {
+        public AutoEmbed() : base(AppInit.conf.Autoembed) { }
+
         [HttpGet]
         [Route("lite/autoembed")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            var init = AppInit.conf.Autoembed;
-            return ViewTmdb(init, checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
+            return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
         }
-
 
         #region Video
         [HttpGet]
         [Route("lite/autoembed/video")]
         async public ValueTask<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
-            var init = await loadKit(AppInit.conf.Autoembed);
-            if (await IsBadInitialization(init, rch: false))
-                return badInitMsg;
-
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
+            if (await IsBadInitialization(rch: false, rch_check: !play))
+                return badInitMsg;
 
             string embed = $"{init.host}/embed/movie/{id}";
             if (s > 0)
                 embed = $"{init.host}/embed/tv/{id}/{s}/{e}";
 
-            return await InvkSemaphore(init, embed, async () =>
+            return await InvkSemaphore(embed, async () =>
             {
-                var cache = await black_magic(embed, init, proxyManager, proxy.data);
+                var cache = await black_magic(embed);
                 if (cache.file == null)
                     return StatusCode(502);
 
@@ -48,7 +39,7 @@ namespace Online.Controllers
                 if (headers_stream.Count == 0)
                     headers_stream = cache.headers;
 
-                string file = HostStreamProxy(init, cache.file, proxy: proxy.proxy, headers: headers_stream);
+                string file = HostStreamProxy(cache.file, headers: headers_stream);
 
                 if (play)
                     return RedirectToPlay(file);
@@ -59,7 +50,7 @@ namespace Online.Controllers
         #endregion
 
         #region black_magic
-        async ValueTask<(string file, List<HeadersModel> headers)> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
+        async ValueTask<(string file, List<HeadersModel> headers)> black_magic(string uri)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -71,7 +62,7 @@ namespace Online.Controllers
                 {
                     using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy_data);
                         if (page == null)
                             return default;
 

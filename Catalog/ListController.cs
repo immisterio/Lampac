@@ -27,7 +27,7 @@ namespace Catalog.Controllers
             string search = query;
             string memKey = $"catalog:{plugin}:{search}:{sort}:{cat}:{page}";
 
-            return await InvkSemaphore(init, memKey, async () =>
+            return await InvkSemaphore(memKey, rch, async () =>
             {
                 if (!hybridCache.TryGetValue(memKey, out (List<PlaylistItem> playlists, int total_pages) cache, inmemory: false))
                 {

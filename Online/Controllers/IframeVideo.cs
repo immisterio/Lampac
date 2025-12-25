@@ -1,16 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
 {
-    public class IframeVideo : BaseOnlineController
+    public class IframeVideo : BaseOnlineController<IframeVideoSettings>
     {
+        public IframeVideo() : base(AppInit.conf.IframeVideo) { }
+
         [HttpGet]
         [Route("lite/iframevideo")]
         async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
-            var init = await loadKit(AppInit.conf.IframeVideo);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false))
                 return badInitMsg;
 
             var frame = await iframe(imdb_id, kinopoisk_id);
@@ -61,12 +63,8 @@ namespace Online.Controllers
         [Route("lite/iframevideo/video.m3u8")]
         async public Task<ActionResult> Video(string type, int cid, string token, string title, string original_title, bool play)
         {
-            var init = await loadKit(AppInit.conf.IframeVideo);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false))
                 return badInitMsg;
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             string memKey = $"iframevideo:view:video:{type}:{cid}:{token}";
             if (!hybridCache.TryGetValue(memKey, out string urim3u8))
@@ -92,7 +90,7 @@ namespace Online.Controllers
                 hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
             }
 
-            string url = HostStreamProxy(init, urim3u8, proxy: proxy);
+            string url = HostStreamProxy(urim3u8);
             if (play)
                 return RedirectToPlay(url);
 
@@ -103,8 +101,6 @@ namespace Online.Controllers
         #region iframe
         async ValueTask<(string content, string type, int cid, string path)> iframe(string imdb_id, long kinopoisk_id)
         {
-            var init = AppInit.conf.IframeVideo;
-
             if (kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id))
                 return (null, null, 0, null);
 
@@ -115,9 +111,6 @@ namespace Online.Controllers
                 string uri = $"{init.apihost}/api/v2/search?imdb={imdb_id}&kp={kinopoisk_id}";
                 if (!string.IsNullOrWhiteSpace(init.token))
                     uri = $"{init.apihost}/api/v2/movies?kp={kinopoisk_id}&imdb={imdb_id}&api_token={init.token}";
-
-                var proxyManager = new ProxyManager(init);
-                var proxy = proxyManager.Get();
 
                 var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null)

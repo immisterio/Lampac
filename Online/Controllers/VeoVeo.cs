@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Online.Settings;
 using Shared.Models.Online.VeoVeo;
-using System.Net;
 
 namespace Online.Controllers
 {
@@ -23,39 +21,29 @@ namespace Online.Controllers
         }
         #endregion
 
+        public VeoVeo() : base(AppInit.conf.VeoVeo) { }
+
         [HttpGet]
         [Route("lite/veoveo")]
         async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool origsource = false, bool similar = false)
         {
-            var init = await loadKit(AppInit.conf.VeoVeo);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true, rch_check: !similar))
                 return badInitMsg;
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             if (movieid == 0)
             {
                 if (similar)
                     return Spider(title);
 
-                var movie = search(init, proxyManager, proxy, imdb_id, kinopoisk_id, title, original_title);
+                var movie = search(imdb_id, kinopoisk_id, title, original_title);
                 if (movie == null)
                     return Spider(clarification == 1 ? title : (original_title ?? title));
 
                 movieid = movie.Value.id;
             }
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
             #region media
-            var cache = await InvokeCache<JArray>($"{init.plugin}:view:{movieid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCacheResult<JArray>($"{init.plugin}:view:{movieid}", 20, async e =>
             {
                 string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movieid}";
                 
@@ -64,9 +52,9 @@ namespace Online.Controllers
                     : await Http.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (root == null || root.Count == 0)
-                    return res.Fail("data");
+                    return e.Fail("data");
 
-                return root;
+                return e.Success(root);
             });
             #endregion
 
@@ -82,9 +70,7 @@ namespace Online.Controllers
                         .First()
                         .Value<string>("filepath");
 
-                    string stream = HostStreamProxy(init, file, proxy: proxy);
-
-                    mtpl.Append("1080p", stream, vast: init.vast);
+                    mtpl.Append("1080p", HostStreamProxy(file), vast: init.vast);
 
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();
                     #endregion
@@ -129,7 +115,7 @@ namespace Online.Controllers
                             if (string.IsNullOrEmpty(file))
                                 continue;
 
-                            string stream = HostStreamProxy(init, file, proxy: proxy);
+                            string stream = HostStreamProxy(file);
                             etpl.Append(name ?? $"{episode.Value<int>("order")} серия", title ?? original_title, sArhc, episode.Value<int>("order").ToString(), stream, vast: init.vast);
                         }
 
@@ -171,7 +157,7 @@ namespace Online.Controllers
         #endregion
 
         #region search
-        Movie? search(OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy, string imdb_id, long kinopoisk_id, string title, string original_title)
+        Movie? search(string imdb_id, long kinopoisk_id, string title, string original_title)
         {
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);

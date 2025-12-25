@@ -17,14 +17,16 @@ namespace Shared.Engine.Online
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Func<string, List<HeadersModel>, ValueTask<string>> onget;
+        Action requesterror;
 
-        public VideoDBInvoke(string host, string apihost, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null)
+        public VideoDBInvoke(string host, string apihost, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.onget = onget;
+            this.requesterror = requesterror;
         }
         #endregion
 
@@ -35,6 +37,7 @@ namespace Shared.Engine.Online
 
             if (html == null)
             {
+                requesterror?.Invoke();
                 onlog?.Invoke("VideoDB: html null");
                 return null;
             }

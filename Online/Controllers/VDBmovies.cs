@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Models.Online.Settings;
 using Shared.Models.Online.VDBmovies;
 using Shared.PlaywrightCore;
-using System.Net;
 
 namespace Online.Controllers
 {
@@ -24,24 +22,22 @@ namespace Online.Controllers
         }
         #endregion
 
+        public VDBmovies() : base(AppInit.conf.VDBmovies) { }
+
         static string referer = CrypTo.DecodeBase64("aHR0cHM6Ly9tb3ZpZWJvb20uc3RvcmUv");
 
         [HttpGet]
         [Route("lite/vdbmovies")]
         async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.VDBmovies);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
 
             var oninvk = new VDBmoviesInvoke
             (
                host,
                init.hls,
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
+               streamfile => HostStreamProxy(streamfile)
             );
 
             #region поиск
@@ -109,45 +105,36 @@ namespace Online.Controllers
             }
             #endregion
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
             reset: 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vdbmovies:{orid}:{kinopoisk_id}", proxyManager), cacheTime(20, rhub: 2, init: init), proxyManager, async res =>
+            var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vdbmovies:{orid}:{kinopoisk_id}", proxyManager), 20, async e =>
             {
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
                 if (!string.IsNullOrEmpty(orid))
                     uri = $"{init.corsHost()}/content/{orid}/iframe";
 
-                string html = await black_magic(rch, uri, referer, init, proxy);
+                string html = await black_magic(uri, referer);
 
                 if (html == null)
-                    return res.Fail("html");
+                    return e.Fail("html", refresh_proxy: true);
 
                 string file = Regex.Match(html, "file:([\t ]+)?'(#[^']+)").Groups[2].Value;
                 if (string.IsNullOrEmpty(file))
-                    return res.Fail("file");
+                    return e.Fail("file");
 
                 string forbidden_quality = Regex.Match(html, "forbidden_quality:([\t ]+)?(\"|')(?<forbidden>[^\"']+)(\"|')").Groups["forbidden"].Value;
                 string default_quality = Regex.Match(html, "default_quality:([\t ]+)?(\"|')(?<quality>[^\"']+)(\"|')").Groups["quality"].Value;
 
-                return oninvk.Embed(oninvk.DecodeEval(file), forbidden_quality, default_quality);
+                return e.Success(oninvk.Embed(oninvk.DecodeEval(file), forbidden_quality, default_quality));
             });
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson), origsource: origsource);
         }
 
-
         #region black_magic
-        async Task<string> black_magic(RchClient rch, string uri, string referer, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async Task<string> black_magic(string uri, string referer)
         {
             try
             {
@@ -162,11 +149,11 @@ namespace Online.Controllers
                     return await rch.Get(init.cors(uri), headers);
 
                 if (init.priorityBrowser == "http")
-                    return await Http.Get(init.cors(uri), httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await Http.Get(init.cors(uri), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: baseproxy.data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
+                    var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: proxy_data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
@@ -193,7 +180,7 @@ namespace Online.Controllers
                                     html = await response.TextAsync();
 
                                 browser.SetPageResult(html);
-                                PlaywrightBase.WebLog(route.Request, response, html, baseproxy.data);
+                                PlaywrightBase.WebLog(route.Request, response, html, proxy_data);
                                 return;
                             }
                             else

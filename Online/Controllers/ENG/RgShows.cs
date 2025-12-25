@@ -1,47 +1,38 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Online.Settings;
-using System.Net;
 
 namespace Online.Controllers
 {
     public class RgShows : BaseENGController
     {
+        public RgShows() : base(AppInit.conf.Rgshows) { }
+
         [HttpGet]
         [Route("lite/rgshows")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Rgshows, checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds);
+            return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds);
         }
-
 
         #region Video
         [HttpGet]
         [Route("lite/rgshows/video")]
         async public ValueTask<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
-            var init = await loadKit(AppInit.conf.Rgshows);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: !play))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
 
             string embed = $"{init.host}/main/movie/{id}";
             if (s > 0)
                 embed = $"{init.host}/main/tv/{id}/{s}/{e}";
 
-            return await InvkSemaphore(init, embed, async () =>
+            return await InvkSemaphore(embed, async () =>
             {
-                string file = await magic(embed, init, proxyManager, proxy.proxy);
+                string file = await magic(embed);
                 if (file == null)
                     return StatusCode(502);
 
-                file = HostStreamProxy(init, file, proxy: proxy.proxy);
+                file = HostStreamProxy(file);
 
                 if (play)
                     return RedirectToPlay(file);
@@ -52,7 +43,7 @@ namespace Online.Controllers
         #endregion
 
         #region magic
-        async ValueTask<string> magic(string uri, OnlinesSettings init, ProxyManager proxyManager, WebProxy proxy)
+        async ValueTask<string> magic(string uri)
         {
             if (string.IsNullOrEmpty(uri))
                 return uri;
@@ -62,7 +53,7 @@ namespace Online.Controllers
                 string memKey = $"rgshows:{uri}";
                 if (!hybridCache.TryGetValue(memKey, out string file))
                 {
-                    var root = await Http.Get<JObject>(uri, timeoutSeconds: 40, httpversion: 2, headers: httpHeaders(init));
+                    var root = await Http.Get<JObject>(uri, proxy: proxy, timeoutSeconds: 40, httpversion: 2, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("stream"))
                     {
                         proxyManager.Refresh();

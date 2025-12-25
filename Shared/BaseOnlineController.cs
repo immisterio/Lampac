@@ -1,20 +1,69 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.Module;
+using Shared.Models.Online.Settings;
+using System.Net;
 using System.Reflection;
 
 namespace Shared
 {
-    public class BaseOnlineController : BaseController
+    public class BaseOnlineController : BaseOnlineController<OnlinesSettings>
     {
-        #region IsBadInitialization
-        async public ValueTask<bool> IsBadInitialization(BaseSettings init, bool? rch = null)
+        public BaseOnlineController(OnlinesSettings init) : base(init) { }
+    }
+
+    public class BaseOnlineController<T> : BaseController where T : BaseSettings, ICloneable
+    {
+        RchClient? _rch = null;
+        public RchClient rch 
         {
+            get 
+            {
+                if (_rch == null)
+                    _rch = new RchClient(HttpContext, host, init, requestInfo);
+
+                return (RchClient)_rch;
+            } 
+        }
+
+        public ProxyManager proxyManager { get; private set; }
+
+        public WebProxy proxy { get; private set; }
+
+        public (string ip, string username, string password) proxy_data { get; private set; }
+
+        public T init { get; private set; }
+
+        public Func<JObject, T, T, T> loadKitFunc { get; set; }
+
+        public Action initializationFunc { get; set; }
+
+        public Func<Task> initializationAsync { get; set; }
+
+
+        public BaseOnlineController(T init)
+        {
+            this.init = (T)init.Clone();
+            this.init.IsCloneable = true;
+
+            proxyManager = new ProxyManager(init);
+            var bp = proxyManager.BaseGet();
+            proxy = bp.proxy;
+            proxy_data = bp.data;
+        }
+
+
+        #region IsBadInitialization
+        async public ValueTask<bool> IsBadInitialization(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
+        {
+            init = await loadKit(init, loadKitFunc);
+
             #region module initialization
             if (AppInit.modules != null)
             {
@@ -78,6 +127,21 @@ namespace Shared
                         badInitMsg = ShowError(RchClient.ErrorMsg);
                         return true;
                     }
+
+                    if (rch_check)
+                    {
+                        if (this.rch.IsNotConnected())
+                        {
+                            badInitMsg = ContentTo(this.rch.connectionMsg);
+                            return true;
+                        }
+
+                        if (this.rch.IsNotSupport(out string rch_error))
+                        {
+                            badInitMsg = ShowError(rch_error);
+                            return true;
+                        }
+                    }
                 }
                 else
                 {
@@ -89,13 +153,27 @@ namespace Shared
                 }
             }
 
-            return IsCacheError(init);
+            if (rch_check && this.rch.IsRequiredConnected())
+            {
+                badInitMsg = ContentTo(this.rch.connectionMsg);
+                return true;
+            }
+
+            if (IsCacheError(init))
+                return true;
+
+            initializationFunc?.Invoke();
+
+            if (initializationAsync != null)
+                await initializationAsync.Invoke();
+
+            return false;
         }
         #endregion
 
 
         #region MaybeInHls
-        public bool MaybeInHls(bool hls, BaseSettings init)
+        public bool MaybeInHls(bool hls)
         {
             if (!string.IsNullOrEmpty(init.apn?.host) && AppInit.IsDefaultApnOrCors(init.apn?.host))
                 return false;
@@ -118,7 +196,7 @@ namespace Shared
         #region OnError
         public ActionResult OnError(ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null) => OnError(string.Empty, proxyManager, refresh_proxy, weblog: weblog);
 
-        public ActionResult OnError(string msg, ProxyManager? proxyManager, bool refresh_proxy = true, string weblog = null)
+        public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null)
         {
             if (string.IsNullOrEmpty(msg) || !msg.StartsWith("{\"rch\""))
             {
@@ -131,7 +209,7 @@ namespace Shared
 
         public ActionResult OnError() => OnError(string.Empty);
 
-        public ActionResult OnError(string msg, bool gbcache = true, string weblog = null)
+        public ActionResult OnError(string msg, bool? gbcache = true, string weblog = null, int statusCode = 503)
         {
             if (!string.IsNullOrEmpty(msg))
             {
@@ -145,27 +223,27 @@ namespace Shared
                 Http.onlog?.Invoke(null, log);
             }
 
-            if (AppInit.conf.multiaccess && gbcache)
+            if (AppInit.conf.multiaccess && gbcache == true && rch.enable == false)
                 memoryCache.Set(ResponseCache.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddSeconds(20));
 
-            HttpContext.Response.StatusCode = 503;
+            HttpContext.Response.StatusCode = statusCode;
             return Content(msg ?? string.Empty, "text/html; charset=utf-8");
         }
         #endregion
 
         #region OnResult
-        public ActionResult OnResult(CacheResult<string> cache, bool gbcache = true)
+        public ActionResult OnResult(CacheResult<string> cache, bool? gbcache = null)
         {
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, gbcache: gbcache);
+                return OnError(cache.ErrorMsg, gbcache);
 
             return Content(cache.Value, "text/html; charset=utf-8");
         }
 
-        public ActionResult OnResult<T>(CacheResult<T> cache, Func<string> html, bool origsource = false, bool gbcache = true)
+        public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, Func<string> html, bool origsource = false, bool? gbcache = null)
         {
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, gbcache: gbcache);
+                return OnError(cache.ErrorMsg, gbcache);
 
             if (origsource && cache.Value != null)
                 return Json(cache.Value);
@@ -174,12 +252,15 @@ namespace Shared
         }
         #endregion
 
+        #region ShowError
         public ActionResult ShowError(string msg) => Json(new { accsdb = true, msg });
 
         public string ShowErrorString(string msg) => System.Text.Json.JsonSerializer.Serialize(new { accsdb = true, msg });
+        #endregion
+
 
         #region IsRhubFallback
-        public bool IsRhubFallback<T>(CacheResult<T> cache, BaseSettings init)
+        public bool IsRhubFallback<Tresut>(CacheResult<Tresut> cache)
         {
             if (cache.IsSuccess)
                 return false;
@@ -195,6 +276,35 @@ namespace Shared
 
             return false;
         }
+        #endregion
+
+        #region InvokeCacheResult
+        async public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<ValueTask<Tresut>> onget, bool? memory = null)
+            => await InvokeBaseCacheResult<Tresut>(key, base.cacheTime(cacheTime, init: init), rch, proxyManager, async e => e.Success(await onget()), memory);
+
+        async public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<Task<Tresut>> onget, bool? memory = null)
+            => await InvokeBaseCacheResult<Tresut>(key, base.cacheTime(cacheTime, init: init), rch, proxyManager, async e => e.Success(await onget()), memory);
+
+        public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<CacheResult<Tresut>, Task<CacheResult<Tresut>>> onget, bool? memory = null)
+            => InvokeBaseCacheResult(key, base.cacheTime(cacheTime, init: init), rch, proxyManager, onget, memory);
+        #endregion
+
+        #region InvokeCache
+        public ValueTask<Tresut> InvokeCache<Tresut>(string key, int cacheTime, Func<ValueTask<Tresut>> onget, bool? memory = null)
+            => InvokeBaseCache(key, base.cacheTime(cacheTime, init: init), rch, onget, proxyManager, memory);
+        #endregion
+
+        #region HostStreamProxy
+        public string HostStreamProxy(string uri, List<HeadersModel> headers = null, bool force_streamproxy = false)
+            => HostStreamProxy(init, uri, headers, proxy, force_streamproxy);
+        #endregion
+
+        #region InvkSemaphore
+        public Task<ActionResult> InvkSemaphore(string key, Func<string, ValueTask<ActionResult>> func)
+            => InvkSemaphore(key, rch, () => func.Invoke(key));
+
+        public Task<ActionResult> InvkSemaphore(string key, Func<ValueTask<ActionResult>> func)
+            => InvkSemaphore(key, rch, func);
         #endregion
     }
 }

@@ -6,31 +6,25 @@ using Shared.PlaywrightCore;
 
 namespace Online.Controllers
 {
-    public class Kinobase : BaseOnlineController
+    public class Kinobase : BaseOnlineController<KinobaseSettings>
     {
+        public Kinobase() : base(AppInit.conf.Kinobase) { }
+
         [HttpGet]
         [Route("lite/kinobase")]
         async public ValueTask<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, string t = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
-            var init = await loadKit(AppInit.conf.Kinobase);
-            if (await IsBadInitialization(init, rch: false))
-                return badInitMsg;
-
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
+            if (await IsBadInitialization(rch: false))
+                return badInitMsg;
 
             if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
                 if (source.ToLower() == "kinobase")
                     href = id;
             }
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
 
             var oninvk = new KinobaseInvoke
             (
@@ -39,24 +33,24 @@ namespace Online.Controllers
                ongettourl => 
                {
                    if (ongettourl.Contains("/search?query="))
-                       return Http.Get(ongettourl, timeoutSeconds: 8, proxy: proxy.proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
+                       return Http.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
 
-                   return black_magic(ongettourl, init, proxy.data);
+                   return black_magic(ongettourl);
                },
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy),
+               streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh()
             );
 
             #region search
             if (string.IsNullOrEmpty(href))
             {
-                var search = await InvokeCache<SearchModel>($"kinobase:search:{title}:{year}", cacheTime(40, init: init), proxyManager, async res =>
+                var search = await InvokeCacheResult<SearchModel>($"kinobase:search:{title}:{year}", 40, async e =>
                 {
                     var content = await oninvk.Search(title, year);
                     if (content == null)
-                        return res.Fail("search");
+                        return e.Fail("search");
 
-                    return content;
+                    return e.Success(content);
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
@@ -69,13 +63,13 @@ namespace Online.Controllers
             }
             #endregion
 
-            var cache = await InvokeCache<EmbedModel>($"kinobase:view:{href}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), proxyManager, async res =>
+            var cache = await InvokeCacheResult<EmbedModel>($"kinobase:view:{href}:{proxyManager.CurrentProxyIp}", 20, async e =>
             {
                 var content = await oninvk.Embed(href, init.playerjs);
                 if (content == null)
-                    return res.Fail("embed");
+                    return e.Fail("embed");
 
-                return content;
+                return e.Success(content);
             });
 
             return OnResult(cache, () => 
@@ -87,16 +81,14 @@ namespace Online.Controllers
             });
         }
 
-
-
         #region black_magic
-        async ValueTask<string> black_magic(string uri, KinobaseSettings init, (string ip, string username, string password) proxy)
+        async ValueTask<string> black_magic(string uri)
         {
             try
             {
                 using (var browser = new PlaywrightBrowser())
                 {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy, headers: init.headers).ConfigureAwait(false);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy_data, headers: init.headers).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
@@ -154,7 +146,7 @@ namespace Online.Controllers
 
                     string content = await page.ContentAsync().ConfigureAwait(false);
 
-                    PlaywrightBase.WebLog("GET", uri, content, proxy);
+                    PlaywrightBase.WebLog("GET", uri, content, proxy_data);
                     return content;
                 }
             }

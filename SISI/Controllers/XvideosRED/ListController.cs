@@ -16,11 +16,9 @@ namespace SISI.Controllers.XvideosRED
             string plugin = init.plugin;
             bool ismain = sort != "like" && string.IsNullOrEmpty(search) && string.IsNullOrEmpty(c);
 
-            return await SemaphoreResult($"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}", async e =>
+            return await InvkSemaphore($"{plugin}:list:{search}:{c}:{sort}:{(ismain ? 0 : pg)}", async key =>
             {
-                await e.semaphore.WaitAsync();
-
-                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
+                if (!hybridCache.TryGetValue(key, out List<PlaylistItem> playlists, inmemory: false))
                 {
                     #region Генерируем url
                     string url;
@@ -56,7 +54,7 @@ namespace SISI.Controllers.XvideosRED
                         return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                     proxyManager.Success();
-                    hybridCache.Set(e.key, playlists, cacheTime(10, init: init), inmemory: false);
+                    hybridCache.Set(key, playlists, cacheTime(10, init: init), inmemory: false);
                 }
 
                 if (ismain)

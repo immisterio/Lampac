@@ -5,45 +5,38 @@ namespace Online.Controllers
 {
     public class Redheadsound : BaseOnlineController
     {
+        public Redheadsound() : base(AppInit.conf.Redheadsound) { }
+
         [HttpGet]
         [Route("lite/redheadsound")]
         async public ValueTask<ActionResult> Index(string title, string original_title, int year, int clarification, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Redheadsound);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
+            if (await IsBadInitialization(rch: true))
+                return badInitMsg;
 
             var oninvk = new RedheadsoundInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               (url, data) => rch.enable ? rch.Post(init.cors(url), data, httpHeaders(init)) : Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
+               ongettourl => rch.enable 
+                    ? rch.Get(init.cors(ongettourl), httpHeaders(init)) 
+                    : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (url, data) => rch.enable 
+                    ? rch.Post(init.cors(url), data, httpHeaders(init)) 
+                    : Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               streamfile => HostStreamProxy(streamfile),
+               requesterror: () => proxyManager.Refresh(rch)
             );
 
             reset:
-            var cache = await InvokeCache<EmbedModel>($"redheadsound:view:{title}:{year}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
-            {
-                return await oninvk.Embed(title, year);
-            });
+            var cache = await InvokeCacheResult($"redheadsound:view:{title}:{year}", 30, 
+                () => oninvk.Embed(title, year)
+            );
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, title, vast: init.vast, rjson: rjson), origsource: origsource, gbcache: !rch.enable);

@@ -4,24 +4,20 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Lumex;
 using Shared.Models.Online.Settings;
-using System.Net;
 using System.Text;
 
 namespace Online.Controllers
 {
-    public class VideoCDN : BaseOnlineController
+    public class VideoCDN : BaseOnlineController<LumexSettings>
     {
         static VideoCDN() 
         { 
             Directory.CreateDirectory("cache/logs/VideoCDN");
-
-            //Lumex.FixHostEvent();
         }
 
-        #region Initialization
-        async ValueTask<LumexSettings> Initialization()
+        public VideoCDN() : base(AppInit.conf.VideoCDN) 
         {
-            var init = await loadKit(AppInit.conf.VideoCDN, (j, i, c) =>
+            loadKitFunc = (j, i, c) =>
             {
                 if (j.ContainsKey("log"))
                     i.log = c.log;
@@ -34,31 +30,28 @@ namespace Online.Controllers
                 i.rhub = !i.disable_protection;
 
                 return i;
-            });
+            };
 
-            init.rhub = !init.disable_protection;
-            return init;
+            initializationFunc = () =>
+            {
+                init.rhub = !init.disable_protection;
+            };
         }
-        #endregion
 
         [HttpGet]
         [Route("lite/videocdn")]
         async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, bool similar = false, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.username) || string.IsNullOrEmpty(init.password))
                 return OnError();
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             if (content_id == 0)
             {
-                var search = await InvokeCache($"videocdn:search:{imdb_id}:{kinopoisk_id}:{title ?? original_title}:{clarification}:{similar}", TimeSpan.FromHours(1),
-                    () => Search(init, imdb_id, kinopoisk_id, title, original_title, serial, clarification, similar, proxy)
+                var search = await InvokeCache($"videocdn:search:{imdb_id}:{kinopoisk_id}:{title ?? original_title}:{clarification}:{similar}", 60,
+                    () => Search(imdb_id, kinopoisk_id, title, original_title, serial, clarification, similar)
                 );
 
                 if (search.content_type == null && search.similar.data == null)
@@ -77,19 +70,11 @@ namespace Online.Controllers
             if (checksearch)
                 return Content("data-json=");
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
-            string accessToken = await getToken(proxy);
+            string accessToken = await getToken();
             if (string.IsNullOrEmpty(accessToken))
                 return OnError();
 
-            var player = await getPlayer(content_id, content_type, accessToken, proxy);
+            var player = await getPlayer(content_id, content_type, accessToken);
             if (player == null)
                 return OnError();
 
@@ -202,14 +187,11 @@ namespace Online.Controllers
         [Route("lite/videocdn/video.m3u8")]
         async public ValueTask<ActionResult> Video(string hash, long content_id, string content_type, string playlist, int max_quality, bool play, bool serial, int s, int e, int translation_id)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true, rch_check: false))
                 return badInitMsg;
 
             if (hash != CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{playlist}:{requestInfo.IP}"))
                 return OnError("hash", gbcache: false);
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
 
             if (rch.IsNotConnected())
             {
@@ -222,10 +204,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            string accessToken = await getToken(proxy);
+            string accessToken = await getToken();
             if (string.IsNullOrEmpty(accessToken))
                 return OnError("token", gbcache: false);
 
@@ -257,7 +236,7 @@ namespace Online.Controllers
             string clientIP = init.verifyip ? requestInfo.IP : "::1";
             string memkey = $"videocdn/video:{playlist}:{(init.streamproxy ? "" : clientIP)}";
 
-            return await InvkSemaphore(init, memkey, async () =>
+            return await InvkSemaphore(memkey, async () =>
             {
                 if (!hybridCache.TryGetValue(memkey, out string hls))
                 {
@@ -266,8 +245,9 @@ namespace Online.Controllers
                     if (!init.streamproxy)
                         headers.Add(new("X-LAMPA-CLIENT-IP", clientIP));
 
-                    var result = rch.enable ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) :
-                                              await Http.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
+                    var result = rch.enable 
+                        ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) 
+                        : await Http.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
 
                     if (result == null || !result.ContainsKey("url"))
                         return OnError(null, gbcache: false);
@@ -285,9 +265,9 @@ namespace Online.Controllers
                 }
 
                 if (play)
-                    return Redirect(HostStreamProxy(init, hls));
+                    return Redirect(HostStreamProxy(hls));
 
-                var player = await getPlayer(content_id, content_type, accessToken, proxy);
+                var player = await getPlayer(content_id, content_type, accessToken);
                 VastConf vast = requestInfo.user != null ? null : new VastConf() { url = player?.tag_url, msg = init?.vast?.msg };
                 if (init.disable_ads)
                     vast = null;
@@ -341,7 +321,7 @@ namespace Online.Controllers
                     foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                     {
                         if (max_quality >= q)
-                            streamquality.Append(HostStreamProxy(init, Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p");
+                            streamquality.Append(HostStreamProxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p");
                     }
 
                     if (!streamquality.Any())
@@ -351,17 +331,15 @@ namespace Online.Controllers
                     return ContentTo(VideoTpl.ToJson("play", first.link, first.quality, streamquality: streamquality, subtitles: subtitles, vast: vast));
                 }
 
-                return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, hls), "auto", subtitles: subtitles, vast: vast));
+                return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(hls), "auto", subtitles: subtitles, vast: vast));
             });
         }
         #endregion
 
 
         #region getToken
-        async ValueTask<string> getToken(WebProxy proxy)
+        async ValueTask<string> getToken()
         {
-            var init = await Initialization();
-
             #region refreshToken
             string memKey = $"videocdn:refreshToken:{init.username}";
             if (!hybridCache.TryGetValue(memKey, out string refreshToken))
@@ -403,15 +381,14 @@ namespace Online.Controllers
         #endregion
 
         #region getPlayer
-        async ValueTask<EmbedModel> getPlayer(long content_id, string content_type, string accessToken, WebProxy proxy)
+        async ValueTask<EmbedModel> getPlayer(long content_id, string content_type, string accessToken)
         {
             if (content_id == 0 || string.IsNullOrEmpty(content_type))
                 return null;
 
-            var init = await Initialization();
             string clientIP = init.verifyip ? requestInfo.IP : "::1";
 
-            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{(init.streamproxy ? "" : clientIP)}", TimeSpan.FromMinutes(5), async () =>
+            return await InvokeCache($"videocdn:{content_id}:{content_type}:{accessToken}:{(init.streamproxy ? "" : clientIP)}", 5, async () =>
             {
                 var headers = HeadersModel.Init(
                     ("Authorization", $"Bearer {accessToken}"),
@@ -436,7 +413,7 @@ namespace Online.Controllers
         #endregion
 
         #region Search
-        async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(LumexSettings init, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar, WebProxy proxy)
+        async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar)
         {
             async Task<JToken> searchId(string imdb_id, long kinopoisk_id)
             {

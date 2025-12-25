@@ -2,13 +2,16 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Filmix;
+using Shared.Models.Online.Settings;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Online.Controllers
 {
-    public class FilmixPartner : BaseOnlineController
+    public class FilmixPartner : BaseOnlineController<FilmixSettings>
     {
+        public FilmixPartner() : base(AppInit.conf.FilmixPartner) { }
+
         [HttpGet]
         [Route("lite/fxapi")]
         async public ValueTask<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
@@ -22,19 +25,15 @@ namespace Online.Controllers
                 }
             }
 
-            var init = await loadKit(AppInit.conf.FilmixPartner);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
 
             if (postid == 0)
             {
-                var res = await InvokeCache($"fxapi:search:{title}:{original_title}:{similar}", cacheTime(40, init: init), () => Search(proxyManager, title, original_title, year, similar));
+                var res = await InvokeCache($"fxapi:search:{title}:{original_title}:{similar}", 40, 
+                    () => Search(title, original_title, year, similar)
+                );
+
                 if (similar)
                     return ContentTo(rjson ? res.similars.Value.ToJson() : res.similars.Value.ToHtml());
 
@@ -60,7 +59,7 @@ namespace Online.Controllers
 
             string videoKey = $"fxapi:{postid}:{(string.IsNullOrEmpty(hashfimix) ? requestInfo.IP : "")}";
 
-            return await InvkSemaphore(init, videoKey, async () =>
+            return await InvkSemaphore(videoKey, async () =>
             {
                 #region video_links
                 if (!hybridCache.TryGetValue(videoKey, out JArray root))
@@ -244,7 +243,7 @@ namespace Online.Controllers
                 if (string.IsNullOrWhiteSpace(XFXTOKEN))
                     return 0;
 
-                var root = await Http.Get<JObject>($"{AppInit.conf.FilmixPartner.corsHost()}/film/by-kp/{kinopoisk_id}", headers: httpHeaders(AppInit.conf.FilmixPartner, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
+                var root = await Http.Get<JObject>($"{init.corsHost()}/film/by-kp/{kinopoisk_id}", proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("X-FX-TOKEN", XFXTOKEN)));
 
                 if (root == null || !root.ContainsKey("id"))
                     return 0;
@@ -261,16 +260,14 @@ namespace Online.Controllers
         }
 
 
-        async ValueTask<SearchResult> Search(ProxyManager proxyManager, string title, string original_title, int year, bool similar)
+        async ValueTask<SearchResult> Search(string title, string original_title, int year, bool similar)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
-            var proxy = proxyManager.Get();
+            string uri = $"{init.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi";
 
-            string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={AppInit.conf.Filmix.token}&user_dev_vendor=Xiaomi";
-
-            string json = await Http.Get(AppInit.conf.Filmix.cors(uri), timeoutSeconds: 7, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
+            string json = await Http.Get(init.cors(uri), timeoutSeconds: 7, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
                 ("Accept-Encoding", "gzip")
             ));
 
@@ -333,7 +330,7 @@ namespace Online.Controllers
 
                 string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(story)}&limit=48";
 
-                string json = await Http.Get(uri, timeoutSeconds: 5);
+                string json = await Http.Get(uri, proxy: proxy, timeoutSeconds: 5);
                 if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
                     return null;
 
@@ -361,8 +358,8 @@ namespace Online.Controllers
             var ids = new List<int>();
             var stpl = new SimilarTpl(result.Count);
 
-            string? enc_title = HttpUtility.UrlEncode(title);
-            string? enc_original_title = HttpUtility.UrlEncode(original_title);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
@@ -372,7 +369,7 @@ namespace Online.Controllers
                 if (item == null)
                     continue;
 
-                string? name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
+                string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
                 stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
 
@@ -439,7 +436,7 @@ namespace Online.Controllers
 
             string token = SHA1(init.APISECRET + init.APIKEY + CrypTo.md5(array_sum(serverip) + salt.Value<string>("salt")));
 
-            var xtk = await Http.Post<JObject>($"{init.host}/request-token", $"user_name={init.user_name}&user_passw={init.user_passw}&key={init.APIKEY}&token={token}", headers: httpHeaders(init, HeadersModel.Init("User-Id", userid.ToString())));
+            var xtk = await Http.Post<JObject>($"{init.host}/request-token", $"user_name={init.user_name}&user_passw={init.user_passw}&key={init.APIKEY}&token={token}", proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("User-Id", userid.ToString())));
 
             if (xtk != null && !string.IsNullOrWhiteSpace(xtk.Value<string>("token")))
                 return xtk.Value<string>("token");

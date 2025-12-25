@@ -1,18 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
 
 namespace Online.Controllers
 {
     public class TwoEmbed : BaseENGController
     {
+        public TwoEmbed() : base(AppInit.conf.Twoembed) { }
+
         [HttpGet]
         [Route("lite/twoembed")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Twoembed, checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
+            return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
-
 
         #region Video
         [HttpGet]
@@ -20,31 +20,23 @@ namespace Online.Controllers
         [Route("lite/twoembed/video.m3u8")]
         async public ValueTask<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
         {
-            var init = await loadKit(AppInit.conf.Twoembed);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: !play))
                 return badInitMsg;
 
             if (Firefox.Status == PlaywrightStatus.disabled)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
             string embed = $"{init.host}/embed/movie/{id}";
             if (s > 0)
                 embed = $"{init.host}/embed/tv/{id}/{s}/{e}";
 
-            return await InvkSemaphore(init, embed, async () =>
+            return await InvkSemaphore(embed, async () =>
             {
-                var hls = await black_magic(embed, init, proxyManager, proxy.data);
+                var hls = await black_magic(embed);
                 if (hls == null)
                     return StatusCode(502);
 
-                hls = HostStreamProxy(init, hls, proxy: proxy.proxy);
+                hls = HostStreamProxy(hls);
 
                 if (play)
                     return RedirectToPlay(hls);
@@ -55,7 +47,7 @@ namespace Online.Controllers
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
+        async ValueTask<string> black_magic(string uri)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -67,7 +59,7 @@ namespace Online.Controllers
                 {
                     using (var browser = new Firefox())
                     {
-                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                        var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy_data);
                         if (page == null)
                             return default;
 

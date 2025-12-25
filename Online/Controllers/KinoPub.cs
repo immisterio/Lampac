@@ -2,13 +2,22 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.KinoPub;
-using System.Net;
+using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
 {
-    public class KinoPub : BaseOnlineController
+    public class KinoPub : BaseOnlineController<KinoPubSettings>
     {
-        static CookieContainer cookies = new CookieContainer();
+        public KinoPub() : base(AppInit.conf.KinoPub) 
+        {
+            loadKitFunc = (j, i, c) =>
+            {
+                if (j.ContainsKey("filetype"))
+                    i.filetype = c.filetype;
+                i.tokens = c.tokens;
+                return i;
+            };
+        }
 
         #region kinopubpro
         [HttpGet]
@@ -16,11 +25,7 @@ namespace Online.Controllers
         [Route("lite/kinopubpro")]
         async public Task<ActionResult> Pro(string code, string name)
         {
-            var init = AppInit.conf.KinoPub;
             var headers = httpHeaders(init);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             if (string.IsNullOrWhiteSpace(code))
             {
@@ -61,27 +66,8 @@ namespace Online.Controllers
                     int.TryParse(id, out postid);
             }
 
-            var init = await loadKit(AppInit.conf.KinoPub, (j, i, c) =>
-            {
-                if (j.ContainsKey("filetype"))
-                    i.filetype = c.filetype;
-                i.tokens = c.tokens;
-                return i;
-            });
-
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             string token = init.token;
             if (init.tokens != null && init.tokens.Length > 1)
@@ -92,18 +78,18 @@ namespace Online.Controllers
                host,
                init.corsHost(),
                token,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : 
-                                          Http.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), cookieContainer: cookies),
-               (stream, filepath) => HostStreamProxy(init, stream, proxy: proxy),
-               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
+               ongettourl => rch.enable 
+                    ? rch.Get(init.cors(ongettourl), httpHeaders(init)) 
+                    : Http.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               (stream, filepath) => HostStreamProxy(stream),
+               requesterror: () => proxyManager.Refresh(rch)
             );
 
             if (postid == 0)
             {
-                var search = await InvokeCache<SearchResult>($"kinopub:search:{title}:{year}:{clarification}:{imdb_id}:{kinopoisk_id}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
-                {
-                    return await oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id);
-                });
+                var search = await InvokeCacheResult($"kinopub:search:{title}:{year}:{clarification}:{imdb_id}:{kinopoisk_id}", 40, 
+                    () => oninvk.Search(title, original_title, year, clarification, imdb_id, kinopoisk_id)
+                );
 
                 if (!search.IsSuccess)
                     return OnError(search.ErrorMsg);
@@ -119,12 +105,11 @@ namespace Online.Controllers
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCache<RootObject>($"kinopub:post:{postid}:{token}", cacheTime(10, init: init), rch.enable ? null : proxyManager, async res =>
-            {
-                return await oninvk.Post(postid);
-            });
+            var cache = await InvokeCacheResult($"kinopub:post:{postid}:{token}", 10, 
+                () => oninvk.Post(postid)
+            );
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson), origsource: origsource, gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson), origsource: origsource);
         }
 
 
@@ -132,17 +117,8 @@ namespace Online.Controllers
         [Route("lite/kinopub/subtitles.json")]
         async public ValueTask<ActionResult> Subtitles(int mid)
         {
-            var init = await loadKit(AppInit.conf.KinoPub, (j, i, c) =>
-            {
-                i.tokens = c.tokens;
-                return i;
-            });
-
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
 
             string token = init.token;
             if (init.tokens != null && init.tokens.Length > 1)
@@ -150,7 +126,7 @@ namespace Online.Controllers
 
             string uri = $"{init.corsHost()}/v1/items/media-links?mid={mid}&access_token={token}";
 
-            var root = await InvokeCache($"kinopub:media-links:{mid}:{token}", cacheTime(20, init: init), 
+            var root = await InvokeCache($"kinopub:media-links:{mid}:{token}", 20, 
                 () => Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
             );
 
@@ -171,11 +147,10 @@ namespace Online.Controllers
             {
                 try
                 {
-                    string lang = s.Value<string>("lang");
                     string url = s.Value<string>("url");
 
                     if (!string.IsNullOrEmpty(url))
-                        tpl.Append(lang, HostStreamProxy(init, url, proxy: proxy));
+                        tpl.Append(s.Value<string>("lang"), HostStreamProxy(url));
                 }
                 catch { }
             }

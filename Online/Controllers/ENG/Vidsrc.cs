@@ -2,18 +2,19 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
 
 namespace Online.Controllers
 {
     public class VidSrc : BaseENGController
     {
+        public VidSrc() : base(AppInit.conf.Vidsrc) { }
+
         [HttpGet]
         [Route("lite/vidsrc")]
         public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
-            return ViewTmdb(AppInit.conf.Vidsrc, checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
+            return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
 
 
@@ -26,25 +27,17 @@ namespace Online.Controllers
         [Route("lite/vidsrc/video.m3u8")]
         async public ValueTask<ActionResult> Video(long id, string imdb_id, int s = -1, int e = -1, bool play = false)
         {
-            var init = await loadKit(AppInit.conf.Vidsrc);
-            if (await IsBadInitialization(init, rch: false))
-                return badInitMsg;
-
             if (id == 0)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
+            if (await IsBadInitialization(rch: false, rch_check: !play))
+                return badInitMsg;
 
             string embed = $"{init.host}/v2/embed/movie/{id}?autoPlay=true&poster=false";
             if (s > 0)
                 embed = $"{init.host}/v2/embed/tv/{id}/{s}/{e}?autoPlay=true&poster=false";
 
-            return await InvkSemaphore(init, embed, async () =>
+            return await InvkSemaphore(embed, async () =>
             {
                 #region api servers
                 if (memoryCache.TryGetValue($"vidsrc:lastvrf:{id}", out string _vrf) && s > 0)
@@ -75,7 +68,7 @@ namespace Online.Controllers
                         try
                         {
                             foreach (var sub in data["subtitles"])
-                                subtitles.Append(sub.Value<string>("label"), HostStreamProxy(init, sub.Value<string>("file"), proxy: proxy.proxy));
+                                subtitles.Append(sub.Value<string>("label"), HostStreamProxy(sub.Value<string>("file")));
                         }
                         catch { }
 
@@ -83,7 +76,7 @@ namespace Online.Controllers
                         if (lastHeaders_headers.Count == 0)
                             lastHeaders_headers = lastHeaders;
 
-                        string file = HostStreamProxy(init, data.Value<string>("source"), proxy: proxy.proxy, headers: lastHeaders_headers);
+                        string file = HostStreamProxy(data.Value<string>("source"), headers: lastHeaders_headers);
                         if (play)
                             return RedirectToPlay(file);
 
@@ -92,7 +85,7 @@ namespace Online.Controllers
                 }
                 #endregion
 
-                var cache = await black_magic(id, embed, init, proxyManager, proxy.data);
+                var cache = await black_magic(id, embed);
                 if (cache.m3u8 == null)
                     return StatusCode(502);
 
@@ -100,7 +93,7 @@ namespace Online.Controllers
                 if (headers_stream.Count == 0)
                     headers_stream = cache.headers;
 
-                string hls = HostStreamProxy(init, cache.m3u8, proxy: proxy.proxy, headers: headers_stream);
+                string hls = HostStreamProxy(cache.m3u8, headers: headers_stream);
 
                 if (play)
                     return RedirectToPlay(hls);
@@ -111,7 +104,7 @@ namespace Online.Controllers
         #endregion
 
         #region black_magic
-        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri, OnlinesSettings init, ProxyManager proxyManager, (string ip, string username, string password) proxy)
+        async ValueTask<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri)
         {
             if (string.IsNullOrEmpty(uri))
                 return default;
@@ -161,7 +154,7 @@ namespace Online.Controllers
                         #region Playwright
                         using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                         {
-                            var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy);
+                            var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy_data);
                             if (page == null)
                                 return default;
 

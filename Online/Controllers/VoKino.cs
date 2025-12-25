@@ -1,12 +1,24 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Models.Online.Settings;
 using Shared.Models.Online.VoKino;
 
 namespace Online.Controllers
 {
-    public class VoKino : BaseOnlineController
+    public class VoKino : BaseOnlineController<VokinoSettings>
     {
+        public VoKino() : base(AppInit.conf.VoKino) 
+        {
+            loadKitFunc = (j, i, c) =>
+            {
+                if (j.ContainsKey("online"))
+                    i.online = c.online;
+
+                return i;
+            };
+        }
+
         #region vokinotk
         [HttpGet]
         [AllowAnonymous]
@@ -21,22 +33,22 @@ namespace Online.Controllers
             }
             else
             {
-                var proxyManager = new ProxyManager(AppInit.conf.VoKino);
-
                 string deviceid = new string(DateTime.Now.ToBinary().ToString().Reverse().ToArray()).Substring(0, 8);
-                var token_request = await Http.Get<JObject>($"{AppInit.conf.VoKino.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}", proxy: proxyManager.Get(), headers: HeadersModel.Init("user-agent", "lampac"));
+                string uri = $"{init.corsHost()}/v2/auth?email={HttpUtility.UrlEncode(login)}&passwd={HttpUtility.UrlEncode(pass)}&deviceid={deviceid}";
+
+                var token_request = await Http.Get<JObject>(uri, proxy: proxy, headers: HeadersModel.Init("user-agent", "lampac"));
 
                 if (token_request == null)
-                    return Content($"нет доступа к {AppInit.conf.VoKino.corsHost()}", "text/html; charset=utf-8");
+                    return ContentTo($"нет доступа к {init.corsHost()}");
 
                 string authToken = token_request.Value<string>("authToken");
                 if (string.IsNullOrEmpty(authToken))
-                    return Content(token_request.Value<string>("error") ?? "Не удалось получить токен", "text/html; charset=utf-8");
+                    return ContentTo(token_request.Value<string>("error") ?? "Не удалось получить токен");
 
                 html = "Добавьте в init.conf<br><br>\"VoKino\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + authToken + "\"<br>}";
             }
 
-            return Content(html, "text/html; charset=utf-8");
+            return ContentTo(html);
         }
         #endregion
 
@@ -50,59 +62,42 @@ namespace Online.Controllers
                     origid = id;
             }
 
-            var init = await loadKit(AppInit.conf.VoKino, (j, i, c) => 
-            {
-                if (j.ContainsKey("online"))
-                    i.online = c.online;
-                return i; 
-            });
+            if (kinopoisk_id == 0 && string.IsNullOrEmpty(origid))
+                return OnError();
 
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (kinopoisk_id == 0 && string.IsNullOrEmpty(origid))
-                return OnError();
-
-            if (balancer is "filmix" or "ashdi" or "monframe")
+            if (balancer is "filmix" or "monframe")
                 init.streamproxy = false;
 
             if (checksearch /*&& balancer != "vokino"*/)
                 return Content("data-json="); // заглушка от 429 и от +1 к просмотру
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             var oninvk = new VoKinoInvoke
             (
                host,
                init.corsHost(),
                init.token,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy),
-               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
+               ongettourl => rch.enable 
+                    ? rch.Get(init.cors(ongettourl), httpHeaders(init)) 
+                    : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               streamfile => HostStreamProxy(streamfile),
+               requesterror: () => proxyManager.Refresh(rch)
             );
 
             reset:
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vokino:{kinopoisk_id}:{origid}:{balancer}:{t}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
-            {
-                return await oninvk.Embed(origid, kinopoisk_id, balancer, t);
-            });
+            var cache = await InvokeCacheResult(rch.ipkey($"vokino:{kinopoisk_id}:{origid}:{balancer}:{t}:{init.token}", proxyManager), 20, 
+                () => oninvk.Embed(origid, kinopoisk_id, balancer, t)
+            );
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson), gbcache: !rch.enable);
+            return OnResult(cache, () => oninvk.Html(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson));
         }
     }
 }

@@ -7,29 +7,24 @@ using Shared.PlaywrightCore;
 
 namespace Online.Controllers
 {
-    public class Mirage : BaseOnlineController
+    public class Mirage : BaseOnlineController<AllohaSettings>
     {
-        ValueTask<AllohaSettings> Initialization()
+        public Mirage() : base(AppInit.conf.Mirage) 
         {
-            return loadKit(AppInit.conf.Mirage, (j, i, c) =>
+            loadKitFunc = (j, i, c) =>
             {
                 if (j.ContainsKey("m4s"))
                     i.m4s = c.m4s;
                 return i;
-            });
+            };
         }
 
         [HttpGet]
         [Route("lite/mirage")]
         async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
 
             if (similar)
                 return await SpiderSearch(title, origsource, rjson);
@@ -40,7 +35,7 @@ namespace Online.Controllers
 
             JToken data = result.data;
             string tokenMovie = data["token_movie"] != null ? data.Value<string>("token_movie") : null;
-            var frame = await iframe(tokenMovie, init);
+            var frame = await iframe(tokenMovie);
             if (frame.all == null)
                 return OnError();
 
@@ -293,18 +288,13 @@ namespace Online.Controllers
         [Route("lite/mirage/video.m3u8")]
         async public ValueTask<ActionResult> Video(long id_file, string token_movie, bool play)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: !play))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
 
             string memKey = $"mirage:video:{id_file}:{init.m4s}";
             if (!hybridCache.TryGetValue(memKey, out (string hls, List<HeadersModel> headers) movie))
             {
-                movie = await goMovie($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", id_file, init);
+                movie = await goMovie($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", id_file);
                 if (movie.hls == null)
                     return OnError();
 
@@ -312,7 +302,7 @@ namespace Online.Controllers
             }
 
             var streamquality = new StreamQualityTpl();
-            streamquality.Append(HostStreamProxy(init, movie.hls, headers: movie.headers), "auto");
+            streamquality.Append(HostStreamProxy(movie.hls, headers: movie.headers), "auto");
 
             if (play)
                 return Redirect(streamquality.Firts().link);
@@ -327,7 +317,7 @@ namespace Online.Controllers
         #endregion
 
         #region iframe
-        async ValueTask<(JToken all, JToken active)> iframe(string token_movie, AllohaSettings init)
+        async ValueTask<(JToken all, JToken active)> iframe(string token_movie)
         {
             if (string.IsNullOrEmpty(token_movie))
                 return default;
@@ -338,7 +328,7 @@ namespace Online.Controllers
                 string uri = $"{init.linkhost}/?token_movie={token_movie}&token={init.token}";
                 string referer = $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)];
 
-                string html = await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init, HeadersModel.Init(
+                string html = await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                     ("referer", referer),
                     ("sec-fetch-dest", "iframe"),
@@ -369,13 +359,13 @@ namespace Online.Controllers
         #endregion
 
         #region goMovie
-        async Task<(string hls, List<HeadersModel> headers)> goMovie(string uri, long id_file, AllohaSettings init)
+        async Task<(string hls, List<HeadersModel> headers)> goMovie(string uri, long id_file)
         {
             try
             {
                 using (var browser = new PlaywrightBrowser())
                 {
-                    var page = await browser.NewPageAsync(init.plugin).ConfigureAwait(false);
+                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy_data).ConfigureAwait(false);
                     if (page == null)
                         return default;
 
@@ -495,23 +485,19 @@ namespace Online.Controllers
         [Route("lite/mirage-search")]
         async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
-                return badInitMsg;
-
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
+            if (await IsBadInitialization(rch: false, rch_check: false))
+                return badInitMsg;
 
-            var cache = await InvokeCache<JArray>($"mirage:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
+            var cache = await InvokeCacheResult<JArray>($"mirage:search:{title}", 40, async e =>
             {
-                var root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get());
+                var root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxy);
                 if (root == null || !root.ContainsKey("data"))
-                    return res.Fail("data");
+                    return e.Fail("data");
 
-                return root["data"].ToObject<JArray>();
+                return e.Success(root["data"].ToObject<JArray>());
             });
 
             return OnResult(cache, () =>
@@ -533,7 +519,6 @@ namespace Online.Controllers
         #region search
         async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
-            var init = await Initialization();
             string memKey = $"mirage:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
                 memKey = $"mirage:viewsearch:{title}:{serial}:{original_language}:{year}";
@@ -552,7 +537,7 @@ namespace Online.Controllers
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8);
+                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", proxy: proxy, timeoutSeconds: 8);
                     if (root == null)
                         return (true, 0, null);
 
@@ -578,7 +563,7 @@ namespace Online.Controllers
                 }
                 else
                 {
-                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8);
+                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", proxy: proxy, timeoutSeconds: 8);
                     if (root == null)
                         return (true, 0, null);
 

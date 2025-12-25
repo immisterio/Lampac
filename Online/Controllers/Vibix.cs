@@ -1,40 +1,29 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Online.Settings;
 using Shared.Models.Online.Vibix;
 
 namespace Online.Controllers
 {
     public class Vibix : BaseOnlineController
     {
+        public Vibix() : base(AppInit.conf.Vibix) { }
+
         [HttpGet]
         [Route("lite/vibix")]
         async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title,  int s = -1, bool rjson = false, bool origsource = false)
         {
-            var init = await loadKit(AppInit.conf.Vibix);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            var data = await search(proxyManager, init, imdb_id, kinopoisk_id);
+            var data = await search(imdb_id, kinopoisk_id);
             if (data == null)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
             reset:
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"vibix:iframe:{data.iframe_url}:{init.token}", proxyManager), cacheTime(20, rhub: 2, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vibix:iframe:{data.iframe_url}:{init.token}", proxyManager), 20, async e =>
             {
                 string api_url = data.iframe_url
                     .Replace("/embed/", "/api/v1/embed/")
@@ -57,12 +46,12 @@ namespace Online.Controllers
                     : await Http.Get<JObject>(init.cors(api_url), timeoutSeconds: 8, proxy: proxy, headers: api_headers, httpversion: 2);
 
                 if (root == null || !root.ContainsKey("data") || root["data"]?["playlist"] == null)
-                    return res.Fail("root");
+                    return e.Fail("root", refresh_proxy: true);
 
-                return new EmbedModel() { playlist = root["data"]["playlist"].ToObject<Seasons[]>() };
+                return e.Success(new EmbedModel() { playlist = root["data"]["playlist"].ToObject<Seasons[]>() });
             });
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             if (data.type == "movie")
@@ -81,7 +70,7 @@ namespace Online.Controllers
                             var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+)").Match(movie.file).Groups;
 
                             if (!string.IsNullOrEmpty(g["file"].Value))
-                                streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), $"{q}p");
+                                streams.Append(HostStreamProxy(g["file"].Value), $"{q}p");
                         }
 
                         mtpl.Append(movie.title, streams.Firts().link, streamquality: streams, vast: init.vast);
@@ -89,7 +78,7 @@ namespace Online.Controllers
 
                     return rjson ? mtpl.ToJson() : mtpl.ToHtml();
 
-                }, origsource: origsource, gbcache: !rch.enable);
+                }, origsource: origsource);
                 #endregion
             }
             else
@@ -140,7 +129,7 @@ namespace Online.Controllers
                                 {
                                     var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+)").Match(file).Groups;
                                     if (!string.IsNullOrEmpty(g["file"].Value))
-                                        streams.Append(HostStreamProxy(init, g["file"].Value, proxy: proxy), $"{q}p");
+                                        streams.Append(HostStreamProxy(g["file"].Value), $"{q}p");
                                 }
 
                                 etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "([0-9]+)").Groups[1].Value, streams.Firts().link, streamquality: streams, vast: init.vast);
@@ -150,14 +139,14 @@ namespace Online.Controllers
                         return rjson ? etpl.ToJson() : etpl.ToHtml();
                     }
 
-                }, origsource: origsource, gbcache: !rch.enable);
+                }, origsource: origsource);
                 #endregion
             }
         }
 
 
         #region search
-        async ValueTask<Video> search(ProxyManager proxyManager, OnlinesSettings init, string imdb_id, long kinopoisk_id)
+        async ValueTask<Video> search(string imdb_id, long kinopoisk_id)
         {
             string memKey = $"vibix:view:{kinopoisk_id}:{imdb_id}";
 
@@ -175,7 +164,7 @@ namespace Online.Controllers
                         ("X-CSRF-TOKEN", "")
                     ));
 
-                    var video = await Http.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: header);
+                    var video = await Http.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", timeoutSeconds: 8, proxy: proxy, headers: header);
 
                     if (video == null)
                     {

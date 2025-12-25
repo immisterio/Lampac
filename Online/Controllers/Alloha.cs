@@ -8,12 +8,11 @@ using Shared.PlaywrightCore;
 
 namespace Online.Controllers
 {
-    public class Alloha : BaseOnlineController
+    public class Alloha : BaseOnlineController<AllohaSettings>
     {
-        #region Initialization
-        ValueTask<AllohaSettings> Initialization()
+        public Alloha() : base(AppInit.conf.Alloha) 
         {
-            return loadKit(AppInit.conf.Alloha, (j, i, c) =>
+            loadKitFunc = (j, i, c) =>
             {
                 if (j.ContainsKey("m4s"))
                     i.m4s = c.m4s;
@@ -27,28 +26,20 @@ namespace Online.Controllers
                 i.secret_token = c.secret_token;
                 i.token = c.token;
                 return i;
-            });
+            };
         }
-        #endregion
 
         [HttpGet]
         [Route("lite/alloha")]
         async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
 
             if (similar)
                 return await SpiderSearch(title, origsource, rjson);
 
-            var proxyManager = new ProxyManager(init);
-
-            var result = await search(proxyManager, init, orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
+            var result = await search(orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
                 return OnError("data", proxyManager, result.refresh_proxy);
 
@@ -153,18 +144,10 @@ namespace Online.Controllers
         [Route("lite/alloha/video.m3u8")]
         async public ValueTask<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: !play))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
-            return await InvkSemaphore(init, $"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{init.m4s}:{directors_cut}", async () =>
+            return await InvkSemaphore($"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{init.m4s}:{directors_cut}", async key =>
             {
                 if (!string.IsNullOrEmpty(init.secret_token))
                 {
@@ -177,8 +160,7 @@ namespace Online.Controllers
                             return OnError("userIp");
                     }
 
-                    string memKey = $"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{userIp}:{init.m4s}:{directors_cut}";
-                    if (!hybridCache.TryGetValue(memKey, out JToken data))
+                    if (!hybridCache.TryGetValue(key, out JToken data))
                     {
                         #region url запроса
                         string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&token_movie={token_movie}";
@@ -198,7 +180,7 @@ namespace Online.Controllers
                             uri += "&directors_cut";
                         #endregion
 
-                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy.proxy, headers: httpHeaders(init));
+                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (root == null)
                             return OnError("json", proxyManager);
 
@@ -208,7 +190,7 @@ namespace Online.Controllers
                         proxyManager.Success();
 
                         data = root["data"];
-                        hybridCache.Set(memKey, data, cacheTime(10, init: init));
+                        hybridCache.Set(key, data, cacheTime(10, init: init));
                     }
 
                     #region subtitle
@@ -237,7 +219,7 @@ namespace Online.Controllers
                                 if (init.reserve)
                                     file += " or " + hlsSource["reserve"][q.Key].ToString();
 
-                                streams.Add((HostStreamProxy(init, file, proxy: proxy.proxy), $"{q.Key}p"));
+                                streams.Add((HostStreamProxy(file), $"{q.Key}p"));
                             }
                         }
                     }
@@ -292,7 +274,7 @@ namespace Online.Controllers
                     #region Playwright
                     init.streamproxy = true; // force streamproxy
 
-                    string memKey = $"alloha:black_magic:{proxy.data.ip}:{token_movie}:{t}:{s}:{e}";
+                    string memKey = $"alloha:black_magic:{proxy_data.ip}:{token_movie}:{t}:{s}:{e}";
                     if (!hybridCache.TryGetValue(memKey, out (string hls, List<HeadersModel> headers) cache))
                     {
                         if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
@@ -306,7 +288,7 @@ namespace Online.Controllers
                             if (s > 0)
                                 targetUrl += $"&season={s}&episode={e}";
 
-                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data, headers: Http.defaultFullHeaders).ConfigureAwait(false);
+                            var page = await browser.NewPageAsync(init.plugin, proxy: proxy_data, headers: Http.defaultFullHeaders).ConfigureAwait(false);
                             if (page == null)
                                 return null;
 
@@ -407,23 +389,19 @@ namespace Online.Controllers
         [Route("lite/alloha-search")]
         async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
-            var init = await Initialization();
-            if (await IsBadInitialization(init, rch: false))
-                return badInitMsg;
-
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
+            if (await IsBadInitialization(rch: false))
+                return badInitMsg;
 
-            var cache = await InvokeCache<JArray>($"alloha:search:{title}", cacheTime(40, init: init), proxyManager, async res =>
+            var cache = await InvokeCacheResult<JArray>($"alloha:search:{title}", 40, async e =>
             {
-                var root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                var root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                 if (root == null || !root.ContainsKey("data"))
-                    return res.Fail("data");
+                    return e.Fail("data", refresh_proxy: true);
 
-                return root["data"].ToObject<JArray>();
+                return e.Success(root["data"].ToObject<JArray>());
             });
 
             return OnResult(cache, () =>
@@ -444,7 +422,7 @@ namespace Online.Controllers
 
 
         #region search
-        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(ProxyManager proxyManager, AllohaSettings init, string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
+        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
         {
             string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
             if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
@@ -462,7 +440,7 @@ namespace Online.Controllers
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     if (root == null)
                         return (true, 0, null);
 
@@ -491,10 +469,10 @@ namespace Online.Controllers
                 else
                 {
                     if (!string.IsNullOrEmpty(imdb_id))
-                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     
                     if ((root == null || !root.ContainsKey("data")) && kinopoisk_id > 0)
-                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                     if (root == null)
                         return (true, 0, null);

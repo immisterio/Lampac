@@ -1,33 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
+using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
 
 namespace Online.Controllers
 {
-    public class Zetflix : BaseOnlineController
+    public class Zetflix : BaseOnlineController<ZetflixSettings>
     {
+        public Zetflix() : base(AppInit.conf.Zetflix) { }
+
         static string PHPSESSID = null;
 
         [HttpGet]
         [Route("lite/zetflix")]
         async public ValueTask<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Zetflix);
-            if (await IsBadInitialization(init, rch: false))
-                return badInitMsg;
-
             if (kinopoisk_id == 0)
                 return OnError();
 
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
+            if (await IsBadInitialization(rch: false))
+                return badInitMsg;
 
             string ztfhost = await goHost(init.host);
             string log = $"{HttpContext.Request.Path.Value}\n\nstart init\n";
@@ -37,20 +32,20 @@ namespace Online.Controllers
                host,
                ztfhost,
                init.hls,
-               (url, head) => Http.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy.proxy),
-               onstreamtofile => HostStreamProxy(init, onstreamtofile, proxy: proxy.proxy)
+               (url, head) => Http.Get(init.cors(url), headers: httpHeaders(init, head), timeoutSeconds: 8, proxy: proxy),
+               onstreamtofile => HostStreamProxy(onstreamtofile)
                //AppInit.log
             );
 
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}:{proxyManager.CurrentProxyIp}", cacheTime(20, init: init), async () => 
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}:{proxyManager.CurrentProxyIp}", 20, async () => 
             {
                 string uri = $"{ztfhost}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
                 var headers = HeadersModel.Init(Chromium.baseContextOptions.ExtraHTTPHeaders.ToDictionary(), ("Referer", "https://www.google.com/"));
 
-                string result = string.IsNullOrEmpty(PHPSESSID) ? null : await Http.Get(uri, proxy: proxy.proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: headers);
+                string result = string.IsNullOrEmpty(PHPSESSID) ? null : await Http.Get(uri, proxy: proxy, cookie: $"PHPSESSID={PHPSESSID}", headers: headers);
                 if (result != null && !result.StartsWith("<script>(function"))
                 {
                     if (!result.Contains("new Playerjs"))
@@ -70,7 +65,7 @@ namespace Online.Controllers
                         {
                             ["Referer"] = "https://www.google.com/"
 
-                        }, proxy: proxy.data, keepopen: init.browser_keepopen).ConfigureAwait(false);
+                        }, proxy: proxy_data, keepopen: init.browser_keepopen).ConfigureAwait(false);
 
                         if (page == null)
                             return null;
@@ -146,11 +141,11 @@ namespace Online.Controllers
 
             int number_of_seasons = 1;
             if (!content.movie && s == -1 && id > 0)
-                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", cacheTime(120, init: init), () => oninvk.number_of_seasons(id));
+                number_of_seasons = await InvokeCache($"zetfix:number_of_seasons:{kinopoisk_id}", 120, () => oninvk.number_of_seasons(id));
 
             OnLog(log + "\nStart OnResult");
 
-            return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast, rjson: rjson));
+            return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast));
         }
 
 
@@ -170,7 +165,7 @@ namespace Online.Controllers
                 return ztfhost;
             }
 
-            string html = await Http.Get(host, timeoutSeconds: 8);
+            string html = await Http.Get(host, timeoutSeconds: 8, proxy: proxy);
             if (html != null)
             {
                 ztfhost = Regex.Match(html, "\"([^\"]+)\"\\);</script>").Groups[1].Value;

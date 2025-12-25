@@ -4,23 +4,14 @@ namespace Online.Controllers
 {
     public class Animebesst : BaseOnlineController
     {
+        public Animebesst() : base(AppInit.conf.Animebesst) { }
+
         [HttpGet]
         [Route("lite/animebesst")]
         async public ValueTask<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
         {
-            var init = await loadKit(AppInit.conf.Animebesst);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
 
             reset:
             if (string.IsNullOrEmpty(uri))
@@ -29,12 +20,16 @@ namespace Online.Controllers
                     return OnError();
 
                 #region Поиск
-                var cache = await InvokeCache<List<(string title, string year, string uri, string s, string img)>>($"animebesst:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var cache = await InvokeCacheResult<List<(string title, string year, string uri, string s, string img)>>($"animebesst:search:{title}", 40, async e =>
                 {
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
-                    string search = rch.enable ? await rch.Post($"{init.corsHost()}/index.php?do=search", data) : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+
+                    string search = rch.enable 
+                        ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) 
+                        : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+
                     if (search == null)
-                        return res.Fail("search");
+                        return e.Fail("search");
 
                     var rows = search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"");
 
@@ -66,12 +61,12 @@ namespace Online.Controllers
                     }
 
                     if (catalog.Count == 0 && !search.Contains(">Поиск по сайту<"))
-                        return res.Fail("catalog");
+                        return e.Fail("catalog");
 
-                    return catalog;
+                    return e.Success(catalog);
                 });
 
-                if (IsRhubFallback(cache, init))
+                if (IsRhubFallback(cache))
                     goto reset;
 
                 if (cache.Value != null && cache.Value.Count == 0)
@@ -91,22 +86,24 @@ namespace Online.Controllers
                     }
 
                     return rjson ? stpl.ToJson() : stpl.ToHtml();
-
-                }, gbcache: !rch.enable);
+                });
                 #endregion
             }
             else 
             {
                 #region Серии
-                var cache = await InvokeCache<List<(string episode, string name, string uri)>>($"animebesst:playlist:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
+                var cache = await InvokeCacheResult<List<(string episode, string name, string uri)>>($"animebesst:playlist:{uri}", 30, async e =>
                 {
-                    string news = rch.enable ? await rch.Get(uri) : await Http.Get(uri, timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string news = rch.enable 
+                        ? await rch.Get(uri, httpHeaders(init)) 
+                        : await Http.Get(uri, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+
                     if (news == null)
-                        return res.Fail("news");
+                        return e.Fail("news", refresh_proxy: true);
 
                     string videoList = Regex.Match(news, "var videoList ?=([^\n\r]+)").Groups[1].Value.Trim();
                     if (string.IsNullOrEmpty(videoList))
-                        return res.Fail("videoList");
+                        return e.Fail("videoList");
 
                     var links = new List<(string episode, string name, string uri)>(5);
                     var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?\\\\/\\\\/([^\"]+)\"");
@@ -119,12 +116,12 @@ namespace Online.Controllers
                     }
 
                     if (links.Count == 0)
-                        return res.Fail("links");
+                        return e.Fail("links");
 
-                    return links;
+                    return e.Success(links);
                 });
 
-                if (IsRhubFallback(cache, init))
+                if (IsRhubFallback(cache))
                     goto reset;
 
                 return OnResult(cache, () =>
@@ -143,23 +140,18 @@ namespace Online.Controllers
                     }
 
                     return rjson ? etpl.ToJson() : etpl.ToHtml();
-
-                }, gbcache: !rch.enable);
+                });
                 #endregion
             }
         }
-
 
         #region Video
         [HttpGet]
         [Route("lite/animebesst/video.m3u8")]
         async public ValueTask<ActionResult> Video(string uri, string title, bool play)
         {
-            var init = await loadKit(AppInit.conf.Animebesst);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true, rch_check: false))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotConnected())
             {
@@ -175,38 +167,30 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
-            var proxyManager = new ProxyManager(init);
-
             reset:
-            var cache = await InvokeCache<string>($"animebesst:video:{uri}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCacheResult<string>($"animebesst:video:{uri}", 30, async e =>
             {
-                string iframe;
-                if (rch.enable)
-                {
-                    iframe = await rch.Get(init.cors($"https://{uri}"), headers: httpHeaders(init));
-                }
-                else
-                {
-                    iframe = await Http.Get(init.cors($"https://{uri}"), referer: init.host, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
-                }
+                string iframe = rch.enable
+                    ? await rch.Get(init.cors($"https://{uri}"), httpHeaders(init))
+                    : await Http.Get(init.cors($"https://{uri}"), referer: init.host, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2);
 
                 if (iframe == null)
-                    return res.Fail("iframe");
+                    return e.Fail("iframe", refresh_proxy: true);
 
                 string hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
-                    return res.Fail("hls");
+                    return e.Fail("hls");
 
-                return hls;
+                return e.Success(hls);
             });
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg, gbcache: !rch.enable);
 
-            string link = HostStreamProxy(init, cache.Value, proxy: proxyManager.Get());
+            string link = HostStreamProxy(cache.Value);
 
             if (play)
                 return RedirectToPlay(link);

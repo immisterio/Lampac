@@ -1,35 +1,49 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Collaps;
+using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
 {
-    public class Collaps : BaseOnlineController
+    public class Collaps : BaseOnlineController<CollapsSettings>
     {
-        [HttpGet]
-        [Route("lite/collaps")]
-        [Route("lite/collaps-dash")]
-        async public ValueTask<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        CollapsInvoke oninvk;
+
+        public Collaps() : base(AppInit.conf.Collaps) 
         {
-            var init = await loadKit(AppInit.conf.Collaps, (j, i, c) =>
+            loadKitFunc = (j, i, c) =>
             {
                 if (j.ContainsKey("two"))
                     i.two = c.two;
                 if (j.ContainsKey("dash"))
                     i.dash = c.dash;
+
                 return i;
-            });
+            };
 
-            if (await IsBadInitialization(init, rch: true))
+            initializationFunc = () => 
+            {
+                oninvk = new CollapsInvoke
+                (
+                   host,
+                   init.corsHost(),
+                   init.dash,
+                   ongettourl => rch.enable 
+                        ? rch.Get(init.cors(ongettourl), httpHeaders(init)) 
+                        : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                   onstreamtofile => rch.enable ? onstreamtofile : HostStreamProxy(onstreamtofile),
+                   requesterror: () => proxyManager.Refresh(rch)
+                );
+            };
+        }
+
+        [HttpGet]
+        [Route("lite/collaps")]
+        [Route("lite/collaps-dash")]
+        async public ValueTask<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        {
+            if (await IsBadInitialization( rch: true))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
                 return await Search(title, origsource, rjson);
@@ -40,26 +54,12 @@ namespace Online.Controllers
             else if (init.two)
                 init.dash = false;
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            var oninvk = new CollapsInvoke
-            (
-               host,
-               init.corsHost(),
-               init.dash,
-               ongettourl => rch.enable ? rch.Get(init.cors(ongettourl), httpHeaders(init)) : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-               onstreamtofile => rch.enable ? onstreamtofile : HostStreamProxy(init, onstreamtofile, proxy: proxy),
-               requesterror: () => { if (!rch.enable) { proxyManager.Refresh(); } }
+            reset:
+            var cache = await InvokeCacheResult($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", 20, 
+                () => oninvk.Embed(imdb_id, kinopoisk_id, orid)
             );
 
-            reset:
-            var cache = await InvokeCache<EmbedModel>($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
-            {
-                return await oninvk.Embed(imdb_id, kinopoisk_id, orid);
-            });
-
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             return OnResult(cache, () => 
@@ -70,7 +70,7 @@ namespace Online.Controllers
 
                 return html;
 
-            }, origsource: origsource, gbcache: !rch.enable);
+            }, origsource: origsource);
         }
 
 
@@ -78,32 +78,28 @@ namespace Online.Controllers
         [Route("lite/collaps-search")]
         async public ValueTask<ActionResult> Search(string title, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.Collaps);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
+            if (await IsBadInitialization(rch: true))
+                return badInitMsg;
 
-            reset: 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var cache = await InvokeCache<ResultSearch[]>($"collaps:search:{title}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+            reset:
+            var cache = await InvokeCacheResult<ResultSearch[]>($"collaps:search:{title}", 40, async e =>
             {
                 string uri = $"{init.apihost}/list?token={init.token}&name={HttpUtility.UrlEncode(title)}";
-                var root = rch.enable ? await rch.Get<JObject>(uri) : await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
-                if (root == null || !root.ContainsKey("results"))
-                    return res.Fail("results");
 
-                return root["results"].ToObject<ResultSearch[]>();
+                var root = rch.enable 
+                    ? await rch.Get<JObject>(uri) 
+                    : await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy);
+
+                if (root == null || !root.ContainsKey("results"))
+                    return e.Fail("results", refresh_proxy: true);
+
+                return e.Success(root["results"].ToObject<ResultSearch[]>());
             });
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             return OnResult(cache, () =>
@@ -118,7 +114,7 @@ namespace Online.Controllers
 
                 return rjson ? stpl.ToJson() : stpl.ToHtml();
 
-            }, origsource: origsource, gbcache: !rch.enable);
+            }, origsource: origsource);
         }
     }
 }

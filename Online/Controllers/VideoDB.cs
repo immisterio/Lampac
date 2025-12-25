@@ -1,51 +1,39 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Shared.Models.Online.Settings;
 using Shared.Models.Online.VideoDB;
 using Shared.PlaywrightCore;
-using System.Net;
 
 namespace Online.Controllers
 {
     public class VideoDB : BaseOnlineController
     {
+        public VideoDB() : base(AppInit.conf.VideoDB) { }
+
         [HttpGet]
         [Route("lite/videodb")]
         async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool origsource = false, bool rjson = false, int serial = -1)
         {
-            var init = await loadKit(AppInit.conf.VideoDB);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (kinopoisk_id == 0)
                 return OnError();
 
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial == 0 ? null : -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
+            if (await IsBadInitialization(rch: true))
+                return badInitMsg;
 
             var oninvk = new VideoDBInvoke
             (
                host,
                init.apihost,
-               (url, head) => black_magic(rch, url, init, proxy),
-               streamfile => HostStreamProxy(init, streamfile, proxy: proxy.proxy)
+               (url, head) => black_magic(url),
+               streamfile => HostStreamProxy(streamfile),
+               requesterror: () => proxyManager.Refresh(rch)
             );
 
             reset: 
-            var cache = await InvokeCache<EmbedModel>(rch.ipkey($"videodb:view:{kinopoisk_id}", proxyManager), cacheTime(20, init: init), proxyManager, async res =>
-            {
-                return await oninvk.Embed(kinopoisk_id);
-            });
+            var cache = await InvokeCacheResult(rch.ipkey($"videodb:view:{kinopoisk_id}", proxyManager), 20, 
+                () => oninvk.Embed(kinopoisk_id)
+            );
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson), origsource: origsource);
@@ -58,19 +46,13 @@ namespace Online.Controllers
         [Route("lite/videodb/manifest.m3u8")]
         async public ValueTask<ActionResult> Manifest(string link, bool serial)
         {
-            var init = await loadKit(AppInit.conf.VideoDB);
-            if (await IsBadInitialization(init, rch: true))
-                return badInitMsg;
-
             if (string.IsNullOrEmpty(link))
                 return OnError();
 
+            if (await IsBadInitialization(rch: true, rch_check: false))
+                return badInitMsg;
+
             bool play = HttpContext.Request.Path.Value.Contains(".m3u8");
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.BaseGet();
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: serial ? -1 : null);
 
             if (rch.IsNotConnected())
             {
@@ -86,12 +68,10 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
-            string semaphoreKey = $"videodb:video:{link}";
-
-            return await InvkSemaphore(init, semaphoreKey, async () =>
+            return await InvkSemaphore($"videodb:video:{link}", async key =>
             {
                 reset:
-                string memKey = rch.ipkey(semaphoreKey, proxyManager);
+                string memKey = rch.ipkey(key, proxyManager);
                 if (!hybridCache.TryGetValue(memKey, out string location))
                 {
                     try
@@ -111,13 +91,13 @@ namespace Online.Controllers
                         }
                         else if (init.priorityBrowser == "http")
                         {
-                            location = await Http.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy.proxy, headers: headers);
+                            location = await Http.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
                         }
                         else
                         {
                             using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                             {
-                                var page = await browser.NewPageAsync(init.plugin, proxy: proxy.data);
+                                var page = await browser.NewPageAsync(init.plugin, proxy: proxy_data);
                                 if (page == null)
                                     return null;
 
@@ -142,7 +122,7 @@ namespace Online.Controllers
                                                 response.Headers.TryGetValue("location", out location);
 
                                             browser.SetPageResult(location);
-                                            PlaywrightBase.WebLog(route.Request, response, location, proxy.data);
+                                            PlaywrightBase.WebLog(route.Request, response, location, proxy_data);
                                             return;
                                         }
 
@@ -175,7 +155,7 @@ namespace Online.Controllers
                     hybridCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
                 }
 
-                string hls = HostStreamProxy(init, location, proxy: proxy.proxy);
+                string hls = HostStreamProxy(location);
 
                 if (play)
                     return RedirectToPlay(hls);
@@ -186,7 +166,7 @@ namespace Online.Controllers
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(RchClient rch, string uri, OnlinesSettings init, (WebProxy proxy, (string ip, string username, string password) data) baseproxy)
+        async ValueTask<string> black_magic(string iframe_uri)
         {
             try
             {
@@ -198,18 +178,18 @@ namespace Online.Controllers
                 ));
 
                 if (rch.enable)
-                    return await rch.Get(init.cors(uri), headers);
+                    return await rch.Get(init.cors(iframe_uri), headers);
 
                 if (init.priorityBrowser == "http")
-                    return await Http.Get(init.cors(uri), httpversion: 2, timeoutSeconds: 8, proxy: baseproxy.proxy, headers: headers);
+                    return await Http.Get(init.cors(iframe_uri), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: baseproxy.data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
+                    var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: proxy_data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
                     if (page == null)
                         return null;
 
-                    browser.SetFailedUrl(uri);
+                    browser.SetFailedUrl(iframe_uri);
 
                     await page.RouteAsync("**/*", async route =>
                     {
@@ -219,10 +199,10 @@ namespace Online.Controllers
                             {
                                 await route.FulfillAsync(new RouteFulfillOptions
                                 {
-                                    Body = PlaywrightBase.IframeHtml(uri)
+                                    Body = PlaywrightBase.IframeHtml(iframe_uri)
                                 });
                             }
-                            else if (route.Request.Url == uri)
+                            else if (route.Request.Url == iframe_uri)
                             {
                                 string html = null;
                                 await route.ContinueAsync();
@@ -232,7 +212,7 @@ namespace Online.Controllers
                                     html = await response.TextAsync();
 
                                 browser.SetPageResult(html);
-                                PlaywrightBase.WebLog(route.Request, response, html, baseproxy.data);
+                                PlaywrightBase.WebLog(route.Request, response, html, proxy_data);
                                 return;
                             }
                             else

@@ -83,7 +83,7 @@ namespace Online.Controllers
                 firstjson = false;
             }
 
-            return Content(html, "text/html; charset=utf-8");
+            return ContentTo(html);
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Data;
 
 namespace Online.Controllers
 {
-    public class PiTor : BaseOnlineController
+    public class PiTor : BaseController
     {
         [HttpGet]
         [Route("lite/pidtor")]
@@ -13,14 +13,14 @@ namespace Online.Controllers
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
-                return OnError();
+                return StatusCode(403);
 
             if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+                return Json(new { accsdb = true, error_msg });
 
             string memKey = $"pidtor:{title}:{original_title}:{year}";
 
-            return await InvkSemaphore(null, memKey, async () =>
+            return await InvkSemaphore(memKey, null, async () =>
             {
                 #region Кеш запроса
                 if (!hybridCache.TryGetValue(memKey, out List<(string name, string voice, string magnet, int sid, string tr, string quality, long size, string mediainfo, Result torrent)> torrents))
@@ -344,16 +344,16 @@ namespace Online.Controllers
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
-                return OnError();
+                return StatusCode(403);
 
             if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+                return Json(new { accsdb = true, error_msg });
 
             string tr = Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|title|original_title|rjson|s)=[^&]+", "");
 
             string memKey = $"pidtor:serial:{id}";
 
-            return await InvkSemaphore(null, memKey, async () =>
+            return await InvkSemaphore(memKey, null, async () =>
             {
                 #region Кеш запроса
                 if (!hybridCache.TryGetValue(memKey, out FileStat[] file_stats))
@@ -403,22 +403,23 @@ namespace Online.Controllers
                     string magnet = $"magnet:?xt=urn:btih:{id}&" + tr;
                     string hash = await Http.Post($"{ts.host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 8, headers: ts.header);
                     if (hash == null)
-                        return OnError();
+                        return StatusCode(503);
 
                     hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(hash))
-                        return OnError();
+                        return StatusCode(503);
 
                     Stat stat = null;
                     var ex = DateTime.Now.AddSeconds(20);
 
-                resetgotingo: stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
+                    resetgotingo: 
+                    stat = await Http.Post<Stat>($"{ts.host}/torrents", "{\"action\":\"get\",\"hash\":\"" + hash + "\"}", timeoutSeconds: 3, headers: ts.header);
                     if (stat?.file_stats == null || stat.file_stats.Length == 0)
                     {
                         if (DateTime.Now > ex)
                         {
                             _ = Http.Post($"{ts.host}/torrents", "{\"action\":\"rem\",\"hash\":\"" + hash + "\"}", headers: ts.header);
-                            return OnError();
+                            return StatusCode(503);
                         }
 
                         await Task.Delay(250);
@@ -453,10 +454,10 @@ namespace Online.Controllers
         {
             var init = AppInit.conf.PidTor;
             if (!init.enable)
-                return OnError();
+                return StatusCode(403);
 
             if (NoAccessGroup(init, out string error_msg))
-                return ShowError(error_msg);
+                return Json(new { accsdb = true, error_msg });
 
             string country = requestInfo.Country;
 
@@ -476,11 +477,11 @@ namespace Online.Controllers
 
                     hash = await Http.Post($"{host}/torrents", "{\"action\":\"add\",\"link\":\"" + magnet + "\",\"title\":\"\",\"poster\":\"\",\"save_to_db\":false}", timeoutSeconds: 5, headers: headers);
                     if (hash == null)
-                        return OnError($"{host} unavailable");
+                        return StatusCode(503, $"{host} unavailable");
 
                     hash = Regex.Match(hash, "\"hash\":\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(hash))
-                        return OnError("hash null");
+                        return StatusCode(503, "hash null");
 
                     hybridCache.Set(memKey, hash, DateTime.Now.AddMinutes(1));
                 }

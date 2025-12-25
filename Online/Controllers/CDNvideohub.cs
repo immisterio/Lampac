@@ -5,27 +5,17 @@ namespace Online.Controllers
 {
     public class CDNvideohub : BaseOnlineController
     {
+        public CDNvideohub() : base(AppInit.conf.CDNvideohub) { }
+
         [HttpGet]
         [Route("lite/cdnvideohub")]
         async public ValueTask<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int s = -1, bool origsource = false, bool rjson = false)
         {
-            var init = await loadKit(AppInit.conf.CDNvideohub);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
             reset:
-            var cache = await InvokeCache<JObject>($"cdnvideohub:view:{kinopoisk_id}", cacheTime(30, init: init), rch.enable ? null : proxyManager, async res =>
+            var cache = await InvokeCacheResult<JObject>($"cdnvideohub:view:{kinopoisk_id}", 30, async e =>
             {
                 string uri = $"{init.corsHost()}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}";
 
@@ -34,16 +24,16 @@ namespace Online.Controllers
                     : await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                 if (root == null || !root.ContainsKey("items"))
-                    return res.Fail("root");
+                    return e.Fail("root", refresh_proxy: true);
 
                 var videos = root["items"] as JArray;
                 if (videos == null || videos.Count == 0)
-                    return res.Fail("video");
+                    return e.Fail("video");
 
-                return root;
+                return e.Success(root);
             });
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             return OnResult(cache, () => 
@@ -148,7 +138,7 @@ namespace Online.Controllers
                     #endregion
                 }
 
-            }, origsource: origsource, gbcache: !rch.enable);
+            }, origsource: origsource);
         }
 
 
@@ -157,15 +147,8 @@ namespace Online.Controllers
         [Route("lite/cdnvideohub/video.m3u8")]
         async public ValueTask<ActionResult> Video(string vkId, string title, bool play)
         {
-            var init = await loadKit(AppInit.conf.CDNvideohub);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true, rch_check: false))
                 return badInitMsg;
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            reset: 
-            var rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: -1);
 
             if (rch.IsNotConnected())
             {
@@ -181,38 +164,30 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
-            var cache = await InvokeCache<string>(rch.ipkey($"cdnvideohub:video:{vkId}", proxyManager), cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+            reset:
+            var cache = await InvokeCacheResult<string>(rch.ipkey($"cdnvideohub:video:{vkId}", proxyManager), 20, async e =>
             {
-                if (rch.IsNotConnected())
-                    return res.Fail(rch.connectionMsg);
-
                 string uri = $"{init.corsHost()}/api/v1/player/sv/video/{vkId}";
 
-                string iframe;
-                if (rch.enable)
-                {
-                    iframe = await rch.Get(init.cors(uri), headers: httpHeaders(init));
-                }
-                else
-                {
-                    iframe = await Http.Get(uri, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
-                }
+                string iframe = rch.enable
+                    ? await rch.Get(init.cors(uri), httpHeaders(init))
+                    : await Http.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2);
 
                 if (iframe == null)
-                    return res.Fail("iframe");
+                    return e.Fail("iframe", refresh_proxy: true);
 
                 string hls = Regex.Match(iframe, "\"hlsUrl\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
-                    return res.Fail("hls");
+                    return e.Fail("hls");
 
-                return hls.Replace("u0026", "&").Replace("\\", "");
+                return e.Success(hls.Replace("u0026", "&").Replace("\\", ""));
             });
 
-            if (IsRhubFallback(cache, init))
+            if (IsRhubFallback(cache))
                 goto reset;
 
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, gbcache: !rch.enable);
+                return OnError(cache.ErrorMsg);
 
             string link = HostStreamProxy(init, cache.Value, proxy: proxyManager.Get());
 

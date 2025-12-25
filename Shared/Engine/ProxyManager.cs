@@ -117,6 +117,12 @@ namespace Shared.Engine
         #endregion
 
         #region Refresh
+        public void Refresh(RchClient rch)
+        {
+            if (rch.enable == false)
+                Refresh();
+        }
+
         public void Refresh()
         {
             if (!refresh || IsKitConf)
@@ -165,6 +171,12 @@ namespace Shared.Engine
         #endregion
 
         #region Success
+        public void Success(RchClient rch)
+        {
+            if (rch.enable == false)
+                Success();
+        }
+
         public void Success()
         {
             if (IsKitConf)

@@ -5,34 +5,28 @@ namespace Online.Controllers
 {
     public class AnimeGo : BaseOnlineController
     {
+        public AnimeGo() : base(AppInit.conf.AnimeGo) { }
+
         [HttpGet]
         [Route("lite/animego")]
         async public ValueTask<ActionResult> Index(string title, int year, int pid, int s, string t, bool rjson = false, bool similar = false)
         {
-            var init = await loadKit(AppInit.conf.AnimeGo);
-            if (await IsBadInitialization(init, rch: false))
-                return badInitMsg;
-
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
+            if (await IsBadInitialization(rch: false))
+                return badInitMsg;
 
-            var proxyManager = new ProxyManager(init);
             var headers_stream = httpHeaders(init.host, init.headers_stream);
 
             if (pid == 0)
             {
                 #region Поиск
-                string memkey = $"animego:search:{title}";
-
-                return await InvkSemaphore(init, memkey, async () =>
+                return await InvkSemaphore($"animego:search:{title}", async key =>
                 {
-                    if (!hybridCache.TryGetValue(memkey, out List<(string title, string year, string pid, string s, string img)> catalog, inmemory: false))
+                    if (!hybridCache.TryGetValue(key, out List<(string title, string year, string pid, string s, string img)> catalog, inmemory: false))
                     {
-                        string search = await Http.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxyManager.Get(), headers: httpHeaders(init), httpversion: 2);
+                        string search = await Http.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), httpversion: 2);
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -63,7 +57,7 @@ namespace Online.Controllers
                             return OnError();
 
                         proxyManager.Success();
-                        hybridCache.Set(memkey, catalog, cacheTime(40, init: init), inmemory: false);
+                        hybridCache.Set(key, catalog, cacheTime(40, init: init), inmemory: false);
                     }
 
                     if (!similar && catalog.Count == 1)
@@ -84,14 +78,12 @@ namespace Online.Controllers
             else 
             {
                 #region Серии
-                string memKey = $"animego:playlist:{pid}";
-
-                return await InvkSemaphore(init, memKey, async () =>
+                return await InvkSemaphore($"animego:playlist:{pid}", async key =>
                 {
-                    if (!hybridCache.TryGetValue(memKey, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
+                    if (!hybridCache.TryGetValue(key, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                     {
                         #region content
-                        var player = await Http.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                        var player = await Http.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                             ("cache-control", "no-cache"),
                             ("dnt", "1"),
                             ("pragma", "no-cache"),
@@ -147,7 +139,7 @@ namespace Online.Controllers
                         #endregion
 
                         proxyManager.Success();
-                        hybridCache.Set(memKey, cache, cacheTime(30, init: init));
+                        hybridCache.Set(key, cache, cacheTime(30, init: init));
                     }
 
                     #region Перевод
@@ -181,25 +173,21 @@ namespace Online.Controllers
             }
         }
 
-
         #region Video
         [HttpGet]
         [Route("lite/animego/video.m3u8")]
         async public ValueTask<ActionResult> Video(string host, string token, string t, int e)
         {
-            var init = await loadKit(AppInit.conf.AnimeGo);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: false))
                 return badInitMsg;
 
-            string memKey = $"animego:video:{token}:{t}:{e}";
-
-            return await InvkSemaphore(init, memKey, async () =>
+            return await InvkSemaphore($"animego:video:{token}:{t}:{e}", async key =>
             {
                 var proxyManager = new ProxyManager(init);
 
-                if (!hybridCache.TryGetValue(memKey, out string hls))
+                if (!hybridCache.TryGetValue(key, out string hls))
                 {
-                    string embed = await Http.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxyManager.Get(), httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                    string embed = await Http.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
                         ("pragma", "no-cache"),
@@ -222,10 +210,10 @@ namespace Online.Controllers
                     hls = "https:" + hls;
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, hls, cacheTime(30, init: init));
+                    hybridCache.Set(key, hls, cacheTime(30, init: init));
                 }
 
-                return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get()));
+                return Redirect(HostStreamProxy(hls));
             });
         }
         #endregion

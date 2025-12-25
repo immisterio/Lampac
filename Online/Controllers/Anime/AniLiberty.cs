@@ -5,24 +5,14 @@ namespace Online.Controllers
 {
     public class AniLiberty : BaseOnlineController
     {
+        public AniLiberty() : base(AppInit.conf.AniLiberty) { }
+
         [HttpGet]
         [Route("lite/aniliberty")]
         async public ValueTask<ActionResult> Index(string title, int year, int releases, bool rjson = false, bool similar = false)
         {
-            var init = await loadKit(AppInit.conf.AniLiberty);
-            if (await IsBadInitialization(init, rch: true))
+            if (await IsBadInitialization(rch: true))
                 return badInitMsg;
-
-            var proxyManager = new ProxyManager(init);
-            var proxy = proxyManager.Get();
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             if (releases == 0)
             {
@@ -32,15 +22,16 @@ namespace Online.Controllers
                     return OnError();
 
                 reset:
-                var cache = await InvokeCache<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", cacheTime(40, init: init), rch.enable ? null : proxyManager, async res =>
+                var cache = await InvokeCacheResult<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", 40, async e =>
                 {
                     string req_uri = $"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}";
+
                     var search = rch.enable 
                         ? await rch.Get<JArray>(req_uri, httpHeaders(init)) 
                         : await Http.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                     if (search == null || search.Count == 0)
-                        return res.Fail("search");
+                        return e.Fail("search");
 
                     bool checkName = true;
                     var catalog = new List<(string title, string year, int releases, string cover)>(search.Count);
@@ -73,13 +64,13 @@ namespace Online.Controllers
                             goto retry;
                         }
 
-                        return res.Fail("catalog");
+                        return e.Fail("catalog");
                     }
 
-                    return catalog;
+                    return e.Success(catalog);
                 });
 
-                if (IsRhubFallback(cache, init))
+                if (IsRhubFallback(cache))
                     goto reset;
 
                 if (!similar && cache.Value != null && cache.Value.Count == 1)
@@ -94,27 +85,28 @@ namespace Online.Controllers
 
                     return rjson ? stpl.ToJson() : stpl.ToHtml();
 
-                }, gbcache: !rch.enable);
+                });
                 #endregion
             }
             else 
             {
                 #region Серии
                 reset: 
-                var cache = await InvokeCache<JObject>($"aniliberty:releases:{releases}", cacheTime(20, init: init), rch.enable ? null : proxyManager, async res =>
+                var cache = await InvokeCacheResult<JObject>($"aniliberty:releases:{releases}", 20, async e =>
                 {
                     string req_uri = $"{init.corsHost()}/api/v1/anime/releases/{releases}";
 
-                    var root = rch.enable ? await rch.Get<JObject>(req_uri, httpHeaders(init)) :
-                                            await Http.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+                    var root = rch.enable 
+                        ? await rch.Get<JObject>(req_uri, httpHeaders(init)) 
+                        : await Http.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
 
                     if (root == null || !root.ContainsKey("episodes"))
-                        return res.Fail("episodes");
+                        return e.Fail("episodes");
 
-                    return root;
+                    return e.Success(root);
                 });
 
-                if (IsRhubFallback(cache, init))
+                if (IsRhubFallback(cache))
                     goto reset;
 
                 return OnResult(cache, () =>
@@ -149,7 +141,7 @@ namespace Online.Controllers
                             if (string.IsNullOrEmpty(f.url))
                                 continue;
 
-                            streams.Append(HostStreamProxy(init, f.url, proxy: proxy), f.quality);
+                            streams.Append(HostStreamProxy(f.url), f.quality);
                         }
 
                         etpl.Append(name, title, season, number, streams.Firts().link, streamquality: streams);
@@ -157,7 +149,7 @@ namespace Online.Controllers
 
                     return rjson ? etpl.ToJson() : etpl.ToHtml();
 
-                }, gbcache: !rch.enable);
+                });
                 #endregion
             }
         }

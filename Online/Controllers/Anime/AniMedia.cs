@@ -4,19 +4,14 @@ namespace Online.Controllers
 {
     public class AniMedia : BaseOnlineController
     {
+        public AniMedia() : base(AppInit.conf.AniMedia) { }
+
         [HttpGet]
         [Route("lite/animedia")]
         async public ValueTask<ActionResult> Index(string title, string news, bool rjson = false, bool similar = false)
         {
-            var init = await loadKit(AppInit.conf.AniMedia);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false))
                 return badInitMsg;
-
-            var rch = new RchClient(HttpContext, host, init, requestInfo);
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            var proxyManager = new ProxyManager(init);
 
             if (string.IsNullOrEmpty(news))
             {
@@ -24,13 +19,11 @@ namespace Online.Controllers
                     return OnError();
 
                 #region Поиск
-                string memkey = $"animedia:search:{title}:{similar}";
-
-                return await InvkSemaphore(init, memkey, async () =>
+                return await InvkSemaphore($"animedia:search:{title}:{similar}", async key =>
                 {
-                    if (!hybridCache.TryGetValue(memkey, out List<(string title, string url, string img)> catalog, inmemory: false))
+                    if (!hybridCache.TryGetValue(key, out List<(string title, string url, string img)> catalog, inmemory: false))
                     {
-                        string search = await Http.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                        string search = await Http.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -57,7 +50,7 @@ namespace Online.Controllers
                             return OnError();
 
                         proxyManager.Success();
-                        hybridCache.Set(memkey, catalog, cacheTime(40, init: init), inmemory: false);
+                        hybridCache.Set(key, catalog, cacheTime(40, init: init), inmemory: false);
                     }
 
                     if (catalog.Count == 0)
@@ -81,13 +74,11 @@ namespace Online.Controllers
             else 
             {
                 #region Серии
-                string memKey = $"animedia:{news}";
-
-                return await InvkSemaphore(init, memKey, async () =>
+                return await InvkSemaphore($"animedia:{news}", async key =>
                 {
-                    if (!hybridCache.TryGetValue(memKey, out List<(int episode, string s, string vod)> links, inmemory: false))
+                    if (!hybridCache.TryGetValue(key, out List<(int episode, string s, string vod)> links, inmemory: false))
                     {
-                        string html = await Http.Get($"{init.corsHost()}/{news}", timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                        string html = await Http.Get($"{init.corsHost()}/{news}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                         if (html == null)
                             return OnError(proxyManager);
 
@@ -118,7 +109,7 @@ namespace Online.Controllers
                             return OnError();
 
                         proxyManager.Success();
-                        hybridCache.Set(memKey, links, cacheTime(30, init: init), inmemory: false);
+                        hybridCache.Set(key, links, cacheTime(30, init: init), inmemory: false);
                     }
 
                     var etpl = new EpisodeTpl(links.Count);
@@ -132,25 +123,19 @@ namespace Online.Controllers
             }
         }
 
-
         #region Video
         [HttpGet]
         [Route("lite/animedia/video.m3u8")]
         async public ValueTask<ActionResult> Video(string vod)
         {
-            var init = await loadKit(AppInit.conf.AniMedia);
-            if (await IsBadInitialization(init, rch: false))
+            if (await IsBadInitialization(rch: false, rch_check: false))
                 return badInitMsg;
 
-            string memKey = $"animedia:{vod}";
-
-            return await InvkSemaphore(init, memKey, async () =>
+            return await InvkSemaphore($"animedia:{vod}", async key =>
             {
-                var proxyManager = new ProxyManager(init);
-
-                if (!hybridCache.TryGetValue(memKey, out string hls))
+                if (!hybridCache.TryGetValue(key, out string hls))
                 {
-                    string embed = await Http.Get(vod, timeoutSeconds: 8, proxy: proxyManager.Get(), headers: httpHeaders(init));
+                    string embed = await Http.Get(vod, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
 
                     if (string.IsNullOrEmpty(embed))
                         return OnError(proxyManager);
@@ -160,10 +145,10 @@ namespace Online.Controllers
                         return OnError(proxyManager);
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, hls, cacheTime(180, init: init));
+                    hybridCache.Set(key, hls, cacheTime(180, init: init));
                 }
 
-                return Redirect(HostStreamProxy(init, hls, proxy: proxyManager.Get()));
+                return Redirect(HostStreamProxy(hls));
             });
         }
         #endregion
