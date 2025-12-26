@@ -217,7 +217,7 @@ namespace Online.Controllers
                         }
 
                         proxyManager.Success();
-                        hybridCache.Set(key, cache, cacheTime(120, init: init));
+                        hybridCache.Set(key, cache, cacheTime(120));
                     }
 
                     var streamquality = new StreamQualityTpl();

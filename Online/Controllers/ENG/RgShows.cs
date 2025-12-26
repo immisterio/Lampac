@@ -65,7 +65,7 @@ namespace Online.Controllers
                         return null;
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, file, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, file, cacheTime(20));
                 }
 
                 return file;

@@ -5,6 +5,8 @@ namespace SISI.Controllers.BongaCams
 {
     public class ListController : BaseSisiController
     {
+        public ListController() : base(AppInit.conf.BongaCams) { }
+
         [HttpGet]
         [Route("bgs")]
         async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
@@ -12,54 +14,39 @@ namespace SISI.Controllers.BongaCams
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var init = await loadKit(AppInit.conf.BongaCams);
-            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            return await SemaphoreResult($"BongaCams:list:{sort}:{pg}", async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<(List<PlaylistItem> playlists, int total_pages)>($"BongaCams:list:{sort}:{pg}", 5, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
-
-                if (!hybridCache.TryGetValue(e.key, out (List<PlaylistItem> playlists, int total_pages) cache, inmemory: false))
+                string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url =>
                 {
-                    string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                    {
-                        if (rch.enable)
-                            return rch.Get(init.cors(url), httpHeaders(init));
+                    if (rch.enable || init.priorityBrowser == "http")
+                        return httpHydra.Get(url);
 
-                        if (init.priorityBrowser == "http")
-                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy);
+                    return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
+                });
 
-                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
-                    });
+                var playlists = BongaCamsTo.Playlist(html, out int total_pages);
 
-                    cache.playlists = BongaCamsTo.Playlist(html, out int total_pages);
-                    cache.total_pages = total_pages;
+                if (playlists == null || playlists.Count == 0)
+                    return e.Fail("playlists", refresh_proxy: true);
 
-                    if (cache.playlists.Count == 0)
-                    {
-                        if (IsRhubFallback(init))
-                            goto reset;
-
-                        return OnError("playlists", proxyManager);
-                    }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(e.key, cache, cacheTime(5, init: init), inmemory: false);
-                }
-
-                return OnResult(
-                    cache.playlists,
-                    init,
-                    BongaCamsTo.Menu(host, sort),
-                    proxy: proxy,
-                    total_pages: cache.total_pages
-                );
+                return e.Success((playlists, total_pages));
             });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg);
+
+            return OnResult(
+                cache.Value.playlists,
+                BongaCamsTo.Menu(host, sort),
+                total_pages: cache.Value.total_pages
+            );
         }
     }
 }

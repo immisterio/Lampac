@@ -87,7 +87,7 @@ namespace Online.Controllers
                 if (string.IsNullOrWhiteSpace(urim3u8))
                     return OnError(proxyManager);
 
-                hybridCache.Set(memKey, urim3u8, cacheTime(20, init: init));
+                hybridCache.Set(memKey, urim3u8, cacheTime(20));
             }
 
             string url = HostStreamProxy(urim3u8);
@@ -142,7 +142,7 @@ namespace Online.Controllers
                     return (null, null, 0, null);
                 }
 
-                hybridCache.Set(memKey, res, cacheTime(20, init: init));
+                hybridCache.Set(memKey, res, cacheTime(20));
             }
 
             return res;

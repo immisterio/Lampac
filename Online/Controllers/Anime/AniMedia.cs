@@ -50,7 +50,7 @@ namespace Online.Controllers
                             return OnError();
 
                         proxyManager.Success();
-                        hybridCache.Set(key, catalog, cacheTime(40, init: init), inmemory: false);
+                        hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
                     if (catalog.Count == 0)
@@ -109,7 +109,7 @@ namespace Online.Controllers
                             return OnError();
 
                         proxyManager.Success();
-                        hybridCache.Set(key, links, cacheTime(30, init: init), inmemory: false);
+                        hybridCache.Set(key, links, cacheTime(30), inmemory: false);
                     }
 
                     var etpl = new EpisodeTpl(links.Count);
@@ -145,7 +145,7 @@ namespace Online.Controllers
                         return OnError(proxyManager);
 
                     proxyManager.Success();
-                    hybridCache.Set(key, hls, cacheTime(180, init: init));
+                    hybridCache.Set(key, hls, cacheTime(180));
                 }
 
                 return Redirect(HostStreamProxy(hls));

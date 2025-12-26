@@ -8,7 +8,7 @@ namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string plugin, string search, string model, string sort, int c, string hd, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string plugin, string search, string model, string sort, int c, string hd, int pg, Func<string, Task<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -984,7 +984,7 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem> StreamLinks(string video_uri, string list_uri, string host, string vkey, Func<string, ValueTask<string>> onresult)
+        async public static Task<StreamItem> StreamLinks(string video_uri, string list_uri, string host, string vkey, Func<string, Task<string>> onresult)
         {
             if (string.IsNullOrEmpty(vkey))
                 return null;

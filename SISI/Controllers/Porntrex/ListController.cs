@@ -4,51 +4,36 @@ namespace SISI.Controllers.Porntrex
 {
     public class ListController : BaseSisiController
     {
+        public ListController() : base(AppInit.conf.Porntrex) { }
+
         [HttpGet]
         [Route("ptx")]
         async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.Porntrex);
-            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            return await SemaphoreResult($"ptx:{search}:{sort}:{c}:{pg}", async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<List<PlaylistItem>>($"ptx:{search}:{sort}:{c}:{pg}", 10, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
-
-                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
-                {
-                    string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
-                        rch.enable
-                            ? rch.Get(init.cors(url), httpHeaders(init))
-                            : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
-                    );
-
-                    playlists = PorntrexTo.Playlist("ptx/vidosik", html);
-
-                    if (playlists.Count == 0)
-                    {
-                        if (IsRhubFallback(init))
-                            goto reset;
-
-                        return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
-                    }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(e.key, playlists, cacheTime(10, init: init), inmemory: false);
-                }
-
-                return OnResult(
-                    playlists,
-                    PorntrexTo.Menu(host, search, sort, c),
-                    plugin: init.plugin,
-                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg,
+                    url => httpHydra.Get(url)
                 );
+
+                var playlists = PorntrexTo.Playlist("ptx/vidosik", html);
+
+                if (playlists == null || playlists.Count == 0)
+                    return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));
+
+                return e.Success(playlists);
             });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            return OnResult(cache,
+                PorntrexTo.Menu(host, search, sort, c)
+            );
         }
     }
 }

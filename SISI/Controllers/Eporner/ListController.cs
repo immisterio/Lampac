@@ -4,12 +4,13 @@ namespace SISI.Controllers.Eporner
 {
     public class ListController : BaseSisiController
     {
+        public ListController() : base(AppInit.conf.Eporner) { }
+
         [HttpGet]
         [Route("epr")]
         async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.Eporner);
-            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             pg += 1;
@@ -29,10 +30,8 @@ namespace SISI.Controllers.Eporner
                     // user cache разделенный по ip
                     if (rch.enable == false || !hybridCache.TryGetValue(rch.ipkey(semaphoreKey), out playlists))
                     {
-                        string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, url =>
-                            rch.enable
-                                ? rch.Get(init.cors(url), httpHeaders(init))
-                                : Http.Get(init.cors(url), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                        string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, 
+                            url => httpHydra.Get(url)
                         );
 
                         playlists = EpornerTo.Playlist("epr/vidosik", html);
@@ -48,15 +47,13 @@ namespace SISI.Controllers.Eporner
                         if (!rch.enable)
                             proxyManager.Success();
 
-                        hybridCache.Set(rch.ipkey(semaphoreKey), playlists, cacheTime(10, init: init));
+                        hybridCache.Set(rch.ipkey(semaphoreKey), playlists, cacheTime(10));
                     }
                 }
 
                 return OnResult(
                     playlists,
-                    EpornerTo.Menu(host, search, sort, c),
-                    plugin: init.plugin,
-                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                    EpornerTo.Menu(host, search, sort, c)
                 );
             }
             finally

@@ -5,7 +5,7 @@ namespace Shared.Engine.SISI
 {
     public static class RunetkiTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string sort, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string sort, int pg, Func<string, Task<string>> onresult)
         {
             string url = host + $"/tools/listing_v3.php?livetab={sort ?? "all"}&offset={(pg > 1 ? ((pg-1) * 72) : 0)}&limit=72";
 

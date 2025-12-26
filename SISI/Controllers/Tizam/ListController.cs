@@ -5,52 +5,38 @@ namespace SISI.Controllers.Tizam
 {
     public class ListController : BaseSisiController
     {
+        public ListController() : base(AppInit.conf.Tizam) { }
+
         [Route("tizam")]
         async public ValueTask<ActionResult> Index(string search, int pg = 1)
         {
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
 
-            var init = await loadKit(AppInit.conf.Tizam);
-            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            return await SemaphoreResult($"tizam:{pg}", async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<List<PlaylistItem>>($"tizam:{pg}", 60, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
+                string uri = $"{init.corsHost()}/fil_my_dlya_vzroslyh/s_russkim_perevodom/";
 
-                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
-                {
-                    string uri = $"{init.corsHost()}/fil_my_dlya_vzroslyh/s_russkim_perevodom/";
+                int page = pg - 1;
+                if (page > 0)
+                    uri += $"?p={page}";
 
-                    int page = pg - 1;
-                    if (page > 0)
-                        uri += $"?p={page}";
+                var playlists = Playlist(await httpHydra.Get(uri));
 
-                    string html = rch.enable
-                        ? await rch.Get(init.cors(uri), httpHeaders(init))
-                        : await Http.Get(init.cors(uri), timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                if (playlists == null || playlists.Count == 0)
+                    return e.Fail("playlists", refresh_proxy: true);
 
-                    playlists = Playlist(html);
-
-                    if (playlists.Count == 0)
-                    {
-                        if (IsRhubFallback(init))
-                            goto reset;
-
-                        return OnError("playlists", proxyManager);
-                    }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(e.key, playlists, cacheTime(60, init: init), inmemory: false);
-                }
-
-                return OnResult(playlists, null, plugin: init.plugin, imageHeaders: httpHeaders(init.host, init.headers_image));
+                return e.Success(playlists);
             });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            return OnResult(cache);
         }
 
 

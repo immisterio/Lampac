@@ -4,14 +4,15 @@ namespace SISI.Controllers.Xhamster
 {
     public class ListController : BaseSisiController
     {
+        public ListController() : base(AppInit.conf.Xhamster) { }
+
         [HttpGet]
         [Route("xmr")]
         [Route("xmrgay")]
         [Route("xmrsml")]
         async public ValueTask<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.Xhamster);
-            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
             pg++;
@@ -32,10 +33,8 @@ namespace SISI.Controllers.Xhamster
                     // user cache разделенный по ip
                     if (rch.enable == false || !hybridCache.TryGetValue(rch.ipkey(semaphoreKey), out playlists))
                     {
-                        string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, url =>
-                            rch.enable
-                                ? rch.Get(init.cors(url), httpHeaders(init))
-                                : Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init))
+                        string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, 
+                            url => httpHydra.Get(url)
                         );
 
                         playlists = XhamsterTo.Playlist("xmr/vidosik", html);
@@ -51,15 +50,13 @@ namespace SISI.Controllers.Xhamster
                         if (!rch.enable)
                             proxyManager.Success();
 
-                        hybridCache.Set(rch.ipkey(semaphoreKey), playlists, cacheTime(10, init: init));
+                        hybridCache.Set(rch.ipkey(semaphoreKey), playlists, cacheTime(10));
                     }
                 }
 
                 return OnResult(
                     playlists,
-                    string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null,
-                    plugin: init.plugin,
-                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                    string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null
                 );
             }
             finally

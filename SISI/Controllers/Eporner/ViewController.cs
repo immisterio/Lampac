@@ -4,46 +4,36 @@ namespace SISI.Controllers.Eporner
 {
     public class ViewController : BaseSisiController
     {
+        public ViewController() : base(AppInit.conf.Eporner) { }
+
         [HttpGet]
         [Route("epr/vidosik")]
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
-            var init = await loadKit(AppInit.conf.Eporner);
-            if (await IsRequestBlocked(init, rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-            return await SemaphoreResult($"eporner:view:{uri}", async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<StreamItem>(rch.ipkey($"eporner:view:{uri}", proxyManager), 20, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
+                var stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), uri,
+                    htmlurl => httpHydra.Get(htmlurl),
+                    jsonurl => httpHydra.Get(jsonurl)
+                );
 
-                string memKey = rch.ipkey(e.key, proxyManager);
-                if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
-                {
-                    stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), uri,
-                        htmlurl => rch.enable ? rch.Get(init.cors(htmlurl), httpHeaders(init)) : Http.Get(init.cors(htmlurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                        jsonurl => rch.enable ? rch.Get(init.cors(jsonurl), httpHeaders(init)) : Http.Get(init.cors(jsonurl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)));
+                if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
+                    return e.Fail("stream_links", refresh_proxy: true);
 
-                    if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
-                    {
-                        if (IsRhubFallback(init))
-                            goto reset;
-
-                        return OnError("stream_links", proxyManager);
-                    }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
-                }
-
-                if (related)
-                    return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
-
-                return OnResult(stream_links, init, proxy);
+                return e.Success(stream_links);
             });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            if (related)
+                return OnResult(cache.Value?.recomends, null, total_pages: 1);
+
+            return OnResult(cache);
         }
     }
 }

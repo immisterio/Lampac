@@ -6,14 +6,14 @@ using System.Web;
 
 namespace SISI
 {
-    public class HistoryController : BaseSisiController
+    public class HistoryController : BaseController
     {
         [Route("sisi/historys")]
         async public Task<ActionResult> List(int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
             if (md5user == null || !AppInit.conf.sisi.history.enable)
-                return OnError("access denied");
+                return StatusCode(403, "access denied");
 
             #region historys
             var historys = new List<PlaylistItem>();
@@ -92,7 +92,7 @@ namespace SISI
         {
             string md5user = getuser();
             if (md5user == null || !AppInit.conf.sisi.history.enable || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
-                return OnError("access denied");
+                return StatusCode(403, "access denied");
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
@@ -128,7 +128,7 @@ namespace SISI
         {
             string md5user = getuser();
             if (md5user == null || !AppInit.conf.sisi.history.enable || string.IsNullOrEmpty(id))
-                return OnError("access denied");
+                return StatusCode(403, "access denied");
 
             try
             {

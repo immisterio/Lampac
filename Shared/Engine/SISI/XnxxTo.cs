@@ -9,7 +9,7 @@ namespace Shared.Engine.SISI
 {
     public static class XnxxTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string search, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string search, int pg, Func<string, Task<string>> onresult)
         {
             string url = $"{host}/best/{DateTime.Today.AddMonths(-1):yyyy-MM}/{pg}";
             if (!string.IsNullOrWhiteSpace(search))
@@ -85,7 +85,7 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult, Func<string, ValueTask<string>> onm3u = null)
+        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onm3u = null)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;

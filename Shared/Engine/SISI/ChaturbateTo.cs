@@ -5,7 +5,7 @@ namespace Shared.Engine.SISI
 {
     public static class ChaturbateTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string sort, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string sort, int pg, Func<string, Task<string>> onresult)
         {
             string url = host + "/api/ts/roomlist/room-list/?enable_recommendations=false&limit=90";
 
@@ -101,7 +101,7 @@ namespace Shared.Engine.SISI
             };
         }
 
-        async public static ValueTask<Dictionary<string, string>> StreamLinks(string host, string baba, Func<string, ValueTask<string>> onresult)
+        async public static Task<Dictionary<string, string>> StreamLinks(string host, string baba, Func<string, Task<string>> onresult)
         {
             if (string.IsNullOrWhiteSpace(baba))
                 return null;

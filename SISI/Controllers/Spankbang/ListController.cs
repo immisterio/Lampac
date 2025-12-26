@@ -5,56 +5,40 @@ namespace SISI.Controllers.Spankbang
 {
     public class ListController : BaseSisiController
     {
+        public ListController() : base(AppInit.conf.Spankbang) { }
+
         [HttpGet]
         [Route("sbg")]
         async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.Spankbang);
-            if (await IsRequestBlocked(init, rch: true, rch_keepalive: -1))
+            if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
 
-            return await SemaphoreResult($"sbg:{search}:{sort}:{pg}", async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<List<PlaylistItem>>($"sbg:{search}:{sort}:{pg}", 10, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
-
-                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
+                string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url =>
                 {
-                    string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url =>
-                    {
-                        if (rch.enable)
-                            return rch.Get(init.cors(url), httpHeaders(init));
+                    if (rch.enable || init.priorityBrowser == "http")
+                        return httpHydra.Get(url);
 
-                        if (init.priorityBrowser == "http")
-                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy);
+                    return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
+                });
 
-                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
-                    });
+                var playlists = SpankbangTo.Playlist("sbg/vidosik", html);
 
-                    playlists = SpankbangTo.Playlist("sbg/vidosik", html);
+                if (playlists == null || playlists.Count == 0)
+                    return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));
 
-                    if (playlists.Count == 0)
-                    {
-                        if (IsRhubFallback(init))
-                            goto reset;
-
-                        return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
-                    }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(e.key, playlists, cacheTime(10, init: init), inmemory: false);
-                }
-
-                return OnResult(
-                    playlists,
-                    string.IsNullOrEmpty(search) ? SpankbangTo.Menu(host, sort) : null,
-                    plugin: init.plugin,
-                    imageHeaders: httpHeaders(init.host, init.headers_image)
-                );
+                return e.Success(playlists);
             });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            return OnResult(cache,
+                string.IsNullOrEmpty(search) ? SpankbangTo.Menu(host, sort) : null
+            );
         }
     }
 }

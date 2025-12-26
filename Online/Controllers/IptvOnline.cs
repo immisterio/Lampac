@@ -226,7 +226,7 @@ namespace Online.Controllers
                     return null;
 
                 proxyManager.Success();
-                hybridCache.Set(memKey, data, cacheTime(30, init: init));
+                hybridCache.Set(memKey, data, cacheTime(30));
             }
 
             return data;

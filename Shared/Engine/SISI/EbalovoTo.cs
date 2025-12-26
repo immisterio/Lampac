@@ -7,7 +7,7 @@ namespace Shared.Engine.SISI
 {
     public static class EbalovoTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -768,7 +768,7 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult, Func<string, ValueTask<string>> onlocation = null)
+        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onlocation = null)
         {
             if (string.IsNullOrEmpty(url))
                 return null;

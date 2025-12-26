@@ -599,6 +599,7 @@ namespace Shared
         public SisiSettings BongaCams { get; set; } = new SisiSettings("BongaCams", "kwwsv=22hh1erqjdfdpv1frp", rch_access: "apk", stream_access: "apk,cors,web")
         {
             spider = false,
+            httpversion = 2,
             headers = HeadersModel.Init(
                 ("referer", "{host}/"),
                 ("x-requested-with", "XMLHttpRequest")
@@ -608,6 +609,7 @@ namespace Shared
         public SisiSettings Runetki { get; set; } = new SisiSettings("Runetki", "kwwsv=22uxv1uxqhwnl81frp", rch_access: "apk", stream_access: "apk,cors,web")
         {
             spider = false,
+            httpversion = 2,
             headers = HeadersModel.Init(
                 ("referer", "{host}/"),
                 ("x-requested-with", "XMLHttpRequest")
@@ -654,10 +656,14 @@ namespace Shared
             ).ToDictionary()
         };
 
-        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp", rch_access: "apk,cors,web", stream_access: "apk,cors,web");
+        public SisiSettings Spankbang { get; set; } = new SisiSettings("Spankbang", "kwwsv=22ux1vsdqnedqj1frp", rch_access: "apk,cors,web", stream_access: "apk,cors,web")
+        {
+            httpversion = 2
+        };
 
         public SisiSettings Xhamster { get; set; } = new SisiSettings("Xhamster", "kwwsv=22ux1{kdpvwhu1frp", rch_access: "apk,cors", stream_access: "apk,cors,web")
         {
+            httpversion = 2,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
@@ -680,6 +686,7 @@ namespace Shared
 
         public SisiSettings PornHub { get; set; } = new SisiSettings("PornHub", "kwwsv=22uw1sruqkxe1frp", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors")
         {
+            httpversion = 2,
             headers = HeadersModel.Init(
                 Http.defaultFullHeaders,
                 ("cookie", "platform=pc; accessAgeDisclaimerPH=1"),
@@ -696,6 +703,7 @@ namespace Shared
 
         public SisiSettings PornHubPremium { get; set; } = new SisiSettings("PornHubPremium", "kwwsv=22uw1sruqkxesuhplxp1frp", streamproxy: true, enable: false, stream_access: "apk,cors")
         {
+            httpversion = 2,
             headers = HeadersModel.Init(
                 ("sec-fetch-dest", "document"),
                 ("sec-fetch-site", "none"),

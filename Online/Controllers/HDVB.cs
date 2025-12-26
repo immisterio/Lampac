@@ -211,7 +211,7 @@ namespace Online.Controllers
 
                     proxyManager.Success(rch);
 
-                    hybridCache.Set(key, urim3u8, cacheTime(20, init: init));
+                    hybridCache.Set(key, urim3u8, cacheTime(20));
                 }
 
                 string m3u8 = HostStreamProxy(urim3u8);
@@ -295,7 +295,7 @@ namespace Online.Controllers
                                 if (cache.playlist != null && cache.playlist.Count > 0)
                                 {
                                     cache.href = href;
-                                    hybridCache.Set(mkey_playlist, cache, cacheTime(40, init: init));
+                                    hybridCache.Set(mkey_playlist, cache, cacheTime(40));
                                 }
                                 else
                                 {
@@ -340,7 +340,7 @@ namespace Online.Controllers
 
                     proxyManager.Success(rch);
 
-                    hybridCache.Set(key, urim3u8, cacheTime(20, init: init));
+                    hybridCache.Set(key, urim3u8, cacheTime(20));
                     #endregion
                 }
 
@@ -416,7 +416,7 @@ namespace Online.Controllers
 
                 proxyManager.Success(rch);
 
-                hybridCache.Set(memKey, root, cacheTime(40, init: init), inmemory: false);
+                hybridCache.Set(memKey, root, cacheTime(40), inmemory: false);
             }
 
             if (root.Count == 0)

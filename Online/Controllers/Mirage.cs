@@ -573,9 +573,9 @@ namespace Online.Controllers
                 }
 
                 if (res.data != null || (root.ContainsKey("error_info") && root.Value<string>("error_info") == "not movie"))
-                    hybridCache.Set(memKey, res, cacheTime(res.category_id is 1 or 3 ? 120 : 40, init: init));
+                    hybridCache.Set(memKey, res, cacheTime(res.category_id is 1 or 3 ? 120 : 40));
                 else
-                    hybridCache.Set(memKey, res, cacheTime(2, init: init));
+                    hybridCache.Set(memKey, res, cacheTime(2));
             }
 
             return (false, res.category_id, res.data);

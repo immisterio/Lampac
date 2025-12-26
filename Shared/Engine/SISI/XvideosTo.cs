@@ -10,7 +10,7 @@ namespace Shared.Engine.SISI
 {
     public static class XvideosTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string plugin, string search, string sort, string c, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string plugin, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
         {
             string url;
 
@@ -115,7 +115,7 @@ namespace Shared.Engine.SISI
         }
 
 
-        async public static ValueTask<List<PlaylistItem>> Pornstars(string uri_video, string uri_star, string host, string plugin, string uri, string sort, int pg, Func<string, ValueTask<string>> onresult)
+        async public static Task<List<PlaylistItem>> Pornstars(string uri_video, string uri_star, string host, string plugin, string uri, string sort, int pg, Func<string, Task<string>> onresult)
         {
             if (string.IsNullOrEmpty(uri))
                 return null;
@@ -464,7 +464,7 @@ namespace Shared.Engine.SISI
         }
 
 
-        async public static ValueTask<StreamItem> StreamLinks(string uri, string uri_star, string host, string url, Func<string, ValueTask<string>> onresult, Func<string, ValueTask<string>> onm3u = null)
+        async public static Task<StreamItem> StreamLinks(string uri, string uri_star, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onm3u = null)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;

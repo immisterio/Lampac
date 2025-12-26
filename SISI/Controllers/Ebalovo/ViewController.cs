@@ -4,12 +4,13 @@ namespace SISI.Controllers.Ebalovo
 {
     public class ViewController : BaseSisiController
     {
+        public ViewController() : base(AppInit.conf.Ebalovo) { }
+
         [HttpGet]
         [Route("elo/vidosik")]
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
-            var init = await loadKit(AppInit.conf.Ebalovo);
-            if (await IsRequestBlocked(init, rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)
@@ -19,68 +20,54 @@ namespace SISI.Controllers.Ebalovo
                     return OnError("apkVersion", false);
             }
 
-            return await SemaphoreResult($"ebalovo:view:{uri}", async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<StreamItem>(rch.ipkey($"ebalovo:view:{uri}", proxyManager), 20, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
+                string ehost = await RootController.goHost(init.corsHost());
 
-                string memKey = rch.ipkey(e.key, proxyManager);
-                if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
-                {
-                    string ehost = await RootController.goHost(init.corsHost());
-
-                    stream_links = await EbalovoTo.StreamLinks("elo/vidosik", ehost, uri,
-                        url =>
-                        {
-                            var headers = httpHeaders(init, HeadersModel.Init(
-                                ("sec-fetch-dest", "document"),
-                                ("sec-fetch-mode", "navigate"),
-                                ("sec-fetch-site", "same-origin"),
-                                ("sec-fetch-user", "?1"),
-                                ("upgrade-insecure-requests", "1")
-                            ));
-
-                            return rch.enable ? rch.Get(init.cors(url), headers) : Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: headers);
-                        },
-                        async location =>
-                        {
-                            var headers = httpHeaders(init, HeadersModel.Init(
-                                ("referer", $"{ehost}/"),
-                                ("sec-fetch-dest", "video"),
-                                ("sec-fetch-mode", "no-cors"),
-                                ("sec-fetch-site", "same-origin")
-                            ));
-
-                            if (rch.enable)
-                            {
-                                var res = await rch.Headers(init.cors(location), null, headers);
-                                return res.currentUrl;
-                            }
-
-                            return await Http.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
-                        }
-                    );
-
-                    if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
+                var stream_links = await EbalovoTo.StreamLinks("elo/vidosik", ehost, uri,
+                    url =>
                     {
-                        if (IsRhubFallback(init))
-                            goto reset;
+                        return httpHydra.Get(url, addheaders: HeadersModel.Init(
+                            ("sec-fetch-dest", "document"),
+                            ("sec-fetch-mode", "navigate"),
+                            ("sec-fetch-site", "same-origin"),
+                            ("sec-fetch-user", "?1"),
+                            ("upgrade-insecure-requests", "1")
+                        ));
+                    },
+                    async location =>
+                    {
+                        var headers = httpHeaders(init, HeadersModel.Init(
+                            ("referer", $"{ehost}/"),
+                            ("sec-fetch-dest", "video"),
+                            ("sec-fetch-mode", "no-cors"),
+                            ("sec-fetch-site", "same-origin")
+                        ));
 
-                        return OnError("stream_links", proxyManager);
+                        if (rch.enable)
+                        {
+                            var res = await rch.Headers(init.cors(location), null, headers);
+                            return res.currentUrl;
+                        }
+
+                        return await Http.GetLocation(init.cors(location), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
                     }
+                );
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
+                    return e.Fail("stream_links", refresh_proxy: true);
 
-                    hybridCache.Set(memKey, stream_links, cacheTime(20, init: init));
-                }
-
-                if (related)
-                    return OnResult(stream_links?.recomends, null, plugin: "elo", total_pages: 1);
-
-                return OnResult(stream_links, init, proxy);
+                return e.Success(stream_links);
             });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            if (related)
+                return OnResult(cache.Value?.recomends, null, total_pages: 1);
+
+            return OnResult(cache);
         }
     }
 }

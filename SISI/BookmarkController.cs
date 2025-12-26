@@ -7,14 +7,14 @@ using System.Web;
 
 namespace SISI
 {
-    public class BookmarkController : BaseSisiController
+    public class BookmarkController : BaseController
     {
         [Route("sisi/bookmarks")]
         async public Task<ActionResult> List(string search, string model, int pg = 1, int pageSize = 36)
         {
             string md5user = getuser();
             if (md5user == null)
-                return OnError("access denied", statusCode: 403);
+                return StatusCode(403, "access denied");
 
             var menu = new List<MenuItem>()
             {
@@ -137,7 +137,7 @@ namespace SISI
         {
             string md5user = getuser();
             if (md5user == null || data == null || string.IsNullOrEmpty(data?.bookmark?.site) || string.IsNullOrEmpty(data?.bookmark?.href))
-                return OnError("access denied", statusCode: 403);
+                return StatusCode(403, "access denied");
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
@@ -230,7 +230,7 @@ namespace SISI
         {
             string md5user = getuser();
             if (md5user == null || string.IsNullOrEmpty(id))
-                return OnError("access denied", statusCode: 403);
+                return StatusCode(403, "access denied");
 
             try
             {

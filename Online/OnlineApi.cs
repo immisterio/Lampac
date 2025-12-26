@@ -832,7 +832,7 @@ namespace Online.Controllers
                             {
                                 view = await Http.Get<JObject>($"{myinit.corsHost()}/v2/view/{vid}?token={myinit.token}", timeoutSeconds: 4);
                                 if (view != null)
-                                    hybridCache.Set($"vokino:view:{vid}", view, cacheTime(20));
+                                    hybridCache.Set($"vokino:view:{vid}", view, cacheTimeBase(20, init: conf.VoKino));
                             }
 
                             if (view != null && view.ContainsKey("online") && view["online"] is JObject onlineObj)

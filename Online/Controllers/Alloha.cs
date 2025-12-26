@@ -187,7 +187,7 @@ namespace Online.Controllers
                         proxyManager.Success();
 
                         data = root["data"];
-                        hybridCache.Set(key, data, cacheTime(10, init: init));
+                        hybridCache.Set(key, data, cacheTime(10));
                     }
 
                     #region subtitle
@@ -361,7 +361,7 @@ namespace Online.Controllers
                         if (string.IsNullOrEmpty(cache.hls))
                             return OnError();
 
-                        hybridCache.Set(memKey, cache, cacheTime(20, init: init));
+                        hybridCache.Set(memKey, cache, cacheTime(20));
                     }
 
                     var streamquality = new StreamQualityTpl();
@@ -484,9 +484,9 @@ namespace Online.Controllers
                     proxyManager.Success();
 
                 if (res.data != null || (root.ContainsKey("error_info") && root.Value<string>("error_info") == "not movie"))
-                    hybridCache.Set(memKey, res, cacheTime(res.category_id is 1 or 3 ? 120 : 40, init: init));
+                    hybridCache.Set(memKey, res, cacheTime(res.category_id is 1 or 3 ? 120 : 40));
                 else
-                    hybridCache.Set(memKey, res, cacheTime(2, init: init));
+                    hybridCache.Set(memKey, res, cacheTime(2));
             }
 
             return (false, res.category_id, res.data);

@@ -446,7 +446,7 @@ namespace Shared
         #endregion
 
         #region InvkSemaphore
-        async public Task<ActionResult> InvkSemaphore(string key, RchClient? rch, Func<ValueTask<ActionResult>> func)
+        async public Task<ActionResult> InvkSemaphore(string key, RchClient? rch, Func<Task<ActionResult>> func)
         {
             if (rch?.enable == true)
                 return await func.Invoke();
@@ -466,7 +466,7 @@ namespace Shared
         #endregion
 
         #region cacheTime
-        public TimeSpan cacheTime(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null, int rhub = -1)
+        public TimeSpan cacheTimeBase(int multiaccess, int home = 5, int mikrotik = 2, BaseSettings init = null, int rhub = -1)
         {
             if (init != null && init.rhub && rhub != -1)
                 return TimeSpan.FromMinutes(rhub);

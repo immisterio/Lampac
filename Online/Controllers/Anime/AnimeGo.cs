@@ -57,7 +57,7 @@ namespace Online.Controllers
                             return OnError();
 
                         proxyManager.Success();
-                        hybridCache.Set(key, catalog, cacheTime(40, init: init), inmemory: false);
+                        hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
                     if (!similar && catalog.Count == 1)
@@ -139,7 +139,7 @@ namespace Online.Controllers
                         #endregion
 
                         proxyManager.Success();
-                        hybridCache.Set(key, cache, cacheTime(30, init: init));
+                        hybridCache.Set(key, cache, cacheTime(30));
                     }
 
                     #region Перевод
@@ -206,7 +206,7 @@ namespace Online.Controllers
                     hls = "https:" + hls;
 
                     proxyManager.Success();
-                    hybridCache.Set(key, hls, cacheTime(30, init: init));
+                    hybridCache.Set(key, hls, cacheTime(30));
                 }
 
                 return Redirect(HostStreamProxy(hls));

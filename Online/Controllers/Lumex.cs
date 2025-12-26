@@ -109,7 +109,7 @@ namespace Online.Controllers
                         if (search.data?.Count == 0)
                             return OnError("search");
 
-                        hybridCache.Set(key, search, cacheTime(40, init: init));
+                        hybridCache.Set(key, search, cacheTime(40));
                     }
 
                     return ContentTo(search);
@@ -310,7 +310,7 @@ namespace Online.Controllers
                     else
                         hls = url;
 
-                    hybridCache.Set(key, hls, cacheTime(20, init: init));
+                    hybridCache.Set(key, hls, cacheTime(20));
                 }
 
                 string sproxy(string uri) => HostStreamProxy(uri);

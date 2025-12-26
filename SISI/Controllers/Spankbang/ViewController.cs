@@ -5,52 +5,39 @@ namespace SISI.Controllers.Spankbang
 {
     public class ViewController : BaseSisiController
     {
+        public ViewController() : base(AppInit.conf.Spankbang) { }
+
         [HttpGet]
         [Route("sbg/vidosik")]
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
-            var init = await loadKit(AppInit.conf.Spankbang);
-            if (await IsRequestBlocked(init, rch: true))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-            return await SemaphoreResult($"spankbang:view:{uri}", async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<StreamItem>($"spankbang:view:{uri}", 20, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
-
-                if (!hybridCache.TryGetValue(e.key, out StreamItem stream_links))
+                var stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), uri, url =>
                 {
-                    stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), uri, url =>
-                    {
-                        if (rch.enable)
-                            return rch.Get(init.cors(url), httpHeaders(init));
+                    if (rch.enable || init.priorityBrowser == "http")
+                        return httpHydra.Get(url);
 
-                        if (init.priorityBrowser == "http")
-                            return Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy);
+                    return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
+                });
 
-                        return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
-                    });
+                if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
+                    return e.Fail("stream_links", refresh_proxy: true);
 
-                    if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
-                    {
-                        if (IsRhubFallback(init))
-                            goto reset;
-
-                        return OnError("stream_links", proxyManager);
-                    }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(e.key, stream_links, cacheTime(20, init: init));
-                }
-
-                if (related)
-                    return OnResult(stream_links?.recomends, null, plugin: init.plugin, total_pages: 1);
-
-                return OnResult(stream_links, init, proxy);
+                return e.Success(stream_links);
             });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            if (related)
+                return OnResult(cache.Value?.recomends, null, total_pages: 1);
+
+            return OnResult(cache);
         }
     }
 }

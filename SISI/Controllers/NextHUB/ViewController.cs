@@ -10,7 +10,7 @@ using Shared.Models.SISI.NextHUB;
 
 namespace SISI.Controllers.NextHUB
 {
-    public class ViewController : BaseSisiController
+    public class ViewController : BaseSisiController<NxtSettings>
     {
         [HttpGet]
         [Route("nexthub/vidosik")]
@@ -22,13 +22,12 @@ namespace SISI.Controllers.NextHUB
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
-            var init = Root.goInit(plugin);
-            if (init == null)
+            var _nxtInit = Root.goInit(plugin);
+            if (_nxtInit == null)
                 return OnError("init not found");
 
-            init = await loadKit(init);
-
-            if (await IsRequestBlocked(init, rch: init.rch_access != null))
+            Initialization(_nxtInit);
+            if (await IsRequestBlocked(rch: init.rch_access != null))
                 return badInitMsg;
 
             if (init.view.initUrlEval != null)
@@ -76,9 +75,9 @@ namespace SISI.Controllers.NextHUB
                 };
 
                 if (related)
-                    return OnResult(stream_links?.recomends, null, plugin: plugin, total_pages: 1);
+                    return OnResult(stream_links?.recomends, null, total_pages: 1);
 
-                return OnResult(stream_links, init, proxy, headers_stream: httpHeaders(init.host, init.headers_stream != null ? init.headers_stream : init.headers_stream));
+                return OnResult(stream_links);
             });
         }
 
@@ -437,7 +436,7 @@ namespace SISI.Controllers.NextHUB
                     }
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time, init: init));
+                    hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time));
                 }
 
                 return cache;
@@ -549,7 +548,7 @@ namespace SISI.Controllers.NextHUB
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time, init: init));
+                    hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time));
                 }
 
                 return cache;

@@ -5,12 +5,13 @@ namespace SISI.Controllers.XvideosRED
 {
     public class ListController : BaseSisiController
     {
+        public ListController() : base(AppInit.conf.XvideosRED) { }
+
         [HttpGet]
         [Route("xdsred")]
         async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
-            var init = await loadKit(AppInit.conf.XvideosRED);
-            if (await IsRequestBlocked(init, rch: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             string plugin = init.plugin;
@@ -44,7 +45,7 @@ namespace SISI.Controllers.XvideosRED
                     }
                     #endregion
 
-                    string html = await Http.Get(init.cors(url), cookie: init.cookie, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                    string html = await Http.Get(init.cors(url), cookie: init.cookie, timeoutSeconds: init.httptimeout, proxy: proxy, headers: httpHeaders(init));
                     if (html == null)
                         return OnError("html", proxyManager, string.IsNullOrEmpty(search));
 
@@ -54,7 +55,7 @@ namespace SISI.Controllers.XvideosRED
                         return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
 
                     proxyManager.Success();
-                    hybridCache.Set(key, playlists, cacheTime(10, init: init), inmemory: false);
+                    hybridCache.Set(key, playlists, cacheTime(10), inmemory: false);
                 }
 
                 if (ismain)
@@ -62,9 +63,7 @@ namespace SISI.Controllers.XvideosRED
 
                 return OnResult(
                     playlists,
-                    string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null,
-                    plugin: plugin,
-                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                    string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null
                 );
             });
         }

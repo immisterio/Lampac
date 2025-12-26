@@ -185,7 +185,7 @@ namespace Online.Controllers
                         return OnError("resolutions");
 
                     proxyManager.Success(rch);
-                    hybridCache.Set(key, root, cacheTime(10, init: init));
+                    hybridCache.Set(key, root, cacheTime(10));
                 }
 
                 #region subtitle
@@ -266,7 +266,7 @@ namespace Online.Controllers
                 }
 
                 proxyManager.Success(rch);
-                hybridCache.Set(memKey, root, cacheTime(20, init: init));
+                hybridCache.Set(memKey, root, cacheTime(20));
             }
 
             List<string> ids = new List<string>();

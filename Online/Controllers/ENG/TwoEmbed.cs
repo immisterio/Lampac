@@ -102,7 +102,7 @@ namespace Online.Controllers
                     }
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, m3u8, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, m3u8, cacheTime(20));
                 }
 
                 return m3u8;

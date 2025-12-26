@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
 using Shared.Models.Base;
@@ -12,9 +13,40 @@ using System.Reflection;
 
 namespace Shared
 {
-    public class BaseSisiController : BaseController
+    public class BaseSisiController : BaseSisiController<SisiSettings>
     {
-        public RchClient rch { get; private set; }
+        public BaseSisiController(SisiSettings init) : base(init) { }
+    }
+
+    public class BaseSisiController<T> : BaseController where T : BaseSettings, ICloneable
+    {
+        #region RchClient
+        RchClient? _rch = null;
+        public RchClient rch
+        {
+            get
+            {
+                if (_rch == null)
+                    _rch = new RchClient(HttpContext, host, init, requestInfo);
+
+                return (RchClient)_rch;
+            }
+        }
+        #endregion
+
+        #region HttpHydra
+        HttpHydra _httpHydra = null;
+        public HttpHydra httpHydra
+        {
+            get
+            {
+                if (_httpHydra == null)
+                    _httpHydra = new HttpHydra(init, httpHeaders(init), rch, proxy);
+
+                return _httpHydra;
+            }
+        }
+        #endregion
 
         public ProxyManager proxyManager { get; private set; }
 
@@ -22,11 +54,42 @@ namespace Shared
 
         public (string ip, string username, string password) proxy_data { get; private set; }
 
-        public BaseSettings init { get; private set; }
+        public T init { get; private set; }
+
+        private BaseSettings baseconf { get; set; }
+
+        public Func<JObject, T, T, T> loadKitInitialization { get; set; }
+
+        public Action requestInitialization { get; set; }
+
+        public Func<ValueTask> requestInitializationAsync { get; set; }
+
+
+        public BaseSisiController() { }
+
+        public BaseSisiController(T init)
+        {
+            Initialization(init);
+        }
+
+        public void Initialization(T init)
+        {
+            baseconf = init;
+            this.init = (T)init.Clone();
+            this.init.IsCloneable = true;
+
+            proxyManager = new ProxyManager(this.init);
+            var bp = proxyManager.BaseGet();
+            proxy = bp.proxy;
+            proxy_data = bp.data;
+        }
+
 
         #region IsRequestBlocked
-        async public ValueTask<bool> IsRequestBlocked(BaseSettings init, bool? rch = null, int? rch_keepalive = null)
+        async public ValueTask<bool> IsRequestBlocked(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
         {
+            init = await loadKit(init, loadKitInitialization);
+
             #region module initialization
             if (AppInit.modules != null)
             {
@@ -62,11 +125,9 @@ namespace Shared
             if (badInitMsg != null)
                 return true;
 
-            this.init = init;
-
             if (!init.enable || init.rip)
             {
-                badInitMsg = OnError("disable");
+                badInitMsg = OnError("disable", rcache: false, statusCode: 403);
                 return true;
             }
 
@@ -83,38 +144,54 @@ namespace Shared
                 return true;
             }
 
-            this.rch = new RchClient(HttpContext, host, init, requestInfo, keepalive: rch_keepalive);
-
-            if (rch == true)
+            if (rch != null)
             {
-                if (this.rch.IsNotConnected() || this.rch.IsRequiredConnected())
+                if ((bool)rch)
                 {
-                    badInitMsg = ContentTo(this.rch.connectionMsg);
-                    return true;
-                }
+                    if (init.rhub && !AppInit.conf.rch.enable)
+                    {
+                        badInitMsg = OnError(RchClient.ErrorMsg);
+                        return true;
+                    }
 
-                if (this.rch.IsNotSupport(out string rch_error))
+                    if (rch_check)
+                    {
+                        if (this.rch.IsNotConnected())
+                        {
+                            badInitMsg = ContentTo(this.rch.connectionMsg);
+                            return true;
+                        }
+
+                        if (this.rch.IsNotSupport(out string rch_error))
+                        {
+                            badInitMsg = OnError(rch_error);
+                            return true;
+                        }
+                    }
+                }
+                else
                 {
-                    badInitMsg = OnError(rch_error, rcache: false, statusCode: 403);
-                    return true;
+                    if (init.rhub)
+                    {
+                        badInitMsg = OnError(RchClient.ErrorMsg);
+                        return true;
+                    }
                 }
             }
-            else
+
+            if (rch_check && this.rch.IsRequiredConnected())
             {
-                if (this.rch.IsRequiredConnected())
-                {
-                    badInitMsg = ContentTo(this.rch.connectionMsg);
-                    return true;
-                }
+                badInitMsg = ContentTo(this.rch.connectionMsg);
+                return true;
             }
 
             if (IsCacheError(init, this.rch))
                 return true;
 
-            proxyManager = new ProxyManager(init);
-            var bp = proxyManager.BaseGet();
-            proxy = bp.proxy;
-            proxy_data = bp.data;
+            requestInitialization?.Invoke();
+
+            if (requestInitializationAsync != null)
+                await requestInitializationAsync.Invoke();
 
             return false;
         }
@@ -133,7 +210,7 @@ namespace Shared
         {
             var model = new OnErrorResult(msg);
 
-            if (AppInit.conf.multiaccess && rcache && !init.rhub)
+            if (AppInit.conf.multiaccess && rcache && rch.enable == false)
                 memoryCache.Set(ResponseCache.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(15));
 
             HttpContext.Response.StatusCode = statusCode;
@@ -142,7 +219,19 @@ namespace Shared
         #endregion
 
         #region OnResult
-        public JsonResult OnResult(IList<PlaylistItem> playlists, BaseSettings conf, IList<MenuItem> menu, WebProxy proxy = null, int total_pages = 0)
+        public JsonResult OnResult(CacheResult<List<PlaylistItem>> cache, IList<MenuItem> menu = null, int total_pages = 0)
+        {
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg);
+
+            return OnResult(
+                cache.Value,
+                menu,
+                total_pages
+            );
+        }
+
+        public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, int total_pages = 0)
         {
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
@@ -152,12 +241,17 @@ namespace Shared
             for (int i = 0; i < playlists.Count; i++)
             {
                 var pl = playlists[i];
+
+                string video = pl.video.StartsWith("http") ? pl.video : $"{host}/{pl.video}";
+                if (!video.Contains(host))
+                    video = HostStreamProxy(video);
+
                 result.list[i] = new OnResultPlaylistItem
                 {
                     name = pl.name,
-                    video = HostStreamProxy(conf, pl.video, proxy: proxy),
+                    video = video,
                     model = pl.model,
-                    picture = HostImgProxy(pl.picture, plugin: conf?.plugin, headers: httpHeaders(init.host, init.headers_image)),
+                    picture = HostImgProxy(pl.picture, plugin: init.plugin, headers: httpHeaders(init.host, init.headers_image)),
                     preview = pl.preview,
                     time = pl.time,
                     json = pl.json,
@@ -173,45 +267,32 @@ namespace Shared
             return new JsonResult(result);
         }
 
-        public JsonResult OnResult(IList<PlaylistItem> playlists, IList<MenuItem> menu, List<HeadersModel> imageHeaders = null, int total_pages = 0, string plugin = null)
+        public JsonResult OnResult(CacheResult<Dictionary<string, string>> cache)
         {
-            if (playlists == null || playlists.Count == 0)
-                return OnError("playlists", false);
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg);
 
-            var result = new OnListResult(playlists.Count, total_pages, menu);
-
-            for (int i = 0; i < playlists.Count; i++)
-            {
-                var pl = playlists[i];
-                result.list[i] = new OnResultPlaylistItem
-                {
-                    name = pl.name,
-                    video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                    model = pl.model,
-                    picture = HostImgProxy(pl.picture, plugin: plugin, headers: imageHeaders),
-                    preview = pl.preview,
-                    time = pl.time,
-                    json = pl.json,
-                    related = pl.related,
-                    quality = pl.quality,
-                    qualitys = pl.qualitys,
-                    bookmark = pl.bookmark,
-                    hide = pl.hide,
-                    myarg = pl.myarg
-                };
-            }
-
-            return new JsonResult(result);
+            return OnResult(cache.Value);
         }
 
-        public JsonResult OnResult(Dictionary<string, string> stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers_stream = null)
+        public JsonResult OnResult(Dictionary<string, string> stream_links)
         {
-            return OnResult(new StreamItem() { qualitys = stream_links }, init, proxy, headers_stream: headers_stream);
+            return OnResult(new StreamItem() { qualitys = stream_links });
         }
 
-        public JsonResult OnResult(StreamItem stream_links, BaseSettings init, WebProxy proxy, List<HeadersModel> headers_img = null, List<HeadersModel> headers_stream = null)
+
+        public JsonResult OnResult(CacheResult<StreamItem> cache)
+        {
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg);
+
+            return OnResult(cache.Value);
+        }
+
+        public JsonResult OnResult(StreamItem stream_links)
         {
             var result = new OnStreamResult(stream_links?.recomends?.Count ?? 0);
+            var headers_stream = init.headers_stream != null && init.headers_stream.Count > 0 ? httpHeaders(init.host, init.headers_stream) : null;
 
             if (!init.streamproxy && (init.geostreamproxy == null || init.geostreamproxy.Length == 0))
             {
@@ -227,8 +308,8 @@ namespace Shared
                     result.recomends[i] = new OnResultPlaylistItem
                     {
                         name = pl.name,
-                        video = pl.video.StartsWith("http") ? pl.video : $"{AppInit.Host(HttpContext)}/{pl.video}",
-                        picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: headers_img),
+                        video = pl.video.StartsWith("http") ? pl.video : $"{host}/{pl.video}",
+                        picture = HostImgProxy(pl.picture, height: 110, plugin: init?.plugin, headers: httpHeaders(init.host, init.headers_image)),
                         json = pl.json
                     };
                 }
@@ -245,6 +326,23 @@ namespace Shared
         public bool IsRhubFallback(BaseSettings init)
         {
             if (init.rhub && init.rhub_fallback)
+            {
+                init.rhub = false;
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool IsRhubFallback<Tresut>(CacheResult<Tresut> cache)
+        {
+            if (cache.IsSuccess)
+                return false;
+
+            if (cache.ErrorMsg != null && cache.ErrorMsg.StartsWith("{\"rch\""))
+                return false;
+
+            if (cache.Value == null && init.rhub && init.rhub_fallback)
             {
                 init.rhub = false;
                 return true;
@@ -269,8 +367,28 @@ namespace Shared
             }
         }
 
-        public Task<ActionResult> InvkSemaphore(string key, Func<string, ValueTask<ActionResult>> func)
+        public Task<ActionResult> InvkSemaphore(string key, Func<string, Task<ActionResult>> func)
             => InvkSemaphore(key, rch, () => func.Invoke(key));
+        #endregion
+
+        #region cacheTime
+        public TimeSpan cacheTime(int multiaccess)
+        {
+            return cacheTimeBase(multiaccess, init: baseconf);
+        }
+        #endregion
+
+        #region HostStreamProxy
+        public string HostStreamProxy(string uri, List<HeadersModel> headers = null, bool force_streamproxy = false)
+            => HostStreamProxy(init, uri, headers, proxy, force_streamproxy);
+        #endregion
+
+        #region InvokeCacheResult
+        async public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<Task<Tresut>> onget, bool? memory = null)
+            => await InvokeBaseCacheResult<Tresut>(key, this.cacheTime(cacheTime), rch, proxyManager, async e => e.Success(await onget()), memory);
+
+        public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<CacheResult<Tresut>, Task<CacheResult<Tresut>>> onget, bool? memory = null)
+            => InvokeBaseCacheResult(key, this.cacheTime(cacheTime), rch, proxyManager, onget, memory);
         #endregion
     }
 }

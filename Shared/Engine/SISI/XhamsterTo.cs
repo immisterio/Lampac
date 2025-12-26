@@ -8,7 +8,7 @@ namespace Shared.Engine.SISI
 {
     public static class XhamsterTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string plugin, string search, string c, string q, string sort, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string plugin, string search, string c, string q, string sort, int pg, Func<string, Task<string>> onresult)
         {
             string url;
 
@@ -386,7 +386,7 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<StreamItem> StreamLinks(string uri, string host, string url, Func<string, ValueTask<string>> onresult)
+        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult)
         {
             if (string.IsNullOrEmpty(url))
                 return null;

@@ -154,7 +154,7 @@ namespace Online.Controllers
                     }
 
                     proxyManager.Success();
-                    hybridCache.Set(memKey, cache, cacheTime(20, init: init));
+                    hybridCache.Set(memKey, cache, cacheTime(20));
                 }
 
                 return cache;

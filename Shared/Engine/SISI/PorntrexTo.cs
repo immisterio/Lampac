@@ -6,7 +6,7 @@ namespace Shared.Engine.SISI
 {
     public static class PorntrexTo
     {
-        public static ValueTask<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, ValueTask<string>> onresult)
+        public static Task<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
         {
             string url = $"{host}/";
 
@@ -620,7 +620,7 @@ namespace Shared.Engine.SISI
             return menu;
         }
 
-        async public static ValueTask<Dictionary<string, string>> StreamLinks(string host, string uri, Func<string, ValueTask<string>> onresult)
+        async public static Task<Dictionary<string, string>> StreamLinks(string host, string uri, Func<string, Task<string>> onresult)
         {
             if (string.IsNullOrWhiteSpace(uri))
                 return null;

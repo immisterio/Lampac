@@ -11,7 +11,7 @@ using System.Web;
 
 namespace SISI.Controllers.NextHUB
 {
-    public class ListController : BaseSisiController
+    public class ListController : BaseSisiController<NxtSettings>
     {
         [HttpGet]
         [Route("nexthub")]
@@ -20,16 +20,15 @@ namespace SISI.Controllers.NextHUB
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled");
 
-            var init = Root.goInit(plugin);
-            if (init == null)
+            var _nxtInit = Root.goInit(plugin);
+            if (_nxtInit == null)
                 return OnError("init not found", rcache: false);
 
-            if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(init.search?.uri))
+            if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(_nxtInit.search?.uri))
                 return OnError("search disable");
 
-            init = await loadKit(init);
-
-            if (await IsRequestBlocked(init, rch: init.rch_access != null))
+            Initialization(_nxtInit);
+            if (await IsRequestBlocked(rch: _nxtInit.rch_access != null))
                 return badInitMsg;
 
             string semaphoreKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";
@@ -72,7 +71,7 @@ namespace SISI.Controllers.NextHUB
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(e.key, playlists, cacheTime(init.cache_time, init: init), inmemory: false);
+                    hybridCache.Set(e.key, playlists, cacheTime(init.cache_time), inmemory: false);
                 }
 
                 var menu = new List<MenuItem>(3);
@@ -186,9 +185,7 @@ namespace SISI.Controllers.NextHUB
                 return OnResult(
                     playlists,
                     menu.Count == 0 ? null : menu,
-                    plugin: init.plugin,
-                    total_pages: total_pages,
-                    imageHeaders: httpHeaders(init.host, init.headers_image)
+                    total_pages: total_pages
                 );
             });
         }

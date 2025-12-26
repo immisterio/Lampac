@@ -68,7 +68,7 @@ namespace Online.Controllers
                             return OnError();
 
                         proxyManager.Success();
-                        hybridCache.Set(key, catalog, cacheTime(40, init: init), inmemory: false);
+                        hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
                     if (!similar && catalog.Count == 1)
@@ -98,7 +98,7 @@ namespace Online.Controllers
                             return OnError(proxyManager);
 
                         proxyManager.Success();
-                        hybridCache.Set(key, root, cacheTime(30, init: init));
+                        hybridCache.Set(key, root, cacheTime(30));
                     }
 
                     if (s == -1)
@@ -254,7 +254,7 @@ namespace Online.Controllers
                         cache.subtitle = Regex.Match(iframe, "thumbnails: ?\"([^\"]+)\"").Groups[1].Value;
 
                     proxyManager.Success();
-                    hybridCache.Set(key, cache, cacheTime(30, init: init));
+                    hybridCache.Set(key, cache, cacheTime(30));
                 }
 
                 var subtitles = new SubtitleTpl();

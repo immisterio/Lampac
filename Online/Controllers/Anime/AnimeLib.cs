@@ -86,7 +86,7 @@ namespace Online.Controllers
                         if (!rch.enable)
                             proxyManager.Success();
 
-                        hybridCache.Set(key, catalog, cacheTime(40, init: init), inmemory: false);
+                        hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
                     if (!similar && catalog.Where(i => i.coincidence).Count() == 1)
@@ -123,7 +123,7 @@ namespace Online.Controllers
                         if (!rch.enable)
                             proxyManager.Success();
 
-                        hybridCache.Set(key, episodes, cacheTime(30, init: init));
+                        hybridCache.Set(key, episodes, cacheTime(30));
                     }
 
                     #region Перевод
@@ -141,7 +141,7 @@ namespace Online.Controllers
                             return OnError(proxyManager, refresh_proxy: !rch.enable);
 
                         players = root["data"]["players"].ToObject<Player[]>();
-                        hybridCache.Set(voice_memkey, players, cacheTime(30, init: init));
+                        hybridCache.Set(voice_memkey, players, cacheTime(30));
                     }
 
                     var vtpl = new VoiceTpl(players.Length);

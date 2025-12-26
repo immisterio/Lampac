@@ -67,7 +67,7 @@ namespace Online.Controllers
                     }
 
                     proxyManager.Success();
-                    hybridCache.Set(key, cache, cacheTime(40, init: init));
+                    hybridCache.Set(key, cache, cacheTime(40));
                 }
                 #endregion
 

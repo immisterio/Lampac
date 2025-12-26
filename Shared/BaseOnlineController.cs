@@ -59,6 +59,8 @@ namespace Shared
 
         public T init { get; private set; }
 
+        private BaseSettings baseconf { get; set; }
+
         public Func<JObject, T, T, T> loadKitInitialization { get; set; }
 
         public Action requestInitialization { get; set; }
@@ -68,6 +70,7 @@ namespace Shared
 
         public BaseOnlineController(T init)
         {
+            baseconf = init;
             this.init = (T)init.Clone();
             this.init.IsCloneable = true;
 
@@ -120,7 +123,7 @@ namespace Shared
 
             if (!init.enable || init.rip)
             {
-                badInitMsg = OnError("disable");
+                badInitMsg = OnError("disable", gbcache: false, statusCode: 403);
                 return true;
             }
 
@@ -315,19 +318,16 @@ namespace Shared
         #endregion
 
         #region InvokeCacheResult
-        async public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<ValueTask<Tresut>> onget, bool? memory = null)
-            => await InvokeBaseCacheResult<Tresut>(key, base.cacheTime(cacheTime, init: init), rch, proxyManager, async e => e.Success(await onget()), memory);
-
         async public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<Task<Tresut>> onget, bool? memory = null)
-            => await InvokeBaseCacheResult<Tresut>(key, base.cacheTime(cacheTime, init: init), rch, proxyManager, async e => e.Success(await onget()), memory);
+            => await InvokeBaseCacheResult<Tresut>(key, this.cacheTime(cacheTime), rch, proxyManager, async e => e.Success(await onget()), memory);
 
         public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<CacheResult<Tresut>, Task<CacheResult<Tresut>>> onget, bool? memory = null)
-            => InvokeBaseCacheResult(key, base.cacheTime(cacheTime, init: init), rch, proxyManager, onget, memory);
+            => InvokeBaseCacheResult(key, this.cacheTime(cacheTime), rch, proxyManager, onget, memory);
         #endregion
 
         #region InvokeCache
         public ValueTask<Tresut> InvokeCache<Tresut>(string key, int cacheTime, Func<Task<Tresut>> onget, bool? memory = null)
-            => InvokeBaseCache(key, base.cacheTime(cacheTime, init: init), rch, onget, proxyManager, memory);
+            => InvokeBaseCache(key, this.cacheTime(cacheTime), rch, onget, proxyManager, memory);
         #endregion
 
         #region HostStreamProxy
@@ -336,11 +336,19 @@ namespace Shared
         #endregion
 
         #region InvkSemaphore
-        public Task<ActionResult> InvkSemaphore(string key, Func<string, ValueTask<ActionResult>> func)
+        public Task<ActionResult> InvkSemaphore(string key, Func<string, Task<ActionResult>> func)
             => InvkSemaphore(key, rch, () => func.Invoke(key));
 
-        public Task<ActionResult> InvkSemaphore(string key, Func<ValueTask<ActionResult>> func)
+        public Task<ActionResult> InvkSemaphore(string key, Func<Task<ActionResult>> func)
             => InvkSemaphore(key, rch, func);
+        #endregion
+
+
+        #region cacheTime
+        public TimeSpan cacheTime(int multiaccess)
+        {
+            return cacheTimeBase(multiaccess, init: baseconf);
+        }
         #endregion
     }
 }

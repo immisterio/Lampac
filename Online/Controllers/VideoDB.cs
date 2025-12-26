@@ -150,7 +150,7 @@ namespace Online.Controllers
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, location, cacheTime(20, rhub: 2, init: init));
+                    hybridCache.Set(memKey, location, cacheTimeBase(20, rhub: 2, init: init));
                 }
 
                 string hls = HostStreamProxy(location);
