@@ -56,7 +56,7 @@ namespace Shared
 
         public T init { get; private set; }
 
-        private BaseSettings baseconf { get; set; }
+        BaseSettings baseconf { get; set; }
 
         public Func<JObject, T, T, T> loadKitInitialization { get; set; }
 
@@ -65,15 +65,17 @@ namespace Shared
         public Func<ValueTask> requestInitializationAsync { get; set; }
 
 
-        public BaseSisiController() { }
-
         public BaseSisiController(T init)
         {
-            Initialization(init);
+            if (init != default)
+                Initialization(init);
         }
 
         public void Initialization(T init)
         {
+            if (baseconf != default)
+                return;
+
             baseconf = init;
             this.init = (T)init.Clone();
             this.init.IsCloneable = true;
@@ -86,6 +88,12 @@ namespace Shared
 
 
         #region IsRequestBlocked
+        public ValueTask<bool> IsRequestBlocked(T init, bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
+        {
+            Initialization(init);
+            return IsRequestBlocked(rch, rch_keepalive, rch_check);
+        }
+
         async public ValueTask<bool> IsRequestBlocked(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
         {
             init = await loadKit(init, loadKitInitialization);

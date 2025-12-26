@@ -205,7 +205,7 @@ namespace Catalog.Controllers
                     if (!jo.ContainsKey("tagline") && !string.IsNullOrEmpty(original_name))
                         jo["tagline"] = original_name;
 
-                    hybridCache.Set(memKey, jo, cacheTime(init.cache_time, init: init), inmemory: false);
+                    hybridCache.Set(memKey, jo, cacheTimeBase(init.cache_time, init: init), inmemory: false);
                 }
 
                 return ContentTo(JsonConvert.SerializeObject(jo));

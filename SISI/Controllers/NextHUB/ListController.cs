@@ -13,6 +13,8 @@ namespace SISI.Controllers.NextHUB
 {
     public class ListController : BaseSisiController<NxtSettings>
     {
+        public ListController() : base(default) { }
+
         [HttpGet]
         [Route("nexthub")]
         async public ValueTask<ActionResult> Index(string plugin, string search, string sort, string cat, string model, int pg = 1)
@@ -27,8 +29,7 @@ namespace SISI.Controllers.NextHUB
             if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(_nxtInit.search?.uri))
                 return OnError("search disable");
 
-            Initialization(_nxtInit);
-            if (await IsRequestBlocked(rch: _nxtInit.rch_access != null))
+            if (await IsRequestBlocked(_nxtInit, rch: _nxtInit.rch_access != null))
                 return badInitMsg;
 
             string semaphoreKey = $"nexthub:{plugin}:{search}:{sort}:{cat}:{model}:{pg}";

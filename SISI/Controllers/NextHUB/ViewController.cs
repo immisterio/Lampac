@@ -12,6 +12,8 @@ namespace SISI.Controllers.NextHUB
 {
     public class ViewController : BaseSisiController<NxtSettings>
     {
+        public ViewController() : base(default) { }
+
         [HttpGet]
         [Route("nexthub/vidosik")]
         async public ValueTask<ActionResult> Index(string uri, bool related)
@@ -26,8 +28,7 @@ namespace SISI.Controllers.NextHUB
             if (_nxtInit == null)
                 return OnError("init not found");
 
-            Initialization(_nxtInit);
-            if (await IsRequestBlocked(rch: init.rch_access != null))
+            if (await IsRequestBlocked(_nxtInit, rch: _nxtInit.rch_access != null))
                 return badInitMsg;
 
             if (init.view.initUrlEval != null)

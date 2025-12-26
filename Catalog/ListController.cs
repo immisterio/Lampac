@@ -166,7 +166,7 @@ namespace Catalog.Controllers
                     if (!rch.enable)
                         proxyManager.Success();
 
-                    hybridCache.Set(memKey, cache, cacheTime(init.cache_time, init: init), inmemory: false);
+                    hybridCache.Set(memKey, cache, cacheTimeBase(init.cache_time, init: init), inmemory: false);
                 }
 
                 #region total_pages
