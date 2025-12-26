@@ -15,19 +15,17 @@ namespace Shared.Engine.Online
         string host;
         string apihost;
         string token;
-        Func<string, ValueTask<string>> onget;
+        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
-        public VoKinoInvoke(string host, string apihost, string token, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public VoKinoInvoke(string host, string apihost, string token, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.token = token;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.requesterror = requesterror;
         }
         #endregion
@@ -76,7 +74,7 @@ namespace Shared.Engine.Online
         }
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(string origid, long kinopoisk_id, string balancer, string t)
+        public async Task<EmbedModel> Embed(string origid, long kinopoisk_id, string balancer, string t)
         {
             try
             {

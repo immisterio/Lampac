@@ -22,13 +22,12 @@ namespace Shared.Engine.Online
         string host;
         string apihost, token, videopath;
         bool usehls, cdn_is_working;
-        Func<string, List<HeadersModel>, ValueTask<string>> onget;
-        Func<string, string, ValueTask<string>> onpost;
+        Func<string, List<HeadersModel>, Task<string>> onget;
+        Func<string, string, Task<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
-        public KodikInvoke(string host, KodikSettings init, string videopath, IEnumerable<Result> fallbackDatabase, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KodikInvoke(string host, KodikSettings init, string videopath, IEnumerable<Result> fallbackDatabase, Func<string, List<HeadersModel>, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = init.apihost;
@@ -38,7 +37,6 @@ namespace Shared.Engine.Online
             this.onget = onget;
             this.onpost = onpost;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.usehls = init.hls;
             this.cdn_is_working = init.cdn_is_working;
             this.requesterror = requesterror;
@@ -46,7 +44,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<List<Result>> Embed(string imdb_id, long kinopoisk_id, int s)
+        async public Task<List<Result>> Embed(string imdb_id, long kinopoisk_id, int s)
         {
             if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                 return null;
@@ -99,7 +97,7 @@ namespace Shared.Engine.Online
         }
 
 
-        public async ValueTask<EmbedModel> Embed(string title, string original_title, int clarification)
+        public async Task<EmbedModel> Embed(string title, string original_title, int clarification)
         {
             try
             {
@@ -198,7 +196,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Tpl
-        public async ValueTask<ITplResult> Tpl(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
+        public async Task<ITplResult> Tpl(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
         {
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -321,7 +319,7 @@ namespace Shared.Engine.Online
 
 
         #region VideoParse
-        async public ValueTask<List<StreamModel>> VideoParse(string linkhost, string link)
+        async public Task<List<StreamModel>> VideoParse(string linkhost, string link)
         {
             string iframe = await onget($"https:{link}", null);
             if (iframe == null)
@@ -517,7 +515,7 @@ namespace Shared.Engine.Online
             return normalizedSource.Contains(normalizedTarget);
         }
 
-        async ValueTask<Dictionary<string, string>> ResolveEpisodesAsync(Result selected, int season)
+        async Task<Dictionary<string, string>> ResolveEpisodesAsync(Result selected, int season)
         {
             if (season <= 0)
                 return null;
@@ -544,7 +542,7 @@ namespace Shared.Engine.Online
             return null;
         }
 
-        async ValueTask<Dictionary<string, Season>> LoadSeasonsFromHtml(Result selected)
+        async Task<Dictionary<string, Season>> LoadSeasonsFromHtml(Result selected)
         {
             if (string.IsNullOrWhiteSpace(selected.id) || string.IsNullOrWhiteSpace(selected.link) || onget == null)
                 return null;

@@ -185,7 +185,7 @@ namespace Shared.PlaywrightCore
 
 
 
-        async public static ValueTask<string> Get(BaseSettings init, string url, List<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null)
+        async public static Task<string> Get(BaseSettings init, string url, List<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null)
         {
             try
             {

@@ -21,9 +21,7 @@ namespace Online.Controllers
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable 
-                    ? rch.Get<List<RootObject>>(init.cors(ongettourl), httpHeaders(init)) 
-                    : Http.Get<List<RootObject>>(init.cors(ongettourl), timeoutSeconds: 40, proxy: proxy, IgnoreDeserializeObject: true, headers: httpHeaders(init)),
+               ongettourl => httpHydra.Get<List<RootObject>>(ongettourl, IgnoreDeserializeObject: true),
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh(rch)
             );

@@ -65,8 +65,8 @@ namespace Online.Controllers
                     init,
                     "video",
                     database,
-                    (uri, head) => Http.Get(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
-                    (uri, data) => Http.Post(init.cors(uri), data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+                    (uri, head) => httpHydra.Get(uri),
+                    (uri, data) => httpHydra.Post(uri, data),
                     streamfile => HostStreamProxy(streamfile),
                     requesterror: proxyManager.Refresh
                 );
@@ -168,7 +168,7 @@ namespace Online.Controllers
                         string deadline = DateTime.Now.AddHours(4).ToString("yyyy MM dd HH").Replace(" ", "");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                        var root = await Http.Get<JObject>($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true", timeoutSeconds: 8, proxy: proxy);
+                        var root = await httpHydra.Get<JObject>($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true");
 
                         if (root == null || !root.ContainsKey("links"))
                             return OnError("links", proxyManager);

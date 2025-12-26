@@ -15,9 +15,8 @@ namespace Shared.Engine.Online
         bool hls;
         string apihost;
         string token;
-        Func<string, string, ValueTask<string>> onget;
+        Func<string, string, Task<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
         public string onstream(string stream)
@@ -28,7 +27,7 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public LumexInvoke(LumexSettings init, Func<string, string, ValueTask<string>> onget, Func<string, string> onstreamfile, string host = null, Func<string, string> onlog = null, Action requesterror = null)
+        public LumexInvoke(LumexSettings init, Func<string, string, Task<string>> onget, Func<string, string> onstreamfile, string host = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme ?? "http";
@@ -37,13 +36,12 @@ namespace Shared.Engine.Online
             this.token = init!.token;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.requesterror = requesterror;
         }
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl> Search(string title, string original_title, int serial, int clarification, IEnumerable<DatumDB> database = null)
+        public async Task<SimilarTpl> Search(string title, string original_title, int serial, int clarification, IEnumerable<DatumDB> database = null)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return default;

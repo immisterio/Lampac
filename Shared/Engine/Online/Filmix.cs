@@ -23,14 +23,14 @@ namespace Shared.Engine.Online
         public string token;
         string host, args;
         string apihost;
-        Func<string, ValueTask<string>> onget;
-        Func<string, string, List<HeadersModel>, ValueTask<string>> onpost;
+        Func<string, Task<string>> onget;
+        Func<string, string, List<HeadersModel>, Task<string>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
         bool rjson;
 
-        public FilmixInvoke(FilmixSettings init, string host, string token, Func<string, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
+        public FilmixInvoke(FilmixSettings init, string host, string token, Func<string, Task<string>> onget, Func<string, string, List<HeadersModel>, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
             this.init = init;
             apihost = init.corsHost();

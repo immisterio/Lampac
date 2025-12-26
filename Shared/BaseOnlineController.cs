@@ -23,6 +23,7 @@ namespace Shared
 
     public class BaseOnlineController<T> : BaseController where T : BaseSettings, ICloneable
     {
+        #region RchClient
         RchClient? _rch = null;
         public RchClient rch 
         {
@@ -34,6 +35,21 @@ namespace Shared
                 return (RchClient)_rch;
             } 
         }
+        #endregion
+
+        #region HttpHydra
+        HttpHydra _httpHydra = null;
+        public HttpHydra httpHydra
+        {
+            get
+            {
+                if (_httpHydra == null)
+                    _httpHydra = new HttpHydra(init, httpHeaders(init), rch, proxy);
+
+                return _httpHydra;
+            }
+        }
+        #endregion
 
         public ProxyManager proxyManager { get; private set; }
 
@@ -55,7 +71,7 @@ namespace Shared
             this.init = (T)init.Clone();
             this.init.IsCloneable = true;
 
-            proxyManager = new ProxyManager(init);
+            proxyManager = new ProxyManager(this.init);
             var bp = proxyManager.BaseGet();
             proxy = bp.proxy;
             proxy_data = bp.data;
@@ -310,7 +326,7 @@ namespace Shared
         #endregion
 
         #region InvokeCache
-        public ValueTask<Tresut> InvokeCache<Tresut>(string key, int cacheTime, Func<ValueTask<Tresut>> onget, bool? memory = null)
+        public ValueTask<Tresut> InvokeCache<Tresut>(string key, int cacheTime, Func<Task<Tresut>> onget, bool? memory = null)
             => InvokeBaseCache(key, base.cacheTime(cacheTime, init: init), rch, onget, proxyManager, memory);
         #endregion
 

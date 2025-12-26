@@ -12,13 +12,13 @@ namespace Shared.Engine.Online
         #region EneyidaInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
-        Func<string, string, ValueTask<string>> onpost;
+        Func<string, Task<string>> onget;
+        Func<string, string, Task<string>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
 
-        public EneyidaInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public EneyidaInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -31,7 +31,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(string original_title, int year, string href, bool similar)
+        public async Task<EmbedModel> Embed(string original_title, int year, string href, bool similar)
         {
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return null;

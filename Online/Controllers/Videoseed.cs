@@ -28,13 +28,12 @@ namespace Online.Controllers
                 if (!hybridCache.TryGetValue(key, out (Dictionary<string, JObject> seasons, string iframe) cache))
                 {
                     #region goSearch
-                    async ValueTask<JToken> goSearch(bool isOk, string arg)
+                    async Task<JToken> goSearch(bool isOk, string arg)
                     {
                         if (!isOk)
                             return null;
 
-                        string uri = $"{init.host}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg;
-                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, headers: httpHeaders(init), proxy: proxy);
+                        var root = await httpHydra.Get<JObject>($"{init.corsHost()}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg);
 
                         if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
                         {

@@ -24,9 +24,7 @@ namespace Online.Controllers
                 {
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
 
-                    string search = rch.enable 
-                        ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) 
-                        : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    string search = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", data);
 
                     if (search == null)
                         return e.Fail("search", refresh_proxy: true);
@@ -98,9 +96,7 @@ namespace Online.Controllers
                 #region Серии
                 var cache = await InvokeCacheResult<List<(string episode, string id)>>($"animevost:playlist:{uri}", 30, async e =>
                 {
-                    string news = rch.enable 
-                        ? await rch.Get(uri, httpHeaders(init)) 
-                        : await Http.Get(uri, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                    string news = await httpHydra.Get(uri);
 
                     if (news == null)
                         return e.Fail("news", refresh_proxy: true);
@@ -173,9 +169,7 @@ namespace Online.Controllers
             {
                 string uri = $"{init.corsHost()}/frame5.php?play={id}&old=1";
 
-                string iframe = rch.enable 
-                    ? await rch.Get(uri, httpHeaders(init)) 
-                    : await Http.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                string iframe = await httpHydra.Get(uri);
 
                 var links = new List<(string l, string q)>(2);
 
@@ -203,7 +197,6 @@ namespace Online.Controllers
             {
                 string link = HostStreamProxy(cache.Value[0].l);
                 return VideoTpl.ToJson("play", link, title, vast: init.vast);
-
             });
         }
         #endregion

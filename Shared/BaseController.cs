@@ -356,7 +356,7 @@ namespace Shared
         #endregion
 
         #region InvokeBaseCache
-        async public ValueTask<T> InvokeBaseCache<T>(string key, TimeSpan time, RchClient rch, Func<ValueTask<T>> onget, ProxyManager proxyManager = null, bool? memory = null)
+        async public ValueTask<T> InvokeBaseCache<T>(string key, TimeSpan time, RchClient rch, Func<Task<T>> onget, ProxyManager proxyManager = null, bool? memory = null)
         {
             var semaphore = new SemaphorManager(key, TimeSpan.FromSeconds(40));
 

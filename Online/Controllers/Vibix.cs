@@ -32,18 +32,16 @@ namespace Online.Controllers
                 api_url += $"?iframe_url={HttpUtility.UrlEncode(data.iframe_url)}";
                 api_url += $"&kp={CrypTo.unic(6).ToLower()}";
 
-                var api_headers = httpHeaders(init, HeadersModel.Init(
+                var api_headers = HeadersModel.Init(
                     ("accept", "*/*"),
                     ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
                     ("sec-fetch-dest", "empty"),
                     ("sec-fetch-mode", "cors"),
                     ("sec-fetch-site", "same-origin"),
                     ("referer", data.iframe_url)
-                ));
+                );
 
-                var root = rch.enable 
-                    ? await rch.Get<JObject>(init.cors(api_url), api_headers) 
-                    : await Http.Get<JObject>(init.cors(api_url), timeoutSeconds: 8, proxy: proxy, headers: api_headers, httpversion: 2);
+                var root = await httpHydra.Get<JObject>(api_url, addheaders: api_headers);
 
                 if (root == null || !root.ContainsKey("data") || root["data"]?["playlist"] == null)
                     return e.Fail("root", refresh_proxy: true);
@@ -156,13 +154,12 @@ namespace Online.Controllers
                         return null;
 
                     string uri = kinopoisk_id > 0 ? $"kp/{kinopoisk_id}" : $"imdb/{imdb_id}";
-                    var header = httpHeaders(init, HeadersModel.Init(
+
+                    var video = await httpHydra.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", addheaders: HeadersModel.Init(
                         ("Accept", "application/json"),
                         ("Authorization", $"Bearer {init.token}"),
                         ("X-CSRF-TOKEN", "")
                     ));
-
-                    var video = await Http.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", timeoutSeconds: 8, proxy: proxy, headers: header);
 
                     if (video == null)
                     {

@@ -57,18 +57,18 @@ namespace Online.Controllers
             init.token_apitv = tokenResult.Token;
             #endregion
 
-            var headers = httpHeaders(init, HeadersModel.Init
+            var bearer = HeadersModel.Init
             (
                 ("Authorization", $"Bearer {init.token_apitv}"),
                 ("hash", init.hash_apitv)
-            ));
+            );
 
             var oninvk = new FilmixTVInvoke
             (
                host,
                init.corsHost(),
-               ongettourl => Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: headers),
-               (url, data) => Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: headers),
+               ongettourl => httpHydra.Get(ongettourl, addheaders: bearer),
+               (url, data) => httpHydra.Post(url, data, addheaders: bearer),
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh(),
                rjson: rjson
@@ -91,7 +91,9 @@ namespace Online.Controllers
 
             var cache = await InvokeCacheResult<RootObject>($"filmixtv:post:{postid}:{init.token_apitv}", 20, async e =>
             {
-                string json = await Http.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", proxy: proxy, timeoutSeconds: 8, headers: headers);
+                string json = await httpHydra.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", addheaders: bearer);
+                if (json == null)
+                    return e.Fail("json", refresh_proxy: true);
 
                 return e.Success(oninvk.Post(json));
             });

@@ -136,6 +136,10 @@ namespace Shared.Models.Base
 
         public string priorityBrowser { get; set; }
 
+        public int httptimeout { get; set; } = 8;
+
+        public int httpversion { get; set; } = 1;
+
 
         #region proxy
         public bool useproxy { get; set; }

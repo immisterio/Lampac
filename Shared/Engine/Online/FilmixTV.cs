@@ -13,14 +13,14 @@ namespace Shared.Engine.Online
         #region FilmixTVInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
-        Func<string, string, ValueTask<string>> onpost;
+        Func<string, Task<string>> onget;
+        Func<string, string, Task<string>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
         bool rjson;
 
-        public FilmixTVInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
+        public FilmixTVInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -34,7 +34,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        async public ValueTask<SearchResult> Search(string title, string original_title, int clarification, int year, bool similar)
+        async public Task<SearchResult> Search(string title, string original_title, int clarification, int year, bool similar)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -93,7 +93,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search2
-        async ValueTask<SearchResult> Search2(string title, string original_title, int year, int clarification)
+        async Task<SearchResult> Search2(string title, string original_title, int year, int clarification)
         {
             async Task<List<SearchModel>> gosearch(string story)
             {

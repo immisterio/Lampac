@@ -15,22 +15,20 @@ namespace Shared.Engine.Online
         string host, apihost;
         bool usehls;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
-        Func<string, List<HeadersModel>, ValueTask<string>> onget;
+        Func<string, List<HeadersModel>, Task<string>> onget;
 
-        public ZetflixInvoke(string host, string apihost, bool hls, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null)
+        public ZetflixInvoke(string host, string apihost, bool hls, Func<string, List<HeadersModel>, Task<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.onget = onget;
             usehls = hls;
         }
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(long kinopoisk_id, int s)
+        public async Task<EmbedModel> Embed(long kinopoisk_id, int s)
         {
             string html = await onget.Invoke($"{apihost}/iplayer/videodb.php?kp={kinopoisk_id}" + (s > 0 ? $"&season={s}" : ""), HeadersModel.Init(
                 ("dnt", "1"),
@@ -44,8 +42,6 @@ namespace Shared.Engine.Online
 
         public EmbedModel Embed(in string html)
         {
-            onlog?.Invoke(html ?? "html null");
-
             if (html == null)
                 return null;
 
@@ -80,7 +76,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region number_of_seasons
-        public async ValueTask<int> number_of_seasons(long id)
+        public async Task<int> number_of_seasons(long id)
         {
             int number_of_seasons = 1;
             string themoviedb = await onget.Invoke($"https://tmdb.mirror-kurwa.men/3/tv/{id}?api_key=4ef0d7355d9ffb5151e987764708ce96", null);

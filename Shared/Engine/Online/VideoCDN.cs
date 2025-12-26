@@ -16,9 +16,8 @@ namespace Shared.Engine.Online
         string apihost;
         string token;
         bool usehls;
-        Func<string, string, ValueTask<string>> onget;
+        Func<string, string, Task<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
         public string onstream(string stream)
@@ -29,7 +28,7 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public VideoCDNInvoke(OnlinesSettings init, Func<string, string, ValueTask<string>> onget, Func<string, string> onstreamfile, string host = null, Func<string, string> onlog = null, Action requesterror = null)
+        public VideoCDNInvoke(OnlinesSettings init, Func<string, string, Task<string>> onget, Func<string, string> onstreamfile, string host = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme;
@@ -38,14 +37,13 @@ namespace Shared.Engine.Online
             this.token = init!.token;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             usehls = init.hls;
             this.requesterror = requesterror;
         }
         #endregion
 
         #region Search
-        public async ValueTask<SimilarTpl?> Search(string title, string original_title, int serial)
+        public async Task<SimilarTpl?> Search(string title, string original_title, int serial)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -104,7 +102,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(long kinopoisk_id, string imdb_id)
+        public async Task<EmbedModel> Embed(long kinopoisk_id, string imdb_id)
         {
             string args = kinopoisk_id > 0 ? $"kp_id={kinopoisk_id}&imdb_id={imdb_id}" : $"imdb_id={imdb_id}";
             string content = await onget.Invoke($"{iframeapihost}?{args}", "https://kinogo.ec/113447-venom-3-poslednij-tanec.html");

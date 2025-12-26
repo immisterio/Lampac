@@ -23,7 +23,7 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(key, out List<(string title, string url, string img)> catalog, inmemory: false))
                     {
-                        string search = await Http.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        string search = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}");
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -78,7 +78,7 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(key, out List<(int episode, string s, string vod)> links, inmemory: false))
                     {
-                        string html = await Http.Get($"{init.corsHost()}/{news}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        string html = await httpHydra.Get($"{init.corsHost()}/{news}");
                         if (html == null)
                             return OnError(proxyManager);
 
@@ -135,7 +135,7 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(key, out string hls))
                 {
-                    string embed = await Http.Get(vod, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    string embed = await httpHydra.Get(vod);
 
                     if (string.IsNullOrEmpty(embed))
                         return OnError(proxyManager);

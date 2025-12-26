@@ -26,7 +26,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
+            var bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
 
             if (string.IsNullOrWhiteSpace(uri))
             {
@@ -45,9 +45,7 @@ namespace Online.Controllers
 
                             string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(q)}";
 
-                            var result = rch.enable 
-                                ? await rch.Get<JObject>(req_uri, headers) 
-                                : await Http.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                            var result = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
 
                             if (result == null || !result.ContainsKey("data"))
                                 return null;
@@ -112,9 +110,7 @@ namespace Online.Controllers
                     {
                         string req_uri = $"{init.corsHost()}/api/episodes?anime_id={uri}";
 
-                        var root = rch.enable 
-                            ? await rch.Get<JObject>(req_uri, headers) 
-                            : await Http.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: headers);
+                        var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
 
                         if (root == null || !root.ContainsKey("data"))
                             return OnError(proxyManager, refresh_proxy: !rch.enable);
@@ -139,9 +135,7 @@ namespace Online.Controllers
 
                         string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First().id}";
 
-                        var root = rch.enable 
-                            ? await rch.Get<JObject>(req_uri, headers) 
-                            : await Http.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                        var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
 
                         if (root == null || !root.ContainsKey("data"))
                             return OnError(proxyManager, refresh_proxy: !rch.enable);
@@ -210,11 +204,9 @@ namespace Online.Controllers
             var cache = await InvokeCacheResult<Player[]>($"animelib:video:{id}", 30, async e =>
             {
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
-                var headers = httpHeaders(init, HeadersModel.Init("authorization", $"Bearer {init.token}"));
+                var bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
 
-                var root = rch.enable 
-                    ? await rch.Get<JObject>(req_uri, headers) 
-                    : await Http.Get<JObject>(req_uri, httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
 
                 if (root == null || !root.ContainsKey("data"))
                     return e.Fail("data", refresh_proxy: true);

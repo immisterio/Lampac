@@ -23,8 +23,7 @@ namespace Online.Controllers
                host,
                init.apihost,
                (url, head) => black_magic(url),
-               streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch)
+               () => proxyManager.Refresh(rch)
             );
 
             rhubFallback: 
@@ -90,7 +89,7 @@ namespace Online.Controllers
                         }
                         else if (init.priorityBrowser == "http")
                         {
-                            location = await Http.GetLocation(link, httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                            location = await Http.GetLocation(link, httpversion: init.httpversion, timeoutSeconds: init.httptimeout, proxy: proxy, headers: headers);
                         }
                         else
                         {
@@ -165,7 +164,7 @@ namespace Online.Controllers
         #endregion
 
         #region black_magic
-        async ValueTask<string> black_magic(string iframe_uri)
+        async Task<string> black_magic(string iframe_uri)
         {
             try
             {
@@ -176,11 +175,8 @@ namespace Online.Controllers
                     ("referer", "{host}/")
                 ));
 
-                if (rch.enable)
-                    return await rch.Get(init.cors(iframe_uri), headers);
-
-                if (init.priorityBrowser == "http")
-                    return await Http.Get(init.cors(iframe_uri), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                if (rch.enable || init.priorityBrowser == "http")
+                    return await httpHydra.Get(iframe_uri, newheaders: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {

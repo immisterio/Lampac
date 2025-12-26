@@ -14,19 +14,17 @@ namespace Shared.Engine.Online
         KinobaseSettings init;
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
+        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
-        public KinobaseInvoke(string host, KinobaseSettings init, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KinobaseInvoke(string host, KinobaseSettings init, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.init = init;
             this.host = host != null ? $"{host}/" : null;
             apihost = init.host;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.requesterror = requesterror;
         }
         #endregion

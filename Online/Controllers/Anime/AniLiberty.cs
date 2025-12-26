@@ -24,11 +24,7 @@ namespace Online.Controllers
                 rhubFallback:
                 var cache = await InvokeCacheResult<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", 40, async e =>
                 {
-                    string req_uri = $"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}";
-
-                    var search = rch.enable 
-                        ? await rch.Get<JArray>(req_uri, httpHeaders(init)) 
-                        : await Http.Get<JArray>(req_uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    var search = await httpHydra.Get<JArray>($"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}");
 
                     if (search == null || search.Count == 0)
                         return e.Fail("search");
@@ -94,11 +90,7 @@ namespace Online.Controllers
                 rhubFallback: 
                 var cache = await InvokeCacheResult<JObject>($"aniliberty:releases:{releases}", 20, async e =>
                 {
-                    string req_uri = $"{init.corsHost()}/api/v1/anime/releases/{releases}";
-
-                    var root = rch.enable 
-                        ? await rch.Get<JObject>(req_uri, httpHeaders(init)) 
-                        : await Http.Get<JObject>(req_uri, timeoutSeconds: 8, httpversion: 2, proxy: proxy, headers: httpHeaders(init));
+                    var root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/v1/anime/releases/{releases}");
 
                     if (root == null || !root.ContainsKey("episodes"))
                         return e.Fail("episodes");

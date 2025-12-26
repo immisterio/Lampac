@@ -14,31 +14,26 @@ namespace Shared.Engine.Online
         #region VideoDBInvoke
         string host;
         string apihost;
-        Func<string, string> onstreamfile;
-        Func<string, string> onlog;
-        Func<string, List<HeadersModel>, ValueTask<string>> onget;
+        Func<string, List<HeadersModel>, Task<string>> onget;
         Action requesterror;
 
-        public VideoDBInvoke(string host, string apihost, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public VideoDBInvoke(string host, string apihost, Func<string, List<HeadersModel>, Task<string>> onget, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
-            this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.onget = onget;
             this.requesterror = requesterror;
         }
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(long kinopoisk_id)
+        public async Task<EmbedModel> Embed(long kinopoisk_id)
         {
             string html = await onget.Invoke($"{apihost}/embed/AN?kinopoisk_id={kinopoisk_id}", null);
 
             if (html == null)
             {
                 requesterror?.Invoke();
-                onlog?.Invoke("VideoDB: html null");
                 return null;
             }
 
@@ -69,21 +64,11 @@ namespace Shared.Engine.Online
 
             string file = decodePlayer(html);
             if (file == null)
-            {
-                onlog?.Invoke("VideoDB: file null");
                 return null;
-            }
-
-            onlog?.Invoke("VideoDB: file OK");
 
             var pl = JsonNode.Parse(file)?["file"]?.Deserialize<RootObject[]>();
             if (pl == null || pl.Length == 0)
-            {
-                onlog?.Invoke("VideoDB: pl null");
                 return null;
-            }
-
-            onlog?.Invoke("VideoDB: pl OK");
 
             string quality = file.Contains("2160p") ? "2160p" : file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
             return new EmbedModel() { pl = pl, movie = !file.Contains("\"folder\":"), quality = quality };

@@ -13,21 +13,19 @@ namespace Shared.Engine.Online
         #region FanCDNInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
+        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
 
-        public FanCDNInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null)
+        public FanCDNInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string> onstreamfile)
         {
             this.host = host != null ? $"{host}/" : null; this.apihost = apihost;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
         }
         #endregion
 
         #region EmbedSearch
-        async public ValueTask<EmbedModel> EmbedSearch(string title, string original_title, int year, int serial)
+        async public Task<EmbedModel> EmbedSearch(string title, string original_title, int year, int serial)
         {
             if (serial == 1)
             {
@@ -85,7 +83,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedToken
-        async public ValueTask<EmbedModel> EmbedToken(long kinopoisk_id, string token)
+        async public Task<EmbedModel> EmbedToken(long kinopoisk_id, string token)
         {
             if (kinopoisk_id == 0)
                 return null;
@@ -95,7 +93,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel> Embed(string iframe_url)
+        async public Task<EmbedModel> Embed(string iframe_url)
         {
             if (string.IsNullOrEmpty(iframe_url))
                 return null;

@@ -14,13 +14,11 @@ namespace Shared.Engine.Online
         string host;
         bool usehls;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
 
-        public VDBmoviesInvoke(string host, bool hls, Func<string, string> onstreamfile, Func<string, string> onlog = null)
+        public VDBmoviesInvoke(string host, bool hls, Func<string, string> onstreamfile)
         {
             this.host = host != null ? $"{host}/" : null;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             usehls = hls;
         }
         #endregion

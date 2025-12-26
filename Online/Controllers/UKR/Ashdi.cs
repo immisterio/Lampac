@@ -20,9 +20,7 @@ namespace Online.Controllers
             (
                host,
                init.corsHost(),
-               ongettourl => rch.enable
-                    ? rch.Get(init.cors(ongettourl), httpHeaders(init)) 
-                    : Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), statusCodeOK: false),
+               ongettourl => httpHydra.Get(ongettourl, statusCodeOK: false),
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh(rch)
             );

@@ -103,7 +103,7 @@ namespace Online.Controllers
                 if (similar || string.IsNullOrEmpty(orid))
                     return ContentTo(stpl);
             }
-        #endregion
+            #endregion
 
             rhubFallback: 
             var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vdbmovies:{orid}:{kinopoisk_id}", proxyManager), 20, async e =>
@@ -145,11 +145,8 @@ namespace Online.Controllers
                     ("referer", referer)
                 ));
 
-                if (rch.enable)
-                    return await rch.Get(init.cors(uri), headers);
-
-                if (init.priorityBrowser == "http")
-                    return await Http.Get(init.cors(uri), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                if (rch.enable || init.priorityBrowser == "http")
+                    return await httpHydra.Get(uri, newheaders: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {

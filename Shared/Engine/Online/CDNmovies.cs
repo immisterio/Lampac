@@ -12,11 +12,11 @@ namespace Shared.Engine.Online
         #region CDNmoviesInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
+        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
         Action requesterror;
 
-        public CDNmoviesInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
+        public CDNmoviesInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -27,7 +27,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<Voice[]> Embed(long kinopoisk_id)
+        public async Task<Voice[]> Embed(long kinopoisk_id)
         {
             string html = await onget.Invoke($"{apihost}/serial/kinopoisk/{kinopoisk_id}");
             if (html == null)

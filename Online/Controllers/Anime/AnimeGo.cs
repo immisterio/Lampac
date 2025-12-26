@@ -26,7 +26,7 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(key, out List<(string title, string year, string pid, string s, string img)> catalog, inmemory: false))
                     {
-                        string search = await Http.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}", timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                        string search = await httpHydra.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}");
                         if (search == null)
                             return OnError(proxyManager);
 
@@ -83,7 +83,7 @@ namespace Online.Controllers
                     if (!hybridCache.TryGetValue(key, out (string translation, List<(string episode, string uri)> links, List<(string name, string id)> translations) cache))
                     {
                         #region content
-                        var player = await Http.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                        var player = await httpHydra.Get<JObject>($"{init.corsHost()}/anime/{pid}/player?_allow=true", addheaders: HeadersModel.Init(
                             ("cache-control", "no-cache"),
                             ("dnt", "1"),
                             ("pragma", "no-cache"),
@@ -92,7 +92,7 @@ namespace Online.Controllers
                             ("sec-fetch-mode", "cors"),
                             ("sec-fetch-site", "same-origin"),
                             ("x-requested-with", "XMLHttpRequest")
-                        )));
+                        ));
 
                         string content = player?.Value<string>("content");
                         if (string.IsNullOrWhiteSpace(content))
@@ -183,7 +183,7 @@ namespace Online.Controllers
 
                 if (!hybridCache.TryGetValue(key, out string hls))
                 {
-                    string embed = await Http.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", timeoutSeconds: 10, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init(
+                    string embed = await httpHydra.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", addheaders: HeadersModel.Init(
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
                         ("pragma", "no-cache"),
@@ -192,7 +192,7 @@ namespace Online.Controllers
                         ("sec-fetch-mode", "cors"),
                         ("sec-fetch-site", "same-origin"),
                         ("x-requested-with", "XMLHttpRequest")
-                    )));
+                    ));
 
                     if (string.IsNullOrWhiteSpace(embed))
                         return OnError(proxyManager);

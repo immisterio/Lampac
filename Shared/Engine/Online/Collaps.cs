@@ -14,11 +14,11 @@ namespace Shared.Engine.Online
         string host, route;
         string apihost;
         bool dash;
-        Func<string, ValueTask<string>> onget;
+        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
         Action requesterror;
 
-        public CollapsInvoke(string host, string route, string apihost, bool dash, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
+        public CollapsInvoke(string host, string route, string apihost, bool dash, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.route = route;
@@ -31,7 +31,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(string imdb_id, long kinopoisk_id, long orid)
+        public async Task<EmbedModel> Embed(string imdb_id, long kinopoisk_id, long orid)
         {
             string uri = $"{apihost}/embed/imdb/{imdb_id}";
             if (kinopoisk_id > 0)

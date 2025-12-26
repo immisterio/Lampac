@@ -19,8 +19,8 @@ namespace Shared.Engine.Online
         string host, scheme, route;
         string apihost;
         bool usehls, userprem, usereserve;
-        Func<string, List<HeadersModel>, ValueTask<string>> onget;
-        Func<string, string, List<HeadersModel>, ValueTask<string>> onpost;
+        Func<string, List<HeadersModel>, Task<string>> onget;
+        Func<string, string, List<HeadersModel>, Task<string>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
@@ -36,7 +36,7 @@ namespace Shared.Engine.Online
             onlog?.Invoke($"rezka: {msg}\n");
         }
 
-        public RezkaInvoke(string host, string route, RezkaSettings init, Func<string, List<HeadersModel>, ValueTask<string>> onget, Func<string, string, List<HeadersModel>, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public RezkaInvoke(string host, string route, RezkaSettings init, Func<string, List<HeadersModel>, Task<string>> onget, Func<string, string, List<HeadersModel>, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.route = route;
@@ -162,7 +162,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel> Embed(string href, string search_uri)
+        async public Task<EmbedModel> Embed(string href, string search_uri)
         {
             if (!href.StartsWith("http"))
                 href = $"{apihost}/{href}";
@@ -438,7 +438,7 @@ namespace Shared.Engine.Online
 
 
         #region Serial
-        async public ValueTask<Episodes> SerialEmbed(long id, int t)
+        async public Task<Episodes> SerialEmbed(long id, int t)
         {
             string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}{Random.Shared.Next(101, 999)}";
             string data = $"id={id}&translator_id={t}&action=get_episodes";
@@ -585,7 +585,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        async public ValueTask<MovieModel> Movie(long id, int t, int director, int s, int e, string favs)
+        async public Task<MovieModel> Movie(long id, int t, int director, int s, int e, string favs)
         {
             string data = null;
             string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}{Random.Shared.Next(101, 999)}";
@@ -663,7 +663,7 @@ namespace Shared.Engine.Online
             return new MovieModel() { links = links, subtitlehtml = subtitlehtml };
         }
 
-        async public ValueTask<MovieModel> Movie(string href)
+        async public Task<MovieModel> Movie(string href)
         {
             var headers = HeadersModel.Init(init.headers,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),

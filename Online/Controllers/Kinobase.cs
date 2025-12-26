@@ -33,7 +33,7 @@ namespace Online.Controllers
                ongettourl => 
                {
                    if (ongettourl.Contains("/search?query="))
-                       return Http.Get(ongettourl, timeoutSeconds: 8, proxy: proxy, referer: init.host, httpversion: 2, headers: httpHeaders(init));
+                       return httpHydra.Get(ongettourl, addheaders: HeadersModel.Init("referer", init.host));
 
                    return black_magic(ongettourl);
                },
@@ -79,7 +79,7 @@ namespace Online.Controllers
         }
 
         #region black_magic
-        async ValueTask<string> black_magic(string uri)
+        async Task<string> black_magic(string uri)
         {
             try
             {

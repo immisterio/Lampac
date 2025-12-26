@@ -177,7 +177,7 @@ namespace Online.Controllers
                             uri += "&directors_cut";
                         #endregion
 
-                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        var root = await httpHydra.Get<JObject>(uri);
                         if (root == null)
                             return OnError("json", proxyManager);
 
@@ -394,7 +394,7 @@ namespace Online.Controllers
 
             var cache = await InvokeCacheResult<JArray>($"alloha:search:{title}", 40, async e =>
             {
-                var root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list");
                 if (root == null || !root.ContainsKey("data"))
                     return e.Fail("data", refresh_proxy: true);
 

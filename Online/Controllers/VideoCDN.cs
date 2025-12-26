@@ -241,9 +241,7 @@ namespace Online.Controllers
                     if (!init.streamproxy)
                         headers.Add(new("X-LAMPA-CLIENT-IP", clientIP));
 
-                    var result = rch.enable 
-                        ? await rch.Post<JObject>(init.apihost + playlist, "{}", headers: headers) 
-                        : await Http.Post<JObject>(init.apihost + playlist, "{}", headers: headers, proxy: proxy);
+                    var result = await httpHydra.Post<JObject>(init.apihost + playlist, "{}", addheaders: headers);
 
                     if (result == null || !result.ContainsKey("url"))
                         return OnError(null, gbcache: false);
@@ -394,7 +392,7 @@ namespace Online.Controllers
                 if (!init.streamproxy)
                     headers.Add(new("X-LAMPA-CLIENT-IP", clientIP));
 
-                string json = await Http.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, timeoutSeconds: 8, headers: headers, proxy: proxy);
+                string json = await httpHydra.Get($"{init.apihost}/stream?clientId={init.clientId}&contentType={content_type}&contentId={content_id}&domain={init.domain}", useDefaultHeaders: false, addheaders: headers);
                 if (string.IsNullOrEmpty(json))
                     return null;
 
@@ -409,7 +407,7 @@ namespace Online.Controllers
         #endregion
 
         #region Search
-        async ValueTask<(long content_id, string content_type, SimilarTpl similar)> Search(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar)
+        async Task<(long content_id, string content_type, SimilarTpl similar)> Search(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar)
         {
             async Task<JToken> searchId(string imdb_id, long kinopoisk_id)
             {
@@ -420,7 +418,7 @@ namespace Online.Controllers
                     return null;
 
                 string arg = kinopoisk_id > 0 ? $"&kinopoisk_id={kinopoisk_id}" : $"&imdb_id={imdb_id}";
-                var job = await Http.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, timeoutSeconds: 8, proxy: proxy);
+                var job = await Http.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, timeoutSeconds: init.httptimeout, proxy: proxy);
                 if (job == null || !job.ContainsKey("data"))
                     return null;
 
@@ -442,7 +440,7 @@ namespace Online.Controllers
                     return default;
 
                 string uri = $"{init.iframehost}/api/short?api_token={init.token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
-                string json = await Http.Get(uri, timeoutSeconds: 8, proxy: proxy);
+                string json = await Http.Get(uri, timeoutSeconds: init.httptimeout, proxy: proxy);
                 if (json == null)
                     return default;
 

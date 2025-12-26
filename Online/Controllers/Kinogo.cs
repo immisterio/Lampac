@@ -34,9 +34,7 @@ namespace Online.Controllers
                 {
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
 
-                    string searchHtml = rch.enable 
-                        ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) 
-                        : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    string searchHtml = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", data);
 
                     if (searchHtml == null)
                         return e.Fail("search");
@@ -72,9 +70,7 @@ namespace Online.Controllers
             {
                 string targetHref = $"{init.corsHost()}/{href}";
 
-                string html = rch.enable 
-                    ? await rch.Get(targetHref, httpHeaders(init)) 
-                    : await Http.Get(init.cors(targetHref), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                string html = await httpHydra.Get(targetHref);
 
                 if (html == null) 
                     return e.Fail("html");

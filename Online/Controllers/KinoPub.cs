@@ -28,7 +28,7 @@ namespace Online.Controllers
 
             if (string.IsNullOrWhiteSpace(code))
             {
-                var token_request = await Http.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                var token_request = await httpHydra.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "");
 
                 if (token_request == null)
                     return Content($"нет доступа к {init.corsHost()}", "text/html; charset=utf-8");
@@ -43,12 +43,12 @@ namespace Online.Controllers
             }
             else
             {
-                var device_token = await Http.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                var device_token = await httpHydra.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "");
                 if (device_token == null || string.IsNullOrWhiteSpace(device_token.Value<string>("access_token")))
                     return LocalRedirect("/lite/kinopubpro");
 
                 if (!string.IsNullOrEmpty(name))
-                    await Http.Post($"{init.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name}", proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                    await httpHydra.Post($"{init.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name}");
 
                 return Content("Добавьте в init.conf<br><br>\"KinoPub\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + device_token.Value<string>("access_token") + "\"<br>}", "text/html; charset=utf-8");
             }
@@ -77,9 +77,7 @@ namespace Online.Controllers
                host,
                init.corsHost(),
                token,
-               ongettourl => rch.enable 
-                    ? rch.Get(init.cors(ongettourl), httpHeaders(init)) 
-                    : Http.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init)),
+               ongettourl => httpHydra.Get(ongettourl),
                (stream, filepath) => HostStreamProxy(stream),
                requesterror: () => proxyManager.Refresh(rch)
             );
@@ -116,7 +114,7 @@ namespace Online.Controllers
         [Route("lite/kinopub/subtitles.json")]
         async public ValueTask<ActionResult> Subtitles(int mid)
         {
-            if (await IsRequestBlocked(rch: true))
+            if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
             string token = init.token;
@@ -126,7 +124,7 @@ namespace Online.Controllers
             string uri = $"{init.corsHost()}/v1/items/media-links?mid={mid}&access_token={token}";
 
             var root = await InvokeCache($"kinopub:media-links:{mid}:{token}", 20, 
-                () => Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init))
+                () => httpHydra.Get<JObject>(uri)
             );
 
             if (root == null || !root.ContainsKey("subtitles"))

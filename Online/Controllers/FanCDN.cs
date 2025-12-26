@@ -40,11 +40,8 @@ namespace Online.Controllers
                        ("cookie", init.cookie)
                    ));
 
-                   if (rch.enable)
-                       return await rch.Get(init.cors(ongettourl), headers);
-
-                   if (init.priorityBrowser == "http")
-                       return await Http.Get(init.cors(ongettourl), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                   if (rch.enable || init.priorityBrowser == "http")
+                       return await httpHydra.Get(ongettourl, newheaders: headers);
 
                    #region Browser Search
                    try
@@ -133,11 +130,8 @@ namespace Online.Controllers
                     ("referer", $"{init.host}/")
                 ));
 
-                if (rch.enable)
-                    return await rch.Get(uri, headers);
-
-                if (init.priorityBrowser == "http")
-                    return await Http.Get(uri, httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: headers);
+                if (rch.enable || init.priorityBrowser == "http")
+                    return await httpHydra.Get(uri, newheaders: headers);
 
                 using (var browser = new PlaywrightBrowser())
                 {

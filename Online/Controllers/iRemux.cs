@@ -14,8 +14,7 @@ namespace Online.Controllers
                 (
                    host,
                    init.corsHost(),
-                   ongettourl => Http.Get(init.cors(ongettourl), timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
-                   (url, data) => Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, cookie: init.cookie, headers: httpHeaders(init)),
+                   ongettourl => httpHydra.Get(ongettourl, addheaders: HeadersModel.Init("cookie", init.cookie)),
                    streamfile => streamfile,
                    requesterror: () => proxyManager.Refresh()
                 );

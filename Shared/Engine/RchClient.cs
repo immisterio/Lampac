@@ -124,7 +124,7 @@ namespace Shared.Engine
 
         bool enableRhub, rhub_fallback;
 
-        public bool enable => init.rhub && enableRhub;
+        public bool enable => init != null && init.rhub && enableRhub;
 
         public string connectionMsg { get; private set; }
 
@@ -175,9 +175,9 @@ namespace Shared.Engine
             _= SendHub("evalrun", data).ConfigureAwait(false);
         }
 
-        async public Task<string> Eval(string data)
+        public Task<string> Eval(string data)
         {
-            return await SendHub("eval", data).ConfigureAwait(false);
+            return SendHub("eval", data);
         }
 
         async public Task<T> Eval<T>(string data, bool IgnoreDeserializeObject = false)
@@ -227,12 +227,12 @@ namespace Shared.Engine
         #endregion
 
         #region Get
-        async public ValueTask<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
+        public Task<string> Get(string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
         {
-            return await SendHub(url, null, headers, useDefaultHeaders).ConfigureAwait(false);
+            return SendHub(url, null, headers, useDefaultHeaders);
         }
 
-        async public ValueTask<T> Get<T>(string url, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
+        async public Task<T> Get<T>(string url, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {
@@ -253,12 +253,12 @@ namespace Shared.Engine
         #endregion
 
         #region Post
-        async public ValueTask<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) 
+        public Task<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) 
         {
-            return await SendHub(url, data, headers, useDefaultHeaders).ConfigureAwait(false);
+            return SendHub(url, data, headers, useDefaultHeaders);
         }
 
-        async public ValueTask<T> Post<T>(string url, string data, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
+        async public Task<T> Post<T>(string url, string data, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, bool useDefaultHeaders = true)
         {
             try
             {

@@ -45,11 +45,7 @@ namespace Online.Controllers
             #region media
             var cache = await InvokeCacheResult<JArray>($"{init.plugin}:view:{movieid}", 20, async e =>
             {
-                string uri = $"{init.host}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movieid}";
-                
-                var root = rch.enable 
-                    ? await rch.Get<JArray>(init.cors(uri), httpHeaders(init))
-                    : await Http.Get<JArray>(init.cors(uri), timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await httpHydra.Get<JArray>($"{init.corsHost()}/balancer-api/proxy/playlists/catalog-api/episodes?content-id={movieid}");
 
                 if (root == null || root.Count == 0)
                     return e.Fail("data");

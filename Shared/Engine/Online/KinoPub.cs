@@ -12,19 +12,17 @@ namespace Shared.Engine.Online
         #region KinoPubInvoke
         string host, token;
         string apihost;
-        Func<string, ValueTask<string>> onget;
+        Func<string, Task<string>> onget;
         Func<string, string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
-        public KinoPubInvoke(string host, string apihost, string token, Func<string, ValueTask<string>> onget, Func<string, string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KinoPubInvoke(string host, string apihost, string token, Func<string, Task<string>> onget, Func<string, string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.token = token;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.requesterror = requesterror;
         }
         #endregion

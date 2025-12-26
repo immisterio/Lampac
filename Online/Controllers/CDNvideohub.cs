@@ -17,11 +17,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<JObject>($"cdnvideohub:view:{kinopoisk_id}", 30, async e =>
             {
-                string uri = $"{init.corsHost()}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}";
-
-                var root = rch.enable 
-                    ? await rch.Get<JObject>(uri, httpHeaders(init)) 
-                    : await Http.Get<JObject>(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}");
 
                 if (root == null || !root.ContainsKey("items"))
                     return e.Fail("root", refresh_proxy: true);
@@ -162,11 +158,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<string>(rch.ipkey($"cdnvideohub:video:{vkId}", proxyManager), 20, async e =>
             {
-                string uri = $"{init.corsHost()}/api/v1/player/sv/video/{vkId}";
-
-                string iframe = rch.enable
-                    ? await rch.Get(init.cors(uri), httpHeaders(init))
-                    : await Http.Get(uri, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                string iframe = await httpHydra.Get($"{init.corsHost()}/api/v1/player/sv/video/{vkId}");
 
                 if (iframe == null)
                     return e.Fail("iframe", refresh_proxy: true);

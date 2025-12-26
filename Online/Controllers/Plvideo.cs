@@ -22,11 +22,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<Item[]>($"plvideo:view:{searchTitle}:{year}", 40, async e =>
             {
-                string uri = $"v1/videos?Type=video&Query={HttpUtility.UrlEncode($"{title} {year}")}&From=0&Size=20&Aud=16&Qf=false";
-
-                var root = rch.enable 
-                    ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) 
-                    : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await httpHydra.Get<JObject>($"{init.host}/v1/videos?Type=video&Query={HttpUtility.UrlEncode($"{title} {year}")}&From=0&Size=20&Aud=16&Qf=false");
 
                 if (root == null || !root.ContainsKey("items"))
                     return e.Fail("content", refresh_proxy: true);
@@ -78,11 +74,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<Dictionary<string, Profile>>($"plvideo:play:{linkid}", 20, async e =>
             {
-                string uri = $"v1/videos/{linkid}?Aud=16";
-
-                var root = rch.enable 
-                    ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) 
-                    : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await httpHydra.Get<JObject>($"{init.host}/v1/videos/{linkid}?Aud=16");
 
                 if (root == null || !root.ContainsKey("item"))
                     return e.Fail("item", refresh_proxy: true);

@@ -793,6 +793,7 @@ namespace Shared
 
         public OnlinesSettings CDNvideohub { get; set; } = new OnlinesSettings("CDNvideohub", "kwwsv=22sodsl1fgqylghrkxe1frp", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors")
         {
+            httpversion = 2,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("referer", "encrypt:kwwsv=22kgnlqr1sxe2"),
                 ("sec-fetch-dest", "empty"),
@@ -861,6 +862,7 @@ namespace Shared
         /// </summary>
         public OnlinesSettings VideoDB { get; set; } = new OnlinesSettings("VideoDB", "kwwsv=22nlqrjr1phgld", "kwwsv=2263ei6:<31reuxw1vkrz", streamproxy: true, rch_access: "apk", stream_access: "apk,cors,web")
         {
+            httpversion = 2,
             priorityBrowser = "http",
             imitationHuman = true,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
@@ -891,6 +893,7 @@ namespace Shared
 
         public OnlinesSettings VDBmovies { get; set; } = new OnlinesSettings("VDBmovies", "kwwsv=22fgqprylhv0vwuhdp1rqolqh", streamproxy: true, rch_access: "apk", stream_access: "apk")
         {
+            httpversion = 2,
             geostreamproxy = ["ALL"],
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-storage-access", "active"),
@@ -909,6 +912,7 @@ namespace Shared
         public OnlinesSettings FanCDN { get; set; } = new OnlinesSettings("FanCDN", "kwwsv=22p|idqvhuldo1qhw", streamproxy: true, rch_access: "apk")
         {
             enable = false,
+            httpversion = 2,
             imitationHuman = true,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("sec-fetch-storage-access", "active"),
@@ -925,6 +929,7 @@ namespace Shared
 
         public KinobaseSettings Kinobase { get; set; } = new KinobaseSettings("Kinobase", "kwwsv=22nlqredvh1ruj", true, hdr: true) 
         {
+            httpversion = 2,
             stream_access = "apk,cors,web",
             geostreamproxy = ["ALL"]
         };
@@ -985,6 +990,7 @@ namespace Shared
         /// </summary>
         public OnlinesSettings Vibix { get; set; } = new OnlinesSettings("Vibix", "kwwsv=22ylel{1ruj", enable: false, rch_access: "apk", stream_access: "apk,cors,web")
         {
+            httpversion = 2,
             headers = Http.defaultFullHeaders
         };
 
@@ -1014,6 +1020,7 @@ namespace Shared
         /// </summary>
         public KinoPubSettings KinoPub { get; set; } = new KinoPubSettings("KinoPub", "https://api.srvkp.com")
         {
+            httpversion = 2,
             filetype = "hls", // hls | hls4 | mp4
             stream_access = "apk,cors,web",
             headers = HeadersModel.Init(Http.defaultFullHeaders,
@@ -1035,6 +1042,7 @@ namespace Shared
         {
             enable = true,
             streamproxy = true,
+            httpversion = 2,
             headers = Http.defaultFullHeaders
         };
 
@@ -1142,7 +1150,10 @@ namespace Shared
         /// </summary>
         public OnlinesSettings AnilibriaOnline { get; set; } = new OnlinesSettings("AnilibriaOnline", "kwwsv=22dsl1dqloleuld1wy", enable: false);
 
-        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dsl1dqloleuld1dss", stream_access: "apk,cors,web");
+        public OnlinesSettings AniLiberty { get; set; } = new OnlinesSettings("AniLiberty", "kwwsv=22dsl1dqloleuld1dss", stream_access: "apk,cors,web")
+        {
+            httpversion = 2
+        };
 
         /// <summary>
         /// aHR0cHM6Ly9hbmlsaWIubWU=
@@ -1150,6 +1161,7 @@ namespace Shared
         public OnlinesSettings AnimeLib { get; set; } = new OnlinesSettings("AnimeLib", "kwwsv=22dsl1fgqolev1ruj", streamproxy: true, stream_access: "apk")
         {
             enable = false,
+            httpversion = 2,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("origin", "encrypt:kwwsv=22dqlphole1ruj"),
                 ("referer", "encrypt:kwwsv=22dqlphole1ruj2"),
@@ -1169,17 +1181,24 @@ namespace Shared
 
         public OnlinesSettings AniMedia { get; set; } = new OnlinesSettings("AniMedia", "kwwsv=22dphgld1rqolqh");
 
-        public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors");
+        public OnlinesSettings Animevost { get; set; } = new OnlinesSettings("Animevost", "kwwsv=22dqlphyrvw1ruj", streamproxy: true, rch_access: "apk,cors", stream_access: "apk,cors")
+        {
+            httptimeout = 10
+        };
 
         public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("MoonAnime", "kwwsv=22dsl1prrqdqlph1duw", token: ";98iHI0H5h4Ef05fd7640h9D4830:;3GIG0:6:F9E", stream_access: "apk,cors,web") 
         { 
             geo_hide = ["RU", "BY"] 
         };
 
-        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("Animebesst", "kwwsv=22dqlph41ehvw", rch_access: "apk", stream_access: "apk,cors,web");
+        public OnlinesSettings Animebesst { get; set; } = new OnlinesSettings("Animebesst", "kwwsv=22dqlph41ehvw", rch_access: "apk", stream_access: "apk,cors,web")
+        {
+            httpversion = 2
+        };
 
         public OnlinesSettings AnimeGo { get; set; } = new OnlinesSettings("AnimeGo", "kwwsv=22dqlphjr1ph", streamproxy: true, enable: false)
         {
+            httpversion = 2,
             headers_stream = HeadersModel.Init(
                 ("origin", "https://aniboom.one"),
                 ("referer", "https://aniboom.one/")

@@ -12,26 +12,22 @@ namespace Shared.Engine.Online
         #region iRemuxInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
-        Func<string, string, ValueTask<string>> onpost;
+        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
-        public iRemuxInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public iRemuxInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
-            this.onpost = onpost;
             this.requesterror = requesterror;
         }
         #endregion
 
         #region Embed
-        async public ValueTask<EmbedModel> Embed(string title, string original_title, int year, string link)
+        async public Task<EmbedModel> Embed(string title, string original_title, int year, string link)
         {
             var result = new EmbedModel();
 
@@ -169,7 +165,7 @@ namespace Shared.Engine.Online
 
 
         #region Weblink
-        async public ValueTask<string> Weblink(string linkid)
+        async public Task<string> Weblink(string linkid)
         {
             string html = await onget($"https://cloud.mail.ru/public/{linkid}");
             if (html == null)

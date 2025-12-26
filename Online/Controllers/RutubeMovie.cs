@@ -25,9 +25,7 @@ namespace Online.Controllers
             {
                 string uri = $"api/search/video/?content_type=video&duration=movie&query={HttpUtility.UrlEncode($"{title} {year}")}";
 
-                var root = rch.enable 
-                    ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) 
-                    : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await httpHydra.Get<JObject>($"{init.host}/{uri}");
 
                 if (root == null || !root.ContainsKey("results"))
                     return e.Fail("content", refresh_proxy: true);
@@ -85,11 +83,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<string>($"rutubemovie:play:{linkid}", 20, async e =>
             {
-                string uri = $"api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp";
-
-                var root = rch.enable 
-                    ? await rch.Get<JObject>($"{init.host}/{uri}", httpHeaders(init)) 
-                    : await Http.Get<JObject>($"{init.host}/{uri}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                var root = await httpHydra.Get<JObject>($"{init.host}/api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp");
 
                 if (root == null || !root.ContainsKey("video_balancer"))
                     return e.Fail("video_balancer", refresh_proxy: true);

@@ -11,19 +11,17 @@ namespace Shared.Engine.Online
         #region RedheadsoundInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
-        Func<string, string, ValueTask<string>> onpost;
+        Func<string, Task<string>> onget;
+        Func<string, string, Task<string>> onpost;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
-        public RedheadsoundInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public RedheadsoundInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.onpost = onpost;
             this.requesterror = requesterror;
         }

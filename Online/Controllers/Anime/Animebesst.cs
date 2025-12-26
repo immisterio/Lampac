@@ -24,9 +24,7 @@ namespace Online.Controllers
                 {
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
 
-                    string search = rch.enable 
-                        ? await rch.Post($"{init.corsHost()}/index.php?do=search", data, httpHeaders(init)) 
-                        : await Http.Post($"{init.corsHost()}/index.php?do=search", data, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    string search = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", data);
 
                     if (search == null)
                         return e.Fail("search");
@@ -94,9 +92,7 @@ namespace Online.Controllers
                 #region Серии
                 var cache = await InvokeCacheResult<List<(string episode, string name, string uri)>>($"animebesst:playlist:{uri}", 30, async e =>
                 {
-                    string news = rch.enable 
-                        ? await rch.Get(uri, httpHeaders(init)) 
-                        : await Http.Get(uri, timeoutSeconds: 10, proxy: proxy, headers: httpHeaders(init));
+                    string news = await httpHydra.Get(uri);
 
                     if (news == null)
                         return e.Fail("news", refresh_proxy: true);
@@ -169,9 +165,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<string>($"animebesst:video:{uri}", 30, async e =>
             {
-                string iframe = rch.enable
-                    ? await rch.Get(init.cors($"https://{uri}"), httpHeaders(init))
-                    : await Http.Get(init.cors($"https://{uri}"), referer: init.host, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init), httpversion: 2);
+                string iframe = await httpHydra.Get($"https://{uri}", addheaders: HeadersModel.Init("referer", init.host));
 
                 if (iframe == null)
                     return e.Fail("iframe", refresh_proxy: true);

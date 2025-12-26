@@ -256,7 +256,7 @@ namespace Online.Controllers
         }
 
 
-        async ValueTask<SearchResult> Search(string title, string original_title, int year, bool similar)
+        async Task<SearchResult> Search(string title, string original_title, int year, bool similar)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;

@@ -28,13 +28,13 @@ namespace Shared.Engine.Online
         #region KinoukrInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
-        Func<string, string, ValueTask<string>> onpost;
+        Func<string, Task<string>> onget;
+        Func<string, string, Task<string>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
 
-        public KinoukrInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string, ValueTask<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KinoukrInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
@@ -47,7 +47,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(string original_title, int year, string href)
+        public async Task<EmbedModel> Embed(string original_title, int year, string href)
         {
             if (string.IsNullOrWhiteSpace(href) && (string.IsNullOrWhiteSpace(original_title) || year == 0))
                 return null;
@@ -161,7 +161,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EmbedKurwa
-        public async ValueTask<EmbedModel> EmbedKurwa(int clarification, string title, string original_title, int year, string href)
+        public async Task<EmbedModel> EmbedKurwa(int clarification, string title, string original_title, int year, string href)
         {
             string iframeUri = href;
             var result = new EmbedModel();
@@ -282,7 +282,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region getIframeSource
-        public async ValueTask<string> getIframeSource(string link)
+        public async Task<string> getIframeSource(string link)
         {
             if (string.IsNullOrWhiteSpace(link))
                 return null;
@@ -339,7 +339,7 @@ namespace Shared.Engine.Online
 
             if (result.source_type == "ashdi")
             {
-                var invk = new AshdiInvoke(host, apihost, onget, onstreamfile, onlog: onlog, requesterror: requesterror);
+                var invk = new AshdiInvoke(host, apihost, onget, onstreamfile, requesterror: requesterror);
                 int.TryParse(t, out int _t);
 
                 var md = new Models.Online.Ashdi.EmbedModel()

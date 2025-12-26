@@ -12,24 +12,22 @@ namespace Shared.Engine.Online
         #region AshdiInvoke
         string host;
         string apihost;
-        Func<string, ValueTask<string>> onget;
+        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
 
-        public AshdiInvoke(string host, string apihost, Func<string, ValueTask<string>> onget, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public AshdiInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
             this.onget = onget;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
             this.requesterror = requesterror;
         }
         #endregion
 
         #region Embed
-        public async ValueTask<EmbedModel> Embed(long kinopoisk_id)
+        public async Task<EmbedModel> Embed(long kinopoisk_id)
         {
             string product = await onget.Invoke($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}");
             if (product == null)

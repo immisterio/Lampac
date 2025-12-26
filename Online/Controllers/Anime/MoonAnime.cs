@@ -34,7 +34,7 @@ namespace Online.Controllers
                             if (string.IsNullOrEmpty(arg.Split("=")?[1]))
                                 return null;
 
-                            var search = await Http.Get<JObject>($"{init.corsHost()}/api/2.0/titles?api_key={init.token}&limit=20" + arg, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                            var search = await httpHydra.Get<JObject>($"{init.corsHost()}/api/2.0/titles?api_key={init.token}&limit=20" + arg);
                             if (search == null || !search.ContainsKey("anime_list"))
                                 return null;
 
@@ -93,7 +93,7 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(key, out JArray root))
                     {
-                        root = await Http.Get<JArray>($"{init.corsHost()}/api/2.0/title/{animeid}/videos?api_key={init.token}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/2.0/title/{animeid}/videos?api_key={init.token}");
                         if (root == null)
                             return OnError(proxyManager);
 

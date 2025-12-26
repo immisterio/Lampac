@@ -266,9 +266,7 @@ namespace Online.Controllers
                         ));
 
                         reset_playlist:
-                        string html = rch.enable 
-                            ? await rch.Get(iframe, cache.header) 
-                            : await Http.Get(iframe, timeoutSeconds: 8, proxy: proxy, headers: cache.header);
+                        string html = await httpHydra.Get(iframe, newheaders: cache.header);
 
                         if (html != null)
                         {
@@ -292,9 +290,7 @@ namespace Online.Controllers
                                     ("x-csrf-token", csrftoken)
                                 ));
 
-                                cache.playlist = rch.enable 
-                                    ? await rch.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", cache.header) 
-                                    : await Http.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: cache.header, IgnoreDeserializeObject: true);
+                                cache.playlist = await httpHydra.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", newheaders: cache.header, IgnoreDeserializeObject: true);
 
                                 if (cache.playlist != null && cache.playlist.Count > 0)
                                 {
@@ -326,9 +322,7 @@ namespace Online.Controllers
                         episode = Regex.Replace(episode, "^/playlist/", "/");
                         episode = Regex.Replace(episode, "\\.txt$", "");
 
-                        urim3u8 = rch.enable 
-                            ? await rch.Post($"https://{vid}.{cache.href}/playlist/{episode}.txt", "", cache.header) 
-                            : await Http.Post($"https://{vid}.{cache.href}/playlist/{episode}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: cache.header);
+                        urim3u8 = await httpHydra.Post($"https://{vid}.{cache.href}/playlist/{episode}.txt", "", newheaders: cache.header);
                     }
 
                     if (string.IsNullOrEmpty(urim3u8) || !urim3u8.Contains("/index.m3u8"))
@@ -372,11 +366,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<JArray>($"hdvb:search:{title}", 40, async e =>
             {
-                string uri = $"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}";
-
-                var root = rch.enable 
-                    ? await rch.Get<JArray>(uri) 
-                    : await Http.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxy);
+                var root = await httpHydra.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}");
 
                 if (root == null)
                     return e.Fail("results");
@@ -416,11 +406,7 @@ namespace Online.Controllers
 
             if (!hybridCache.TryGetValue(memKey, out JArray root, inmemory: false))
             {
-                string uri = $"{init.host}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}";
-
-                root = rch.enable 
-                    ? await rch.Get<JArray>(uri) 
-                    : await Http.Get<JArray>(uri, timeoutSeconds: 8, proxy: proxyManager.Get());
+                root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}");
 
                 if (root == null)
                 {
