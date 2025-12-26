@@ -171,11 +171,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(EmbedModel result, string args, long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
+        #region Tpl
+        public ITplResult Tpl(EmbedModel result, string args, long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string t, int s, bool rjson = false, bool bwa = false)
         {
             if (result?.media == null || result.media.Length == 0)
-                return string.Empty;
+                return default;
 
             if (!string.IsNullOrEmpty(args))
                 args = $"&{args.Remove(0, 1)}";
@@ -209,7 +209,7 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
                 #endregion
             }
             else
@@ -231,7 +231,7 @@ namespace Shared.Engine.Online
                             tpl.Append($"{media.season_id} сезон", link, media.season_id);
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return tpl;
                     }
                     else
                     {
@@ -265,7 +265,7 @@ namespace Shared.Engine.Online
                         if (string.IsNullOrEmpty(t))
                             t = "0";
 
-                        var etpl = new EpisodeTpl();
+                        var etpl = new EpisodeTpl(vtpl);
                         string sArhc = s.ToString();
 
                         foreach (var media in result.media)
@@ -304,15 +304,12 @@ namespace Shared.Engine.Online
                             }
                         }
 
-                        if (rjson)
-                            return etpl.ToJson(vtpl);
-
-                        return vtpl.ToHtml() + etpl.ToHtml();
+                        return etpl;
                     }
                 }
                 catch
                 {
-                    return string.Empty;
+                    return default;
                 }
                 #endregion
             }

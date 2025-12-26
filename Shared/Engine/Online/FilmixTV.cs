@@ -191,11 +191,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(Models.Online.FilmixTV.RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
+        #region Tpl
+        public ITplResult Tpl(Models.Online.FilmixTV.RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
         {
             if (root == null)
-                return string.Empty;
+                return default;
 
             #region Сериал
             if (root.SerialVoice != null)
@@ -228,7 +228,7 @@ namespace Shared.Engine.Online
                         }
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                     #endregion
                 }
                 else
@@ -260,9 +260,9 @@ namespace Shared.Engine.Online
                     var selectedSeason = root.SerialVoice.ElementAt(t).Value.FirstOrDefault(x => x.Value.season == s);
 
                     if (selectedSeason.Value.episodes == null)
-                        return string.Empty;
+                        return default;
 
-                    var etpl = new EpisodeTpl(selectedSeason.Value.episodes.Count);
+                    var etpl = new EpisodeTpl(vtpl, selectedSeason.Value.episodes.Count);
 
                     foreach (var episode in selectedSeason.Value.episodes)
                     {
@@ -281,10 +281,7 @@ namespace Shared.Engine.Online
                         etpl.Append($"{episode.Key.TrimStart('e')} серия", title ?? original_title, selectedSeason.Value.season.ToString(), episode.Key.TrimStart('e'), streamquality.Firts().link, streamquality: streamquality, vast: vast);
                     }
 
-                    if (rjson)
-                        return etpl.ToJson(vtpl);
-
-                    return vtpl.ToHtml() + etpl.ToHtml();
+                    return etpl;
                 }
             }
             #endregion
@@ -318,11 +315,11 @@ namespace Shared.Engine.Online
                     mtpl.Append(item.voiceover, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
             }
             #endregion
 
-            return string.Empty;
+            return default;
         }
         #endregion
     }

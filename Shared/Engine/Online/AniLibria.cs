@@ -54,11 +54,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(List<RootObject> result, string title, string code, int year, bool rjson = false, VastConf vast = null, bool similar = false)
+        #region Tpl
+        public ITplResult Tpl(List<RootObject> result, string title, string code, int year, bool rjson = false, VastConf vast = null, bool similar = false)
         {
             if (result == null || result.Count == 0)
-                return string.Empty;
+                return default;
 
             string stitle = StringConvert.SearchName(title);
 
@@ -97,7 +97,7 @@ namespace Shared.Engine.Online
                     etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
-                return rjson ? etpl.ToJson() : etpl.ToHtml();
+                return etpl;
                 #endregion
             }
             else
@@ -117,7 +117,7 @@ namespace Shared.Engine.Online
                     stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}", PosterApi.Size(img));
                 }
 
-                return rjson ? stpl.ToJson() : stpl.ToHtml();
+                return stpl;
                 #endregion
             }
         }

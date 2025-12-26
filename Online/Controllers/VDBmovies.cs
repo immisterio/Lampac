@@ -101,11 +101,11 @@ namespace Online.Controllers
                 }
 
                 if (similar || string.IsNullOrEmpty(orid))
-                    return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return ContentTo(stpl);
             }
-            #endregion
+        #endregion
 
-            reset: 
+            rhubFallback: 
             var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vdbmovies:{orid}:{kinopoisk_id}", proxyManager), 20, async e =>
             {
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
@@ -128,9 +128,9 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson));
         }
 
         #region black_magic

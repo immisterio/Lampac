@@ -35,7 +35,7 @@ namespace Online.Controllers
                 );
 
                 if (similar)
-                    return ContentTo(rjson ? res.similars.Value.ToJson() : res.similars.Value.ToHtml());
+                    return ContentTo(res.similars.Value);
 
                 if (res != null)
                     postid = res.id;
@@ -45,7 +45,7 @@ namespace Online.Controllers
                     postid = await searchKp(kinopoisk_id);
 
                 if (postid == 0 && res?.similars != null)
-                    return ContentTo(rjson ? res.similars.Value.ToJson() : res.similars.Value.ToHtml());
+                    return ContentTo(res.similars.Value);
             }
 
             if (postid == 0)
@@ -114,7 +114,7 @@ namespace Online.Controllers
                         mtpl.Append(movie.Value<string>("name"), streamquality.Firts().link, streamquality: streamquality, vast: init.vast);
                     }
 
-                    return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                    return ContentTo(mtpl);
                     #endregion
                 }
                 else
@@ -142,7 +142,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        return ContentTo(tpl);
                         #endregion
                     }
                     else
@@ -173,8 +173,7 @@ namespace Online.Controllers
                         #endregion
 
                         #region Серии
-                        var etpl = new EpisodeTpl();
-                        string sArhc = s.ToString();
+                        var etpl = new EpisodeTpl(vtpl);
 
                         foreach (var episode in root[t].Value<JArray>("seasons").FirstOrDefault(i => i.Value<int>("season") == s).Value<JObject>("episodes").ToObject<Dictionary<string, JObject>>().Values)
                         {
@@ -193,14 +192,11 @@ namespace Online.Controllers
                             }
 
                             int e = episode.Value<int>("episode");
-                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), streamquality.Firts().link, streamquality: streamquality, vast: init.vast);
+                            etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), streamquality.Firts().link, streamquality: streamquality, vast: init.vast);
                         }
                         #endregion
 
-                        if (rjson)
-                            return ContentTo(etpl.ToJson(vtpl));
-
-                        return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                        return ContentTo(etpl);
                     }
                     #endregion
                 }

@@ -32,11 +32,14 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
-            var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", 40, () => oninvk.Embed(title, original_title, year, href));
+            var content = await InvokeCache($"remux:{title}:{original_title}:{year}:{href}", 40, 
+                () => oninvk.Embed(title, original_title, year, href)
+            );
+
             if (content == null)
                 return OnError();
 
-            return ContentTo(oninvk.Html(content, title, original_title, year, rjson: rjson));
+            return ContentTo(oninvk.Tpl(content, title, original_title, year));
         }
 
 

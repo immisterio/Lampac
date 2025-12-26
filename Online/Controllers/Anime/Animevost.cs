@@ -16,7 +16,7 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            reset:
+            rhubFallback:
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск
@@ -71,7 +71,7 @@ namespace Online.Controllers
                 });
 
                 if (IsRhubFallback(cache))
-                    goto reset;
+                    goto rhubFallback;
 
                 if (!similar && cache.Value != null && cache.Value.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
@@ -79,7 +79,7 @@ namespace Online.Controllers
                 return OnResult(cache, () =>
                 {
                     if (cache.Value.Count == 0)
-                        return string.Empty;
+                        return default;
 
                     var stpl = new SimilarTpl(cache.Value.Count);
 
@@ -89,8 +89,7 @@ namespace Online.Controllers
                         stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.img));
                     }
 
-                    return rjson ? stpl.ToJson() : stpl.ToHtml();
-
+                    return stpl;
                 });
                 #endregion
             }
@@ -128,7 +127,7 @@ namespace Online.Controllers
                 });
 
                 if (IsRhubFallback(cache))
-                    goto reset;
+                    goto rhubFallback;
 
                 return OnResult(cache, () =>
                 {
@@ -141,8 +140,7 @@ namespace Online.Controllers
                         etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
-                    return rjson ? etpl.ToJson() : etpl.ToHtml();
-
+                    return etpl;
                 });
                 #endregion
             }
@@ -170,7 +168,7 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<List<(string l, string q)>>($"animevost:video:{id}", 20, async e =>
             {
                 string uri = $"{init.corsHost()}/frame5.php?play={id}&old=1";
@@ -196,7 +194,7 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
             if (cache.IsSuccess && play)
                 return Redirect(HostStreamProxy(cache.Value[0].l));

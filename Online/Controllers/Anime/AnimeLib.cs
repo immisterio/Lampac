@@ -99,7 +99,7 @@ namespace Online.Controllers
                     foreach (var res in catalog)
                         stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}", PosterApi.Size(res.cover));
 
-                    return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return ContentTo(stpl);
                 });
                 #endregion
             }
@@ -165,7 +165,7 @@ namespace Online.Controllers
                     }
                     #endregion
 
-                    var etpl = new EpisodeTpl(episodes.Length);
+                    var etpl = new EpisodeTpl(vtpl, episodes.Length);
 
                     foreach (var episode in episodes)
                     {
@@ -176,10 +176,7 @@ namespace Online.Controllers
                         etpl.Append($"{episode.number} серия", name, episode.season, episode.number, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
-                    if (rjson)
-                        return ContentTo(etpl.ToJson(vtpl));
-
-                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                    return ContentTo(etpl);
                 });
                 #endregion
             }
@@ -209,7 +206,7 @@ namespace Online.Controllers
             if (!play && rch.IsRequiredConnected())
                 return ContentTo(rch.connectionMsg);
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<Player[]>($"animelib:video:{id}", 30, async e =>
             {
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
@@ -226,7 +223,7 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg);

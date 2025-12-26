@@ -101,7 +101,7 @@ namespace Online.Controllers
 
                     mtpl.Append(quality ?? title, stream, vast: init.vast);
 
-                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                    return mtpl;
                     #endregion
                 }
                 else
@@ -125,7 +125,7 @@ namespace Online.Controllers
                             tpl.Append($"{season} сезон", link, season);
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return tpl;
                     }
                     else
                     {
@@ -144,13 +144,12 @@ namespace Online.Controllers
                             etpl.Append(name ?? $"{episode.Value<int>("episode")} серия", title ?? original_title, sArhc, episode.Value<int>("episode").ToString(), stream, vast: init.vast);
                         }
 
-                        return rjson ? etpl.ToJson() : etpl.ToHtml();
+                        return etpl;
                     }
                     #endregion
                 }
             });
         }
-
 
         #region search
         async ValueTask<JToken> search(string codeauth, int serial, string imdb_id, long kinopoisk_id, string title, string original_title)

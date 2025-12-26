@@ -22,7 +22,7 @@ namespace Online.Controllers
             if (data == null)
                 return OnError();
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vibix:iframe:{data.iframe_url}:{init.token}", proxyManager), 20, async e =>
             {
                 string api_url = data.iframe_url
@@ -52,7 +52,7 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
             if (data.type == "movie")
             {

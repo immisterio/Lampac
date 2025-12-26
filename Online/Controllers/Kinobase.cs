@@ -54,7 +54,7 @@ namespace Online.Controllers
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
-                    return OnResult(search, () => rjson ? search.Value.similar.Value.ToJson() : search.Value.similar.Value.ToHtml());
+                    return OnResult(search, () => search.Value.similar.Value);
 
                 if (string.IsNullOrEmpty(search.Value?.link))
                     return OnError();
@@ -72,13 +72,10 @@ namespace Online.Controllers
                 return e.Success(content);
             });
 
-            return OnResult(cache, () => 
-            {
-                if (cache.Value.IsEmpty)
-                    return ShowErrorString(cache.Value.errormsg);
+            if (cache.IsSuccess && cache.Value.IsEmpty)
+                return ShowError(cache.Value.errormsg);
 
-                return oninvk.Html(cache.Value, title, href, s, t, rjson);
-            });
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, title, href, s, t, rjson));
         }
 
         #region black_magic

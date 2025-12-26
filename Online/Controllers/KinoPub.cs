@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Shared.Models.Online.KinoPub;
 using Shared.Models.Online.Settings;
 
 namespace Online.Controllers
@@ -99,7 +98,7 @@ namespace Online.Controllers
                     if (search.Value.similars == null)
                         return OnError();
 
-                    return ContentTo(rjson ? search.Value.similars.Value.ToJson() : search.Value.similars.Value.ToHtml());
+                    return ContentTo(search.Value.similars.Value);
                 }
 
                 postid = search.Value.id;
@@ -109,7 +108,7 @@ namespace Online.Controllers
                 () => oninvk.Post(postid)
             );
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson));
         }
 
 

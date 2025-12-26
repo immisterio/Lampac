@@ -63,7 +63,7 @@ namespace Online.Controllers
                     mtpl.Append(translation, link, "call", streamlink, voice_name: uhd ? "2160p" : quality, quality: uhd ? "2160p" : "");
                 }
 
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                return ContentTo(mtpl);
                 #endregion
             }
             else
@@ -113,7 +113,7 @@ namespace Online.Controllers
                         foreach (int i in seasonNumbers.OrderBy(i => i))
                             tpl.Append($"{i} сезон", $"{host}/lite/mirage?rjson={rjson}&s={i}{defaultargs}", i.ToString());
 
-                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        return ContentTo(tpl);
                     }
                     else
                     {
@@ -122,7 +122,7 @@ namespace Online.Controllers
                         foreach (var season in seasons)
                             tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
 
-                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        return ContentTo(tpl);
                     }
                     #endregion
                 }
@@ -272,10 +272,9 @@ namespace Online.Controllers
                         }
                     }
 
-                    if (rjson)
-                        return ContentTo(etpl.ToJson(vtpl));
+                    etpl.Append(vtpl);
 
-                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                    return ContentTo(etpl);
                 }
                 #endregion
             }
@@ -510,7 +509,7 @@ namespace Online.Controllers
                     stpl.Append(j.Value<string>("name") ?? j.Value<string>("original_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
                 }
 
-                return rjson ? stpl.ToJson() : stpl.ToHtml();
+                return stpl;
             });
         }
         #endregion

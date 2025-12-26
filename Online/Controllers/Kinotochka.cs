@@ -10,7 +10,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string newsuri, int s = -1, bool rjson = false)
+        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string newsuri, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -26,7 +26,7 @@ namespace Online.Controllers
                 if (s == -1)
                 {
                     #region Сезоны
-                    reset:
+                    rhubFallback:
                     var cache = await InvokeCacheResult<List<(string name, string uri, string season)>>($"kinotochka:seasons:{title}", 30, async e =>
                     {
                         List<(string, string, string)> links = null;
@@ -92,7 +92,7 @@ namespace Online.Controllers
                     });
 
                     if (IsRhubFallback(cache))
-                        goto reset;
+                        goto rhubFallback;
 
                     return OnResult(cache, () =>
                     {
@@ -101,15 +101,14 @@ namespace Online.Controllers
                         foreach (var l in cache.Value)
                             tpl.Append(l.name, l.uri, l.season);
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
-
+                        return tpl;
                     });
                     #endregion
                 }
                 else
                 {
                     #region Серии
-                    reset: 
+                    rhubFallback: 
                     var cache = await InvokeCacheResult<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", 30, async e =>
                     {
                         string news = rch.enable 
@@ -156,7 +155,7 @@ namespace Online.Controllers
                     });
 
                     if (IsRhubFallback(cache))
-                        goto reset;
+                        goto rhubFallback;
 
                     return OnResult(cache, () =>
                     {
@@ -165,8 +164,7 @@ namespace Online.Controllers
                         foreach (var l in cache.Value)
                             etpl.Append(l.name, title, s.ToString(), Regex.Match(l.name, "^([0-9]+)").Groups[1].Value, HostStreamProxy(l.uri), vast: init.vast);
 
-                        return rjson ? etpl.ToJson() : etpl.ToHtml();
-
+                        return etpl;
                     });
                     #endregion
                 }
@@ -177,7 +175,7 @@ namespace Online.Controllers
                 if (kinopoisk_id == 0)
                     return OnError();
 
-                reset:
+                rhubFallback:
                 var cache = await InvokeCacheResult<EmbedModel>($"kinotochka:view:{kinopoisk_id}", 30, async e =>
                 {
                     string uri = $"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}";
@@ -206,14 +204,14 @@ namespace Online.Controllers
                 });
 
                 if (IsRhubFallback(cache))
-                    goto reset;
+                    goto rhubFallback;
 
                 return OnResult(cache, () => 
                 {
                     var mtpl = new MovieTpl(title, original_title, 1);
                     mtpl.Append("По умолчанию", HostStreamProxy(cache.Value.content), vast: init.vast);
 
-                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                    return mtpl;
                 });
                 #endregion
             }

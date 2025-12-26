@@ -33,15 +33,15 @@ namespace Online.Controllers
                     href = await InvokeCache($"kinoukr:source:{id}", 180, () => oninvk.getIframeSource($"{init.host}/{id}"));
             }
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult($"kinoukr:view:{title}:{original_title}:{year}:{href}:{clarification}", 40, 
                 () => oninvk.EmbedKurwa(clarification, title, original_title, year, href)
             );
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson));
         }
     }
 }

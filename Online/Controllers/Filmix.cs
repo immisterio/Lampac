@@ -60,8 +60,6 @@ namespace Online.Controllers
             if (init.tokens != null && init.tokens.Length > 1)
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
 
-            reset:
-
             var oninvk = new FilmixInvoke
             (
                init,
@@ -78,6 +76,8 @@ namespace Online.Controllers
                rjson: rjson
             );
 
+            rhubFallback:
+
             if (postid == 0)
             {
                 var search = await InvokeCacheResult($"filmix:search:{title}:{original_title}:{year}:{clarification}:{similar}", 40, 
@@ -88,7 +88,7 @@ namespace Online.Controllers
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.id == 0)
-                    return ContentTo(rjson ? search.Value.similars.Value.ToJson() : search.Value.similars.Value.ToHtml());
+                    return ContentTo(search.Value.similars.Value);
 
                 postid = search.Value.id;
             }
@@ -98,9 +98,9 @@ namespace Online.Controllers
             );
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
         }
     }
 }

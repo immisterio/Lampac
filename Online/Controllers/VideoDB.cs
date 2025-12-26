@@ -27,15 +27,15 @@ namespace Online.Controllers
                requesterror: () => proxyManager.Refresh(rch)
             );
 
-            reset: 
+            rhubFallback: 
             var cache = await InvokeCacheResult(rch.ipkey($"videodb:view:{kinopoisk_id}", proxyManager), 20, 
                 () => oninvk.Embed(kinopoisk_id)
             );
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson));
         }
 
 

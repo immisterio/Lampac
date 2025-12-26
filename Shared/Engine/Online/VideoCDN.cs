@@ -1,5 +1,4 @@
-﻿using Org.BouncyCastle.Utilities.IO;
-using Shared.Models.Online.Settings;
+﻿using Shared.Models.Online.Settings;
 using Shared.Models.Online.VideoCDN;
 using Shared.Models.Templates;
 using System.Text;
@@ -236,17 +235,17 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(EmbedModel result, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, bool rjson = false)
+        #region Tpl
+        public ITplResult Tpl(EmbedModel result, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, bool rjson = false)
         {
             if (result == null)
-                return string.Empty;
+                return default;
 
             if (result.type is "movie" or "anime")
             {
                 #region Фильм
                 if (result.movie == null || result.movie.Count == 0)
-                    return string.Empty;
+                    return default;
 
                 var mtpl = new MovieTpl(title, original_title, result.movie.Count);
 
@@ -280,7 +279,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(name, streamquality.Firts().link, streamquality: streamquality);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
                 #endregion
             }
             else
@@ -292,7 +291,7 @@ namespace Shared.Engine.Online
                 try
                 {
                     if (result.serial == null || result.serial.Count == 0)
-                        return string.Empty;
+                        return default;
 
                     if (s == -1)
                     {
@@ -312,7 +311,7 @@ namespace Shared.Engine.Online
                             tpl.Append($"{id} сезон", link, id);
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return tpl;
                     }
                     else
                     {
@@ -339,10 +338,9 @@ namespace Shared.Engine.Online
 
                         var season = result.serial[t].First(i => i.id == s);
                         if (season.folder == null)
-                            return string.Empty;
+                            return default;
 
-                        string sArhc = s.ToString();
-                        var etpl = new EpisodeTpl(season.folder.Length);
+                        var etpl = new EpisodeTpl(vtpl, season.folder.Length);
 
                         foreach (var episode in season.folder)
                         {
@@ -364,18 +362,15 @@ namespace Shared.Engine.Online
 
                             string e = episode.id.Split("_")[1];
 
-                            etpl.Append($"{e} серия", title ?? original_title, sArhc, e, streamquality.Firts().link, streamquality: streamquality);
+                            etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e, streamquality.Firts().link, streamquality: streamquality);
                         }
 
-                        if (rjson)
-                            return etpl.ToJson(vtpl);
-
-                        return vtpl.ToHtml() + etpl.ToHtml();
+                        return etpl;
                     }
                 }
                 catch
                 {
-                    return string.Empty;
+                    return default;
                 }
                 #endregion
             }

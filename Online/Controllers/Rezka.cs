@@ -51,6 +51,7 @@ namespace Online.Controllers
                 oninvk = new RezkaInvoke
                 (
                     host,
+                    "lite/rezka",
                     init,
                     (url, hed) =>
                         rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) :
@@ -129,7 +130,7 @@ namespace Online.Controllers
                     return OnResult(search, () =>
                     {
                         if (search.Value.similar == null)
-                            return string.Empty;
+                            return default;
 
                         var stpl = new SimilarTpl(search.Value.similar.Count);
 
@@ -140,7 +141,7 @@ namespace Online.Controllers
                             stpl.Append(similar.title, similar.year, string.Empty, link, PosterApi.Size(similar.img));
                         }
 
-                        return rjson ? stpl.ToJson() : stpl.ToHtml();
+                        return stpl;
                     });
                 }
 
@@ -153,7 +154,7 @@ namespace Online.Controllers
                 () => oninvk.Embed(href, search_uri)
             );
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
         }
 
 

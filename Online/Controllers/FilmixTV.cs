@@ -84,7 +84,7 @@ namespace Online.Controllers
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.id == 0)
-                    return ContentTo(rjson ? search.Value.similars.Value.ToJson() : search.Value.similars.Value.ToHtml());
+                    return ContentTo(search.Value.similars.Value);
 
                 postid = search.Value.id;
             }
@@ -96,7 +96,7 @@ namespace Online.Controllers
                 return e.Success(oninvk.Post(json));
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
         }
 
 

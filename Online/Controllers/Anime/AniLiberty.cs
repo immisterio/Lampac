@@ -21,7 +21,7 @@ namespace Online.Controllers
                 if (string.IsNullOrEmpty(stitle))
                     return OnError();
 
-                reset:
+                rhubFallback:
                 var cache = await InvokeCacheResult<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", 40, async e =>
                 {
                     string req_uri = $"{init.corsHost()}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}";
@@ -71,7 +71,7 @@ namespace Online.Controllers
                 });
 
                 if (IsRhubFallback(cache))
-                    goto reset;
+                    goto rhubFallback;
 
                 if (!similar && cache.Value != null && cache.Value.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={cache.Value.First().releases}"));
@@ -83,7 +83,7 @@ namespace Online.Controllers
                     foreach (var res in cache.Value)
                         stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={res.releases}", PosterApi.Size(res.cover));
 
-                    return rjson ? stpl.ToJson() : stpl.ToHtml();
+                    return stpl;
 
                 });
                 #endregion
@@ -91,7 +91,7 @@ namespace Online.Controllers
             else 
             {
                 #region Серии
-                reset: 
+                rhubFallback: 
                 var cache = await InvokeCacheResult<JObject>($"aniliberty:releases:{releases}", 20, async e =>
                 {
                     string req_uri = $"{init.corsHost()}/api/v1/anime/releases/{releases}";
@@ -107,7 +107,7 @@ namespace Online.Controllers
                 });
 
                 if (IsRhubFallback(cache))
-                    goto reset;
+                    goto rhubFallback;
 
                 return OnResult(cache, () =>
                 {
@@ -147,8 +147,7 @@ namespace Online.Controllers
                         etpl.Append(name, title, season, number, streams.Firts().link, streamquality: streams);
                     }
 
-                    return rjson ? etpl.ToJson() : etpl.ToHtml();
-
+                    return etpl;
                 });
                 #endregion
             }

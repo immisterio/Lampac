@@ -109,17 +109,17 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(EmbedModel content, string title, VastConf vast = null, bool rjson = false)
+        #region Tpl
+        public ITplResult Tpl(EmbedModel content, string title, VastConf vast = null, bool rjson = false)
         {
             if (content == null || content.IsEmpty)
-                return string.Empty;
+                return default;
 
             var mtpl = new MovieTpl(title, null, 1);
 
             mtpl.Append("1080p", onstreamfile(content.iframe.Replace("&amp;", "&")));
 
-            return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+            return mtpl;
         }
         #endregion
     }

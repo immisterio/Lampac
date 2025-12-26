@@ -7,19 +7,32 @@ namespace Shared.Models.Templates
 {
     public struct SeasonTpl : ITplResult
     {
-        public List<(string name, string link, int? id)> data { get; set; }
+        public List<(string name, string link, int? id)> data { get; private set; }
 
-        public string quality = null;
+        public string quality { get; private set; }
 
-        public SeasonTpl() : this(10) { }
+        public VoiceTpl? vtpl { get; private set; }
 
-        public SeasonTpl(int capacity) { data = new List<(string, string, int?)>(capacity); }
 
-        public SeasonTpl(string quality, int capacity = 10) 
+        public SeasonTpl() : this(null, null, 10) { }
+
+        public SeasonTpl(int capacity) : this(null, null, capacity) { }
+
+        public SeasonTpl(string quality) : this(null, quality, 10) { }
+
+        public SeasonTpl(string quality, int capacity) : this(null, quality, capacity) { }
+
+        public SeasonTpl(VoiceTpl vtpl) : this(vtpl, null, 10) { }
+
+        public SeasonTpl(VoiceTpl vtpl, int capacity) : this(vtpl, null, capacity) { }
+
+        public SeasonTpl(VoiceTpl? vtpl, string quality, int capacity)
         {
             data = new List<(string, string, int?)>(capacity);
-            this.quality = quality; 
+            this.vtpl = vtpl;
+            this.quality = quality;
         }
+
 
         public void Append(string name, string link, string id)
         {
@@ -33,18 +46,25 @@ namespace Shared.Models.Templates
                 data.Add((name, link, id));
         }
 
-        public string ToHtml() => ToHtml(null);
-
-        public string ToHtml(in VoiceTpl? vtpl = null)
+        public void Append(VoiceTpl vtpl)
         {
-            if (data.Count == 0)
+            this.vtpl = vtpl;
+        }
+
+
+        public bool IsEmpty() => data == null || data.Count == 0;
+
+
+        public string ToHtml()
+        {
+            if (data == null || data.Count == 0)
                 return string.Empty;
 
             bool firstjson = true;
             var html = new StringBuilder();
 
-            if (vtpl != null)
-                html.Append(vtpl?.ToHtml());
+            if (vtpl.HasValue)
+                html.Append(vtpl.Value.ToHtml());
 
             html.Append("<div class=\"videos__line\">");
 
@@ -60,12 +80,10 @@ namespace Shared.Models.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson() => ToJson(null);
-
-        public string ToJson(in VoiceTpl? vtpl = null)
+        public string ToJson()
         {
-            if (data.Count == 0)
-                return "[]";
+            if (data == null || data.Count == 0)
+                return "{}";
 
             return JsonSerializer.Serialize(new
             {

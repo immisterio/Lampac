@@ -104,11 +104,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(EmbedModel root, int number_of_seasons, long kinopoisk_id, string title, string original_title, string t, int s, bool isbwa = false, bool rjson = false, VastConf vast = null)
+        #region Tpl
+        public ITplResult Tpl(EmbedModel root, int number_of_seasons, long kinopoisk_id, string title, string original_title, string t, int s, bool isbwa = false, bool rjson = false, VastConf vast = null)
         {
             if (root?.pl == null || root.pl.Count == 0)
-                return string.Empty;
+                return default;
 
             if (root.movie)
             {
@@ -145,7 +145,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(name, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
                 #endregion
             }
             else
@@ -164,7 +164,7 @@ namespace Shared.Engine.Online
                         tpl.Append($"{i} сезон", link, i);
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                 }
                 else
                 {
@@ -228,10 +228,9 @@ namespace Shared.Engine.Online
                         }
                     }
 
-                    if (rjson)
-                        return etpl.ToJson(vtpl);
+                    etpl.Append(vtpl);
 
-                    return vtpl.ToHtml() + etpl.ToHtml();
+                    return etpl;
                 }
                 #endregion
             }

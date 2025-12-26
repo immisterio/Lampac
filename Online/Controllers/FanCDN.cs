@@ -101,7 +101,7 @@ namespace Online.Controllers
                streamfile => HostStreamProxy(streamfile)
             );
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"fancdn:{title}", proxyManager), 20, async e =>
             {
                 var result = !string.IsNullOrEmpty(init.token) && kinopoisk_id > 0 
@@ -115,9 +115,9 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast, headers: httpHeaders(init)));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast, headers: httpHeaders(init)));
         }
 
 

@@ -53,7 +53,7 @@ namespace Online.Controllers
                         tpl.Append($"{number} сезон", link, number);
                     }
 
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                    return ContentTo(tpl);
                     #endregion
                 }
                 else
@@ -79,7 +79,7 @@ namespace Online.Controllers
                         }
                     }
 
-                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                    return ContentTo(etpl);
                     #endregion
                 }
                 #endregion
@@ -98,7 +98,7 @@ namespace Online.Controllers
 
                 mtpl.Append("English", uri, method, stream: stream, vast: init.vast, hls_manifest_timeout: hls_manifest_timeout);
 
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                return ContentTo(mtpl);
                 #endregion
             }
         }

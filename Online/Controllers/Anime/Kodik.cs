@@ -113,7 +113,7 @@ namespace Online.Controllers
                 }
 
                 if (string.IsNullOrEmpty(pick))
-                    return ContentTo(res?.stpl == null ? string.Empty : (rjson ? res.stpl.Value.ToJson() : res.stpl.Value.ToHtml()));
+                    return ContentTo(res?.stpl == null ? default : res.stpl.Value);
 
                 content = oninvk.Embed(res.result, pick);
             }
@@ -124,7 +124,7 @@ namespace Online.Controllers
                     return LocalRedirect(accsArgs($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}"));
             }
 
-            return ContentTo(await oninvk.Html(content, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
+            return ContentTo(await oninvk.Tpl(content, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
         }
 
         #region Video

@@ -143,11 +143,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(EmbedModel result, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s, VastConf vast = null, bool rjson = false)
+        #region Tpl
+        public ITplResult Tpl(EmbedModel result, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s, VastConf vast = null, bool rjson = false)
         {
             if (result == null || result.IsEmpty)
-                return string.Empty;
+                return default;
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -164,12 +164,12 @@ namespace Shared.Engine.Online
                     stpl.Append(similar.title, string.Empty, string.Empty, link);
                 }
 
-                return rjson ? stpl.ToJson() : stpl.ToHtml();
+                return stpl;
             }
             #endregion
 
             if (result?.channels == null || result.channels.Length == 0)
-                return string.Empty;
+                return default;
 
             #region Переводы
             var voices = result?.menu?.FirstOrDefault(i => i.title == "Перевод")?.submenu;
@@ -203,31 +203,26 @@ namespace Shared.Engine.Online
                         tpl.Append(ch.title, host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}", sname);
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                 }
                 else
                 {
                     var series = result.channels.First(i => i.title.StartsWith($"{s} ") || i.title.EndsWith($" {s}")).submenu;
 
-                    var tpl = new EpisodeTpl(series.Length);
-
-                    string sArhc = s.ToString();
+                    var etpl = new EpisodeTpl(vtpl, series.Length);
 
                     foreach (var e in series)
                     {
                         string ename = Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value;
-                        tpl.Append(e.title, title ?? original_title, sArhc, ename, onstreamfile(e.stream_url), vast: vast);
+                        etpl.Append(e.title, title ?? original_title, s.ToString(), ename, onstreamfile(e.stream_url), vast: vast);
                     }
 
-                    if (rjson)
-                        return tpl.ToJson(vtpl);
-
-                    return vtpl.ToHtml() + tpl.ToHtml();
+                    return etpl;
                 }
             }
             else
             {
-                var mtpl = new MovieTpl(title, original_title, result.channels.Length);
+                var mtpl = new MovieTpl(title, original_title, vtpl, result.channels.Length);
 
                 foreach (var ch in result!.channels)
                 {
@@ -243,10 +238,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(name, onstreamfile(ch.stream_url), vast: vast);
                 }
 
-                if (rjson)
-                    return mtpl.ToJson(false, vtpl);
-
-                return vtpl.ToHtml() + mtpl.ToHtml();
+                return mtpl;
             }
         }
         #endregion

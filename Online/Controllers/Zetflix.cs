@@ -145,7 +145,7 @@ namespace Online.Controllers
 
             OnLog(log + "\nStart OnResult");
 
-            return ContentTo(oninvk.Html(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast));
+            return ContentTo(oninvk.Tpl(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast));
         }
 
 

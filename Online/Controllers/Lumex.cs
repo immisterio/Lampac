@@ -112,7 +112,7 @@ namespace Online.Controllers
                         hybridCache.Set(key, search, cacheTime(40, init: init));
                     }
 
-                    return ContentTo(rjson ? search.ToJson() : search.ToHtml());
+                    return ContentTo(search);
                 });
             }
 
@@ -274,7 +274,7 @@ namespace Online.Controllers
                 return e.Success(md);
             });
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson));
         }
 
         #region Video

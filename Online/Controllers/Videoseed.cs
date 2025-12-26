@@ -78,7 +78,7 @@ namespace Online.Controllers
                     var mtpl = new MovieTpl(title, original_title, 1);
                     mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}") + "#.m3u8", "call", vast: init.vast);
 
-                    return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                    return ContentTo(mtpl);
                     #endregion
                 }
                 else
@@ -97,7 +97,7 @@ namespace Online.Controllers
                             tpl.Append($"{season.Key} сезон", link, season.Key);
                         }
 
-                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        return ContentTo(tpl);
                     }
                     else
                     {
@@ -112,7 +112,7 @@ namespace Online.Controllers
                             etpl.Append($"{video.Key} серия", title ?? original_title, sArhc, video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}"), "call", vast: init.vast);
                         }
 
-                        return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                        return ContentTo(etpl);
                     }
                     #endregion
                 }

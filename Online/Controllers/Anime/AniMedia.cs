@@ -67,7 +67,7 @@ namespace Online.Controllers
                         stpl.Append(res.title, string.Empty, string.Empty, uri, PosterApi.Size(res.img));
                     }
 
-                    return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return ContentTo(stpl);
                 });
                 #endregion
             }
@@ -117,7 +117,7 @@ namespace Online.Controllers
                     foreach (var l in links.OrderBy(i => i.episode))
                         etpl.Append($"{l.episode} серия", title, l.s, l.episode.ToString(), accsArgs($"{host}/lite/animedia/video.m3u8?vod={HttpUtility.UrlEncode(l.vod)}"), vast: init.vast);
 
-                    return ContentTo(rjson ? etpl.ToJson() : etpl.ToHtml());
+                    return ContentTo(etpl);
                 });
                 #endregion
             }

@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Settings;
-using Shared.Models.Online.VoKino;
 
 namespace Online.Controllers
 {
@@ -89,15 +88,15 @@ namespace Online.Controllers
                requesterror: () => proxyManager.Refresh(rch)
             );
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult(rch.ipkey($"vokino:{kinopoisk_id}:{origid}:{balancer}:{t}:{init.token}", proxyManager), 20, 
                 () => oninvk.Embed(origid, kinopoisk_id, balancer, t)
             );
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Html(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson));
+            return OnResult(cache, () => oninvk.Tpl(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson));
         }
     }
 }

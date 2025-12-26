@@ -46,7 +46,7 @@ namespace Online.Controllers
                     mtpl.Append(m.Value<string>("translator"), link, "call", accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true"));
                 }
 
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                return ContentTo(mtpl);
                 #endregion
             }
             else
@@ -72,7 +72,7 @@ namespace Online.Controllers
                         }
                     }
 
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                    return ContentTo(tpl);
                 }
                 else
                 {
@@ -92,24 +92,19 @@ namespace Online.Controllers
                     }
                     #endregion
 
-                    var etpl = new EpisodeTpl();
+                    var etpl = new EpisodeTpl(vtpl);
                     string iframe = HttpUtility.UrlEncode(data[t].Value<string>("iframe_url"));
                     string translator = HttpUtility.UrlEncode(data[t].Value<string>("translator"));
-
-                    string sArhc = s.ToString();
 
                     foreach (int episode in data[t].Value<JArray>("serial_episodes").FirstOrDefault(i => i.Value<int>("season_number") == s).Value<JArray>("episodes").ToObject<List<int>>())
                     {
                         string link = $"{host}/lite/hdvb/serial?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&iframe={iframe}&t={translator}&s={s}&e={episode}";
                         string streamlink = accsArgs($"{link.Replace("/serial", "/serial.m3u8")}&play=true");
 
-                        etpl.Append($"{episode} серия", title ?? original_title, sArhc, episode.ToString(), link, "call", streamlink: streamlink);
+                        etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
                     }
 
-                    if (rjson)
-                        return ContentTo(etpl.ToJson(vtpl));
-
-                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                    return ContentTo(etpl);
                 }
                 #endregion
             }
@@ -374,7 +369,7 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<JArray>($"hdvb:search:{title}", 40, async e =>
             {
                 string uri = $"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}";
@@ -390,7 +385,7 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
             return OnResult(cache, () =>
             {
@@ -408,7 +403,7 @@ namespace Online.Controllers
                     }
                 }
 
-                return rjson ? stpl.ToJson() : stpl.ToHtml();
+                return stpl;
             });
         }
         #endregion

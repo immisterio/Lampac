@@ -72,7 +72,7 @@ namespace Online.Controllers
 
                     mtpl.Append("1080p", HostStreamProxy(file), vast: init.vast);
 
-                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                    return mtpl;
                     #endregion
                 }
                 else
@@ -94,7 +94,7 @@ namespace Online.Controllers
                             tpl.Append($"{season} сезон", link, season);
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return tpl;
                     }
                     else
                     {
@@ -119,7 +119,7 @@ namespace Online.Controllers
                             etpl.Append(name ?? $"{episode.Value<int>("order")} серия", title ?? original_title, sArhc, episode.Value<int>("order").ToString(), stream, vast: init.vast);
                         }
 
-                        return rjson ? etpl.ToJson() : etpl.ToHtml();
+                        return etpl;
                     }
                     #endregion
                 }

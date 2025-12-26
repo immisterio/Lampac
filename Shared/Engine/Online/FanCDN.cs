@@ -136,10 +136,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel root, string imdb_id, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, VastConf vast = null, List<HeadersModel> headers = null)
+        public ITplResult Tpl(EmbedModel root, string imdb_id, long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, VastConf vast = null, List<HeadersModel> headers = null)
         {
             if (root == null)
-                return string.Empty;
+                return default;
 
             if (root.movies != null)
             {
@@ -169,7 +169,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(m.title, onstreamfile.Invoke(m.file), subtitles: subtitles, vast: vast, headers: headers);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
             }
             else
             {
@@ -194,7 +194,7 @@ namespace Shared.Engine.Online
                         tpl.Append($"{voice.seasons} сезон", link, voice.seasons);
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                     #endregion
                 }
                 else
@@ -219,16 +219,13 @@ namespace Shared.Engine.Online
 
                     var episodes = root.serial.First(i => i.id == t).folder[s.ToString()].folder;
 
-                    var etpl = new EpisodeTpl(episodes.Count);
+                    var etpl = new EpisodeTpl(vtpl, episodes.Count);
                     string sArhc = s.ToString();
 
                     foreach (var episode in episodes)
                         etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, onstreamfile.Invoke(episode.Value.file), vast: vast, headers: headers);
 
-                    if (rjson)
-                        return etpl.ToJson(vtpl);
-
-                    return vtpl.ToHtml() + etpl.ToHtml();
+                    return etpl;
                 }
                 #endregion
             }

@@ -27,7 +27,7 @@ namespace Online.Controllers
 
             string searchTitle = StringConvert.SearchName(title);
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<CatalogVideo[]>(rch.ipkey($"vkmovie:view:{searchTitle}:{year}", proxyManager), 20, async e =>
             {
                 string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={client_id}";
@@ -48,7 +48,7 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
             return OnResult(cache, () =>
             {
@@ -131,8 +131,7 @@ namespace Online.Controllers
                     mtpl.Append(video.title, streams.Firts().link, streamquality: streams, subtitles: subtitles, headers: HeadersModel.Init(init.headers), vast: init.vast);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
-
+                return mtpl;
             });
         }
 

@@ -74,7 +74,7 @@ namespace Online.Controllers
                     mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
                 }
 
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                return ContentTo(mtpl);
                 #endregion
             }
             else
@@ -87,7 +87,7 @@ namespace Online.Controllers
                     foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
                         tpl.Append($"{season.Key} сезон", $"{host}/lite/alloha?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
 
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                    return ContentTo(tpl);
                 }
                 else
                 {
@@ -114,7 +114,7 @@ namespace Online.Controllers
                     }
                     #endregion
 
-                    var etpl = new EpisodeTpl();
+                    var etpl = new EpisodeTpl(vtpl);
                     string sArhc = s.ToString();
 
                     foreach (var episode in data.Value<JObject>("seasons").GetValue(sArhc).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Reverse())
@@ -128,10 +128,7 @@ namespace Online.Controllers
                         etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", streamlink: streamlink);
                     }
 
-                    if (rjson)
-                        return ContentTo(etpl.ToJson(vtpl));
-
-                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                    return ContentTo(etpl);
                 }
                 #endregion
             }
@@ -414,7 +411,7 @@ namespace Online.Controllers
                     stpl.Append(j.Value<string>("name") ?? j.Value<string>("original_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
                 }
 
-                return rjson ? stpl.ToJson() : stpl.ToHtml();
+                return stpl;
             });
         }
         #endregion

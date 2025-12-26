@@ -278,11 +278,11 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
+        public ITplResult Tpl(RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
         {
             var player_links = root.player_links;
             if (player_links.movie == null && player_links.playlist == null)
-                return string.Empty;
+                return default;
 
             int filmixservtime = DateTime.UtcNow.AddHours(2).Hour;
             bool hidefree720 = string.IsNullOrEmpty(token) /*&& filmixservtime >= 19 && filmixservtime <= 23*/;
@@ -291,7 +291,7 @@ namespace Shared.Engine.Online
             {
                 #region Фильм
                 if (player_links.movie.Length == 1 && player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
-                    return string.Empty;
+                    return default;
 
                 var cdns = reserve ? player_links.movie
                         .Select(e => Regex.Match(e.link, "^(https?://[^/]+)").Groups[1].Value)
@@ -344,14 +344,14 @@ namespace Shared.Engine.Online
                     mtpl.Append(v.translation, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
                 #endregion
             }
             else
             {
                 #region Сериал
                 if (player_links.playlist == null || player_links.playlist.Count == 0)
-                    return string.Empty;
+                    return default;
 
                 string enc_title = HttpUtility.UrlEncode(title);
                 string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -367,7 +367,7 @@ namespace Shared.Engine.Online
                         tpl.Append($"{season.Key.Replace("-1", "1")} сезон", link, season.Key);
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                     #endregion
                 }
                 else
@@ -375,7 +375,7 @@ namespace Shared.Engine.Online
                     string sArch = s?.ToString();
 
                     if (sArch == null)
-                        return string.Empty;
+                        return default;
 
                     #region Перевод
                     var voices = player_links.playlist[sArch];
@@ -417,7 +417,7 @@ namespace Shared.Engine.Online
                     }
 
                     if (episodes == null || episodes.Count == 0)
-                        return string.Empty;
+                        return default;
                     #endregion
 
                     var cdns = reserve ? episodes
@@ -425,7 +425,7 @@ namespace Shared.Engine.Online
                         .ToHashSet() : null;
 
                     #region Серии
-                    var etpl = new EpisodeTpl(episodes.Count);
+                    var etpl = new EpisodeTpl(vtpl, episodes.Count);
 
                     foreach (var episode in episodes)
                     {
@@ -472,10 +472,7 @@ namespace Shared.Engine.Online
                     }
                     #endregion
 
-                    if (rjson)
-                        return etpl.ToJson(vtpl);
-
-                    return vtpl.ToHtml() + etpl.ToHtml();
+                    return etpl;
                 }
                 #endregion
             }

@@ -91,10 +91,10 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Html
-        public string Html(EmbedModel root, string args, long kinopoisk_id, string title, string original_title, string t, int s, int sid, bool rjson, bool bwa = false, bool rhub = false)
+        public ITplResult Tpl(EmbedModel root, string args, long kinopoisk_id, string title, string original_title, string t, int s, int sid, bool rjson, bool bwa = false, bool rhub = false)
         {
             if (root?.pl == null || root.pl.Length == 0)
-                return string.Empty;
+                return default;
 
             if (!string.IsNullOrEmpty(args))
                 args = $"&{args.Remove(0, 1)}";
@@ -166,7 +166,7 @@ namespace Shared.Engine.Online
                     }
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
                 #endregion
             }
             else
@@ -189,13 +189,13 @@ namespace Shared.Engine.Online
                         tpl.Append(name, host + $"lite/videodb?rjson={rjson}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                 }
                 else
                 {
                     var season = root.pl[sid].folder;
                     if (season == null)
-                        return string.Empty;
+                        return default;
 
                     var vtpl = new VoiceTpl();
                     var etpl = new EpisodeTpl();
@@ -263,10 +263,9 @@ namespace Shared.Engine.Online
                         }
                     }
 
-                    if (rjson)
-                        return etpl.ToJson(vtpl);
+                    etpl.Append(vtpl);
 
-                    return vtpl.ToHtml() + etpl.ToHtml();
+                    return etpl;
                 }
                 #endregion
             }

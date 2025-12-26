@@ -82,7 +82,7 @@ namespace Online.Controllers
                         stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.poster));
                     }
 
-                    return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return ContentTo(stpl);
                 });
                 #endregion
             }
@@ -122,7 +122,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                        return ContentTo(tpl);
                     }
                     else
                     {
@@ -148,7 +148,7 @@ namespace Online.Controllers
                         }
                         #endregion
 
-                        var etpl = new EpisodeTpl();
+                        var etpl = new EpisodeTpl(vtpl);
                         string sArhc = s.ToString();
 
                         foreach (var voices in root)
@@ -177,10 +177,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        if (rjson)
-                            return ContentTo(etpl.ToJson(vtpl));
-
-                        return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                        return ContentTo(etpl);
                     }
                 });
                 #endregion

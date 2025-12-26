@@ -63,7 +63,7 @@ namespace Online.Controllers
                     if (result.similar.data == null || result.similar.data.Count == 0)
                         return OnError("data");
 
-                    return ContentTo(rjson ? result.similar.ToJson() : result.similar.ToHtml());
+                    return ContentTo(result.similar);
                 }
             }
 
@@ -94,7 +94,7 @@ namespace Online.Controllers
                         mtpl.Append(media.Value<string>("trName"), link, "call", streamlink, details: media.Value<string>("sourceType"));
                     }
 
-                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                    return mtpl;
                     #endregion
                 }
                 else
@@ -110,7 +110,7 @@ namespace Online.Controllers
                             tpl.Append($"{seasonNum} сезон", $"{host}/lite/getstv?rjson={rjson}&s={seasonNum}{defaultargs}", seasonNum);
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return tpl;
                     }
                     else
                     {
@@ -138,8 +138,7 @@ namespace Online.Controllers
                         }
                         #endregion
 
-                        var etpl = new EpisodeTpl();
-                        string sArhc = s.ToString();
+                        var etpl = new EpisodeTpl(vtpl);
 
                         foreach (var episode in episodes)
                         {
@@ -151,16 +150,13 @@ namespace Online.Controllers
                                     string link = $"{host}/lite/getstv/video.m3u8?id={tr.Value<string>("_id")}";
                                     string streamlink = accsArgs($"{link}&play=true");
 
-                                    etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), link, "call", streamlink: streamlink);
+                                    etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), link, "call", streamlink: streamlink);
                                     break;
                                 }
                             }
                         }
 
-                        if (rjson)
-                            return etpl.ToJson(vtpl);
-
-                        return vtpl.ToHtml() + etpl.ToHtml();
+                        return etpl;
                     }
                     #endregion
                 }
@@ -245,7 +241,7 @@ namespace Online.Controllers
             if (result.similar.data?.Count == 0)
                 return OnError("data");
 
-            return ContentTo(rjson ? result.similar.ToJson() : result.similar.ToHtml());
+            return ContentTo(result.similar);
         }
         #endregion
 

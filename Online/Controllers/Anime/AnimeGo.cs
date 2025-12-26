@@ -9,7 +9,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/animego")]
-        async public ValueTask<ActionResult> Index(string title, int year, int pid, int s, string t, bool rjson = false, bool similar = false)
+        async public ValueTask<ActionResult> Index(string title, int year, int pid, int s, string t, bool similar = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -71,7 +71,7 @@ namespace Online.Controllers
                         stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.img));
                     }
 
-                    return ContentTo(rjson ? stpl.ToJson() : stpl.ToHtml());
+                    return ContentTo(stpl);
                 });
                 #endregion
             }
@@ -154,20 +154,16 @@ namespace Online.Controllers
                     }
                     #endregion
 
-                    var etpl = new EpisodeTpl(cache.links.Count);
-                    string sArhc = s.ToString();
+                    var etpl = new EpisodeTpl(vtpl, cache.links.Count);
 
                     foreach (var l in cache.links)
                     {
                         string hls = accsArgs($"{host}/lite/animego/{l.uri}&t={t ?? cache.translation}");
 
-                        etpl.Append($"{l.episode} серия", title, sArhc, l.episode, hls, "play", headers: headers_stream);
+                        etpl.Append($"{l.episode} серия", title, s.ToString(), l.episode, hls, "play", headers: headers_stream);
                     }
 
-                    if (rjson)
-                        return ContentTo(etpl.ToJson(vtpl));
-
-                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                    return ContentTo(etpl);
                 });
                 #endregion
             }

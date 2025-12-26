@@ -5,16 +5,19 @@ using System.Web;
 
 namespace Shared.Models.Templates
 {
-    public struct SimilarTpl
+    public struct SimilarTpl : ITplResult
     {
-        public List<(string title, string year, string details, string link, string img)> data { get; set; }
+        public string OnlineSplit => "{prestige-split}";
+
+        public List<(string title, string year, string details, string link, string img)> data { get; private set; }
+
 
         public SimilarTpl() : this(20) { }
 
-        public SimilarTpl(int capacity) { data = new List<(string, string, string, string, string)>(capacity); }
-
-
-        public string OnlineSplit => "{prestige-split}";
+        public SimilarTpl(int capacity) 
+        { 
+            data = new List<(string, string, string, string, string)>(capacity); 
+        }
 
 
         public void Append(string title, string year, string details, string link, string img = null)
@@ -23,9 +26,13 @@ namespace Shared.Models.Templates
                 data.Add((title, year, details, link, img));
         }
 
+
+        public bool IsEmpty() => data == null || data.Count == 0;
+
+
         public string ToHtml()
         {
-            if (data.Count == 0)
+            if (data == null || data.Count == 0)
                 return string.Empty;
 
             bool firstjson = true;
@@ -57,8 +64,8 @@ namespace Shared.Models.Templates
 
         public string ToJson()
         {
-            if (data.Count == 0)
-                return "[]";
+            if (data == null || data.Count == 0)
+                return "{}";
 
             return JsonSerializer.Serialize(new 
             {

@@ -106,11 +106,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(EmbedModel result, string title, string original_title, int year, bool rjson = false)
+        #region Tpl
+        public ITplResult Tpl(EmbedModel result, string title, string original_title, int year)
         {
             if (result == null || result.IsEmpty)
-                return string.Empty;
+                return default;
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -129,10 +129,10 @@ namespace Shared.Engine.Online
                         stpl.Append(similar.title, similar.year, string.Empty, link);
                     }
 
-                    return rjson ? stpl.ToJson() : stpl.ToHtml();
+                    return stpl;
                 }
 
-                return string.Empty;
+                return default;
             }
             #endregion
 
@@ -161,7 +161,9 @@ namespace Shared.Engine.Online
                     mtpl.Append("480p", host + $"lite/remux/movie?linkid={linkid}&quality=480p&title={enc_title}&original_title={enc_original_title}", "call");
             }
 
-            return rjson ? mtpl.ToJson(reverse: true) : mtpl.ToHtml(reverse: true);
+            mtpl.Reverse();
+
+            return mtpl;
         }
         #endregion
 
@@ -189,7 +191,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Movie
-        public string Movie(in string weblink, in string quality, in string title, in string original_title, VastConf vast = null)
+        public string Movie(string weblink, string quality, string title, string original_title, VastConf vast = null)
         {
             return VideoTpl.ToJson("play", onstreamfile?.Invoke(weblink), (title ?? original_title), quality: quality, vast: vast);
         }

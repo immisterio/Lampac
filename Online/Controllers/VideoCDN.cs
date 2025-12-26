@@ -58,7 +58,7 @@ namespace Online.Controllers
                     return OnError();
 
                 if (search.similar.data != null)
-                    return ContentTo(rjson ? search.similar.ToJson() : search.similar.ToHtml());
+                    return ContentTo(search.similar);
 
                 content_id = search.content_id;
                 content_type = search.content_type;
@@ -92,7 +92,7 @@ namespace Online.Controllers
                     mtpl.Append(media.translation_name, link, "call", streamlink, quality: media.max_quality?.ToString());
                 }
 
-                return ContentTo(rjson ? mtpl.ToJson() : mtpl.ToHtml());
+                return ContentTo(mtpl);
                 #endregion
             }
             else
@@ -111,7 +111,7 @@ namespace Online.Controllers
                         tpl.Append($"{media.season_id} сезон", link, media.season_id);
                     }
 
-                    return ContentTo(rjson ? tpl.ToJson() : tpl.ToHtml());
+                    return ContentTo(tpl);
                 }
                 else
                 {
@@ -145,8 +145,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(t))
                         t = "0";
 
-                    var etpl = new EpisodeTpl();
-                    string sArhc = s.ToString();
+                    var etpl = new EpisodeTpl(vtpl);
 
                     foreach (var media in player.media)
                     {
@@ -164,15 +163,12 @@ namespace Online.Controllers
                                 string link = accsArgs($"{host}/lite/videocdn/video?content_id={content_id}&content_type={content_type}&playlist={HttpUtility.UrlEncode(voice.playlist)}&max_quality={voice.max_quality}&s={s}&e={episode.episode_id}&translation_id={voice.translation_id}&hash={hash}&serial=true");
                                 string streamlink = link.Replace("/videocdn/video", "/videocdn/video.m3u8") + "&play=true";
 
-                                etpl.Append($"{episode.episode_id} серия", title ?? original_title, sArhc, episode.episode_id.ToString(), link, "call", streamlink: streamlink);
+                                etpl.Append($"{episode.episode_id} серия", title ?? original_title, s.ToString(), episode.episode_id.ToString(), link, "call", streamlink: streamlink);
                             }
                         }
                     }
 
-                    if (rjson)
-                        return ContentTo(etpl.ToJson(vtpl));
-
-                    return ContentTo(vtpl.ToHtml() + etpl.ToHtml());
+                    return ContentTo(etpl);
                 }
                 #endregion
             }

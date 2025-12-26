@@ -11,20 +11,27 @@ namespace Shared.Models.Templates
     {
         string title, original_title;
 
-        public List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments, string subtitles_call)> data { get; set; }
+        public VoiceTpl? vtpl { get; private set; }
+
+        public List<(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string voice_name, string year, string details, string quality, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments, string subtitles_call)> data { get; private set; }
+
 
         public MovieTpl(string title) : this(title, null, 15) { }
 
         public MovieTpl(string title, string original_title) : this(title, original_title, 15) { }
 
-        public MovieTpl(string title, string original_title, int capacity) 
+        public MovieTpl(string title, string original_title, int capacity) : this(title, original_title, null, capacity) { }
+
+        public MovieTpl(string title, string original_title, VoiceTpl vtpl) : this(title, original_title, 15) { }
+
+        public MovieTpl(string title, string original_title, VoiceTpl? vtpl, int capacity)
         {
+            this.vtpl = vtpl;
             this.title = title;
             this.original_title = original_title;
-            data = new List<(string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, string, string, VastConf vast, List<HeadersModel>, int?, SegmentTpl?, string)> (capacity); 
+            data = new List<(string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, string, string, VastConf vast, List<HeadersModel>, int?, SegmentTpl?, string)>(capacity);
         }
 
-        public bool IsEmpty() => data.Count == 0;
 
         public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null, string subtitles_call = null)
         {
@@ -32,25 +39,32 @@ namespace Shared.Models.Templates
                 data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments, subtitles_call));
         }
 
-        public string ToHtml(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null, string subtitles_call = null)
+        public void Append(VoiceTpl vtpl)
         {
-            Append(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments, subtitles_call);
-            return ToHtml();
+            this.vtpl = vtpl;
         }
 
-        public string ToHtml() => ToHtml(false);
 
-        public string ToHtml(bool reverse)
+        public bool IsEmpty() => data == null || data.Count == 0;
+
+        public void Reverse()
         {
-            if (data.Count == 0)
+            data.Reverse();
+        }
+
+
+        public string ToHtml()
+        {
+            if (data == null || data.Count == 0)
                 return string.Empty;
 
             bool firstjson = true;
             var html = new StringBuilder();
-            html.Append("<div class=\"videos__line\">");
 
-            if (reverse)
-                data.Reverse();
+            if (vtpl.HasValue)
+                html.Append(vtpl.Value.ToHtml());
+
+            html.Append("<div class=\"videos__line\">");
 
             foreach (var i in data) 
             {
@@ -92,15 +106,11 @@ namespace Shared.Models.Templates
             return html.ToString() + "</div>";
         }
 
-        public string ToJson() => ToJson(false);
 
-        public string ToJson(bool reverse, in VoiceTpl? vtpl = null)
+        public string ToJson()
         {
-            if (data.Count == 0)
-                return "[]";
-
-            if (reverse)
-                data.Reverse();
+            if (data == null || data.Count == 0)
+                return "{}";
 
             string name = title ?? original_title;
 

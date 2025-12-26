@@ -197,8 +197,8 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public async ValueTask<string> Html(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
+        #region Tpl
+        public async ValueTask<ITplResult> Tpl(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
         {
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -224,7 +224,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(data.translation.title, url, "call", streamlink);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
                 #endregion
             }
             else
@@ -249,7 +249,7 @@ namespace Shared.Engine.Online
                         tpl.Append($"{season} сезон", link, season);
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                 }
                 else
                 {
@@ -290,9 +290,9 @@ namespace Shared.Engine.Online
 
                     var series = await ResolveEpisodesAsync(selected, s);
                     if (series == null || series.Count == 0)
-                        return string.Empty;
+                        return default;
 
-                    var etpl = new EpisodeTpl(series.Count);
+                    var etpl = new EpisodeTpl(vtpl, series.Count);
 
                     string sArhc = s.ToString();
 
@@ -312,10 +312,7 @@ namespace Shared.Engine.Online
                         etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, url, "call", streamlink: streamlink);
                     }
 
-                    if (rjson)
-                        return etpl.ToJson(vtpl);
-
-                    return vtpl.ToHtml() + etpl.ToHtml();
+                    return etpl;
                 }
                 #endregion
             }

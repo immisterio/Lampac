@@ -262,6 +262,16 @@ namespace Shared
         }
         #endregion
 
+        #region ContentTo
+        public ActionResult ContentTo(ITplResult tpl)
+        {
+            return ContentTo(HttpContext.Request.Query["rjson"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase)
+                ? tpl.ToJson()
+                : tpl.ToHtml()
+            );
+        }
+        #endregion
+
         #region ShowError
         public ActionResult ShowError(string msg) => Json(new { accsdb = true, msg });
 

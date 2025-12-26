@@ -135,11 +135,11 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(EmbedModel root, string orid, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int sid, VastConf vast = null, bool rjson = false)
+        #region Tpl
+        public ITplResult Tpl(EmbedModel root, string orid, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int s, int sid, VastConf vast = null, bool rjson = false)
         {
             if (root == null)
-                return string.Empty;
+                return default;
 
             if (root.movies != null)
             {
@@ -170,7 +170,7 @@ namespace Shared.Engine.Online
                     mtpl.Append(m.title, streamquality.Firts().link, subtitles: subtitles, streamquality: streamquality, vast: vast);
                 }
 
-                return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                return mtpl;
                 #endregion
             }
             else
@@ -193,7 +193,7 @@ namespace Shared.Engine.Online
                         tpl.Append($"{season} сезон", host + $"lite/vdbmovies?orid={orid}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
                     }
 
-                    return rjson ? tpl.ToJson() : tpl.ToHtml();
+                    return tpl;
                     #endregion
                 }
                 else
@@ -231,10 +231,9 @@ namespace Shared.Engine.Online
                         }
                     }
 
-                    if (rjson)
-                        return etpl.ToJson(vtpl);
+                    etpl.Append(vtpl);
 
-                    return vtpl.ToHtml() + etpl.ToHtml();
+                    return etpl;
                     #endregion
                 }
                 #endregion

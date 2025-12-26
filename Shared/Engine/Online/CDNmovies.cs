@@ -55,16 +55,16 @@ namespace Shared.Engine.Online
         }
         #endregion
 
-        #region Html
-        public string Html(Voice[] voices, long kinopoisk_id, string title, string original_title, int t, int s, int sid, VastConf vast = null, bool rjson = false)
+        #region Tpl
+        public ITplResult Tpl(Voice[] voices, long kinopoisk_id, string title, string original_title, int t, int s, int sid, VastConf vast = null, bool rjson = false)
         {
             if (voices == null || voices.Length == 0)
-                return string.Empty;
+                return default;
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            #region Перевод html
+            #region Перевод
             var vtpl = new VoiceTpl(voices.Length);
 
             for (int i = 0; i < voices.Length; i++)
@@ -77,7 +77,7 @@ namespace Shared.Engine.Online
             if (s == -1)
             {
                 #region Сезоны
-                var tpl = new SeasonTpl(voices[t].folder.Length);
+                var tpl = new SeasonTpl(vtpl, voices[t].folder.Length);
 
                 for (int i = 0; i < voices[t].folder.Length; i++)
                 {
@@ -89,13 +89,13 @@ namespace Shared.Engine.Online
                     tpl.Append($"{season} сезон", link, season);
                 }
 
-                return rjson ? tpl.ToJson(vtpl) : (vtpl.ToHtml() + tpl.ToHtml());
+                return tpl;
                 #endregion
             }
             else
             {
                 #region Серии
-                var etpl = new EpisodeTpl();
+                var etpl = new EpisodeTpl(vtpl);
                 string sArhc = s.ToString();
 
                 foreach (var item in voices[t].folder[sid].folder)
@@ -115,10 +115,7 @@ namespace Shared.Engine.Online
                     etpl.Append($"{episode} cерия", title ?? original_title, sArhc, episode, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 
-                if (rjson)
-                    return etpl.ToJson(vtpl);
-
-                return vtpl.ToHtml() + etpl.ToHtml();
+                return etpl;
                 #endregion
             }
         }

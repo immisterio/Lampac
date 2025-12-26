@@ -14,7 +14,7 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<JObject>($"cdnvideohub:view:{kinopoisk_id}", 30, async e =>
             {
                 string uri = $"{init.corsHost()}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}";
@@ -34,7 +34,7 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
             return OnResult(cache, () => 
             {
@@ -60,7 +60,7 @@ namespace Online.Controllers
                             tpl.Append($"{season} сезон", $"{host}/lite/cdnvideohub?s={season}{defaultargs}", season);
                         }
 
-                        return rjson ? tpl.ToJson() : tpl.ToHtml();
+                        return tpl;
                         #endregion
                     }
                     else
@@ -87,8 +87,7 @@ namespace Online.Controllers
                         }
                         #endregion
 
-                        var etpl = new EpisodeTpl();
-                        string sArhc = s.ToString();
+                        var etpl = new EpisodeTpl(vtpl);
                         var tmpEpisode = new HashSet<int>();
 
                         foreach (var video in cache.Value["items"].OrderBy(i => i.Value<int>("episode")))
@@ -109,13 +108,10 @@ namespace Online.Controllers
 
                             string link = accsArgs($"{host}/lite/cdnvideohub/video.m3u8?vkId={vkId}&title={HttpUtility.UrlEncode(title)}");
 
-                            etpl.Append($"{episode} серия", title ?? original_title, sArhc, episode.ToString(), link, "call", streamlink: $"{link}&play=true", vast: init.vast);
+                            etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: $"{link}&play=true", vast: init.vast);
                         }
 
-                        if (rjson)
-                            return etpl.ToJson(vtpl);
-
-                        return vtpl.ToHtml() + etpl.ToHtml();
+                        return etpl;
                     }
                     #endregion
                 }
@@ -134,7 +130,7 @@ namespace Online.Controllers
                         mtpl.Append(voice, link, "call", vast: init.vast);
                     }
 
-                    return rjson ? mtpl.ToJson() : mtpl.ToHtml();
+                    return mtpl;
                     #endregion
                 }
             });
@@ -163,7 +159,7 @@ namespace Online.Controllers
             if (rch.IsNotSupport(out string rch_error))
                 return ShowError(rch_error);
 
-            reset:
+            rhubFallback:
             var cache = await InvokeCacheResult<string>(rch.ipkey($"cdnvideohub:video:{vkId}", proxyManager), 20, async e =>
             {
                 string uri = $"{init.corsHost()}/api/v1/player/sv/video/{vkId}";
@@ -183,7 +179,7 @@ namespace Online.Controllers
             });
 
             if (IsRhubFallback(cache))
-                goto reset;
+                goto rhubFallback;
 
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg);
