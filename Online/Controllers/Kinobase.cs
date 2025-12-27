@@ -38,7 +38,7 @@ namespace Online.Controllers
                    return black_magic(ongettourl);
                },
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => proxyManager.Refresh(rch)
             );
 
             #region search

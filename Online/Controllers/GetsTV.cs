@@ -8,7 +8,15 @@ namespace Online.Controllers
 {
     public class GetsTV : BaseOnlineController
     {
-        public GetsTV() : base(AppInit.conf.GetsTV) { }
+        List<HeadersModel> bearer;
+
+        public GetsTV() : base(AppInit.conf.GetsTV) 
+        {
+            requestInitialization = () =>
+            {
+                bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
+            };
+        }
 
         #region Bind
         [HttpGet]
@@ -25,7 +33,7 @@ namespace Online.Controllers
             else
             {
                 var postdata = new System.Net.Http.StringContent($"{{\"email\":\"{login}\",\"password\":\"{pass}\",\"fingerprint\":\"{CrypTo.md5(DateTime.Now.ToString())}\",\"device\":{{}}}}", Encoding.UTF8, "application/json");
-                var result =  await Http.Post<JObject>($"{init.corsHost()}/api/login", postdata, proxy: proxy, headers: httpHeaders(init));
+                var result =  await Http.Post<JObject>($"{init.corsHost()}/api/login", postdata, httpversion: init.httpversion, proxy: proxy, headers: httpHeaders(init));
 
                 if (result == null)
                     return ContentTo("Ошибка авторизации ;(");
@@ -69,8 +77,6 @@ namespace Online.Controllers
 
             var cache = await InvokeCacheResult<JObject>($"getstv:movies:{orid}", 20, async e =>
             {
-                var bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
-
                 var root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/movies/{orid}", addheaders: bearer);
                 if (root == null)
                     return e.Fail("movies", refresh_proxy: true);
@@ -176,10 +182,9 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(key, out JObject root))
                 {
-                    var bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
                     root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/media/{id}?format=m3u8&protocol=https", addheaders: bearer);
                     if (root == null)
-                        return OnError("json", proxyManager);
+                        return OnError("json", refresh_proxy: true);
 
                     if (!root.ContainsKey("resolutions"))
                         return OnError("resolutions");
@@ -256,7 +261,6 @@ namespace Online.Controllers
             string memKey = $"getstv:search:{title ?? original_title}";
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
-                var bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
                 root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/movies?skip=0&sort=updated&searchText={HttpUtility.UrlEncode(title)}", addheaders: bearer);
                 
                 if (root == null)

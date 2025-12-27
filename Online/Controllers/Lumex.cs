@@ -96,7 +96,7 @@ namespace Online.Controllers
                (url, referer) => httpHydra.Get(url, addheaders: HeadersModel.Init("referer", referer)),
                streamfile => HostStreamProxy(streamfile),
                host,
-               requesterror: () => proxyManager.Refresh()
+               requesterror: () => proxyManager.Refresh(rch)
             );
 
             if (similar || (content_id == 0 && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
@@ -299,7 +299,7 @@ namespace Online.Controllers
                     var result = await Http.Post<JObject>($"https://api.{init.iframehost}" + playlist, "", httpversion: 2, proxy: proxy, timeoutSeconds: 8, headers: content_headers);
 
                     if (result == null || !result.ContainsKey("url"))
-                        return OnError(proxyManager);
+                        return OnError(refresh_proxy: true);
 
                     string url = result.Value<string>("url");
                     if (string.IsNullOrEmpty(url))

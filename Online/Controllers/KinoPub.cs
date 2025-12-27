@@ -28,10 +28,11 @@ namespace Online.Controllers
 
             if (string.IsNullOrWhiteSpace(code))
             {
-                var token_request = await httpHydra.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh", "");
+                string uri = $"{init.corsHost()}/oauth2/device?grant_type=device_code&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
+                var token_request = await Http.Post<JObject>(uri, "", httpversion: init.httpversion, proxy: proxy, headers: httpHeaders(init));
 
                 if (token_request == null)
-                    return Content($"нет доступа к {init.corsHost()}", "text/html; charset=utf-8");
+                    return ContentTo($"нет доступа к {init.corsHost()}");
 
                 string html = "1. Откройте <a href='https://kino.pub/device'>https://kino.pub/device</a> <br>";
                 html += $"2. Введите код активации <b>{token_request.Value<string>("user_code")}</b><br>";
@@ -39,18 +40,22 @@ namespace Online.Controllers
 
                 html += $"<br><br><a href='/lite/kinopubpro?code={token_request.Value<string>("code")}&name={name}'><button>Проверить активацию</button></a>";
 
-                return Content(html, "text/html; charset=utf-8");
+                return ContentTo(html);
             }
             else
             {
-                var device_token = await httpHydra.Post<JObject>($"{init.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}", "");
+                string uri = $"{init.corsHost()}/oauth2/device?grant_type=device_token&client_id=xbmc&client_secret=cgg3gtifu46urtfp2zp1nqtba0k2ezxh&code={code}";
+                var device_token = await Http.Post<JObject>(uri, "", httpversion: init.httpversion, proxy: proxy, headers: httpHeaders(init));
                 if (device_token == null || string.IsNullOrWhiteSpace(device_token.Value<string>("access_token")))
                     return LocalRedirect("/lite/kinopubpro");
 
                 if (!string.IsNullOrEmpty(name))
-                    await httpHydra.Post($"{init.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}", $"&title={name}");
+                {
+                    uri = $"{init.corsHost()}/v1/device/notify?access_token={device_token.Value<string>("access_token")}";
+                    await Http.Post(uri, $"&title={name}", httpversion: init.httpversion, proxy: proxy, headers: httpHeaders(init));
+                }
 
-                return Content("Добавьте в init.conf<br><br>\"KinoPub\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + device_token.Value<string>("access_token") + "\"<br>}", "text/html; charset=utf-8");
+                return ContentTo("Добавьте в init.conf<br><br>\"KinoPub\": {<br>&nbsp;&nbsp;\"enable\": true,<br>&nbsp;&nbsp;\"token\": \"" + device_token.Value<string>("access_token") + "\"<br>}");
             }
         }
         #endregion
@@ -129,7 +134,7 @@ namespace Online.Controllers
 
             if (root == null || !root.ContainsKey("subtitles"))
             {
-                proxyManager.Refresh();
+                proxyManager.Refresh(rch);
                 return ContentTo("[]");
             }
 

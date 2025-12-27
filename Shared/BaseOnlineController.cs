@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using MongoDB.Bson;
-using MonoTorrent.Client;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
@@ -231,23 +229,20 @@ namespace Shared
         #endregion
 
         #region OnError
-        public ActionResult OnError(ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null) => OnError(string.Empty, proxyManager, refresh_proxy, weblog: weblog);
+        public ActionResult OnError(int statusCode = 503, bool refresh_proxy = false) 
+            => OnError(string.Empty, statusCode: statusCode, refresh_proxy: refresh_proxy);
 
-        public ActionResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, string weblog = null)
+        public ActionResult OnError(string msg, int statusCode, bool refresh_proxy = false)
+            => OnError(msg, statusCode: statusCode, refresh_proxy: refresh_proxy);
+
+        public ActionResult OnError(string msg, bool? gbcache = true, bool refresh_proxy = false, string weblog = null, int statusCode = 503)
         {
             if (string.IsNullOrEmpty(msg) || !msg.StartsWith("{\"rch\""))
             {
-                if (refresh_proxy)
+                if (refresh_proxy && rch.enable)
                     proxyManager?.Refresh();
             }
 
-            return OnError(msg, weblog: weblog);
-        }
-
-        public ActionResult OnError() => OnError(string.Empty);
-
-        public ActionResult OnError(string msg, bool? gbcache = true, string weblog = null, int statusCode = 503)
-        {
             if (!string.IsNullOrEmpty(msg))
             {
                 if (msg.StartsWith("{\"rch\""))

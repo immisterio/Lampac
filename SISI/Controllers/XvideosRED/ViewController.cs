@@ -22,9 +22,9 @@ namespace SISI.Controllers.XvideosRED
                     );
 
                     if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
-                        return OnError("stream_links", proxyManager);
+                        return OnError("stream_links", refresh_proxy: true);
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(key, stream_links, cacheTime(20));
                 }
 

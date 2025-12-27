@@ -37,7 +37,7 @@ namespace Online.Controllers
 
                         if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
                         {
-                            proxyManager.Refresh();
+                            proxyManager.Refresh(rch);
                             return null;
                         }
 
@@ -51,7 +51,7 @@ namespace Online.Controllers
 
                     if (data == null)
                     {
-                        proxyManager.Refresh();
+                        proxyManager.Refresh(rch);
                         return OnError();
                     }
 
@@ -62,11 +62,11 @@ namespace Online.Controllers
 
                     if (cache.seasons == null && string.IsNullOrEmpty(cache.iframe))
                     {
-                        proxyManager.Refresh();
+                        proxyManager.Refresh(rch);
                         return OnError();
                     }
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(key, cache, cacheTime(40));
                 }
                 #endregion
@@ -187,7 +187,7 @@ namespace Online.Controllers
 
                         if (string.IsNullOrEmpty(location))
                         {
-                            proxyManager.Refresh();
+                            proxyManager.Refresh(rch);
                             return OnError();
                         }
                     }
@@ -196,7 +196,7 @@ namespace Online.Controllers
                         return OnError();
                     }
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(key, location, cacheTime(20));
                 }
 

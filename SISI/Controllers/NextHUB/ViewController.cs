@@ -19,14 +19,14 @@ namespace SISI.Controllers.NextHUB
         async public ValueTask<ActionResult> Index(string uri, bool related)
         {
             if (!AppInit.conf.sisi.NextHUB)
-                return OnError("disabled");
+                return OnError("disabled", rcache: false);
 
             string plugin = uri.Split("_-:-_")[0];
             string url = uri.Split("_-:-_")[1];
 
             var _nxtInit = Root.goInit(plugin);
             if (_nxtInit == null)
-                return OnError("init not found");
+                return OnError("init not found", rcache: false);
 
             if (await IsRequestBlocked(_nxtInit, rch: _nxtInit.rch_access != null))
                 return badInitMsg;
@@ -52,18 +52,18 @@ namespace SISI.Controllers.NextHUB
                         if (IsRhubFallback(init))
                             goto reset;
 
-                        return OnError("file", rcache: !rch.enable);
+                        return OnError("file", rcache: !init.debug);
                     }
                 }
                 else
                 {
                     if (rch.enable)
-                        return OnError("rch not supported");
+                        return OnError("rch not supported", rcache: false);
 
                     await e.semaphore.WaitAsync();
                     video = await goVideoToBrowser(plugin, init.cors(url), init);
                     if (string.IsNullOrEmpty(video.file))
-                        return OnError("file");
+                        return OnError("file", rcache: !init.debug);
                 }
 
                 var stream_links = new StreamItem()
@@ -410,7 +410,7 @@ namespace SISI.Controllers.NextHUB
 
                         if (string.IsNullOrEmpty(cache.file))
                         {
-                            proxyManager.Refresh();
+                            proxyManager.Refresh(rch);
                             return default;
                         }
 
@@ -436,7 +436,7 @@ namespace SISI.Controllers.NextHUB
                         #endregion
                     }
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time));
                 }
 
@@ -468,9 +468,7 @@ namespace SISI.Controllers.NextHUB
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
                 {
                     resetGotoAsync:
-                    string html = rch.enable 
-                        ? await rch.Get(url, httpHeaders(init)) 
-                        : await Http.Get(url, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: 8);
+                    string html = await httpHydra.Get(url);
 
                     if (string.IsNullOrEmpty(html))
                         return default;
@@ -531,9 +529,7 @@ namespace SISI.Controllers.NextHUB
 
                     if (string.IsNullOrEmpty(cache.file))
                     {
-                        if (!rch.enable)
-                            proxyManager.Refresh();
-
+                        proxyManager.Refresh(rch);
                         return default;
                     }
 
@@ -546,8 +542,7 @@ namespace SISI.Controllers.NextHUB
                     if (init.view.related && cache.recomends == null)
                         cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, plugin);
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    proxyManager.Success(rch);
 
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time));
                 }

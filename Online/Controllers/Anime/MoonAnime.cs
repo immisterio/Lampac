@@ -49,7 +49,7 @@ namespace Online.Controllers
                             ?? await goSearch($"&title={HttpUtility.UrlEncode(title)}");
 
                         if (search == null)
-                            return OnError(proxyManager);
+                            return OnError(refresh_proxy: true);
 
                         catalog = new List<(string title, string year, long id, string poster)>();
 
@@ -67,7 +67,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0)
                             return OnError();
 
-                        proxyManager.Success();
+                        proxyManager.Success(rch);
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
@@ -95,9 +95,9 @@ namespace Online.Controllers
                     {
                         root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/2.0/title/{animeid}/videos?api_key={init.token}");
                         if (root == null)
-                            return OnError(proxyManager);
+                            return OnError(refresh_proxy: true);
 
-                        proxyManager.Success();
+                        proxyManager.Success(rch);
                         hybridCache.Set(key, root, cacheTime(30));
                     }
 
@@ -218,7 +218,7 @@ namespace Online.Controllers
                     )));
 
                     if (iframe == null)
-                        return OnError(proxyManager);
+                        return OnError(refresh_proxy: true);
 
                     cache.file = Regex.Match(iframe, "file: ?\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(cache.file))
@@ -253,7 +253,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(cache.subtitle) || cache.subtitle == "null")
                         cache.subtitle = Regex.Match(iframe, "thumbnails: ?\"([^\"]+)\"").Groups[1].Value;
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(key, cache, cacheTime(30));
                 }
 

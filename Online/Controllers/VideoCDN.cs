@@ -359,7 +359,7 @@ namespace Online.Controllers
                 var headers = init.streamproxy ? null : HeadersModel.Init(("X-LAMPA-CLIENT-IP", clientIP));
 
                 var data = new System.Net.Http.StringContent($"{{\"token\":\"{refreshToken}\"}}", Encoding.UTF8, "application/json");
-                var job = await Http.Post<JObject>($"{init.apihost}/refresh", data, timeoutSeconds: 5, useDefaultHeaders: false, headers: headers, proxy: proxy);
+                var job = await Http.Post<JObject>($"{init.apihost}/refresh", data, useDefaultHeaders: false, headers: headers, proxy: proxy);
                 if (job == null || !job.ContainsKey("accessToken"))
                     return null;
 

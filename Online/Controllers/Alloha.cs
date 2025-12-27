@@ -41,7 +41,7 @@ namespace Online.Controllers
 
             var result = await search(orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
-                return OnError("data", proxyManager, result.refresh_proxy);
+                return OnError("data", refresh_proxy: result.refresh_proxy);
 
             if (result.data == null)
                 return Ok();
@@ -179,7 +179,7 @@ namespace Online.Controllers
 
                         var root = await httpHydra.Get<JObject>(uri);
                         if (root == null)
-                            return OnError("json", proxyManager);
+                            return OnError("json", refresh_proxy: true);
 
                         if (!root.ContainsKey("data"))
                             return OnError("data");

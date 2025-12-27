@@ -47,14 +47,14 @@ namespace SISI.Controllers.XvideosRED
 
                     string html = await Http.Get(init.cors(url), cookie: init.cookie, timeoutSeconds: init.httptimeout, proxy: proxy, headers: httpHeaders(init));
                     if (html == null)
-                        return OnError("html", proxyManager, string.IsNullOrEmpty(search));
+                        return OnError("html", refresh_proxy: string.IsNullOrEmpty(search));
 
                     playlists = XvideosTo.Playlist("xdsred/vidosik", $"{plugin}/stars", html, site: plugin);
 
                     if (playlists.Count == 0)
-                        return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
+                        return OnError("playlists", refresh_proxy: pg > 1 && string.IsNullOrEmpty(search));
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(key, playlists, cacheTime(10), inmemory: false);
                 }
 

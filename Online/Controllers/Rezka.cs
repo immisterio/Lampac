@@ -174,14 +174,14 @@ namespace Online.Controllers
             );
 
             if (root == null)
-                return OnError(null, gbcache: !rch.enable);
+                return OnError();
 
             var content = await InvokeCache($"rezka:{href}", 20, 
                 () => oninvk.Embed(href, null)
             );
 
             if (content == null)
-                return OnError(null, gbcache: !rch.enable);
+                return OnError();
 
             return ContentTo(oninvk.Serial(root, content, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
         }
@@ -230,11 +230,11 @@ namespace Online.Controllers
             }
 
             if (md == null)
-                return OnError(null, gbcache: !rch.enable);
+                return OnError();
 
             string result = oninvk.Movie(md, title, original_title, play, vast: init.vast);
             if (result == null)
-                return OnError(null, gbcache: !rch.enable);
+                return OnError();
 
             if (play)
                 return RedirectToPlay(result);

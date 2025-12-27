@@ -51,7 +51,7 @@ namespace Online.Controllers
                     if (!result.Contains("new Playerjs"))
                         return null;
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     return result;
                 }
 
@@ -106,7 +106,7 @@ namespace Online.Controllers
 
                         if (result == null || result.StartsWith("<script>(function"))
                         {
-                            proxyManager.Refresh();
+                            proxyManager.Refresh(rch);
                             return null;
                         }
 

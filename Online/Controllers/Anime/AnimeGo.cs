@@ -28,7 +28,7 @@ namespace Online.Controllers
                     {
                         string search = await httpHydra.Get($"{init.corsHost()}/search/anime?q={HttpUtility.UrlEncode(title)}");
                         if (search == null)
-                            return OnError(proxyManager);
+                            return OnError(refresh_proxy: true);
 
                         var rows = search.Split("class=\"p-poster__stack\"");
 
@@ -56,7 +56,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0)
                             return OnError();
 
-                        proxyManager.Success();
+                        proxyManager.Success(rch);
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
@@ -96,7 +96,7 @@ namespace Online.Controllers
 
                         string content = player?.Value<string>("content");
                         if (string.IsNullOrWhiteSpace(content))
-                            return OnError(proxyManager);
+                            return OnError(refresh_proxy: true);
                         #endregion
 
                         var g = Regex.Match(content, "data-player=\"(https?:)?//(aniboom\\.[^/]+)/embed/([^\"\\?&]+)\\?episode=1\\&amp;translation=([0-9]+)\"").Groups;
@@ -138,7 +138,7 @@ namespace Online.Controllers
                         }
                         #endregion
 
-                        proxyManager.Success();
+                        proxyManager.Success(rch);
                         hybridCache.Set(key, cache, cacheTime(30));
                     }
 
@@ -195,17 +195,17 @@ namespace Online.Controllers
                     ));
 
                     if (string.IsNullOrWhiteSpace(embed))
-                        return OnError(proxyManager);
+                        return OnError(refresh_proxy: true);
 
                     embed = embed.Replace("&quot;", "\"").Replace("\\", "");
 
                     hls = Regex.Match(embed, "\"hls\":\"\\{\"src\":\"(https?:)?(//[^\"]+\\.m3u8)\"").Groups[2].Value;
                     if (string.IsNullOrWhiteSpace(hls))
-                        return OnError(proxyManager);
+                        return OnError(refresh_proxy: true);
 
                     hls = "https:" + hls;
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(key, hls, cacheTime(30));
                 }
 

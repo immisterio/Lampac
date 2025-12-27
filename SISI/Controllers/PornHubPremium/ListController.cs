@@ -18,15 +18,15 @@ namespace SISI.Controllers.PornHubPremium
             {
                 string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => Http.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
                 if (html == null)
-                    return OnError("html", proxyManager, string.IsNullOrEmpty(search));
+                    return OnError("html", refresh_proxy: string.IsNullOrEmpty(search));
 
                 cache.total_pages = PornHubTo.Pages(html);
                 cache.playlists = PornHubTo.Playlist("phubprem/vidosik", "phubprem", html, prem: true);
 
                 if (cache.playlists.Count == 0)
-                    return OnError("playlists", proxyManager, pg > 1 && string.IsNullOrEmpty(search));
+                    return OnError("playlists", refresh_proxy: pg > 1 && string.IsNullOrEmpty(search));
 
-                proxyManager.Success();
+                proxyManager.Success(rch);
                 hybridCache.Set(memKey, cache, cacheTime(10));
             }
 

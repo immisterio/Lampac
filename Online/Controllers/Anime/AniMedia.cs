@@ -25,7 +25,7 @@ namespace Online.Controllers
                     {
                         string search = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", $"do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title)}");
                         if (search == null)
-                            return OnError(proxyManager);
+                            return OnError(refresh_proxy: true);
 
                         var rows = search.Split("</article>")[1].Split("grid-item d-flex fd-column");
 
@@ -49,7 +49,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0 && !search.Contains("id=\"dosearch\""))
                             return OnError();
 
-                        proxyManager.Success();
+                        proxyManager.Success(rch);
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
@@ -80,7 +80,7 @@ namespace Online.Controllers
                     {
                         string html = await httpHydra.Get($"{init.corsHost()}/{news}");
                         if (html == null)
-                            return OnError(proxyManager);
+                            return OnError(refresh_proxy: true);
 
                         var match = Regex.Match(html, "data-vid=\"([0-9]+)\"[\t ]+data-vlnk=\"([^\"]+)\"");
                         links = new List<(int episode, string s, string vod)>(match.Length);
@@ -108,7 +108,7 @@ namespace Online.Controllers
                         if (links.Count == 0)
                             return OnError();
 
-                        proxyManager.Success();
+                        proxyManager.Success(rch);
                         hybridCache.Set(key, links, cacheTime(30), inmemory: false);
                     }
 
@@ -138,13 +138,13 @@ namespace Online.Controllers
                     string embed = await httpHydra.Get(vod);
 
                     if (string.IsNullOrEmpty(embed))
-                        return OnError(proxyManager);
+                        return OnError(refresh_proxy: true);
 
                     hls = Regex.Match(embed, "file:\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(hls))
-                        return OnError(proxyManager);
+                        return OnError(refresh_proxy: true);
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(key, hls, cacheTime(180));
                 }
 

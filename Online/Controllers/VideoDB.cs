@@ -147,8 +147,7 @@ namespace Online.Controllers
                         return OnError();
                     }
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    proxyManager.Success(rch);
 
                     hybridCache.Set(memKey, location, cacheTimeBase(20, rhub: 2, init: init));
                 }

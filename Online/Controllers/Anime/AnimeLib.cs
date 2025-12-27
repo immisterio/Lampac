@@ -59,7 +59,7 @@ namespace Online.Controllers
                             search = await goSearch(title);
 
                         if (search == null || search.Length == 0)
-                            return OnError(proxyManager, refresh_proxy: !rch.enable);
+                            return OnError(refresh_proxy: true);
 
                         string stitle = StringConvert.SearchName(title);
                         catalog = new List<(string title, string year, string uri, bool coincidence, string cover)>(search.Length);
@@ -83,8 +83,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0)
                             return OnError();
 
-                        if (!rch.enable)
-                            proxyManager.Success();
+                        proxyManager.Success(rch);
 
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
@@ -113,15 +112,14 @@ namespace Online.Controllers
                         var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
 
                         if (root == null || !root.ContainsKey("data"))
-                            return OnError(proxyManager, refresh_proxy: !rch.enable);
+                            return OnError(refresh_proxy: true);
 
                         episodes = root["data"].ToObject<Episode[]>();
 
                         if (episodes.Length == 0)
                             return OnError();
 
-                        if (!rch.enable)
-                            proxyManager.Success();
+                        proxyManager.Success(rch);
 
                         hybridCache.Set(key, episodes, cacheTime(30));
                     }
@@ -138,7 +136,7 @@ namespace Online.Controllers
                         var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
 
                         if (root == null || !root.ContainsKey("data"))
-                            return OnError(proxyManager, refresh_proxy: !rch.enable);
+                            return OnError(refresh_proxy: true);
 
                         players = root["data"]["players"].ToObject<Player[]>();
                         hybridCache.Set(voice_memkey, players, cacheTime(30));

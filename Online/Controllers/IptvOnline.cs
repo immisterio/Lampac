@@ -44,17 +44,17 @@ namespace Online.Controllers
             #region AUTH
             if (!hybridCache.TryGetValue($"iptvonline:auth:{init.token}", out string codeauth))
             {
-                var auth = await Http.Post<JObject>($"{init.host}/v1/api/auth", "", timeoutSeconds: 8, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
+                var auth = await httpHydra.Post<JObject>($"{init.host}/v1/api/auth", "", useDefaultHeaders: false, addheaders: HeadersModel.Init(
                     ("X-API-KEY", init.token.Split(":")[1]),
                     ("X-API-ID", init.token.Split(":")[0])
                 ));
 
                 if (auth == null)
-                    return OnError(proxyManager);
+                    return OnError(refresh_proxy: true);
 
                 string code = auth.Value<string>("code");
                 if (string.IsNullOrEmpty(code))
-                    return OnError(proxyManager);
+                    return OnError(refresh_proxy: true);
 
                 codeauth = code;
                 hybridCache.Set($"iptvonline:auth:{init.token}", codeauth, DateTime.Now.AddHours(2));
@@ -72,13 +72,12 @@ namespace Online.Controllers
             string id = data.Value<string>("id");
             var cache = await InvokeCacheResult<JToken>($"IptvOnline:{id}:{init.token}", 20, async e =>
             {
-                var bearer = HeadersModel.Init(
+                string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}/{id}/";
+
+                var root = await httpHydra.Get<JObject>(uri, useDefaultHeaders: false, addheaders: HeadersModel.Init(
                     ("X-API-AUTH", codeauth),
                     ("X-API-ID", init.token.Split(":")[0])
-                );
-
-                string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}/{id}/";
-                var root = await httpHydra.Get<JObject>(uri, addheaders: bearer, useDefaultHeaders: false);
+                ));
 
                 if (root == null || !root.ContainsKey("data"))
                     return e.Fail("data", refresh_proxy: true);
@@ -166,15 +165,13 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(search))
                         return null;
 
-                    var header = httpHeaders(init, HeadersModel.Init(
-                        ("X-API-AUTH", codeauth),
-                        ("X-API-ID", init.token.Split(":")[0])
-                    ));
-
                     string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}";
                     var data = new System.Net.Http.StringContent(JsonConvert.SerializeObject(new { search }), Encoding.UTF8, "application/json");
 
-                    var video = await Http.Get<JObject>(uri, body: data, timeoutSeconds: 8, proxy: proxy, headers: header, useDefaultHeaders: false);
+                    var video = await Http.Get<JObject>(uri, body: data, timeoutSeconds: init.httptimeout, proxy: proxy, useDefaultHeaders: false, headers: httpHeaders(init, HeadersModel.Init(
+                        ("X-API-AUTH", codeauth),
+                        ("X-API-ID", init.token.Split(":")[0])
+                    )));
 
                     if (video == null)
                     {

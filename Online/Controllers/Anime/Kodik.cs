@@ -68,7 +68,7 @@ namespace Online.Controllers
                     (uri, head) => httpHydra.Get(uri),
                     (uri, data) => httpHydra.Post(uri, data),
                     streamfile => HostStreamProxy(streamfile),
-                    requesterror: proxyManager.Refresh
+                    requesterror: () => proxyManager.Refresh(rch)
                 );
             };
         }
@@ -168,10 +168,11 @@ namespace Online.Controllers
                         string deadline = DateTime.Now.AddHours(4).ToString("yyyy MM dd HH").Replace(" ", "");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
-                        var root = await httpHydra.Get<JObject>($"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true");
+                        string uri = $"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true";
+                        var root = await Http.Get<JObject>(uri, timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy);
 
                         if (root == null || !root.ContainsKey("links"))
-                            return OnError("links", proxyManager);
+                            return OnError("links", refresh_proxy: true);
 
                         cache.streams = new List<(string q, string url)>(3);
 
@@ -185,7 +186,7 @@ namespace Online.Controllers
                         }
 
                         if (cache.streams.Count == 0)
-                            return OnError("streams", proxyManager);
+                            return OnError("streams", refresh_proxy: true);
 
                         cache.streams.Reverse();
 
@@ -216,7 +217,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        proxyManager.Success();
+                        proxyManager.Success(rch);
                         hybridCache.Set(key, cache, cacheTime(120));
                     }
 

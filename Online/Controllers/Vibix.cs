@@ -163,7 +163,7 @@ namespace Online.Controllers
 
                     if (video == null)
                     {
-                        proxyManager.Refresh();
+                        proxyManager.Refresh(rch);
                         return null;
                     }
 
@@ -177,7 +177,7 @@ namespace Online.Controllers
                 if (root == null)
                     return null;
 
-                proxyManager.Success();
+                proxyManager.Success(rch);
                 hybridCache.Set(memKey, root, cacheTime(30));
             }
 

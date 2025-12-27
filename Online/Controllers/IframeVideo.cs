@@ -85,7 +85,7 @@ namespace Online.Controllers
 
                 urim3u8 = Regex.Match(json ?? "", "{\"src\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
                 if (string.IsNullOrWhiteSpace(urim3u8))
-                    return OnError(proxyManager);
+                    return OnError(refresh_proxy: true);
 
                 hybridCache.Set(memKey, urim3u8, cacheTime(20));
             }

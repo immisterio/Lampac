@@ -32,11 +32,10 @@ namespace SISI.Controllers.Porntrex
                         if (IsRhubFallback(init))
                             goto reset;
 
-                        return OnError("stream_links", proxyManager);
+                        return OnError("stream_links", refresh_proxy: true);
                     }
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    proxyManager.Success(rch);
 
                     cache.userch = rch.enable;
                     hybridCache.Set(memKey, cache, cacheTime(20));
@@ -89,9 +88,9 @@ namespace SISI.Controllers.Porntrex
                     }
 
                     if (string.IsNullOrEmpty(location) || link == location)
-                        return OnError("location", proxyManager);
+                        return OnError("location", refresh_proxy: true);
 
-                    proxyManager.Success();
+                    proxyManager.Success(rch);
                     hybridCache.Set(memKey, location, cacheTime(40));
                 }
 

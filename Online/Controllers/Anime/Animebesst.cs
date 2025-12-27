@@ -181,7 +181,7 @@ namespace Online.Controllers
                 goto rhubFallback;
 
             if (!cache.IsSuccess)
-                return OnError(cache.ErrorMsg, gbcache: !rch.enable);
+                return OnError(cache.ErrorMsg);
 
             string link = HostStreamProxy(cache.Value);
 

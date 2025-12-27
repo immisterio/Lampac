@@ -206,20 +206,21 @@ namespace Shared
         #endregion
 
         #region OnError
-        public JsonResult OnError(string msg, ProxyManager proxyManager, bool refresh_proxy = true, bool rcache = true, int statusCode = 503)
-        {
-            if (refresh_proxy && rch.enable == false)
-                proxyManager?.Refresh();
+        public ActionResult OnError(int statusCode = 503, bool refresh_proxy = false)
+            => OnError(string.Empty, statusCode: statusCode, refresh_proxy: refresh_proxy);
 
-            return OnError(msg, rcache: rcache, statusCode: statusCode);
-        }
+        public ActionResult OnError(string msg, int statusCode, bool refresh_proxy = false)
+            => OnError(msg, statusCode: statusCode, refresh_proxy: refresh_proxy);
 
-        public JsonResult OnError(string msg, bool rcache = true, int statusCode = 503)
+        public JsonResult OnError(string msg, bool rcache = true, bool refresh_proxy = true, int statusCode = 503)
         {
             var model = new OnErrorResult(msg);
 
             if (AppInit.conf.multiaccess && rcache && rch.enable == false)
                 memoryCache.Set(ResponseCache.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(15));
+
+            if (refresh_proxy && rch.enable == false)
+                proxyManager?.Refresh();
 
             HttpContext.Response.StatusCode = statusCode;
             return Json(model);

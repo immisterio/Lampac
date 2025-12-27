@@ -45,11 +45,10 @@ namespace SISI.Controllers.PornHub
                             if (IsRhubFallback(init))
                                 goto reset;
 
-                            return OnError("playlists", proxyManager, string.IsNullOrEmpty(search));
+                            return OnError("playlists", refresh_proxy: string.IsNullOrEmpty(search));
                         }
 
-                        if (!rch.enable)
-                            proxyManager.Success();
+                        proxyManager.Success(rch);
 
                         hybridCache.Set(rch.ipkey(semaphoreKey), cache, cacheTime(10));
                     }

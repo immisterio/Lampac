@@ -138,17 +138,15 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(key, out string urim3u8))
                 {
-                    var header = httpHeaders(init, HeadersModel.Init(
+                    var header = HeadersModel.Init(
                         ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                         ("sec-fetch-dest", "document"),
                         ("sec-fetch-mode", "navigate"),
                         ("sec-fetch-site", "none")
-                    ));
+                    );
 
                     reset:
-                    string html = rch.enable 
-                        ? await rch.Get(iframe, header) 
-                        : await Http.Get(iframe, timeoutSeconds: 8, proxy: proxy, headers: header);
+                    string html = await httpHydra.Get(iframe, addheaders: header);
 
                     if (html != null)
                     {
@@ -163,7 +161,7 @@ namespace Online.Controllers
                         {
                             string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
 
-                            header = httpHeaders(init, HeadersModel.Init(
+                            header = HeadersModel.Init(
                                 ("accept", "*/*"),
                                 ("origin", origin),
                                 ("referer", $"{origin}/"),
@@ -171,11 +169,9 @@ namespace Online.Controllers
                                 ("sec-fetch-mode", "cors"),
                                 ("sec-fetch-site", "same-site"),
                                 ("x-csrf-token", csrftoken)
-                            ));
+                            );
 
-                            urim3u8 = rch.enable 
-                                ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) 
-                                : await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
+                            urim3u8 = await httpHydra.Post($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: header);
 
                             if (urim3u8 != null)
                             {
@@ -186,11 +182,7 @@ namespace Online.Controllers
                                     file = Regex.Replace(file, "\\.txt$", "");
 
                                     if (!string.IsNullOrEmpty(file))
-                                    {
-                                        urim3u8 = rch.enable 
-                                            ? await rch.Post($"https://{vid}.{href}/playlist/{file}.txt", "", header) 
-                                            : await Http.Post($"https://{vid}.{href}/playlist/{file}.txt", "", timeoutSeconds: 8, proxy: proxy, headers: header);
-                                    }
+                                        urim3u8 = await httpHydra.Post($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: header);
                                 }
                             }
                         }
@@ -280,7 +272,7 @@ namespace Online.Controllers
                             {
                                 string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
 
-                                cache.header = httpHeaders(init, HeadersModel.Init(
+                                cache.header = HeadersModel.Init(
                                     ("accept", "*/*"),
                                     ("origin", origin),
                                     ("referer", $"{origin}/"),
@@ -288,9 +280,9 @@ namespace Online.Controllers
                                     ("sec-fetch-mode", "cors"),
                                     ("sec-fetch-site", "same-site"),
                                     ("x-csrf-token", csrftoken)
-                                ));
+                                );
 
-                                cache.playlist = await httpHydra.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", newheaders: cache.header, IgnoreDeserializeObject: true);
+                                cache.playlist = await httpHydra.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: cache.header, IgnoreDeserializeObject: true);
 
                                 if (cache.playlist != null && cache.playlist.Count > 0)
                                 {
@@ -322,7 +314,7 @@ namespace Online.Controllers
                         episode = Regex.Replace(episode, "^/playlist/", "/");
                         episode = Regex.Replace(episode, "\\.txt$", "");
 
-                        urim3u8 = await httpHydra.Post($"https://{vid}.{cache.href}/playlist/{episode}.txt", "", newheaders: cache.header);
+                        urim3u8 = await httpHydra.Post($"https://{vid}.{cache.href}/playlist/{episode}.txt", "", addheaders: cache.header);
                     }
 
                     if (string.IsNullOrEmpty(urim3u8) || !urim3u8.Contains("/index.m3u8"))

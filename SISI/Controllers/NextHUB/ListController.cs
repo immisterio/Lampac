@@ -20,14 +20,14 @@ namespace SISI.Controllers.NextHUB
         async public ValueTask<ActionResult> Index(string plugin, string search, string sort, string cat, string model, int pg = 1)
         {
             if (!AppInit.conf.sisi.NextHUB)
-                return OnError("disabled");
+                return OnError("disabled", rcache: false);
 
             var _nxtInit = Root.goInit(plugin);
             if (_nxtInit == null)
                 return OnError("init not found", rcache: false);
 
             if (!string.IsNullOrEmpty(search) && string.IsNullOrEmpty(_nxtInit.search?.uri))
-                return OnError("search disable");
+                return OnError("search disable", rcache: false);
 
             if (await IsRequestBlocked(_nxtInit, rch: _nxtInit.rch_access != null))
                 return badInitMsg;
@@ -39,156 +39,144 @@ namespace SISI.Controllers.NextHUB
                     semaphoreKey += $":{HttpContext.Request.Query[item.arg]}";
             }
 
-            return await SemaphoreResult(semaphoreKey, async e =>
+            rhubFallback:
+            var cache = await InvokeCacheResult<List<PlaylistItem>>(semaphoreKey, init.cache_time, async e =>
             {
-                reset:
-                if (rch.enable == false)
-                    await e.semaphore.WaitAsync();
+                #region contentParse
+                var contentParse = init.list.contentParse ?? init.contentParse;
 
-                if (!hybridCache.TryGetValue(e.key, out List<PlaylistItem> playlists, inmemory: false))
+                if (!string.IsNullOrEmpty(search) && init.search?.contentParse != null)
+                    contentParse = init.search.contentParse;
+
+                if (!string.IsNullOrEmpty(model) && init.model?.contentParse != null)
+                    contentParse = init.model.contentParse;
+                #endregion
+
+                string html = await HttpRequest(init, plugin, pg, search, sort, cat, model);
+
+                var playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
+
+                if (playlists == null || playlists.Count == 0)
+                    return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));
+
+                return e.Success(playlists);
+            });
+
+            if (IsRhubFallback(cache))
+                goto rhubFallback;
+
+            var menu = new List<MenuItem>(3);
+            bool usedRoute = init.menu?.route != null || init.route?.eval != null;
+
+            #region search
+            if (string.IsNullOrEmpty(model) && init.search?.uri != null)
+            {
+                menu.Add(new MenuItem()
                 {
-                    #region contentParse
-                    var contentParse = init.list.contentParse ?? init.contentParse;
+                    title = "Поиск",
+                    search_on = "search_on",
+                    playlist_url = $"{host}/nexthub?plugin={plugin}",
+                });
+            }
+            #endregion
 
-                    if (!string.IsNullOrEmpty(search) && init.search?.contentParse != null)
-                        contentParse = init.search.contentParse;
-
-                    if (!string.IsNullOrEmpty(model) && init.model?.contentParse != null)
-                        contentParse = init.model.contentParse;
-                    #endregion
-
-                    string html = await HttpRequest(init, plugin, pg, search, sort, cat, model);
-
-                    playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
-
-                    if (playlists == null || playlists.Count == 0)
-                    {
-                        if (IsRhubFallback(init))
-                            goto reset;
-
-                        return OnError("playlists", proxyManager, rcache: !(init.debug || rch.enable));
-                    }
-
-                    if (!rch.enable)
-                        proxyManager.Success();
-
-                    hybridCache.Set(e.key, playlists, cacheTime(init.cache_time), inmemory: false);
-                }
-
-                var menu = new List<MenuItem>(3);
-                bool usedRoute = init.menu?.route != null || init.route?.eval != null;
-
-                #region search
-                if (string.IsNullOrEmpty(model) && init.search?.uri != null)
+            #region sort
+            if (string.IsNullOrEmpty(search) && init.menu?.sort != null)
+            {
+                var msort = new MenuItem()
                 {
-                    menu.Add(new MenuItem()
+                    title = $"Сортировка: {init.menu.sort.FirstOrDefault(i => i.Value.Trim() == sort).Key ?? init.menu.sort.First().Key}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>()
+                };
+
+                string arg = usedRoute && init.menu.bind ? $"&cat={HttpUtility.UrlEncode(cat)}&model={HttpUtility.UrlEncode(model)}" : string.Empty;
+
+                foreach (var s in init.menu.sort)
+                {
+                    msort.submenu.Add(new MenuItem()
                     {
-                        title = "Поиск",
-                        search_on = "search_on",
-                        playlist_url = $"{host}/nexthub?plugin={plugin}",
+                        title = s.Key,
+                        playlist_url = $"{host}/nexthub?plugin={plugin}&sort={HttpUtility.UrlEncode(s.Value.Trim())}" + arg,
                     });
                 }
-                #endregion
 
-                #region sort
-                if (string.IsNullOrEmpty(search) && init.menu?.sort != null)
+                if (msort.submenu.Count > 0)
+                    menu.Add(msort);
+            }
+            #endregion
+
+            #region categories
+            if (string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) && init.menu?.categories != null)
+            {
+                var categories = init.menu.categories.Where(i => i.Key != "format");
+
+                var mcat = new MenuItem()
                 {
-                    var msort = new MenuItem()
+                    title = $"Категории: {categories.FirstOrDefault(i => i.Value.Trim() == cat).Key ?? "Выбрать"}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>()
+                };
+
+                string arg = usedRoute && init.menu.bind ? $"&sort={HttpUtility.UrlEncode(sort)}" : string.Empty;
+
+                foreach (var s in categories)
+                {
+                    mcat.submenu.Add(new MenuItem()
                     {
-                        title = $"Сортировка: {init.menu.sort.FirstOrDefault(i => i.Value.Trim() == sort).Key ?? init.menu.sort.First().Key}",
-                        playlist_url = "submenu",
-                        submenu = new List<MenuItem>()
-                    };
-
-                    string arg = usedRoute && init.menu.bind ? $"&cat={HttpUtility.UrlEncode(cat)}&model={HttpUtility.UrlEncode(model)}" : string.Empty;
-
-                    foreach (var s in init.menu.sort)
-                    {
-                        msort.submenu.Add(new MenuItem()
-                        {
-                            title = s.Key,
-                            playlist_url = $"{host}/nexthub?plugin={plugin}&sort={HttpUtility.UrlEncode(s.Value.Trim())}" + arg,
-                        });
-                    }
-
-                    if (msort.submenu.Count > 0)
-                        menu.Add(msort);
+                        title = s.Key,
+                        playlist_url = $"{host}/nexthub?plugin={plugin}&cat={HttpUtility.UrlEncode(s.Value.Trim())}" + arg,
+                    });
                 }
-                #endregion
 
-                #region categories
-                if (string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) && init.menu?.categories != null)
+                if (mcat.submenu.Count > 0)
+                    menu.Add(mcat);
+            }
+            #endregion
+
+            #region custom categories
+            if (string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) && init.menu?.customs != null)
+            {
+                foreach (var custom in init.menu.customs)
                 {
-                    var categories = init.menu.categories.Where(i => i.Key != "format");
+                    string argvalue = HttpContext.Request.Query[custom.arg];
 
                     var mcat = new MenuItem()
                     {
-                        title = $"Категории: {categories.FirstOrDefault(i => i.Value.Trim() == cat).Key ?? "Выбрать"}",
+                        title = $"{custom.name}: {custom.submenu.FirstOrDefault(i => i.Value.Trim() == argvalue).Key ?? "Выбрать"}",
                         playlist_url = "submenu",
                         submenu = new List<MenuItem>()
                     };
 
-                    string arg = usedRoute && init.menu.bind ? $"&sort={HttpUtility.UrlEncode(sort)}" : string.Empty;
-
-                    foreach (var s in categories)
+                    foreach (var s in custom.submenu)
                     {
                         mcat.submenu.Add(new MenuItem()
                         {
                             title = s.Key,
-                            playlist_url = $"{host}/nexthub?plugin={plugin}&cat={HttpUtility.UrlEncode(s.Value.Trim())}" + arg,
+                            playlist_url = $"{host}/nexthub?plugin={plugin}&{custom.arg}={HttpUtility.UrlEncode(s.Value.Trim())}",
                         });
                     }
 
                     if (mcat.submenu.Count > 0)
                         menu.Add(mcat);
                 }
-                #endregion
+            }
+            #endregion
 
-                #region custom categories
-                if (string.IsNullOrEmpty(search) && string.IsNullOrEmpty(model) && init.menu?.customs != null)
-                {
-                    foreach (var custom in init.menu.customs)
-                    {
-                        string argvalue = HttpContext.Request.Query[custom.arg];
+            #region total_pages
+            int total_pages = init.list.total_pages;
 
-                        var mcat = new MenuItem()
-                        {
-                            title = $"{custom.name}: {custom.submenu.FirstOrDefault(i => i.Value.Trim() == argvalue).Key ?? "Выбрать"}",
-                            playlist_url = "submenu",
-                            submenu = new List<MenuItem>()
-                        };
+            if (search != null && init.search != null)
+                total_pages = init.search.total_pages;
 
-                        foreach (var s in custom.submenu)
-                        {
-                            mcat.submenu.Add(new MenuItem()
-                            {
-                                title = s.Key,
-                                playlist_url = $"{host}/nexthub?plugin={plugin}&{custom.arg}={HttpUtility.UrlEncode(s.Value.Trim())}",
-                            });
-                        }
+            if (model != null && init.model != null)
+                total_pages = init.model.total_pages;
+            #endregion
 
-                        if (mcat.submenu.Count > 0)
-                            menu.Add(mcat);
-                    }
-                }
-                #endregion
-
-                #region total_pages
-                int total_pages = init.list.total_pages;
-
-                if (search != null && init.search != null)
-                    total_pages = init.search.total_pages;
-
-                if (model != null && init.model != null)
-                    total_pages = init.model.total_pages;
-                #endregion
-
-                return OnResult(
-                    playlists,
-                    menu.Count == 0 ? null : menu,
-                    total_pages: total_pages
-                );
-            });
+            return OnResult(cache,
+                menu.Count == 0 ? null : menu,
+                total_pages: total_pages
+            );
         }
 
 
@@ -625,13 +613,13 @@ namespace SISI.Controllers.NextHUB
 
                 return rch.enable
                     ? await rch.Post(url.Replace("{page}", pg.ToString()), data, httpHeaders(init))
-                    : await Http.Post(url.Replace("{page}", pg.ToString()), data, encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout);
+                    : await Http.Post(url.Replace("{page}", pg.ToString()), data, encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
             }
             else
             {
                 return rch.enable 
                     ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) 
-                    : init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout) 
+                    : init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion) 
                     : init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy_data, cookies: init.cookies) 
                     : await ContentAsync(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy_data, search, sort, cat, model, pg);
             }

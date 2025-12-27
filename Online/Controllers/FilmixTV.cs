@@ -70,7 +70,7 @@ namespace Online.Controllers
                ongettourl => httpHydra.Get(ongettourl, addheaders: bearer),
                (url, data) => httpHydra.Post(url, data, addheaders: bearer),
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(),
+               requesterror: () => proxyManager.Refresh(rch),
                rjson: rjson
             );
 

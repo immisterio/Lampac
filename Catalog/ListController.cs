@@ -99,14 +99,14 @@ namespace Catalog.Controllers
 
                         html = rch.enable
                             ? await rch.Post(url.Replace("{page}", page.ToString()), data, headers, useDefaultHeaders: init.useDefaultHeaders)
-                            : await Http.Post(url.Replace("{page}", page.ToString()), httpdata, headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, useDefaultHeaders: init.useDefaultHeaders);
+                            : await Http.Post(url.Replace("{page}", page.ToString()), httpdata, headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion, useDefaultHeaders: init.useDefaultHeaders);
                     }
                     else
                     {
                         html = rch.enable
                             ? await rch.Get(url.Replace("{page}", page.ToString()), headers, useDefaultHeaders: init.useDefaultHeaders)
                             : init.priorityBrowser == "playwright" ? await PlaywrightBrowser.Get(init, url.Replace("{page}", page.ToString()), headers, proxy.data, cookies: init.cookies)
-                            : await Http.Get(url.Replace("{page}", page.ToString()), headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, useDefaultHeaders: init.useDefaultHeaders);
+                            : await Http.Get(url.Replace("{page}", page.ToString()), headers: headers, proxy: proxy.proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion, useDefaultHeaders: init.useDefaultHeaders);
                     }
                     #endregion
 
@@ -147,8 +147,7 @@ namespace Catalog.Controllers
                         if (ModInit.IsRhubFallback(init))
                             goto reset;
 
-                        if (!rch.enable)
-                            proxyManager.Refresh();
+                        proxyManager.Refresh(rch);
 
                         return BadRequest("playlists");
                     }
@@ -163,8 +162,7 @@ namespace Catalog.Controllers
                             cache.total_pages = _pages;
                     }
 
-                    if (!rch.enable)
-                        proxyManager.Success();
+                    proxyManager.Success(rch);
 
                     hybridCache.Set(memKey, cache, cacheTimeBase(init.cache_time, init: init), inmemory: false);
                 }

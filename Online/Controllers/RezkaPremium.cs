@@ -102,12 +102,8 @@ namespace Online.Controllers
                     host,
                     "lite/rhsprem",
                     init,
-                    (url, _) => rch.enable
-                        ? rch.Get(url, headers, useDefaultHeaders: false)
-                        : Http.Get(url, timeoutSeconds: 8, proxy: proxy, headers: headers, statusCodeOK: !url.Contains("do=search"), useDefaultHeaders: false),
-                    (url, data, _) => rch.enable
-                        ? rch.Post(url, data, headers, useDefaultHeaders: false)
-                        : Http.Post(url, data, timeoutSeconds: 8, proxy: proxy, headers: headers, useDefaultHeaders: false),
+                    (url, _) => httpHydra.Get(url, newheaders: headers, statusCodeOK: !url.Contains("do=search"), useDefaultHeaders: false),
+                    (url, data, _) => httpHydra.Post(url, data, newheaders: headers, useDefaultHeaders: false),
                     streamfile => HostStreamProxy(RezkaInvoke.fixcdn(country, init.uacdn, streamfile)),
                     requesterror: () => proxyManager.Refresh(rch)
                 ), cook.cookie, null);
@@ -351,7 +347,7 @@ namespace Online.Controllers
                     {
                         client.Timeout = TimeSpan.FromSeconds(15);
 
-                        foreach (var item in apiHeaders( string.Empty))
+                        foreach (var item in apiHeaders(string.Empty))
                             client.DefaultRequestHeaders.Add(item.name, item.val);
 
                         var postParams = new Dictionary<string, string>
