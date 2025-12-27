@@ -176,7 +176,7 @@ namespace Online.Controllers
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg);
 
-            string link = HostStreamProxy(init, cache.Value, proxy: proxyManager.Get());
+            string link = HostStreamProxy(cache.Value);
 
             if (play)
                 return RedirectToPlay(link);

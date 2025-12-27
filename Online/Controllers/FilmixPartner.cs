@@ -108,7 +108,7 @@ namespace Online.Controllers
                             if (!string.IsNullOrEmpty(hashfimix))
                                 url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
 
-                            streamquality.Append(HostStreamProxy(init, url), $"{q}p");
+                            streamquality.Append(HostStreamProxy(url), $"{q}p");
                         }
 
                         mtpl.Append(movie.Value<string>("name"), streamquality.Firts().link, streamquality: streamquality, vast: init.vast);
@@ -186,7 +186,7 @@ namespace Online.Controllers
                                 if (!string.IsNullOrEmpty(hashfimix))
                                     url = Regex.Replace(url, "/s/[^/]+/", $"/s/{hashfimix}/");
 
-                                string l = HostStreamProxy(init, url);
+                                string l = HostStreamProxy(url);
 
                                 streamquality.Append(l, $"{q}p");
                             }

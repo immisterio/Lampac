@@ -365,7 +365,7 @@ namespace Online.Controllers
                     }
 
                     var streamquality = new StreamQualityTpl();
-                    streamquality.Append(HostStreamProxy(init, cache.hls, headers: cache.headers), "auto");
+                    streamquality.Append(HostStreamProxy(cache.hls, headers: cache.headers), "auto");
 
                     if (play)
                         return RedirectToPlay(streamquality.Firts().link);

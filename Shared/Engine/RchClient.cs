@@ -378,8 +378,9 @@ namespace Shared.Engine
         #region IsRequiredConnected
         public bool IsRequiredConnected()
         {
-            if (!AppInit.conf.rch.requiredConnected)
-                return false; // Обязательное подключение отключено
+            if (!AppInit.conf.rch.requiredConnected  // Обязательное подключение отключено
+                && init.rchstreamproxy == null)      // rchstreamproxy не указан
+                return false;
 
             if (httpContext != null)
             {

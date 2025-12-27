@@ -246,7 +246,7 @@ namespace Shared
         #endregion
 
         #region HostStreamProxy
-        public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, bool force_streamproxy = false)
+        public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, bool force_streamproxy = false, RchClient? rch = null)
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri?.Split(" ")?[0]?.Trim();
@@ -258,7 +258,9 @@ namespace Shared
             if (conf.rhub && !conf.rhub_streamproxy)
                 return uri.Split(" ")[0].Trim();
 
-            bool streamproxy = conf.streamproxy || conf.useproxystream || force_streamproxy;
+            bool streamproxy = conf.streamproxy || conf.apnstream || conf.useproxystream || force_streamproxy;
+
+            #region geostreamproxy
             if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
             {
                 string country = requestInfo.Country;
@@ -268,69 +270,79 @@ namespace Shared
                         streamproxy = true;
                 }
             }
+            #endregion
+
+            #region rchstreamproxy
+            if (!streamproxy && conf.rchstreamproxy != null && rch.HasValue)
+            {
+                var rchinfo = rch.Value.InfoConnected();
+                if (rchinfo?.rchtype != null)
+                    streamproxy = conf.rchstreamproxy.Contains(rchinfo.rchtype);
+            }
+            #endregion
 
             if (streamproxy)
             {
-                if (conf.headers_stream != null && conf.headers_stream.Count > 0)
-                    headers = HeadersModel.Init(conf.headers_stream);
-
-                #region apnstream
-                string apnlink(ApnConf apn)
-                {
-                    string link = uri.Split(" ")[0].Split("#")[0].Trim();
-
-                    if (apn.secure == "nginx")
-                    {
-                        using (MD5 md5 = MD5.Create())
-                        {
-                            long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
-                            string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{requestInfo.IP} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
-
-                            return $"{apn.host}/{hash}:{ex}/{link}";
-                        }
-                    }
-                    else if (apn.secure == "cf")
-                    {
-                        using (var sha1 = SHA1.Create())
-                        {
-                            var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{link}{apn.secret}");
-                            return Convert.ToBase64String(sha1.ComputeHash(data));
-                        }
-                    }
-                    else if (apn.secure == "lampac")
-                    {
-                        string aes = AesTo.Encrypt(System.Text.Json.JsonSerializer.Serialize(new 
-                        {
-                            u = link,
-                            i = requestInfo.IP,
-                            v = true,
-                            e = DateTime.Now.AddHours(36),
-                            h = headers?.ToDictionary() 
-                        }));
-
-                        if (uri.Contains(".m3u"))
-                            aes += ".m3u8";
-
-                        return $"{apn.host}/proxy/{aes}";
-                    }
-
-                    if (apn.host.Contains("{encode_uri}") || apn.host.Contains("{uri}"))
-                        return apn.host.Replace("{encode_uri}", HttpUtility.UrlEncode(link)).Replace("{uri}", link);
-
-                    return $"{apn.host}/{link}";
-                }
-
-                if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
-                    return apnlink(conf.apn);
-
                 if (AppInit.conf.serverproxy.forced_apn || conf.apnstream)
                 {
+                    #region apnlink
+                    string apnlink(ApnConf apn)
+                    {
+                        string link = uri.Split(" ")[0].Split("#")[0].Trim();
+
+                        if (apn.secure == "nginx")
+                        {
+                            using (MD5 md5 = MD5.Create())
+                            {
+                                long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
+                                string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{requestInfo.IP} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
+
+                                return $"{apn.host}/{hash}:{ex}/{link}";
+                            }
+                        }
+                        else if (apn.secure == "cf")
+                        {
+                            using (var sha1 = SHA1.Create())
+                            {
+                                var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{link}{apn.secret}");
+                                return Convert.ToBase64String(sha1.ComputeHash(data));
+                            }
+                        }
+                        else if (apn.secure == "lampac")
+                        {
+                            string aes = AesTo.Encrypt(System.Text.Json.JsonSerializer.Serialize(new
+                            {
+                                u = link,
+                                i = requestInfo.IP,
+                                v = true,
+                                e = DateTime.Now.AddHours(36),
+                                h = headers?.ToDictionary()
+                            }));
+
+                            if (uri.Contains(".m3u"))
+                                aes += ".m3u8";
+
+                            return $"{apn.host}/proxy/{aes}";
+                        }
+
+                        if (apn.host.Contains("{encode_uri}") || apn.host.Contains("{uri}"))
+                            return apn.host.Replace("{encode_uri}", HttpUtility.UrlEncode(link)).Replace("{uri}", link);
+
+                        return $"{apn.host}/{link}";
+                    }
+                    #endregion
+
+                    if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
+                        return apnlink(conf.apn);
+
                     if (!string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
                         return apnlink(AppInit.conf.apn);
 
                     return uri;
-                }  
-                #endregion
+                }
+
+                if (conf.headers_stream != null && conf.headers_stream.Count > 0)
+                    headers = HeadersModel.Init(conf.headers_stream);
 
                 uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
 
@@ -566,9 +578,9 @@ namespace Shared
                 var user = requestInfo.user;
                 if (user == null || init.group > user.group)
                 {
-                    error_msg = AppInit.conf.accsdb.denyGroupMesage.
-                                Replace("{account_email}", requestInfo.user_uid).
-                                Replace("{user_uid}", requestInfo.user_uid);
+                    error_msg = AppInit.conf.accsdb.denyGroupMesage
+                        .Replace("{account_email}", requestInfo.user_uid)
+                        .Replace("{user_uid}", requestInfo.user_uid);
 
                     return true;
                 }
@@ -655,7 +667,7 @@ namespace Shared
                 return clone;
             }
 
-            return loadKit(clone, await loadKitConf(), func, clone: false);
+            return loadKit(clone, await loadKitConf(), func, false);
         }
 
         public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable

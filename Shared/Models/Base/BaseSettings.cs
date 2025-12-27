@@ -160,6 +160,8 @@ namespace Shared.Models.Base
 
         public string[] geostreamproxy { get; set; }
 
+        public string rchstreamproxy { get; set; }
+
         public ApnConf apn { get; set; }
 
         public bool qualitys_proxy { get; set; }
@@ -181,7 +183,7 @@ namespace Shared.Models.Base
                 if (rhub && !rhub_streamproxy && !rhub_fallback && rhub_geo_disable == null) { }
                 else
                 {
-                    if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null)
+                    if (streamproxy || apnstream || qualitys_proxy || geostreamproxy != null || rchstreamproxy != null)
                         return null;
                 }
             }

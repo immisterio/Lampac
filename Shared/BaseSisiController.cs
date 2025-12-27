@@ -207,10 +207,10 @@ namespace Shared
 
         #region OnError
         public ActionResult OnError(int statusCode = 503, bool refresh_proxy = false)
-            => OnError(string.Empty, statusCode: statusCode, refresh_proxy: refresh_proxy);
+            => OnError(string.Empty, statusCode, refresh_proxy);
 
         public ActionResult OnError(string msg, int statusCode, bool refresh_proxy = false)
-            => OnError(msg, statusCode: statusCode, refresh_proxy: refresh_proxy);
+            => OnError(msg, true, refresh_proxy, statusCode);
 
         public JsonResult OnError(string msg, bool rcache = true, bool refresh_proxy = true, int statusCode = 503)
         {
@@ -306,7 +306,7 @@ namespace Shared
             if (!init.streamproxy && (init.geostreamproxy == null || init.geostreamproxy.Length == 0))
             {
                 if (init.qualitys_proxy)
-                    result.qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream, force_streamproxy: true));
+                    result.qualitys_proxy = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(v.Value, headers: headers_stream, force_streamproxy: true));
             }
 
             if (stream_links.recomends != null && stream_links.recomends.Count > 0)
@@ -324,7 +324,7 @@ namespace Shared
                 }
             }
 
-            result.qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(init, v.Value, proxy: proxy, headers: headers_stream));
+            result.qualitys = stream_links.qualitys.ToDictionary(k => k.Key, v => HostStreamProxy(v.Value, headers: headers_stream));
             result.headers_stream = init.streamproxy ? null : Http.NormalizeHeaders(headers_stream?.ToDictionary() ?? init.headers_stream);
 
             return new JsonResult(result);
@@ -389,7 +389,7 @@ namespace Shared
 
         #region HostStreamProxy
         public string HostStreamProxy(string uri, List<HeadersModel> headers = null, bool force_streamproxy = false)
-            => HostStreamProxy(init, uri, headers, proxy, force_streamproxy);
+            => HostStreamProxy(init, uri, headers, proxy, force_streamproxy, rch);
         #endregion
 
         #region InvokeCacheResult

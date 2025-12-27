@@ -94,7 +94,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(init, cache.Value, proxy: proxy), "auto", vast: init.vast));
+            return ContentTo(VideoTpl.ToJson("play", HostStreamProxy(cache.Value), "auto", vast: init.vast));
         }
     }
 }

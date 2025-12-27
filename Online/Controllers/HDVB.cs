@@ -337,7 +337,7 @@ namespace Online.Controllers
                 }
 
                 if (play)
-                    return Redirect(HostStreamProxy(init, urim3u8, proxy: proxy));
+                    return Redirect(HostStreamProxy(urim3u8));
 
                 return ContentTo("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}");
             });

@@ -230,10 +230,10 @@ namespace Shared
 
         #region OnError
         public ActionResult OnError(int statusCode = 503, bool refresh_proxy = false) 
-            => OnError(string.Empty, statusCode: statusCode, refresh_proxy: refresh_proxy);
+            => OnError(string.Empty, statusCode, refresh_proxy);
 
         public ActionResult OnError(string msg, int statusCode, bool refresh_proxy = false)
-            => OnError(msg, statusCode: statusCode, refresh_proxy: refresh_proxy);
+            => OnError(msg, null, refresh_proxy, null, statusCode);
 
         public ActionResult OnError(string msg, bool? gbcache = true, bool refresh_proxy = false, string weblog = null, int statusCode = 503)
         {
@@ -346,7 +346,7 @@ namespace Shared
 
         #region HostStreamProxy
         public string HostStreamProxy(string uri, List<HeadersModel> headers = null, bool force_streamproxy = false)
-            => HostStreamProxy(init, uri, headers, proxy, force_streamproxy);
+            => HostStreamProxy(init, uri, headers, proxy, force_streamproxy, rch);
         #endregion
 
         #region InvkSemaphore
