@@ -309,7 +309,7 @@ namespace Shared
 
 
         #region IsRhubFallback
-        public bool IsRhubFallback<Tresut>(CacheResult<Tresut> cache)
+        public bool IsRhubFallback<Tresut>(CacheResult<Tresut> cache, bool safety = false)
         {
             if (cache.IsSuccess)
                 return false;
@@ -320,6 +320,10 @@ namespace Shared
             if (cache.Value == null && init.rhub && init.rhub_fallback)
             {
                 init.rhub = false;
+
+                if (safety && init.rhub_safety)
+                    return false;
+
                 return true;
             }
 

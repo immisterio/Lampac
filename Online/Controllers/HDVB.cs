@@ -12,11 +12,11 @@ namespace Online.Controllers
         [Route("lite/hdvb")]
         async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, bool similar = false)
         {
+            if (similar || kinopoisk_id == 0)
+                return await RouteSpiderSearch(title, rjson);
+
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
-
-            if (similar || kinopoisk_id == 0)
-                return await SpiderSearch(title, rjson);
 
             reset:
 
@@ -249,16 +249,16 @@ namespace Online.Controllers
                     string mkey_playlist = $"video:view:playlist:{iframe}";
                     if (!hybridCache.TryGetValue(mkey_playlist, out (List<Folder> playlist, string href, List<HeadersModel> header) cache))
                     {
-                        cache.header = httpHeaders(init, HeadersModel.Init(
+                        cache.header = HeadersModel.Init(
                             ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                             ("sec-fetch-dest", "iframe"),
                             ("sec-fetch-mode", "navigate"),
                             ("sec-fetch-site", "cross-site"),
                             ("referer", $"{init.host}/")
-                        ));
+                        );
 
                         reset_playlist:
-                        string html = await httpHydra.Get(iframe, newheaders: cache.header);
+                        string html = await httpHydra.Get(iframe, addheaders: cache.header);
 
                         if (html != null)
                         {
@@ -347,7 +347,7 @@ namespace Online.Controllers
         #region SpiderSearch
         [HttpGet]
         [Route("lite/hdvb-search")]
-        async public ValueTask<ActionResult> SpiderSearch(string title,bool rjson = false)
+        async public ValueTask<ActionResult> RouteSpiderSearch(string title,bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -358,7 +358,7 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<JArray>($"hdvb:search:{title}", 40, async e =>
             {
-                var root = await httpHydra.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}");
+                var root = await httpHydra.Get<JArray>($"{init.host}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}", safety: true);
 
                 if (root == null)
                     return e.Fail("results");
@@ -366,7 +366,7 @@ namespace Online.Controllers
                 return e.Success(root);
             });
 
-            if (IsRhubFallback(cache))
+            if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
             return OnResult(cache, () =>
@@ -398,7 +398,7 @@ namespace Online.Controllers
 
             if (!hybridCache.TryGetValue(memKey, out JArray root, inmemory: false))
             {
-                root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}");
+                root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", safety: true);
 
                 if (root == null)
                 {

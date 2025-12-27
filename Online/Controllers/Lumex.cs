@@ -92,10 +92,10 @@ namespace Online.Controllers
 
             var oninvk = new LumexInvoke
             (
-               init,
-               (url, referer) => httpHydra.Get(url, addheaders: HeadersModel.Init("referer", referer)),
-               streamfile => HostStreamProxy(streamfile),
                host,
+               init,
+               (url, referer, safety) => httpHydra.Get(url, addheaders: HeadersModel.Init("referer", referer), safety: safety),
+               streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh(rch)
             );
 

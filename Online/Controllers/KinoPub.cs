@@ -13,6 +13,7 @@ namespace Online.Controllers
             {
                 if (j.ContainsKey("filetype"))
                     i.filetype = c.filetype;
+
                 i.tokens = c.tokens;
                 return i;
             };
@@ -77,12 +78,15 @@ namespace Online.Controllers
             if (init.tokens != null && init.tokens.Length > 1)
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
 
+            if (string.IsNullOrWhiteSpace(token))
+                return OnError("token", statusCode: 401, gbcache: false);
+
             var oninvk = new KinoPubInvoke
             (
                host,
                init.corsHost(),
                token,
-               ongettourl => httpHydra.Get(ongettourl),
+               ongettourl => httpHydra.Get(ongettourl, safety: true),
                (stream, filepath) => HostStreamProxy(stream),
                requesterror: () => proxyManager.Refresh(rch)
             );
@@ -107,9 +111,13 @@ namespace Online.Controllers
                 postid = search.Value.id;
             }
 
-            var cache = await InvokeCacheResult($"kinopub:post:{postid}:{token}", 10, 
+            rhubFallback:
+            var cache = await InvokeCacheResult($"kinopub:post:{postid}:{token}", 10,
                 () => oninvk.Post(postid)
             );
+
+            if (IsRhubFallback(cache, safety: true))
+                goto rhubFallback;
 
             return OnResult(cache, () => oninvk.Tpl(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson));
         }
@@ -126,10 +134,13 @@ namespace Online.Controllers
             if (init.tokens != null && init.tokens.Length > 1)
                 token = init.tokens[Random.Shared.Next(0, init.tokens.Length)];
 
+            if (string.IsNullOrWhiteSpace(token))
+                return ContentTo("[]");
+
             string uri = $"{init.corsHost()}/v1/items/media-links?mid={mid}&access_token={token}";
 
             var root = await InvokeCache($"kinopub:media-links:{mid}:{token}", 20, 
-                () => httpHydra.Get<JObject>(uri)
+                () => httpHydra.Get<JObject>(uri, safety: true)
             );
 
             if (root == null || !root.ContainsKey("subtitles"))

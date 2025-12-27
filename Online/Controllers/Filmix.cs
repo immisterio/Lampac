@@ -66,15 +66,14 @@ namespace Online.Controllers
                init,
                host,
                token,
-               ongettourl => httpHydra.Get(ongettourl, useDefaultHeaders: false),
-               (url, data, head) => httpHydra.Post(url, data, addheaders: head, useDefaultHeaders: false),
+               ongettourl => httpHydra.Get(ongettourl, useDefaultHeaders: false, safety: !string.IsNullOrEmpty(token)),
+               (url, data, head) => httpHydra.Post(url, data, addheaders: head, useDefaultHeaders: false, safety: !string.IsNullOrEmpty(token)),
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh(rch),
                rjson: rjson
             );
 
-            rhubFallback:
-
+            
             if (postid == 0)
             {
                 var search = await InvokeCacheResult($"filmix:search:{title}:{original_title}:{year}:{clarification}:{similar}", 40, 
@@ -90,11 +89,12 @@ namespace Online.Controllers
                 postid = search.Value.id;
             }
 
+            rhubFallback:
             var cache = await InvokeCacheResult($"filmix:post:{postid}:{token}", 20, 
                 () => oninvk.Post(postid)
             );
 
-            if (IsRhubFallback(cache))
+            if (IsRhubFallback(cache, safety: !string.IsNullOrEmpty(token)))
                 goto rhubFallback;
 
             return OnResult(cache, () => oninvk.Tpl(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));

@@ -102,8 +102,8 @@ namespace Online.Controllers
                     host,
                     "lite/rhsprem",
                     init,
-                    (url, _) => httpHydra.Get(url, newheaders: headers, statusCodeOK: !url.Contains("do=search"), useDefaultHeaders: false),
-                    (url, data, _) => httpHydra.Post(url, data, newheaders: headers, useDefaultHeaders: false),
+                    (url, _) => httpHydra.Get(url, newheaders: headers, statusCodeOK: !url.Contains("do=search"), useDefaultHeaders: false, safety: true),
+                    (url, data, _) => httpHydra.Post(url, data, newheaders: headers, useDefaultHeaders: false, safety: true),
                     streamfile => HostStreamProxy(RezkaInvoke.fixcdn(country, init.uacdn, streamfile)),
                     requesterror: () => proxyManager.Refresh(rch)
                 ), cook.cookie, null);

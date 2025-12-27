@@ -24,7 +24,7 @@ namespace Online.Controllers
             await EnsureAnimeLibToken();
 
             if (string.IsNullOrEmpty(init.token))
-                return OnError();
+                return OnError("token", statusCode: 401, gbcache: false);
 
             var bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
 
@@ -45,7 +45,7 @@ namespace Online.Controllers
 
                             string req_uri = $"{init.corsHost()}/api/anime?fields[]=rate_avg&fields[]=rate&fields[]=releaseDate&q={HttpUtility.UrlEncode(q)}";
 
-                            var result = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
+                            var result = await httpHydra.Get<JObject>(req_uri, addheaders: bearer, safety: true);
 
                             if (result == null || !result.ContainsKey("data"))
                                 return null;
@@ -109,7 +109,7 @@ namespace Online.Controllers
                     {
                         string req_uri = $"{init.corsHost()}/api/episodes?anime_id={uri}";
 
-                        var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
+                        var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer, safety: true);
 
                         if (root == null || !root.ContainsKey("data"))
                             return OnError(refresh_proxy: true);
@@ -133,7 +133,7 @@ namespace Online.Controllers
 
                         string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First().id}";
 
-                        var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
+                        var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer, safety: true);
 
                         if (root == null || !root.ContainsKey("data"))
                             return OnError(refresh_proxy: true);
@@ -204,7 +204,7 @@ namespace Online.Controllers
                 string req_uri = $"{init.corsHost()}/api/episodes/{id}";
                 var bearer = HeadersModel.Init("authorization", $"Bearer {init.token}");
 
-                var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer);
+                var root = await httpHydra.Get<JObject>(req_uri, addheaders: bearer, safety: true);
 
                 if (root == null || !root.ContainsKey("data"))
                     return e.Fail("data", refresh_proxy: true);
@@ -212,7 +212,7 @@ namespace Online.Controllers
                 return e.Success(root["data"]["players"].ToObject<Player[]>());
             });
 
-            if (IsRhubFallback(cache))
+            if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
             if (!cache.IsSuccess)
@@ -358,7 +358,10 @@ namespace Online.Controllers
                     ("site-id", "5")
                 );
 
-                var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, httpversion: 2, timeoutSeconds: 8, headers: headers, useDefaultHeaders: false);
+                var result = await Http.Post<JObject>("https://api.cdnlibs.org/api/auth/oauth/token", content, 
+                    httpversion: init.httpversion, timeoutSeconds: init.httptimeout, headers: headers, useDefaultHeaders: false
+                );
+
                 if (result == null)
                     return null;
 

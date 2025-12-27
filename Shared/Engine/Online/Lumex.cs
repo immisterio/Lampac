@@ -15,7 +15,7 @@ namespace Shared.Engine.Online
         bool hls;
         string apihost;
         string token;
-        Func<string, string, Task<string>> onget;
+        Func<string, string, bool, Task<string>> onget;
         Func<string, string> onstreamfile;
         Action requesterror;
 
@@ -27,7 +27,7 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public LumexInvoke(LumexSettings init, Func<string, string, Task<string>> onget, Func<string, string> onstreamfile, string host = null, Action requesterror = null)
+        public LumexInvoke(string host, LumexSettings init, Func<string, string, bool, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme ?? "http";
@@ -54,7 +54,7 @@ namespace Shared.Engine.Online
                 #region api/short
                 string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
-                string json = await onget.Invoke(uri, apihost);
+                string json = await onget.Invoke(uri, apihost, true);
                 if (json == null)
                 {
                     requesterror?.Invoke();

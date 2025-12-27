@@ -33,7 +33,7 @@ namespace Online.Controllers
                         if (!isOk)
                             return null;
 
-                        var root = await httpHydra.Get<JObject>($"{init.corsHost()}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg);
+                        var root = await httpHydra.Get<JObject>($"{init.corsHost()}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg, safety: true);
 
                         if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
                         {

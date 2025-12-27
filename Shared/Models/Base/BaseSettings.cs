@@ -42,6 +42,8 @@ namespace Shared.Models.Base
 
         public bool rhub { get; set; }
 
+        public bool rhub_safety { get; set; } = true;
+
         public bool rhub_streamproxy { get; set; }
 
         public bool rhub_fallback { get; set; }

@@ -23,11 +23,11 @@ namespace Online.Controllers
         [Route("lite/mirage")]
         async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
+            if (similar)
+                return await RouteSpiderSearch(title, origsource, rjson);
+
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
-
-            if (similar)
-                return await SpiderSearch(title, origsource, rjson);
 
             var result = await search(orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0 || result.data == null)
@@ -327,7 +327,7 @@ namespace Online.Controllers
                 string uri = $"{init.linkhost}/?token_movie={token_movie}&token={init.token}";
                 string referer = $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)];
 
-                string html = await httpHydra.Get(uri, addheaders: HeadersModel.Init(
+                string html = await httpHydra.Get(uri, safety: true, addheaders: HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                     ("referer", referer),
                     ("sec-fetch-dest", "iframe"),
@@ -482,17 +482,17 @@ namespace Online.Controllers
         #region SpiderSearch
         [HttpGet]
         [Route("lite/mirage-search")]
-        async public ValueTask<ActionResult> SpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public ValueTask<ActionResult> RouteSpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (await IsRequestBlocked(rch: false, rch_check: false))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
             var cache = await InvokeCacheResult<JArray>($"mirage:search:{title}", 40, async e =>
             {
-                var root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list");
+                var root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", safety: true);
                 if (root == null || !root.ContainsKey("data"))
                     return e.Fail("data");
 
@@ -535,7 +535,7 @@ namespace Online.Controllers
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}");
+                    root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", safety: true);
                     if (root == null)
                         return (true, 0, null);
 
@@ -561,7 +561,7 @@ namespace Online.Controllers
                 }
                 else
                 {
-                    root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}");
+                    root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&imdb={imdb_id}&token_movie={token_movie}", safety: true);
                     if (root == null)
                         return (true, 0, null);
 

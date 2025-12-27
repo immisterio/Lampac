@@ -33,11 +33,11 @@ namespace Online.Controllers
         [Route("lite/alloha")]
         async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
-            if (await IsRequestBlocked(rch: false))
-                return badInitMsg;
-
             if (similar)
-                return await SpiderSearch(title, rjson);
+                return await RouteToSpiderSearch(title, rjson);
+
+            if (await IsRequestBlocked(rch: !string.IsNullOrEmpty(init.secret_token)))
+                return badInitMsg;
 
             var result = await search(orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
             if (result.category_id == 0)
@@ -141,7 +141,7 @@ namespace Online.Controllers
         [Route("lite/alloha/video.m3u8")]
         async public ValueTask<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
         {
-            if (await IsRequestBlocked(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: !string.IsNullOrEmpty(init.secret_token), rch_check: !play))
                 return badInitMsg;
 
             return await InvkSemaphore($"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{init.m4s}:{directors_cut}", async key =>
@@ -154,7 +154,7 @@ namespace Online.Controllers
                     {
                         userIp = await mylocalip();
                         if (userIp == null)
-                            return OnError("userIp");
+                            return OnError("userIp", gbcache: false);
                     }
 
                     if (!hybridCache.TryGetValue(key, out JToken data))
@@ -177,7 +177,7 @@ namespace Online.Controllers
                             uri += "&directors_cut";
                         #endregion
 
-                        var root = await httpHydra.Get<JObject>(uri);
+                        var root = await httpHydra.Get<JObject>(uri, safety: true);
                         if (root == null)
                             return OnError("json", refresh_proxy: true);
 
@@ -381,20 +381,20 @@ namespace Online.Controllers
         }
         #endregion
 
-        #region SpiderSearch
+        #region RouteToSpiderSearch
         [HttpGet]
         [Route("lite/alloha-search")]
-        async public ValueTask<ActionResult> SpiderSearch(string title, bool rjson = false)
+        async public ValueTask<ActionResult> RouteToSpiderSearch(string title, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
-                return OnError();
+                return OnError("title", gbcache: false);
 
-            if (await IsRequestBlocked(rch: false))
+            if (await IsRequestBlocked(rch: !string.IsNullOrEmpty(init.token)))
                 return badInitMsg;
 
             var cache = await InvokeCacheResult<JArray>($"alloha:search:{title}", 40, async e =>
             {
-                var root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list");
+                var root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", safety: true);
                 if (root == null || !root.ContainsKey("data"))
                     return e.Fail("data", refresh_proxy: true);
 
@@ -436,7 +436,7 @@ namespace Online.Controllers
                     if (string.IsNullOrWhiteSpace(title) || year == 0)
                         return default;
 
-                    root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                    root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", safety: true);
                     if (root == null)
                         return (true, 0, null);
 
@@ -465,10 +465,10 @@ namespace Online.Controllers
                 else
                 {
                     if (!string.IsNullOrEmpty(imdb_id))
-                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&imdb={imdb_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&imdb={imdb_id}&token_movie={token_movie}", safety: true);
                     
                     if ((root == null || !root.ContainsKey("data")) && kinopoisk_id > 0)
-                        root = await Http.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&token_movie={token_movie}", timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init));
+                        root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&token_movie={token_movie}", safety: true);
 
                     if (root == null)
                         return (true, 0, null);

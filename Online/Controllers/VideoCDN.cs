@@ -418,7 +418,7 @@ namespace Online.Controllers
                     return null;
 
                 string arg = kinopoisk_id > 0 ? $"&kinopoisk_id={kinopoisk_id}" : $"&imdb_id={imdb_id}";
-                var job = await Http.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, timeoutSeconds: init.httptimeout, proxy: proxy);
+                var job = await httpHydra.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, safety: true);
                 if (job == null || !job.ContainsKey("data"))
                     return null;
 
@@ -440,7 +440,7 @@ namespace Online.Controllers
                     return default;
 
                 string uri = $"{init.iframehost}/api/short?api_token={init.token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
-                string json = await Http.Get(uri, timeoutSeconds: init.httptimeout, proxy: proxy);
+                string json = await httpHydra.Get(uri, safety: true);
                 if (json == null)
                     return default;
 

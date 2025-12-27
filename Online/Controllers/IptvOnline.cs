@@ -39,12 +39,12 @@ namespace Online.Controllers
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
-                return OnError();
+                return OnError("token", statusCode: 401, gbcache: false);
 
             #region AUTH
             if (!hybridCache.TryGetValue($"iptvonline:auth:{init.token}", out string codeauth))
             {
-                var auth = await httpHydra.Post<JObject>($"{init.host}/v1/api/auth", "", useDefaultHeaders: false, addheaders: HeadersModel.Init(
+                var auth = await httpHydra.Post<JObject>($"{init.host}/v1/api/auth", "", useDefaultHeaders: false, safety: true, addheaders: HeadersModel.Init(
                     ("X-API-KEY", init.token.Split(":")[1]),
                     ("X-API-ID", init.token.Split(":")[0])
                 ));
@@ -74,7 +74,7 @@ namespace Online.Controllers
             {
                 string uri = $"{init.host}/v1/api/media/{(serial == 1 ? "serials" : "movies")}/{id}/";
 
-                var root = await httpHydra.Get<JObject>(uri, useDefaultHeaders: false, addheaders: HeadersModel.Init(
+                var root = await httpHydra.Get<JObject>(uri, useDefaultHeaders: false, safety: true, addheaders: HeadersModel.Init(
                     ("X-API-AUTH", codeauth),
                     ("X-API-ID", init.token.Split(":")[0])
                 ));

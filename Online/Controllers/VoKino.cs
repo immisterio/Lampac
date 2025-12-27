@@ -68,7 +68,7 @@ namespace Online.Controllers
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.token))
-                return OnError();
+                return OnError("token", statusCode: 401, gbcache: false);
 
             if (balancer is "filmix" or "monframe")
                 init.streamproxy = false;
@@ -81,7 +81,7 @@ namespace Online.Controllers
                host,
                init.corsHost(),
                init.token,
-               ongettourl => httpHydra.Get(ongettourl),
+               ongettourl => httpHydra.Get(ongettourl, safety: true),
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh(rch)
             );
@@ -91,7 +91,7 @@ namespace Online.Controllers
                 () => oninvk.Embed(origid, kinopoisk_id, balancer, t)
             );
 
-            if (IsRhubFallback(cache))
+            if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
             return OnResult(cache, () => oninvk.Tpl(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson));

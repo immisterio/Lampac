@@ -23,7 +23,7 @@ namespace Online.Controllers
                 return OnError();
 
             rhubFallback:
-            var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vibix:iframe:{data.iframe_url}:{init.token}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vibix:iframe:{data.iframe_url}", proxyManager), 20, async e =>
             {
                 string api_url = data.iframe_url
                     .Replace("/embed/", "/api/v1/embed/")
@@ -155,7 +155,7 @@ namespace Online.Controllers
 
                     string uri = kinopoisk_id > 0 ? $"kp/{kinopoisk_id}" : $"imdb/{imdb_id}";
 
-                    var video = await httpHydra.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", addheaders: HeadersModel.Init(
+                    var video = await httpHydra.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", safety: true, addheaders: HeadersModel.Init(
                         ("Accept", "application/json"),
                         ("Authorization", $"Bearer {init.token}"),
                         ("X-CSRF-TOKEN", "")

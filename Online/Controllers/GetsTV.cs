@@ -75,14 +75,18 @@ namespace Online.Controllers
                 }
             }
 
+            rhubFallback:
             var cache = await InvokeCacheResult<JObject>($"getstv:movies:{orid}", 20, async e =>
             {
-                var root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/movies/{orid}", addheaders: bearer);
+                var root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/movies/{orid}", addheaders: bearer, safety: true);
                 if (root == null)
                     return e.Fail("movies", refresh_proxy: true);
 
                 return e.Success(root);
             });
+
+            if (IsRhubFallback(cache, safety: true))
+                goto rhubFallback;
 
             return OnResult(cache, () => 
             {
@@ -182,7 +186,7 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(key, out JObject root))
                 {
-                    root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/media/{id}?format=m3u8&protocol=https", addheaders: bearer);
+                    root = await httpHydra.Get<JObject>($"{init.corsHost()}/api/media/{id}?format=m3u8&protocol=https", addheaders: bearer, safety: true);
                     if (root == null)
                         return OnError("json", refresh_proxy: true);
 
@@ -261,7 +265,7 @@ namespace Online.Controllers
             string memKey = $"getstv:search:{title ?? original_title}";
             if (!hybridCache.TryGetValue(memKey, out JArray root))
             {
-                root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/movies?skip=0&sort=updated&searchText={HttpUtility.UrlEncode(title)}", addheaders: bearer);
+                root = await httpHydra.Get<JArray>($"{init.corsHost()}/api/movies?skip=0&sort=updated&searchText={HttpUtility.UrlEncode(title)}", addheaders: bearer, safety: true);
                 
                 if (root == null)
                 {

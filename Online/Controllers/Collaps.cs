@@ -48,11 +48,11 @@ namespace Online.Controllers
         [Route("lite/collaps-dash")]
         async public ValueTask<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool similar = false)
         {
-            if (await IsRequestBlocked( rch: true))
-                return badInitMsg;
-
             if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
-                return await Search(title, rjson);
+                return await RouteSearch(title, rjson);
+
+            if (await IsRequestBlocked(rch: true))
+                return badInitMsg;
 
             rhubFallback:
             var cache = await InvokeCacheResult($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", 20, 
@@ -62,13 +62,15 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, imdb_id, kinopoisk_id, orid, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, init.headers_stream)));
+            return OnResult(cache, 
+                () => oninvk.Tpl(cache.Value, imdb_id, kinopoisk_id, orid, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, init.headers_stream))
+            );
         }
 
 
         [HttpGet]
         [Route("lite/collaps-search")]
-        async public ValueTask<ActionResult> Search(string title, bool rjson = false)
+        async public ValueTask<ActionResult> RouteSearch(string title, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -81,7 +83,7 @@ namespace Online.Controllers
             {
                 string uri = $"{init.apihost}/list?token={init.token}&name={HttpUtility.UrlEncode(title)}";
 
-                var root = await httpHydra.Get<JObject>(uri);
+                var root = await httpHydra.Get<JObject>(uri, safety: true);
 
                 if (root == null || !root.ContainsKey("results"))
                     return e.Fail("results", refresh_proxy: true);
@@ -89,7 +91,7 @@ namespace Online.Controllers
                 return e.Success(root["results"].ToObject<ResultSearch[]>());
             });
 
-            if (IsRhubFallback(cache))
+            if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
             return OnResult(cache, () =>

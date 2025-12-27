@@ -65,7 +65,7 @@ namespace Online.Controllers
                     init,
                     "video",
                     database,
-                    (uri, head) => httpHydra.Get(uri),
+                    (uri, head, safety) => httpHydra.Get(uri, safety: safety),
                     (uri, data) => httpHydra.Post(uri, data),
                     streamfile => HostStreamProxy(streamfile),
                     requesterror: () => proxyManager.Refresh(rch)
@@ -169,7 +169,8 @@ namespace Online.Controllers
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
                         string uri = $"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true";
-                        var root = await Http.Get<JObject>(uri, timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy);
+                        
+                        var root = await httpHydra.Get<JObject>(uri, safety: true);
 
                         if (root == null || !root.ContainsKey("links"))
                             return OnError("links", refresh_proxy: true);

@@ -4,6 +4,7 @@ using Shared.Models.Online.FilmixTV;
 using Shared.Models.Online.Settings;
 using System.Text;
 using System.Threading;
+using YamlDotNet.Core.Tokens;
 using F = System.IO.File;
 
 namespace Online.Controllers
@@ -42,11 +43,11 @@ namespace Online.Controllers
                 }
             }
 
-            if (await IsRequestBlocked(rch: false))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             if (string.IsNullOrEmpty(init.user_apitv))
-                return OnError("user_apitv", gbcache: false);
+                return OnError("user_apitv", statusCode: 401, gbcache: false);
 
             #region accessToken
             var tokenResult = await EnsureAccessToken();
@@ -67,8 +68,8 @@ namespace Online.Controllers
             (
                host,
                init.corsHost(),
-               ongettourl => httpHydra.Get(ongettourl, addheaders: bearer),
-               (url, data) => httpHydra.Post(url, data, addheaders: bearer),
+               ongettourl => httpHydra.Get(ongettourl, addheaders: bearer, safety: true),
+               (url, data) => httpHydra.Post(url, data, addheaders: bearer, safety: true),
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager.Refresh(rch),
                rjson: rjson
@@ -89,14 +90,18 @@ namespace Online.Controllers
                 postid = search.Value.id;
             }
 
+            rhubFallback:
             var cache = await InvokeCacheResult<RootObject>($"filmixtv:post:{postid}:{init.token_apitv}", 20, async e =>
             {
-                string json = await httpHydra.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", addheaders: bearer);
+                string json = await httpHydra.Get($"{init.corsHost()}/api-fx/post/{postid}/video-links", addheaders: bearer, safety: true);
                 if (json == null)
                     return e.Fail("json", refresh_proxy: true);
 
                 return e.Success(oninvk.Post(json));
             });
+
+            if (IsRhubFallback(cache, safety: true))
+                goto rhubFallback;
 
             return OnResult(cache, () => oninvk.Tpl(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
         }
@@ -117,7 +122,10 @@ namespace Online.Controllers
                 }
                 else
                 {
-                    var rtk = await Http.Get<JObject>($"{init.corsHost()}/api-fx/request-token", proxy: proxy, timeoutSeconds: 30);
+                    var rtk = await Http.Get<JObject>($"{init.corsHost()}/api-fx/request-token", 
+                        proxy: proxy, httpversion: init.httpversion, timeoutSeconds: 30
+                    );
+
                     if (rtk == null || !rtk.ContainsKey("token"))
                         return (false, null, "rtk");
 
@@ -137,12 +145,17 @@ namespace Online.Controllers
                     if (F.Exists(authFile))
                     {
                         string refreshToken = Regex.Match(F.ReadAllText(authFile), "\"refreshToken\": ?\"([^\"]+)\"").Groups[1].Value;
-                        root_auth = await Http.Get<JObject>($"{init.corsHost()}/api-fx/refresh?refreshToken={HttpUtility.UrlEncode(refreshToken)}", proxy: proxy, headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
+
+                        root_auth = await Http.Get<JObject>($"{init.corsHost()}/api-fx/refresh?refreshToken={HttpUtility.UrlEncode(refreshToken)}", 
+                            proxy: proxy, headers: HeadersModel.Init("hash", init.hash_apitv), httpversion: init.httpversion, timeoutSeconds: 30
+                        );
                     }
                     else
                     {
                         var data = new System.Net.Http.StringContent($"{{\"user_name\":\"{init.user_apitv}\",\"user_passw\":\"{init.passwd_apitv}\",\"session\":true}}", Encoding.UTF8, "application/json");
-                        root_auth = await Http.Post<JObject>($"{init.corsHost()}/api-fx/auth", data, proxy: proxy, headers: HeadersModel.Init("hash", init.hash_apitv), timeoutSeconds: 30);
+                        root_auth = await Http.Post<JObject>($"{init.corsHost()}/api-fx/auth", data, 
+                            proxy: proxy, headers: HeadersModel.Init("hash", init.hash_apitv), httpversion: init.httpversion, timeoutSeconds: 30
+                        );
                     }
 
                     string accessToken = root_auth?.GetValue("accessToken")?.ToString();

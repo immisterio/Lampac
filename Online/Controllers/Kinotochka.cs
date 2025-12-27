@@ -105,7 +105,7 @@ namespace Online.Controllers
                     rhubFallback: 
                     var cache = await InvokeCacheResult<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", 30, async e =>
                     {
-                        string news = await httpHydra.Get(newsuri, addheaders: HeadersModel.Init("cookie", cookie));
+                        string news = await httpHydra.Get(newsuri, addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie));
 
                         if (news == null)
                             return e.Fail("news", refresh_proxy: true);
@@ -114,7 +114,7 @@ namespace Online.Controllers
                         if (string.IsNullOrEmpty(filetxt))
                             return e.Fail("filetxt");
 
-                        var root = await httpHydra.Get<JObject>(filetxt, addheaders: HeadersModel.Init("cookie", cookie));
+                        var root = await httpHydra.Get<JObject>(filetxt, addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie));
 
                         if (root == null)
                             return e.Fail("root", refresh_proxy: true);
@@ -144,7 +144,7 @@ namespace Online.Controllers
                         return e.Success(links);
                     });
 
-                    if (IsRhubFallback(cache))
+                    if (IsRhubFallback(cache, safety: !string.IsNullOrEmpty(cookie)))
                         goto rhubFallback;
 
                     return OnResult(cache, () =>
@@ -168,7 +168,7 @@ namespace Online.Controllers
                 rhubFallback:
                 var cache = await InvokeCacheResult<EmbedModel>($"kinotochka:view:{kinopoisk_id}", 30, async e =>
                 {
-                    string embed = await httpHydra.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", addheaders: HeadersModel.Init("cookie", cookie));
+                    string embed = await httpHydra.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie));
 
                     if (embed == null)
                         return e.Fail("embed", refresh_proxy: true);
@@ -189,7 +189,7 @@ namespace Online.Controllers
                     return e.Success(new EmbedModel() { content = file });
                 });
 
-                if (IsRhubFallback(cache))
+                if (IsRhubFallback(cache, safety: !string.IsNullOrEmpty(cookie)))
                     goto rhubFallback;
 
                 return OnResult(cache, () => 

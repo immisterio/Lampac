@@ -41,7 +41,7 @@ namespace Online.Controllers
                    ));
 
                    if (rch.enable || init.priorityBrowser == "http")
-                       return await httpHydra.Get(ongettourl, newheaders: headers);
+                       return await httpHydra.Get(ongettourl, newheaders: headers, safety: true);
 
                    #region Browser Search
                    try
@@ -111,7 +111,7 @@ namespace Online.Controllers
                 return e.Success(result);
             });
 
-            if (IsRhubFallback(cache))
+            if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
             return OnResult(cache, () => oninvk.Tpl(cache.Value, imdb_id, kinopoisk_id, title, original_title, t, s, rjson: rjson, vast: init.vast, headers: httpHeaders(init)));
@@ -131,7 +131,7 @@ namespace Online.Controllers
                 ));
 
                 if (rch.enable || init.priorityBrowser == "http")
-                    return await httpHydra.Get(uri, newheaders: headers);
+                    return await httpHydra.Get(uri, newheaders: headers, safety: true);
 
                 using (var browser = new PlaywrightBrowser())
                 {
