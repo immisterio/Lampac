@@ -394,14 +394,6 @@ namespace Shared.Engine
         #endregion
 
         #region IsNotSupport
-        /// <summary>
-        /// Используйте <see cref="IsNotSupportRchAccess"/>.
-        /// Метод может быть удалён в будущих версиях.
-        /// </summary>
-        [Obsolete("Используйте IsNotSupportRchAccess. Может быть удалён в следующих версиях.")]
-        public bool IsNotSupport(string rch_deny, out string rch_msg)
-            => IsNotSupportRchAccess(rch_deny, out rch_msg);
-
         public bool IsNotSupport(out string rch_msg)
         {
             rch_msg = null;
