@@ -200,7 +200,7 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(key, out (string file, string subtitle) cache))
                 {
-                    string iframe = await httpHydra.Get(vod + "?partner=lampa", addheaders: HeadersModel.Init(
+                    string iframe = await httpHydra.Get(vod + "?partner=lampa", useDefaultHeaders: false, addheaders: HeadersModel.Init(
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
                         ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -227,7 +227,7 @@ namespace Online.Controllers
                     #region stats
                     if (!rch.enable)
                     {
-                        _ = await Http.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, removeContentType: true, proxy: proxy, headers: HeadersModel.Init(
+                        _ = await Http.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, removeContentType: true, useDefaultHeaders: false, proxy: proxy, headers: HeadersModel.Init(
                             ("accept", "*/*"),
                             ("cache-control", "no-cache"),
                             ("dnt", "1"),

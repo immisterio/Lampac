@@ -303,7 +303,7 @@ namespace Shared.Engine
 
                 if (useDefaultHeaders)
                 {
-                    send_headers = new Dictionary<string, string>(Http.defaultHeaders)
+                    send_headers = new Dictionary<string, string>(Http.defaultUaHeaders)
                     {
                         { "accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" }
                     };

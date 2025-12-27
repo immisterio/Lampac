@@ -140,7 +140,7 @@ namespace Online.Controllers
                 {
                     content_uri = $"https://api.{init.iframehost}/content?clientId={init.clientId}&contentType=short&kpId={kinopoisk_id}";
 
-                    content_headers = HeadersModel.Init(new Dictionary<string, string>(Http.defaultHeaders)
+                    content_headers = HeadersModel.Init(new Dictionary<string, string>(Http.defaultUaHeaders)
                     {
                         ["accept"] = "*/*",
                         ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5",

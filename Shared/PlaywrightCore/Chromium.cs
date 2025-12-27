@@ -12,7 +12,7 @@ namespace Shared.PlaywrightCore
         public static BrowserNewContextOptions baseContextOptions = new BrowserNewContextOptions
         {
             UserAgent = Http.UserAgent,
-            ExtraHTTPHeaders = Http.NormalizeHeaders(new Dictionary<string, string>(Http.defaultHeaders)
+            ExtraHTTPHeaders = Http.NormalizeHeaders(new Dictionary<string, string>(Http.defaultUaHeaders)
             {
                 ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
             })

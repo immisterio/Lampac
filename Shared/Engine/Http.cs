@@ -14,7 +14,7 @@ namespace Shared.Engine
         public static IHttpClientFactory httpClientFactory;
 
         #region defaultHeaders / UserAgent
-        public static readonly Dictionary<string, string> defaultHeaders = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> defaultUaHeaders = new Dictionary<string, string>()
         {
             ["sec-ch-ua-mobile"] = "?0",
             ["sec-ch-ua-platform"] = "\"Windows\"",
@@ -22,7 +22,7 @@ namespace Shared.Engine
             ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
         };
 
-        public static readonly Dictionary<string, string> defaultFullHeaders = new Dictionary<string, string>(defaultHeaders)
+        public static readonly Dictionary<string, string> defaultCommonHeaders = new Dictionary<string, string>()
         {
             ["cache-control"] = "no-cache",
             ["dnt"] = "1",
@@ -30,7 +30,12 @@ namespace Shared.Engine
             ["priority"] = "u=0, i"
         };
 
-        public static string UserAgent => defaultHeaders["user-agent"];
+        public static readonly Dictionary<string, string> defaultFullHeaders = defaultUaHeaders.Concat(defaultCommonHeaders).ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value
+        );
+
+        public static string UserAgent => defaultUaHeaders["user-agent"];
         #endregion
 
         #region Handler
@@ -129,8 +134,16 @@ namespace Shared.Engine
 
             if (useDefaultHeaders)
             {
-                foreach (var h in defaultFullHeaders)
-                    addHeaders.TryAdd(h.Key.ToLower().Trim(), h.Value);
+                if (headers != null && headers.FirstOrDefault(i => i.name.ToLower() == "user-agent") != null)
+                {
+                    foreach (var h in defaultCommonHeaders)
+                        addHeaders.TryAdd(h.Key.ToLower().Trim(), h.Value);
+                }
+                else
+                {
+                    foreach (var h in defaultFullHeaders)
+                        addHeaders.TryAdd(h.Key.ToLower().Trim(), h.Value);
+                }
             }
 
             if (headers != null)

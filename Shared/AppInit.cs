@@ -737,7 +737,7 @@ namespace Shared
             stream_access = "apk,cors,web",
             ajax = true, reserve = true,
             hls = true, scheme = "http",
-            headers = Http.defaultHeaders
+            headers = Http.defaultUaHeaders
         };
 
         public RezkaSettings RezkaPrem { get; set; } = new RezkaSettings("RezkaPrem", null) 
@@ -1157,6 +1157,7 @@ namespace Shared
         #region Anime
         public KodikSettings Kodik { get; set; } = new KodikSettings("Kodik", "kwwsv=22nrglndsl1frp", "kwwsv=22nrgln1lqir", "74gg<8i;7f54:4<e3<g9f:44;556:d58", "", true)
         {
+            rch_access = "apk",
             stream_access = "apk,cors,web",
             auto_proxy = true,      // прокси UA в api 
             cdn_is_working = true,  // прокси UA в обычном 

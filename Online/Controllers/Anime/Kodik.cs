@@ -78,7 +78,7 @@ namespace Online.Controllers
         [Route("lite/kodik")]
         async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
-            if (await IsRequestBlocked(rch: false))
+            if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             List<Result> content = null;
@@ -133,7 +133,7 @@ namespace Online.Controllers
         [Route("lite/kodik/video.m3u8")]
         async public ValueTask<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)
         {
-            if (await IsRequestBlocked(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: true, rch_check: !play))
                 return badInitMsg;
 
             if (string.IsNullOrWhiteSpace(init.secret_token))
