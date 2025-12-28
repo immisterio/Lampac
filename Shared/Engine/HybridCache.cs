@@ -15,7 +15,9 @@ namespace Shared.Engine
 
         static Timer _clearTimer;
 
-        static DateTime _nextClearDb = DateTime.Now.AddMinutes(20);
+        static readonly TimeSpan _period = TimeSpan.FromMilliseconds(100);
+
+        static DateTime _nextClearDb = DateTime.Now.AddMinutes(15);
 
         static ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel cache)> tempDb;
 
@@ -24,19 +26,20 @@ namespace Shared.Engine
             memoryCache = mem;
 
             tempDb = new ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel value)>();
-            _clearTimer = new Timer(UpdateDB, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+            _clearTimer = new Timer(UpdateDB, null, _period, _period);
         }
 
-        static bool updatingDb = false;
+        static int _updatingDb = 0;
         async static void UpdateDB(object state)
         {
-            if (updatingDb || tempDb.Count == 0)
+            if (tempDb == null || tempDb.IsEmpty)
+                return;
+
+            if (Interlocked.Exchange(ref _updatingDb, 1) == 1)
                 return;
 
             try
             {
-                updatingDb = true;
-
                 using (var sqlDb = new HybridCacheContext())
                 {
                     if (DateTime.Now > _nextClearDb)
@@ -51,7 +54,11 @@ namespace Shared.Engine
                     }
                     else
                     {
-                        var array = tempDb.ToArray().Where(t => t.Value.extend >= DateTime.Now);
+                        var array = tempDb
+                            .Where(t => DateTime.Now > t.Value.extend)
+                            .Take(500)
+                            .ToArray();
+
                         if (array.Any())
                         {
                             var delete_ids = array.Select(k => k.Key).ToHashSet();
@@ -91,7 +98,7 @@ namespace Shared.Engine
             }
             finally
             {
-                updatingDb = false;
+                Volatile.Write(ref _updatingDb, 0);
             }
         }
         #endregion

@@ -32,6 +32,9 @@ namespace Shared.Engine
 
         public ProxyManager(string plugin, Iproxy conf, bool refresh = true, bool IsKitConf = false)
         {
+            if (conf == null)
+                return;
+
             this.IsKitConf = IsKitConf;
             this.plugin = plugin;
             this.conf = conf;
@@ -41,6 +44,9 @@ namespace Shared.Engine
 
         public ProxyManager(BaseSettings conf, bool refresh = true)
         {
+            if (conf == null)
+                return;
+
             IsKitConf = conf.IsKitConf;
             plugin = !string.IsNullOrEmpty(conf.plugin) ? conf.plugin : conf.host ?? conf.apihost;
             this.conf = conf;
@@ -54,6 +60,9 @@ namespace Shared.Engine
 
         public (WebProxy proxy, (string ip, string username, string password) data) BaseGet()
         {
+            if (conf == null)
+                return default;
+
             if (!conf.useproxy && !conf.useproxystream)
                 return default;
 
@@ -253,6 +262,9 @@ namespace Shared.Engine
 
         public static (WebProxy proxy, (string ip, string username, string password) data) ConfigureWebProxy(ProxySettings p, string proxyip)
         {
+            if (p == null)
+                return default;
+
             NetworkCredential credentials = null;
 
             if (proxyip.Contains("@"))
