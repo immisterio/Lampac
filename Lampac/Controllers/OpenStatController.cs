@@ -133,6 +133,7 @@ namespace Lampac.Controllers
                 ProxyTmdb = ProxyTmdb.Stat_ContCacheFiles,
                 ProxyImg = ProxyImg.Stat_ContCacheFiles,
                 ProxyCub = ProxyCub.Stat_ContCacheFiles,
+                SemaphorManager = SemaphorManager.Stat_ContSemaphoreLocks,
                 rch = new
                 {
                     clients = RchClient.clients.Count,

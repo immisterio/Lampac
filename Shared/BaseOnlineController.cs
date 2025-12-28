@@ -99,6 +99,11 @@ namespace Shared
         {
             init = await loadKit(init, loadKitInitialization);
 
+            requestInitialization?.Invoke();
+
+            if (requestInitializationAsync != null)
+                await requestInitializationAsync.Invoke();
+
             #region module initialization
             if (AppInit.modules != null)
             {
@@ -194,15 +199,7 @@ namespace Shared
                 return true;
             }
 
-            if (IsCacheError(init, this.rch))
-                return true;
-
-            requestInitialization?.Invoke();
-
-            if (requestInitializationAsync != null)
-                await requestInitializationAsync.Invoke();
-
-            return false;
+            return IsCacheError(init, this.rch);
         }
         #endregion
 

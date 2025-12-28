@@ -23,34 +23,75 @@ using IO = System.IO;
 
 namespace Shared
 {
-    public class BaseController : Controller, IDisposable
+    public class BaseController : Controller
     {
-        IServiceScope serviceScope;
-
         public static string appversion => "151";
 
         public static string minorversion => "2";
 
-        public HybridCache hybridCache { get; private set; }
 
-        public IMemoryCache memoryCache { get; private set; }
+        protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
+
+        protected ActionResult badInitMsg { get; set; }
+
+        #region hybridCache
+        private HybridCache? _hybridCache;
+
+        protected HybridCache hybridCache
+        {
+            get
+            {
+                if (_hybridCache != null)
+                    return _hybridCache.Value;
+
+                _hybridCache = new HybridCache();
+
+                return _hybridCache.Value;
+            }
+        }
+        #endregion
+
+        #region memoryCache
+        private IMemoryCache _memoryCache;
+
+        protected IMemoryCache memoryCache
+        {
+            get
+            {
+                if (_memoryCache != null)
+                    return _memoryCache;
+
+                var httpContext = HttpContext;
+                if (httpContext == null)
+                    throw new InvalidOperationException(
+                        "HttpContext is not available. MemoryCache can only be accessed during an HTTP request.");
+
+                _memoryCache = httpContext.RequestServices
+                    .GetRequiredService<IMemoryCache>();
+
+                return _memoryCache;
+            }
+        }
+        #endregion
 
         #region requestInfo
-        RequestModel? _requestInfo;
-        public RequestModel requestInfo
+        private RequestModel? _requestInfo;
+
+        protected RequestModel requestInfo
         {
             get
             {
                 if (_requestInfo == null)
                     _requestInfo = HttpContext.Features.Get<RequestModel>();
 
-                return (RequestModel)_requestInfo;
+                return _requestInfo.Value;
             }
         }
         #endregion
 
         #region host
-        string _host;
+        private string _host;
+
         public string host 
         { 
             get 
@@ -63,18 +104,6 @@ namespace Shared
         }
         #endregion
 
-        protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
-
-        public ActionResult badInitMsg { get; set; }
-
-        public BaseController()
-        {
-            hybridCache = new HybridCache();
-
-            serviceScope = Startup.ApplicationServices.CreateScope();
-            var scopeServiceProvider = serviceScope.ServiceProvider;
-            memoryCache = scopeServiceProvider.GetService<IMemoryCache>();
-        }
 
         #region mylocalip
         static string lastMyIp = null;
@@ -794,16 +823,10 @@ namespace Shared
         }
         #endregion
 
-        #region ContentTo / Dispose
+        #region ContentTo
         public ActionResult ContentTo(string html)
         {
             return Content(html, html.StartsWith("{") || html.StartsWith("[") ? "application/json; charset=utf-8" : "text/html; charset=utf-8");
-        }
-
-        public new void Dispose()
-        {
-            serviceScope?.Dispose();
-            base.Dispose();
         }
         #endregion
     }

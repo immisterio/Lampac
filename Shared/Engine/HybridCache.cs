@@ -178,9 +178,8 @@ namespace Shared.Engine
 
                 string md5key = CrypTo.md5(key);
 
-                tempDb.TryGetValue(md5key, out var _temp);
-
-                if (_temp.cache != null)
+                if (tempDb.TryGetValue(md5key, out var _temp) 
+                    && _temp.cache != null)
                 {
                     setmemory = false;
                     return deserializeCache(_temp.cache, out value);

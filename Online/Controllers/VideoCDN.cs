@@ -27,7 +27,6 @@ namespace Online.Controllers
                 i.password = c.password;
                 i.domain = Regex.Replace(c.domain ?? "bwa", "^https?://", "").Split(".")[0];
                 i.corseu = false;
-                i.rhub = !i.disable_protection;
 
                 return i;
             };
