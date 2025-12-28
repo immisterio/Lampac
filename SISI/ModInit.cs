@@ -13,11 +13,15 @@ namespace SISI
             Directory.CreateDirectory("wwwroot/bookmarks/img");
             Directory.CreateDirectory("wwwroot/bookmarks/preview");
 
-            cleanupTimer = new Timer(_ => CleanupHistory(), null, TimeSpan.FromMinutes(20), TimeSpan.FromHours(1));
+            cleanupTimer = new Timer(_ => CleanupHistory(), null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(20));
         }
 
+        static int _updatingDb = 0;
         private static void CleanupHistory()
         {
+            if (Interlocked.Exchange(ref _updatingDb, 1) == 1)
+                return;
+
             try
             {
                 var threshold = DateTime.UtcNow.AddDays(-AppInit.conf.sisi.history.days);
@@ -33,6 +37,10 @@ namespace SISI
             catch (Exception ex)
             {
                 Console.WriteLine($"[SISI] Cleanup history failed: {ex.Message}");
+            }
+            finally
+            {
+                Volatile.Write(ref _updatingDb, 0);
             }
         }
     }

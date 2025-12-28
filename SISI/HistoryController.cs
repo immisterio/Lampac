@@ -19,7 +19,9 @@ namespace SISI
             var historys = new List<PlaylistItem>();
             var historysQuery = new List<SisiHistorySqlModel>();
 
-            using (var sqlDb = new SisiContext())
+            using (var sqlDb = SisiContext.Factory != null
+                ? SisiContext.Factory.CreateDbContext()
+                : new SisiContext())
             {
                 historysQuery = await sqlDb.historys
                     .AsNoTracking()
@@ -96,7 +98,9 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            using (var sqlDb = new SisiContext())
+            using (var sqlDb = SisiContext.Factory != null
+                ? SisiContext.Factory.CreateDbContext()
+                : new SisiContext())
             {
                 bool any = await sqlDb.historys.AsNoTracking().AnyAsync(i => i.user == md5user && i.uid == uid);
 
@@ -134,7 +138,9 @@ namespace SISI
             {
                 await SisiContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-                using (var sqlDb = new SisiContext())
+                using (var sqlDb = SisiContext.Factory != null
+                    ? SisiContext.Factory.CreateDbContext()
+                    : new SisiContext())
                 {
                     await sqlDb.historys
                         .Where(i => i.user == md5user && i.uid == id)

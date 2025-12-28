@@ -275,8 +275,12 @@ namespace Online.Controllers
 
                 if (string.IsNullOrWhiteSpace(imdb_id) && long.TryParse(id, out long _testid) && _testid > 0)
                 {
-                    using (var sqlDb = new ExternalidsContext())
+                    using (var sqlDb = ExternalidsContext.Factory != null
+                        ? ExternalidsContext.Factory.CreateDbContext()
+                        : new ExternalidsContext())
+                    {
                         imdb_id = sqlDb.imdb.Find($"{id}_{serial}")?.value;
+                    }
 
                     if (string.IsNullOrEmpty(imdb_id))
                     {
@@ -293,7 +297,9 @@ namespace Online.Controllers
                                 imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
                                 if (!string.IsNullOrEmpty(imdb_id))
                                 {
-                                    using (var sqlDb = new ExternalidsContext())
+                                    using (var sqlDb = ExternalidsContext.Factory != null
+                                        ? ExternalidsContext.Factory.CreateDbContext()
+                                        : new ExternalidsContext())
                                     {
                                         sqlDb.Add(new ExternalidsSqlModel()
                                         {
@@ -320,7 +326,9 @@ namespace Online.Controllers
 
                 if (string.IsNullOrEmpty(kpid) || kpid == "0")
                 {
-                    using (var sqlDb = new ExternalidsContext())
+                    using (var sqlDb = ExternalidsContext.Factory != null
+                        ? ExternalidsContext.Factory.CreateDbContext()
+                        : new ExternalidsContext())
                     {
                         kpid = sqlDb.kinopoisk.Find(imdb_id)?.value;
 

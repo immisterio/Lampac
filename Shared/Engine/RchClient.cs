@@ -36,14 +36,15 @@ namespace Shared.Engine
 
         static Timer _checkConnectionTimer;
 
-        static bool _cronCheckConnectionWork = false;
+        static int _cronCheckConnectionWork = 0;
 
         async static void CheckConnection(object state)
         {
-            if (_cronCheckConnectionWork || clients.Count == 0)
+            if (clients.IsEmpty)
                 return;
 
-            _cronCheckConnectionWork = true;
+            if (Interlocked.Exchange(ref _cronCheckConnectionWork, 1) == 1)
+                return;
 
             try
             {
@@ -65,7 +66,7 @@ namespace Shared.Engine
             catch { }
             finally
             {
-                _cronCheckConnectionWork = false;
+                Volatile.Write(ref _cronCheckConnectionWork, 0);
             }
         }
 

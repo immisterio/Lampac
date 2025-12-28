@@ -21,7 +21,7 @@ namespace Shared.Engine
 
         static ProxyLink()
         {
-            _cronTimer = new Timer(Cron, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+            _cronTimer = new Timer(Cron, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
         #endregion
 
@@ -157,7 +157,9 @@ namespace Shared.Engine
                 {
                     if (IsUseSql(hash))
                     {
-                        using (var sqlDb = new ProxyLinkContext())
+                        using (var sqlDb = ProxyLinkContext.Factory != null
+                            ? ProxyLinkContext.Factory.CreateDbContext()
+                            : new ProxyLinkContext())
                         {
                             var link = sqlDb.links.Find(hash);
 
@@ -218,20 +220,21 @@ namespace Shared.Engine
 
         static int cronRound = 0;
 
-        static DateTime _nextClearDb = DateTime.Now.AddHours(1);
+        static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
-        static bool _cronWork = false;
+        static int _updatingDb = 0;
 
         async static void Cron(object state)
         {
-            if (_cronWork || links.Count == 0)
+            if (links.IsEmpty)
                 return;
 
-            _cronWork = true;
+            if (Interlocked.Exchange(ref _updatingDb, 1) == 1)
+                return;
 
             try
             {
-                if (cronRound == 60)
+                if (cronRound >= 60)
                 {
                     cronRound = 0;
                     tempLinks.Clear();
@@ -243,7 +246,7 @@ namespace Shared.Engine
                 {
                     if (DateTime.Now > _nextClearDb)
                     {
-                        _nextClearDb = DateTime.Now.AddHours(1);
+                        _nextClearDb = DateTime.Now.AddMinutes(5);
 
                         var now = DateTime.Now;
 
@@ -253,7 +256,7 @@ namespace Shared.Engine
                     }
                     else
                     {
-                        foreach (var link in links.ToArray())
+                        foreach (var link in links.Take(500).ToArray())
                         {
                             try
                             {
@@ -294,10 +297,13 @@ namespace Shared.Engine
                     }
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"ProxyLink: {ex}"); }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine($"ProxyLink: {ex}"); 
+            }
             finally 
             {
-                _cronWork = false;
+                Volatile.Write(ref _updatingDb, 0);
             }
         }
         #endregion

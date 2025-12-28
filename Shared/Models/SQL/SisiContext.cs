@@ -9,6 +9,8 @@ namespace Shared.Models.SQL
     {
         public static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
 
+        public static IDbContextFactory<SisiContext> Factory { get; set; }
+
         public static void Initialization() 
         {
             Directory.CreateDirectory("database");
@@ -16,44 +18,27 @@ namespace Shared.Models.SQL
             try
             {
                 using (var sqlDb = new SisiContext())
-                {
                     sqlDb.Database.EnsureCreated();
-
-                    #region migrate historys table
-                    try
-                    {
-                        using (var conn = sqlDb.Database.GetDbConnection())
-                        {
-                            conn.Open();
-                            using (var cmd = conn.CreateCommand())
-                            {
-                                cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='historys';";
-                                var res = cmd.ExecuteScalar();
-                                if (res == null)
-                                {
-                                    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS historys (
-                                                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                        user TEXT NOT NULL,
-                                                        uid TEXT NOT NULL,
-                                                        created TEXT,
-                                                        json TEXT
-                                                    );";
-                                    cmd.ExecuteNonQuery();
-
-                                    cmd.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_historys_user_uid ON historys(user, uid);";
-                                    cmd.ExecuteNonQuery();
-                                }
-                            }
-                            conn.Close();
-                        }
-                    }
-                    catch { }
-                    #endregion
-                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"SisiDb initialization failed: {ex.Message}");
+            }
+        }
+
+        public static void ConfiguringDbBuilder(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlite(new SqliteConnectionStringBuilder
+                {
+                    DataSource = "database/Sisi.sql",
+                    Cache = SqliteCacheMode.Shared,
+                    DefaultTimeout = 10,
+                    Pooling = true
+                }.ToString());
+
+                optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
             }
         }
 
@@ -85,15 +70,7 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite(new SqliteConnectionStringBuilder
-            {
-                DataSource = "database/Sisi.sql",
-                Cache = SqliteCacheMode.Shared,
-                DefaultTimeout = 10,
-                Pooling = true
-            }.ToString());
-
-            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            ConfiguringDbBuilder(optionsBuilder);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

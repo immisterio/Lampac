@@ -426,18 +426,16 @@ namespace Lampac
 
 
         #region UpdateUsersDb
-        static bool _updateUsersDb = false;
+        static int _updateUsersDb = 0;
         static string _usersKeyUpdate = string.Empty;
 
         static void UpdateUsersDb(object state)
         {
-            if (_updateUsersDb)
+            if (Interlocked.Exchange(ref _updateUsersDb, 1) == 1)
                 return;
 
             try
             {
-                _updateUsersDb = true;
-
                 if (File.Exists("users.json"))
                 {
                     var lastWriteTime = File.GetLastWriteTime("users.json");
@@ -477,23 +475,21 @@ namespace Lampac
             catch { }
             finally
             {
-                _updateUsersDb = false;
+                Volatile.Write(ref _updateUsersDb, 0);
             }
         }
         #endregion
 
         #region UpdateKitDb
-        static bool _updateKitDb = false;
+        static int _updateKitDb = 0;
 
         async static void UpdateKitDb(object state)
         {
-            if (_updateKitDb)
+            if (Interlocked.Exchange(ref _updateKitDb, 1) == 1)
                 return;
 
             try
             {
-                _updateKitDb = true;
-
                 if (AppInit.conf.kit.enable && AppInit.conf.kit.IsAllUsersPath && !string.IsNullOrEmpty(AppInit.conf.kit.path))
                 {
                     var users = await Http.Get<Dictionary<string, JObject>>(AppInit.conf.kit.path);
@@ -504,7 +500,7 @@ namespace Lampac
             catch { }
             finally
             {
-                _updateKitDb = false;
+                Volatile.Write(ref _updateKitDb, 0);
             }
         }
         #endregion

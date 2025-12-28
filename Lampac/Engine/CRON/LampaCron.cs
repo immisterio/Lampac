@@ -20,14 +20,12 @@ namespace Lampac.Engine.CRON
 
         static Timer _cronTimer;
 
-        static bool _cronWork = false;
+        static int _updatingDb = 0;
 
         async static void cron(object state)
         {
-            if (_cronWork)
+            if (Interlocked.Exchange(ref _updatingDb, 1) == 1)
                 return;
-
-            _cronWork = true;
 
             try
             {
@@ -115,7 +113,7 @@ namespace Lampac.Engine.CRON
             catch { }
             finally
             {
-                _cronWork = false;
+                Volatile.Write(ref _updatingDb, 0);
             }
         }
     }

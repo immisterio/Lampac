@@ -30,7 +30,9 @@ namespace SISI
             var bookmarks = new List<PlaylistItem>();
             var bookmarksQuery = new List<SisiBookmarkSqlModel>();
 
-            using (var sqlDb = new SisiContext())
+            using (var sqlDb = SisiContext.Factory != null
+                ? SisiContext.Factory.CreateDbContext()
+                : new SisiContext())
             {
                 bookmarksQuery = await sqlDb.bookmarks
                     .AsNoTracking()
@@ -141,7 +143,9 @@ namespace SISI
 
             string uid = CrypTo.md5($"{data.bookmark.site}:{data.bookmark.href}");
 
-            using (var sqlDb = new SisiContext())
+            using (var sqlDb = SisiContext.Factory != null
+                ? SisiContext.Factory.CreateDbContext()
+                : new SisiContext())
             {
                 bool any = await sqlDb.bookmarks.AsNoTracking().AnyAsync(i => i.user == md5user && i.uid == uid);
                 if (any == false)
@@ -236,7 +240,9 @@ namespace SISI
             {
                 await SisiContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-                using (var sqlDb = new SisiContext())
+                using (var sqlDb = SisiContext.Factory != null
+                    ? SisiContext.Factory.CreateDbContext()
+                    : new SisiContext())
                 {
                     await sqlDb.bookmarks
                         .Where(i => i.user == md5user && i.uid == id)

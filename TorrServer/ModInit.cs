@@ -62,14 +62,12 @@ namespace TorrServer
         #region cron_UpdateSettings
         static Timer _cronTimer;
 
-        static bool _cronWork = false;
+        static int _cronWork = 0;
 
         static void cron_UpdateSettings(object state)
         {
-            if (_cronWork)
+            if (Interlocked.Exchange(ref _cronWork, 1) == 1)
                 return;
-
-            _cronWork = true;
 
             try
             {
@@ -94,7 +92,7 @@ namespace TorrServer
             catch { }
             finally
             {
-                _cronWork = false;
+                Volatile.Write(ref _cronWork, 0);
             }
         }
         #endregion

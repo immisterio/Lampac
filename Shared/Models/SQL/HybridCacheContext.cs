@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace Shared.Models.SQL
@@ -7,8 +8,10 @@ namespace Shared.Models.SQL
     {
         public static IDbContextFactory<HybridCacheContext> Factory { get; set; }
 
-        public static void Initialization() 
+        public static void Initialization()
         {
+            Directory.CreateDirectory("cache");
+
             try
             {
                 var sqlDb = new HybridCacheContext();
@@ -24,7 +27,14 @@ namespace Shared.Models.SQL
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql;Cache=Shared");
+                optionsBuilder.UseSqlite(new SqliteConnectionStringBuilder
+                {
+                    DataSource = "cache/HybridCache.sql",
+                    Cache = SqliteCacheMode.Shared,
+                    DefaultTimeout = 10,
+                    Pooling = true
+                }.ToString());
+
                 optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
             }
         }

@@ -15,8 +15,6 @@ namespace Shared.Engine
 
         static Timer _clearTimer;
 
-        static readonly TimeSpan _period = TimeSpan.FromMilliseconds(100);
-
         static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
         static ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel cache)> tempDb;
@@ -26,7 +24,7 @@ namespace Shared.Engine
             memoryCache = mem;
 
             tempDb = new ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel value)>();
-            _clearTimer = new Timer(UpdateDB, null, _period, _period);
+            _clearTimer = new Timer(UpdateDB, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
         }
 
         static int _updatingDb = 0;
@@ -40,26 +38,29 @@ namespace Shared.Engine
 
             try
             {
-                using (var sqlDb = new HybridCacheContext())
+                var now = DateTime.Now;
+
+                if (now > _nextClearDb)
                 {
-                    if (DateTime.Now > _nextClearDb)
+                    _nextClearDb = DateTime.Now.AddMinutes(5);
+
+                    using (var sqlDb = new HybridCacheContext())
                     {
-                        _nextClearDb = DateTime.Now.AddMinutes(5);
-
-                        var now = DateTime.Now;
-
                         await sqlDb.files
                             .Where(i => now > i.ex)
                             .ExecuteDeleteAsync();
                     }
-                    else
-                    {
-                        var array = tempDb
-                            .Where(t => DateTime.Now > t.Value.extend)
-                            .Take(500)
-                            .ToArray();
+                }
+                else
+                {
+                    var array = tempDb
+                        .Where(t => now > t.Value.extend)
+                        .Take(500)
+                        .ToArray();
 
-                        if (array.Any())
+                    if (array.Length > 0)
+                    {
+                        using (var sqlDb = new HybridCacheContext())
                         {
                             var delete_ids = array.Select(k => k.Key).ToHashSet();
                             if (delete_ids.Count > 0)
@@ -73,7 +74,7 @@ namespace Shared.Engine
 
                             foreach (var t in array)
                             {
-                                if (hash_ids.Add(t.Key))
+                                if (hash_ids.Add(t.Key) && t.Value.cache.ex > now)
                                 {
                                     sqlDb.files.Add(new HybridCacheSqlModel()
                                     {

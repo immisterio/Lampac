@@ -189,7 +189,7 @@ namespace Shared.PlaywrightCore
 
         static Timer _closeLifetimeTimer, _browserDisconnectedTimer;
 
-        static bool _cronCloseLifetimeWork = false, _cronBrowserDisconnectedWork = false;
+        static int _cronCloseLifetimeWork = 0, _cronBrowserDisconnectedWork = 0;
         #endregion
 
         #region CronCloseLifetimeContext
@@ -198,10 +198,8 @@ namespace Shared.PlaywrightCore
             if (!AppInit.conf.chromium.enable || Status == PlaywrightStatus.disabled)
                 return;
 
-            if (_cronCloseLifetimeWork)
+            if (Interlocked.Exchange(ref _cronCloseLifetimeWork, 1) == 1)
                 return;
-
-            _cronCloseLifetimeWork = true;
 
             try
             {
@@ -249,7 +247,7 @@ namespace Shared.PlaywrightCore
             catch { }
             finally
             {
-                _cronCloseLifetimeWork = false;
+                Volatile.Write(ref _cronCloseLifetimeWork, 0);
             }
         }
         #endregion
@@ -260,10 +258,8 @@ namespace Shared.PlaywrightCore
             if (!AppInit.conf.chromium.enable)
                 return;
 
-            if (_cronBrowserDisconnectedWork)
+            if (Interlocked.Exchange(ref _cronBrowserDisconnectedWork, 1) == 1)
                 return;
-
-            _cronBrowserDisconnectedWork = true;
 
             try
             {
@@ -363,7 +359,7 @@ namespace Shared.PlaywrightCore
             catch { }
             finally
             {
-                _cronBrowserDisconnectedWork = false;
+                Volatile.Write(ref _cronBrowserDisconnectedWork, 0);
             }
         }
         #endregion

@@ -197,6 +197,9 @@ namespace Lampac
             services.AddSingleton(DynamicActionDescriptorChangeProvider.Instance);
 
             services.AddDbContextFactory<HybridCacheContext>(HybridCacheContext.ConfiguringDbBuilder);
+            services.AddDbContextFactory<ProxyLinkContext>(ProxyLinkContext.ConfiguringDbBuilder);
+            services.AddDbContextFactory<SisiContext>(SisiContext.ConfiguringDbBuilder);
+            services.AddDbContextFactory<ExternalidsContext>(ExternalidsContext.ConfiguringDbBuilder);
 
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
 
@@ -398,17 +401,24 @@ namespace Lampac
 
         public void Configure(
             IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime,
-            IDbContextFactory<HybridCacheContext> HybridCacheContextFactory
+            IDbContextFactory<HybridCacheContext> HybridCacheContextFactory,
+            IDbContextFactory<ProxyLinkContext> ProxyLinkContextFactory,
+            IDbContextFactory<SisiContext> SisiContextFactory,
+            IDbContextFactory<ExternalidsContext> ExternalidsContextFactory
         )
         {
             _app = app;
             memoryCache = memory;
+
+            HybridCacheContext.Factory = HybridCacheContextFactory;
+            ProxyLinkContext.Factory = ProxyLinkContextFactory;
+            SisiContext.Factory = SisiContextFactory;
+            ExternalidsContext.Factory = ExternalidsContextFactory;
+
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
             ProxyManager.Configure(memory);
             Http.httpClientFactory = httpClientFactory;
-
-            HybridCacheContext.Factory = HybridCacheContextFactory;
 
             #region modules loaded
             if (AppInit.modules != null)
