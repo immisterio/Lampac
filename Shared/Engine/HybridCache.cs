@@ -184,7 +184,7 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    using (var sqlDb = new HybridCacheContext())
+                    using (var sqlDb = HybridCacheContext.DbContextFactory.CreateDbContext())
                     {
                         var doc = sqlDb.files.Find(md5key);
                         return deserializeCache(doc, out value);
