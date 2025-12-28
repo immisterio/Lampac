@@ -17,7 +17,7 @@ namespace Shared.Engine
 
         static readonly TimeSpan _period = TimeSpan.FromMilliseconds(100);
 
-        static DateTime _nextClearDb = DateTime.Now.AddMinutes(15);
+        static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
         static ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel cache)> tempDb;
 
@@ -44,7 +44,7 @@ namespace Shared.Engine
                 {
                     if (DateTime.Now > _nextClearDb)
                     {
-                        _nextClearDb = DateTime.Now.AddMinutes(20);
+                        _nextClearDb = DateTime.Now.AddMinutes(5);
 
                         var now = DateTime.Now;
 
@@ -184,7 +184,9 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    using (var sqlDb = HybridCacheContext.DbContextFactory.CreateDbContext())
+                    using (var sqlDb = HybridCacheContext.Factory != null 
+                        ? HybridCacheContext.Factory.CreateDbContext()
+                        : new HybridCacheContext())
                     {
                         var doc = sqlDb.files.Find(md5key);
                         return deserializeCache(doc, out value);

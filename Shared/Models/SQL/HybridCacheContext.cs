@@ -5,12 +5,7 @@ namespace Shared.Models.SQL
 {
     public partial class HybridCacheContext
     {
-        public static IDbContextFactory<HybridCacheContext> DbContextFactory { get; } =
-            new PooledDbContextFactory<HybridCacheContext>(
-                new DbContextOptionsBuilder<HybridCacheContext>()
-                    .UseSqlite("Data Source=cache/HybridCache.sql;Cache=Shared;BusyTimeout=5000")
-                    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-                    .Options);
+        public static IDbContextFactory<HybridCacheContext> Factory { get; set; }
 
         public static void Initialization() 
         {
@@ -24,6 +19,15 @@ namespace Shared.Models.SQL
                 Console.WriteLine($"HybridCacheDb initialization failed: {ex.Message}");
             }
         }
+
+        public static void ConfiguringDbBuilder(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql;Cache=Shared");
+                optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            }
+        }
     }
 
 
@@ -33,11 +37,7 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!optionsBuilder.IsConfigured)
-            {
-                optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql;Cache=Shared;BusyTimeout=5000");
-                optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-            }
+            ConfiguringDbBuilder(optionsBuilder);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,6 +46,7 @@ namespace Shared.Models.SQL
                         .HasIndex(j => j.ex);
         }
     }
+
 
     public class HybridCacheSqlModel
     {

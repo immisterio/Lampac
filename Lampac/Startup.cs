@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,7 @@ using Shared;
 using Shared.Engine;
 using Shared.Models.Module;
 using Shared.Models.Module.Entrys;
+using Shared.Models.SQL;
 using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
@@ -193,6 +195,8 @@ namespace Lampac
 
             services.AddSingleton<IActionDescriptorChangeProvider>(DynamicActionDescriptorChangeProvider.Instance);
             services.AddSingleton(DynamicActionDescriptorChangeProvider.Instance);
+
+            services.AddDbContextFactory<HybridCacheContext>(HybridCacheContext.ConfiguringDbBuilder);
 
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
 
@@ -392,7 +396,10 @@ namespace Lampac
         #endregion
 
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime)
+        public void Configure(
+            IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime,
+            IDbContextFactory<HybridCacheContext> HybridCacheContextFactory
+        )
         {
             _app = app;
             memoryCache = memory;
@@ -400,6 +407,8 @@ namespace Lampac
             HybridCache.Configure(memory);
             ProxyManager.Configure(memory);
             Http.httpClientFactory = httpClientFactory;
+
+            HybridCacheContext.Factory = HybridCacheContextFactory;
 
             #region modules loaded
             if (AppInit.modules != null)
