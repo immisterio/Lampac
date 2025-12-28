@@ -232,6 +232,12 @@ namespace Shared.Engine
             if (AppInit.conf.cache.type == "mem")
                 return false;
 
+            string md5key = CrypTo.md5(key);
+
+            // кеш уже получен от другого rch клиента
+            if (tempDb.ContainsKey(md5key))
+                return true;
+
             var type = typeof(TItem);
             bool isText = type == typeof(string);
 
@@ -268,11 +274,13 @@ namespace Shared.Engine
                     absoluteExpiration = eventResult.ex;
                 }
 
-                var extend = DateTime.Now.AddSeconds(Math.Max(5, AppInit.conf.cache.extend));
+                /// защита от асинхронных rch запросов которые приходят в рамках 12 секунд
+                /// дополнительный кеш для сериалов, что бы выборка сезонов/озвучки не дергала sql 
+                var extend = DateTime.Now.AddSeconds(Math.Max(15, AppInit.conf.cache.extend));
 
-                tempDb.TryAdd(CrypTo.md5(key), (extend, new HybridCacheSqlModel()
+                tempDb.TryAdd(md5key, (extend, new HybridCacheSqlModel()
                 {
-                    Id = CrypTo.md5(key),
+                    Id = md5key,
                     ex = absoluteExpiration.DateTime,
                     value = result
                 }));
