@@ -7,7 +7,7 @@ namespace Shared.Engine
     {
         #region static
         private static readonly ConcurrentDictionary<string, SemaphoreEntry> _semaphoreLocks = new();
-        private static readonly Timer _cleanupTimer = new(_ => Cleanup(), null, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(20));
+        private static readonly Timer _cleanupTimer = new(_ => Cleanup(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
 
         public static int Stat_ContSemaphoreLocks => _semaphoreLocks.IsEmpty ? 0 : _semaphoreLocks.Count;
 

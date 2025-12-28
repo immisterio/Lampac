@@ -379,10 +379,6 @@ namespace Shared.Engine
         #region IsRequiredConnected
         public bool IsRequiredConnected()
         {
-            if (!AppInit.conf.rch.requiredConnected  // Обязательное подключение отключено
-                && init.rchstreamproxy == null)      // rchstreamproxy не указан
-                return false;
-
             if (httpContext != null)
             {
                 var requestInfo = httpContext.Features.Get<RequestModel>();
@@ -390,7 +386,11 @@ namespace Shared.Engine
                     return false;
             }
 
-            return SocketClient().connectionId == null;
+            if (AppInit.conf.rch.requiredConnected  // Обязательное подключение
+                || init.rchstreamproxy != null)     // Нужно знать rchtype устройства 
+                return SocketClient().connectionId == null;
+
+            return false;
         }
         #endregion
 
