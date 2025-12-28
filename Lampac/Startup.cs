@@ -185,6 +185,11 @@ namespace Lampac
                 });
             }
 
+            services.AddMemoryCache(o =>
+            {
+                o.TrackStatistics = AppInit.conf.openstat.enable;
+            });
+
             services.AddSignalR(o =>
             {
                 o.EnableDetailedErrors = true;
