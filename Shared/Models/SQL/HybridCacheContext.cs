@@ -5,6 +5,13 @@ namespace Shared.Models.SQL
 {
     public partial class HybridCacheContext
     {
+        public static IDbContextFactory<HybridCacheContext> DbContextFactory { get; } =
+            new PooledDbContextFactory<HybridCacheContext>(
+                new DbContextOptionsBuilder<HybridCacheContext>()
+                    .UseSqlite("Data Source=cache/HybridCache.sql;Cache=Shared;BusyTimeout=5000")
+                    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+                    .Options);
+
         public static void Initialization() 
         {
             try
@@ -26,8 +33,11 @@ namespace Shared.Models.SQL
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql;Cache=Shared;BusyTimeout=5000");
-            optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlite("Data Source=cache/HybridCache.sql;Cache=Shared;BusyTimeout=5000");
+                optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
