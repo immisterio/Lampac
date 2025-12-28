@@ -12,7 +12,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(in string html, out int total_pages, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        public static List<PlaylistItem> Playlist(string html, out int total_pages, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             total_pages = 0;
 

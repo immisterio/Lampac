@@ -40,12 +40,12 @@ namespace Shared.Engine.Online
             return Embed(html);
         }
 
-        public EmbedModel Embed(in string html)
+        public EmbedModel Embed(string html)
         {
             if (string.IsNullOrEmpty(html))
                 return null;
 
-            string decodePlayer(in string _html)
+            string decodePlayer(string _html)
             {
                 try
                 {

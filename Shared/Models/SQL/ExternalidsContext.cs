@@ -13,6 +13,8 @@ namespace Shared.Models.SQL
 
         public static void Initialization() 
         {
+            Directory.CreateDirectory("cache");
+
             try
             {
                 var sqlDb = new ExternalidsContext();

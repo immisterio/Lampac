@@ -57,7 +57,7 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
+        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
@@ -1013,7 +1013,7 @@ namespace Shared.Engine.SISI
         }
 
 
-        public static int Pages(in string html)
+        public static int Pages(string html)
         { 
             if (string.IsNullOrEmpty(html))
                 return 0;
@@ -1037,7 +1037,7 @@ namespace Shared.Engine.SISI
 
 
         #region getDirectLinks
-        static string getDirectLinks(in string pageCode)
+        static string getDirectLinks(string pageCode)
         {
             var vars = new List<(string name, string param)>();
 

@@ -87,7 +87,9 @@ namespace Lampac.Controllers
 
                                 var favorite = (JObject)root["favorite"];
 
-                                using (var sqlDb = new SyncUserContext())
+                                using (var sqlDb = SyncUserContext.Factory != null
+                                    ? SyncUserContext.Factory.CreateDbContext()
+                                    : new SyncUserContext())
                                 {
                                     var (entity, loaded) = LoadBookmarks(sqlDb, userUid, createIfMissing: true);
                                     bool changed = false;
@@ -166,7 +168,9 @@ namespace Lampac.Controllers
             }
             #endregion
 
-            using (var sqlDb = new SyncUserContext())
+            using (var sqlDb = SyncUserContext.Factory != null
+                ? SyncUserContext.Factory.CreateDbContext()
+                : new SyncUserContext())
             {
                 bool IsDbInitialization = sqlDb.bookmarks.AsNoTracking().FirstOrDefault(i => i.user == userUid) != null;
                 if (!IsDbInitialization)
@@ -216,7 +220,9 @@ namespace Lampac.Controllers
                 {
                     await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-                    using (var sqlDb = new SyncUserContext())
+                    using (var sqlDb = SyncUserContext.Factory != null
+                        ? SyncUserContext.Factory.CreateDbContext()
+                        : new SyncUserContext())
                     {
                         string userUid = getUserid(requestInfo, HttpContext);
 
@@ -292,7 +298,9 @@ namespace Lampac.Controllers
             {
                 await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-                using (var sqlDb = new SyncUserContext())
+                using (var sqlDb = SyncUserContext.Factory != null
+                    ? SyncUserContext.Factory.CreateDbContext()
+                    : new SyncUserContext())
                 {
                     var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: true);
                     bool changed = false;
@@ -360,7 +368,9 @@ namespace Lampac.Controllers
             {
                 await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-                using (var sqlDb = new SyncUserContext())
+                using (var sqlDb = SyncUserContext.Factory != null
+                    ? SyncUserContext.Factory.CreateDbContext()
+                    : new SyncUserContext())
                 {
                     var (entity, data) = LoadBookmarks(sqlDb, getUserid(requestInfo, HttpContext), createIfMissing: false);
                     if (entity == null)

@@ -91,7 +91,7 @@ namespace Shared.PlaywrightCore
         }
 
 
-        public void SetPageResult(in string val)
+        public void SetPageResult(string val)
         {
             try
             {

@@ -24,7 +24,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region EvalCode
-        public string EvalCode(in string file)
+        public string EvalCode(string file)
         {
             return @"(function () {
                     var enc = function enc(str) {
@@ -58,7 +58,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region DecodeEval
-        public string DecodeEval(in string file)
+        public string DecodeEval(string file)
         {
             Func<string, string> enc = str =>
             {
@@ -100,7 +100,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Embed
-        public EmbedModel Embed(in string json, string forbidden_quality, string default_quality)
+        public EmbedModel Embed(string json, string forbidden_quality, string default_quality)
         {
             if (string.IsNullOrEmpty(json))
                 return null;

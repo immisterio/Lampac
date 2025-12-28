@@ -43,7 +43,7 @@ namespace Shared.Engine.SISI
         }
 
 
-        public static List<PlaylistItem> Playlist(string uri, string uri_star, in string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, string site = "xds")
+        public static List<PlaylistItem> Playlist(string uri, string uri_star, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, string site = "xds")
         {
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();

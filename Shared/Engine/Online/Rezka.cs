@@ -742,7 +742,7 @@ namespace Shared.Engine.Online
 
 
         #region decodeBase64
-        static string decodeBase64(in string data)
+        static string decodeBase64(string data)
         {
             if (data.StartsWith("#"))
             {
@@ -788,7 +788,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region getStreamLink
-        List<ApiModel> getStreamLink(in string _data)
+        List<ApiModel> getStreamLink(string _data)
         {
             string data = decodeBase64(_data);
             var links = new List<ApiModel>(6);

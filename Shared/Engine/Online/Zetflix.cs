@@ -40,7 +40,7 @@ namespace Shared.Engine.Online
             return Embed(html);
         }
 
-        public EmbedModel Embed(in string html)
+        public EmbedModel Embed(string html)
         {
             if (html == null)
                 return null;

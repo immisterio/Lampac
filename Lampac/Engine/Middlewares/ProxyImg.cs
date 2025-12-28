@@ -26,6 +26,8 @@ namespace Lampac.Engine.Middlewares
 
         static ConcurrentDictionary<string, int> cacheFiles = new ConcurrentDictionary<string, int>();
 
+        public static int Stat_ContCacheFiles => cacheFiles.IsEmpty ? 0 : cacheFiles.Count;
+
         static Timer cleanupTimer;
 
         static ProxyImg()

@@ -7,7 +7,7 @@ namespace Shared.Engine.JacRed
     public static class BencodeTo
     {
         #region Magnet
-        public static string Magnet(in byte[] torrent)
+        public static string Magnet(byte[] torrent)
         {
             try
             {
@@ -31,7 +31,7 @@ namespace Shared.Engine.JacRed
         #endregion
 
         #region SizeName
-        public static string SizeName(in byte[] torrent)
+        public static string SizeName(byte[] torrent)
         {
             try
             {

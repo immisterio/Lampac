@@ -26,7 +26,7 @@ namespace Shared.Engine
 
 
         #region Execute<T>
-        public static T Execute<T>(in string cs, object model, ScriptOptions options = null)
+        public static T Execute<T>(string cs, object model, ScriptOptions options = null)
         {
             return ExecuteAsync<T>(cs, model, options).GetAwaiter().GetResult();
         }
@@ -57,7 +57,7 @@ namespace Shared.Engine
         #endregion
 
         #region BaseExecute<T>
-        public static T BaseExecute<T>(in string cs, object model, ScriptOptions options = null, InteractiveAssemblyLoader loader = null)
+        public static T BaseExecute<T>(string cs, object model, ScriptOptions options = null, InteractiveAssemblyLoader loader = null)
         {
             return BaseExecuteAsync<T>(cs, model, options, loader).GetAwaiter().GetResult();
         }
@@ -79,7 +79,7 @@ namespace Shared.Engine
         #endregion
 
         #region Execute
-        public static void Execute(in string cs, object model, ScriptOptions options = null)
+        public static void Execute(string cs, object model, ScriptOptions options = null)
         {
             ExecuteAsync(cs, model, options).GetAwaiter().GetResult();
         }

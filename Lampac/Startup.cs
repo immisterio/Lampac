@@ -196,6 +196,7 @@ namespace Lampac
             services.AddSingleton<IActionDescriptorChangeProvider>(DynamicActionDescriptorChangeProvider.Instance);
             services.AddSingleton(DynamicActionDescriptorChangeProvider.Instance);
 
+            services.AddDbContextFactory<SyncUserContext>(SyncUserContext.ConfiguringDbBuilder);
             services.AddDbContextFactory<HybridCacheContext>(HybridCacheContext.ConfiguringDbBuilder);
             services.AddDbContextFactory<ProxyLinkContext>(ProxyLinkContext.ConfiguringDbBuilder);
             services.AddDbContextFactory<SisiContext>(SisiContext.ConfiguringDbBuilder);
@@ -401,6 +402,7 @@ namespace Lampac
 
         public void Configure(
             IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime,
+            IDbContextFactory<SyncUserContext> SyncUserContextFactory,
             IDbContextFactory<HybridCacheContext> HybridCacheContextFactory,
             IDbContextFactory<ProxyLinkContext> ProxyLinkContextFactory,
             IDbContextFactory<SisiContext> SisiContextFactory,
@@ -410,6 +412,7 @@ namespace Lampac
             _app = app;
             memoryCache = memory;
 
+            SyncUserContext.Factory = SyncUserContextFactory;
             HybridCacheContext.Factory = HybridCacheContextFactory;
             ProxyLinkContext.Factory = ProxyLinkContextFactory;
             SisiContext.Factory = SisiContextFactory;

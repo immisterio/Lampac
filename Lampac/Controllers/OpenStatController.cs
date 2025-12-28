@@ -109,7 +109,36 @@ namespace Lampac.Controllers
             if (IsDeny(out string ermsg))
                 return Content(ermsg, "text/plain; charset=utf-8");
 
-            return Json(new { clients = RchClient.clients.Count, rchIds = RchClient.rchIds.Count });
+            return Json(new 
+            { 
+                clients = RchClient.clients.Count, 
+                rchIds = RchClient.rchIds.Count 
+            });
+        }
+        #endregion
+
+        #region TempDb
+        [AllowAnonymous]
+        [Route("/stats/tempdb")]
+        public ActionResult TempDb()
+        {
+            if (IsDeny(out string ermsg))
+                return Content(ermsg, "text/plain; charset=utf-8");
+
+            return Json(new 
+            {
+                HybridCache = HybridCache.Stat_ContTempDb,
+                ProxyLink = ProxyLink.Stat_ContLinks,
+                ProxyAPI = ProxyAPI.Stat_ContCacheFiles,
+                ProxyTmdb = ProxyTmdb.Stat_ContCacheFiles,
+                ProxyImg = ProxyImg.Stat_ContCacheFiles,
+                ProxyCub = ProxyCub.Stat_ContCacheFiles,
+                rch = new
+                {
+                    clients = RchClient.clients.Count,
+                    Ids = RchClient.rchIds.Count
+                }
+            });
         }
         #endregion
     }

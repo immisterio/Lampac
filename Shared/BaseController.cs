@@ -29,7 +29,7 @@ namespace Shared
 
         public static string appversion => "151";
 
-        public static string minorversion => "1";
+        public static string minorversion => "2";
 
         public HybridCache hybridCache { get; private set; }
 
@@ -795,7 +795,7 @@ namespace Shared
         #endregion
 
         #region ContentTo / Dispose
-        public ActionResult ContentTo(in string html)
+        public ActionResult ContentTo(string html)
         {
             return Content(html, html.StartsWith("{") || html.StartsWith("[") ? "application/json; charset=utf-8" : "text/html; charset=utf-8");
         }

@@ -31,7 +31,7 @@ namespace Lampac.Controllers
         #endregion
 
         [Route("/timecode/all")]
-        public ActionResult Get(string card_id)
+        async public Task<ActionResult> Get(string card_id)
         {
             if (string.IsNullOrEmpty(card_id))
                 return Json(new { });
@@ -40,12 +40,14 @@ namespace Lampac.Controllers
 
             Dictionary<string, string> timecodes = null;
 
-            using (var sqlDb = new SyncUserContext())
+            using (var sqlDb = SyncUserContext.Factory != null
+                ? SyncUserContext.Factory.CreateDbContext()
+                : new SyncUserContext())
             {
-                timecodes = sqlDb.timecodes
+                timecodes = await sqlDb.timecodes
                     .AsNoTracking()
                     .Where(i => i.user == userId && i.card == card_id)
-                    .ToDictionary(i => i.item, i => i.data);
+                    .ToDictionaryAsync(i => i.item, i => i.data);
             }
 
             if (timecodes == null || timecodes.Count == 0)
@@ -72,7 +74,9 @@ namespace Lampac.Controllers
             {
                 await SyncUserContext.semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-                using (var sqlDb = new SyncUserContext())
+                using (var sqlDb = SyncUserContext.Factory != null
+                    ? SyncUserContext.Factory.CreateDbContext()
+                    : new SyncUserContext())
                 {
                     sqlDb.timecodes
                         .Where(i => i.user == userId && i.card == card_id && i.item == id)
@@ -87,7 +91,7 @@ namespace Lampac.Controllers
                         updated = DateTime.UtcNow
                     });
 
-                    success = sqlDb.SaveChanges() > 0;
+                    success = await sqlDb.SaveChangesAsync() > 0;
                 }
             }
             catch { }

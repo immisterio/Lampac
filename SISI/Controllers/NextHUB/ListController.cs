@@ -181,7 +181,7 @@ namespace SISI.Controllers.NextHUB
 
 
         #region goPlaylist
-        public static List<PlaylistItem> goPlaylist(in RequestModel requestInfo, string host, ContentParseSettings parse, NxtSettings init, in string html, string plugin)
+        public static List<PlaylistItem> goPlaylist(RequestModel requestInfo, string host, ContentParseSettings parse, NxtSettings init, string html, string plugin)
         {
             if (parse == null || string.IsNullOrEmpty(html))
                 return null;

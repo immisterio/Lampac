@@ -246,7 +246,7 @@ namespace Catalog.Controllers
 
 
         #region goPlaylistJson
-        static List<PlaylistItem> goPlaylistJson(string cat, JToken json, in RequestModel requestInfo, string host, ContentParseSettings parse, CatalogSettings init, in string html, string plugin)
+        static List<PlaylistItem> goPlaylistJson(string cat, JToken json, RequestModel requestInfo, string host, ContentParseSettings parse, CatalogSettings init, string html, string plugin)
         {
             if (parse == null || json == null)
                 return null;
@@ -402,7 +402,7 @@ namespace Catalog.Controllers
         #endregion
 
         #region goPlaylist
-        static List<PlaylistItem> goPlaylist(string cat, HtmlDocument doc, in RequestModel requestInfo, string host, ContentParseSettings parse, CatalogSettings init, in string html, string plugin)
+        static List<PlaylistItem> goPlaylist(string cat, HtmlDocument doc, RequestModel requestInfo, string host, ContentParseSettings parse, CatalogSettings init, string html, string plugin)
         {
             if (parse == null || string.IsNullOrEmpty(html))
                 return null;

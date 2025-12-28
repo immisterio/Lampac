@@ -5,7 +5,7 @@ namespace Shared.Engine
     public static class StringConvert
     {
         #region FindStartText
-        public static string FindStartText(in string data, string end, string start = null)
+        public static string FindStartText(string data, string end, string start = null)
         {
             try
             {
@@ -23,7 +23,7 @@ namespace Shared.Engine
         #endregion
 
         #region FindLastText
-        public static string FindLastText(in string data, string start, string end = null)
+        public static string FindLastText(string data, string start, string end = null)
         {
             try
             {

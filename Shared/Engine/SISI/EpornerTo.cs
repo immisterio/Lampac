@@ -605,14 +605,14 @@ namespace Shared.Engine.SISI
 
 
         #region convertHash
-        static string convertHash(in string h)
+        static string convertHash(string h)
         {
             return Base36(h.Substring(0, 8)) + Base36(h.Substring(8, 8)) + Base36(h.Substring(16, 8)) + Base36(h.Substring(24, 8));
         }
         #endregion
 
         #region Base36
-        static string Base36(in string val)
+        static string Base36(string val)
         {
             string result = "";
             ulong value = Convert.ToUInt64(val, 16);

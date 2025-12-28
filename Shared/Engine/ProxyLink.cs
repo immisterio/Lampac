@@ -17,6 +17,8 @@ namespace Shared.Engine
         #region ProxyLink
         static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
 
+        public static int Stat_ContLinks => links.IsEmpty ? 0 : links.Count;
+
         static Timer _cronTimer;
 
         static ProxyLink()

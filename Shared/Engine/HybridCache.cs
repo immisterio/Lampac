@@ -19,6 +19,8 @@ namespace Shared.Engine
 
         static ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel cache)> tempDb;
 
+        public static int Stat_ContTempDb => tempDb == null || tempDb.IsEmpty ? 0 : tempDb.Count;
+
         public static void Configure(IMemoryCache mem)
         {
             memoryCache = mem;

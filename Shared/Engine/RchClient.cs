@@ -138,7 +138,7 @@ namespace Shared.Engine
             this.connectionId = connectionId;
         }
 
-        public RchClient(HttpContext context, string host, BaseSettings init, in RequestModel requestInfo, int? keepalive = null)
+        public RchClient(HttpContext context, string host, BaseSettings init, RequestModel requestInfo, int? keepalive = null)
         {
             this.init = init;
             httpContext = context;

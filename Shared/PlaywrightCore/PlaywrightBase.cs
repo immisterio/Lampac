@@ -222,7 +222,7 @@ namespace Shared.PlaywrightCore
         #endregion
 
         #region WebLog
-        public static void WebLog(IRequest request, IResponse response, in string result, (string ip, string username, string password) proxy = default)
+        public static void WebLog(IRequest request, IResponse response, string result, (string ip, string username, string password) proxy = default)
         {
             try
             {
@@ -257,7 +257,7 @@ namespace Shared.PlaywrightCore
             catch { }
         }
 
-        public static void WebLog(string method, string url, in string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
+        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
         {
             try
             {
@@ -446,7 +446,7 @@ namespace Shared.PlaywrightCore
         #endregion
 
         #region ConsoleLog
-        public static void ConsoleLog(in string value, List<HeadersModel> headers = null)
+        public static void ConsoleLog(string value, List<HeadersModel> headers = null)
         {
             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
             {

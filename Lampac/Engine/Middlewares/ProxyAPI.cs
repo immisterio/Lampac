@@ -27,6 +27,8 @@ namespace Lampac.Engine.Middlewares
 
         static ConcurrentDictionary<string, long> cacheFiles = new();
 
+        public static int Stat_ContCacheFiles => cacheFiles.IsEmpty ? 0 : cacheFiles.Count;
+
         static ProxyAPI()
         {
             Directory.CreateDirectory("cache/hls");

@@ -14,7 +14,7 @@ namespace Shared.Engine
             return Compress(Encoding.UTF8.GetBytes(value));
         }
 
-        public static byte[] Compress(in byte[] value)
+        public static byte[] Compress(byte[] value)
         {
             try
             {
@@ -38,12 +38,12 @@ namespace Shared.Engine
         #endregion
 
         #region Compress file
-        public static void Compress(string outfile, in string value)
+        public static void Compress(string outfile, string value)
         {
             Compress(outfile, Encoding.UTF8.GetBytes(value));
         }
 
-        public static void Compress(string outfile, in byte[] value)
+        public static void Compress(string outfile, byte[] value)
         {
             try
             {
@@ -68,7 +68,7 @@ namespace Shared.Engine
         #endregion
 
         #region CompressAsync file
-        public static Task CompressAsync(string outfile, in string value)
+        public static Task CompressAsync(string outfile, string value)
         {
             return CompressAsync(outfile, Encoding.UTF8.GetBytes(value));
         }

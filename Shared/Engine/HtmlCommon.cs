@@ -13,7 +13,7 @@ namespace Shared.Engine
         }
 
 
-        public string NodeValue(in string node, string attribute = null, string removeChild = null)
+        public string NodeValue(string node, string attribute = null, string removeChild = null)
         {
             if (string.IsNullOrEmpty(node) && !string.IsNullOrEmpty(attribute))
             {
