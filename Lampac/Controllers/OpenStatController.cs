@@ -137,7 +137,8 @@ namespace Lampac.Controllers
                 {
                     clients = RchClient.clients.Count,
                     Ids = RchClient.rchIds.Count
-                }
+                },
+                memoryCache = memoryCache.GetCurrentStatistics()
             });
         }
         #endregion
