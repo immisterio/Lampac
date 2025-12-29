@@ -150,11 +150,19 @@ namespace Lampac.Engine
 
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
-                        string message = builder.ToString();
-                        builder.Clear();
+                        if (2 > builder.Length)
+                            continue;
 
-                        if (!string.IsNullOrWhiteSpace(message) && message != "ping")
-                            await HandleMessageAsync(connection, message).ConfigureAwait(false);
+                        if (builder.Length == 4 &&
+                            builder[0] == 'p' &&
+                            builder[1] == 'i' &&
+                            builder[2] == 'n' &&
+                            builder[3] == 'g')
+                        {
+                            continue;
+                        }
+
+                        await HandleMessageAsync(connection, builder).ConfigureAwait(false);
                     }
                 }
             }
@@ -176,11 +184,11 @@ namespace Lampac.Engine
         #endregion
 
         #region message handling
-        static async Task HandleMessageAsync(NwsConnection connection, string payload)
+        static async Task HandleMessageAsync(NwsConnection connection, StringBuilder payload)
         {
             try
             {
-                using JsonDocument document = JsonDocument.Parse(payload);
+                using JsonDocument document = JsonDocument.Parse(payload.ToString());
                 if (document.RootElement.ValueKind != JsonValueKind.Object)
                     return;
 

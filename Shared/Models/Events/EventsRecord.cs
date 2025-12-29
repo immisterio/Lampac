@@ -11,6 +11,7 @@ using Shared.Models.Proxy;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 
@@ -66,7 +67,7 @@ namespace Shared.Models.Events
 
     public record EventNwsDisconnected(string connectionId);
 
-    public record EventNwsMessage(string connectionId, string payload, string method, JsonElement args);
+    public record EventNwsMessage(string connectionId, StringBuilder payload, string method, JsonElement args);
 
     public record EventCorseuRequest(CorseuRequest request);
 
