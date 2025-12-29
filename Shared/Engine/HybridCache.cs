@@ -17,7 +17,7 @@ namespace Shared.Engine
 
         static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
-        static ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel cache)> tempDb;
+        static ConcurrentDictionary<string, (DateTime extend, object ob, HybridCacheSqlModel cache)> tempDb = new();
 
         public static int Stat_ContTempDb => tempDb == null || tempDb.IsEmpty ? 0 : tempDb.Count;
 
@@ -25,7 +25,6 @@ namespace Shared.Engine
         {
             memoryCache = mem;
 
-            tempDb = new ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel value)>();
             _clearTimer = new Timer(UpdateDB, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(100));
         }
 
@@ -189,10 +188,11 @@ namespace Shared.Engine
 
                 string md5key = CrypTo.md5(key);
 
-                if (tempDb.TryGetValue(md5key, out var _temp) && _temp.cache != null)
+                if (tempDb.TryGetValue(md5key, out var _temp) && _temp.ob != null)
                 {
                     setmemory = false;
-                    return deserializeCache(_temp.cache, out value);
+                    value = (TItem)_temp.ob;
+                    return true;
                 }
                 else if (AppInit.conf.cache.type == "sql")
                 {
@@ -297,7 +297,7 @@ namespace Shared.Engine
                 /// дополнительный кеш для сериалов, что бы выборка сезонов/озвучки не дергала sql 
                 var extend = DateTime.Now.AddSeconds(Math.Max(15, AppInit.conf.cache.extend));
 
-                tempDb.TryAdd(md5key, (extend, new HybridCacheSqlModel()
+                tempDb.TryAdd(md5key, (extend, value, new HybridCacheSqlModel()
                 {
                     Id = md5key,
                     ex = absoluteExpiration.DateTime,
