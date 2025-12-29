@@ -106,7 +106,7 @@ namespace Online.Controllers
                     if (!hybridCache.TryGetValue(key, out SimilarTpl search))
                     {
                         search = await oninvk.Search(title, original_title, serial, clarification, database);
-                        if (search.data?.Count == 0)
+                        if (search == null || search.IsEmpty())
                             return OnError("search");
 
                         hybridCache.Set(key, search, cacheTime(40));

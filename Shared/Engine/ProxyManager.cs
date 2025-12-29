@@ -128,7 +128,7 @@ namespace Shared.Engine
         #region Refresh
         public void Refresh(RchClient rch)
         {
-            if (rch.enable == false)
+            if (rch != null && rch.enable == false)
                 Refresh();
         }
 
@@ -182,7 +182,7 @@ namespace Shared.Engine
         #region Success
         public void Success(RchClient rch)
         {
-            if (rch.enable == false)
+            if (rch != null && rch.enable == false)
                 Success();
         }
 

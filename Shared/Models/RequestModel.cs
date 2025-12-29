@@ -3,7 +3,7 @@ using Shared.Models.Base;
 
 namespace Shared.Models
 {
-    public struct RequestModel
+    public class RequestModel
     {
         public RequestModel()
         {

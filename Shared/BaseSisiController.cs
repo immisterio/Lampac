@@ -21,7 +21,8 @@ namespace Shared
     public class BaseSisiController<T> : BaseController where T : BaseSettings, ICloneable
     {
         #region RchClient
-        RchClient? _rch = null;
+        RchClient _rch = null;
+
         public RchClient rch
         {
             get
@@ -29,13 +30,14 @@ namespace Shared
                 if (_rch == null)
                     _rch = new RchClient(HttpContext, host, init, requestInfo);
 
-                return (RchClient)_rch;
+                return _rch;
             }
         }
         #endregion
 
         #region HttpHydra
         HttpHydra _httpHydra = null;
+
         public HttpHydra httpHydra
         {
             get

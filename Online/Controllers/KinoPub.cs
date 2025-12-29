@@ -105,7 +105,7 @@ namespace Online.Controllers
                     if (search.Value.similars == null)
                         return OnError();
 
-                    return ContentTo(search.Value.similars.Value);
+                    return ContentTo(search.Value.similars);
                 }
 
                 postid = search.Value.id;

@@ -33,7 +33,7 @@ namespace Lampac.Engine.Middlewares
             if (requestInfo.IsLocalRequest || requestInfo.IsAnonymousRequest)
                 return _next(httpContext);
 
-            #region manifest / admin
+            #region admin
             if (httpContext.Request.Path.Value.StartsWith("/admin/") || httpContext.Request.Path.Value == "/admin")
             {
                 if (httpContext.Request.Cookies.TryGetValue("passwd", out string passwd))
@@ -64,16 +64,6 @@ namespace Lampac.Engine.Middlewares
 
                 httpContext.Response.Redirect("/admin/auth");
                 return Task.CompletedTask;
-            }
-            #endregion
-
-            #region ws / nws
-            if (httpContext.Request.Path.Value.StartsWith("/ws") || httpContext.Request.Path.Value.StartsWith("/nws"))
-            {
-                if (AppInit.conf.weblog.enable || AppInit.conf.rch.enable || AppInit.conf.storage.enable || AppInit.conf.sync_user.enable)
-                    return _next(httpContext);
-
-                return httpContext.Response.WriteAsync("disabled", httpContext.RequestAborted);
             }
             #endregion
 
@@ -123,7 +113,10 @@ namespace Lampac.Engine.Middlewares
 
                 string uri = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
 
-                if (IsLockHostOrUser(requestInfo.user_uid, requestInfo.IP, uri, out limitip) || user == null || user.ban || DateTime.UtcNow > user.expires)
+                if (IsLockHostOrUser(memoryCache, requestInfo.user_uid, requestInfo.IP, uri, out limitip) 
+                    || user == null 
+                    || user.ban 
+                    || DateTime.UtcNow > user.expires)
                 {
                     if (httpContext.Request.Path.Value.StartsWith("/proxy/") || httpContext.Request.Path.Value.StartsWith("/proxyimg"))
                     {
@@ -190,7 +183,7 @@ namespace Lampac.Engine.Middlewares
         #region IsLock
         static string logsLock = string.Empty;
 
-        bool IsLockHostOrUser(string account_email, string userip, string uri, out bool islock)
+        static bool IsLockHostOrUser(IMemoryCache memoryCache, string account_email, string userip, string uri, out bool islock)
         {
             if (string.IsNullOrEmpty(account_email))
             {
@@ -239,8 +232,8 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (IsLockIpHour(account_email, userip, out islock, out ConcurrentDictionary<string, byte> ips) | 
-                IsLockReqHour(account_email, uri, out islock, out ConcurrentDictionary<string, byte> urls))
+            if (IsLockIpHour(memoryCache, account_email, userip, out islock, out ConcurrentDictionary<string, byte> ips) | 
+                IsLockReqHour(memoryCache, account_email, uri, out islock, out ConcurrentDictionary<string, byte> urls))
             {
                 setLogs("lock_hour");
                 countlock_day(update: true);
@@ -273,7 +266,7 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        bool IsLockIpHour(string account_email, string userip, out bool islock, out ConcurrentDictionary<string, byte> ips)
+        static bool IsLockIpHour(IMemoryCache memoryCache, string account_email, string userip, out bool islock, out ConcurrentDictionary<string, byte> ips)
         {
             string memKeyLocIP = $"Accsdb:IsLockIpHour:{account_email}:{DateTime.Now.Hour}";
 
@@ -295,7 +288,7 @@ namespace Lampac.Engine.Middlewares
             return islock;
         }
 
-        bool IsLockReqHour(string account_email, string uri, out bool islock, out ConcurrentDictionary<string, byte> urls)
+        static bool IsLockReqHour(IMemoryCache memoryCache, string account_email, string uri, out bool islock, out ConcurrentDictionary<string, byte> urls)
         {
             string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}";
 

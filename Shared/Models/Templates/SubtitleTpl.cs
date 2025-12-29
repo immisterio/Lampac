@@ -8,7 +8,10 @@ namespace Shared.Models.Templates
 
         public SubtitleTpl() : this(10) { }
 
-        public SubtitleTpl(int capacity) { data = new List<(string, string)>(capacity); }
+        public SubtitleTpl(int capacity) 
+        { 
+            data = new List<(string, string)>(capacity); 
+        }
 
         public bool IsEmpty() => data.Count == 0;
 

@@ -26,7 +26,7 @@ namespace Shared.Engine
         public Dictionary<string, object> obs { get; set; } = new Dictionary<string, object>();
     }
 
-    public struct RchClient
+    public class RchClient
     {
         #region static
         static RchClient()

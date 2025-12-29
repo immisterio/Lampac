@@ -7,7 +7,7 @@ using Shared.Engine;
 
 namespace Shared.Models.Templates
 {
-    public struct MovieTpl : ITplResult
+    public class MovieTpl : ITplResult
     {
         string title, original_title;
 
@@ -22,9 +22,9 @@ namespace Shared.Models.Templates
 
         public MovieTpl(string title, string original_title, int capacity) : this(title, original_title, null, capacity) { }
 
-        public MovieTpl(string title, string original_title, VoiceTpl vtpl) : this(title, original_title, 15) { }
+        public MovieTpl(string title, string original_title, in VoiceTpl vtpl) : this(title, original_title, vtpl, 15) { }
 
-        public MovieTpl(string title, string original_title, VoiceTpl? vtpl, int capacity)
+        public MovieTpl(string title, string original_title, in VoiceTpl? vtpl, int capacity)
         {
             this.vtpl = vtpl;
             this.title = title;
@@ -33,13 +33,13 @@ namespace Shared.Models.Templates
         }
 
 
-        public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, StreamQualityTpl? streamquality = null, SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null, string subtitles_call = null)
+        public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, in SegmentTpl? segments = null, string subtitles_call = null)
         {
             if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
                 data.Add((voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments, subtitles_call));
         }
 
-        public void Append(VoiceTpl vtpl)
+        public void Append(in VoiceTpl vtpl)
         {
             this.vtpl = vtpl;
         }

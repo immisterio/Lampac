@@ -68,7 +68,7 @@ namespace Online.Controllers
                     orid = result.id;
                 else
                 {
-                    if (result.similar.data == null || result.similar.data.Count == 0)
+                    if (result.similar == null || result.similar.IsEmpty())
                         return OnError("data");
 
                     return ContentTo(result.similar);
@@ -254,7 +254,7 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var result = await search(title, null, 0);
-            if (result.similar.data?.Count == 0)
+            if (result.similar == null || result.similar.IsEmpty())
                 return OnError("data");
 
             return ContentTo(result.similar);

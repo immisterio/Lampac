@@ -113,7 +113,7 @@ namespace Online.Controllers
                 }
 
                 if (string.IsNullOrEmpty(pick))
-                    return ContentTo(res?.stpl == null ? default : res.stpl.Value);
+                    return ContentTo(res?.stpl);
 
                 content = oninvk.Embed(res.result, pick);
             }

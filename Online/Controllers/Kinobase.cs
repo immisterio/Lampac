@@ -54,7 +54,7 @@ namespace Online.Controllers
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
-                    return OnResult(search, () => search.Value.similar.Value);
+                    return OnResult(search, () => search.Value.similar);
 
                 if (string.IsNullOrEmpty(search.Value?.link))
                     return OnError();

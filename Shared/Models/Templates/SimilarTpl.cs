@@ -5,7 +5,7 @@ using System.Web;
 
 namespace Shared.Models.Templates
 {
-    public struct SimilarTpl : ITplResult
+    public class SimilarTpl : ITplResult
     {
         public string OnlineSplit => "{prestige-split}";
 

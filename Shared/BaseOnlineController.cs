@@ -22,7 +22,8 @@ namespace Shared
     public class BaseOnlineController<T> : BaseController where T : BaseSettings, ICloneable
     {
         #region RchClient
-        RchClient? _rch = null;
+        RchClient _rch = null;
+
         public RchClient rch 
         {
             get 
@@ -30,13 +31,14 @@ namespace Shared
                 if (_rch == null)
                     _rch = new RchClient(HttpContext, host, init, requestInfo);
 
-                return (RchClient)_rch;
+                return _rch;
             } 
         }
         #endregion
 
         #region HttpHydra
         HttpHydra _httpHydra = null;
+
         public HttpHydra httpHydra
         {
             get
@@ -268,8 +270,14 @@ namespace Shared
         {
             return OnResult(cache, () => 
             {
+                bool rjson = HttpContext.Request.Query["rjson"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase);
+
                 var tplResult = tpl();
-                return HttpContext.Request.Query["rjson"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase)
+
+                if (tplResult == null)
+                    return rjson ? "{}" : string.Empty;
+
+                return rjson
                     ? tplResult.ToJson()
                     : tplResult.ToHtml();
             });
@@ -291,6 +299,9 @@ namespace Shared
         #region ContentTo
         public ActionResult ContentTo(ITplResult tpl)
         {
+            if (tpl == null)
+                return OnError();
+
             return ContentTo(HttpContext.Request.Query["rjson"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase)
                 ? tpl.ToJson()
                 : tpl.ToHtml()

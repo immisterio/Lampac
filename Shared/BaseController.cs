@@ -27,7 +27,7 @@ namespace Shared
     {
         public static string appversion => "151";
 
-        public static string minorversion => "2";
+        public static string minorversion => "3";
 
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
@@ -35,18 +35,16 @@ namespace Shared
         protected ActionResult badInitMsg { get; set; }
 
         #region hybridCache
-        private HybridCache? _hybridCache;
+        private HybridCache _hybridCache;
 
         protected HybridCache hybridCache
         {
             get
             {
-                if (_hybridCache != null)
-                    return _hybridCache.Value;
+                if (_hybridCache == null)
+                    _hybridCache = new HybridCache();
 
-                _hybridCache = new HybridCache();
-
-                return _hybridCache.Value;
+                return _hybridCache;
             }
         }
         #endregion
@@ -75,7 +73,7 @@ namespace Shared
         #endregion
 
         #region requestInfo
-        private RequestModel? _requestInfo;
+        private RequestModel _requestInfo;
 
         protected RequestModel requestInfo
         {
@@ -84,7 +82,7 @@ namespace Shared
                 if (_requestInfo == null)
                     _requestInfo = HttpContext.Features.Get<RequestModel>();
 
-                return _requestInfo.Value;
+                return _requestInfo;
             }
         }
         #endregion
@@ -275,7 +273,7 @@ namespace Shared
         #endregion
 
         #region HostStreamProxy
-        public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, bool force_streamproxy = false, RchClient? rch = null)
+        public string HostStreamProxy(BaseSettings conf, string uri, List<HeadersModel> headers = null, WebProxy proxy = null, bool force_streamproxy = false, RchClient rch = null)
         {
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri?.Split(" ")?[0]?.Trim();
@@ -302,9 +300,9 @@ namespace Shared
             #endregion
 
             #region rchstreamproxy
-            if (!streamproxy && conf.rchstreamproxy != null && rch.HasValue)
+            if (!streamproxy && conf.rchstreamproxy != null && rch != null)
             {
-                var rchinfo = rch.Value.InfoConnected();
+                var rchinfo = rch.InfoConnected();
                 if (rchinfo?.rchtype != null)
                     streamproxy = conf.rchstreamproxy.Contains(rchinfo.rchtype);
             }

@@ -7,7 +7,7 @@ using System.Web;
 
 namespace Shared.Models.Templates
 {
-    public struct EpisodeTpl : ITplResult
+    public class EpisodeTpl : ITplResult
     {
         public List<(string name, string title, string s, string e, string link, string method, StreamQualityTpl? streamquality, SubtitleTpl? subtitles, string streamlink, string voice_name, VastConf vast, List<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl? segments, string subtitles_call)> data { get; private set; }
 
@@ -18,22 +18,22 @@ namespace Shared.Models.Templates
 
         public EpisodeTpl(int capacity) : this(null, capacity) { }
 
-        public EpisodeTpl(VoiceTpl vtpl) : this(vtpl, 20) { }
+        public EpisodeTpl(in VoiceTpl vtpl) : this(vtpl, 20) { }
 
-        public EpisodeTpl(VoiceTpl? vtpl, int capacity) 
+        public EpisodeTpl(in VoiceTpl? vtpl, int capacity) 
         {
             this.vtpl = vtpl;
             data = new List<(string, string, string, string, string, string, StreamQualityTpl?, SubtitleTpl?, string, string, VastConf, List<HeadersModel>, int?, SegmentTpl?, string)>(capacity);
         }
 
 
-        public void Append(string name, string title, string s, string e, string link, string method = "play", in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl? segments = null, string subtitles_call = null)
+        public void Append(string name, string title, string s, string e, string link, string method = "play", in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, in SegmentTpl? segments = null, string subtitles_call = null)
         {
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(link))
                 data.Add((name, $"{title} ({e} серия)", s, e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers, hls_manifest_timeout, segments, subtitles_call));
         }
 
-        public void Append(VoiceTpl vtpl)
+        public void Append(in VoiceTpl vtpl)
         {
             this.vtpl = vtpl;
         }

@@ -478,15 +478,32 @@ namespace Lampac
             app.UseForwardedHeaders(forwarded);
             #endregion
 
-            app.UseWebSockets();
+            app.UseModHeaders();
+            app.UseRequestInfo();
+
+            app.Map("/nws", nwsApp =>
+            {
+                nwsApp.UseWAF();
+                nwsApp.UseWebSockets();
+                nwsApp.Run(nws.HandleWebSocketAsync);
+            });
+
+            app.Map("/ws", wsApp =>
+            {
+                wsApp.UseWAF();
+                wsApp.UseRouting();
+                wsApp.UseEndpoints(endpoints =>
+                {
+                    endpoints.MapHub<soks>("");
+                });
+            });
+
             app.UseRouting();
 
             if (AppInit.conf.listen.compression)
                 app.UseResponseCompression();
 
-            app.UseModHeaders();
             app.UseRequestStatistics();
-            app.UseRequestInfo();
             app.UseAnonymousRequest();
 
             app.UseAlwaysRjson();
@@ -498,7 +515,7 @@ namespace Lampac
             {
                 ServeUnknownFileTypes = true,
                 DefaultContentType = "application/octet-stream",
-                ContentTypeProvider = new FileExtensionContentTypeProvider() 
+                ContentTypeProvider = new FileExtensionContentTypeProvider()
                 {
                     Mappings =
                     {
@@ -581,14 +598,8 @@ namespace Lampac
             app.UseModule(first: false);
             app.UseOverrideResponse(first: false);
 
-            app.Map("/nws", builder =>
-            {
-                builder.Run(nws.HandleWebSocketAsync);
-            });
-
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapHub<soks>("/ws");
                 endpoints.MapControllers();
             });
         }

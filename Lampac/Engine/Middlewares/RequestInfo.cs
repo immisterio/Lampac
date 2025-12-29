@@ -25,8 +25,10 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext httpContext)
         {
+            bool IsWsRequest = httpContext.Request.Path.StartsWithSegments("/nws") || httpContext.Request.Path.StartsWithSegments("/ws");
+
             #region stats
-            if (AppInit.conf.openstat.enable)
+            if (AppInit.conf.openstat.enable && !IsWsRequest)
             {
                 string skey = $"stats:request:{DateTime.Now.Minute}";
                 if (!memoryCache.TryGetValue(skey, out long _req))
@@ -102,30 +104,17 @@ namespace Lampac.Engine.Middlewares
             };
 
             #region Weblog Request
-            if (!IsLocalRequest)
+            if (!IsLocalRequest && !IsWsRequest)
             {
-                string builderLog()
-                {
-                    var logBuilder = new System.Text.StringBuilder();
-                    logBuilder.AppendLine($"{DateTime.Now}");
-                    logBuilder.AppendLine($"IP: {clientIp} {req.Country}");
-                    logBuilder.AppendLine($"URL: {AppInit.Host(httpContext)}{httpContext.Request.Path}{httpContext.Request.QueryString}\n");
-
-                    foreach (var header in httpContext.Request.Headers)
-                        logBuilder.AppendLine($"{header.Key}: {header.Value}");
-
-                    return logBuilder.ToString();
-                }
-
                 if (AppInit.conf.rch.websoket == "signalr")
                 {
                     if (soks.weblog_clients.Count > 0)
-                        soks.SendLog(builderLog(), "request");
+                        soks.SendLog(builderLog(httpContext, req), "request");
                 }
                 else
                 {
                     if (nws.weblog_clients.Count > 0)
-                        nws.SendLog(builderLog(), "request");
+                        nws.SendLog(builderLog(httpContext, req), "request");
                 }
             }
             #endregion
@@ -146,53 +135,69 @@ namespace Lampac.Engine.Middlewares
             }
             else
             {
-                #region getuid
-                string getuid()
+                if (!IsWsRequest)
                 {
-                    if (httpContext.Request.Query.ContainsKey("token"))
-                    {
-                        string val = httpContext.Request.Query["token"].ToString();
-                        if (!string.IsNullOrEmpty(val))
-                            return val;
-                    }
+                    req.user = AppInit.conf.accsdb.findUser(httpContext, out string uid);
+                    req.user_uid = uid;
 
-                    if (httpContext.Request.Query.ContainsKey("account_email"))
-                    {
-                        string val = httpContext.Request.Query["account_email"].ToString();
-                        if (!string.IsNullOrEmpty(val))
-                            return val;
-                    }
+                    if (req.user != null)
+                        req.@params = AppInit.conf.accsdb.@params;
 
-                    if (httpContext.Request.Query.ContainsKey("uid"))
-                    {
-                        string val = httpContext.Request.Query["uid"].ToString();
-                        if (!string.IsNullOrEmpty(val))
-                            return val;
-                    }
-
-                    if (httpContext.Request.Query.ContainsKey("box_mac"))
-                    {
-                        string val = httpContext.Request.Query["box_mac"].ToString();
-                        if (!string.IsNullOrEmpty(val))
-                            return val;
-                    }
-
-                    return null;
+                    if (string.IsNullOrEmpty(req.user_uid))
+                        req.user_uid = getuid(httpContext);
                 }
-                #endregion
-
-                req.user = AppInit.conf.accsdb.findUser(httpContext, out string uid);
-                req.user_uid = uid;
-
-                if (string.IsNullOrEmpty(req.user_uid))
-                    req.user_uid = getuid();
-
-                if (req.user != null)
-                    req.@params = AppInit.conf.accsdb.@params;
 
                 httpContext.Features.Set(req);
                 return _next(httpContext);
             }
+        }
+
+
+        static string getuid(HttpContext httpContext)
+        {
+            if (httpContext.Request.Query.ContainsKey("token"))
+            {
+                string val = httpContext.Request.Query["token"].ToString();
+                if (!string.IsNullOrEmpty(val))
+                    return val;
+            }
+
+            if (httpContext.Request.Query.ContainsKey("account_email"))
+            {
+                string val = httpContext.Request.Query["account_email"].ToString();
+                if (!string.IsNullOrEmpty(val))
+                    return val;
+            }
+
+            if (httpContext.Request.Query.ContainsKey("uid"))
+            {
+                string val = httpContext.Request.Query["uid"].ToString();
+                if (!string.IsNullOrEmpty(val))
+                    return val;
+            }
+
+            if (httpContext.Request.Query.ContainsKey("box_mac"))
+            {
+                string val = httpContext.Request.Query["box_mac"].ToString();
+                if (!string.IsNullOrEmpty(val))
+                    return val;
+            }
+
+            return null;
+        }
+
+
+        static string builderLog(HttpContext httpContext, RequestModel req)
+        {
+            var logBuilder = new System.Text.StringBuilder();
+            logBuilder.AppendLine($"{DateTime.Now}");
+            logBuilder.AppendLine($"IP: {req.IP} {req.Country}");
+            logBuilder.AppendLine($"URL: {AppInit.Host(httpContext)}{httpContext.Request.Path}{httpContext.Request.QueryString}\n");
+
+            foreach (var header in httpContext.Request.Headers)
+                logBuilder.AppendLine($"{header.Key}: {header.Value}");
+
+            return logBuilder.ToString();
         }
 
 

@@ -36,9 +36,11 @@ namespace Lampac.Engine
         #endregion
 
         #region interface
-        public void WebLog(string message, string plugin) => SendLog(message, plugin);
+        public void WebLog(string message, string plugin) 
+            => SendLog(message, plugin);
 
-        public Task EventsAsync(string connectionId, string uid, string name, string data) => SendEvents(connectionId, uid, name, data);
+        public Task EventsAsync(string connectionId, string uid, string name, string data) 
+            => SendEvents(connectionId, uid, name, data);
 
         public Task SendAsync(string connectionId, string method, params object[] args)
         {
@@ -48,7 +50,8 @@ namespace Lampac.Engine
             return Task.CompletedTask;
         }
 
-        public ConcurrentDictionary<string, NwsConnection> AllConnections() => _connections;
+        public ConcurrentDictionary<string, NwsConnection> AllConnections() 
+            => _connections;
         #endregion
 
         #region handle
@@ -62,20 +65,26 @@ namespace Lampac.Engine
 
             using (var socket = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false))
             {
-                string connectionId = Guid.NewGuid().ToString("N");
+                string connectionId = null;
 
-                if (context.Request.Query.TryGetValue("id", out var _connectionId) && !string.IsNullOrEmpty(_connectionId.ToString()))
+                if (context.Request.Query.TryGetValue("id", out var _connectionId))
                 {
-                    connectionId = _connectionId.ToString();
-                    Cleanup(connectionId);
+                    string _id = _connectionId.ToString();
+                    if (!string.IsNullOrWhiteSpace(_id))
+                    {
+                        connectionId = _id;
+                        Cleanup(connectionId);
+                    }
                 }
+
+                if (connectionId == null)
+                    connectionId = Guid.NewGuid().ToString("N");
 
                 try
                 {
                     var requestInfo = context.Features.Get<RequestModel>();
-                    string ip = requestInfo.IP ?? context.Connection.RemoteIpAddress?.ToString();
 
-                    var connection = new NwsConnection(connectionId, socket, AppInit.Host(context), ip, requestInfo.UserAgent);
+                    var connection = new NwsConnection(connectionId, socket, AppInit.Host(context), requestInfo);
 
                     var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
                     connection.SetCancellationSource(cancellationSource);
@@ -84,7 +93,7 @@ namespace Lampac.Engine
 
                     await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
 
-                    InvkEvent.NwsConnected(new EventNwsConnected(connectionId, ip, requestInfo, connection, cancellationSource.Token));
+                    InvkEvent.NwsConnected(new EventNwsConnected(connectionId, requestInfo, connection, cancellationSource.Token));
 
                     await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
                 }
@@ -128,6 +137,7 @@ namespace Lampac.Engine
                             builder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
                             if (builder.Length > 10_000000)
                             {
+                                builder.Clear();
                                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                                     await socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "payload too large", cts.Token).ConfigureAwait(false);
                                 return;
@@ -256,7 +266,7 @@ namespace Lampac.Engine
                             .Select(i => new {
                                 uid = event_clients.TryGetValue(i.Value.ConnectionId, out var _uid) ? _uid : null, 
                                 i.Value.ConnectionId, 
-                                i.Value.UserAgent
+                                i.Value.RequestInfo.UserAgent
                             })
                             .ToArray();
 

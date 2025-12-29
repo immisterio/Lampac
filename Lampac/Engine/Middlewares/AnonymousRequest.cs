@@ -28,7 +28,6 @@ namespace Lampac.Engine.Middlewares
                     if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
                     {
                         requestInfo.IsAnonymousRequest = true;
-                        httpContext.Features.Set(requestInfo);
                         return _next(httpContext);
                     }
 
@@ -69,7 +68,6 @@ namespace Lampac.Engine.Middlewares
             if (Regex.IsMatch(httpContext.Request.Path.Value, "^/(([^/]+/)?app\\.min\\.js|([^/]+/)?css/app\\.css|[a-zA-Z\\-]+\\.js|msx/start\\.json|samsung\\.wgt)", RegexOptions.IgnoreCase))
                 requestInfo.IsAnonymousRequest = true;
 
-            httpContext.Features.Set(requestInfo);
             return _next(httpContext);
         }
     }

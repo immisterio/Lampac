@@ -62,7 +62,7 @@ namespace Shared.Models.Events
 
     public record EventRchDisconnected(string connectionId);
 
-    public record EventNwsConnected(string connectionId, string ip, RequestModel requestInfo, NwsConnection connection, CancellationToken token);
+    public record EventNwsConnected(string connectionId, RequestModel requestInfo, NwsConnection connection, CancellationToken token);
 
     public record EventNwsDisconnected(string connectionId);
 

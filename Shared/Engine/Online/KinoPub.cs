@@ -62,7 +62,7 @@ namespace Shared.Engine.Online
                         foreach (var item in items)
                         {
                             string img = PosterApi.Size(item.posters?.Skip(1)?.First().Value);
-                            result.similars.Value.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", img);
+                            result.similars.Append(item.title, item.year.ToString(), item.voice, host + $"lite/kinopub?postid={item.id}&title={enc_title}&original_title={enc_original_title}", img);
 
                             if ((item.kinopoisk > 0 && item.kinopoisk == kinopoisk_id) || $"tt{item.imdb}" == imdb_id)
                             {

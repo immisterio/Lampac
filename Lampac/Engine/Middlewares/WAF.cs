@@ -4,7 +4,6 @@ using Shared;
 using Shared.Models;
 using Shared.Models.AppConf;
 using System;
-using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -135,7 +134,7 @@ namespace Lampac.Engine.Middlewares
             var (limit, pattern) = MapLimited(waf, httpContext.Request.Path.Value);
             if (limit > 0)
             {
-                if (RateLimited(requestInfo.IP, limit, pattern))
+                if (RateLimited(memoryCache, requestInfo.IP, limit, pattern))
                 {
                     httpContext.Response.StatusCode = 429;
                     return Task.CompletedTask;
@@ -164,7 +163,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region RateLimited
-        bool RateLimited(string userip, int limit_req, string pattern)
+        static bool RateLimited(IMemoryCache memoryCache, string userip, int limit_req, string pattern)
         {
             string memKeyLocIP = $"WAF:RateLimited:{userip}:{pattern}:{DateTime.Now.Minute}";
 

@@ -35,7 +35,7 @@ namespace Online.Controllers
                 );
 
                 if (similar)
-                    return ContentTo(res.similars.Value);
+                    return ContentTo(res.similars);
 
                 if (res != null)
                     postid = res.id;
@@ -45,7 +45,7 @@ namespace Online.Controllers
                     postid = await searchKp(kinopoisk_id);
 
                 if (postid == 0 && res?.similars != null)
-                    return ContentTo(res.similars.Value);
+                    return ContentTo(res.similars);
             }
 
             if (postid == 0)

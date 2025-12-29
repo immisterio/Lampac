@@ -20,11 +20,13 @@ namespace Lampac.Engine.Middlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
-            bool trackStats = !(context.Request.Path.StartsWithSegments("/ws") || context.Request.Path.StartsWithSegments("/nws"));
-            Stopwatch stopwatch = null;
+            if (!AppInit.conf.openstat.enable)
+            {
+                await _next(context);
+                return;
+            }
 
-            if (trackStats && AppInit.conf.openstat.enable)
-                stopwatch = RequestStatisticsTracker.StartRequest();
+            Stopwatch stopwatch = RequestStatisticsTracker.StartRequest();
 
             try
             {
@@ -32,8 +34,7 @@ namespace Lampac.Engine.Middlewares
             }
             finally
             {
-                if (trackStats && AppInit.conf.openstat.enable)
-                    RequestStatisticsTracker.CompleteRequest(stopwatch);
+                RequestStatisticsTracker.CompleteRequest(stopwatch);
             }
         }
     }

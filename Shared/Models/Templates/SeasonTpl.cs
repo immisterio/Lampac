@@ -5,7 +5,7 @@ using System.Web;
 
 namespace Shared.Models.Templates
 {
-    public struct SeasonTpl : ITplResult
+    public class SeasonTpl : ITplResult
     {
         public List<(string name, string link, int? id)> data { get; private set; }
 

@@ -47,7 +47,7 @@ namespace Online.Controllers
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
-                    return OnResult(search, () => search.Value.similar.Value);
+                    return OnResult(search, () => search.Value.similar);
 
                 if (string.IsNullOrEmpty(search.Value?.link))
                 {
@@ -288,7 +288,7 @@ namespace Online.Controllers
                     link = href;
             }
 
-            if (string.IsNullOrEmpty(link) && similar.data.Count == 0)
+            if (string.IsNullOrEmpty(link) && similar.IsEmpty())
                 return null;
 
             return new SearchModel() 

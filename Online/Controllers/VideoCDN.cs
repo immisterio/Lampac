@@ -53,10 +53,10 @@ namespace Online.Controllers
                     () => Search(imdb_id, kinopoisk_id, title, original_title, serial, clarification, similar)
                 );
 
-                if (search.content_type == null && search.similar.data == null)
+                if (search.content_type == null && search.similar?.data == null)
                     return OnError();
 
-                if (search.similar.data != null)
+                if (search.similar?.data != null)
                     return ContentTo(search.similar);
 
                 content_id = search.content_id;

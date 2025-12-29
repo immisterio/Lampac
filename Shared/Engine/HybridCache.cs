@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace Shared.Engine
 {
-    public struct HybridCache
+    public class HybridCache
     {
         #region HybridCache
         static IMemoryCache memoryCache;
@@ -26,7 +26,7 @@ namespace Shared.Engine
             memoryCache = mem;
 
             tempDb = new ConcurrentDictionary<string, (DateTime extend, HybridCacheSqlModel value)>();
-            _clearTimer = new Timer(UpdateDB, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+            _clearTimer = new Timer(UpdateDB, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(100));
         }
 
         static int _updatingDb = 0;

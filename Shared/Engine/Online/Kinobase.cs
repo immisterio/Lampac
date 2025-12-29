@@ -74,7 +74,7 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(link))
             {
-                if (!content.Contains(">По запросу") && similar.data.Count == 0)
+                if (!content.Contains(">По запросу") && similar.IsEmpty())
                 {
                     requesterror?.Invoke();
                     return null;
