@@ -394,7 +394,7 @@ namespace Shared
 
         public HybridCacheConf cache = new HybridCacheConf() 
         {
-            type = "sql",  // mem|sql|hybrid|file
+            type = "sql",  // mem|sql|hybrid
             extend = -1    // seconds (hybrid)
         };
 
