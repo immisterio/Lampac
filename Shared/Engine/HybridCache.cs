@@ -42,55 +42,69 @@ namespace Shared.Engine
             {
                 var now = DateTime.Now;
 
-                if (now > _nextClearDb)
+                if (AppInit.conf.cache.type == "file")
                 {
-                    _nextClearDb = DateTime.Now.AddMinutes(5);
-
-                    using (var sqlDb = new HybridCacheContext())
+                    foreach (var t in tempDb
+                        .Where(t => now > t.Value.extend)
+                        .Take(500)
+                        .ToArray())
                     {
-                        await sqlDb.files
-                            .Where(i => now > i.ex)
-                            .ExecuteDeleteAsync();
+                        await File.WriteAllTextAsync($"cache/fdb/{t.Key}", JsonConvert.SerializeObject(t.Value.cache));
+                        tempDb.TryRemove(t.Key, out _);
                     }
                 }
                 else
                 {
-                    var array = tempDb
-                        .Where(t => now > t.Value.extend)
-                        .Take(500)
-                        .ToArray();
-
-                    if (array.Length > 0)
+                    if (now > _nextClearDb)
                     {
+                        _nextClearDb = DateTime.Now.AddMinutes(5);
+
                         using (var sqlDb = new HybridCacheContext())
                         {
-                            var delete_ids = array.Select(k => k.Key).ToHashSet();
-                            if (delete_ids.Count > 0)
-                            {
-                                await sqlDb.files
-                                    .Where(x => delete_ids.Contains(x.Id))
-                                    .ExecuteDeleteAsync();
-                            }
+                            await sqlDb.files
+                                .Where(i => now > i.ex)
+                                .ExecuteDeleteAsync();
+                        }
+                    }
+                    else
+                    {
+                        var array = tempDb
+                            .Where(t => now > t.Value.extend)
+                            .Take(500)
+                            .ToArray();
 
-                            var hash_ids = new HashSet<string>();
-
-                            foreach (var t in array)
+                        if (array.Length > 0)
+                        {
+                            using (var sqlDb = new HybridCacheContext())
                             {
-                                if (hash_ids.Add(t.Key) && t.Value.cache.ex > now)
+                                var delete_ids = array.Select(k => k.Key).ToHashSet();
+                                if (delete_ids.Count > 0)
                                 {
-                                    sqlDb.files.Add(new HybridCacheSqlModel()
-                                    {
-                                        Id = t.Key,
-                                        ex = t.Value.cache.ex,
-                                        value = t.Value.cache.value
-                                    });
+                                    await sqlDb.files
+                                        .Where(x => delete_ids.Contains(x.Id))
+                                        .ExecuteDeleteAsync();
                                 }
+
+                                var hash_ids = new HashSet<string>();
+
+                                foreach (var t in array)
+                                {
+                                    if (hash_ids.Add(t.Key) && t.Value.cache.ex > now)
+                                    {
+                                        sqlDb.files.Add(new HybridCacheSqlModel()
+                                        {
+                                            Id = t.Key,
+                                            ex = t.Value.cache.ex,
+                                            value = t.Value.cache.value
+                                        });
+                                    }
+                                }
+
+                                await sqlDb.SaveChangesAsync();
+
+                                foreach (var t in array)
+                                    tempDb.TryRemove(t.Key, out _);
                             }
-
-                            await sqlDb.SaveChangesAsync();
-
-                            foreach (var t in array)
-                                tempDb.TryRemove(t.Key, out _);
                         }
                     }
                 }
@@ -115,7 +129,7 @@ namespace Shared.Engine
 
         public bool TryGetValue<TItem>(string key, out TItem value, bool? inmemory = null)
         {
-            if (!AppInit.conf.mikrotik && AppInit.conf.cache.type != "mem")
+            if (AppInit.conf.mikrotik == false && AppInit.conf.cache.type != "mem")
             {
                 if (memoryCache.TryGetValue(key, out value))
                     return true;
@@ -140,9 +154,6 @@ namespace Shared.Engine
         {
             value = default;
             setmemory = true;
-
-            if (AppInit.conf.cache.type == "mem")
-                return false;
 
             var type = typeof(TItem);
             bool isText = type == typeof(string);
@@ -178,21 +189,29 @@ namespace Shared.Engine
 
                 string md5key = CrypTo.md5(key);
 
-                if (tempDb.TryGetValue(md5key, out var _temp) 
-                    && _temp.cache != null)
+                if (tempDb.TryGetValue(md5key, out var _temp) && _temp.cache != null)
                 {
                     setmemory = false;
                     return deserializeCache(_temp.cache, out value);
                 }
-                else
+                else if (AppInit.conf.cache.type == "sql")
                 {
-                    using (var sqlDb = HybridCacheContext.Factory != null 
+                    using (var sqlDb = HybridCacheContext.Factory != null
                         ? HybridCacheContext.Factory.CreateDbContext()
                         : new HybridCacheContext())
                     {
                         var doc = sqlDb.files.Find(md5key);
                         return deserializeCache(doc, out value);
                     }
+                }
+                else
+                {
+                    string targetPath = $"cache/fdb/{md5key}";
+                    if (!File.Exists(targetPath))
+                        return false;
+
+                    var doc = JsonConvert.DeserializeObject<HybridCacheSqlModel>(File.ReadAllText(targetPath));
+                    return deserializeCache(doc, out value);
                 }
             }
             catch { }
