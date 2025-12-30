@@ -176,7 +176,7 @@ namespace Shared.Engine
 
         public bool TryGetValue<TItem>(string key, out TItem value, bool? inmemory = null)
         {
-            if (!AppInit.conf.mikrotik == false && AppInit.conf.cache.type != "mem")
+            if (AppInit.conf.mikrotik == false && AppInit.conf.cache.type != "mem")
             {
                 if (memoryCache.TryGetValue(key, out value))
                     return true;
@@ -257,10 +257,10 @@ namespace Shared.Engine
         #region Set
         public TItem Set<TItem>(string key, TItem value, DateTimeOffset absoluteExpiration, bool? inmemory = null)
         {
-            if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, absoluteExpiration, default))
+            if (inmemory != true && AppInit.conf.mikrotik == false && WriteCache(key, value, absoluteExpiration, default))
                 return value;
 
-            if (inmemory != true && !AppInit.conf.mikrotik)
+            if (inmemory != true && AppInit.conf.mikrotik == false)
                 Console.WriteLine($"set memory: {key} / {DateTime.Now}");
 
             return memoryCache.Set(key, value, absoluteExpiration);
@@ -268,10 +268,10 @@ namespace Shared.Engine
 
         public TItem Set<TItem>(string key, TItem value, TimeSpan absoluteExpirationRelativeToNow, bool? inmemory = null)
         {
-            if (inmemory != true && !AppInit.conf.mikrotik && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
+            if (inmemory != true && AppInit.conf.mikrotik == false && WriteCache(key, value, default, absoluteExpirationRelativeToNow))
                 return value;
 
-            if (inmemory != true && !AppInit.conf.mikrotik)
+            if (inmemory != true && AppInit.conf.mikrotik == false)
                 Console.WriteLine($"set memory: {key} / {DateTime.Now}");
 
             return memoryCache.Set(key, value, absoluteExpirationRelativeToNow);
@@ -338,6 +338,7 @@ namespace Shared.Engine
                 memoryCache.Set(key, value, ex > timecache ? timecache : ex);
 
                 requestHistory.TryRemove(key, out _);
+                tempDb.TryRemove(CrypTo.md5(key), out _);
             }
         }
         #endregion
