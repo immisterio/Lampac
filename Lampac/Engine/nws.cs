@@ -26,7 +26,7 @@ namespace Lampac.Engine
 
         public static readonly ConcurrentDictionary<string, NwsConnection> _connections = new ConcurrentDictionary<string, NwsConnection>();
 
-        static readonly Timer ConnectionMonitorTimer = new Timer(ConnectionMonitorCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        static readonly Timer ConnectionMonitorTimer = new Timer(ConnectionMonitorCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
 
         public readonly static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
 
@@ -448,7 +448,7 @@ namespace Lampac.Engine
                     return;
 
                 var now = DateTime.UtcNow;
-                var cutoff = now.AddMinutes(-2);
+                var cutoff = now.AddSeconds(-125); // ping каждые 40 секунд
 
                 foreach (string connectionId in _connections.Select(kv => kv.Key).ToArray())
                 {
