@@ -492,7 +492,7 @@ namespace Shared.Engine
         {
             string _ip = ip;
 
-            if (AppInit.conf.rch.websoket == "nws")
+            if (AppInit.conf.WebSocket.type == "nws")
             {
                 if (!string.IsNullOrEmpty(connectionId) && clients.ContainsKey(connectionId))
                     return (connectionId, clients[connectionId]);

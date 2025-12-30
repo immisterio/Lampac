@@ -33,7 +33,7 @@ namespace SISI
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
                 cache.file = FileCache.ReadAllText("plugins/sisi.js", saveCache: false)
-                    .Replace("{rch_websoket}", FileCache.ReadAllText($"plugins/rch_{AppInit.conf.rch.websoket}.js", saveCache: false));
+                    .Replace("{rch_websoket}", FileCache.ReadAllText($"plugins/rch_{AppInit.conf.WebSocket.type}.js", saveCache: false));
 
                 #region appReplace
                 if (apr != null)

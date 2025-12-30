@@ -115,7 +115,7 @@ namespace Lampac.Controllers
             }}
         }}
 
-        {(AppInit.conf.rch.websoket == "signalr" ? signalCode(token) : nwsCode(token))}
+        {(AppInit.conf.WebSocket.type == "signalr" ? signalCode(token) : nwsCode(token))}
     </script>
 </body>
 </html>";

@@ -388,6 +388,12 @@ namespace Shared
             bypass = "statichdrezka\\."
         };
 
+        public WsConf WebSocket = new WsConf() 
+        {
+            type = "nws", // signalr|nws
+            inactiveAfterMinutes = 120
+        };
+
         public KitConf kit = new KitConf() { cacheToSeconds = 20 };
 
         public SyncConf sync = new SyncConf();
@@ -406,8 +412,7 @@ namespace Shared
 
         public RchConf rch = new RchConf() 
         { 
-            enable = true,
-            websoket = "nws" // signalr|nws
+            enable = true
         };
 
         public SyncUserConf sync_user = new SyncUserConf() { enable = true, version = 2 };

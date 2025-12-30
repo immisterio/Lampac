@@ -346,6 +346,7 @@ namespace Lampac.Engine
                         await connection.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cts.Token).ConfigureAwait(false);
 
                     connection.UpdateActivity();
+                    connection.UpdateSendActivity();
                 }
             }
             catch (WebSocketException)
@@ -446,12 +447,22 @@ namespace Lampac.Engine
                 if (_connections.IsEmpty)
                     return;
 
+                var now = DateTime.UtcNow;
+                var cutoff = now.AddMinutes(-2);
+
                 foreach (string connectionId in _connections.Select(kv => kv.Key).ToArray())
                 {
                     if (_connections.TryGetValue(connectionId, out var connection))
                     {
-                        if (DateTime.UtcNow.AddMinutes(-2) >= connection.LastActivityUtc)
+                        if (cutoff >= connection.LastActivityUtc)
                             connection.Cancel();
+
+                        int inactiveAfterMinutes = AppInit.conf.WebSocket.inactiveAfterMinutes;
+                        if (inactiveAfterMinutes > 0)
+                        {
+                            if (now.AddMinutes(-inactiveAfterMinutes) >= connection.LastSendActivityUtc)
+                                connection.Cancel();
+                        }
                     }
                 }
             }

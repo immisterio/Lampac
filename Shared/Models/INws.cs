@@ -39,9 +39,8 @@ namespace Shared.Models
 
         public SemaphoreSlim SendLock { get; }
 
+        #region LastActivityUtc
         long _lastActivityTicks;
-
-        CancellationTokenSource _cancellationSource;
 
         public DateTime LastActivityUtc
         {
@@ -56,6 +55,27 @@ namespace Shared.Models
         {
             Interlocked.Exchange(ref _lastActivityTicks, DateTime.UtcNow.Ticks);
         }
+        #endregion
+
+        #region LastSendActivityUtc
+        long _lastSendActivityTicks;
+
+        public DateTime LastSendActivityUtc
+        {
+            get
+            {
+                long ticks = Interlocked.Read(ref _lastSendActivityTicks);
+                return new DateTime(ticks, DateTimeKind.Utc);
+            }
+        }
+
+        public void UpdateSendActivity()
+        {
+            Interlocked.Exchange(ref _lastSendActivityTicks, DateTime.UtcNow.Ticks);
+        }
+        #endregion
+
+        CancellationTokenSource _cancellationSource;
 
         public void SetCancellationSource(CancellationTokenSource source)
         {

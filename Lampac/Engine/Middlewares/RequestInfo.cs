@@ -106,7 +106,7 @@ namespace Lampac.Engine.Middlewares
             #region Weblog Request
             if (!IsLocalRequest && !IsWsRequest)
             {
-                if (AppInit.conf.rch.websoket == "signalr")
+                if (AppInit.conf.WebSocket.type == "signalr")
                 {
                     if (soks.weblog_clients.Count > 0)
                         soks.SendLog(builderLog(httpContext, req), "request");

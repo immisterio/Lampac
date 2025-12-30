@@ -181,13 +181,8 @@ namespace Shared.Engine
                 if (memoryCache.TryGetValue(key, out value))
                     return true;
 
-                if (ReadCache(key, out value, out bool setmemory))
-                {
-                    if (setmemory && inmemory != false && AppInit.conf.cache.type == "hybrid" && AppInit.conf.cache.extend > 0)
-                        memoryCache.Set(key, value, DateTime.Now.AddSeconds(AppInit.conf.cache.extend));
-
+                if (ReadCache(key, out value))
                     return true;
-                }
 
                 return false;
             }
@@ -197,10 +192,9 @@ namespace Shared.Engine
         #endregion
 
         #region ReadCache
-        private bool ReadCache<TItem>(string key, out TItem value, out bool setmemory)
+        private bool ReadCache<TItem>(string key, out TItem value)
         {
             value = default;
-            setmemory = true;
 
             var type = typeof(TItem);
             bool isText = type == typeof(string);
@@ -221,7 +215,6 @@ namespace Shared.Engine
 
                 if (tempDb.TryGetValue(md5key, out var _temp))
                 {
-                    setmemory = false;
                     value = (TItem)_temp.value;
                     updateRequestHistory(key, _temp.ex, value);
                     return true;
@@ -332,10 +325,13 @@ namespace Shared.Engine
             var history = requestHistory.GetOrAdd(key, _ => (ex, new ConcurrentDictionary<string, DateTime>()));
             history.requests.AddOrUpdate(requestInfo.IP, DateTime.Now, (k,v) => DateTime.Now);
 
-            if (history.requests.Count > 5)
+            if (history.requests.Count >= 5)
             {
-                var timecache = DateTime.Now.AddMinutes(10);
-                memoryCache.Set(key, value, ex > timecache ? timecache : ex);
+                var timecache = ex > DateTime.Now.AddMinutes(15) 
+                    ? DateTime.Now.AddMinutes(10) 
+                    : ex; // 1-15
+
+                memoryCache.Set(key, value, timecache);
 
                 requestHistory.TryRemove(key, out _);
                 tempDb.TryRemove(CrypTo.md5(key), out _);

@@ -31,7 +31,7 @@ namespace Online.Controllers
             if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
             {
                 cache.file = FileCache.ReadAllText("plugins/online.js", saveCache: false)
-                    .Replace("{rch_websoket}", FileCache.ReadAllText($"plugins/rch_{AppInit.conf.rch.websoket}.js", saveCache: false));
+                    .Replace("{rch_websoket}", FileCache.ReadAllText($"plugins/rch_{AppInit.conf.WebSocket.type}.js", saveCache: false));
 
                 string playerinner = FileCache.ReadAllText("plugins/player-inner.js", saveCache: false)
                        .Replace("{useplayer}", (!string.IsNullOrEmpty(AppInit.conf.playerInner)).ToString().ToLower())

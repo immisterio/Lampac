@@ -4,8 +4,6 @@
     {
         public bool enable { get; set; }
 
-        public string websoket { get; set; }
-
         public bool requiredConnected { get; set; }
 
         public string notSupportMsg { get; set; }
