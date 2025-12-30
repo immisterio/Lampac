@@ -27,73 +27,69 @@ namespace SISI
             };
 
             #region bookmarks
-            var bookmarks = new List<PlaylistItem>();
-            var bookmarksQuery = new List<SisiBookmarkSqlModel>();
+            int total_pages = 0;
+            var bookmarks = new List<PlaylistItem>(pageSize);
 
             using (var sqlDb = SisiContext.Factory != null
                 ? SisiContext.Factory.CreateDbContext()
                 : new SisiContext())
             {
-                bookmarksQuery = await sqlDb.bookmarks
+                var bookmarksQuery = sqlDb.bookmarks
                     .AsNoTracking()
-                    .Where(i => i.user == md5user)
-                    .ToListAsync();
-            }
+                    .Where(i => i.user == md5user);
 
-            int total_pages = Math.Max(0, bookmarksQuery.Count / pageSize) + 1;
+                total_pages = Math.Max(0, await bookmarksQuery.CountAsync() / pageSize) + 1;
 
-            #region Модель
-            var menu_models = new MenuItem()
-            {
-                title = $"Модель: {model ?? "выбрать"}",
-                playlist_url = "submenu",
-                submenu = new List<MenuItem>(20)
-            };
-
-            foreach (var m in bookmarksQuery.OrderByDescending(i => i.created).Where(i => i.model != null).Select(i => i.model).ToHashSet())
-            {
-                if (string.IsNullOrEmpty(m))
-                    continue;
-
-                menu_models.submenu.Add(new MenuItem()
+                #region Модель
+                var menu_models = new MenuItem()
                 {
-                    title = m,
-                    playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(m)}"
-                });
-            }
+                    title = $"Модель: {model ?? "выбрать"}",
+                    playlist_url = "submenu",
+                    submenu = new List<MenuItem>(20)
+                };
 
-            if (menu_models.submenu.Count > 0)
-                menu.Add(menu_models);
-            #endregion
-
-            var items = bookmarksQuery
-                .OrderByDescending(i => i.created)
-                .Skip((pg * pageSize) - pageSize)
-                .Take(pageSize);
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                string _s = StringConvert.SearchName(search);
-                items = items.Where(i => i.name != null && StringConvert.SearchName(i.name).Contains(_s));
-            }
-
-            if (!string.IsNullOrEmpty(model))
-                items = items.Where(i => i.model == model);
-
-            if (items.Any())
-            {
-                foreach (var json in items.Select(i => i.json))
+                foreach (var m in await bookmarksQuery.OrderByDescending(i => i.created).Where(i => i.model != null).Select(i => i.model).ToHashSetAsync())
                 {
-                    if (string.IsNullOrEmpty(json))
+                    if (string.IsNullOrEmpty(m))
                         continue;
 
-                    try
+                    menu_models.submenu.Add(new MenuItem()
                     {
-                        var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(json);
-                        if (bookmark != null)
-                            bookmarks.Add(bookmark);
+                        title = m,
+                        playlist_url = $"{host}/sisi/bookmarks?model={HttpUtility.UrlEncode(m)}"
+                    });
+                }
+
+                if (menu_models.submenu.Count > 0)
+                    menu.Add(menu_models);
+                #endregion
+
+                var items = bookmarksQuery
+                    .OrderByDescending(i => i.created)
+                    .Skip((pg * pageSize) - pageSize)
+                    .Take(pageSize);
+
+                if (!string.IsNullOrEmpty(search))
+                    items = items.Where(i => i.name != null && i.name.Contains(search));
+
+                if (!string.IsNullOrEmpty(model))
+                    items = items.Where(i => i.model == model);
+
+                if (items.Any())
+                {
+                    foreach (var item in items)
+                    {
+                        if (string.IsNullOrEmpty(item.json))
+                            continue;
+
+                        try
+                        {
+                            var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
+                            if (bookmark != null)
+                                bookmarks.Add(bookmark);
+                        }
+                        catch { }
                     }
-                    catch { }
                 }
             }
             #endregion

@@ -42,7 +42,7 @@ namespace Shared
             get
             {
                 if (_hybridCache == null)
-                    _hybridCache = new HybridCache();
+                    _hybridCache = new HybridCache(requestInfo);
 
                 return _hybridCache;
             }

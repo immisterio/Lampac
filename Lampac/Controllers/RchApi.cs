@@ -67,10 +67,7 @@ namespace Lampac.Controllers
                 using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
                 {
                     using (var reader = new StreamReader(gzip, Encoding.UTF8))
-                    {
-                        var text = await reader.ReadToEndAsync();
-                        tcs.SetResult(text ?? string.Empty);
-                    }
+                        tcs.SetResult(await reader.ReadToEndAsync(HttpContext.RequestAborted) ?? string.Empty);
                 }
             }
             catch { }

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Models;
 using Shared.Models.SQL;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -10,25 +11,36 @@ namespace Shared.Engine
 {
     public class HybridCache
     {
-        #region HybridCache
+        #region static
         static IMemoryCache memoryCache;
 
-        static Timer _clearTimer;
+        static Timer _clearTempDb, _clearHistory;
 
         static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
-        readonly static ConcurrentDictionary<string, (DateTime extend, bool IsSerialize, DateTime ex, object value)> tempDb = new();
+        static readonly ConcurrentDictionary<string, (DateTime extend, bool IsSerialize, DateTime ex, object value)> tempDb = new();
+
+        /// <summary>
+        /// key, (ex кеша, <ip, время>)
+        /// </summary>
+        static readonly ConcurrentDictionary<string, (DateTime ex, ConcurrentDictionary<string, DateTime> requests)> requestHistory = new();
 
         public static int Stat_ContTempDb => tempDb.IsEmpty ? 0 : tempDb.Count;
+        #endregion
 
+        #region Configure
         public static void Configure(IMemoryCache mem)
         {
             memoryCache = mem;
-            _clearTimer = new Timer(UpdateDB, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(100));
+            _clearTempDb = new Timer(ClearTempDb, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(200));
+            _clearHistory = new Timer(ClearHistory, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
+        #endregion
 
+        #region ClearTempDb
         static int _updatingDb = 0;
-        async static void UpdateDB(object state)
+
+        async static void ClearTempDb(object state)
         {
             if (tempDb.IsEmpty)
                 return;
@@ -55,10 +67,9 @@ namespace Shared.Engine
                 {
                     var array = tempDb
                         .Where(t => now > t.Value.extend)
-                        .Take(500)
-                        .ToArray();
+                        .Take(500);
 
-                    if (array.Length > 0)
+                    if (array.Any())
                     {
                         using (var sqlDb = new HybridCacheContext())
                         {
@@ -89,8 +100,8 @@ namespace Shared.Engine
 
                             await sqlDb.SaveChangesAsync();
 
-                            foreach (var t in array)
-                                tempDb.TryRemove(t.Key, out _);
+                            foreach (string key in delete_ids)
+                                tempDb.TryRemove(key, out _);
                         }
                     }
                 }
@@ -103,6 +114,56 @@ namespace Shared.Engine
             {
                 Volatile.Write(ref _updatingDb, 0);
             }
+        }
+        #endregion
+
+        #region ClearHistory
+        static int _updatingHistory = 0;
+
+        async static void ClearHistory(object state)
+        {
+            if (requestHistory.IsEmpty)
+                return;
+
+            if (Interlocked.Exchange(ref _updatingHistory, 1) == 1)
+                return;
+
+            try
+            {
+                var now = DateTime.Now;
+                var cutoff = now.AddSeconds(-60);
+
+                foreach (var history in requestHistory)
+                {
+                    foreach (var req in history.Value.requests)
+                    {
+                        if (cutoff > req.Value)
+                            history.Value.requests.TryRemove(req.Key, out _);
+                    }
+
+                    if (history.Value.requests.Count == 0)
+                    {
+                        requestHistory.TryRemove(history.Key, out _);
+                        continue;
+                    }
+                }
+            }
+            finally
+            {
+                Volatile.Write(ref _updatingHistory, 0);
+            }
+        }
+        #endregion
+
+
+        #region HybridCache
+        RequestModel requestInfo;
+
+        public HybridCache() { }
+
+        public HybridCache(RequestModel requestInfo)
+        {
+            this.requestInfo = requestInfo;
         }
         #endregion
 
@@ -162,6 +223,7 @@ namespace Shared.Engine
                 {
                     setmemory = false;
                     value = (TItem)_temp.value;
+                    updateRequestHistory(key, _temp.ex, value);
                     return true;
                 }
                 else
@@ -180,6 +242,7 @@ namespace Shared.Engine
                         else
                             value = (TItem)Convert.ChangeType(doc.value, type);
 
+                        updateRequestHistory(key, doc.ex, value);
                         return true;
                     }
                 }
@@ -256,6 +319,26 @@ namespace Shared.Engine
             catch { }
 
             return false;
+        }
+        #endregion
+
+
+        #region updateRequestHistory
+        void updateRequestHistory<TItem>(string key, DateTime ex, TItem value)
+        {
+            if (AppInit.conf.cache.type != "hybrid" || requestInfo == null)
+                return;
+
+            var history = requestHistory.GetOrAdd(key, _ => (ex, new ConcurrentDictionary<string, DateTime>()));
+            history.requests.AddOrUpdate(requestInfo.IP, DateTime.Now, (k,v) => DateTime.Now);
+
+            if (history.requests.Count > 5)
+            {
+                var timecache = DateTime.Now.AddMinutes(10);
+                memoryCache.Set(key, value, ex > timecache ? timecache : ex);
+
+                requestHistory.TryRemove(key, out _);
+            }
         }
         #endregion
     }

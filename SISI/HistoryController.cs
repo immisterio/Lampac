@@ -16,41 +16,40 @@ namespace SISI
                 return StatusCode(403, "access denied");
 
             #region historys
-            var historys = new List<PlaylistItem>();
-            var historysQuery = new List<SisiHistorySqlModel>();
+            int total_pages = 0;
+            var historys = new List<PlaylistItem>(pageSize);
 
             using (var sqlDb = SisiContext.Factory != null
                 ? SisiContext.Factory.CreateDbContext()
                 : new SisiContext())
             {
-                historysQuery = await sqlDb.historys
+                var historysQuery = sqlDb.historys
                     .AsNoTracking()
                     .Where(i => i.user == md5user)
-                    .Take(pageSize * 20)
-                    .ToListAsync();
-            }
+                    .Take(pageSize * 20);
 
-            int total_pages = Math.Max(0, historysQuery.Count / pageSize) + 1;
+                total_pages = Math.Max(0, await historysQuery.CountAsync() / pageSize) + 1;
 
-            var items = historysQuery
-                .OrderByDescending(i => i.created)
-                .Skip((pg * pageSize) - pageSize)
-                .Take(pageSize);
+                var items = historysQuery
+                    .OrderByDescending(i => i.created)
+                    .Skip((pg * pageSize) - pageSize)
+                    .Take(pageSize);
 
-            if (items.Any())
-            {
-                foreach (var json in items.Select(i => i.json))
+                if (items.Any())
                 {
-                    if (string.IsNullOrEmpty(json))
-                        continue;
-
-                    try
+                    foreach (var item in items)
                     {
-                        var history = JsonConvert.DeserializeObject<PlaylistItem>(json);
-                        if (history != null)
-                            historys.Add(history);
+                        if (string.IsNullOrEmpty(item.json))
+                            continue;
+
+                        try
+                        {
+                            var history = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
+                            if (history != null)
+                                historys.Add(history);
+                        }
+                        catch { }
                     }
-                    catch { }
                 }
             }
             #endregion
