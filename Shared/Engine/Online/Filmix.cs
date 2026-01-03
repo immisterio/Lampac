@@ -23,7 +23,7 @@ namespace Shared.Engine.Online
         public bool disableSphinxSearch, reserve;
 
         public string token;
-        string host, args;
+        string host, args, route;
         string apihost;
         Func<string, Task<string>> onget;
         Func<string, string, List<HeadersModel>, Task<string>> onpost;
@@ -32,12 +32,13 @@ namespace Shared.Engine.Online
         Action requesterror;
         bool rjson;
 
-        public FilmixInvoke(FilmixSettings init, string host, string token, Func<string, Task<string>> onget, Func<string, string, List<HeadersModel>, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
+        public FilmixInvoke(FilmixSettings init, string host, string token, string route, Func<string, Task<string>> onget, Func<string, string, List<HeadersModel>, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
             this.init = init;
             apihost = init.corsHost();
             reserve = init.reserve;
             this.token = token;
+            this.route = route;
             this.host = host != null ? $"{host}/" : null;
             this.onget = onget;
             this.onpost = onpost;
@@ -92,7 +93,7 @@ namespace Shared.Engine.Online
 
                 string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}"  : (item.title ?? item.original_title);
 
-                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster)); 
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"{route}?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster)); 
 
                 if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                     (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
@@ -163,7 +164,7 @@ namespace Shared.Engine.Online
 
                 string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_name) ? $"{item.title} / {item.original_name}" : (item.title ?? item.original_name);
 
-                stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+                stpl.Append(name, item.year.ToString(), string.Empty, host + $"{route}?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
 
                 if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                     (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_name) == sorigtitle))
@@ -233,7 +234,7 @@ namespace Shared.Engine.Online
                 {
                     string name = !string.IsNullOrEmpty(ftitle) && !string.IsNullOrEmpty(ftitle_orig) ? $"{ftitle} / {ftitle_orig}" : (ftitle ?? ftitle_orig);
 
-                    stpl.Append(name, fyear, string.Empty, host + $"lite/filmix?postid={id}&title={enc_title}&original_title={enc_original_title}");
+                    stpl.Append(name, fyear, string.Empty, host + $"{route}?postid={id}&title={enc_title}&original_title={enc_original_title}");
 
                     if ((!string.IsNullOrEmpty(stitle) && ftitle.ToLower() == stitle) ||
                         (!string.IsNullOrEmpty(sorigtitle) && ftitle_orig.ToLower() == sorigtitle))
@@ -365,7 +366,7 @@ namespace Shared.Engine.Online
 
                     foreach (var season in player_links.playlist)
                     {
-                        string link = host + $"lite/filmix?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
+                        string link = host + $"{route}?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
                         tpl.Append($"{season.Key.Replace("-1", "1")} сезон", link, season.Key);
                     }
 
@@ -387,7 +388,7 @@ namespace Shared.Engine.Online
 
                     foreach (var translation in voices)
                     {
-                        string link = host + $"lite/filmix?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={indexTranslate}";
+                        string link = host + $"{route}?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={indexTranslate}";
                         bool active = t == indexTranslate;
 
                         indexTranslate++;
