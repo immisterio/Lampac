@@ -2,39 +2,52 @@
 {
     public struct SegmentTpl
     {
-        public List<(int start, int end)> ads { get; set; }
+        public List<SegmentDto> ads { get; private set; }
 
-        public List<(int start, int end)> skips { get; set; }
+        public List<SegmentDto> skips { get; private set; }
 
         public SegmentTpl()
         {
-            ads = new List<(int, int)>();
-            skips = new List<(int, int)>();
+            ads = new List<SegmentDto>(5);
+            skips = new List<SegmentDto>(5);
         }
 
-        public bool IsEmpty() => ads.Count == 0 && skips.Count == 0;
+        public bool IsEmpty => ads.Count == 0 && skips.Count == 0;
 
         public void ad(int start, int end)
         {
             if (start >= 0 && end >= 0 && end >= start)
-                ads.Add((start == 0 ? 1 : start, end));
+                ads.Add(new SegmentDto(start == 0 ? 1 : start, end));
         }
 
         public void skip(int start, int end)
         {
             if (start >= 0 && end >= 0 && end >= start)
-                skips.Add((start == 0 ? 1 : start, end));
+                skips.Add(new SegmentDto(start == 0 ? 1 : start, end));
         }
 
-        public object ToObject()
+        public Dictionary<string, IReadOnlyList<SegmentDto>> ToObject()
         {
-            if (IsEmpty())
+            if (IsEmpty)
                 return null;
 
-            var adList = ads.Select(i => new { i.start, i.end }).ToList();
-            var skipList = skips.Select(i => new { i.start, i.end }).ToList();
+            return new Dictionary<string, IReadOnlyList<SegmentDto>>() 
+            {
+                ["ad"] = ads,
+                ["skip"] = skips
+            };
+        }
+    }
 
-            return new { ad = adList, skip = skipList };
+    public readonly struct SegmentDto
+    {
+        public int start { get; }
+        public int end { get; }
+
+        public SegmentDto(int start, int end)
+        {
+            this.start = start;
+            this.end = end;
         }
     }
 }

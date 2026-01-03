@@ -39,7 +39,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/videocdn")]
-        async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, bool similar = false, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
+        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, bool similar = false, int s = -1, int serial = -1, bool rjson = false, bool checksearch = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -57,7 +57,7 @@ namespace Online.Controllers
                     return OnError();
 
                 if (search.similar?.data != null)
-                    return ContentTo(search.similar);
+                    return await ContentTpl(search.similar);
 
                 content_id = search.content_id;
                 content_type = search.content_type;
@@ -91,7 +91,7 @@ namespace Online.Controllers
                     mtpl.Append(media.translation_name, link, "call", streamlink, quality: media.max_quality?.ToString());
                 }
 
-                return ContentTo(mtpl);
+                return await ContentTpl(mtpl);
                 #endregion
             }
             else
@@ -110,7 +110,7 @@ namespace Online.Controllers
                         tpl.Append($"{media.season_id} сезон", link, media.season_id);
                     }
 
-                    return ContentTo(tpl);
+                    return await ContentTpl(tpl);
                 }
                 else
                 {
@@ -167,7 +167,7 @@ namespace Online.Controllers
                         }
                     }
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                 }
                 #endregion
             }
@@ -188,16 +188,19 @@ namespace Online.Controllers
             if (hash != CrypTo.md5($"{init.clientId}:{content_type}:{content_id}:{playlist}:{requestInfo.IP}"))
                 return OnError("hash", gbcache: false);
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
 
             string accessToken = await getToken();
             if (string.IsNullOrEmpty(accessToken))
@@ -479,7 +482,7 @@ namespace Online.Controllers
                     string year = item.add?.Split("-")?[0] ?? string.Empty;
                     string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
 
-                    string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
+                    string details = $"imdb: {item.imdb_id} {SimilarTpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
                     string img = PosterApi.Find(item.kp_id, item.imdb_id);
                     stpl.Append(name, year, details, $"{host}/lite/videocdn?title={enc_title}&original_title={enc_original_title}&content_id={item.id}&content_type={item.content_type}", img);

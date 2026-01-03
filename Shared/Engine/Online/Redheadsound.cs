@@ -34,7 +34,7 @@ namespace Shared.Engine.Online
                 return null;
 
             string mainHtml = await onget(apihost);
-            string user_hash = Regex.Match(mainHtml ?? "", "var dle_login_hash([\t ]+)?=([\t ]+)?'(?<hash>[a-f0-9]+)'").Groups["hash"].Value;
+            string user_hash = Regex.Match(mainHtml ?? "", "var dle_login_hash([\t ]+)?=([\t ]+)?'(?<hash>[a-f0-9]+)'", RegexOptions.Compiled).Groups["hash"].Value;
             if (string.IsNullOrEmpty(user_hash))
                 return null;
 
@@ -88,7 +88,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string iframeUri = Regex.Match(news, "videoUrl([\t ]+)?=([\t ]+)?'(?<uri>https?://[^']+)'").Groups["uri"].Value;
+            string iframeUri = Regex.Match(news, "videoUrl([\t ]+)?=([\t ]+)?'(?<uri>https?://[^']+)'", RegexOptions.Compiled).Groups["uri"].Value;
             if (string.IsNullOrEmpty(iframeUri))
                 return null;
 
@@ -99,7 +99,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string contentUrl = Regex.Match(iframe, "\"contentUrl\": ?\"([^\"]+)\"").Groups[1].Value;
+            string contentUrl = Regex.Match(iframe, "\"contentUrl\": ?\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrEmpty(contentUrl))
                 return null;
 

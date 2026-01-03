@@ -89,7 +89,7 @@ namespace Online.Controllers
 
                 string country = requestInfo.Country;
 
-                if (!rch.enable && country != null)
+                if (rch != null && !rch.enable && country != null)
                     headers.Add(new HeadersModel("X-Real-IP", requestInfo.IP));
 
                 if (init.forceua)
@@ -105,7 +105,7 @@ namespace Online.Controllers
                     (url, _) => httpHydra.Get(url, newheaders: headers, statusCodeOK: !url.Contains("do=search"), useDefaultHeaders: false, safety: true),
                     (url, data, _) => httpHydra.Post(url, data, newheaders: headers, useDefaultHeaders: false, safety: true),
                     streamfile => HostStreamProxy(RezkaInvoke.fixcdn(country, init.uacdn, streamfile)),
-                    requesterror: () => proxyManager.Refresh(rch)
+                    requesterror: () => proxyManager?.Refresh()
                 ), cook.cookie, null);
             };
         }
@@ -162,7 +162,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/rhsprem")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -173,7 +173,7 @@ namespace Online.Controllers
                     href = id;
             }
 
-            if (rch.enable && string.IsNullOrEmpty(init.cookie))
+            if (rch?.enable == true && string.IsNullOrEmpty(init.cookie))
                 return ShowError($"rhub работает через cookie - {host}/lite/rhs/bind");
 
             if (string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(title))
@@ -206,7 +206,7 @@ namespace Online.Controllers
                     if (search.Value?.IsEmpty == true)
                         return ShowError(search.Value.content ?? "поиск не дал результатов");
 
-                    return OnResult(search, () =>
+                    return await ContentTpl(search, () =>
                     {
                         if (search.Value.similar == null)
                             return default;
@@ -233,14 +233,14 @@ namespace Online.Controllers
                 () => oninvk.Embed(href, search_uri)
             );
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rhsprem/serial")]
-        async public ValueTask<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false, bool similar = false)
         {
             if (string.IsNullOrWhiteSpace(href))
                 return OnError("href = null");
@@ -261,7 +261,7 @@ namespace Online.Controllers
                 () => oninvk.Embed(href, null)
             );
 
-            return ContentTo(oninvk.Serial(cache_root.Value, cache_content.Value, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
+            return await ContentTpl(oninvk.Serial(cache_root.Value, cache_content.Value, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
         }
         #endregion
 
@@ -277,16 +277,19 @@ namespace Online.Controllers
             if (onrezka.invk == null)
                 return OnError("authorization error ;(", weblog: onrezka.log);
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
 
             var oninvk = onrezka.invk;
 

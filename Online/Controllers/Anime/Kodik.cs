@@ -68,7 +68,7 @@ namespace Online.Controllers
                     (uri, head, safety) => httpHydra.Get(uri, safety: safety),
                     (uri, data) => httpHydra.Post(uri, data),
                     streamfile => HostStreamProxy(streamfile),
-                    requesterror: () => proxyManager.Refresh(rch)
+                    requesterror: () => proxyManager?.Refresh()
                 );
             };
         }
@@ -76,7 +76,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kodik")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -113,7 +113,7 @@ namespace Online.Controllers
                 }
 
                 if (string.IsNullOrEmpty(pick))
-                    return ContentTo(res?.stpl);
+                    return await ContentTpl(res?.stpl);
 
                 content = oninvk.Embed(res.result, pick);
             }
@@ -124,7 +124,7 @@ namespace Online.Controllers
                     return LocalRedirect(accsArgs($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}"));
             }
 
-            return ContentTo(await oninvk.Tpl(content, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
+            return await ContentTpl(await oninvk.Tpl(content, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
         }
 
         #region Video
@@ -218,7 +218,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
                         hybridCache.Set(key, cache, cacheTime(120));
                     }
 

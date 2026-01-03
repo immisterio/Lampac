@@ -23,12 +23,15 @@ namespace Lampac.Engine.Middlewares
             httpContext.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
             httpContext.Response.Headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
 
-            httpContext.Response.Headers["Access-Control-Allow-Headers"] = GetAllowHeaders(httpContext);
+            if (GetAllowHeaders(httpContext, out HashSet<string> allowHeadersSet))
+                httpContext.Response.Headers["Access-Control-Allow-Headers"] = string.Join(", ", httpContext);
+            else
+                httpContext.Response.Headers["Access-Control-Allow-Headers"] = stringAllowHeaders;
 
             if (httpContext.Request.Headers.TryGetValue("origin", out var origin))
-                httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(origin.ToString());
+                httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(origin);
             else if (httpContext.Request.Headers.TryGetValue("referer", out var referer))
-                httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(referer.ToString());
+                httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(referer);
             else
                 httpContext.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
@@ -47,38 +50,50 @@ namespace Lampac.Engine.Middlewares
         }
 
 
-        static string GetAllowHeaders(HttpContext httpContext)
-        {
-            var headersSet = new HashSet<string>(new[]
-            {
-                "Authorization", "Token", "Profile",
-                "Content-Type", "X-Signalr-User-Agent", "X-Requested-With"
-            }, StringComparer.OrdinalIgnoreCase);
+        static readonly string stringAllowHeaders = "Authorization, Token, Profile, Content-Type, X-Signalr-User-Agent, X-Requested-With";
 
+        static readonly HashSet<string> hashAllowHeaders = new HashSet<string>(
+        [
+            "Authorization", "Token", "Profile",
+            "Content-Type", "X-Signalr-User-Agent", "X-Requested-With"
+        ], StringComparer.OrdinalIgnoreCase);
+
+
+        static bool GetAllowHeaders(HttpContext httpContext, out HashSet<string> headersSet)
+        {
             if (httpContext.Request.Headers.TryGetValue("Access-Control-Request-Headers", out var requestedHeaders))
             {
+                headersSet = [.. hashAllowHeaders];
+
                 foreach (var header in requestedHeaders.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries))
                 {
                     var h = header.Trim();
                     if (!string.IsNullOrEmpty(h))
                         headersSet.Add(h);
                 }
+
+                return true;
             }
 
-            return string.Join(", ", headersSet);
+            headersSet = null;
+            return false;
         }
 
         static string GetOrigin(string url)
         {
-            try
-            {
-                var uri = new Uri(url);
-                return $"{uri.Scheme}://{uri.Host}{(uri.IsDefaultPort ? "" : ":" + uri.Port)}";
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(url))
+                return string.Empty;
+
+            int scheme = url.IndexOf("://", StringComparison.Ordinal);
+            if (scheme <= 0)
                 return url;
-            }
+
+            int start = scheme + 3;
+            int slash = url.IndexOf('/', start);
+            if (slash < 0)
+                return url; // уже origin
+
+            return url.Substring(0, slash);
         }
     }
 }

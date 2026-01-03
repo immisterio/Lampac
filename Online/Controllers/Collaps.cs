@@ -37,8 +37,8 @@ namespace Online.Controllers
                    init.corsHost(),
                    init.dash,
                    ongettourl => httpHydra.Get(ongettourl),
-                   onstreamtofile => rch.enable ? onstreamtofile : HostStreamProxy(onstreamtofile),
-                   requesterror: () => proxyManager.Refresh(rch)
+                   onstreamtofile => rch?.enable == true ? onstreamtofile : HostStreamProxy(onstreamtofile),
+                   requesterror: () => proxyManager?.Refresh()
                 );
             };
         }
@@ -46,7 +46,7 @@ namespace Online.Controllers
         [HttpGet]
         [Route("lite/collaps")]
         [Route("lite/collaps-dash")]
-        async public ValueTask<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool similar = false)
         {
             if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
                 return await RouteSearch(title, rjson);
@@ -62,7 +62,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, 
+            return await ContentTpl(cache, 
                 () => oninvk.Tpl(cache.Value, imdb_id, kinopoisk_id, orid, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, init.headers_stream))
             );
         }
@@ -70,7 +70,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/collaps-search")]
-        async public ValueTask<ActionResult> RouteSearch(string title, bool rjson = false)
+        async public Task<ActionResult> RouteSearch(string title, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -94,7 +94,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 var stpl = new SimilarTpl(cache.Value.Length);
 

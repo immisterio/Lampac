@@ -43,42 +43,43 @@ namespace Shared.Engine.SISI
         }
 
 
-        public static List<PlaylistItem> Playlist(string uri, string uri_star, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, string site = "xds")
+        public static List<PlaylistItem> Playlist(string uri, string uri_star, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null, string site = "xds")
         {
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("<div id=\"video_");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("<div id=\"video_", html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
                 // <a href="/video.ucmdacd450a/_" title="Горничная приходит на работу в коротком платье (лесбуха любит член)">
-                var g = Regex.Match(row, "<a href=\"/(video[^\"]+|search-video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
+                var g = Regex.Match(row, "<a href=\"/(video[^\"]+|search-video/[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.Compiled).Groups;
                 if (string.IsNullOrEmpty(g[1].Value) || string.IsNullOrEmpty(g[2].Value))
                 {
                     // <a href="/video.ohpbioo5118/_." target="_blank">Я думал, что не переживу его наказания.</a>
-                    g = Regex.Match(row, "<a href=\"\\/(video[^\"]+)\"[^>]+>([^<]+)").Groups;
+                    g = Regex.Match(row, "<a href=\"\\/(video[^\"]+)\"[^>]+>([^<]+)", RegexOptions.Compiled).Groups;
                 }
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
                     string qmark = Regex.Match(row, "<span class=\"video-hd-mark\">([^<]+)</span>").Groups[1].Value;
-                    string duration = Regex.Match(row, "<span class=\"duration\">([^<]+)</span>").Groups[1].Value.Trim();
+                    string duration = Regex.Match(row, "<span class=\"duration\">([^<]+)</span>", RegexOptions.Compiled).Groups[1].Value.Trim();
 
-                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value;
-                    img = Regex.Replace(img, "/videos/thumbs([0-9]+)/", "/videos/thumbs$1lll/");
-                    img = Regex.Replace(img, "\\.THUMBNUM\\.(jpg|png)$", ".1.$1", RegexOptions.IgnoreCase);
+                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                    img = Regex.Replace(img, "/videos/thumbs([0-9]+)/", "/videos/thumbs$1lll/", RegexOptions.Compiled);
+                    img = Regex.Replace(img, "\\.THUMBNUM\\.(jpg|png)$", ".1.$1", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
                     // https://cdn77-pic.xvideos-cdn.com/videos/thumbs169ll/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62-2/5a6d4f718214eebf73225ec96b670f62.27.jpg
                     // https://cdn77-pic.xvideos-cdn.com/videos/videopreview/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62_169.mp4
-                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/");
-                    preview = Regex.Replace(preview, "/[^/]+$", "");
-                    preview = Regex.Replace(preview, "-[0-9]+$", "");
+                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/", RegexOptions.Compiled);
+                    preview = Regex.Replace(preview, "/[^/]+$", "", RegexOptions.Compiled);
+                    preview = Regex.Replace(preview, "-[0-9]+$", "", RegexOptions.Compiled);
 
                     img = img.Replace("thumbs169l/", "thumbs169lll/").Replace("thumbs169ll/", "thumbs169lll/");
 
-                    var gm = Regex.Match(row, "href=\"/([^\"]+)\"><span class=\"name\">([^<]+)<").Groups;
+                    var gm = Regex.Match(row, "href=\"/([^\"]+)\"><span class=\"name\">([^<]+)<", RegexOptions.Compiled).Groups;
                     var model = string.IsNullOrEmpty(gm[1].Value) || string.IsNullOrEmpty(gm[2].Value) ? default : new ModelItem()
                     {
                         name = gm[2].Value,
@@ -146,9 +147,9 @@ namespace Shared.Engine.SISI
                     if (string.IsNullOrEmpty(r.tf) || string.IsNullOrEmpty(r.u) || string.IsNullOrEmpty(r.@if))
                         continue;
 
-                    string preview = Regex.Replace(r.@if, "/thumbs[^/]+/", "/videopreview/");
-                    preview = Regex.Replace(preview, "/[^/]+$", "");
-                    preview = Regex.Replace(preview, "-[0-9]+$", "");
+                    string preview = Regex.Replace(r.@if, "/thumbs[^/]+/", "/videopreview/", RegexOptions.Compiled);
+                    preview = Regex.Replace(preview, "/[^/]+$", "", RegexOptions.Compiled);
+                    preview = Regex.Replace(preview, "-[0-9]+$", "", RegexOptions.Compiled);
 
                     var model = string.IsNullOrEmpty(r.p) || string.IsNullOrEmpty(r.pn) ? default : new ModelItem()
                     {

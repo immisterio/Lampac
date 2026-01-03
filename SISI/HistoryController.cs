@@ -81,7 +81,7 @@ namespace SISI
                     pl.model,
                     pl.bookmark,
                     pl.history_uid
-                }).ToArray(),
+                }),
                 total_pages
             });
         }

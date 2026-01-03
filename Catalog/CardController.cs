@@ -18,7 +18,7 @@ namespace Catalog.Controllers
             if (rch.IsNotConnected())
                 rch.Disabled();
 
-            var proxyManager = new ProxyManager(init);
+            var proxyManager = new ProxyManager(init, rch);
             var proxy = proxyManager.BaseGet();
 
             string memKey = $"catalog:card:{plugin}:{uri}";
@@ -65,12 +65,12 @@ namespace Catalog.Controllers
                         if (ModInit.IsRhubFallback(init))
                             goto reset;
 
-                        proxyManager.Refresh(rch);
+                        proxyManager.Refresh();
 
                         return BadRequest("html");
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager.Success();
 
                     var parse = init.card_parse;
                     bool? jsonPath = parse.jsonPath;

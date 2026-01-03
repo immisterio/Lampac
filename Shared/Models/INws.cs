@@ -13,6 +13,10 @@ namespace Shared.Models
         Task EventsAsync(string connectionId, string uid, string name, string data);
 
         Task SendAsync(string connectionId, string method, params object[] args);
+
+        int CountWeblogClients { get; }
+
+        int CountEventClients { get; }
     }
 
     public class NwsConnection : IDisposable

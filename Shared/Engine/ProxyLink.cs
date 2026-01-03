@@ -15,16 +15,11 @@ namespace Shared.Engine
     public class ProxyLink : IProxyLink
     {
         #region ProxyLink
-        static ConcurrentDictionary<string, ProxyLinkModel> links = new ConcurrentDictionary<string, ProxyLinkModel>();
+        static readonly ConcurrentDictionary<string, ProxyLinkModel> links = new();
+
+        static readonly Timer _cronTimer = new Timer(Cron, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         public static int Stat_ContLinks => links.IsEmpty ? 0 : links.Count;
-
-        static Timer _cronTimer;
-
-        static ProxyLink()
-        {
-            _cronTimer = new Timer(Cron, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
-        }
         #endregion
 
 
@@ -221,7 +216,7 @@ namespace Shared.Engine
 
 
         #region Cron
-        static HashSet<string> tempLinks = new();
+        static HashSet<string> tempLinks = new(1000);
 
         static int cronRound = 0;
 
@@ -261,7 +256,8 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    var sqlLinks = new Dictionary<string, ProxyLinkModel>(links.Count);
+                    var sqlLinks = new HashSet<string>(Math.Min(100, links.Count));
+                    var delete_ids = new HashSet<string>(Math.Min(100, links.Count));
 
                     foreach (var link in links)
                     {
@@ -270,49 +266,57 @@ namespace Shared.Engine
                             if (IsUseSql(link.Key) == false || link.Value.proxy != null || now.AddMinutes(5) > link.Value.ex || link.Value.uri.Contains(" or "))
                             {
                                 if (now > link.Value.ex)
-                                    links.TryRemove(link.Key, out _);
+                                    delete_ids.Add(link.Key);
                             }
                             else
                             {
                                 if (tempLinks.Contains(link.Key))
-                                    links.TryRemove(link.Key, out _);
+                                    delete_ids.Add(link.Key);
                                 else
                                 {
-                                    sqlLinks.TryAdd(link.Key, link.Value);
+                                    sqlLinks.Add(link.Key);
                                 }
                             }
                         }
                         catch { }
                     }
 
+                    if (delete_ids.Count > 0)
+                    {
+                        foreach (string removeId in delete_ids)
+                            links.TryRemove(removeId, out _);
+                    }
+
                     if (sqlLinks.Count > 0)
                     {
-                        var delete_ids = sqlLinks.Keys.ToHashSet();
-
                         using (var sqlDb = new ProxyLinkContext())
                         {
                             await sqlDb.links
-                                .Where(x => delete_ids.Contains(x.Id))
+                                .Where(x => sqlLinks.Contains(x.Id))
                                 .ExecuteDeleteAsync();
 
-                            foreach (var link in sqlLinks)
+                            foreach (string linkId in sqlLinks)
                             {
-                                link.Value.id = link.Key;
-
-                                sqlDb.links.Add(new ProxyLinkSqlModel()
+                                if (links.TryGetValue(linkId, out var link))
                                 {
-                                    Id = link.Key,
-                                    ex = link.Value.ex,
-                                    json = JsonSerializer.Serialize(link.Value)
-                                });
+                                    if (link.id == null)
+                                        link.id = linkId;
+
+                                    sqlDb.links.Add(new ProxyLinkSqlModel()
+                                    {
+                                        Id = linkId,
+                                        ex = link.ex,
+                                        json = JsonSerializer.Serialize(link)
+                                    });
+                                }
                             }
 
                             await sqlDb.SaveChangesAsync();
 
-                            foreach (var removeLink in sqlLinks)
+                            foreach (string removeLink in sqlLinks)
                             {
-                                tempLinks.Add(removeLink.Key);
-                                links.TryRemove(removeLink.Key, out _);
+                                tempLinks.Add(removeLink);
+                                links.TryRemove(removeLink, out _);
                             }
                         }
                     }

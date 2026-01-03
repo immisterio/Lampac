@@ -9,7 +9,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/animego")]
-        async public ValueTask<ActionResult> Index(string title, int year, int pid, int s, string t, bool similar = false)
+        async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, bool similar = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -30,11 +30,11 @@ namespace Online.Controllers
                         if (search == null)
                             return OnError(refresh_proxy: true);
 
-                        var rows = search.Split("class=\"p-poster__stack\"");
+                        var rx = new RxEnumerate("class=\"p-poster__stack\"", search, 1);
 
-                        catalog = new List<(string title, string year, string pid, string s, string img)>(rows.Length);
+                        catalog = new List<(string title, string year, string pid, string s, string img)>(rx.Count());
 
-                        foreach (string row in rows.Skip(1))
+                        foreach (string row in rx.Rows())
                         {
                             string player_id = Regex.Match(row, "data-ajax-url=\"/[^\"]+-([0-9]+)\"").Groups[1].Value;
                             string name = Regex.Match(row, "card-title text-truncate\"><a [^>]+>([^<]+)<").Groups[1].Value;
@@ -56,7 +56,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0)
                             return OnError();
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
@@ -71,7 +71,7 @@ namespace Online.Controllers
                         stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.img));
                     }
 
-                    return ContentTo(stpl);
+                    return await ContentTpl(stpl);
                 });
                 #endregion
             }
@@ -138,7 +138,7 @@ namespace Online.Controllers
                         }
                         #endregion
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
                         hybridCache.Set(key, cache, cacheTime(30));
                     }
 
@@ -163,7 +163,7 @@ namespace Online.Controllers
                         etpl.Append($"{l.episode} серия", title, s.ToString(), l.episode, hls, "play", headers: headers_stream);
                     }
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                 });
                 #endregion
             }
@@ -179,8 +179,6 @@ namespace Online.Controllers
 
             return await InvkSemaphore($"animego:video:{token}:{t}:{e}", async key =>
             {
-                var proxyManager = new ProxyManager(init);
-
                 if (!hybridCache.TryGetValue(key, out string hls))
                 {
                     string embed = await httpHydra.Get($"https://{host}/embed/{token}?episode={e}&translation={t}", addheaders: HeadersModel.Init(
@@ -205,7 +203,7 @@ namespace Online.Controllers
 
                     hls = "https:" + hls;
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, hls, cacheTime(30));
                 }
 

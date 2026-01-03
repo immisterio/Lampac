@@ -6,6 +6,7 @@ using Shared.Models.AppConf;
 using System;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -163,24 +164,22 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region RateLimited
-        static bool RateLimited(IMemoryCache memoryCache, string userip, int limit_req, string pattern)
+        static bool RateLimited(IMemoryCache cache, string userip, int limitReq, string pattern)
         {
-            string memKeyLocIP = $"WAF:RateLimited:{userip}:{pattern}:{DateTime.Now.Minute}";
-
-            if (memoryCache.TryGetValue(memKeyLocIP, out int req))
+            var counter = cache.GetOrCreate($"WAF:RateLimited:{userip}:{pattern}:{DateTimeOffset.UtcNow.Minute}", entry =>
             {
-                if (req >= limit_req)
-                    return true;
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+                return new Counter();
+            });
 
-                memoryCache.Set(memKeyLocIP, req+1, DateTime.Now.AddMinutes(1));
-            }
-            else
-            {
-                memoryCache.Set(memKeyLocIP, 1, DateTime.Now.AddMinutes(1));
-            }
-
-            return false;
+            return Interlocked.Increment(ref counter.Value) > limitReq;
         }
         #endregion
+
+
+        sealed class Counter
+        {
+            public int Value;
+        }
     }
 }

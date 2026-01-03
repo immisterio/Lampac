@@ -8,7 +8,7 @@ namespace SISI.Controllers.Chaturbate
 
         [HttpGet]
         [Route("chu")]
-        async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
@@ -34,7 +34,7 @@ namespace SISI.Controllers.Chaturbate
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, ChaturbateTo.Menu(host, sort));
+            return await PlaylistResult(cache, ChaturbateTo.Menu(host, sort));
         }
     }
 }

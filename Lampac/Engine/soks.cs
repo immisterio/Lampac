@@ -43,6 +43,8 @@ namespace Lampac.Engine
         #region WebLog
         public static ConcurrentDictionary<string, byte> weblog_clients = new ConcurrentDictionary<string, byte>();
 
+        public int CountWeblogClients => weblog_clients.Count;
+
         public void RegistryWebLog(string token)
         {
             if (AppInit.conf.weblog.enable)

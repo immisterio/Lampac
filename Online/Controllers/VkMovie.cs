@@ -14,7 +14,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vkmovie")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
         {
             if (serial == 1)
                 return OnError();
@@ -28,7 +28,7 @@ namespace Online.Controllers
             string searchTitle = StringConvert.SearchName(title);
 
             rhubFallback:
-            var cache = await InvokeCacheResult<CatalogVideo[]>(rch.ipkey($"vkmovie:view:{searchTitle}:{year}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<CatalogVideo[]>(ipkey($"vkmovie:view:{searchTitle}:{year}"), 20, async e =>
             {
                 string url = $"{init.corsHost()}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={client_id}";
                 string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={access_token}";
@@ -48,7 +48,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 var mtpl = new MovieTpl(title, original_title, cache.Value.Length);
 
@@ -122,7 +122,7 @@ namespace Online.Controllers
                             subtitleTpl.Append(label, HostStreamProxy(subtitle.url));
                         }
 
-                        if (!subtitleTpl.IsEmpty())
+                        if (!subtitleTpl.IsEmpty)
                             subtitles = subtitleTpl;
                     }
 

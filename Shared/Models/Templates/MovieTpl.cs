@@ -1,14 +1,19 @@
-﻿using System.Text;
-using System.Text.Json.Serialization;
-using System.Text.Json;
-using System.Web;
+﻿using Shared.Engine;
 using Shared.Models.Base;
-using Shared.Engine;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace Shared.Models.Templates
 {
     public class MovieTpl : ITplResult
     {
+        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(200_000));
+
+        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
+
+
         string title, original_title;
 
         public VoiceTpl? vtpl { get; private set; }
@@ -45,54 +50,67 @@ namespace Shared.Models.Templates
         }
 
 
-        public bool IsEmpty() => data == null || data.Count == 0;
+        public bool IsEmpty => data == null || data.Count == 0;
 
         public void Reverse()
         {
             data.Reverse();
         }
 
-
         public string ToHtml()
+            => ToBuilderHtml().ToString();
+
+        public StringBuilder ToBuilderHtml()
         {
-            if (data == null || data.Count == 0)
-                return string.Empty;
+            var html = sb.Value;
+            html.Clear();
+
+            if (IsEmpty)
+                return html;
 
             bool firstjson = true;
-            var html = new StringBuilder();
 
             if (vtpl.HasValue)
-                html.Append(vtpl.Value.ToHtml());
+                vtpl.Value.WriteTo(html);
 
             html.Append("<div class=\"videos__line\">");
 
-            foreach (var i in data) 
+            foreach (var i in data)
             {
                 var vast = i.vast ?? AppInit.conf.vast;
 
-                string datajson = JsonSerializer.Serialize(new
-                {
+                html.Append("<div class=\"videos__item videos__movie selector ");
+                if (firstjson)
+                    html.Append("focused");
+                html.Append("\" ");
+
+                html.Append("media=\"\" ");
+
+                html.Append("data-json='");
+                UtilsTpl.WriteJson(html, new MovieDto
+                (
                     i.method,
-                    url = i.link,
+                    i.link,
                     i.stream,
-                    headers = i.headers != null ? Http.NormalizeHeaders(i.headers.ToDictionary(k => k.name, v => v.val)) : null,
-                    quality = i.streamquality?.ToObject(emptyToNull: true),
-                    subtitles = i.subtitles?.ToObject(emptyToNull: true),
+                    Http.NormalizeHeaders(i.headers),
+                    i.streamquality?.ToObject(emptyToNull: true),
+                    i.subtitles?.ToObject(emptyToNull: true),
                     i.subtitles_call,
-                    translate = i.voiceOrQuality,
-                    maxquality = i.streamquality?.MaxQuality() ?? i.quality,
+                    i.voiceOrQuality,
+                    i.streamquality?.MaxQuality() ?? i.quality,
                     i.voice_name,
                     i.details,
-                    year = int.TryParse(i.year, out int _year) ? _year : 0,
-                    title = $"{title ?? original_title} ({i.voiceOrQuality})",
+                    int.TryParse(i.year, out int _year) ? _year : 0,
+                    $"{title ?? original_title} ({i.voiceOrQuality})",
                     i.hls_manifest_timeout,
-                    vast = vast?.url != null ? vast : null,
-                    i.segments
+                    vast?.url != null ? vast : null,
+                    i.segments?.ToObject()
+                ), jsonOptions);
+                html.Append("'>");
 
-                }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
-
-                html.Append($"<div class=\"videos__item videos__movie selector {(firstjson ? "focused" : "")}\" media=\"\" data-json='{datajson}'><div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">{HttpUtility.HtmlEncode(i.voiceOrQuality)}</div></div>");
-                firstjson = false;
+                html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
+                UtilsTpl.HtmlEncode(i.voiceOrQuality.AsSpan(), html);
+                html.Append("</div></div>");
 
                 if (!string.IsNullOrEmpty(i.quality))
                 {
@@ -101,42 +119,133 @@ namespace Shared.Models.Templates
                     else
                         html.Append($"<!--{i.quality}p-->");
                 }
+
+                firstjson = false;
             }
 
-            return html.ToString() + "</div>";
+            html.Append("</div>");
+
+            return html;
         }
 
-
         public string ToJson()
+            => ToBuilderJson().ToString();
+
+        public StringBuilder ToBuilderJson()
         {
-            if (data == null || data.Count == 0)
-                return "{}";
+            var json = sb.Value;
+            json.Clear();
 
-            string name = title ?? original_title;
-
-            return JsonSerializer.Serialize(new
+            if (IsEmpty)
             {
-                type = "movie",
-                voice = vtpl?.ToObject(),
-                data = data.Select(i => new
-                {
+                json.Append("{}");
+                return json;
+            }
+
+            var arr = new MovieDto[data.Count];
+
+            for (int idx = 0; idx < data.Count; idx++)
+            {
+                var i = data[idx];
+                var vast = i.vast ?? AppInit.conf.vast;
+
+                arr[idx] = new MovieDto(
                     i.method,
-                    url = i.link,
+                    i.link,
                     i.stream,
-                    headers = i.headers != null ? Http.NormalizeHeaders(i.headers.ToDictionary(k => k.name, v => v.val)) : null,
-                    quality = i.streamquality?.ToObject(emptyToNull: true),
-                    subtitles = i.subtitles?.ToObject(emptyToNull: true),
+                    Http.NormalizeHeaders(i.headers),
+                    i.streamquality?.ToObject(emptyToNull: true),
+                    i.subtitles?.ToObject(emptyToNull: true),
                     i.subtitles_call,
-                    translate = i.voiceOrQuality,
-                    maxquality = i.streamquality?.MaxQuality() ?? i.quality,
-                    details = (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
-                    year = int.TryParse(i.year, out int _year) ? _year : 0,
-                    title = $"{name} ({i.voiceOrQuality})",
+                    i.voiceOrQuality,
+                    i.streamquality?.MaxQuality() ?? i.quality,
+                    (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
+                    null,
+                    int.TryParse(i.year, out int _year) ? _year : 0,
+                    $"{title ?? original_title} ({i.voiceOrQuality})",
                     i.hls_manifest_timeout,
-                    vast = (i.vast ?? AppInit.conf.vast)?.url != null ? (i.vast ?? AppInit.conf.vast) : null,
-                    i.segments
-                })
-            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+                    vast?.url != null ? vast : null,
+                    i.segments?.ToObject()
+                );
+            }
+
+            UtilsTpl.WriteJson(json, new MovieResponseDto
+            (
+                vtpl?.ToObject(emptyToNull: true),
+                arr
+            ), jsonOptions);
+
+            return json;
+        }
+    }
+
+    public readonly struct MovieDto
+    {
+        public string method { get; }
+        public string url { get; }
+        public string stream { get; }
+        public Dictionary<string, string> headers { get; }
+        public Dictionary<string, string> quality { get; }
+        public IReadOnlyList<SubtitleDto> subtitles { get; }
+        public string subtitles_call { get; }
+        public string translate { get; }
+        public string maxquality { get; }
+        public string voice_name { get; }
+        public string details { get; }
+        public int year { get; }
+        public string title { get; }
+        public int? hls_manifest_timeout { get; }
+        public VastConf vast { get; }
+        public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
+
+        public MovieDto(
+            string method,
+            string url,
+            string stream,
+            Dictionary<string, string> headers,
+            Dictionary<string, string> quality,
+            IReadOnlyList<SubtitleDto> subtitles,
+            string subtitles_call,
+            string translate,
+            string maxquality,
+            string voice_name,
+            string details,
+            int year,
+            string title,
+            int? hls_manifest_timeout,
+            VastConf vast,
+        Dictionary<string, IReadOnlyList<SegmentDto>> segments)
+        {
+            this.method = method;
+            this.url = url;
+            this.stream = stream;
+            this.headers = headers;
+            this.quality = quality;
+            this.subtitles = subtitles;
+            this.subtitles_call = subtitles_call;
+            this.translate = translate;
+            this.maxquality = maxquality;
+            this.voice_name = voice_name;
+            this.details = details;
+            this.year = year;
+            this.title = title;
+            this.hls_manifest_timeout = hls_manifest_timeout;
+            this.vast = vast;
+            this.segments = segments;
+        }
+    }
+
+    public readonly struct MovieResponseDto
+    {
+        public string type { get; }
+        public IReadOnlyList<VoiceDto> voice { get; }
+        public MovieDto[] data { get; }
+
+        public MovieResponseDto(IReadOnlyList<VoiceDto> voice, MovieDto[] data)
+        {
+            type = "movie";
+            this.voice = voice;
+            this.data = data;
         }
     }
 }

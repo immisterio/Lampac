@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -30,12 +31,14 @@ namespace Lampac.Engine.Middlewares
             #region stats
             if (AppInit.conf.openstat.enable && !IsWsRequest)
             {
-                string skey = $"stats:request:{DateTime.Now.Minute}";
-                if (!memoryCache.TryGetValue(skey, out long _req))
-                    _req = 0;
+                var now = DateTime.UtcNow;
+                var counter = memoryCache.GetOrCreate($"stats:request:{now.Hour}:{now.Minute}", entry =>
+                {
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
+                    return new Counter();
+                });
 
-                _req++;
-                memoryCache.Set(skey, _req, DateTime.Now.AddMinutes(59));
+                Interlocked.Increment(ref counter.Value);
             }
             #endregion
 
@@ -231,5 +234,11 @@ namespace Lampac.Engine.Middlewares
     </div>
 </body>
 </html>";
+
+
+        sealed class Counter
+        {
+            public int Value;
+        }
     }
 }

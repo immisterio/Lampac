@@ -16,15 +16,20 @@ namespace Shared.Engine
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromMinutes(5));
 
                     try
                     {
-                        foreach (var c in _clients.Where(c => DateTime.UtcNow > c.Value.lifetime).ToArray())
+                        var now = DateTime.UtcNow;
+
+                        foreach (string clientKey in _clients
+                            .Where(c => DateTime.UtcNow > c.Value.lifetime)
+                            .Select(c => c.Key)
+                            .ToArray())
                         {
                             try
                             {
-                                if (_clients.TryRemove(c.Key, out var _c))
+                                if (_clients.TryRemove(clientKey, out var _c))
                                 {
                                     await Task.Delay(TimeSpan.FromSeconds(20));
                                     _c.http.Dispose();
@@ -39,8 +44,8 @@ namespace Shared.Engine
         }
         #endregion
 
-        #region HttpMessageClient
-        public static HttpClient HttpMessageClient
+        #region MessageClient
+        public static HttpClient MessageClient
         (
             string factoryClient,
             HttpClientHandler handler,

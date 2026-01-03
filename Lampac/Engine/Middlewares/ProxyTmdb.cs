@@ -25,7 +25,7 @@ namespace Lampac.Engine.Middlewares
         #region ProxyTmdb
         static FileSystemWatcher fileWatcher;
 
-        static ConcurrentDictionary<string, int> cacheFiles = new ();
+        static readonly ConcurrentDictionary<string, int> cacheFiles = new ();
 
         public static int Stat_ContCacheFiles => cacheFiles.IsEmpty ? 0 : cacheFiles.Count;
 
@@ -58,7 +58,9 @@ namespace Lampac.Engine.Middlewares
         {
             try
             {
-                var files = Directory.GetFiles("cache/tmdb", "*").Select(f => Path.GetFileName(f)).ToHashSet();
+                string[] files = Directory.GetFiles("cache/tmdb", "*")
+                    .Select(Path.GetFileName)
+                    .ToArray();
 
                 foreach (string md5fileName in cacheFiles.Keys.ToArray())
                 {
@@ -175,7 +177,10 @@ namespace Lampac.Engine.Middlewares
                 #endregion
 
                 var headers = new List<HeadersModel>();
-                var proxyManager = new ProxyManager("tmdb_api", init);
+
+                var proxyManager = init.useproxy
+                    ? new ProxyManager("tmdb_api", init)
+                    : null;
 
                 if (!string.IsNullOrEmpty(init.API_Minor))
                 {
@@ -187,10 +192,10 @@ namespace Lampac.Engine.Middlewares
                     uri = uri.Replace("api.themoviedb.org", tmdb_ip);
                 }
 
-                var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 20, proxy: proxyManager.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false);
+                var result = await Http.BaseGetAsync<JObject>(uri, timeoutSeconds: 20, proxy: proxyManager?.Get(), httpversion: init.httpversion, headers: headers, statusCodeOK: false);
                 if (result.content == null)
                 {
-                    proxyManager.Refresh();
+                    proxyManager?.Refresh();
                     httpContex.Response.StatusCode = 401;
                     await httpContex.Response.WriteAsJsonAsync(new { error = true, msg = "json null" }, ctsHttp.Token);
                     return;
@@ -201,7 +206,7 @@ namespace Lampac.Engine.Middlewares
 
                 if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
                 {
-                    proxyManager.Refresh();
+                    proxyManager?.Refresh();
                     cache.json = JsonConvert.SerializeObject(result.content);
 
                     if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
@@ -216,7 +221,7 @@ namespace Lampac.Engine.Middlewares
                 if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                     hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
 
-                proxyManager.Success();
+                proxyManager?.Success();
                 httpContex.Response.ContentType = "application/json; charset=utf-8";
                 await httpContex.Response.WriteAsync(cache.json, ctsHttp.Token);
             }
@@ -322,7 +327,9 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                var proxyManager = new ProxyManager("tmdb_img", init);
+                var proxyManager = init.useproxy 
+                    ? new ProxyManager("tmdb_img", init) 
+                    : null;
 
                 var semaphore = cacheimg ? new SemaphorManager(outFile, ctsHttp.Token) : null;
 
@@ -348,9 +355,9 @@ namespace Lampac.Engine.Middlewares
                     }
                     #endregion
 
-                    var handler = Http.Handler(uri, proxyManager.Get());
+                    var handler = Http.Handler(uri, proxyManager?.Get());
 
-                    var client = FrendlyHttp.HttpMessageClient(init.httpversion == 2 ? "http2proxyimg" : "proxyimg", handler);
+                    var client = FrendlyHttp.MessageClient(init.httpversion == 2 ? "http2proxyimg" : "proxyimg", handler);
 
                     var req = new HttpRequestMessage(HttpMethod.Get, uri)
                     {
@@ -369,9 +376,9 @@ namespace Lampac.Engine.Middlewares
                     using (HttpResponseMessage response = await client.SendAsync(req, ctsHttp.Token).ConfigureAwait(false))
                     {
                         if (response.StatusCode == HttpStatusCode.OK)
-                            proxyManager.Success();
+                            proxyManager?.Success();
                         else
-                            proxyManager.Refresh();
+                            proxyManager?.Refresh();
 
                         httpContex.Response.StatusCode = (int)response.StatusCode;
 
@@ -383,7 +390,7 @@ namespace Lampac.Engine.Middlewares
                             #region cache
                             httpContex.Response.Headers["X-Cache-Status"] = "MISS";
 
-                            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                            byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
 
                             try
                             {
@@ -439,7 +446,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 catch
                 {
-                    proxyManager.Refresh();
+                    proxyManager?.Refresh();
 
                     if (!string.IsNullOrEmpty(tmdb_ip))
                         httpContex.Response.Redirect(uri.Replace(tmdb_ip, "image.tmdb.org"));

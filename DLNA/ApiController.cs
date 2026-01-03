@@ -829,9 +829,9 @@ namespace DLNA.Controllers
 
                                 string uri = Regex.Replace(thumb, "^https?://[^/]+/", "");
 
-                                var array = await Http.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 8);
+                                var array = await Http.Download($"https://image.tmdb.org/{uri}", timeoutSeconds: 10);
                                 if (array == null || !IsValidImg(array))
-                                    array = await Http.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}");
+                                    array = await Http.Download($"https://imagetmdb.{AppInit.conf.cub.mirror}/{uri}", timeoutSeconds: 10);
 
                                 if (array != null && IsValidImg(array))
                                 {

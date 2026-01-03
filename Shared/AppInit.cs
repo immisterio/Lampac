@@ -422,7 +422,12 @@ namespace Shared
         public GCConf GC { get; set; } = new GCConf() 
         {
             enable = true,
-            RetainVM = false, //Concurrent = false,
+
+            // false - GC старается возвращать высвобождённую виртуальную память ОС
+            // true - GC сохраняет адресное пространство/сегменты, чтобы быстрее переиспользовать
+            RetainVM = true, 
+
+            //Concurrent = false,
             ConserveMemory = 9, HighMemoryPercent = 1
         };
 
@@ -568,36 +573,36 @@ namespace Shared
 
         public ProxySettings[] globalproxy = new ProxySettings[]
         {
-            new ProxySettings()
-            {
-                pattern = "\\.onion",
-                list = ["socks5://127.0.0.1:9050"]
-            }
+            //new ProxySettings()
+            //{
+            //    pattern = "\\.onion",
+            //    list = ["socks5://127.0.0.1:9050"]
+            //}
         };
 
-        public IReadOnlyCollection<OverrideResponse> overrideResponse = new List<OverrideResponse>()
-        {
-            new OverrideResponse()
-            {
-                pattern = "/over/text",
-                action = "html",
-                type = "text/plain; charset=utf-8",
-                val = "text"
-            },
-            new OverrideResponse()
-            {
-                pattern = "/over/online.js",
-                action = "file",
-                type = "application/javascript; charset=utf-8",
-                val = "plugins/online.js"
-            },
-            new OverrideResponse()
-            {
-                pattern = "/over/gogoole",
-                action = "redirect",
-                val = "https://www.google.com/"
-            }
-        };
+        public IReadOnlyCollection<OverrideResponse> overrideResponse { get; set; }
+        //{
+        //    new OverrideResponse()
+        //    {
+        //        pattern = "/over/text",
+        //        action = "html",
+        //        type = "text/plain; charset=utf-8",
+        //        val = "text"
+        //    },
+        //    new OverrideResponse()
+        //    {
+        //        pattern = "/over/online.js",
+        //        action = "file",
+        //        type = "application/javascript; charset=utf-8",
+        //        val = "plugins/online.js"
+        //    },
+        //    new OverrideResponse()
+        //    {
+        //        pattern = "/over/gogoole",
+        //        action = "redirect",
+        //        val = "https://www.google.com/"
+        //    }
+        //};
         #endregion
 
         #region SISI
@@ -858,7 +863,7 @@ namespace Shared
             rhub_safety = false,
             rch_access = "apk",
             stream_access = "apk,cors,web",
-            reserve = true,
+            reserve = false,
             headers = HeadersModel.Init(
                 ("Accept-Encoding", "gzip")
             ).ToDictionary()

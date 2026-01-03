@@ -9,7 +9,7 @@ namespace SISI.Controllers.XvideosRED
 
         [HttpGet]
         [Route("xdsred")]
-        async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
@@ -54,14 +54,14 @@ namespace SISI.Controllers.XvideosRED
                     if (playlists.Count == 0)
                         return OnError("playlists", refresh_proxy: pg > 1 && string.IsNullOrEmpty(search));
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, playlists, cacheTime(10), inmemory: false);
                 }
 
                 if (ismain)
                     playlists = playlists.Skip((pg * 36) - 36).Take(36).ToList();
 
-                return OnResult(
+                return await PlaylistResult(
                     playlists,
                     string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null
                 );

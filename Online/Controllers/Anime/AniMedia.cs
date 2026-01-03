@@ -8,7 +8,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/animedia")]
-        async public ValueTask<ActionResult> Index(string title, string news, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, string news, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
@@ -27,17 +27,17 @@ namespace Online.Controllers
                         if (search == null)
                             return OnError(refresh_proxy: true);
 
-                        var rows = search.Split("</article>")[1].Split("grid-item d-flex fd-column");
+                        var rx = new RxEnumerate("grid-item d-flex fd-column", search.Split("</article>")[1], 1);
 
-                        catalog = new List<(string title, string url, string img)>(rows.Length);
+                        catalog = new List<(string title, string url, string img)>(rx.Count());
 
-                        foreach (string row in rows.Skip(1))
+                        foreach (string row in rx.Rows())
                         {
                             var g = Regex.Match(row, "<a href=\"https?://[^/]+/([^\"]+)\" class=\"poster__link\"><h3 class=\"poster__title line-clamp\">([^<]+)</h3></a>").Groups;
 
                             if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrEmpty(g[2].Value))
                             {
-                                string img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                                string img = Regex.Match(row, "<img src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                                 if (!string.IsNullOrEmpty(img))
                                     img = init.host + img;
 
@@ -49,7 +49,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0 && !search.Contains("id=\"dosearch\""))
                             return OnError();
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
@@ -67,7 +67,7 @@ namespace Online.Controllers
                         stpl.Append(res.title, string.Empty, string.Empty, uri, PosterApi.Size(res.img));
                     }
 
-                    return ContentTo(stpl);
+                    return await ContentTpl(stpl);
                 });
                 #endregion
             }
@@ -82,10 +82,10 @@ namespace Online.Controllers
                         if (html == null)
                             return OnError(refresh_proxy: true);
 
-                        var match = Regex.Match(html, "data-vid=\"([0-9]+)\"[\t ]+data-vlnk=\"([^\"]+)\"");
+                        var match = Regex.Match(html, "data-vid=\"([0-9]+)\"[\t ]+data-vlnk=\"([^\"]+)\"", RegexOptions.Compiled);
                         links = new List<(int episode, string s, string vod)>(match.Length);
 
-                        string pmovie = Regex.Match(html, "class=\"pmovie__main-info ws-nowrap\">([^<]+)<").Groups[1].Value;
+                        string pmovie = Regex.Match(html, "class=\"pmovie__main-info ws-nowrap\">([^<]+)<", RegexOptions.Compiled).Groups[1].Value;
                         string s = Regex.Match(pmovie, "Season[\t ]+([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
                         if (string.IsNullOrEmpty(s))
                             s = "1";
@@ -108,7 +108,7 @@ namespace Online.Controllers
                         if (links.Count == 0)
                             return OnError();
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
                         hybridCache.Set(key, links, cacheTime(30), inmemory: false);
                     }
 
@@ -117,7 +117,7 @@ namespace Online.Controllers
                     foreach (var l in links.OrderBy(i => i.episode))
                         etpl.Append($"{l.episode} серия", title, l.s, l.episode.ToString(), accsArgs($"{host}/lite/animedia/video.m3u8?vod={HttpUtility.UrlEncode(l.vod)}"), vast: init.vast);
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                 });
                 #endregion
             }
@@ -140,11 +140,11 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(embed))
                         return OnError(refresh_proxy: true);
 
-                    hls = Regex.Match(embed, "file:\"([^\"]+)\"").Groups[1].Value;
+                    hls = Regex.Match(embed, "file:\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                     if (string.IsNullOrEmpty(hls))
                         return OnError(refresh_proxy: true);
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, hls, cacheTime(180));
                 }
 

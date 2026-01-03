@@ -9,7 +9,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/aniliberty")]
-        async public ValueTask<ActionResult> Index(string title, int year, int releases, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, int year, int releases, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -72,7 +72,7 @@ namespace Online.Controllers
                 if (!similar && cache.Value != null && cache.Value.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={cache.Value.First().releases}"));
 
-                return OnResult(cache, () =>
+                return await ContentTpl(cache, () =>
                 {
                     var stpl = new SimilarTpl(cache.Value.Count);
 
@@ -101,7 +101,7 @@ namespace Online.Controllers
                 if (IsRhubFallback(cache))
                     goto rhubFallback;
 
-                return OnResult(cache, () =>
+                return await ContentTpl(cache, () =>
                 {
                     var episodes = cache.Value["episodes"] as JArray;
                     var etpl = new EpisodeTpl(episodes.Count);

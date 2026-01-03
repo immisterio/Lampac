@@ -8,7 +8,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/animebesst")]
-        async public ValueTask<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -29,11 +29,11 @@ namespace Online.Controllers
                     if (search == null)
                         return e.Fail("search");
 
-                    var rows = search.Split("id=\"sidebar\"")[0].Split("class=\"shortstory-listab\"");
+                    var rx = new RxEnumerate("class=\"shortstory-listab\"", search.Split("id=\"sidebar\"")[0], 1);
 
-                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
+                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count());
 
-                    foreach (string row in rows.Skip(1))
+                    foreach (string row in rx.Rows())
                     {
                         if (row.Contains("Новости"))
                             continue;
@@ -73,7 +73,7 @@ namespace Online.Controllers
                 if (!similar && cache.Value != null && cache.Value.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/animebesst?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
 
-                return OnResult(cache, () =>
+                return await ContentTpl(cache, () =>
                 {
                     var stpl = new SimilarTpl(cache.Value.Count);
 
@@ -120,7 +120,7 @@ namespace Online.Controllers
                 if (IsRhubFallback(cache))
                     goto rhubFallback;
 
-                return OnResult(cache, () =>
+                return await ContentTpl(cache, () =>
                 {
                     var etpl = new EpisodeTpl(cache.Value.Count);
 
@@ -148,19 +148,22 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
+
+                if (rch.IsNotSupport(out string rch_error))
+                    return ShowError(rch_error);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             rhubFallback:
             var cache = await InvokeCacheResult<string>($"animebesst:video:{uri}", 30, async e =>

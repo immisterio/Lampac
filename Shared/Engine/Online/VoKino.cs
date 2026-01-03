@@ -101,7 +101,7 @@ namespace Shared.Engine.Online
                         var model = new Similar()
                         {
                             title = item.Name,
-                            balancer = Regex.Match(playlistUrl, "/v2/online/([^/]+)/").Groups[1].Value
+                            balancer = Regex.Match(playlistUrl, "/v2/online/([^/]+)/", RegexOptions.Compiled).Groups[1].Value
                         };
 
                         if (item.Name == "Vokino")
@@ -194,9 +194,9 @@ namespace Shared.Engine.Online
 
                     foreach (var ch in result.channels)
                     {
-                        string sname = Regex.Match(ch.title, "^([0-9]+)").Groups[1].Value;
+                        string sname = Regex.Match(ch.title, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
                         if (string.IsNullOrEmpty(sname))
-                            sname = Regex.Match(ch.title, "([0-9]+)$").Groups[1].Value;
+                            sname = Regex.Match(ch.title, "([0-9]+)$", RegexOptions.Compiled).Groups[1].Value;
 
                         tpl.Append(ch.title, host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}", sname);
                     }
@@ -211,7 +211,7 @@ namespace Shared.Engine.Online
 
                     foreach (var e in series)
                     {
-                        string ename = Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value;
+                        string ename = Regex.Match(e.ident, "([0-9]+)$", RegexOptions.Compiled).Groups[1].Value;
                         etpl.Append(e.title, title ?? original_title, s.ToString(), ename, onstreamfile(e.stream_url), vast: vast);
                     }
 

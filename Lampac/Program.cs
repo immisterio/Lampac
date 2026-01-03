@@ -93,7 +93,7 @@ namespace Lampac
 
             #region GC
             var gc = AppInit.conf.GC;
-            if (gc != null && gc.enable && (gc.aggressive || AppInit.conf.multiaccess == false))
+            if (gc != null && gc.enable)
             {
                 if (gc.Concurrent.HasValue)
                     AppContext.SetSwitch("System.GC.Concurrent", gc.Concurrent.Value);

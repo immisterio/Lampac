@@ -426,7 +426,10 @@ namespace Lampac
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
             ProxyManager.Configure(memory);
+
             Http.httpClientFactory = httpClientFactory;
+            Http.nws = new nws();
+            Http.ws = new soks();
 
             #region modules loaded
             if (AppInit.modules != null)

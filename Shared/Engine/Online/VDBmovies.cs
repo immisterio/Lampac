@@ -151,7 +151,7 @@ namespace Shared.Engine.Online
 
                     if (!string.IsNullOrEmpty(m.subtitle))
                     {
-                        var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(m.subtitle);
+                        var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)", RegexOptions.Compiled).Match(m.subtitle);
                         while (match.Success)
                         {
                             subtitles.Append(match.Groups[1].Value, match.Groups[2].Value);
@@ -184,7 +184,7 @@ namespace Shared.Engine.Online
 
                     for (int i = 0; i < root.serial.Length; i++)
                     {
-                        string season = Regex.Match(root.serial[i].title, "^([0-9]+)").Groups[1].Value;
+                        string season = Regex.Match(root.serial[i].title, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
                         if (string.IsNullOrEmpty(season))
                             continue;
 
@@ -200,13 +200,13 @@ namespace Shared.Engine.Online
                     var vtpl = new VoiceTpl();
                     var etpl = new EpisodeTpl();
 
-                    var hashvoices = new HashSet<string>();
+                    var hashvoices = new HashSet<string>(20);
 
                     string sArhc = s.ToString();
 
                     foreach (var episode in root.serial[sid].folder)
                     {
-                        string ename = Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value;
+                        string ename = Regex.Match(episode.title, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
 
                         foreach (var voice in episode.folder)
                         {
@@ -245,7 +245,7 @@ namespace Shared.Engine.Online
         {
             var streamquality = new StreamQualityTpl();
 
-            var target = Regex.Match(file, "\\[(?<quality>[^\\]]+)\\](?<m3u8>https?://[^\\[\\|,\n\r\t ]+\\.m3u8)").Groups;
+            var target = Regex.Match(file, "\\[(?<quality>[^\\]]+)\\](?<m3u8>https?://[^\\[\\|,\n\r\t ]+\\.m3u8)", RegexOptions.Compiled).Groups;
             string targetQuality = target["quality"].Value.Replace("p", "");
 
             foreach (string q in new string[] { "1080", "720", "480", "360", "240" })
@@ -259,7 +259,7 @@ namespace Shared.Engine.Online
 
             if (streamquality.data.Count == 0)
             {
-                foreach (Match mf in Regex.Matches(file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)"))
+                foreach (Match mf in Regex.Matches(file, "\\[([^\\]]+)\\](https?://[^\\[\\|,\n\r\t ]+\\.m3u8)", RegexOptions.Compiled))
                 {
                     string link = mf.Groups[2].Value;
                     if (!usehls)

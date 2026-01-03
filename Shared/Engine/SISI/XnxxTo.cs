@@ -18,29 +18,30 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("<div id=\"video_");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("<div id=\"video_", html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
-                var g = Regex.Match(row, "<a href=\"/(video-[^\"]+)\" title=\"([^\"]+)\"").Groups;
-                string quality = Regex.Match(row, "<span class=\"superfluous\"> - </span>([^<]+)</span>").Groups[1].Value;
+                var g = Regex.Match(row, "<a href=\"/(video-[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.Compiled).Groups;
+                string quality = Regex.Match(row, "<span class=\"superfluous\"> - </span>([^<]+)</span>", RegexOptions.Compiled).Groups[1].Value;
 
                 if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string duration = Regex.Match(row, "</span>([^<]+)<span class=\"video-hd\">").Groups[1].Value.Trim();
-                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value.Replace(".THUMBNUM.", ".1.");
+                    string duration = Regex.Match(row, "</span>([^<]+)<span class=\"video-hd\">", RegexOptions.Compiled).Groups[1].Value.Trim();
+                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value.Replace(".THUMBNUM.", ".1.");
 
                     // https://cdn77-pic.xvideos-cdn.com/videos/thumbs169ll/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62-2/5a6d4f718214eebf73225ec96b670f62.27.jpg
                     // https://cdn77-pic.xvideos-cdn.com/videos/videopreview/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62_169.mp4
-                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/");
-                    preview = Regex.Replace(preview, "/[^/]+$", "");
-                    preview = Regex.Replace(preview, "-[0-9]+$", "");
+                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/", RegexOptions.Compiled);
+                    preview = Regex.Replace(preview, "/[^/]+$", "", RegexOptions.Compiled);
+                    preview = Regex.Replace(preview, "-[0-9]+$", "", RegexOptions.Compiled);
 
                     var pl = new PlaylistItem()
                     {
@@ -94,7 +95,7 @@ namespace Shared.Engine.SISI
             if (html == null)
                 return null;
 
-            string stream_link = new Regex("html5player\\.setVideoHLS\\('([^']+)'\\);").Match(html).Groups[1].Value;
+            string stream_link = Regex.Match(html, "html5player\\.setVideoHLS\\('([^']+)'\\);", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;
 

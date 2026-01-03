@@ -1,13 +1,19 @@
 ﻿using HtmlAgilityPack;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
+using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine.SISI
 {
     public static class EpornerTo
     {
+        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(64));
+
+
         public static Task<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
         {
             string url = $"{host}/";
@@ -64,24 +70,25 @@ namespace Shared.Engine.SISI
                     html = html.Split("class=\"relatedtext\"")[1];
             }
 
-            var rows = Regex.Split(html, "<div class=\"mb( hdy)?\"");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("<div class=\"mb( hdy)?\"", html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
-                var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>").Groups;
-                string quality = Regex.Match(row, "<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)").Groups[2].Value;
+                var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>", RegexOptions.Compiled).Groups;
+                string quality = Regex.Match(row, "<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)", RegexOptions.Compiled).Groups[2].Value;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string img = Regex.Match(row, " data-src=\"([^\"]+)\"").Groups[1].Value;
+                    string img = Regex.Match(row, " data-src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(img))
-                        img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                        img = Regex.Match(row, "<img src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
 
-                    string dataid = Regex.Match(row, "data-id=\"([^\"]+)\"").Groups[1].Value;
-                    string preview = Regex.Replace(img, "/[^/]+$", "") + $"/{dataid}-preview.webm";
+                    string dataid = Regex.Match(row, "data-id=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                    string preview = Regex.Replace(img, "/[^/]+$", "", RegexOptions.Compiled) + $"/{dataid}-preview.webm";
 
-                    string duration = Regex.Match(row, "<span class=\"mbtim\"([^>]+)?>([^<]+)</span>").Groups[2].Value.Trim();
+                    string duration = Regex.Match(row, "<span class=\"mbtim\"([^>]+)?>([^<]+)</span>", RegexOptions.Compiled).Groups[2].Value.Trim();
 
                     var pl = new PlaylistItem()
                     {
@@ -607,26 +614,50 @@ namespace Shared.Engine.SISI
         #region convertHash
         static string convertHash(string h)
         {
-            return Base36(h.Substring(0, 8)) + Base36(h.Substring(8, 8)) + Base36(h.Substring(16, 8)) + Base36(h.Substring(24, 8));
+            StringBuilder builder = sb.Value;
+            builder.Clear();
+
+            Base36(h.AsSpan(0, 8), builder);
+            Base36(h.AsSpan(8, 8), builder);
+            Base36(h.AsSpan(16, 8), builder);
+            Base36(h.AsSpan(24, 8), builder);
+
+            return builder.ToString();
         }
         #endregion
 
         #region Base36
-        static string Base36(string val)
+        static void Base36(ReadOnlySpan<char> hex, StringBuilder builder)
         {
-            string result = "";
-            ulong value = Convert.ToUInt64(val, 16);
+            // Парсинг 8 hex-символов без Substring и без аллокаций
+            ulong value = ulong.Parse(hex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
 
             const int Base = 36;
-            const string Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const string Chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+            int start = builder.Length;
+
+            if (value == 0)
+            {
+                builder.Append('0');
+                return;
+            }
 
             while (value > 0)
             {
-                result = Chars[(int)(value % Base)] + result; // use StringBuilder for better performance
+                builder.Append(Chars[(int)(value % Base)]);
                 value /= Base;
             }
 
-            return result.ToLower();
+            // Разворот добавленного участка (т.к. цифры добавлялись в обратном порядке)
+            int i = start;
+            int j = builder.Length - 1;
+            while (i < j)
+            {
+                (builder[i], builder[j]) = (builder[j], builder[i]);
+                i++;
+                j--;
+            }
         }
         #endregion
     }

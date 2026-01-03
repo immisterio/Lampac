@@ -46,26 +46,27 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("<div class=\"video-preview-screen");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("<div class=\"video-preview-screen", html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
                 if (row.Contains("<span class=\"line-private\">"))
                     continue;
 
-                var g = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
+                var g = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.Compiled).Groups;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string quality = Regex.Match(row, "<span class=\"quality\">([^<]+)</span>").Groups[1].Value;
-                    string duration = Regex.Match(row, "<i class=\"fa fa-clock-o\"></i>([^<]+)</div>").Groups[1].Value.Trim();
-                    var img = Regex.Match(row, "data-src=\"(https?:)?//(((ptx|statics)\\.cdntrex\\.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)").Groups;
+                    string quality = Regex.Match(row, "<span class=\"quality\">([^<]+)</span>", RegexOptions.Compiled).Groups[1].Value;
+                    string duration = Regex.Match(row, "<i class=\"fa fa-clock-o\"></i>([^<]+)</div>", RegexOptions.Compiled).Groups[1].Value.Trim();
+                    var img = Regex.Match(row, "data-src=\"(https?:)?//(((ptx|statics)\\.cdntrex\\.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)", RegexOptions.Compiled).Groups;
 
                     var pl = new PlaylistItem()
                     {
@@ -640,7 +641,7 @@ namespace Shared.Engine.SISI
 
             if (stream_links.Count == 0)
             {
-                string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)").Groups[1].Value;
+                string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)", RegexOptions.Compiled).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(link))
                     stream_links.TryAdd("auto", link);
             }

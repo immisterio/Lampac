@@ -44,7 +44,7 @@ namespace Lampac.Engine.Middlewares
         static int activeHttpRequests;
         static readonly ConcurrentQueue<(DateTime timestamp, double durationMs)> ResponseTimes = new();
 
-        public static int ActiveHttpRequests => Volatile.Read(ref activeHttpRequests);
+        static readonly Timer CleanupTimer = new Timer(CleanupResponseTimes, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
 
         internal static Stopwatch StartRequest()
         {
@@ -54,31 +54,35 @@ namespace Lampac.Engine.Middlewares
 
         internal static void CompleteRequest(Stopwatch stopwatch)
         {
+            Interlocked.Decrement(ref activeHttpRequests);
+
             if (stopwatch == null)
                 return;
 
             stopwatch.Stop();
             AddResponseTime(stopwatch.Elapsed.TotalMilliseconds);
-            Interlocked.Decrement(ref activeHttpRequests);
         }
 
         static void AddResponseTime(double durationMs)
         {
-            var now = DateTime.UtcNow;
-            ResponseTimes.Enqueue((now, durationMs));
-            CleanupResponseTimes(now);
+            ResponseTimes.Enqueue((DateTime.UtcNow, durationMs));
         }
 
-        static void CleanupResponseTimes(DateTime now)
+        static void CleanupResponseTimes(object state)
         {
-            while (ResponseTimes.TryPeek(out var oldest) && (now - oldest.timestamp).TotalSeconds > 60)
+            var cutoff = DateTime.UtcNow.AddSeconds(-60);
+
+            while (ResponseTimes.TryPeek(out var oldest) && oldest.timestamp < cutoff)
                 ResponseTimes.TryDequeue(out _);
         }
+
+
+        #region openstat
+        public static int ActiveHttpRequests => Volatile.Read(ref activeHttpRequests);
 
         public static ResponseTimeStatistics GetResponseTimeStatsLastMinute()
         {
             var now = DateTime.UtcNow;
-            CleanupResponseTimes(now);
 
             double sum = 0;
             int count = 0;
@@ -161,5 +165,6 @@ namespace Lampac.Engine.Middlewares
 
             public Dictionary<int, double> PercentileAverages { get; set; } = new();
         }
+        #endregion
     }
 }

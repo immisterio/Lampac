@@ -14,7 +14,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/fxapi")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
@@ -35,7 +35,7 @@ namespace Online.Controllers
                 );
 
                 if (similar)
-                    return ContentTo(res.similars);
+                    return await ContentTpl(res.similars);
 
                 if (res != null)
                     postid = res.id;
@@ -45,7 +45,7 @@ namespace Online.Controllers
                     postid = await searchKp(kinopoisk_id);
 
                 if (postid == 0 && res?.similars != null)
-                    return ContentTo(res.similars);
+                    return await ContentTpl(res.similars);
             }
 
             if (postid == 0)
@@ -114,7 +114,7 @@ namespace Online.Controllers
                         mtpl.Append(movie.Value<string>("name"), streamquality.Firts().link, streamquality: streamquality, vast: init.vast);
                     }
 
-                    return ContentTo(mtpl);
+                    return await ContentTpl(mtpl);
                     #endregion
                 }
                 else
@@ -142,7 +142,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        return ContentTo(tpl);
+                        return await ContentTpl(tpl);
                         #endregion
                     }
                     else
@@ -196,7 +196,7 @@ namespace Online.Controllers
                         }
                         #endregion
 
-                        return ContentTo(etpl);
+                        return await ContentTpl(etpl);
                     }
                     #endregion
                 }
@@ -269,7 +269,7 @@ namespace Online.Controllers
 
             if (json == null)
             {
-                proxyManager.Refresh();
+                proxyManager?.Refresh();
                 return await Search2(title, original_title, year);
             }
 

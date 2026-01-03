@@ -85,10 +85,10 @@ namespace Shared.Engine.Online
                     string season = StringConvert.SearchName(root.names.ru) == stitle || StringConvert.SearchName(root.names.en) == stitle ? "1" : "0";
                     if (season == "0")
                     {
-                        season = Regex.Match(code ?? "", "-([0-9]+)(nd|th)").Groups[1].Value;
+                        season = Regex.Match(code ?? "", "-([0-9]+)(nd|th)", RegexOptions.Compiled).Groups[1].Value;
                         if (string.IsNullOrEmpty(season))
                         {
-                            season = Regex.Match(code ?? "", "season-([0-9]+)").Groups[1].Value;
+                            season = Regex.Match(code ?? "", "season-([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
                             if (string.IsNullOrEmpty(season))
                                 season = string.IsNullOrEmpty(code) ? "0" : "1";
                         }

@@ -10,7 +10,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/rutubemovie")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int serial)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int serial)
         {
             string searchTitle = StringConvert.SearchName(title);
             if (string.IsNullOrEmpty(searchTitle) || year == 0 || serial == 1)
@@ -20,7 +20,7 @@ namespace Online.Controllers
                 return badInitMsg;
 
             rhubFallback:
-            string memKey = $"rutubemovie:view:{searchTitle}:{year}:{(rch.enable ? requestInfo.Country : "")}";
+            string memKey = $"rutubemovie:view:{searchTitle}:{year}:{(rch?.enable == true ? requestInfo.Country : "")}";
             var cache = await InvokeCacheResult<Result[]>(memKey, 40, async e =>
             {
                 string uri = $"api/search/video/?content_type=video&duration=movie&query={HttpUtility.UrlEncode($"{title} {year}")}";
@@ -36,7 +36,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 var mtpl = new MovieTpl(title, original_title, cache.Value.Length);
 

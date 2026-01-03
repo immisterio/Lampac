@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.IO;
 using Shared;
 using Shared.Engine;
 using Shared.Models;
@@ -19,6 +20,8 @@ namespace Lampac.Engine
     public class nws : INws
     {
         #region fields
+        static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager();
+
         static readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions
         {
             WriteIndented = false
@@ -32,7 +35,11 @@ namespace Lampac.Engine
 
         public readonly static ConcurrentDictionary<string, string> event_clients = new();
 
-        public static int ConnectionCount => _connections.Count;
+        public static int CountConnection => _connections.Count;
+
+        public int CountWeblogClients => weblog_clients.Count;
+
+        public int CountEventClients => event_clients.Count;
         #endregion
 
         #region interface
@@ -93,14 +100,17 @@ namespace Lampac.Engine
 
                     await SendAsync(connection, "Connected", connectionId).ConfigureAwait(false);
 
-                    InvkEvent.NwsConnected(new EventNwsConnected(connectionId, requestInfo, connection, cancellationSource.Token));
+                    if (InvkEvent.IsNwsConnected())
+                        InvkEvent.NwsConnected(new EventNwsConnected(connectionId, requestInfo, connection, cancellationSource.Token));
 
                     await ReceiveLoopAsync(connection, cancellationSource.Token).ConfigureAwait(false);
                 }
                 finally
                 {
                     Cleanup(connectionId);
-                    InvkEvent.NwsDisconnected(new EventNwsDisconnected(connectionId));
+
+                    if (InvkEvent.IsNwsDisconnected())
+                        InvkEvent.NwsDisconnected(new EventNwsDisconnected(connectionId));
                 }
             }
         }
@@ -110,14 +120,17 @@ namespace Lampac.Engine
         static async Task ReceiveLoopAsync(NwsConnection connection, CancellationToken token)
         {
             WebSocket socket = connection.Socket;
-            var buffer = ArrayPool<byte>.Shared.Rent(4096);
-            var builder = new StringBuilder();
+
+            var decoder = Encoding.UTF8.GetDecoder();
+            var buffer = ArrayPool<byte>.Shared.Rent(1024);
+            var charBuffer = ArrayPool<char>.Shared.Rent(1024);
 
             try
             {
                 while (socket.State == WebSocketState.Open && !token.IsCancellationRequested)
                 {
-                    builder.Clear();
+                    decoder.Reset();
+                    StringBuilder builder = null;
 
                     WebSocketReceiveResult result;
 
@@ -132,12 +145,31 @@ namespace Lampac.Engine
                             return;
                         }
 
-                        if (result.Count > 0)
+                        if (result.Count > 0 && result.MessageType == WebSocketMessageType.Text)
                         {
-                            builder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                            decoder.Convert(
+                                buffer, 0, result.Count,
+                                charBuffer, 0, charBuffer.Length,
+                                result.EndOfMessage,
+                                out _,
+                                out int charsUsed,
+                                out _
+                            );
+
+                            if (builder == null)
+                            {
+                                builder = result.Count > 100 
+                                    ? new StringBuilder(500)
+                                    : result.Count > 50 
+                                        ? new StringBuilder(100) 
+                                        : new StringBuilder();
+                            }
+
+                            if (charsUsed > 0)
+                                builder.Append(charBuffer, 0, charsUsed);
+
                             if (builder.Length > 10_000000)
                             {
-                                builder.Clear();
                                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                                     await socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "payload too large", cts.Token).ConfigureAwait(false);
                                 return;
@@ -148,7 +180,7 @@ namespace Lampac.Engine
 
                     connection.UpdateActivity();
 
-                    if (result.MessageType == WebSocketMessageType.Text)
+                    if (builder != null)
                     {
                         if (2 > builder.Length)
                             continue;
@@ -178,7 +210,7 @@ namespace Lampac.Engine
             finally
             {
                 ArrayPool<byte>.Shared.Return(buffer);
-                builder.Clear();
+                ArrayPool<char>.Shared.Return(charBuffer);
             }
         }
         #endregion
@@ -201,7 +233,8 @@ namespace Lampac.Engine
                 if (document.RootElement.TryGetProperty("args", out var argsProp) && argsProp.ValueKind == JsonValueKind.Array)
                     args = argsProp;
 
-                InvkEvent.NwsMessage(new EventNwsMessage(connection.ConnectionId, payload, method, args));
+                if (InvkEvent.IsNwsMessage())
+                    InvkEvent.NwsMessage(new EventNwsMessage(connection.ConnectionId, payload, method, args));
 
                 await InvokeAsync(connection, method, args).ConfigureAwait(false);
             }
@@ -324,40 +357,61 @@ namespace Lampac.Engine
             if (connection.Socket.State != WebSocketState.Open || string.IsNullOrEmpty(method))
                 return;
 
-            var payload = new { method, args = args ?? Array.Empty<object>() };
-            byte[] bytes;
-
-            try
+            using (var ms = msm.GetStream())
             {
-                bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, serializerOptions));
-            }
-            catch
-            {
-                return;
-            }
-
-            try
-            {
-                await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
-
-                if (connection.Socket.State == WebSocketState.Open)
+                try
                 {
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
-                        await connection.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cts.Token).ConfigureAwait(false);
-
-                    connection.UpdateActivity();
-                    connection.UpdateSendActivity();
+                    JsonSerializer.Serialize(ms, new { method, args = args ?? Array.Empty<object>() }, serializerOptions);
+                    ms.Position = 0;
                 }
-            }
-            catch (WebSocketException)
-            {
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            finally
-            {
-                connection.SendLock.Release();
+                catch
+                {
+                    return;
+                }
+
+                try
+                {
+                    await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+
+                    if (connection.Socket.State == WebSocketState.Open)
+                    {
+                        ReadOnlySequence<byte> seq = ms.GetReadOnlySequence();
+
+                        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                        {
+                            if (seq.IsSingleSegment)
+                            {
+                                await connection.Socket
+                                    .SendAsync(seq.First, WebSocketMessageType.Text, true, cts.Token)
+                                    .ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                var pos = seq.Start;
+                                while (seq.TryGet(ref pos, out var mem))
+                                {
+                                    bool isLast = pos.Equals(seq.End);
+                                    await connection.Socket
+                                        .SendAsync(mem, WebSocketMessageType.Text, isLast, cts.Token)
+                                        .ConfigureAwait(false);
+                                }
+                            }
+                        }
+
+                        connection.UpdateActivity();
+                        connection.UpdateSendActivity();
+                    }
+                }
+                catch (WebSocketException)
+                {
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                finally
+                {
+                    connection.SendLock.Release();
+                }
             }
         }
 

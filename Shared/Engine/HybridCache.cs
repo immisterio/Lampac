@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models;
 using Shared.Models.SQL;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Threading;
 
 namespace Shared.Engine
@@ -65,35 +66,29 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    var array = tempDb
-                        .Where(t => now > t.Value.extend)
-                        .Take(500);
+                    string[] delete_ids = tempDb.Where(t => now > t.Value.extend)
+                        .Select(k => k.Key)
+                        .ToArray();
 
-                    if (array.Any())
+                    if (delete_ids.Length > 0)
                     {
                         using (var sqlDb = new HybridCacheContext())
                         {
-                            var delete_ids = array.Select(k => k.Key).ToHashSet();
-                            if (delete_ids.Count > 0)
-                            {
-                                await sqlDb.files
-                                    .Where(x => delete_ids.Contains(x.Id))
-                                    .ExecuteDeleteAsync();
-                            }
+                            await sqlDb.files
+                                .Where(x => delete_ids.Contains(x.Id))
+                                .ExecuteDeleteAsync();
 
-                            var hash_ids = new HashSet<string>();
-
-                            foreach (var t in array)
+                            foreach (string tempid in delete_ids)
                             {
-                                if (t.Value.ex > now && hash_ids.Add(t.Key))
+                                if (tempDb.TryGetValue(tempid, out var c))
                                 {
                                     sqlDb.files.Add(new HybridCacheSqlModel()
                                     {
-                                        Id = t.Key,
-                                        ex = t.Value.ex,
-                                        value = t.Value.IsSerialize
-                                            ? JsonConvert.SerializeObject(t.Value.value)
-                                            : t.Value.value.ToString()
+                                        Id = tempid,
+                                        ex = c.ex,
+                                        value = c.IsSerialize
+                                            ? JsonConvert.SerializeObject(c.value)
+                                            : c.value.ToString()
                                     });
                                 }
                             }
@@ -169,11 +164,6 @@ namespace Shared.Engine
 
 
         #region TryGetValue
-        public bool TryGetValue(string key, out object value)
-        {
-            return memoryCache.TryGetValue(key, out value);
-        }
-
         public bool TryGetValue<TItem>(string key, out TItem value, bool? inmemory = null)
         {
             if (AppInit.conf.mikrotik == false && AppInit.conf.cache.type != "mem")
@@ -221,22 +211,51 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    using (var sqlDb = HybridCacheContext.Factory != null 
-                        ? HybridCacheContext.Factory.CreateDbContext()
-                        : new HybridCacheContext())
+                    using (var sqlDb = HybridCacheContext.Factory?.CreateDbContext() ?? new HybridCacheContext())
                     {
-                        var doc = sqlDb.files.Find(md5key);
+                        using (var conn = sqlDb.Database.GetDbConnection())
+                        {
+                            conn.Open();
 
-                        if (doc?.Id == null || DateTime.Now > doc.ex)
-                            return false;
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = "SELECT ex, value FROM files WHERE Id = $id";
+                                var p = cmd.CreateParameter();
+                                p.ParameterName = "$id";
+                                p.Value = md5key;
+                                cmd.Parameters.Add(p);
 
-                        if (IsDeserialize)
-                            value = JsonConvert.DeserializeObject<TItem>(doc.value);
-                        else
-                            value = (TItem)Convert.ChangeType(doc.value, type);
+                                using (var r = cmd.ExecuteReader())
+                                {
+                                    if (!r.Read())
+                                        return false;
 
-                        updateRequestHistory(key, doc.ex, value);
-                        return true;
+                                    var ex = r.GetDateTime(0);
+                                    if (DateTime.Now > ex)
+                                        return false;
+
+                                    if (IsDeserialize)
+                                    {
+                                        // потоковое чтение TEXT
+                                        using (var textReader = r.GetTextReader(1))
+                                        {
+                                            using (var jsonReader = new JsonTextReader(textReader))
+                                            {
+                                                var serializer = JsonSerializer.CreateDefault();
+                                                value = serializer.Deserialize<TItem>(jsonReader);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        value = (TItem)Convert.ChangeType(r.GetString(1), typeof(TItem), CultureInfo.InvariantCulture);
+                                    }
+
+                                    updateRequestHistory(key, ex, value);
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -317,7 +336,7 @@ namespace Shared.Engine
 
 
         #region updateRequestHistory
-        void updateRequestHistory<TItem>(string key, DateTime ex, TItem value)
+        private void updateRequestHistory<TItem>(string key, DateTime ex, TItem value)
         {
             if (AppInit.conf.cache.type != "hybrid" || requestInfo == null)
                 return;

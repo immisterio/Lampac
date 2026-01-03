@@ -22,10 +22,18 @@ namespace Lampac.Engine.Middlewares
 {
     public class ProxyAPI
     {
-        #region ProxyAPI
-        static FileSystemWatcher fileWatcher;
+        static readonly HttpClientHandler baseHandler = new HttpClientHandler()
+        {
+            AutomaticDecompression = DecompressionMethods.None,
+            AllowAutoRedirect = false,
+            UseProxy = false,
+            ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+        };
 
-        static ConcurrentDictionary<string, long> cacheFiles = new();
+        #region ProxyAPI
+        static readonly FileSystemWatcher fileWatcher;
+
+        static readonly ConcurrentDictionary<string, long> cacheFiles = new();
 
         public static int Stat_ContCacheFiles => cacheFiles.IsEmpty ? 0 : cacheFiles.Count;
 
@@ -53,7 +61,7 @@ namespace Lampac.Engine.Middlewares
         {
             var init = AppInit.conf.serverproxy;
             var requestInfo = httpContext.Features.Get<RequestModel>();
-            string reqip = requestInfo.IP;
+
             string servPath = httpContext.Request.Path.Value.Replace("/proxy/", "").Replace("/proxy-dash/", "");
             string servUri = servPath + httpContext.Request.QueryString.Value;
 
@@ -71,7 +79,7 @@ namespace Lampac.Engine.Middlewares
             #endregion
 
             #region decryptLink
-            var decryptLink = ProxyLink.Decrypt(httpContext.Request.Path.Value.StartsWith("/proxy-dash/") ? servPath.Split("/")[0] : servPath, reqip);
+            var decryptLink = ProxyLink.Decrypt(httpContext.Request.Path.Value.StartsWith("/proxy-dash/") ? servPath.Split("/")[0] : servPath, requestInfo.IP);
 
             if (init.encrypt || decryptLink?.uri != null || httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
@@ -93,7 +101,7 @@ namespace Lampac.Engine.Middlewares
             }
 
             if (decryptLink == null)
-                decryptLink = new ProxyLinkModel(reqip, null, null, servUri);
+                decryptLink = new ProxyLinkModel(requestInfo.IP, null, null, servUri);
             #endregion
 
             if (init.showOrigUri)
@@ -102,88 +110,96 @@ namespace Lampac.Engine.Middlewares
                 httpContext.Response.Headers["PX-Orig"] = decryptLink.uri;
             }
 
-            #region handler
-            var handler = new HttpClientHandler()
-            {
-                AutomaticDecompression = DecompressionMethods.None,
-                AllowAutoRedirect = false
-            };
-
-            handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+            #region proxyHandler
+            HttpClientHandler proxyHandler = null;
 
             if (decryptLink.proxy != null)
             {
-                handler.UseProxy = true;
-                handler.Proxy = decryptLink.proxy;
+                proxyHandler = new HttpClientHandler()
+                {
+                    AutomaticDecompression = DecompressionMethods.None,
+                    AllowAutoRedirect = false
+                };
+
+                proxyHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                proxyHandler.UseProxy = true;
+                proxyHandler.Proxy = decryptLink.proxy;
             }
-            else { handler.UseProxy = false; }
             #endregion
 
             #region cacheFiles
-            (string uriKey, string contentType) cacheStream = InvkEvent.ProxyApiCacheStream(httpContext, decryptLink);
+            (string uriKey, string contentType) cacheStream = InvkEvent.IsProxyApiCacheStream() 
+                ? InvkEvent.ProxyApiCacheStream(httpContext, decryptLink)
+                : default;
 
             if (cacheStream.uriKey != null && init.showOrigUri)
                 httpContext.Response.Headers["PX-CacheStream"] = cacheStream.uriKey;
 
-            if (cacheStream.uriKey != null && cacheFiles.ContainsKey(CrypTo.md5(cacheStream.uriKey)))
+            if (cacheStream.uriKey != null)
             {
                 string md5key = CrypTo.md5(cacheStream.uriKey);
 
-                httpContext.Response.Headers["PX-Cache"] = "HIT";
-                httpContext.Response.Headers["accept-ranges"] = "bytes";
-                httpContext.Response.ContentType = cacheStream.contentType ?? "application/octet-stream";
-
-                long cacheLength = cacheFiles[md5key];
-                string cachePath = $"cache/hls/{md5key}";
-
-                if (RangeHeaderValue.TryParse(httpContext.Request.Headers["Range"], out var range))
+                if (cacheFiles.ContainsKey(CrypTo.md5(cacheStream.uriKey)))
                 {
-                    var rangeItem = range.Ranges.FirstOrDefault();
-                    if (rangeItem != null)
-                    {
-                        long start = rangeItem.From ?? 0;
-                        long end = rangeItem.To ?? (cacheLength - 1);
+                    httpContext.Response.Headers["PX-Cache"] = "HIT";
+                    httpContext.Response.Headers["accept-ranges"] = "bytes";
+                    httpContext.Response.ContentType = cacheStream.contentType ?? "application/octet-stream";
 
-                        if (start >= cacheLength)
+                    long cacheLength = cacheFiles[md5key];
+                    string cachePath = $"cache/hls/{md5key}";
+
+                    if (RangeHeaderValue.TryParse(httpContext.Request.Headers["Range"], out var range))
+                    {
+                        var rangeItem = range.Ranges.FirstOrDefault();
+                        if (rangeItem != null)
                         {
-                            httpContext.Response.StatusCode = StatusCodes.Status416RangeNotSatisfiable;
-                            httpContext.Response.Headers["content-range"] = $"bytes */{cacheLength}";
+                            long start = rangeItem.From ?? 0;
+                            long end = rangeItem.To ?? (cacheLength - 1);
+
+                            if (start >= cacheLength)
+                            {
+                                httpContext.Response.StatusCode = StatusCodes.Status416RangeNotSatisfiable;
+                                httpContext.Response.Headers["content-range"] = $"bytes */{cacheLength}";
+                                return;
+                            }
+
+                            if (end >= cacheLength)
+                                end = cacheLength - 1;
+
+                            long length = end - start + 1;
+
+                            httpContext.Response.StatusCode = StatusCodes.Status206PartialContent;
+                            httpContext.Response.Headers["content-range"] = $"bytes {start}-{end}/{cacheLength}";
+
+                            if (init.responseContentLength)
+                                httpContext.Response.ContentLength = length;
+
+                            await httpContext.Response.SendFileAsync(cachePath, start, length, httpContext.RequestAborted).ConfigureAwait(false);
                             return;
                         }
-
-                        if (end >= cacheLength)
-                            end = cacheLength - 1;
-
-                        long length = end - start + 1;
-
-                        httpContext.Response.StatusCode = StatusCodes.Status206PartialContent;
-                        httpContext.Response.Headers["content-range"] = $"bytes {start}-{end}/{cacheLength}";
-
-                        if (init.responseContentLength)
-                            httpContext.Response.ContentLength = length;
-
-                        await httpContext.Response.SendFileAsync(cachePath, start, length, httpContext.RequestAborted).ConfigureAwait(false);
-                        return;
                     }
+
+                    if (init.responseContentLength)
+                        httpContext.Response.ContentLength = cacheLength;
+
+                    await httpContext.Response.SendFileAsync(cachePath, httpContext.RequestAborted).ConfigureAwait(false);
+                    return;
                 }
-
-                if (init.responseContentLength)
-                    httpContext.Response.ContentLength = cacheLength;
-
-                await httpContext.Response.SendFileAsync(cachePath, httpContext.RequestAborted).ConfigureAwait(false);
-                return;
             }
             #endregion
 
             if (httpContext.Request.Path.Value.StartsWith("/proxy-dash/"))
             {
                 #region DASH
-                servUri += Regex.Replace(httpContext.Request.Path.Value, "/[^/]+/[^/]+/", "") + httpContext.Request.QueryString.Value;
+                var uri = new Uri($"{servUri}{Regex.Replace(httpContext.Request.Path.Value, "^/[^/]+/[^/]+/", "")}{httpContext.Request.QueryString.Value}");
 
-                var client = FrendlyHttp.HttpMessageClient("proxy", handler);
+                var client = FrendlyHttp.MessageClient("proxy", proxyHandler ?? baseHandler);
 
-                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true).ConfigureAwait(false))
+                using (var request = CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, uri, true))
                 {
+                    if (InvkEvent.IsProxyApiCreateHttpRequest())
+                        await InvkEvent.ProxyApiCreateHttpRequest(decryptLink.plugin, httpContext.Request, decryptLink.headers, uri, true, request).ConfigureAwait(false);
+
                     using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                     {
                         ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
@@ -221,10 +237,13 @@ namespace Lampac.Engine.Middlewares
                         }
                         else { hdlr.UseProxy = false; }
 
-                        var clientor = FrendlyHttp.HttpMessageClient("base", hdlr);
+                        var clientor = FrendlyHttp.MessageClient("base", hdlr);
 
-                        using (var requestor = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true).ConfigureAwait(false))
+                        using (var requestor = CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), true))
                         {
+                            if (InvkEvent.IsProxyApiCreateHttpRequest())
+                                await InvkEvent.ProxyApiCreateHttpRequest(decryptLink.plugin, httpContext.Request, decryptLink.headers, new Uri(servUri), true, requestor).ConfigureAwait(false);
+
                             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(7)))
                             {
                                 using (var response = await clientor.SendAsync(requestor, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
@@ -249,10 +268,14 @@ namespace Lampac.Engine.Middlewares
                 }
                 #endregion
 
-                var client = FrendlyHttp.HttpMessageClient("proxy", handler);
+                var client = FrendlyHttp.MessageClient("proxy", proxyHandler ?? baseHandler);
 
-                using (var request = await CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase)).ConfigureAwait(false))
+                bool ismedia = Regex.IsMatch(httpContext.Request.Path.Value, "\\.(m3u|ts|m4s|mp4|mkv|aacp|srt|vtt)", RegexOptions.IgnoreCase);
+                using (var request = CreateProxyHttpRequest(decryptLink.plugin, httpContext, decryptLink.headers, new Uri(servUri), ismedia))
                 {
+                    if (InvkEvent.IsProxyApiCreateHttpRequest())
+                        await InvkEvent.ProxyApiCreateHttpRequest(decryptLink.plugin, httpContext.Request, decryptLink.headers, new Uri(servUri), ismedia, request).ConfigureAwait(false);
+
                     using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                     {
                         ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
@@ -509,7 +532,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region CreateProxyHttpRequest
-        async static Task<HttpRequestMessage> CreateProxyHttpRequest(string plugin, HttpContext context, List<HeadersModel> headers, Uri uri, bool ismedia)
+        static HttpRequestMessage CreateProxyHttpRequest(string plugin, HttpContext context, List<HeadersModel> headers, Uri uri, bool ismedia)
         {
             var request = context.Request;
 
@@ -533,39 +556,38 @@ namespace Lampac.Engine.Middlewares
                 if (headers != null && headers.Count > 0)
                 {
                     foreach (var h in headers)
-                        addHeaders[h.name.ToLower().Trim()] = [h.val];
+                        addHeaders[h.name.ToLowerInvariant().Trim()] = [h.val];
                 }
 
-                if (ismedia || headers != null)
+                if (ismedia)
                 {
-                    foreach (var header in request.Headers)
-                    {
-                        if (header.Key.ToLower() == "range")
-                            addHeaders[header.Key.ToLower().Trim()] = header.Value.ToArray();
-                    }
+                    if (request.Headers.TryGetValue("range", out var range))
+                        addHeaders["range"] = range.ToArray();
                 }
                 else
                 {
                     foreach (var header in request.Headers)
                     {
-                        if (header.Key.ToLower() is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
+                        string key = header.Key.ToLowerInvariant().Trim();
+
+                        if (key is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
                             continue;
 
-                        if (header.Key.ToLower().StartsWith("x-"))
+                        if (key.StartsWith("x-"))
                             continue;
 
-                        if (header.Key.ToLower() == "range")
+                        if (key == "range")
                         {
-                            addHeaders[header.Key.ToLower().Trim()] = header.Value.ToArray();
+                            addHeaders[key] = header.Value.ToArray();
                             continue;
                         }
 
-                        addHeaders.TryAdd(header.Key.ToLower().Trim(), header.Value.ToArray());
+                        addHeaders.TryAdd(key, header.Value.ToArray());
                     }
                 }
 
                 foreach (var h in Http.defaultFullHeaders)
-                    addHeaders[h.Key.ToLower().Trim()] = [h.Value];
+                    addHeaders[h.Key] = [h.Value];
 
                 foreach (var h in Http.NormalizeHeaders(addHeaders))
                 {
@@ -584,8 +606,6 @@ namespace Lampac.Engine.Middlewares
 
             //requestMessage.Version = new Version(2, 0);
             //Console.WriteLine(JsonConvert.SerializeObject(requestMessage.Headers, Formatting.Indented));
-
-            await InvkEvent.ProxyApiCreateHttpRequest(plugin, request, headers, uri, ismedia, requestMessage).ConfigureAwait(false);
 
             return requestMessage;
         }
@@ -616,20 +636,22 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
+                    string key = header.Key.ToLowerInvariant().Trim();
+
+                    if (key is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
                         continue;
 
-                    if (header.Key.ToLower().StartsWith("x-") || header.Key.ToLower().StartsWith("alt-"))
+                    if (key.StartsWith("x-") || key.StartsWith("alt-"))
                         continue;
 
-                    if (header.Key.ToLower().StartsWith("access-control"))
+                    if (key.StartsWith("access-control"))
                         continue;
 
                     string value = string.Empty;
                     foreach (var val in header.Value)
                         value += $"; {val}";
 
-                    response.Headers[header.Key] = Regex.Replace(value, "^; ", "");
+                    response.Headers[key] = Regex.Replace(value, "^; ", "");
                     //response.Headers[header.Key] = header.Value.ToArray();
                 }
             }
@@ -675,7 +697,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 while (!context.RequestAborted.IsCancellationRequested)
                                 {
-                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(buffering.rent, 4096));
+                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(buffering.rent, 8192));
 
                                     try
                                     {
@@ -733,7 +755,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 else
                 {
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
 
                     try
                     {

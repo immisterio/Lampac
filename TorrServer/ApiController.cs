@@ -381,7 +381,7 @@ namespace TorrServer.Controllers
             if (!responseStream.CanRead || !response.Body.CanWrite)
                 throw new NotSupportedException("NotSupported_UnreadableStream");
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
 
             try
             {

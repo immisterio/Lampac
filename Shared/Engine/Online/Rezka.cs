@@ -112,10 +112,11 @@ namespace Shared.Engine.Online
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
 
-            var rows = search.Split("\"b-content__inline_item\"");
-            foreach (string row in rows.Skip(1))
+            var rx = new RxEnumerate("\"b-content__inline_item\"", search, 1);
+
+            foreach (string row in rx.Rows())
             {
-                var g = Regex.Match(row, "href=\"https?://[^/]+/([^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
+                var g = Regex.Match(row, "href=\"https?://[^/]+/([^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})", RegexOptions.Compiled).Groups;
 
                 if (string.IsNullOrEmpty(g[1].Value))
                     continue;
@@ -125,9 +126,9 @@ namespace Shared.Engine.Online
                     continue;
 
                 if (result.similar == null)
-                    result.similar = new List<SimilarModel>(rows.Length);
+                    result.similar = new List<SimilarModel>(rx.Count());
 
-                string img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                string img = Regex.Match(row, "<img src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
 
                 if ((stitle != null && (name.Contains(" / ") && StringConvert.SearchName(name).Contains(stitle) || StringConvert.SearchName(name) == stitle)) || 
@@ -181,7 +182,7 @@ namespace Shared.Engine.Online
                 ("upgrade-insecure-requests", "1")
             );
 
-            result.id = Regex.Match(href, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
+            result.id = Regex.Match(href, "/([0-9]+)-[^/]+\\.html", RegexOptions.Compiled).Groups[1].Value;
             if (long.TryParse(result.id, out long id) && id > 0)
                 basereferer.TryAdd(id, href);
 
@@ -216,17 +217,19 @@ namespace Shared.Engine.Online
             string link = null;
             var result = new EmbedModel();
 
-            foreach (string row in search.Split("<li>").Skip(1))
+            var rx = new RxEnumerate("<li>", search, 1);
+
+            foreach (string row in rx.Rows())
             {
-                string href = Regex.Match(row, "href=\"(https?://[^\"]+)\"").Groups[1].Value;
-                string name = Regex.Match(row, "<span class=\"enty\">([^<]+)</span>").Groups[1].Value;
-                string year = Regex.Match(row, ", ([0-9]{4})(\\)| -)").Groups[1].Value;
+                string href = Regex.Match(row, "href=\"(https?://[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                string name = Regex.Match(row, "<span class=\"enty\">([^<]+)</span>", RegexOptions.Compiled).Groups[1].Value;
+                string year = Regex.Match(row, ", ([0-9]{4})(\\)| -)", RegexOptions.Compiled).Groups[1].Value;
 
                 if (string.IsNullOrEmpty(href) || string.IsNullOrEmpty(name))
                     continue;
 
                 if (result.similar == null)
-                    result.similar = new List<SimilarModel>();
+                    result.similar = new List<SimilarModel>(rx.Count());
 
                 result.similar.Add(new SimilarModel(name, year, href, null));
                 link = href;
@@ -243,7 +246,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
+            result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html", RegexOptions.Compiled).Groups[1].Value;
             result.content = await onget(link, null);
             if (result.content == null || string.IsNullOrEmpty(result.id))
             {
@@ -273,7 +276,7 @@ namespace Shared.Engine.Online
             if (!result.content.Contains("data-season_id="))
             {
                 #region Фильм
-                var match = new Regex("<[^>]+ data-translator_id=\"([0-9]+)\"([^>]+)?>(?<voice>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?").Match(result.content);
+                var match = new Regex("<[^>]+ data-translator_id=\"([0-9]+)\"([^>]+)?>(?<voice>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?", RegexOptions.Compiled).Match(result.content);
 
                 var mtpl = new MovieTpl(title, original_title, match.Length);
 
@@ -289,10 +292,10 @@ namespace Shared.Engine.Online
                                 continue;
                             }
 
-                            string favs = Regex.Match(result.content, "id=\"ctrl_favs\" value=\"([^\"]+)\"").Groups[1].Value;
+                            string favs = Regex.Match(result.content, "id=\"ctrl_favs\" value=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                             string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={match.Groups[1].Value}&favs={favs}";
 
-                            string voice_href = Regex.Match(match.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                            string voice_href = Regex.Match(match.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"", RegexOptions.Compiled).Groups[2].Value;
                             if (!string.IsNullOrEmpty(voice_href))
                                 link += $"&voice={HttpUtility.UrlEncode(voice_href)}";
 
@@ -324,7 +327,7 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    var links = getStreamLink(Regex.Match(result.content, "\"id\":\"cdnplayer\",\"streams\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", ""));
+                    var links = getStreamLink(Regex.Match(result.content, "\"id\":\"cdnplayer\",\"streams\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value.Replace("\\", ""));
                     if (links.Count == 0)
                         return default;
 
@@ -340,7 +343,7 @@ namespace Shared.Engine.Online
             else
             {
                 #region Сериал
-                string trs = new Regex("\\.initCDNSeriesEvents\\([0-9]+, ([0-9]+),").Match(result.content).Groups[1].Value;
+                string trs = new Regex("\\.initCDNSeriesEvents\\([0-9]+, ([0-9]+),", RegexOptions.Compiled).Match(result.content).Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(trs))
                     return default;
 
@@ -349,7 +352,7 @@ namespace Shared.Engine.Online
 
                 if (result.content.Contains("data-translator_id="))
                 {
-                    var match = new Regex("<[a-z]+ [^>]+ data-translator_id=\"(?<translator>[0-9]+)\"([^>]+)?>(?<name>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?").Match(result.content);
+                    var match = new Regex("<[a-z]+ [^>]+ data-translator_id=\"(?<translator>[0-9]+)\"([^>]+)?>(?<name>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?", RegexOptions.Compiled).Match(result.content);
                     while (match.Success)
                     {
                         if (!userprem && match.Groups[0].Value.Contains("prem_translator"))
@@ -364,7 +367,7 @@ namespace Shared.Engine.Online
 
                         string link = host + $"{route}/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={result.id}&t={match.Groups["translator"].Value}";
 
-                        string voice_href = Regex.Match(match.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                        string voice_href = Regex.Match(match.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"", RegexOptions.Compiled).Groups[2].Value;
                         if (!string.IsNullOrEmpty(voice_href) && init.ajax != null && init.ajax.Value == false)
                         {
                             string voice = HttpUtility.UrlEncode(voice_href);
@@ -384,7 +387,7 @@ namespace Shared.Engine.Online
 
                 string sArhc = s.ToString();
 
-                var m = Regex.Match(result.content, "data-cdn_url=\"(?<cdn>[^\"]+)\" [^>]+ data-season_id=\"(?<season>[0-9]+)\" data-episode_id=\"(?<episode>[0-9]+)\"([^>]+)?>(?<name>[^>]+)</[a-z]+>");
+                var m = Regex.Match(result.content, "data-cdn_url=\"(?<cdn>[^\"]+)\" [^>]+ data-season_id=\"(?<season>[0-9]+)\" data-episode_id=\"(?<episode>[0-9]+)\"([^>]+)?>(?<name>[^>]+)</[a-z]+>", RegexOptions.Compiled);
                 while (m.Success)
                 {
                     if (s == -1)
@@ -408,7 +411,7 @@ namespace Shared.Engine.Online
                             eshash.Add(m.Groups["name"].Value);
                             string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups["episode"].Value}";
 
-                            string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                            string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"", RegexOptions.Compiled).Groups[2].Value;
                             if (!string.IsNullOrEmpty(voice_href))
                                 link += $"&voice={HttpUtility.UrlEncode(voice_href)}";
 
@@ -515,7 +518,7 @@ namespace Shared.Engine.Online
                 {
                     if (result.content.Contains("data-translator_id="))
                     {
-                        var match = new Regex("<[a-z]+ [^>]+ data-translator_id=\"(?<translator>[0-9]+)\"([^>]+)?>(?<name>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?").Match(result.content);
+                        var match = new Regex("<[a-z]+ [^>]+ data-translator_id=\"(?<translator>[0-9]+)\"([^>]+)?>(?<name>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?", RegexOptions.Compiled).Match(result.content);
                         while (match.Success)
                         {
                             if (!userprem && match.Groups[0].Value.Contains("prem_translator"))
@@ -541,7 +544,7 @@ namespace Shared.Engine.Online
                 #region Сезоны
                 var tpl = new SeasonTpl(vtpl, root.seasons.Length);
 
-                var match = new Regex("data-tab_id=\"(?<season>[0-9]+)\"([^>]+)?>(?<name>[^<]+)</[a-z]+>").Match(root.seasons);
+                var match = new Regex("data-tab_id=\"(?<season>[0-9]+)\"([^>]+)?>(?<name>[^<]+)</[a-z]+>", RegexOptions.Compiled).Match(root.seasons);
                 while (match.Success)
                 {
                     string link = host + $"{route}/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={id}&t={t}&s={match.Groups["season"].Value}";
@@ -559,14 +562,14 @@ namespace Shared.Engine.Online
                 #region Серии
                 var etpl = new EpisodeTpl(vtpl);
 
-                var m = new Regex($"data-season_id=\"{s}\" data-episode_id=\"(?<episode>[0-9]+)\"([^>]+)?>(?<name>[^<]+)</li>").Match(root.episodes);
+                var m = new Regex($"data-season_id=\"{s}\" data-episode_id=\"(?<episode>[0-9]+)\"([^>]+)?>(?<name>[^<]+)</li>", RegexOptions.Compiled).Match(root.episodes);
                 while (m.Success)
                 {
                     if (!string.IsNullOrEmpty(m.Groups["episode"].Value) && !string.IsNullOrEmpty(m.Groups["name"].Value))
                     {
                         string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={id}&t={t}&s={s}&e={m.Groups["episode"].Value}";
 
-                        string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
+                        string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"", RegexOptions.Compiled).Groups[2].Value;
                         if (!string.IsNullOrEmpty(voice_href))
                             link += $"&voice={HttpUtility.UrlEncode(voice_href)}";
 
@@ -684,7 +687,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string url = Regex.Match(html, "\"streams\"\\s*:\\s*\"(.*?)\"\\s*,").Groups[1].Value;
+            string url = Regex.Match(html, "\"streams\"\\s*:\\s*\"(.*?)\"\\s*,", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
             {
                 requesterror?.Invoke();
@@ -698,7 +701,7 @@ namespace Shared.Engine.Online
             return new MovieModel() 
             { 
                 links = links,
-                subtitlehtml = Regex.Match(html, "\"subtitle\":\"([^\"]+)\"").Groups[1].Value 
+                subtitlehtml = Regex.Match(html, "\"subtitle\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value 
             };
         }
 
@@ -714,7 +717,7 @@ namespace Shared.Engine.Online
             {
                 if (!string.IsNullOrWhiteSpace(md.subtitlehtml))
                 {
-                    var m = Regex.Match(md.subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)");
+                    var m = Regex.Match(md.subtitlehtml, "\\[([^\\]]+)\\](https?://[^\n\r,']+\\.vtt)", RegexOptions.Compiled);
                     while (m.Success)
                     {
                         if (!string.IsNullOrEmpty(m.Groups[1].Value) && !string.IsNullOrEmpty(m.Groups[2].Value))
@@ -796,7 +799,7 @@ namespace Shared.Engine.Online
             #region getLink
             string getLink(string _q)
             {
-                string qline = Regex.Match(data, $"\\[({_q}|[^\\]]+{_q}[^\\]]+)\\]([^,\\[]+)").Groups[2].Value;
+                string qline = Regex.Match(data, $"\\[({_q}|[^\\]]+{_q}[^\\]]+)\\]([^,\\[]+)", RegexOptions.Compiled).Groups[2].Value;
                 if (!qline.Contains(".mp4") && !qline.Contains(".m3u8"))
                     return null;
 
@@ -804,7 +807,7 @@ namespace Shared.Engine.Online
                 {
                     return string.Join(" or ", qline.Split(" or ").Select(i =>
                     {
-                        string l = Regex.Match(i, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
+                        string l = Regex.Match(i, "(https?://[^\\[\n\r, ]+)", RegexOptions.Compiled).Groups[1].Value;
                         if (usehls)
                         {
                             if (l.EndsWith(".m3u8"))
@@ -818,7 +821,7 @@ namespace Shared.Engine.Online
                 }
                 else
                 {
-                    string link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)").Groups[1].Value;
+                    string link = Regex.Match(qline, "(https?://[^\\[\n\r, ]+)", RegexOptions.Compiled).Groups[1].Value;
                     if (string.IsNullOrEmpty(link))
                         return null;
 
@@ -901,7 +904,7 @@ namespace Shared.Engine.Online
         public static string fixcdn(string country, string uacdn, string link)
         {
             if (uacdn != null && country == "UA" && !link.Contains(".vtt"))
-                return Regex.Replace(link, "https?://[^/]+", uacdn);
+                return Regex.Replace(link, "https?://[^/]+", uacdn, RegexOptions.Compiled);
 
             return link;
         }

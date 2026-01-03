@@ -7,6 +7,7 @@ using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.Proxy;
+using Shared.Models.Templates;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
@@ -192,6 +193,9 @@ namespace Shared
 
 
         #region LoadKitInit
+        public static bool IsLoadKitInit()
+            => EventListener.LoadKitInit != null || conf?.LoadKitInit != null;
+
         public static void LoadKitInit(EventLoadKit model)
         {
             EventListener.LoadKitInit?.Invoke(model);
@@ -206,6 +210,9 @@ namespace Shared
         #endregion
 
         #region LoadKit
+        public static bool IsLoadKit()
+            => EventListener.LoadKit != null || conf?.LoadKit != null;
+
         public static void LoadKit(EventLoadKit model)
         {
             EventListener.LoadKit?.Invoke(model);
@@ -220,6 +227,9 @@ namespace Shared
         #endregion
 
         #region ProxyApi
+        public static bool IsProxyApiCacheStream()
+            => EventListener.ProxyApiCacheStream != null || conf?.ProxyApi?.CacheStream != null;
+
         public static (string uriKey, string contentType) ProxyApiCacheStream(HttpContext httpContext, ProxyLinkModel decryptLink)
         {
             var cacheStreamModel = new EventProxyApiCacheStream(httpContext, decryptLink);
@@ -238,6 +248,9 @@ namespace Shared
 
             return Invoke<(string uriKey, string contentType)>(code, cacheStreamModel, option);
         }
+
+        public static bool IsProxyApiCreateHttpRequest()
+            => EventListener.ProxyApiCreateHttpRequest != null || conf?.ProxyApi?.CreateHttpRequest != null;
 
         async public static Task ProxyApiCreateHttpRequest(string plugin, HttpRequest request, List<HeadersModel> headers, Uri uri, bool ismedia, HttpRequestMessage requestMessage)
         {
@@ -265,6 +278,9 @@ namespace Shared
         #endregion
 
         #region ProxyImg
+        public static bool IsProxyImgMd5key()
+            => EventListener.ProxyImgMd5key != null || conf?.ProxyImg?.Md5Key != null;
+
         public static void ProxyImgMd5key(ref string md5key, HttpContext httpContext, RequestModel requestInfo, ProxyLinkModel decryptLink, string href, int width, int height)
         {
             var model = new EventProxyImgMd5key(httpContext, requestInfo, decryptLink, href, width, height);
@@ -291,6 +307,9 @@ namespace Shared
         #endregion
 
         #region BadInitialization
+        public static bool IsBadInitialization()
+            => conf?.Controller?.BadInitialization != null || EventListener.BadInitialization != null;
+
         public static Task<ActionResult> BadInitialization(EventBadInitialization model)
         {
             if (conf?.Controller?.BadInitialization == null)
@@ -312,6 +331,9 @@ namespace Shared
         #endregion
 
         #region HostStreamProxy
+        public static bool IsHostStreamProxy()
+            => conf?.Controller?.HostStreamProxy != null || EventListener.HostStreamProxy != null;
+
         public static string HostStreamProxy(EventHostStreamProxy model)
         {
             if (conf?.Controller?.HostStreamProxy == null)
@@ -329,6 +351,9 @@ namespace Shared
         #endregion
 
         #region HostImgProxy
+        public static bool IsHostImgProxy()
+            => conf?.Controller?.HostImgProxy != null || EventListener.HostImgProxy != null;
+
         public static string HostImgProxy(RequestModel requestInfo, HttpContext httpContext, string uri, int height, List<HeadersModel> headers, string plugin)
         {
             var model = new EventHostImgProxy(requestInfo, httpContext, uri, height, headers, plugin);
@@ -346,6 +371,9 @@ namespace Shared
         #endregion
 
         #region MyLocalIp
+        public static bool IsMyLocalIp()
+            => conf?.Controller?.MyLocalIp != null || EventListener.MyLocalIp != null;
+
         public static Task<string> MyLocalIp(EventMyLocalIp model)
         {
             if (string.IsNullOrEmpty(conf?.Controller?.MyLocalIp))
@@ -367,7 +395,10 @@ namespace Shared
         #endregion
 
         #region HttpHeaders
-        public static List<HeadersModel> HttpHeaders(EventControllerHttpHeaders model)
+        public static bool IsHttpHeaders()
+            => conf?.Controller?.HttpHeaders != null || EventListener.HttpHeaders != null;
+
+        public static Dictionary<string, string> HttpHeaders(EventControllerHttpHeaders model)
         {
             if (string.IsNullOrEmpty(conf?.Controller?.HttpHeaders))
                 return EventListener.HttpHeaders?.Invoke(model);
@@ -378,11 +409,14 @@ namespace Shared
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO")
                 .AddImports("System.Collections.Generic");
 
-            return Invoke<List<HeadersModel>>(conf.Controller.HttpHeaders, model, option);
+            return Invoke<Dictionary<string, string>>(conf.Controller.HttpHeaders, model, option);
         }
         #endregion
 
         #region Middleware
+        public static bool IsMiddleware(bool first)
+            => (first ? conf?.Middleware?.first : conf?.Middleware?.end) != null || EventListener.Middleware != null;
+
         public static Task<bool> Middleware(bool first, EventMiddleware model)
         {
             if ((first ? conf?.Middleware?.first : conf?.Middleware?.end) == null)
@@ -438,22 +472,13 @@ namespace Shared
         #endregion
 
         #region Http
-        public static void Http(object model)
+        public static bool IsHttpClientHandler()
+            => conf?.Http?.Handler != null || EventListener.HttpHandler != null;
+
+        public static void HttpClientHandler(EventHttpHandler model)
         {
-            string code = null;
-            var modelType = model.GetType();
-
-            if (modelType == typeof(EventHttpHandler))
-            {
-                code = conf?.Http?.Handler;
-                EventListener.HttpHandler?.Invoke((EventHttpHandler)model);
-            }
-
-            else if (modelType == typeof(EventHttpHeaders))
-            {
-                code = conf?.Http?.Headers;
-                EventListener.HttpRequestHeaders?.Invoke((EventHttpHeaders)model);
-            }
+            string code = conf?.Http?.Handler;
+            EventListener.HttpHandler?.Invoke(model);
 
             if (string.IsNullOrEmpty(code))
                 return;
@@ -466,32 +491,44 @@ namespace Shared
             Invoke(code, model, option);
         }
 
-        public static Task HttpAsync(object model)
+        public static bool IsHttpClientHeaders()
+            => conf?.Http?.Headers != null || EventListener.HttpRequestHeaders != null;
+
+        public static void HttpClientHeaders(EventHttpHeaders model)
         {
-            string code = null;
-            var modelType = model.GetType();
+            string code = code = conf?.Http?.Headers;
+            EventListener.HttpRequestHeaders?.Invoke(model);
 
-            if (modelType == typeof(EventHttpResponse))
-            {
-                code = conf?.Http?.Response;
+            if (string.IsNullOrEmpty(code))
+                return;
 
-                if (string.IsNullOrEmpty(code) && EventListener.HttpResponse != null)
-                    return EventListener.HttpResponse.Invoke((EventHttpResponse)model);
-            }
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
+                .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http")
+                .AddReferences(typeof(File).Assembly).AddImports("System.IO");
+
+            Invoke(code, model, option);
+        }
+
+        public static bool IsHttpAsync()
+            => conf?.Http?.Response != null || EventListener.HttpResponse != null;
+
+        public static Task HttpAsync(EventHttpResponse model)
+        {
+            string code = code = conf?.Http?.Response;
+
+            if (string.IsNullOrEmpty(code) && EventListener.HttpResponse != null)
+                return EventListener.HttpResponse.Invoke(model);
 
             if (string.IsNullOrEmpty(code))
                 return Task.CompletedTask;
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(WebProxy).Assembly).AddImports("System.Net")
-                .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http");
-
-            if (modelType == typeof(EventHttpResponse))
-            {
-                option.AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
-                      .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine")
-                      .AddReferences(typeof(File).Assembly).AddImports("System.IO");
-            }
+                .AddReferences(typeof(HttpClientHandler).Assembly).AddImports("System.Net.Http")
+                .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine")
+                .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
             return InvokeAsync(code, model, option);
         }
@@ -514,6 +551,9 @@ namespace Shared
             Invoke(code, model, option);
         }
 
+        public static bool IsCorseuHttpRequest()
+            => conf?.Corseu?.HttpRequest != null || EventListener.CorseuHttpRequest != null;
+
         public static void CorseuHttpRequest(string method, string url, HttpRequestMessage request)
         {
             var model = new EventCorseuHttpRequest(method, url, request);
@@ -530,6 +570,9 @@ namespace Shared
 
             Invoke(code, model, option);
         }
+
+        public static bool IsCorseuPlaywrightRequest()
+            => conf?.Corseu?.PlaywrightRequest != null || EventListener.CorseuPlaywrightRequest != null;
 
         public static void CorseuPlaywrightRequest(string method, string url, APIRequestNewContextOptions contextOptions, APIRequestContextOptions requestOptions)
         {
@@ -566,6 +609,9 @@ namespace Shared
         #endregion
 
         #region Externalids
+        public static bool IsExternalids()
+            => conf?.Controller?.Externalids != null || EventListener.Externalids != null;
+
         public static void Externalids(string id, ref string imdb_id, ref string kinopoisk_id, int serial)
         {
             (string imdb_id, string kinopoisk_id) result = default;
@@ -587,6 +633,9 @@ namespace Shared
         #endregion
 
         #region StreamQualityTpl
+        public static bool IsStreamQuality()
+            => conf?.StreamQualityTpl != null || EventListener.StreamQuality != null;
+
         public static (bool? next, string link) StreamQuality(EventStreamQuality model)
         {
             if (string.IsNullOrEmpty(conf?.StreamQualityTpl))
@@ -598,7 +647,10 @@ namespace Shared
             return Invoke<(bool? next, string link)>(conf.StreamQualityTpl, model, option);
         }
 
-        public static (string link, string quality)? StreamQualityFirts(EventStreamQualityFirts model)
+        public static bool IsStreamQualityFirts()
+            => conf?.StreamQualityFirts != null || EventListener.StreamQualityFirts != null;
+
+        public static StreamQualityDto? StreamQualityFirts(EventStreamQualityFirts model)
         {
             if (string.IsNullOrEmpty(conf?.StreamQualityFirts))
                 return EventListener.StreamQualityFirts?.Invoke(model);
@@ -606,7 +658,7 @@ namespace Shared
             var option = ScriptOptions.Default
                 .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models.Events").AddImports("Shared.Models.Templates");
 
-            return Invoke<(string link, string quality)?>(conf.StreamQualityFirts, model, option);
+            return Invoke<StreamQualityDto?>(conf.StreamQualityFirts, model, option);
         }
         #endregion
 
@@ -629,6 +681,9 @@ namespace Shared
         #endregion
 
         #region Rch
+        public static bool IsRchRegistry()
+            => conf?.Rch?.Registry != null || EventListener.RchRegistry != null;
+
         public static void RchRegistry(EventRchRegistry model)
         {
             EventListener.RchRegistry?.Invoke(model);
@@ -643,6 +698,9 @@ namespace Shared
 
             Invoke(code, model, option);
         }
+
+        public static bool IsRchDisconnected()
+            => conf?.Rch?.Disconnected != null || EventListener.RchDisconnected != null;
 
         public static void RchDisconnected(EventRchDisconnected model)
         {
@@ -661,6 +719,9 @@ namespace Shared
         #endregion
 
         #region Nws
+        public static bool IsNwsConnected()
+            => conf?.Nws?.Connected != null || EventListener.NwsConnected != null;
+
         public static void NwsConnected(EventNwsConnected model)
         {
             EventListener.NwsConnected?.Invoke(model);
@@ -676,6 +737,9 @@ namespace Shared
             Invoke(code, model, option);
         }
 
+        public static bool IsNwsMessage()
+            => conf?.Nws?.Message != null || EventListener.NwsMessage != null;
+
         public static void NwsMessage(EventNwsMessage model)
         {
             EventListener.NwsMessage?.Invoke(model);
@@ -690,6 +754,9 @@ namespace Shared
 
             Invoke(code, model, option);
         }
+
+        public static bool IsNwsDisconnected()
+            => conf?.Nws?.Disconnected != null || EventListener.NwsDisconnected != null;
 
         public static void NwsDisconnected(EventNwsDisconnected model)
         {
@@ -707,33 +774,33 @@ namespace Shared
         #endregion
 
         #region HybridCache
-        public static (DateTimeOffset ex, string value) HybridCache(string e, string key, string value, DateTimeOffset ex)
-        {
-            string code = null;
+        //public static (DateTimeOffset ex, string value) HybridCache(string e, string key, string value, DateTimeOffset ex)
+        //{
+        //    string code = null;
 
-            var model = new EventHybridCache(key, value, ex);
+        //    var model = new EventHybridCache(key, value, ex);
 
-            switch (e)
-            {
-                case "read":
-                    code = conf?.HybridCache?.Read;
-                    break;
+        //    switch (e)
+        //    {
+        //        case "read":
+        //            code = conf?.HybridCache?.Read;
+        //            break;
 
-                case "write":
-                    code = conf?.HybridCache?.Write;
-                    break;
-            }
+        //        case "write":
+        //            code = conf?.HybridCache?.Write;
+        //            break;
+        //    }
 
-            if (string.IsNullOrEmpty(code))
-                return EventListener.HybridCache?.Invoke(e, model) ?? default;
+        //    if (string.IsNullOrEmpty(code))
+        //        return EventListener.HybridCache?.Invoke(e, model) ?? default;
 
-            var option = ScriptOptions.Default
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine")
-                .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
-                .AddReferences(typeof(File).Assembly).AddImports("System.IO");
+        //    var option = ScriptOptions.Default
+        //        .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Engine")
+        //        .AddReferences(CSharpEval.ReferenceFromFile("Newtonsoft.Json.dll")).AddImports("Newtonsoft.Json").AddImports("Newtonsoft.Json.Linq")
+        //        .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
-            return Invoke<(DateTimeOffset ex, string value)>(code, model, option);
-        }
+        //    return Invoke<(DateTimeOffset ex, string value)>(code, model, option);
+        //}
         #endregion
 
         public static void PidTor(EventPidTor model) => Invoke(conf?.PidTor, model);

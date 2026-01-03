@@ -39,7 +39,7 @@ namespace Shared.Engine.SISI
 
             foreach (var node in nodes)
             {
-                var g = Regex.Match(node.row.InnerHtml, "<a href=\"/(?<link>[^\"]+)\" title=\"(?<title>[^\"]+)\"").Groups;
+                var g = Regex.Match(node.row.InnerHtml, "<a href=\"/(?<link>[^\"]+)\" title=\"(?<title>[^\"]+)\"", RegexOptions.Compiled).Groups;
                 if (!string.IsNullOrWhiteSpace(g["link"].Value) && !string.IsNullOrWhiteSpace(g["title"].Value))
                 {
                     #region image
@@ -47,7 +47,7 @@ namespace Shared.Engine.SISI
                     if (!img.Contains("/w:"))
                         img = node.Regex("data-src=\"([^\"]+)\"");
 
-                    img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/");
+                    img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/", RegexOptions.Compiled);
                     #endregion
 
                     string preview = node.Regex("data-preview=\"([^\"]+)\"");
@@ -131,7 +131,7 @@ namespace Shared.Engine.SISI
 
             var stream_links = new Dictionary<int, string>();
 
-            var match = new Regex("'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'").Match(html);
+            var match = Regex.Match(html, "'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'", RegexOptions.Compiled);
             while (match.Success)
             {
                 int q = $"{match.Groups[1].Value}{match.Groups[2].Value}" == "4k" ? 2160 : int.Parse(match.Groups[1].Value);

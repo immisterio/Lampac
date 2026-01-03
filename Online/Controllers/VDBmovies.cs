@@ -28,7 +28,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vdbmovies")]
-        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, bool similar, string t, int sid, int s = -1, bool rjson = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -101,12 +101,12 @@ namespace Online.Controllers
                 }
 
                 if (similar || string.IsNullOrEmpty(orid))
-                    return ContentTo(stpl);
+                    return await ContentTpl(stpl);
             }
             #endregion
 
             rhubFallback: 
-            var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vdbmovies:{orid}:{kinopoisk_id}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<EmbedModel>(ipkey($"vdbmovies:{orid}:{kinopoisk_id}"), 20, async e =>
             {
                 string uri = $"{init.corsHost()}/kinopoisk/{kinopoisk_id}/iframe";
                 if (!string.IsNullOrEmpty(orid))
@@ -130,7 +130,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson));
         }
 
         #region black_magic
@@ -145,7 +145,7 @@ namespace Online.Controllers
                     ("referer", referer)
                 ));
 
-                if (rch.enable || init.priorityBrowser == "http")
+                if (rch?.enable == true || init.priorityBrowser == "http")
                     return await httpHydra.Get(uri, newheaders: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))

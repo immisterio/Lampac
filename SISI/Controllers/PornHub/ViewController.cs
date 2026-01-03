@@ -8,7 +8,7 @@ namespace SISI.Controllers.PornHub
 
         [HttpGet]
         [Route("phub/vidosik")]
-        async public ValueTask<ActionResult> Index(string vkey, bool related)
+        async public Task<ActionResult> Index(string vkey, bool related)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -30,7 +30,7 @@ namespace SISI.Controllers.PornHub
                 goto rhubFallback;
 
             if (related)
-                return OnResult(cache.Value?.recomends, null, total_pages: 1);
+                return await PlaylistResult(cache.Value?.recomends, null, total_pages: 1);
 
             return OnResult(cache);
         }

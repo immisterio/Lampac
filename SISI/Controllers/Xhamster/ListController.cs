@@ -10,7 +10,7 @@ namespace SISI.Controllers.Xhamster
         [Route("xmr")]
         [Route("xmrgay")]
         [Route("xmrsml")]
-        async public ValueTask<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
+        async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
         {
             if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
@@ -21,17 +21,19 @@ namespace SISI.Controllers.Xhamster
             string semaphoreKey = $"{plugin}:{search}:{sort}:{c}:{q}:{pg}";
             var semaphore = new SemaphorManager(semaphoreKey, TimeSpan.FromSeconds(30));
 
-            reset: // http запросы последовательно 
-            if (rch.enable == false)
-                await semaphore.WaitAsync();
+            List<PlaylistItem> playlists;
 
             try
             {
+                reset: // http запросы последовательно 
+                if (rch?.enable != true)
+                    await semaphore.WaitAsync();
+
                 // fallback cache
-                if (!hybridCache.TryGetValue(semaphoreKey, out List<PlaylistItem> playlists))
+                if (!hybridCache.TryGetValue(semaphoreKey, out playlists))
                 {
                     // user cache разделенный по ip
-                    if (rch.enable == false || !hybridCache.TryGetValue(rch.ipkey(semaphoreKey), out playlists))
+                    if (rch == null || !hybridCache.TryGetValue(ipkey(semaphoreKey, rch), out playlists))
                     {
                         string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, 
                             url => httpHydra.Get(url)
@@ -41,27 +43,27 @@ namespace SISI.Controllers.Xhamster
 
                         if (playlists.Count == 0)
                         {
-                            if (IsRhubFallback(init))
+                            if (IsRhubFallback())
                                 goto reset;
 
                             return OnError("playlists", refresh_proxy: string.IsNullOrEmpty(search));
                         }
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
 
-                        hybridCache.Set(rch.ipkey(semaphoreKey), playlists, cacheTime(10));
+                        hybridCache.Set(ipkey(semaphoreKey, rch), playlists, cacheTime(10));
                     }
                 }
-
-                return OnResult(
-                    playlists,
-                    string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null
-                );
             }
             finally
             {
                 semaphore.Release();
             }
+
+            return await PlaylistResult(
+                playlists,
+                string.IsNullOrEmpty(search) ? XhamsterTo.Menu(host, plugin, c, q, sort) : null
+            );
         }
     }
 }

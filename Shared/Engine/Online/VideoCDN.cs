@@ -43,7 +43,7 @@ namespace Shared.Engine.Online
         #endregion
 
         #region Search
-        public async Task<SimilarTpl?> Search(string title, string original_title, int serial)
+        public async Task<SimilarTpl> Search(string title, string original_title, int serial)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
@@ -92,7 +92,7 @@ namespace Shared.Engine.Online
                 string year = item.add?.Split("-")?[0] ?? string.Empty;
                 string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
 
-                string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
+                string details = $"imdb: {item.imdb_id} {SimilarTpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
                 stpl.Append(name, year, details, host + $"lite/vcdn?title={enc_title}&original_title={enc_original_title}&kinopoisk_id={item.kp_id}&imdb_id={item.imdb_id}");
             }
@@ -113,7 +113,7 @@ namespace Shared.Engine.Online
             }
 
             var result = new EmbedModel();
-            result.type = Regex.Match(content, "id=\"videoType\" value=\"([^\"]+)\"").Groups[1].Value;
+            result.type = Regex.Match(content, "id=\"videoType\" value=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
             result.voices = new Dictionary<string, string>();
 
             if (content.Contains("</option>"))
@@ -146,7 +146,7 @@ namespace Shared.Engine.Online
                         passArr[i] = (byte)pass[i];
                     }
 
-                    StringBuilder res = new StringBuilder();
+                    StringBuilder res = new StringBuilder(2000);
 
                     for (int i = 0; i < srcLen; i += 2)
                     {
@@ -162,9 +162,9 @@ namespace Shared.Engine.Online
             }
 
             string files = null;
-            string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"").Groups[1].Value;
+            string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
 
-            var m = Regex.Match(content, "<input type=\"hidden\" id=\"[^\"]+\" value=('|\")([^\"']+)");
+            var m = Regex.Match(content, "<input type=\"hidden\" id=\"[^\"]+\" value=('|\")([^\"']+)", RegexOptions.Compiled);
             while (m.Success)
             {
                 string sentry_id = m.Groups[2].Value;
@@ -183,7 +183,7 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(files))
             {
-                files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'").Groups[1].Value;
+                files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(files))
                     return null;
             }    
@@ -260,7 +260,7 @@ namespace Shared.Engine.Online
 
                     var streamquality = new StreamQualityTpl();
 
-                    foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                    foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))", RegexOptions.Compiled))
                     {
                         string link = m.Groups[2].Value;
                         if (string.IsNullOrEmpty(link))
@@ -293,7 +293,7 @@ namespace Shared.Engine.Online
 
                     if (s == -1)
                     {
-                        var seasons = new HashSet<int>();
+                        var seasons = new HashSet<int>(10);
 
                         foreach (var voice in result.serial)
                         {
@@ -344,7 +344,7 @@ namespace Shared.Engine.Online
                         {
                             var streamquality = new StreamQualityTpl();
 
-                            foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                            foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))", RegexOptions.Compiled))
                             {
                                 string link = m.Groups[2].Value;
                                 if (string.IsNullOrEmpty(link))

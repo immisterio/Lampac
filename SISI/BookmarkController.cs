@@ -123,7 +123,7 @@ namespace SISI
                     preview = pl.preview != null && pl.preview.StartsWith("bookmarks/") ? $"{host}/{pl.preview}" : null,
                     pl.model,
                     bookmark = new Bookmark() { uid = pl.bookmark.uid }
-                }).ToArray(),
+                }),
                 total_pages
             });
         }
@@ -159,13 +159,11 @@ namespace SISI
                         }
                         else
                         {
-                            var image = await Http.Download(data.bookmark.image, timeoutSeconds: 7);
-                            if (image != null)
-                            {
-                                Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
-                                await System.IO.File.WriteAllBytesAsync($"wwwroot/{pimg}", image);
+                            Directory.CreateDirectory($"wwwroot/bookmarks/img/{uid.Substring(0, 2)}");
+
+                            bool success = await Http.DownloadFile(data.bookmark.image, $"wwwroot/{pimg}", timeoutSeconds: 10);
+                            if (success)
                                 newimage = pimg;
-                            }
                         }
                     }
                     #endregion
@@ -183,13 +181,11 @@ namespace SISI
                             }
                             else
                             {
-                                var preview = await Http.Download(data.preview, timeoutSeconds: 8);
-                                if (preview != null)
-                                {
-                                    Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
-                                    await System.IO.File.WriteAllBytesAsync($"wwwroot/{path}", preview);
+                                Directory.CreateDirectory($"wwwroot/bookmarks/preview/{uid.Substring(0, 2)}");
+
+                                bool success = await Http.DownloadFile(data.preview, $"wwwroot/{path}", timeoutSeconds: 10);
+                                if (success)
                                     data.preview = path;
-                                }
                             }
                         }
                     }

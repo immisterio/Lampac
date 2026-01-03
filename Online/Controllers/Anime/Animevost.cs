@@ -8,7 +8,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/animevost")]
-        async public ValueTask<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -29,16 +29,17 @@ namespace Online.Controllers
                     if (search == null)
                         return e.Fail("search", refresh_proxy: true);
 
-                    var rows = search.Split("class=\"shortstory\"");
+                    var rx = new RxEnumerate("class=\"shortstory\"", search, 1);
+                    int rxCount = rx.Count();
 
-                    var smlr = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
-                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rows.Length);
+                    var smlr = new List<(string title, string year, string uri, string s, string img)>(rxCount);
+                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rxCount);
 
-                    foreach (string row in rows.Skip(1))
+                    foreach (string row in rx.Rows())
                     {
-                        var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
-                        string animeyear = Regex.Match(row, "<strong>Год выхода: ?</strong>([0-9]{4})</p>").Groups[1].Value;
-                        string img = Regex.Match(row, " src=\"(/uploads/[^\"]+)\"").Groups[1].Value;
+                        var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>", RegexOptions.Compiled).Groups;
+                        string animeyear = Regex.Match(row, "<strong>Год выхода: ?</strong>([0-9]{4})</p>", RegexOptions.Compiled).Groups[1].Value;
+                        string img = Regex.Match(row, " src=\"(/uploads/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                         if (!string.IsNullOrEmpty(img))
                             img = init.host + img;
 
@@ -74,7 +75,7 @@ namespace Online.Controllers
                 if (!similar && cache.Value != null && cache.Value.Count == 1)
                     return LocalRedirect(accsArgs($"/lite/animevost?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(cache.Value[0].uri)}&s={cache.Value[0].s}"));
 
-                return OnResult(cache, () =>
+                return await ContentTpl(cache, () =>
                 {
                     if (cache.Value.Count == 0)
                         return default;
@@ -101,11 +102,11 @@ namespace Online.Controllers
                     if (news == null)
                         return e.Fail("news", refresh_proxy: true);
 
-                    string data = Regex.Match(news, "var data = ([^\n\r]+)").Groups[1].Value;
+                    string data = Regex.Match(news, "var data = ([^\n\r]+)", RegexOptions.Compiled).Groups[1].Value;
                     if (string.IsNullOrEmpty(data))
                         return e.Fail("data", refresh_proxy: true);
 
-                    var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",");
+                    var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",", RegexOptions.Compiled);
                     var links = new List<(string episode, string id)>(match.Length);
 
                     while (match.Success)
@@ -125,7 +126,7 @@ namespace Online.Controllers
                 if (IsRhubFallback(cache))
                     goto rhubFallback;
 
-                return OnResult(cache, () =>
+                return await ContentTpl(cache, () =>
                 {
                     var etpl = new EpisodeTpl(cache.Value.Count);
 
@@ -133,7 +134,7 @@ namespace Online.Controllers
                     {
                         string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
 
-                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
+                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
                     return etpl;
@@ -150,19 +151,22 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
+
+                if (rch.IsNotSupport(out string rch_error))
+                    return ShowError(rch_error);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             rhubFallback:
             var cache = await InvokeCacheResult<List<(string l, string q)>>($"animevost:video:{id}", 20, async e =>
@@ -173,11 +177,11 @@ namespace Online.Controllers
 
                 var links = new List<(string l, string q)>(2);
 
-                string mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p").Groups[1].Value;
+                string mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p", RegexOptions.Compiled).Groups[1].Value;
                 if (!string.IsNullOrEmpty(mp4))
                     links.Add((mp4, "720p"));
 
-                mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p").Groups[1].Value;
+                mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p", RegexOptions.Compiled).Groups[1].Value;
                 if (!string.IsNullOrEmpty(mp4))
                     links.Add((mp4, "480p"));
 

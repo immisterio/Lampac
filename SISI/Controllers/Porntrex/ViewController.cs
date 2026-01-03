@@ -17,10 +17,10 @@ namespace SISI.Controllers.Porntrex
             return await SemaphoreResult($"porntrex:view:{uri}", async e =>
             {
                 reset:
-                if (rch.enable == false)
+                if (rch == null || rch.enable == false)
                     await e.semaphore.WaitAsync();
 
-                string memKey = rch.ipkey(e.key, proxyManager);
+                string memKey = ipkey(e.key);
                 if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, string> links, bool userch) cache))
                 {
                     cache.links = await PorntrexTo.StreamLinks(init.corsHost(), uri, 
@@ -29,15 +29,15 @@ namespace SISI.Controllers.Porntrex
 
                     if (cache.links == null || cache.links.Count == 0)
                     {
-                        if (IsRhubFallback(init))
+                        if (IsRhubFallback())
                             goto reset;
 
                         return OnError("stream_links", refresh_proxy: true);
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
 
-                    cache.userch = rch.enable;
+                    cache.userch = rch?.enable == true;
                     hybridCache.Set(memKey, cache, cacheTime(20));
                 }
 
@@ -56,7 +56,7 @@ namespace SISI.Controllers.Porntrex
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-            if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)
+            if (rch?.enable == true && 484 > rch.InfoConnected()?.apkVersion)
             {
                 rch.Disabled(); // на версиях ниже java.lang.OutOfMemoryError
                 if (!init.rhub_fallback)
@@ -65,10 +65,10 @@ namespace SISI.Controllers.Porntrex
 
             return await SemaphoreResult($"Porntrex:strem:{link}", async e =>
             {
-                if (rch.enable == false)
+                if (rch == null || rch.enable == false)
                     await e.semaphore.WaitAsync();
 
-                string memKey = rch.ipkey(e.key, proxyManager);
+                string memKey = ipkey(e.key);
                 if (!hybridCache.TryGetValue(memKey, out string location))
                 {
                     var headers = httpHeaders(init, HeadersModel.Init(
@@ -77,7 +77,7 @@ namespace SISI.Controllers.Porntrex
                         ("sec-fetch-site", "none")
                     ));
 
-                    if (rch.enable)
+                    if (rch?.enable == true)
                     {
                         var res = await rch.Headers(init.cors(link), null, headers);
                         location = res.currentUrl;
@@ -90,7 +90,7 @@ namespace SISI.Controllers.Porntrex
                     if (string.IsNullOrEmpty(location) || link == location)
                         return OnError("location", refresh_proxy: true);
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(memKey, location, cacheTime(40));
                 }
 

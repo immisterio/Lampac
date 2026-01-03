@@ -29,14 +29,11 @@ namespace Shared.Engine
     public class RchClient
     {
         #region static
-        static RchClient()
-        {
-            _checkConnectionTimer = new Timer(CheckConnection, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(4));
-        }
-
-        static Timer _checkConnectionTimer;
+        static readonly Timer _checkConnectionTimer = new Timer(CheckConnection, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(4));
 
         static int _cronCheckConnectionWork = 0;
+
+        static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
 
         async static void CheckConnection(object state)
         {
@@ -48,7 +45,15 @@ namespace Shared.Engine
 
             try
             {
-                await Parallel.ForEachAsync(clients.Keys.ToArray(), new ParallelOptions 
+                string[] wsKeys = clients
+                    .Where(c => c.Value.connection != null)
+                    .Select(k => k.Key)
+                    .ToArray();
+
+                if (wsKeys.Length == 0)
+                    return;
+
+                await Parallel.ForEachAsync(wsKeys, new ParallelOptions 
                 { 
                     MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) 
                 }, 
@@ -106,14 +111,19 @@ namespace Shared.Engine
                 info = new RchClientInfo() { version = -1 };
 
             clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i, j) => (ip, host, info, connection));
-            InvkEvent.RchRegistry(new EventRchRegistry(connectionId, ip, host, info, connection));
+
+            if (InvkEvent.IsRchRegistry())
+                InvkEvent.RchRegistry(new EventRchRegistry(connectionId, ip, host, info, connection));
         }
 
 
         public static void OnDisconnected(string connectionId)
         {
             if (clients.TryRemove(connectionId, out _))
-                InvkEvent.RchDisconnected(new EventRchDisconnected(connectionId));
+            {
+                if (InvkEvent.IsRchDisconnected())
+                    InvkEvent.RchDisconnected(new EventRchDisconnected(connectionId));
+            }
         }
         #endregion
 
@@ -190,7 +200,7 @@ namespace Shared.Engine
                     return default;
 
                 if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
+                    return JsonConvert.DeserializeObject<T>(json, jsonSettings);
 
                 return JsonConvert.DeserializeObject<T>(json);
             }
@@ -242,7 +252,7 @@ namespace Shared.Engine
                     return default;
 
                 if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(html, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
+                    return JsonConvert.DeserializeObject<T>(html, jsonSettings);
 
                 return JsonConvert.DeserializeObject<T>(html);
             }
@@ -268,7 +278,7 @@ namespace Shared.Engine
                     return default;
 
                 if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
+                    return JsonConvert.DeserializeObject<T>(json, jsonSettings);
 
                 return JsonConvert.DeserializeObject<T>(json);
             }
@@ -297,12 +307,12 @@ namespace Shared.Engine
 
             try
             {
-                var tcs = new TaskCompletionSource<string>();
-                rchIds.TryAdd(rchId, tcs);
+                var tcs = rchIds.GetOrAdd(rchId, _ => new TaskCompletionSource<string>());
 
-                var send_headers = new Dictionary<string, string>();
+                #region send_headers
+                Dictionary<string, string> send_headers = null;
 
-                if (useDefaultHeaders)
+                if (useDefaultHeaders && clientInfo.data.rch_info.rchtype == "apk")
                 {
                     send_headers = new Dictionary<string, string>(Http.defaultUaHeaders)
                     {
@@ -312,29 +322,45 @@ namespace Shared.Engine
 
                 if (headers != null)
                 {
+                    if (send_headers == null)
+                        send_headers = new Dictionary<string, string>(headers.Count);
+
                     foreach (var h in headers)
                         send_headers[h.name.ToLower().Trim()] = h.val;
                 }
 
-                if (clientInfo.data.rch_info.rchtype != "apk")
+                if (send_headers != null && send_headers.Count > 0 && clientInfo.data.rch_info.rchtype != "apk")
                 {
-                    var new_headers = new Dictionary<string, string>();
+                    var new_headers = new Dictionary<string, string>(Math.Min(10, send_headers.Count));
+
                     foreach (var h in send_headers)
                     {
-                        if (h.Key.ToLower().StartsWith("sec-ch-") || h.Key.ToLower().StartsWith("sec-fetch-"))
+                        var key = h.Key;
+
+                        if (key.StartsWith("sec-ch-", StringComparison.OrdinalIgnoreCase) ||
+                            key.StartsWith("sec-fetch-", StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        if (h.Key.ToLower() is "user-agent" or "cookie" or "referer" or "origin"
-                            or "accept" or "accept-language" or "accept-encoding" 
-                            or "cache-control" or "dnt" or "pragma" or "priority"
-                            or "upgrade-insecure-requests")
+                        if (key.Equals("user-agent", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("cookie", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("referer", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("origin", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("accept", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("accept-language", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("accept-encoding", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("cache-control", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("dnt", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("pragma", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("priority", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("upgrade-insecure-requests", StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        new_headers[h.Key] = h.Value;
+                        new_headers[key] = h.Value;
                     }
 
                     send_headers = new_headers;
                 }
+                #endregion
 
                 hub.Invoke(null, (connectionId, rchId, url, data, Http.NormalizeHeaders(send_headers), returnHeaders));
 

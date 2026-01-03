@@ -10,7 +10,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vibix")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -23,7 +23,7 @@ namespace Online.Controllers
                 return OnError();
 
             rhubFallback:
-            var cache = await InvokeCacheResult<EmbedModel>(rch.ipkey($"vibix:iframe:{data.iframe_url}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<EmbedModel>(ipkey($"vibix:iframe:{data.iframe_url}"), 20, async e =>
             {
                 string api_url = data.iframe_url
                     .Replace("/embed/", "/api/v1/embed/")
@@ -55,7 +55,7 @@ namespace Online.Controllers
             if (data.type == "movie")
             {
                 #region Фильм
-                return OnResult(cache, () => 
+                return await ContentTpl(cache, () => 
                 {
                     var mtpl = new MovieTpl(title, original_title, 1);
 
@@ -81,7 +81,7 @@ namespace Online.Controllers
             else
             {
                 #region Сериал
-                return OnResult(cache, () =>
+                return await ContentTpl(cache, () =>
                 {
                     string enc_title = HttpUtility.UrlEncode(title);
                     string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -163,7 +163,7 @@ namespace Online.Controllers
 
                     if (video == null)
                     {
-                        proxyManager.Refresh(rch);
+                        proxyManager?.Refresh();
                         return null;
                     }
 
@@ -177,7 +177,7 @@ namespace Online.Controllers
                 if (root == null)
                     return null;
 
-                proxyManager.Success(rch);
+                proxyManager?.Success();
                 hybridCache.Set(memKey, root, cacheTime(30));
             }
 

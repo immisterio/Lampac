@@ -39,7 +39,7 @@ namespace Online.Controllers
                 var headers = httpHeaders(init);
                 var cookie = await getCookie();
 
-                if (rch.enable && cookie != null)
+                if (rch?.enable == true && cookie != null)
                     headers.Add(new HeadersModel("Cookie", rhubCookie));
 
                 if (init.xapp)
@@ -54,13 +54,15 @@ namespace Online.Controllers
                     "lite/rezka",
                     init,
                     (url, hed) =>
-                        rch.enable ? rch.Get(url, HeadersModel.Join(hed, headers)) :
-                        Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
+                        rch?.enable == true 
+                            ? rch.Get(url, HeadersModel.Join(hed, headers)) 
+                            : Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
                     (url, data, hed) =>
-                        rch.enable ? rch.Post(url, data, HeadersModel.Join(hed, headers)) :
-                        Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
+                        rch?.enable == true 
+                            ? rch.Post(url, data, HeadersModel.Join(hed, headers)) 
+                            : Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
                     streamfile => HostStreamProxy(RezkaInvoke.fixcdn(country, init.uacdn, streamfile), headers: RezkaInvoke.StreamProxyHeaders(init)),
-                    requesterror: () => proxyManager.Refresh(rch)
+                    requesterror: () => proxyManager?.Refresh()
                 );
             };
         }
@@ -68,7 +70,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/rezka")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
         {
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
@@ -80,21 +82,24 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.enable)
+            if (rch != null)
             {
-                if (rch.IsNotSupportRchAccess("web", out string rch_error))
-                    return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
+                if (rch.IsNotConnected() || rch.IsRequiredConnected())
+                    return ContentTo(rch.connectionMsg);
 
-                if (requestInfo.Country == "RU")
+                if (rch.enable)
                 {
-                    if (rch.InfoConnected()?.rchtype != "apk")
+                    if (rch.IsNotSupportRchAccess("web", out string rch_error))
                         return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
 
-                    if (await getCookie() == null)
-                        return ShowError("Укажите логин/пароль или cookie");
+                    if (requestInfo.Country == "RU")
+                    {
+                        if (rch.InfoConnected()?.rchtype != "apk")
+                            return ShowError($"Нужен HDRezka Premium<br>{init.host}/payments/");
+
+                        if (await getCookie() == null)
+                            return ShowError("Укажите логин/пароль или cookie");
+                    }
                 }
             }
             #endregion
@@ -127,7 +132,7 @@ namespace Online.Controllers
                     if (search.Value?.IsEmpty == true)
                         return ShowError(search.Value.content ?? "поиск не дал результатов");
 
-                    return OnResult(search, () =>
+                    return await ContentTpl(search, () =>
                     {
                         if (search.Value.similar == null)
                             return default;
@@ -154,14 +159,14 @@ namespace Online.Controllers
                 () => oninvk.Embed(href, search_uri)
             );
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
         }
 
 
         #region Serial
         [HttpGet]
         [Route("lite/rezka/serial")]
-        async public ValueTask<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false)
         {
             if (string.IsNullOrEmpty(href))
                 return OnError();
@@ -183,7 +188,7 @@ namespace Online.Controllers
             if (content == null)
                 return OnError();
 
-            return ContentTo(oninvk.Serial(root, content, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
+            return await ContentTpl(oninvk.Serial(root, content, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
         }
         #endregion
 
@@ -196,16 +201,19 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
 
             string realip = (init.xrealip && init.corseu) ? requestInfo.IP : "";
 
@@ -217,14 +225,14 @@ namespace Online.Controllers
 
             if (init.ajax != null && init.ajax.Value == false && !string.IsNullOrEmpty(voice))
             {
-                md = await InvokeCache(rch.ipkey($"rezka:movie:{voice}:{realip}:{init.cookie}", proxyManager), 20, 
+                md = await InvokeCache(ipkey($"rezka:movie:{voice}:{realip}:{init.cookie}"), 20, 
                     () => oninvk.Movie(voice)
                 );
             }
 
             if (md == null && init.ajax != null)
             {
-                md = await InvokeCache(rch.ipkey($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}:{init.cookie}", proxyManager), 20,
+                md = await InvokeCache(ipkey($"rezka:view:get_cdn_series:{id}:{t}:{director}:{s}:{e}:{realip}:{init.cookie}"), 20,
                     () => oninvk.Movie(id, t, director, s, e, favs)
                 );
             }

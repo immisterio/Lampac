@@ -39,56 +39,66 @@ namespace SISI.Controllers.NextHUB
             string memKey = $"NextHUB:goInit:{plugin}";
             if (!hybridCache.TryGetValue(memKey, out NxtSettings init))
             {
-                var deserializer = new DeserializerBuilder().Build();
-
-                // Чтение основного YAML-файла
-                string yaml = File.ReadAllText($"NextHUB/sites/{plugin}.yaml");
-                var target = deserializer.Deserialize<Dictionary<object, object>>(yaml);
-
-                foreach (string y in new string[] { "_", plugin })
+                try
                 {
-                    if (File.Exists($"NextHUB/override/{y}.yaml"))
+                    var deserializer = new DeserializerBuilder().Build();
+
+                    // Чтение основного YAML-файла
+                    string yaml = File.ReadAllText($"NextHUB/sites/{plugin}.yaml");
+                    var target = deserializer.Deserialize<Dictionary<object, object>>(yaml);
+
+                    foreach (string y in new string[] { "_", plugin })
                     {
-                        // Чтение пользовательского YAML-файла
-                        string myYaml = File.ReadAllText($"NextHUB/override/{y}.yaml");
-                        var mySource = deserializer.Deserialize<Dictionary<object, object>>(myYaml);
-
-                        // Объединение словарей
-                        foreach (var property in mySource)
+                        if (File.Exists($"NextHUB/override/{y}.yaml"))
                         {
-                            if (!target.ContainsKey(property.Key))
-                            {
-                                target[property.Key] = property.Value;
-                                continue;
-                            }
+                            // Чтение пользовательского YAML-файла
+                            string myYaml = File.ReadAllText($"NextHUB/override/{y}.yaml");
+                            var mySource = deserializer.Deserialize<Dictionary<object, object>>(myYaml);
 
-                            if (property.Value is IDictionary<object, object> sourceDict &&
-                                target[property.Key] is IDictionary<object, object> targetDict)
+                            // Объединение словарей
+                            foreach (var property in mySource)
                             {
-                                // Рекурсивное объединение вложенных словарей
-                                foreach (var item in sourceDict)
-                                    targetDict[item.Key] = item.Value;
-                            }
-                            else
-                            {
-                                target[property.Key] = property.Value;
+                                if (!target.ContainsKey(property.Key))
+                                {
+                                    target[property.Key] = property.Value;
+                                    continue;
+                                }
+
+                                if (property.Value is IDictionary<object, object> sourceDict &&
+                                    target[property.Key] is IDictionary<object, object> targetDict)
+                                {
+                                    // Рекурсивное объединение вложенных словарей
+                                    foreach (var item in sourceDict)
+                                        targetDict[item.Key] = item.Value;
+                                }
+                                else
+                                {
+                                    target[property.Key] = property.Value;
+                                }
                             }
                         }
                     }
+
+                    // Преобразование словаря в объект NxtSettings
+                    var serializer = new SerializerBuilder().Build();
+
+                    var yamlResult = serializer.Serialize(target);
+                    init = deserializer.Deserialize<NxtSettings>(yamlResult);
+
+                    if (string.IsNullOrEmpty(init.plugin))
+                        init.plugin = init.displayname;
+
+                    if (!init.debug)
+                    {
+                        init = ModuleInvoke.Init(plugin, init);
+                        hybridCache.Set(memKey, init, DateTime.Now.AddMinutes(1), inmemory: true);
+                    }
                 }
-
-                // Преобразование словаря в объект NxtSettings
-                var serializer = new SerializerBuilder().Build();
-
-                var yamlResult = serializer.Serialize(target);
-                init = deserializer.Deserialize<NxtSettings>(yamlResult);
-
-                if (string.IsNullOrEmpty(init.plugin))
-                    init.plugin = init.displayname;
-
-                if (!init.debug)
+                catch (Exception ex)
                 {
-                    init = ModuleInvoke.Init(plugin, init);
+                    Console.WriteLine($"NxtSettings goInit: {ex.Message}");
+
+                    init = new NxtSettings();
                     hybridCache.Set(memKey, init, DateTime.Now.AddMinutes(1), inmemory: true);
                 }
             }

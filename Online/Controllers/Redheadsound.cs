@@ -8,7 +8,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/redheadsound")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int clarification, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int clarification, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title) || year == 0)
                 return OnError();
@@ -23,7 +23,7 @@ namespace Online.Controllers
                ongettourl => httpHydra.Get(ongettourl),
                (url, data) => httpHydra.Post(url, data),
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             rhubFallback:
@@ -34,7 +34,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, title, vast: init.vast, rjson: rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, title, vast: init.vast, rjson: rjson));
         }
     }
 }

@@ -36,7 +36,7 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string file = Regex.Match(html, "file:'([^\n\r]+)'").Groups[1].Value;
+            string file = Regex.Match(html, "file:'([^\n\r]+)'", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrEmpty(file))
                 return null;
 
@@ -81,7 +81,7 @@ namespace Shared.Engine.Online
 
                 for (int i = 0; i < voices[t].folder.Length; i++)
                 {
-                    string season = Regex.Match(voices[t].folder[i].title, "([0-9]+)$").Groups[1].Value;
+                    string season = Regex.Match(voices[t].folder[i].title, "([0-9]+)$", RegexOptions.Compiled).Groups[1].Value;
                     if (string.IsNullOrEmpty(season))
                         continue;
 
@@ -111,7 +111,7 @@ namespace Shared.Engine.Online
                         streamquality.Insert(onstreamfile.Invoke(link), $"{m.Groups[1].Value}p");
                     }
 
-                    string episode = Regex.Match(item.title, "([0-9]+)$").Groups[1].Value;
+                    string episode = Regex.Match(item.title, "([0-9]+)$", RegexOptions.Compiled).Groups[1].Value;
                     etpl.Append($"{episode} cерия", title ?? original_title, sArhc, episode, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                 }
 

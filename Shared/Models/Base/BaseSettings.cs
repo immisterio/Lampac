@@ -239,7 +239,10 @@ namespace Shared.Models.Base
         #endregion
 
 
-        public string Decrypt(string data)
+        public string Decrypt(string data) 
+            => BaseDecrypt(data);
+
+        public static string BaseDecrypt(string data)
         {
             try
             {

@@ -1,84 +1,146 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Web;
+using System.Threading;
 
 namespace Shared.Models.Templates
 {
     public class SimilarTpl : ITplResult
     {
-        public string OnlineSplit => "{prestige-split}";
+        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(200_000));
 
-        public List<(string title, string year, string details, string link, string img)> data { get; private set; }
+        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
+
+        public static string OnlineSplit => "<span class=\"online-prestige-split\">●</span>";
+
+
+        public List<SimilarDto> data { get; private set; }
 
 
         public SimilarTpl() : this(20) { }
 
         public SimilarTpl(int capacity) 
         { 
-            data = new List<(string, string, string, string, string)>(capacity); 
+            data = new List<SimilarDto>(capacity); 
         }
 
 
         public void Append(string title, string year, string details, string link, string img = null)
         {
             if (!string.IsNullOrEmpty(title))
-                data.Add((title, year, details, link, img));
+            {
+                data.Add(new SimilarDto(
+                    link,
+                    year != null && short.TryParse(year, out short _year) 
+                        ? _year 
+                        : (short)0,
+                    details,
+                    title, 
+                    img
+                ));
+            }
         }
 
 
-        public bool IsEmpty() => data == null || data.Count == 0;
-
+        public bool IsEmpty => data == null || data.Count == 0;
 
         public string ToHtml()
+            => ToBuilderHtml().ToString();
+
+        public StringBuilder ToBuilderHtml()
         {
-            if (data == null || data.Count == 0)
-                return string.Empty;
+            var html = sb.Value;
+            html.Clear();
+
+            if (IsEmpty)
+                return html;
 
             bool firstjson = true;
-            var html = new StringBuilder();
+
             html.Append("<div class=\"videos__line\">");
 
-            foreach (var i in data) 
+            foreach (var i in data)
             {
-                string datajson = JsonSerializer.Serialize(new
-                {
-                    method = "link",
-                    url = i.link,
-                    similar = true,
-                    year = i.year != null && int.TryParse(i.year, out int _year) ? _year : 0,
-                    i.details,
-                    i.img
+                html.Append("<div class=\"videos__item videos__season selector ");
+                if (firstjson)
+                    html.Append("focused");
+                html.Append("\" ");
 
-                }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+                html.Append("data-json='");
+                UtilsTpl.WriteJson(html, i, jsonOptions);
+                html.Append("'>");
 
-                datajson = datajson.Replace("{prestige-split}", "<span class=\\\"online-prestige-split\\\">●</span>");
+                html.Append("<div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">");
+                UtilsTpl.HtmlEncode(i.title.AsSpan(), html);
+                html.Append("</div></div></div>");
 
-                html.Append($"<div class=\"videos__item videos__season selector {(firstjson ? "focused" : "")}\" data-json='{datajson}'><div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">{HttpUtility.HtmlEncode(i.title)}</div></div></div>");
                 firstjson = false;
             }
 
-            return html.ToString() + "</div>";
+            html.Append("</div>");
+
+            return html;
         }
 
 
         public string ToJson()
-        {
-            if (data == null || data.Count == 0)
-                return "{}";
+            => ToBuilderJson().ToString();
 
-            return JsonSerializer.Serialize(new 
+        public StringBuilder ToBuilderJson()
+        {
+            var json = sb.Value;
+            json.Clear();
+
+            if (IsEmpty)
             {
-                type = "similar",
-                data = data.Select(i => new 
-                {
-                    url = i.link,
-                    details = i.details?.Replace("{prestige-split}", "<span class=\"online-prestige-split\">●</span>"),
-                    i.title,
-                    year = int.TryParse(i.year, out int _year) ? _year : 0,
-                    i.img
-                })
-            }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+                json.Append("{}");
+                return json;
+            }
+
+            UtilsTpl.WriteJson(json, new SimilarResponseDto(data), jsonOptions);
+
+            return json;
+        }
+    }
+
+
+    public readonly struct SimilarDto
+    {
+        public string method { get; }
+        public string url { get; }
+        public bool similar { get; }
+        public short year { get; }
+        public string details { get; }
+        public string title { get; }
+        public string img { get; }
+
+        public SimilarDto(
+            string url,
+            short year,
+            string details,
+            string title,
+            string img
+        )
+        {
+            method = "link";
+            this.url = url;
+            similar = true;
+            this.year = year;
+            this.details = details;
+            this.title = title;
+            this.img = img;
+        }
+    }
+
+    public readonly struct SimilarResponseDto
+    {
+        public string type { get; }
+        public IReadOnlyList<SimilarDto> data { get; }
+
+        public SimilarResponseDto(IReadOnlyList<SimilarDto> data)
+        {
+            type = "similar";
+            this.data = data;
         }
     }
 }

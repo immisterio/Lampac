@@ -11,7 +11,7 @@ namespace SISI.Controllers.PornHub
         [Route("phub")]
         [Route("phubgay")]
         [Route("phubsml")]
-        async public ValueTask<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string model, string sort, int c, int pg = 1)
         {
             if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
@@ -21,49 +21,51 @@ namespace SISI.Controllers.PornHub
             string semaphoreKey = $"{plugin}:list:{search}:{model}:{sort}:{c}:{pg}";
             var semaphore = new SemaphorManager(semaphoreKey, TimeSpan.FromSeconds(30));
 
-            reset: // http запросы последовательно 
-            if (rch.enable == false)
-                await semaphore.WaitAsync();
+            (int total_pages, List<PlaylistItem> playlists) cache;
 
             try
             {
+                reset: // http запросы последовательно 
+                if (rch?.enable != true)
+                    await semaphore.WaitAsync();
+
                 // fallback cache
-                if (!hybridCache.TryGetValue(semaphoreKey, out (int total_pages, List<PlaylistItem> playlists) cache))
+                if (!hybridCache.TryGetValue(semaphoreKey, out cache))
                 {
                     // user cache разделенный по ip
-                    if (rch.enable == false || !hybridCache.TryGetValue(rch.ipkey(semaphoreKey), out cache))
+                    if (rch == null || !hybridCache.TryGetValue(ipkey(semaphoreKey, rch), out cache))
                     {
                         string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, 
                             url => httpHydra.Get(url)
                         );
 
-                        cache.total_pages = rch.enable ? 0 : PornHubTo.Pages(html);
+                        cache.total_pages = PornHubTo.Pages(html);
                         cache.playlists = PornHubTo.Playlist("phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
 
                         if (cache.playlists.Count == 0)
                         {
-                            if (IsRhubFallback(init))
+                            if (IsRhubFallback())
                                 goto reset;
 
                             return OnError("playlists", refresh_proxy: string.IsNullOrEmpty(search));
                         }
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
 
-                        hybridCache.Set(rch.ipkey(semaphoreKey), cache, cacheTime(10));
+                        hybridCache.Set(ipkey(semaphoreKey, rch), cache, cacheTime(10));
                     }
                 }
-
-                return OnResult(
-                    cache.playlists,
-                    string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null,
-                    total_pages: cache.total_pages
-                );
             }
             finally
             {
                 semaphore.Release();
             }
+
+            return await PlaylistResult(
+                cache.playlists,
+                string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, plugin, search, sort, c) : null,
+                total_pages: cache.total_pages
+            );
         }
     }
 }

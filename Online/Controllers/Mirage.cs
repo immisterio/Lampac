@@ -21,7 +21,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/mirage")]
-        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             if (similar)
                 return await RouteSpiderSearch(title, origsource, rjson);
@@ -63,7 +63,7 @@ namespace Online.Controllers
                     mtpl.Append(translation, link, "call", streamlink, voice_name: uhd ? "2160p" : quality, quality: uhd ? "2160p" : "");
                 }
 
-                return ContentTo(mtpl);
+                return await ContentTpl(mtpl);
                 #endregion
             }
             else
@@ -113,7 +113,7 @@ namespace Online.Controllers
                         foreach (int i in seasonNumbers.OrderBy(i => i))
                             tpl.Append($"{i} сезон", $"{host}/lite/mirage?rjson={rjson}&s={i}{defaultargs}", i.ToString());
 
-                        return ContentTo(tpl);
+                        return await ContentTpl(tpl);
                     }
                     else
                     {
@@ -122,7 +122,7 @@ namespace Online.Controllers
                         foreach (var season in seasons)
                             tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
 
-                        return ContentTo(tpl);
+                        return await ContentTpl(tpl);
                     }
                     #endregion
                 }
@@ -274,7 +274,7 @@ namespace Online.Controllers
 
                     etpl.Append(vtpl);
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                 }
                 #endregion
             }
@@ -482,7 +482,7 @@ namespace Online.Controllers
         #region SpiderSearch
         [HttpGet]
         [Route("lite/mirage-search")]
-        async public ValueTask<ActionResult> RouteSpiderSearch(string title, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> RouteSpiderSearch(string title, bool origsource = false, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -499,7 +499,7 @@ namespace Online.Controllers
                 return e.Success(root["data"].ToObject<JArray>());
             });
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 var stpl = new SimilarTpl(cache.Value.Count);
 

@@ -8,7 +8,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/ashdi")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
         {
             if (kinopoisk_id == 0)
                 return OnError();
@@ -20,9 +20,9 @@ namespace Online.Controllers
             (
                host,
                init.corsHost(),
-               ongettourl => httpHydra.Get(ongettourl, statusCodeOK: false),
+               httpHydra,
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             rhubFallback:
@@ -33,7 +33,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, kinopoisk_id, title, original_title, t, s, vast: init.vast, rjson: rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, kinopoisk_id, title, original_title, t, s, vast: init.vast, rjson: rjson));
         }
     }
 }

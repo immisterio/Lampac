@@ -8,7 +8,7 @@ namespace SISI.Controllers.XvideosRED
 
         [HttpGet]
         [Route("xdsred/vidosik")]
-        async public ValueTask<ActionResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
@@ -24,12 +24,12 @@ namespace SISI.Controllers.XvideosRED
                     if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                         return OnError("stream_links", refresh_proxy: true);
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, stream_links, cacheTime(20));
                 }
 
                 if (related)
-                    return OnResult(stream_links?.recomends, null, total_pages: 1);
+                    return await PlaylistResult(stream_links?.recomends, null, total_pages: 1);
 
                 return OnResult(stream_links);
             });

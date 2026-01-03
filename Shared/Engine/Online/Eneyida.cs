@@ -51,30 +51,31 @@ namespace Shared.Engine.Online
 
                 onlog?.Invoke("search ok");
 
-                var rows = search.Split("<article ");
+                var rx = new RxEnumerate("<article ", search, 1);
+
                 string stitle = StringConvert.SearchName(original_title?.ToLower());
 
-                foreach (string row in rows.Skip(1))
+                foreach (string row in rx.Rows())
                 {
                     if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
                         continue;
 
-                    string newslink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                    string newslink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"", RegexOptions.Compiled).Groups[1].Value;
                     if (string.IsNullOrEmpty(newslink))
                         continue;
 
                     // <div class="short_subtitle"><a href="https://eneyida.tv/xfsearch/year/2025/">2025</a> &bull; Thunderbolts</div>
-                    var g = Regex.Match(row, "class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>").Groups;
+                    var g = Regex.Match(row, "class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>", RegexOptions.Compiled).Groups;
 
                     string name = g[3].Value.Replace("&bull;", "").Trim();
                     if (string.IsNullOrEmpty(name))
                         continue;
 
                     if (result.similars == null)
-                        result.similars = new List<Similar>(rows.Length);
+                        result.similars = new List<Similar>(rx.Count());
 
-                    string uaname = Regex.Match(row, "id=\"short_title\"[^>]+>([^<]+)<").Groups[1].Value;
-                    string img = Regex.Match(row, "data-src=\"/([^\"]+)\"").Groups[1].Value;
+                    string uaname = Regex.Match(row, "id=\"short_title\"[^>]+>([^<]+)<", RegexOptions.Compiled).Groups[1].Value;
+                    string img = Regex.Match(row, "data-src=\"/([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
 
                     result.similars.Add(new Similar()
                     {
@@ -115,9 +116,9 @@ namespace Shared.Engine.Online
             }
 
             if (news.Contains("full_content fx_row"))
-                result.quel = Regex.Match(news.Split("full_content fx_row")[1].Split("full__favourite")[0], " (1080p|720p|480p)</div>").Groups[1].Value;
+                result.quel = Regex.Match(news.Split("full_content fx_row")[1].Split("full__favourite")[0], " (1080p|720p|480p)</div>", RegexOptions.Compiled).Groups[1].Value;
 
-            string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
+            string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrEmpty(iframeUri))
                 return null;
 
@@ -129,13 +130,13 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            if (Regex.IsMatch(content, "file: ?'\\["))
+            if (Regex.IsMatch(content, "file: ?'\\[", RegexOptions.Compiled))
             {
                 Models.Online.Tortuga.Voice[] root = null;
 
                 try
                 {
-                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',", RegexOptions.Compiled).Groups[1].Value);
                     if (root == null || root.Length == 0)
                         return null;
                 }
@@ -187,17 +188,17 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title);
 
-                string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
+                string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(hls))
                     return default;
 
                 #region subtitle
                 SubtitleTpl subtitles = new SubtitleTpl();
-                string subtitle = new Regex("subtitle: ?\"([^\"]+)\"").Match(result.content).Groups[1].Value;
+                string subtitle = new Regex("subtitle: ?\"([^\"]+)\"", RegexOptions.Compiled).Match(result.content).Groups[1].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {
-                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
+                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)", RegexOptions.Compiled).Match(subtitle);
                     while (match.Success)
                     {
                         subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
@@ -225,7 +226,7 @@ namespace Shared.Engine.Online
 
                         foreach (var season in result.serial)
                         {
-                            string numberseason = Regex.Match(season.title, "^([0-9]+)").Groups[1].Value;
+                            string numberseason = Regex.Match(season.title, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
                             if (string.IsNullOrEmpty(numberseason))
                                 continue;
 
@@ -267,7 +268,7 @@ namespace Shared.Engine.Online
 
                             if (!string.IsNullOrEmpty(episode.subtitle))
                             {
-                                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
+                                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)", RegexOptions.Compiled).Match(episode.subtitle);
                                 subtitles = new SubtitleTpl(match.Length);
 
                                 while (match.Success)
@@ -279,7 +280,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(episode.file);
-                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         return etpl;

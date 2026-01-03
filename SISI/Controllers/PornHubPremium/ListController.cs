@@ -8,7 +8,7 @@ namespace SISI.Controllers.PornHubPremium
 
         [HttpGet]
         [Route("phubprem")]
-        async public ValueTask<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
+        async public Task<ActionResult> Prem(string search, string model, string sort, string hd, int c, int pg = 1)
         {
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
@@ -26,11 +26,11 @@ namespace SISI.Controllers.PornHubPremium
                 if (cache.playlists.Count == 0)
                     return OnError("playlists", refresh_proxy: pg > 1 && string.IsNullOrEmpty(search));
 
-                proxyManager.Success(rch);
+                proxyManager?.Success();
                 hybridCache.Set(memKey, cache, cacheTime(10));
             }
 
-            return OnResult(
+            return await PlaylistResult(
                 cache.playlists, 
                 string.IsNullOrEmpty(model) ? PornHubTo.Menu(host, "phubprem", search, sort, c, hd) : null, 
                 total_pages: cache.total_pages

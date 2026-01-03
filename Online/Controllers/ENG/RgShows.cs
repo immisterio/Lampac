@@ -9,7 +9,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/rgshows")]
-        public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+        public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds);
         }
@@ -56,7 +56,7 @@ namespace Online.Controllers
                     var root = await Http.Get<JObject>(uri, proxy: proxy, timeoutSeconds: 40, httpversion: 2, headers: httpHeaders(init));
                     if (root == null || !root.ContainsKey("stream"))
                     {
-                        proxyManager.Refresh();
+                        proxyManager?.Refresh();
                         return null;
                     }
 
@@ -64,7 +64,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(file))
                         return null;
 
-                    proxyManager.Success();
+                    proxyManager?.Success();
                     hybridCache.Set(memKey, file, cacheTime(20));
                 }
 

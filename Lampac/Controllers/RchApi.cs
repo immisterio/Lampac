@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Lampac.Controllers
 {
-    public class RchApi : BaseController
+    public class RchBaseApi : BaseController
     {
         [HttpGet]
         [AllowAnonymous]
@@ -23,11 +23,14 @@ namespace Lampac.Controllers
             var info = rch.InfoConnected() ?? new RchClientInfo();
             return Json(new { info.version, info.apkVersion, info.rchtype });
         }
+    }
 
+    public class RchApi : Controller
+    {
         [HttpPost]
         [AllowAnonymous]
         [Route("rch/result")]
-        public ActionResult WriteResult([FromForm]string id, [FromForm]string value)
+        public ActionResult WriteResult([FromForm] string id, [FromForm] string value)
         {
             if (string.IsNullOrEmpty(id))
             {
@@ -41,14 +44,14 @@ namespace Lampac.Controllers
                 return Content(string.Empty);
             }
 
-            tcs.SetResult(value ?? string.Empty);
+            tcs.TrySetResult(value ?? string.Empty);
             return Ok();
         }
 
         [HttpPost]
         [AllowAnonymous]
         [Route("rch/gzresult")]
-        async public Task<ActionResult> WriteZipResult([FromQuery]string id)
+        async public Task<ActionResult> WriteZipResult([FromQuery] string id)
         {
             if (string.IsNullOrEmpty(id))
             {
@@ -62,15 +65,11 @@ namespace Lampac.Controllers
                 return Content(string.Empty);
             }
 
-            try
+            using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
             {
-                using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
-                {
-                    using (var reader = new StreamReader(gzip, Encoding.UTF8))
-                        tcs.SetResult(await reader.ReadToEndAsync(HttpContext.RequestAborted) ?? string.Empty);
-                }
+                using (var reader = new StreamReader(gzip, Encoding.UTF8))
+                    tcs.TrySetResult(await reader.ReadToEndAsync(HttpContext.RequestAborted) ?? string.Empty);
             }
-            catch { }
 
             return Ok();
         }

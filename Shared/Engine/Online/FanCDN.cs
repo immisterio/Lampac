@@ -42,7 +42,9 @@ namespace Shared.Engine.Online
 
                 string href = null;
 
-                foreach (string itemsearch in search.Split("item-search-serial"))
+                var rx = new RxEnumerate("item-search-serial", search);
+
+                foreach (string itemsearch in rx.Rows())
                 {
                     string info = itemsearch.Split("torrent-link")?[0];
                     if (!string.IsNullOrEmpty(info) && (info.Contains($"({year - 1}") || info.Contains($"({year}") || info.Contains($"({year + 1}")))
@@ -50,7 +52,7 @@ namespace Shared.Engine.Online
                         string _info = StringConvert.SearchName(info);
                         if (_info.Contains(StringConvert.SearchName(title)) || (!string.IsNullOrEmpty(original_title) && _info.Contains(StringConvert.SearchName(original_title))))
                         {
-                            href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                            href = Regex.Match(info, "<a href=\"(https?://[^\"]+\\.html)\"", RegexOptions.Compiled).Groups[1].Value;
                             break;
                         }
                     }
@@ -66,7 +68,7 @@ namespace Shared.Engine.Online
 
                 string iframe_url = null;
 
-                foreach (Match match in Regex.Matches(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\""))
+                foreach (Match match in Regex.Matches(html, "(https?://fancdn\\.[^\"\n\r\t ]+)\"", RegexOptions.Compiled))
                 {
                     string cdn = match.Groups[1].Value;
                     if (cdn.Contains("kinopoisk=") && cdn.Contains("key="))
@@ -102,9 +104,9 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(iframe))
                 return null;
 
-            iframe = Regex.Replace(iframe, "[\n\r\t]+", "").Replace("var ", "\n");
+            iframe = Regex.Replace(iframe, "[\n\r\t]+", "", RegexOptions.Compiled).Replace("var ", "\n");
 
-            string playlist = Regex.Match(iframe, "playlist ?= ?(\\[[^\n\r]+\\]);").Groups[1].Value;
+            string playlist = Regex.Match(iframe, "playlist ?= ?(\\[[^\n\r]+\\]);", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrEmpty(playlist))
                 return null;
 
@@ -179,7 +181,7 @@ namespace Shared.Engine.Online
                 {
                     #region Сезоны
                     var tpl = new SeasonTpl();
-                    var hash = new HashSet<int>();
+                    var hash = new HashSet<int>(20);
 
                     foreach (var voice in root.serial.OrderBy(i => i.seasons))
                     {

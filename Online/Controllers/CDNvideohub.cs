@@ -9,7 +9,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/cdnvideohub")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int s = -1, bool rjson = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -32,7 +32,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => 
+            return await ContentTpl(cache, () => 
             {
                 if (cache.Value.Value<bool>("isSerial"))
                 {
@@ -141,22 +141,25 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
+
+                if (rch.IsNotSupport(out string rch_error))
+                    return ShowError(rch_error);
             }
 
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
-
             rhubFallback:
-            var cache = await InvokeCacheResult<string>(rch.ipkey($"cdnvideohub:video:{vkId}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<string>(ipkey($"cdnvideohub:video:{vkId}"), 20, async e =>
             {
                 string iframe = await httpHydra.Get($"{init.corsHost()}/api/v1/player/sv/video/{vkId}");
 

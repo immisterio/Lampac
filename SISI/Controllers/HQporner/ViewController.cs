@@ -14,7 +14,7 @@ namespace SISI.Controllers.HQporner
                 return badInitMsg;
 
             rhubFallback:
-            var cache = await InvokeCacheResult<Dictionary<string, string>>(rch.ipkey($"HQporner:view:{uri}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<Dictionary<string, string>>(ipkey($"HQporner:view:{uri}"), 20, async e =>
             {
                 var stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri,
                     htmlurl => httpHydra.Get(htmlurl),

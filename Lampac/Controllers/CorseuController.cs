@@ -176,7 +176,7 @@ namespace Lampac.Controllers
                 var handler = Http.Handler(url, proxyManager.Get());
                 handler.AllowAutoRedirect = autoRedirect;
 
-                var client = FrendlyHttp.HttpMessageClient(httpVersion == 2 ? "http2" : "base", handler);
+                var client = FrendlyHttp.MessageClient(httpVersion == 2 ? "http2" : "base", handler);
 
                 using (var request = new HttpRequestMessage(new HttpMethod(method), url))
                 {
@@ -199,7 +199,8 @@ namespace Lampac.Controllers
                     var headersModel = headers.Count > 0 ? HeadersModel.Init(headers) : null;
                     Http.DefaultRequestHeaders(url, request, null, null, headersModel, useDefaultHeaders);
 
-                    InvkEvent.CorseuHttpRequest(method, url, request);
+                    if (InvkEvent.IsCorseuHttpRequest())
+                        InvkEvent.CorseuHttpRequest(method, url, request);
 
                     using (var cts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
                     {
@@ -287,7 +288,8 @@ namespace Lampac.Controllers
                     };
                 }
 
-                InvkEvent.CorseuPlaywrightRequest(method, url, contextOptions, requestOptions);
+                if (InvkEvent.IsCorseuPlaywrightRequest())
+                    InvkEvent.CorseuPlaywrightRequest(method, url, contextOptions, requestOptions);
 
                 await using (var requestContext = await Chromium.playwright.APIRequest.NewContextAsync(contextOptions).ConfigureAwait(false))
                 {
@@ -381,7 +383,7 @@ namespace Lampac.Controllers
             if (model.proxy != null)
                 model.useproxy = true;
 
-            return new ProxyManager(model);
+            return new ProxyManager("corseu", model);
         }
 
         async Task CopyResponseAsync(HttpResponseMessage response, bool headersOnly)

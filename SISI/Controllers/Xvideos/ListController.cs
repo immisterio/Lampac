@@ -10,7 +10,7 @@ namespace SISI.Controllers.Xvideos
         [Route("xds")]
         [Route("xdsgay")]
         [Route("xdssml")]
-        async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
@@ -35,7 +35,7 @@ namespace SISI.Controllers.Xvideos
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache,
+            return await PlaylistResult(cache,
                 string.IsNullOrEmpty(search) ? XvideosTo.Menu(host, plugin, sort, c) : null
             );
         }
@@ -45,7 +45,7 @@ namespace SISI.Controllers.Xvideos
         [Route("xds/stars")]
         [Route("xdsgay/stars")]
         [Route("xdssml/stars")]
-        async public ValueTask<ActionResult> Pornstars(string uri, string sort, int pg = 0)
+        async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
         {
             if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
@@ -68,7 +68,7 @@ namespace SISI.Controllers.Xvideos
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache
+            return await PlaylistResult(cache
                 // XvideosTo.PornstarsMenu(host, plugin, sort)
             );
         }

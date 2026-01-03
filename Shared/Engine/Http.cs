@@ -11,6 +11,8 @@ namespace Shared.Engine
 {
     public static class Http
     {
+        static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
+
         public static IHttpClientFactory httpClientFactory;
 
         #region defaultHeaders / UserAgent
@@ -41,11 +43,10 @@ namespace Shared.Engine
         #region Handler
         public static HttpClientHandler Handler(string url, WebProxy proxy, CookieContainer cookieContainer = null)
         {
-            string log = string.Empty;
-            return Handler(url, proxy, ref log, cookieContainer);
+            return Handler(url, proxy, null, cookieContainer);
         }
 
-        static HttpClientHandler Handler(string url, WebProxy proxy, ref string loglines, CookieContainer cookieContainer = null)
+        static HttpClientHandler Handler(string url, WebProxy proxy, StringBuilder loglines, CookieContainer cookieContainer = null)
         {
             var handler = new HttpClientHandler()
             {
@@ -59,7 +60,9 @@ namespace Shared.Engine
             {
                 handler.UseProxy = true;
                 handler.Proxy = proxy;
-                loglines += $"proxy: {proxy.Address.ToString()}\n";
+
+                if (loglines != null && IsLogged)
+                    loglines.Append($"proxy: {proxy.Address.ToString()}\n");
             }
             else
             {
@@ -96,13 +99,17 @@ namespace Shared.Engine
 
                         handler.UseProxy = true;
                         handler.Proxy = new WebProxy(proxyip, p.BypassOnLocal, null, credentials);
-                        loglines += $"globalproxy: {proxyip} {(p.useAuth ? $" - {p.username}:{p.password}" : "")}\n";
+
+                        if (loglines != null && IsLogged)
+                            loglines.Append($"globalproxy: {proxyip} {(p.useAuth ? $" - {p.username}:{p.password}" : "")}\n");
+
                         break;
                     }
                 }
             }
 
-            InvkEvent.Http(new EventHttpHandler(url, handler, proxy, cookieContainer, Startup.memoryCache));
+            if (InvkEvent.IsHttpClientHandler())
+                InvkEvent.HttpClientHandler(new EventHttpHandler(url, handler, proxy, cookieContainer, Startup.memoryCache));
 
             return handler;
         }
@@ -112,11 +119,10 @@ namespace Shared.Engine
         #region DefaultRequestHeaders
         public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, bool useDefaultHeaders = true)
         {
-            string loglines = string.Empty;
-            DefaultRequestHeaders(url, client, cookie, referer, headers, ref loglines, useDefaultHeaders);
+            DefaultRequestHeaders(url, client, cookie, referer, headers, null, useDefaultHeaders);
         }
 
-        public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, ref string loglines, bool useDefaultHeaders = true)
+        public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, List<HeadersModel> headers, StringBuilder loglines, bool useDefaultHeaders = true)
         {
             var addHeaders = new Dictionary<string, string>();
 
@@ -152,20 +158,28 @@ namespace Shared.Engine
                     addHeaders[h.name.ToLower().Trim()] = h.val;
             }
 
-            foreach (var h in NormalizeHeaders(addHeaders))
+            if (NormalizeHeaders(addHeaders) is var normalizeHeaders && normalizeHeaders != null)
             {
-                if (client.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                foreach (var h in normalizeHeaders)
                 {
-                    loglines += $"{h.Key}: {h.Value}\n";
-                }
-                else if (client.Content?.Headers != null)
-                {
-                    if (client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value))
-                        loglines += $"{h.Key}: {h.Value}\n";
+                    if (client.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                    {
+                        if (IsLogged && loglines != null)
+                            loglines.Append($"{h.Key}: {h.Value}\n");
+                    }
+                    else if (client.Content?.Headers != null)
+                    {
+                        if (client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                        {
+                            if (IsLogged && loglines != null)
+                                loglines.Append($"{h.Key}: {h.Value}\n");
+                        }
+                    }
                 }
             }
 
-            InvkEvent.Http(new EventHttpHeaders(url, client, cookie, referer, headers, useDefaultHeaders, Startup.memoryCache));
+            if (InvkEvent.IsHttpClientHeaders())
+                InvkEvent.HttpClientHeaders(new EventHttpHeaders(url, client, cookie, referer, headers, useDefaultHeaders, Startup.memoryCache));
         }
         #endregion
 
@@ -173,28 +187,56 @@ namespace Shared.Engine
         public static Dictionary<string, T> NormalizeHeaders<T>(Dictionary<string, T> raw)
         {
             if (raw == null || raw.Count == 0)
-                return raw;
+                return null;
 
-            var result = new Dictionary<string, T>();
+            var result = new Dictionary<string, T>(raw.Count, StringComparer.Ordinal);
 
-            foreach (var kv in raw)
-            {
-                // Разбиваем имя по дефисам
-                var parts = kv.Key.Split('-');
-
-                for (int i = 0; i < parts.Length; i++)
-                {
-                    if (parts[i].Length == 0) 
-                        continue;
-
-                    // Первая буква заглавная, остальные — как были
-                    parts[i] = char.ToUpper(parts[i][0]) + parts[i].Substring(1);
-                }
-
-                result[string.Join("-", parts)] = kv.Value;
-            }
+            foreach (var kv in raw) 
+                result[NormalizeHeaderName(kv.Key)] = kv.Value;
 
             return result;
+        }
+
+        public static Dictionary<string, string> NormalizeHeaders(List<HeadersModel> raw)
+        {
+            if (raw == null || raw.Count == 0)
+                return null;
+
+            var result = new Dictionary<string, string>(raw.Count, StringComparer.Ordinal);
+
+            foreach (var kv in raw)
+                result[NormalizeHeaderName(kv.name)] = kv.val;
+
+            return result;
+        }
+
+        private static string NormalizeHeaderName(string key)
+        {
+            return string.Create(key.Length, key, static (span, src) =>
+            {
+                bool upper = true;
+                for (int i = 0; i < src.Length; i++)
+                {
+                    char c = src[i];
+                    if (c == '-')
+                    {
+                        span[i] = '-';
+                        upper = true;
+                        continue;
+                    }
+
+                    if (upper)
+                    {
+                        // Для заголовков обычно корректнее invariant
+                        span[i] = char.ToUpperInvariant(c);
+                        upper = false;
+                    }
+                    else
+                    {
+                        span[i] = c;
+                    }
+                }
+            });
         }
         #endregion
 
@@ -207,7 +249,7 @@ namespace Shared.Engine
                 var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = allowAutoRedirect;
 
-                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler);
+                var client = FrendlyHttp.MessageClient(httpversion == 2 ? "http2" : "base", handler);
 
                 var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
@@ -242,7 +284,7 @@ namespace Shared.Engine
                 var handler = Handler(url, proxy);
                 handler.AllowAutoRedirect = allowAutoRedirect;
 
-                var client = FrendlyHttp.HttpMessageClient(httpversion == 2 ? "http2" : "base", handler);
+                var client = FrendlyHttp.MessageClient(httpversion == 2 ? "http2" : "base", handler);
 
                 var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
@@ -263,77 +305,157 @@ namespace Shared.Engine
         #endregion
 
 
+        #region Get<T>
+        async public static Task<T> Get<T>(string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool weblog = true, HttpContent body = null)
+        {
+            return (await BaseGetAsync<T>(
+                url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy,statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
+            ).ConfigureAwait(false)).content;
+        }
+        #endregion
+
+        #region BaseGetAsync<T>
+        async public static Task<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
+        {
+            try
+            {
+                var loglines = new StringBuilder();
+
+                try
+                {
+                    var handler = Handler(url, proxy, loglines, cookieContainer);
+
+                    var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
+
+                    if (cookieContainer != null && IsLogged)
+                    {
+                        var cookiesString = new StringBuilder(200);
+                        foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
+                            cookiesString.Append($"{c.Name}={c.Value}; ");
+
+                        if (cookiesString.Length > 0)
+                            loglines.Append($"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n");
+                    }
+
+                    var req = new HttpRequestMessage(HttpMethod.Get, url)
+                    {
+                        Version = httpversion == 1 ? HttpVersion.Version11 : new Version(httpversion, 0),
+                        Content = body
+                    };
+
+                    DefaultRequestHeaders(url, req, cookie, referer, headers, loglines, useDefaultHeaders);
+
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                    {
+                        using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
+                        {
+                            if (IsLogged)
+                            {
+                                loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
+
+                                foreach (var h in response.Headers)
+                                {
+                                    if (h.Key == "Set-Cookie")
+                                    {
+                                        foreach (string v in h.Value)
+                                            loglines.Append($"{h.Key}: {v}\n");
+                                    }
+                                    else
+                                        loglines.Append($"{h.Key}: {string.Join("", h.Value)}\n");
+                                }
+                            }
+
+                            using (HttpContent content = response.Content)
+                            {
+                                if (InvkEvent.IsHttpAsync())
+                                    await InvkEvent.HttpAsync(new EventHttpResponse(url, null, client, "ReadAsStream", response, Startup.memoryCache));
+
+                                if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                    return (default, response);
+
+                                using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
+                                {
+                                    using (var streamReader = new StreamReader(stream))
+                                    {
+                                        using (var jsonReader = new JsonTextReader(streamReader))
+                                        {
+                                            var serializer = JsonSerializer.Create(
+                                                IgnoreDeserializeObject ? jsonSettings : null
+                                            );
+
+                                            T result = serializer.Deserialize<T>(jsonReader);
+
+                                            if (IsLogged)
+                                                loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+
+                                            return (result, response);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (IsLogged)
+                        loglines.Append(ex.ToString());
+
+                    if (InvkEvent.IsHttpAsync())
+                    {
+                        await InvkEvent.HttpAsync(new EventHttpResponse(url, null, null, ex.ToString(), new HttpResponseMessage()
+                        {
+                            StatusCode = HttpStatusCode.InternalServerError,
+                            RequestMessage = new HttpRequestMessage()
+                        }, Startup.memoryCache));
+                    }
+
+                    return (default, new HttpResponseMessage()
+                    {
+                        StatusCode = HttpStatusCode.InternalServerError,
+                        RequestMessage = new HttpRequestMessage()
+                    });
+                }
+                finally
+                {
+                    if (weblog && !url.Contains("127.0.0.1") && IsLogged)
+                        WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
+                }
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        #endregion
+
+
         #region Get
         async public static Task<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
-            return (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, weblog: weblog, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, body: body).ConfigureAwait(false)).content;
+            return (await BaseGet(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, weblog: weblog, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, body: body).ConfigureAwait(false)).content;
         }
         #endregion
 
-        #region Get<T>
-        async public static Task<T> Get<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool weblog = true, HttpContent body = null)
+        #region BaseGet
+        async public static Task<(string content, HttpResponseMessage response)> BaseGet(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
-            try
-            {
-                string html = (await BaseGetAsync(url, encoding, cookie: cookie, referer: referer, MaxResponseContentBufferSize: MaxResponseContentBufferSize, timeoutSeconds: timeoutSeconds, headers: headers, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, weblog: weblog, body: body).ConfigureAwait(false)).content;
-                if (html == null)
-                    return default;
-
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(html, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
-
-                return JsonConvert.DeserializeObject<T>(html);
-            }
-            catch
-            {
-                return default;
-            }
-        }
-        #endregion
-
-
-        #region BaseGetAsync<T>
-        async public static Task<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
-        {
-            try
-            {
-                var result = await BaseGetAsync(url, encoding, cookie, referer, timeoutSeconds, MaxResponseContentBufferSize, headers, proxy, httpversion, statusCodeOK, weblog, cookieContainer, useDefaultHeaders, body).ConfigureAwait(false);
-                if (result.content == null)
-                    return default;
-
-                JsonSerializerSettings settings = null;
-
-                if (IgnoreDeserializeObject)
-                    settings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
-
-                return (JsonConvert.DeserializeObject<T>(result.content, settings), result.response);
-            }
-            catch
-            {
-                return default;
-            }
-        }
-        #endregion
-
-        #region BaseGetAsync
-        async public static Task<(string content, HttpResponseMessage response)> BaseGetAsync(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
-        {
-            string loglines = string.Empty;
+            var loglines = new StringBuilder();
 
             try
             {
-                var handler = Handler(url, proxy, ref loglines, cookieContainer);
+                var handler = Handler(url, proxy, loglines, cookieContainer);
 
-                var client = FrendlyHttp.HttpMessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
+                var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
-                if (cookieContainer != null)
+                if (cookieContainer != null && IsLogged)
                 {
-                    var cookiesString = new StringBuilder();
+                    var cookiesString = new StringBuilder(200);
                     foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
                         cookiesString.Append($"{c.Name}={c.Value}; ");
 
-                    if (!string.IsNullOrEmpty(cookiesString.ToString()))
-                        loglines += $"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n";
+                    if (cookiesString.Length > 0)
+                        loglines.Append($"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n");
                 }
 
                 var req = new HttpRequestMessage(HttpMethod.Get, url)
@@ -342,66 +464,64 @@ namespace Shared.Engine
                     Content = body
                 };
 
-                DefaultRequestHeaders(url, req, cookie, referer, headers, ref loglines, useDefaultHeaders);
+                DefaultRequestHeaders(url, req, cookie, referer, headers, loglines, useDefaultHeaders);
 
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
-                        foreach (var h in response.Headers)
+                        if (IsLogged)
                         {
-                            if (h.Key == "Set-Cookie")
+                            loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
+
+                            foreach (var h in response.Headers)
                             {
-                                foreach (string v in h.Value)
-                                    loglines += $"{h.Key}: {v}\n";
+                                if (h.Key == "Set-Cookie")
+                                {
+                                    foreach (string v in h.Value)
+                                        loglines.Append($"{h.Key}: {v}\n");
+                                }
+                                else
+                                    loglines.Append($"{h.Key}: {string.Join("", h.Value)}\n");
                             }
-                            else
-                                loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
                         }
 
                         using (HttpContent content = response.Content)
                         {
                             if (encoding != default)
                             {
-                                string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
-                                var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
+                                string res = encoding.GetString(await content.ReadAsByteArrayAsync(cts.Token).ConfigureAwait(false));
+
+                                if (InvkEvent.IsHttpAsync())
+                                    await InvkEvent.HttpAsync(new EventHttpResponse(url, null, client, res, response, Startup.memoryCache));
 
                                 if (string.IsNullOrWhiteSpace(res))
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                loglines += "\n" + res;
+                                if (IsLogged)
+                                    loglines.Append($"\n{res}");
+
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                await InvkEvent.HttpAsync(model);
                                 return (res, response);
                             }
                             else
                             {
-                                string res = await content.ReadAsStringAsync().ConfigureAwait(false);
-                                var model = new EventHttpResponse(url, null, client, res, response, Startup.memoryCache);
+                                string res = await content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+
+                                if (InvkEvent.IsHttpAsync())
+                                    await InvkEvent.HttpAsync(new EventHttpResponse(url, null, client, res, response, Startup.memoryCache));
 
                                 if (string.IsNullOrWhiteSpace(res))
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                loglines += "\n" + res;
+                                if (IsLogged)
+                                    loglines.Append($"\n{res}");
+
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                await InvkEvent.HttpAsync(model);
                                 return (res, response);
                             }
                         }
@@ -410,13 +530,17 @@ namespace Shared.Engine
             }
             catch (Exception ex)
             {
-                loglines = ex.ToString();
+                if (IsLogged)
+                    loglines.Append(ex.ToString());
 
-                await InvkEvent.HttpAsync(new EventHttpResponse(url, null, null, ex.ToString(), new HttpResponseMessage()
+                if (InvkEvent.IsHttpAsync())
                 {
-                    StatusCode = HttpStatusCode.InternalServerError,
-                    RequestMessage = new HttpRequestMessage()
-                }, Startup.memoryCache));
+                    await InvkEvent.HttpAsync(new EventHttpResponse(url, null, null, ex.ToString(), new HttpResponseMessage()
+                    {
+                        StatusCode = HttpStatusCode.InternalServerError,
+                        RequestMessage = new HttpRequestMessage()
+                    }, Startup.memoryCache));
+                }
 
                 return (null, new HttpResponseMessage()
                 {
@@ -426,7 +550,7 @@ namespace Shared.Engine
             }
             finally
             {
-                if (weblog)
+                if (weblog && !url.Contains("127.0.0.1") && IsLogged)
                     WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
             }
         }
@@ -443,60 +567,31 @@ namespace Shared.Engine
 
         async public static Task<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
         {
-            return (await BasePost(url, data, encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK).ConfigureAwait(false)).content;
-        }
-        #endregion
-
-        #region Post<T>
-        public static Task<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1)
-        {
-            return Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
-                cookie, timeoutSeconds, headers, encoding, proxy, IgnoreDeserializeObject, cookieContainer, useDefaultHeaders, httpversion
-            );
-        }
-
-        async public static Task<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0)
-        {
-            try
-            {
-                string json = await Post(url, data,
-                    encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, false, true
-                ).ConfigureAwait(false);
-                
-                if (json == null)
-                    return default;
-
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
-
-                return JsonConvert.DeserializeObject<T>(json);
-            }
-            catch
-            {
-                return default;
-            }
+            return (await BasePost(
+                url, data, encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK
+            ).ConfigureAwait(false)).content;
         }
         #endregion
 
         #region BasePost
         async public static Task<(string content, HttpResponseMessage response)> BasePost(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
         {
-            string loglines = string.Empty;
+            var loglines = new StringBuilder();
 
             try
             {
-                var handler = Handler(url, proxy, ref loglines, cookieContainer);
+                var handler = Handler(url, proxy, loglines, cookieContainer);
 
-                var client = FrendlyHttp.HttpMessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
+                var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
-                if (cookieContainer != null)
+                if (cookieContainer != null && IsLogged)
                 {
-                    var cookiesString = new StringBuilder();
+                    var cookiesString = new StringBuilder(200);
                     foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
                         cookiesString.Append($"{c.Name}={c.Value}; ");
 
-                    if (!string.IsNullOrEmpty(cookiesString.ToString()))
-                        loglines += $"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n";
+                    if (cookiesString.Length > 0)
+                        loglines.Append($"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n");
                 }
 
                 var req = new HttpRequestMessage(HttpMethod.Post, url)
@@ -505,7 +600,7 @@ namespace Shared.Engine
                     Content = data
                 };
 
-                DefaultRequestHeaders(url, req, cookie, null, headers, ref loglines, useDefaultHeaders);
+                DefaultRequestHeaders(url, req, cookie, null, headers, loglines, useDefaultHeaders);
 
                 if (removeContentType)
                     req.Content.Headers.Remove("Content-Type");
@@ -514,60 +609,58 @@ namespace Shared.Engine
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        loglines += $"\n\nStatusCode: {(int)response.StatusCode}\n";
-                        foreach (var h in response.Headers)
+                        if (IsLogged)
                         {
-                            if (h.Key == "Set-Cookie")
+                            loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
+
+                            foreach (var h in response.Headers)
                             {
-                                foreach (string v in h.Value)
-                                    loglines += $"{h.Key}: {v}\n";
+                                if (h.Key == "Set-Cookie")
+                                {
+                                    foreach (string v in h.Value)
+                                        loglines.Append($"{h.Key}: {v}\n");
+                                }
+                                else
+                                    loglines.Append($"{h.Key}: {string.Join("", h.Value)}\n");
                             }
-                            else
-                                loglines += $"{h.Key}: {string.Join("", h.Value)}\n";
                         }
 
                         using (HttpContent content = response.Content)
                         {
                             if (encoding != default)
                             {
-                                string res = encoding.GetString(await content.ReadAsByteArrayAsync().ConfigureAwait(false));
-                                var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
+                                string res = encoding.GetString(await content.ReadAsByteArrayAsync(cts.Token).ConfigureAwait(false));
+
+                                if (InvkEvent.IsHttpAsync())
+                                    await InvkEvent.HttpAsync(new EventHttpResponse(url, data, client, res, response, Startup.memoryCache));
 
                                 if (string.IsNullOrWhiteSpace(res))
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                loglines += "\n" + res;
+                                if (IsLogged)
+                                    loglines.Append($"\n{res}");
+
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                await InvkEvent.HttpAsync(model);
                                 return (res, response);
                             }
                             else
                             {
-                                string res = await content.ReadAsStringAsync().ConfigureAwait(false);
-                                var model = new EventHttpResponse(url, data, client, res, response, Startup.memoryCache);
+                                string res = await content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+
+                                if (InvkEvent.IsHttpAsync())
+                                    await InvkEvent.HttpAsync(new EventHttpResponse(url, data, client, res, response, Startup.memoryCache));
 
                                 if (string.IsNullOrWhiteSpace(res))
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                loglines += "\n" + res;
+                                if (IsLogged)
+                                    loglines.Append($"\n{res}");
+
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                                {
-                                    await InvkEvent.HttpAsync(model);
                                     return (null, response);
-                                }
 
-                                await InvkEvent.HttpAsync(model);
                                 return (res, response);
                             }
                         }
@@ -576,13 +669,17 @@ namespace Shared.Engine
             }
             catch (Exception ex)
             {
-                loglines = ex.ToString();
+                if (IsLogged)
+                    loglines.Append(ex.ToString());
 
-                await InvkEvent.HttpAsync(new EventHttpResponse(url, data, null, ex.ToString(), new HttpResponseMessage()
+                if (InvkEvent.IsHttpAsync())
                 {
-                    StatusCode = HttpStatusCode.InternalServerError,
-                    RequestMessage = new HttpRequestMessage()
-                }, Startup.memoryCache));
+                    await InvkEvent.HttpAsync(new EventHttpResponse(url, data, null, ex.ToString(), new HttpResponseMessage()
+                    {
+                        StatusCode = HttpStatusCode.InternalServerError,
+                        RequestMessage = new HttpRequestMessage()
+                    }, Startup.memoryCache));
+                }
 
                 return (null, new HttpResponseMessage()
                 {
@@ -592,27 +689,153 @@ namespace Shared.Engine
             }
             finally
             {
-                WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
+                if (!url.Contains("127.0.0.1") && IsLogged)
+                    WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
+            }
+        }
+        #endregion
+
+
+        #region Post<T>
+        public static Task<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
+        {
+            return Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
+                cookie, timeoutSeconds, headers, encoding, proxy, IgnoreDeserializeObject, cookieContainer, useDefaultHeaders, httpversion, MaxResponseContentBufferSize, statusCodeOK
+            );
+        }
+
+        async public static Task<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
+        {
+            return (await BasePost<T>(url, data,
+                cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
+            ).ConfigureAwait(false)).content;
+        }
+        #endregion
+
+        #region BasePost<T>
+        async public static Task<(T content, HttpResponseMessage response)> BasePost<T>(string url, HttpContent data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool IgnoreDeserializeObject = false, bool statusCodeOK = true)
+        {
+            var loglines = new StringBuilder();
+
+            try
+            {
+                var handler = Handler(url, proxy, loglines, cookieContainer);
+
+                var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
+
+                if (cookieContainer != null && IsLogged)
+                {
+                    var cookiesString = new StringBuilder(200);
+                    foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
+                        cookiesString.Append($"{c.Name}={c.Value}; ");
+
+                    if (cookiesString.Length > 0)
+                        loglines.Append($"Cookie: {cookiesString.ToString().TrimEnd(' ', ';')}\n");
+                }
+
+                var req = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Version = httpversion == 1 ? HttpVersion.Version11 : new Version(httpversion, 0),
+                    Content = data
+                };
+
+                DefaultRequestHeaders(url, req, cookie, null, headers, loglines, useDefaultHeaders);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                {
+                    using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
+                    {
+                        if (IsLogged)
+                        {
+                            loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
+
+                            foreach (var h in response.Headers)
+                            {
+                                if (h.Key == "Set-Cookie")
+                                {
+                                    foreach (string v in h.Value)
+                                        loglines.Append($"{h.Key}: {v}\n");
+                                }
+                                else
+                                    loglines.Append($"{h.Key}: {string.Join("", h.Value)}\n");
+                            }
+                        }
+
+                        using (HttpContent content = response.Content)
+                        {
+                            if (InvkEvent.IsHttpAsync())
+                                await InvkEvent.HttpAsync(new EventHttpResponse(url, data, client, "ReadAsStream", response, Startup.memoryCache));
+
+                            if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                                return (default, response);
+
+                            using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
+                            {
+                                using (var streamReader = new StreamReader(stream))
+                                {
+                                    using (var jsonReader = new JsonTextReader(streamReader))
+                                    {
+                                        var serializer = JsonSerializer.Create(
+                                            IgnoreDeserializeObject ? jsonSettings : null
+                                        );
+
+                                        T result = serializer.Deserialize<T>(jsonReader);
+
+                                        if (IsLogged)
+                                            loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+
+                                        return (result, response);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (IsLogged)
+                    loglines.Append(ex.ToString());
+
+                if (InvkEvent.IsHttpAsync())
+                {
+                    await InvkEvent.HttpAsync(new EventHttpResponse(url, data, null, ex.ToString(), new HttpResponseMessage()
+                    {
+                        StatusCode = HttpStatusCode.InternalServerError,
+                        RequestMessage = new HttpRequestMessage()
+                    }, Startup.memoryCache));
+                }
+
+                return (default, new HttpResponseMessage()
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    RequestMessage = new HttpRequestMessage()
+                });
+            }
+            finally
+            {
+                if (!url.Contains("127.0.0.1") && IsLogged)
+                    WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
             }
         }
         #endregion
 
 
         #region Download
-        async public static Task<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true)
+        async public static Task<byte[]> Download(string url, string cookie = null, string referer = null, int timeoutSeconds = 60, long MaxResponseContentBufferSize = 50_000_000, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true)
         {
             return (await BaseDownload(url, cookie, referer, timeoutSeconds, MaxResponseContentBufferSize, headers, proxy, statusCodeOK, useDefaultHeaders).ConfigureAwait(false)).array;
         }
         #endregion
 
         #region BaseDownload
-        async public static Task<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 20, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true)
+        async public static Task<(byte[] array, HttpResponseMessage response)> BaseDownload(string url, string cookie = null, string referer = null, int timeoutSeconds = 60, long MaxResponseContentBufferSize = 50_000_000, List<HeadersModel> headers = null, WebProxy proxy = null, bool statusCodeOK = true, bool useDefaultHeaders = true)
         {
             try
             {
                 var handler = Handler(url, proxy);
 
-                var client = FrendlyHttp.HttpMessageClient("base", handler);
+                var client = FrendlyHttp.MessageClient("base", handler, MaxResponseContentBufferSize);
 
                 var req = new HttpRequestMessage(HttpMethod.Get, url)
                 {
@@ -630,7 +853,7 @@ namespace Shared.Engine
 
                         using (HttpContent content = response.Content)
                         {
-                            byte[] res = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                            byte[] res = await content.ReadAsByteArrayAsync(cts.Token).ConfigureAwait(false);
                             if (res == null || res.Length == 0)
                                 return (null, response);
 
@@ -697,20 +920,43 @@ namespace Shared.Engine
         #endregion
 
 
+        #region IsLogSend
+        public static INws nws;
+
+        public static ISoks ws;
+
+        public static bool IsLogged
+        {
+            get 
+            {
+                if (AppInit.conf.filelog)
+                    return true;
+
+                if (!AppInit.conf.weblog.enable || onlog == null)
+                    return false;
+
+                if (nws == null && ws == null)
+                    return false;
+
+                if (nws?.CountWeblogClients > 0 || ws?.CountWeblogClients > 0)
+                    return true;
+
+                return false;
+            }
+        }
+        #endregion
+
         #region WriteLog
         static FileStream logFileStream = null;
 
         public static EventHandler<string> onlog = null;
 
-        static void WriteLog(string url, string method, string postdata, string result)
+        static void WriteLog(string url, string method, in string postdata, StringBuilder result)
         {
-            if (url.Contains("127.0.0.1"))
+            if (!IsLogged)
                 return;
 
-            if (!AppInit.conf.filelog && !AppInit.conf.weblog.enable)
-                return;
-
-            var log = new StringBuilder();
+            var log = new StringBuilder(result.Length + (postdata?.Length ?? 0) + 3000);
 
             log.Append($"{DateTime.Now}\n{method}: {url}\n");
 
@@ -721,7 +967,7 @@ namespace Shared.Engine
 
             onlog?.Invoke(null, log.ToString());
 
-            if (!AppInit.conf.filelog || log.Length > 700_000)
+            if (!AppInit.conf.filelog)
                 return;
 
             string dateLog = DateTime.Today.ToString("dd.MM.yy");

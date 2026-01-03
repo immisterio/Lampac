@@ -8,13 +8,13 @@ namespace SISI.Controllers.Eporner
 
         [HttpGet]
         [Route("epr/vidosik")]
-        async public ValueTask<ActionResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
             rhubFallback:
-            var cache = await InvokeCacheResult<StreamItem>(rch.ipkey($"eporner:view:{uri}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<StreamItem>(ipkey($"eporner:view:{uri}"), 20, async e =>
             {
                 var stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), uri,
                     htmlurl => httpHydra.Get(htmlurl),
@@ -31,7 +31,7 @@ namespace SISI.Controllers.Eporner
                 goto rhubFallback;
 
             if (related)
-                return OnResult(cache.Value?.recomends, null, total_pages: 1);
+                return await PlaylistResult(cache.Value?.recomends, null, total_pages: 1);
 
             return OnResult(cache);
         }

@@ -12,15 +12,15 @@ namespace Shared.Engine.Online
         #region AshdiInvoke
         string host;
         string apihost;
-        Func<string, Task<string>> onget;
+        HttpHydra http;
         Func<string, string> onstreamfile;
         Action requesterror;
 
-        public AshdiInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
+        public AshdiInvoke(string host, string apihost, HttpHydra httpHydra, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
-            this.onget = onget;
+            http = httpHydra;
             this.onstreamfile = onstreamfile;
             this.requesterror = requesterror;
         }
@@ -29,7 +29,7 @@ namespace Shared.Engine.Online
         #region Embed
         public async Task<EmbedModel> Embed(long kinopoisk_id)
         {
-            string product = await onget.Invoke($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}");
+            string product = await http.Get($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}", statusCodeOK: false);
             if (product == null)
             {
                 requesterror?.Invoke();
@@ -39,21 +39,21 @@ namespace Shared.Engine.Online
             if (product.Contains("Product does not exist"))
                 return new EmbedModel() { IsEmpty = true };
 
-            string iframeuri = Regex.Match(product, "src=\"(https?://[^\"]+)\"").Groups[1].Value;
+            string iframeuri = Regex.Match(product, "src=\"(https?://[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrWhiteSpace(iframeuri))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            string content = await onget.Invoke(iframeuri);
+            string content = await http.Get(iframeuri);
             if (content == null || !content.Contains("Playerjs"))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            if (!Regex.IsMatch(content, "file:([\t ]+)?'\\[\\{"))
+            if (!Regex.IsMatch(content, "file:([\t ]+)?'\\[\\{", RegexOptions.Compiled))
                 return new EmbedModel() { content = content };
 
             Voice[] root = null;
@@ -83,17 +83,17 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title, 1);
 
-                string hls = Regex.Match(md.content, "file:([\t ]+)?(\"|')([\t ]+)?(?<hls>https?://[^\"'\n\r\t ]+/index.m3u8)").Groups["hls"].Value;
+                string hls = Regex.Match(md.content, "file:([\t ]+)?(\"|')([\t ]+)?(?<hls>https?://[^\"'\n\r\t ]+/index.m3u8)", RegexOptions.Compiled).Groups["hls"].Value;
                 if (string.IsNullOrEmpty(hls))
                     return default;
 
                 #region subtitle
                 SubtitleTpl? subtitles = null;
-                string subtitle = new Regex("subtitle(\")?:\"([^\"]+)\"").Match(md.content).Groups[2].Value;
+                string subtitle = new Regex("subtitle(\")?:\"([^\"]+)\"", RegexOptions.Compiled).Match(md.content).Groups[2].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {
-                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
+                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)", RegexOptions.Compiled).Match(subtitle);
                     subtitles = new SubtitleTpl(match.Length);
 
                     while (match.Success)
@@ -120,7 +120,7 @@ namespace Shared.Engine.Online
                     if (s == -1)
                     {
                         var tpl = new SeasonTpl();
-                        var hashseason = new HashSet<string>();
+                        var hashseason = new HashSet<string>(20);
 
                         foreach (var voice in md.serial)
                         {
@@ -175,7 +175,7 @@ namespace Shared.Engine.Online
 
                             if (!string.IsNullOrEmpty(episode.subtitle))
                             {
-                                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
+                                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)", RegexOptions.Compiled).Match(episode.subtitle);
                                 subtitles = new SubtitleTpl(match.Length);
 
                                 while (match.Success)
@@ -187,7 +187,7 @@ namespace Shared.Engine.Online
                             #endregion
 
                             string file = onstreamfile.Invoke(fixStream(episode.file));
-                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                            etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "([0-9]+)$", RegexOptions.Compiled).Groups[1].Value, file, subtitles: subtitles, vast: vast);
                         }
 
                         return etpl;

@@ -8,7 +8,7 @@ namespace Online.Controllers
     {
         public BaseENGController(OnlinesSettings init) : base(init) { }
 
-        async public ValueTask<ActionResult> ViewTmdb(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", int? hls_manifest_timeout = null, string extension = "m3u8")
+        async public Task<ActionResult> ViewTmdb(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", int? hls_manifest_timeout = null, string extension = "m3u8")
         {
             if (checksearch)
                 return Content("data-json=");
@@ -53,7 +53,7 @@ namespace Online.Controllers
                         tpl.Append($"{number} сезон", link, number);
                     }
 
-                    return ContentTo(tpl);
+                    return await ContentTpl(tpl);
                     #endregion
                 }
                 else
@@ -79,7 +79,7 @@ namespace Online.Controllers
                         }
                     }
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                     #endregion
                 }
                 #endregion
@@ -98,7 +98,7 @@ namespace Online.Controllers
 
                 mtpl.Append("English", uri, method, stream: stream, vast: init.vast, hls_manifest_timeout: hls_manifest_timeout);
 
-                return ContentTo(mtpl);
+                return await ContentTpl(mtpl);
                 #endregion
             }
         }

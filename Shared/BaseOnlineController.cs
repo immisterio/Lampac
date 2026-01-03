@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
@@ -11,6 +12,7 @@ using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using System.Net;
 using System.Reflection;
+using System.Text;
 
 namespace Shared
 {
@@ -28,8 +30,11 @@ namespace Shared
         {
             get 
             {
-                if (_rch == null)
-                    _rch = new RchClient(HttpContext, host, init, requestInfo);
+                if (_rch == null && AppInit.conf.rch.enable)
+                {
+                    if (init.rhub || init.rchstreamproxy != null || AppInit.conf.rch.requiredConnected)
+                        _rch = new RchClient(HttpContext, host, init, requestInfo);
+                }
 
                 return _rch;
             } 
@@ -51,11 +56,50 @@ namespace Shared
         }
         #endregion
 
-        public ProxyManager proxyManager { get; private set; }
+        #region proxyManager
+        ProxyManager _proxyManager = null;
 
-        public WebProxy proxy { get; private set; }
+        public ProxyManager proxyManager
+        {
+            get
+            {
+                if (_proxyManager == null && (init.useproxy || init.useproxystream))
+                    _proxyManager = new ProxyManager(init, rch);
 
-        public (string ip, string username, string password) proxy_data { get; private set; }
+                return _proxyManager;
+            }
+        }
+        #endregion
+
+        #region proxy
+        WebProxy _proxy = null;
+
+        public WebProxy proxy
+        {
+            get
+            {
+                if (_proxy == null)
+                    _proxy = proxyManager?.Get();
+
+                return _proxy;
+            }
+        }
+        #endregion
+
+        #region proxy_data
+        public (string ip, string username, string password) _proxy_data = default;
+
+        public (string ip, string username, string password) proxy_data
+        {
+            get
+            {
+                if (_proxy_data == default && proxyManager != null)
+                    _proxy_data = proxyManager.BaseGet().data;
+
+                return _proxy_data;
+            }
+        }
+        #endregion
 
         public T init { get; private set; }
 
@@ -66,6 +110,8 @@ namespace Shared
         public Action requestInitialization { get; set; }
 
         public Func<ValueTask> requestInitializationAsync { get; set; }
+
+        static List<RootModule> modulesInitialization;
 
 
         public BaseOnlineController(T init)
@@ -82,11 +128,6 @@ namespace Shared
             baseconf = init;
             this.init = (T)init.Clone();
             this.init.IsCloneable = true;
-
-            proxyManager = new ProxyManager(this.init);
-            var bp = proxyManager.BaseGet();
-            proxy = bp.proxy;
-            proxy_data = bp.data;
         }
 
 
@@ -99,7 +140,13 @@ namespace Shared
 
         async public ValueTask<bool> IsRequestBlocked(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
         {
-            init = await loadKit(init, loadKitInitialization);
+            if (IsLoadKit(init))
+            {
+                if (loadKitInitialization != null)
+                    init = await loadKit(init, loadKitInitialization);
+                else
+                    init = await loadKit(init);
+            }
 
             requestInitialization?.Invoke();
 
@@ -107,11 +154,14 @@ namespace Shared
                 await requestInitializationAsync.Invoke();
 
             #region module initialization
-            if (AppInit.modules != null)
+            if (modulesInitialization == null && AppInit.modules != null)
+                modulesInitialization = AppInit.modules.Where(i => i.initialization != null).ToList();
+
+            if (modulesInitialization != null && modulesInitialization.Count > 0)
             {
                 var args = new InitializationModel(init, rch);
 
-                foreach (RootModule mod in AppInit.modules.Where(i => i.initialization != null))
+                foreach (RootModule mod in modulesInitialization)
                 {
                     try
                     {
@@ -137,14 +187,17 @@ namespace Shared
             }
             #endregion
 
-            badInitMsg = await InvkEvent.BadInitialization(new EventBadInitialization(init, rch, requestInfo, host, HttpContext.Request, HttpContext, hybridCache));
-            if (badInitMsg != null)
-                return true;
-
-            if (!init.enable || init.rip)
+            if (InvkEvent.IsBadInitialization())
             {
-                badInitMsg = OnError("disable", gbcache: false, statusCode: 403);
-                return true;
+                badInitMsg = await InvkEvent.BadInitialization(new EventBadInitialization(init, rch, requestInfo, host, HttpContext.Request, HttpContext, hybridCache));
+                if (badInitMsg != null)
+                    return true;
+
+                if (!init.enable || init.rip)
+                {
+                    badInitMsg = OnError("disable", gbcache: false, statusCode: 403);
+                    return true;
+                }
             }
 
             if (NoAccessGroup(init, out string error_msg))
@@ -153,11 +206,14 @@ namespace Shared
                 return true;
             }
 
-            var overridehost = await IsOverridehost(init);
-            if (overridehost != null)
+            if (IsOverridehost(init))
             {
-                badInitMsg = overridehost;
-                return true;
+                var overridehost = await InvokeOverridehost(init);
+                if (overridehost != null)
+                {
+                    badInitMsg = overridehost;
+                    return true;
+                }
             }
 
             if (rch != null)
@@ -170,7 +226,7 @@ namespace Shared
                         return true;
                     }
 
-                    if (rch_check)
+                    if (rch_check && this.rch != null)
                     {
                         if (this.rch.IsNotConnected())
                         {
@@ -195,7 +251,7 @@ namespace Shared
                 }
             }
 
-            if (rch_check && this.rch.IsRequiredConnected())
+            if (rch_check && this.rch != null && this.rch.IsRequiredConnected())
             {
                 badInitMsg = ContentTo(this.rch.connectionMsg);
                 return true;
@@ -238,7 +294,7 @@ namespace Shared
         {
             if (string.IsNullOrEmpty(msg) || !msg.StartsWith("{\"rch\""))
             {
-                if (refresh_proxy && rch.enable)
+                if (refresh_proxy && rch?.enable != true)
                     proxyManager?.Refresh();
             }
 
@@ -254,7 +310,7 @@ namespace Shared
                 Http.onlog?.Invoke(null, log);
             }
 
-            if (AppInit.conf.multiaccess && gbcache == true && rch.enable == false)
+            if (AppInit.conf.multiaccess && gbcache == true && rch?.enable != true)
                 memoryCache.Set(ResponseCache.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddSeconds(15));
 
             HttpContext.Response.StatusCode = statusCode;
@@ -263,33 +319,12 @@ namespace Shared
         #endregion
 
         #region OnResult
-        public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, ITplResult tpl)
-            => OnResult(cache, () => tpl);
-
-        public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, Func<ITplResult> tpl)
-        {
-            return OnResult(cache, () => 
-            {
-                bool rjson = HttpContext.Request.Query["rjson"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase);
-
-                var tplResult = tpl();
-
-                if (tplResult == null)
-                    return rjson ? "{}" : string.Empty;
-
-                return rjson
-                    ? tplResult.ToJson()
-                    : tplResult.ToHtml();
-            });
-        }
-
         public ActionResult OnResult<Tresut>(CacheResult<Tresut> cache, Func<string> html)
         {
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg);
 
-            if (HttpContext.Request.Query["origsource"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase) 
-                && cache.Value != null)
+            if (cache.Value != null && IsOrigsourceRequest())
                 return Json(cache.Value);
 
             return ContentTo(html.Invoke());
@@ -302,10 +337,84 @@ namespace Shared
             if (tpl == null)
                 return OnError();
 
-            return ContentTo(HttpContext.Request.Query["rjson"].ToString().Contains("true", StringComparison.OrdinalIgnoreCase)
-                ? tpl.ToJson()
-                : tpl.ToHtml()
-            );
+            if (IsRjsonRequest())
+                return Content(tpl.ToJson(), "application/json; charset=utf-8");
+
+            return Content(tpl.ToHtml(), "text/html; charset=utf-8");
+        }
+        #endregion
+
+        #region ContentTpl
+        async public Task<ActionResult> ContentTpl<Tresut>(CacheResult<Tresut> cache, Func<ITplResult> tpl)
+        {
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg);
+
+            if (cache.Value != null && IsOrigsourceRequest())
+                return Json(cache.Value);
+
+            return await ContentTpl(tpl());
+        }
+
+        async public Task<ActionResult> ContentTpl(ITplResult tpl)
+        {
+            bool rjson = IsRjsonRequest();
+
+            if (tpl == null || tpl.IsEmpty)
+                return OnError(rjson ? "{}" : string.Empty);
+
+            var response = HttpContext.Response;
+
+            response.Headers.CacheControl = "no-cache";
+
+            response.ContentType = rjson 
+                ? "application/json; charset=utf-8" 
+                : "text/html; charset=utf-8";
+
+            var sb = rjson 
+                ? tpl.ToBuilderJson()
+                : tpl.ToBuilderHtml();
+
+            if (sb.Length == 0)
+                return new EmptyResult();
+
+            var writer = response.BodyWriter;
+            var encoder = Encoding.UTF8.GetEncoder();
+            var ct = HttpContext.RequestAborted;
+
+            foreach (var chunk in sb.GetChunks())
+            {
+                ReadOnlySpan<char> chars = chunk.Span;
+
+                while (!chars.IsEmpty)
+                {
+                    Span<byte> dest = writer.GetSpan(8192);
+
+                    encoder.Convert(
+                        chars, dest, flush: false,
+                        out int charsUsed,
+                        out int bytesUsed,
+                        out _);
+
+                    // крайне редкий случай: буфер мал (в основном если очень много многобайтных символов)
+                    if (charsUsed == 0 && bytesUsed == 0)
+                    {
+                        dest = writer.GetSpan(64 * 1024);
+                        encoder.Convert(chars, dest, flush: false, out charsUsed, out bytesUsed, out _);
+                    }
+
+                    writer.Advance(bytesUsed);
+                    chars = chars.Slice(charsUsed);
+                }
+            }
+
+            // Дофлашить состояние энкодера (границы чанков/суррогаты)
+            Span<byte> tail = writer.GetSpan(256);
+            encoder.Convert(ReadOnlySpan<char>.Empty, tail, flush: true, out _, out int tailBytes, out _);
+            writer.Advance(tailBytes);
+
+            await writer.FlushAsync(ct);
+            return new EmptyResult();
         }
         #endregion
 
@@ -332,7 +441,7 @@ namespace Shared
                 if (safety && init.rhub_safety)
                     return false;
 
-                return true;
+                return rch != null;
             }
 
             return false;
@@ -370,6 +479,30 @@ namespace Shared
         public TimeSpan cacheTime(int multiaccess)
         {
             return cacheTimeBase(multiaccess, init: baseconf);
+        }
+        #endregion
+
+        #region ipkey
+        public string ipkey(string key)
+            => ipkey(key, proxyManager, rch);
+        #endregion
+
+
+        #region IsRjsonRequest
+        public bool IsRjsonRequest()
+        {
+            return HttpContext.Request.Query.TryGetValue("rjson", out StringValues value)
+                && value.Count > 0
+                && value[0].Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+        #endregion
+
+        #region IsOrigsourceRequest
+        public bool IsOrigsourceRequest()
+        {
+            return HttpContext.Request.Query.TryGetValue("origsource", out StringValues value)
+                && value.Count > 0
+                && value[0].Equals("true", StringComparison.OrdinalIgnoreCase);
         }
         #endregion
     }

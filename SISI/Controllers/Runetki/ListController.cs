@@ -9,7 +9,7 @@ namespace SISI.Controllers.Runetki
 
         [HttpGet]
         [Route("runetki")]
-        async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             if (!string.IsNullOrEmpty(search))
                 return OnError("no search", false);
@@ -22,7 +22,7 @@ namespace SISI.Controllers.Runetki
             {
                 string html = await RunetkiTo.InvokeHtml(init.corsHost(), sort, pg, url =>
                 {
-                    if (rch.enable || init.priorityBrowser == "http")
+                    if (rch?.enable == true || init.priorityBrowser == "http")
                         return httpHydra.Get(url);
 
                     return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
@@ -42,7 +42,7 @@ namespace SISI.Controllers.Runetki
             if (!cache.IsSuccess)
                 return OnError(cache.ErrorMsg);
 
-            return OnResult(
+            return await PlaylistResult(
                 cache.Value.playlists,
                 RunetkiTo.Menu(host, sort),
                 total_pages: cache.Value.total_pages

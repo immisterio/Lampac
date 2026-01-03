@@ -10,7 +10,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/hdvb")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, bool similar = false)
         {
             if (similar || kinopoisk_id == 0)
                 return await RouteSpiderSearch(title, rjson);
@@ -46,7 +46,7 @@ namespace Online.Controllers
                     mtpl.Append(m.Value<string>("translator"), link, "call", accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true"));
                 }
 
-                return ContentTo(mtpl);
+                return await ContentTpl(mtpl);
                 #endregion
             }
             else
@@ -72,7 +72,7 @@ namespace Online.Controllers
                         }
                     }
 
-                    return ContentTo(tpl);
+                    return await ContentTpl(tpl);
                 }
                 else
                 {
@@ -104,7 +104,7 @@ namespace Online.Controllers
                         etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
                     }
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                 }
                 #endregion
             }
@@ -120,19 +120,22 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
+
+                if (rch.IsNotSupport(out string rch_error))
+                    return ShowError(rch_error);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             return await InvkSemaphore($"video:view:video:{iframe}", async key =>
             {
@@ -190,7 +193,7 @@ namespace Online.Controllers
 
                     if (string.IsNullOrEmpty(urim3u8))
                     {
-                        proxyManager.Refresh(rch);
+                        proxyManager?.Refresh();
 
                         if (init.rhub && init.rhub_fallback)
                         {
@@ -201,7 +204,7 @@ namespace Online.Controllers
                         return OnError();
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
 
                     hybridCache.Set(key, urim3u8, cacheTime(20));
                 }
@@ -225,19 +228,22 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
+
+                if (rch.IsNotSupport(out string rch_error))
+                    return ShowError(rch_error);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             return await InvkSemaphore($"video:view:serial:{iframe}:{t}:{s}:{e}", async key =>
             {
@@ -291,7 +297,7 @@ namespace Online.Controllers
                                 }
                                 else
                                 {
-                                    proxyManager.Refresh(rch);
+                                    proxyManager?.Refresh();
 
                                     if (init.rhub && init.rhub_fallback)
                                     {
@@ -319,7 +325,7 @@ namespace Online.Controllers
 
                     if (string.IsNullOrEmpty(urim3u8) || !urim3u8.Contains("/index.m3u8"))
                     {
-                        proxyManager.Refresh(rch);
+                        proxyManager?.Refresh();
 
                         if (init.rhub && init.rhub_fallback)
                         {
@@ -330,7 +336,7 @@ namespace Online.Controllers
                         return OnError();
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
 
                     hybridCache.Set(key, urim3u8, cacheTime(20));
                     #endregion
@@ -347,7 +353,7 @@ namespace Online.Controllers
         #region SpiderSearch
         [HttpGet]
         [Route("lite/hdvb-search")]
-        async public ValueTask<ActionResult> RouteSpiderSearch(string title,bool rjson = false)
+        async public Task<ActionResult> RouteSpiderSearch(string title,bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -369,7 +375,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 var hash = new HashSet<long>(cache.Value.Count);
                 var stpl = new SimilarTpl(cache.Value.Count);
@@ -402,11 +408,11 @@ namespace Online.Controllers
 
                 if (root == null)
                 {
-                    proxyManager.Refresh(rch);
+                    proxyManager?.Refresh();
                     return null;
                 }
 
-                proxyManager.Success(rch);
+                proxyManager?.Success();
 
                 hybridCache.Set(memKey, root, cacheTime(40), inmemory: false);
             }

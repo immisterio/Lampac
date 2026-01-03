@@ -16,14 +16,14 @@ namespace Online.Controllers
                    init.corsHost(),
                    ongettourl => httpHydra.Get(ongettourl, addheaders: HeadersModel.Init("cookie", init.cookie)),
                    streamfile => streamfile,
-                   requesterror: () => proxyManager.Refresh(rch)
+                   requesterror: () => proxyManager?.Refresh()
                 );
             };
         }
 
         [HttpGet]
         [Route("lite/remux")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
                 return OnError();
@@ -38,7 +38,7 @@ namespace Online.Controllers
             if (content == null)
                 return OnError();
 
-            return ContentTo(oninvk.Tpl(content, title, original_title, year));
+            return await ContentTpl(oninvk.Tpl(content, title, original_title, year));
         }
 
 
@@ -49,7 +49,7 @@ namespace Online.Controllers
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
-            string weblink = await InvokeCache($"remux:view:{linkid}:{proxyManager.CurrentProxyIp}", 20, () => oninvk.Weblink(linkid));
+            string weblink = await InvokeCache($"remux:view:{linkid}:{proxyManager?.CurrentProxyIp}", 20, () => oninvk.Weblink(linkid));
             if (weblink == null)
                 return OnError();
 

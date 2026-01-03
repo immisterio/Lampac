@@ -74,7 +74,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/lumex")]
-        async public ValueTask<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(long content_id, string content_type, string imdb_id, long kinopoisk_id, string title, string original_title, string t, int clarification, int s = -1, int serial = -1, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
@@ -94,9 +94,9 @@ namespace Online.Controllers
             (
                host,
                init,
-               (url, referer, safety) => httpHydra.Get(url, addheaders: HeadersModel.Init("referer", referer), safety: safety),
+               httpHydra,
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             if (similar || (content_id == 0 && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
@@ -106,17 +106,17 @@ namespace Online.Controllers
                     if (!hybridCache.TryGetValue(key, out SimilarTpl search))
                     {
                         search = await oninvk.Search(title, original_title, serial, clarification, database);
-                        if (search == null || search.IsEmpty())
+                        if (search == null || search.IsEmpty)
                             return OnError("search");
 
                         hybridCache.Set(key, search, cacheTime(40));
                     }
 
-                    return ContentTo(search);
+                    return await ContentTpl(search);
                 });
             }
 
-            var cache = await InvokeCacheResult<EmbedModel>($"videocdn:{content_id}:{content_type}:{kinopoisk_id}:{imdb_id}:{proxyManager.CurrentProxyIp}", 10, async e =>
+            var cache = await InvokeCacheResult<EmbedModel>($"videocdn:{content_id}:{content_type}:{kinopoisk_id}:{imdb_id}:{proxyManager?.CurrentProxyIp}", 10, async e =>
             {
                 string content_uri = null;
                 var content_headers = new List<HeadersModel>();
@@ -251,7 +251,7 @@ namespace Online.Controllers
                 if (content_uri == null)
                     return e.Fail("content_uri", refresh_proxy: true);
 
-                var result = await Http.BaseGetAsync(content_uri, proxy: proxy, headers: content_headers);
+                var result = await Http.BaseGet(content_uri, proxy: proxy, headers: content_headers);
 
                 if (string.IsNullOrEmpty(result.content))
                     return e.Fail("content", refresh_proxy: true);
@@ -274,7 +274,7 @@ namespace Online.Controllers
                 return e.Success(md);
             });
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson));
         }
 
         #region Video

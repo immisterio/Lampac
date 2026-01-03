@@ -15,7 +15,7 @@ namespace Shared.Engine.Online
         static string ArrayListToNumber => "1234567890";
         public static string unic(int size = 8, bool IsNumberCode = false)
         {
-            StringBuilder array = new StringBuilder();
+            StringBuilder array = new StringBuilder(size);
             for (int i = 0; i < size; i++)
             {
                 array.Append(IsNumberCode ? ArrayListToNumber[Random.Shared.Next(0, ArrayListToNumber.Length)] : ArrayList[Random.Shared.Next(0, ArrayList.Length)]);
@@ -28,18 +28,16 @@ namespace Shared.Engine.Online
         #region KinoukrInvoke
         string host;
         string apihost;
-        Func<string, Task<string>> onget;
-        Func<string, string, Task<string>> onpost;
+        HttpHydra http;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
 
-        public KinoukrInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public KinoukrInvoke(string host, string apihost, HttpHydra httpHydra, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
-            this.onget = onget;
-            this.onpost = onpost;
+            http = httpHydra;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.requesterror = requesterror;
@@ -54,109 +52,109 @@ namespace Shared.Engine.Online
 
             return null;
 
-            string link = href;
-            var result = new EmbedModel();
+            //string link = href;
+            //var result = new EmbedModel();
 
-            if (string.IsNullOrWhiteSpace(link))
-            {
-                onlog?.Invoke("search start");
-                //string? search = await onget.Invoke($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
+            //if (string.IsNullOrWhiteSpace(link))
+            //{
+            //    onlog?.Invoke("search start");
+            //    //string? search = await onget.Invoke($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(original_title)}");
 
-                // $"{apihost}/index.php?do=search"
-                string search = await onpost.Invoke($"{apihost}/{unic(4, true)}-{unic(Random.Shared.Next(4, 8))}-{unic(Random.Shared.Next(5, 10))}.html", $"do=search&subaction=search&story={HttpUtility.UrlEncode(original_title)}");
-                if (search == null)
-                {
-                    requesterror?.Invoke();
-                    return null;
-                }
+            //    // $"{apihost}/index.php?do=search"
+            //    string search = await onpost.Invoke($"{apihost}/{unic(4, true)}-{unic(Random.Shared.Next(4, 8))}-{unic(Random.Shared.Next(5, 10))}.html", $"do=search&subaction=search&story={HttpUtility.UrlEncode(original_title)}");
+            //    if (search == null)
+            //    {
+            //        requesterror?.Invoke();
+            //        return null;
+            //    }
 
-                onlog?.Invoke("search ok");
+            //    onlog?.Invoke("search ok");
 
-                foreach (string row in search.Split("\"short clearfix with-mask\"").Skip(1))
-                {
-                    if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
-                        continue;
+            //    foreach (string row in search.Split("\"short clearfix with-mask\"").Skip(1))
+            //    {
+            //        if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
+            //            continue;
 
-                    string newslink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(newslink))
-                        continue;
+            //        string newslink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+            //        if (string.IsNullOrWhiteSpace(newslink))
+            //            continue;
 
-                    string name = Regex.Match(row, "class=\"short-title\" [^>]+>([^<]+)<").Groups[1].Value;
-                    if (result.similars == null)
-                        result.similars = new List<Similar>();
+            //        string name = Regex.Match(row, "class=\"short-title\" [^>]+>([^<]+)<").Groups[1].Value;
+            //        if (result.similars == null)
+            //            result.similars = new List<Similar>();
 
-                    result.similars.Add(new Similar() 
-                    {
-                        title = name,
-                        href = newslink
-                    });
-                }
+            //        result.similars.Add(new Similar() 
+            //        {
+            //            title = name,
+            //            href = newslink
+            //        });
+            //    }
 
-                if (result.similars == null || result.similars.Count == 0)
-                {
-                    if (search.Contains(">Пошук по сайту<"))
-                        return new EmbedModel() { IsEmpty = true };
+            //    if (result.similars == null || result.similars.Count == 0)
+            //    {
+            //        if (search.Contains(">Пошук по сайту<"))
+            //            return new EmbedModel() { IsEmpty = true };
 
-                    return null;
-                }
+            //        return null;
+            //    }
 
-                if (result.similars.Count > 1)
-                    return result;
+            //    if (result.similars.Count > 1)
+            //        return result;
 
-                link = result.similars[0].href;
-            }
+            //    link = result.similars[0].href;
+            //}
 
-            onlog?.Invoke("link: " + link);
-            string news = await onget.Invoke(link);
-            if (news == null)
-            {
-                requesterror?.Invoke();
-                return null;
-            }
+            //onlog?.Invoke("link: " + link);
+            //string news = await onget.Invoke(link);
+            //if (news == null)
+            //{
+            //    requesterror?.Invoke();
+            //    return null;
+            //}
 
-            result.quel = Regex.Match(news, "class=\"m-meta m-qual\">([^<]+)<").Groups[1].Value;
+            //result.quel = Regex.Match(news, "class=\"m-meta m-qual\">([^<]+)<").Groups[1].Value;
 
-            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(iframeUri))
-            {
-                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(iframeUri))
-                    return null;
-            }
+            //string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"").Groups[1].Value;
+            //if (string.IsNullOrEmpty(iframeUri))
+            //{
+            //    iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;
+            //    if (string.IsNullOrEmpty(iframeUri))
+            //        return null;
+            //}
 
-            onlog?.Invoke("iframeUri: " + iframeUri);
-            string content = await onget.Invoke(iframeUri);
-            if (content == null || !content.Contains("file:"))
-            {
-                requesterror?.Invoke();
-                return null;
-            }
+            //onlog?.Invoke("iframeUri: " + iframeUri);
+            //string content = await onget.Invoke(iframeUri);
+            //if (content == null || !content.Contains("file:"))
+            //{
+            //    requesterror?.Invoke();
+            //    return null;
+            //}
 
-            string player = StringConvert.FindLastText(content, "new Playerjs", "</script>");
-            if (player == null)
-                return null;
+            //string player = StringConvert.FindLastText(content, "new Playerjs", "</script>");
+            //if (player == null)
+            //    return null;
 
-            if (Regex.IsMatch(content, "file: ?'\\["))
-            {
-                Models.Online.Tortuga.Voice[] root = null;
+            //if (Regex.IsMatch(content, "file: ?'\\["))
+            //{
+            //    Models.Online.Tortuga.Voice[] root = null;
 
-                try
-                {
-                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
-                    if (root == null || root.Length == 0)
-                        return null;
-                }
-                catch { return null; }
+            //    try
+            //    {
+            //        root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+            //        if (root == null || root.Length == 0)
+            //            return null;
+            //    }
+            //    catch { return null; }
 
-                result.serial = root;
-            }
-            else
-            {
-                result.content = player;
-                onlog?.Invoke("content: " + result.content);
-            }
+            //    result.serial = root;
+            //}
+            //else
+            //{
+            //    result.content = player;
+            //    onlog?.Invoke("content: " + result.content);
+            //}
 
-            return result;
+            //return result;
         }
         #endregion
 
@@ -172,33 +170,29 @@ namespace Shared.Engine.Online
                     ? $"name={HttpUtility.UrlEncode(title)}" 
                     : $"eng_name={HttpUtility.UrlEncode(original_title)}";
 
-                string json = await onget.Invoke("http://194.246.82.144/ukr?" + arg);
-                if (json == null)
+                var root = await http.Get<BobrKurwa[]>("http://194.246.82.144/ukr?" + arg);
+                if (root == null)
                 {
                     requesterror?.Invoke();
                     return null;
                 }
 
-                result.similars = new List<Similar>();
+                result.similars = new List<Similar>(root.Length);
 
-                try
+                foreach (var item in root)
                 {
-                    foreach (var item in JsonSerializer.Deserialize<BobrKurwa[]>(json))
+                    var model = new Similar()
                     {
-                        var model = new Similar()
-                        {
-                            href = item.tortuga ?? item.ashdi,
-                            title = $"{item.name} / {item.eng_name}",
-                            year = item.year
-                        };
+                        href = item.tortuga ?? item.ashdi,
+                        title = $"{item.name} / {item.eng_name}",
+                        year = item.year
+                    };
 
-                        if (item.year == year.ToString())
-                            result.similars.Insert(0, model);
-                        else
-                            result.similars.Add(model);
-                    }
+                    if (item.year == year.ToString())
+                        result.similars.Insert(0, model);
+                    else
+                        result.similars.Add(model);
                 }
-                catch { }
 
                 if (result.similars.Count == 0)
                     return new EmbedModel() { IsEmpty = true };
@@ -210,7 +204,8 @@ namespace Shared.Engine.Online
             }
 
             onlog?.Invoke("iframeUri: " + iframeUri);
-            string content = await onget.Invoke(iframeUri);
+
+            string content = await http.Get(iframeUri);
             if (content == null || !content.Contains("file:"))
             {
                 requesterror?.Invoke();
@@ -221,13 +216,13 @@ namespace Shared.Engine.Online
             {
                 result.source_type = "ashdi";
 
-                if (Regex.IsMatch(content, "file: ?'\\["))
+                if (Regex.IsMatch(content, "file: ?'\\[", RegexOptions.Compiled))
                 {
                     Models.Online.Ashdi.Voice[] root = null;
 
                     try
                     {
-                        root = JsonSerializer.Deserialize<Models.Online.Ashdi.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
+                        root = JsonSerializer.Deserialize<Models.Online.Ashdi.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',", RegexOptions.Compiled).Groups[1].Value);
                         if (root == null || root.Length == 0)
                             return null;
                     }
@@ -247,13 +242,13 @@ namespace Shared.Engine.Online
             {
                 result.source_type = "tortuga";
 
-                if (Regex.IsMatch(content, "file: ?'"))
+                if (Regex.IsMatch(content, "file: ?'", RegexOptions.Compiled))
                 {
                     Models.Online.Tortuga.Voice[] root = null;
 
                     try
                     {
-                        string file = Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value;
+                        string file = Regex.Match(content, "file: ?'([^\n\r]+)',", RegexOptions.Compiled).Groups[1].Value;
                         if (file.EndsWith("=="))
                         {
                             file = Regex.Replace(file, "==$", "");
@@ -287,17 +282,17 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(link))
                 return null;
 
-            string news = await onget.Invoke(link);
+            string news = await http.Get(link);
             if (news == null)
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"").Groups[1].Value;
+            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrEmpty(iframeUri))
             {
-                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;
+                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(iframeUri))
                     return null;
             }
@@ -339,7 +334,7 @@ namespace Shared.Engine.Online
 
             if (result.source_type == "ashdi")
             {
-                var invk = new AshdiInvoke(host, apihost, onget, onstreamfile, requesterror: requesterror);
+                var invk = new AshdiInvoke(host, apihost, http, onstreamfile, requesterror: requesterror);
                 int.TryParse(t, out int _t);
 
                 var md = new Models.Online.Ashdi.EmbedModel()
@@ -356,11 +351,11 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title, 1);
 
-                string hls = Regex.Match(result.content, "file: ?(\"|')(?<hls>https?://[^\"']+/index\\.m3u8)(\"|')").Groups["hls"].Value;
+                string hls = Regex.Match(result.content, "file: ?(\"|')(?<hls>https?://[^\"']+/index\\.m3u8)(\"|')", RegexOptions.Compiled).Groups["hls"].Value;
                 if (string.IsNullOrWhiteSpace(hls))
                 {
-                    string base64 = Regex.Match(result.content, "file: ?(\"|')(?<base64>[^\"']+)(\"|')").Groups["base64"].Value;
-                           base64 = Regex.Replace(base64, "==$", "");
+                    string base64 = Regex.Match(result.content, "file: ?(\"|')(?<base64>[^\"']+)(\"|')", RegexOptions.Compiled).Groups["base64"].Value;
+                           base64 = Regex.Replace(base64, "==$", "", RegexOptions.Compiled);
 
                     hls = string.Join("", CrypTo.DecodeBase64(base64).Reverse());
 
@@ -370,11 +365,11 @@ namespace Shared.Engine.Online
 
                 #region subtitle
                 var subtitles = new SubtitleTpl();
-                string subtitle = new Regex("\"subtitle\": ?\"([^\"]+)\"").Match(result.content).Groups[1].Value;
+                string subtitle = new Regex("\"subtitle\": ?\"([^\"]+)\"", RegexOptions.Compiled).Match(result.content).Groups[1].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {
-                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
+                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)", RegexOptions.Compiled).Match(subtitle);
                     while (match.Success)
                     {
                         subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
@@ -412,7 +407,7 @@ namespace Shared.Engine.Online
                     {
                         #region Перевод
                         var vtpl = new VoiceTpl();
-                        var hashVoice = new HashSet<string>();
+                        var hashVoice = new HashSet<string>(20);
 
                         foreach (var season in result.serial)
                         {

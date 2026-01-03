@@ -13,7 +13,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/zetflix")]
-        async public ValueTask<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
+        async public Task<ActionResult> Index(long id, int serial, long kinopoisk_id, string title, string original_title, string t, int s = -1, bool orightml = false, bool origsource = false, bool rjson = false)
         {
             if (kinopoisk_id == 0)
                 return OnError();
@@ -39,7 +39,7 @@ namespace Online.Controllers
 
             int rs = serial == 1 ? (s == -1 ? 1 : s) : s;
 
-            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}:{proxyManager.CurrentProxyIp}", 20, async () => 
+            string html = await InvokeCache($"zetfix:view:{kinopoisk_id}:{rs}:{proxyManager?.CurrentProxyIp}", 20, async () => 
             {
                 string uri = $"{ztfhost}/iplayer/videodb.php?kp={kinopoisk_id}" + (rs > 0 ? $"&season={rs}" : "");
 
@@ -51,7 +51,7 @@ namespace Online.Controllers
                     if (!result.Contains("new Playerjs"))
                         return null;
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     return result;
                 }
 
@@ -106,7 +106,7 @@ namespace Online.Controllers
 
                         if (result == null || result.StartsWith("<script>(function"))
                         {
-                            proxyManager.Refresh(rch);
+                            proxyManager?.Refresh();
                             return null;
                         }
 
@@ -145,7 +145,7 @@ namespace Online.Controllers
 
             OnLog(log + "\nStart OnResult");
 
-            return ContentTo(oninvk.Tpl(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast));
+            return await ContentTpl(oninvk.Tpl(content, number_of_seasons, kinopoisk_id, title, original_title, t, s, vast: init.vast));
         }
 
 

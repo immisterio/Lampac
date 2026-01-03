@@ -49,7 +49,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/getstv")]
-        async public ValueTask<ActionResult> Index(string orid, string title, string original_title, int year, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string orid, string title, string original_title, int year, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -68,10 +68,10 @@ namespace Online.Controllers
                     orid = result.id;
                 else
                 {
-                    if (result.similar == null || result.similar.IsEmpty())
+                    if (result.similar == null || result.similar.IsEmpty)
                         return OnError("data");
 
-                    return ContentTo(result.similar);
+                    return await ContentTpl(result.similar);
                 }
             }
 
@@ -91,7 +91,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
-            return OnResult(cache, () => 
+            return await ContentTpl(cache, () => 
             {
                 string defaultargs = $"&orid={orid}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}";
 
@@ -199,7 +199,7 @@ namespace Online.Controllers
                     if (!root.ContainsKey("resolutions"))
                         return OnError("resolutions");
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, root, cacheTime(10));
                 }
 
@@ -245,7 +245,7 @@ namespace Online.Controllers
         #region SpiderSearch
         [HttpGet]
         [Route("lite/getstv-search")]
-        async public ValueTask<ActionResult> SpiderSearch(string title, bool rjson = false)
+        async public Task<ActionResult> SpiderSearch(string title, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -254,10 +254,10 @@ namespace Online.Controllers
                 return badInitMsg;
 
             var result = await search(title, null, 0);
-            if (result.similar == null || result.similar.IsEmpty())
+            if (result.similar == null || result.similar.IsEmpty)
                 return OnError("data");
 
-            return ContentTo(result.similar);
+            return await ContentTpl(result.similar);
         }
         #endregion
 
@@ -277,11 +277,11 @@ namespace Online.Controllers
                 
                 if (root == null)
                 {
-                    proxyManager.Refresh(rch);
+                    proxyManager?.Refresh();
                     return default;
                 }
 
-                proxyManager.Success(rch);
+                proxyManager?.Success();
                 hybridCache.Set(memKey, root, cacheTime(20));
             }
 

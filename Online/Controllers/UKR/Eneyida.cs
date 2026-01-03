@@ -29,7 +29,7 @@ namespace Online.Controllers
                ongettourl => httpHydra.Get(ongettourl),
                (url, data) => httpHydra.Post(url, data),
                onstreamtofile => HostStreamProxy(onstreamtofile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             rhubFallback:
@@ -40,7 +40,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson));
         }
     }
 }

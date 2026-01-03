@@ -17,7 +17,7 @@ namespace SISI.Controllers.Tizam
             {
                 string html = await httpHydra.Get($"{init.corsHost()}/{uri}");
 
-                string location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
+                string location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"", RegexOptions.Compiled).Groups[1].Value;
 
                 if (string.IsNullOrEmpty(location))
                     return e.Fail("location", refresh_proxy: true);

@@ -1,6 +1,7 @@
 ﻿using Lampac.Engine;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
@@ -15,6 +16,8 @@ namespace Lampac.Controllers
 {
     public class StorageController : BaseController
     {
+        static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager();
+
         #region StorageController
         static StorageController()
         {
@@ -83,44 +86,42 @@ namespace Lampac.Controllers
             if (outFile == null)
                 return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
-            byte[] array = null;
-            using (var memoryStream = new MemoryStream()) 
+            using (var memoryStream = msm.GetStream())
             {
                 try
                 {
                     await HttpContext.Request.Body.CopyToAsync(memoryStream);
-                    array = memoryStream.ToArray();
-                }
-                catch 
-                {
-                    HttpContext.Response.StatusCode = 503;
-                    return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
-                }
-            }
-
-            if (AppInit.conf.storage.brotli)
-            {
-                await BrotliTo.CompressAsync(outFile, array);
-            }
-            else
-            {
-                var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
-
-                try
-                {
-                    await semaphore.WaitAsync();
-
-                    using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                        await fileStream.WriteAsync(array);
                 }
                 catch
                 {
                     HttpContext.Response.StatusCode = 503;
-                    return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                    return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
                 }
-                finally
+
+                if (AppInit.conf.storage.brotli)
                 {
-                    semaphore.Release();
+                    await BrotliTo.CompressAsync(outFile, memoryStream);
+                }
+                else
+                {
+                    var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
+
+                    try
+                    {
+                        await semaphore.WaitAsync();
+
+                        using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                            await memoryStream.CopyToAsync(fileStream);
+                    }
+                    catch
+                    {
+                        HttpContext.Response.StatusCode = 503;
+                        return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 }
             }
 
@@ -214,44 +215,42 @@ namespace Lampac.Controllers
             if (outFile == null)
                 return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
-            byte[] array = null;
-            using (var memoryStream = new MemoryStream())
+            using (var memoryStream = msm.GetStream())
             {
                 try
                 {
                     await HttpContext.Request.Body.CopyToAsync(memoryStream);
-                    array = memoryStream.ToArray();
-                }
-                catch 
-                {
-                    HttpContext.Response.StatusCode = 503;
-                    return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
-                }
-            }
-
-            if (AppInit.conf.storage.brotli)
-            {
-                await BrotliTo.CompressAsync(outFile, array);
-            }
-            else
-            {
-                var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
-
-                try
-                {
-                    await semaphore.WaitAsync();
-
-                    using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                        fileStream.WriteAsync(array);
                 }
                 catch
                 {
                     HttpContext.Response.StatusCode = 503;
-                    return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                    return ContentTo("{\"success\": false, \"msg\": \"Request.Body.CopyToAsync\"}");
                 }
-                finally
+
+                if (AppInit.conf.storage.brotli)
                 {
-                    semaphore.Release();
+                    await BrotliTo.CompressAsync(outFile, memoryStream);
+                }
+                else
+                {
+                    var semaphore = new SemaphorManager(outFile, TimeSpan.FromSeconds(20));
+
+                    try
+                    {
+                        await semaphore.WaitAsync();
+
+                        using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                            await memoryStream.CopyToAsync(fileStream);
+                    }
+                    catch
+                    {
+                        HttpContext.Response.StatusCode = 503;
+                        return ContentTo("{\"success\": false, \"msg\": \"fileLock\"}");
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 }
             }
 

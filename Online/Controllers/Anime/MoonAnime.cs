@@ -14,7 +14,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/moonanime")]
-        async public ValueTask<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -67,7 +67,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0)
                             return OnError();
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
 
@@ -82,7 +82,7 @@ namespace Online.Controllers
                         stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.poster));
                     }
 
-                    return ContentTo(stpl);
+                    return await ContentTpl(stpl);
                 });
                 #endregion
             }
@@ -97,7 +97,7 @@ namespace Online.Controllers
                         if (root == null)
                             return OnError(refresh_proxy: true);
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
                         hybridCache.Set(key, root, cacheTime(30));
                     }
 
@@ -122,7 +122,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        return ContentTo(tpl);
+                        return await ContentTpl(tpl);
                     }
                     else
                     {
@@ -177,7 +177,7 @@ namespace Online.Controllers
                             }
                         }
 
-                        return ContentTo(etpl);
+                        return await ContentTpl(etpl);
                     }
                 });
                 #endregion
@@ -225,7 +225,7 @@ namespace Online.Controllers
                         return OnError();
 
                     #region stats
-                    if (!rch.enable)
+                    if (rch?.enable != true)
                     {
                         _ = await Http.Post("https://moonanime.art/api/stats/", $"{{\"domain\":\"{CrypTo.DecodeBase64("bGFtcGEubXg=")}\",\"player\":\"{vod}?partner=lampa\",\"play\":1}}", timeoutSeconds: 4, httpversion: 2, removeContentType: true, useDefaultHeaders: false, proxy: proxy, headers: HeadersModel.Init(
                             ("accept", "*/*"),
@@ -256,7 +256,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(cache.subtitle) || cache.subtitle == "null")
                         cache.subtitle = Regex.Match(iframe, "thumbnails: ?\"([^\"]+)\"").Groups[1].Value;
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, cache, cacheTime(30));
                 }
 

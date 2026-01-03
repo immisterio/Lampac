@@ -18,7 +18,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinogo")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, bool rjson, string href, bool similar, int s = -1, int t = -1)
+        async public Task<ActionResult> Index(string title, string original_title, int year, bool rjson, string href, bool similar, int s = -1, int t = -1)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -47,7 +47,7 @@ namespace Online.Controllers
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
-                    return OnResult(search, () => search.Value.similar);
+                    return await ContentTpl(search, () => search.Value.similar);
 
                 if (string.IsNullOrEmpty(search.Value?.link))
                 {
@@ -66,7 +66,7 @@ namespace Online.Controllers
 
             #region embed
             reset_embed:
-            var cache = await InvokeCacheResult<JArray>(rch.ipkey(href, proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<JArray>(ipkey(href), 20, async e =>
             {
                 string targetHref = $"{init.corsHost()}/{href}";
 
@@ -82,7 +82,7 @@ namespace Online.Controllers
                 string embedUrl = iframe.StartsWith("//") ? $"https:{iframe}" : iframe;
                 var embedHeaders = httpHeaders(init, HeadersModel.Init("referer", targetHref));
 
-                string embedHtml = rch.enable 
+                string embedHtml = rch?.enable == true
                     ? await rch.Get(init.cors(embedUrl), embedHeaders) 
                     : await PlaywrightBrowser.Get(init, init.cors(embedUrl), headers: embedHeaders, proxy_data);
 
@@ -115,7 +115,7 @@ namespace Online.Controllers
                 goto reset_embed;
             #endregion
 
-            return OnResult(cache, () => BuildResult(cache.Value, title, original_title, year, s, t, rjson, href));
+            return await ContentTpl(cache, () => BuildResult(cache.Value, title, original_title, year, s, t, rjson, href));
         }
 
 
@@ -288,7 +288,7 @@ namespace Online.Controllers
                     link = href;
             }
 
-            if (string.IsNullOrEmpty(link) && similar.IsEmpty())
+            if (string.IsNullOrEmpty(link) && similar.IsEmpty)
                 return null;
 
             return new SearchModel() 

@@ -53,7 +53,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vokino")]
-        async public ValueTask<ActionResult> Index(bool checksearch, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(bool checksearch, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false, string source = null, string id = null)
         {
             if (string.IsNullOrEmpty(origid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
@@ -83,18 +83,18 @@ namespace Online.Controllers
                init.token,
                ongettourl => httpHydra.Get(ongettourl, safety: true),
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             rhubFallback:
-            var cache = await InvokeCacheResult(rch.ipkey($"vokino:{kinopoisk_id}:{origid}:{balancer}:{t}:{init.token}", proxyManager), 20, 
+            var cache = await InvokeCacheResult(ipkey($"vokino:{kinopoisk_id}:{origid}:{balancer}:{t}:{init.token}"), 20, 
                 () => oninvk.Embed(origid, kinopoisk_id, balancer, t)
             );
 
             if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, origid, kinopoisk_id, title, original_title, balancer, t, s, init.vast, rjson));
         }
     }
 }

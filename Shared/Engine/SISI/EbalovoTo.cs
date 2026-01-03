@@ -39,28 +39,29 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("<div class=\"item\">");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("<div class=\"item\">", html);
 
-            foreach (string row in rows)
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
                 if (!row.Contains("<div class=\"item-info\">"))
                     continue;
 
-                string link = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\"").Groups[1].Value;
-                string title = Regex.Match(row, "<div class=\"item-title\">([^<]+)</div>").Groups[1].Value;
+                string link = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                string title = Regex.Match(row, "<div class=\"item-title\">([^<]+)</div>", RegexOptions.Compiled).Groups[1].Value;
 
                 if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(link))
                 {
-                    string duration = Regex.Match(row, " data-eb=\"([^;\"]+);").Groups[1].Value.Trim();
-                    var img = Regex.Match(row, "( )src=\"(([^\"]+)/[0-9]+.jpg)\"").Groups;
+                    string duration = Regex.Match(row, " data-eb=\"([^;\"]+);", RegexOptions.Compiled).Groups[1].Value.Trim();
+                    var img = Regex.Match(row, "( )src=\"(([^\"]+)/[0-9]+.jpg)\"", RegexOptions.Compiled).Groups;
                     if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
-                        img = Regex.Match(row, "(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"").Groups;
+                        img = Regex.Match(row, "(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"", RegexOptions.Compiled).Groups;
 
                     var pl = new PlaylistItem()
                     {

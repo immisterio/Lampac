@@ -33,7 +33,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/iptvonline")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial = -1, int s = -1, bool rjson = false)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int serial = -1, int s = -1, bool rjson = false)
         {
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
@@ -86,7 +86,7 @@ namespace Online.Controllers
             });
             #endregion
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 if (cache.Value.Value<string>("category") == "movie")
                 {
@@ -175,7 +175,7 @@ namespace Online.Controllers
 
                     if (video == null)
                     {
-                        proxyManager.Refresh();
+                        proxyManager?.Refresh();
                         return null;
                     }
 
@@ -222,7 +222,7 @@ namespace Online.Controllers
                 if (data == null)
                     return null;
 
-                proxyManager.Success();
+                proxyManager?.Success();
                 hybridCache.Set(memKey, data, cacheTime(30));
             }
 

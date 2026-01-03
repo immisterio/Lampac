@@ -11,6 +11,7 @@ using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.Online.Settings;
 using Shared.Models.SISI.OnResult;
+using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
@@ -111,7 +112,8 @@ namespace Shared
             string key = "BaseController:mylocalip";
             if (!memoryCache.TryGetValue(key, out string userIp))
             {
-                userIp = await InvkEvent.MyLocalIp(new EventMyLocalIp(requestInfo, HttpContext.Request, HttpContext, hybridCache));
+                if (InvkEvent.IsMyLocalIp())
+                    userIp = await InvkEvent.MyLocalIp(new EventMyLocalIp(requestInfo, HttpContext.Request, HttpContext, hybridCache));
 
                 if (string.IsNullOrEmpty(userIp))
                 {
@@ -148,9 +150,10 @@ namespace Shared
         public List<HeadersModel> httpHeaders(string site, List<HeadersModel> _headers)
         {
             if (_headers == null || _headers.Count == 0)
-                return _headers;
+                return null;
 
-            var headers = new List<HeadersModel>(_headers.Count);
+            bool changeHeaders = false;
+            var tempHeaders = new Dictionary<string, string>(_headers.Count);
 
             string ip = requestInfo.IP;
             string account_email = HttpContext.Request.Query["account_email"].ToString()?.ToLower().Trim() ?? string.Empty;
@@ -160,21 +163,36 @@ namespace Shared
                 if (string.IsNullOrEmpty(h.val) || string.IsNullOrEmpty(h.name))
                     continue;
 
-                var bulder = new StringBuilder(h.val)
-                   .Replace("{account_email}", account_email)
-                   .Replace("{ip}", ip)
-                   .Replace("{host}", site);
+                string val = h.val;
 
-                string val = bulder.ToString();
+                if (val.Contains("{account_email}"))
+                {
+                    changeHeaders = true;
+                    val = val.Replace("{account_email}", account_email);
+                }
+
+                if (val.Contains("{ip}"))
+                {
+                    changeHeaders = true;
+                    val = val.Replace("{ip}", ip);
+                }
+
+                if (val.Contains("{host}"))
+                {
+                    changeHeaders = true;
+                    val = val.Replace("{host}", site);
+                }
 
                 if (val.StartsWith("encrypt:"))
                 {
+                    changeHeaders = true;
                     string encrypt = Regex.Match(val, "^encrypt:([^\n\r]+)").Groups[1].Value;
-                    val = new OnlinesSettings(null, encrypt).host;
+                    val = BaseSettings.BaseDecrypt(encrypt);
                 }
 
                 if (val.Contains("{arg:"))
                 {
+                    changeHeaders = true;
                     foreach (Match m in Regex.Matches(val, "\\{arg:([^\\}]+)\\}"))
                     {
                         string _a = Regex.Match(HttpContext.Request.QueryString.Value, $"&{m.Groups[1].Value}=([^&]+)").Groups[1].Value;
@@ -184,6 +202,7 @@ namespace Shared
 
                 if (val.Contains("{head:"))
                 {
+                    changeHeaders = true;
                     foreach (Match m in Regex.Matches(val, "\\{head:([^\\}]+)\\}"))
                     {
                         if (HttpContext.Request.Headers.TryGetValue(m.Groups[1].Value, out var _h))
@@ -200,15 +219,23 @@ namespace Shared
                     }
                 }
 
-                if (headers.FirstOrDefault(i => i.name == h.name) == null)
-                    headers.Add(new HeadersModel(h.name, val));
+                tempHeaders[h.name] = val;
             }
 
-            var eventHeaders = InvkEvent.HttpHeaders(new EventControllerHttpHeaders(site, headers, requestInfo, HttpContext.Request, HttpContext));
-            if (eventHeaders != null)
-                headers = eventHeaders;
+            if (InvkEvent.IsHttpHeaders())
+            {
+                var eventHeaders = InvkEvent.HttpHeaders(new EventControllerHttpHeaders(site, tempHeaders, requestInfo, HttpContext.Request, HttpContext));
+                if (eventHeaders != null)
+                {
+                    changeHeaders = true;
+                    tempHeaders = eventHeaders;
+                }
+            }
 
-            return headers;
+            if (changeHeaders)
+                return HeadersModel.InitOrNull(tempHeaders);
+
+            return _headers;
         }
         #endregion
 
@@ -222,53 +249,59 @@ namespace Shared
             int width = init.widthPicture;
             height = height > 0 ? height : init.heightPicture;
 
-            string goEncryptUri(string _uri)
-            {
-                var _head = headers != null && headers.Count > 0 ? headers: null;
-
-                string encrypt_uri = ProxyLink.Encrypt(_uri, requestInfo.IP, _head, plugin: plugin, verifyip: false, ex: DateTime.Now.AddMinutes(20), IsProxyImg: true);
-                if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
-                    encrypt_uri = AccsDbInvk.Args(encrypt_uri, HttpContext);
-
-                return encrypt_uri;
-            }
-
             if (plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(plugin))
                 return uri;
 
-            string eventUri = InvkEvent.HostImgProxy(requestInfo, HttpContext, uri, height, headers, plugin);
-            if (eventUri != null)
-                return eventUri;
+            if (InvkEvent.IsHostImgProxy())
+            {
+                string eventUri = InvkEvent.HostImgProxy(requestInfo, HttpContext, uri, height, headers, plugin);
+                if (eventUri != null)
+                    return eventUri;
+            }
 
             if (width == 0 && height == 0 || plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(plugin))
             {
                 if (!string.IsNullOrEmpty(init.bypass_host))
                 {
-                    string sheme = uri.StartsWith("https:") ? "https" : "http";
-                    string bypass_host = init.bypass_host.Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+                    string bypass_host = init.bypass_host
+                        .Replace("{sheme}", uri.StartsWith("https:") ? "https" : "http")
+                        .Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
 
                     if (bypass_host.Contains("{encrypt_uri}"))
-                        bypass_host = bypass_host.Replace("{encrypt_uri}", goEncryptUri(uri));
+                        bypass_host = bypass_host.Replace("{encrypt_uri}", ImgProxyToEncryptUri(HttpContext, uri, plugin, requestInfo.IP, headers));
 
                     return bypass_host;
                 }
 
-                return $"{host}/proxyimg/{goEncryptUri(uri)}";
+                return $"{host}/proxyimg/{ImgProxyToEncryptUri(HttpContext, uri, plugin, requestInfo.IP, headers)}";
             }
 
             if (!string.IsNullOrEmpty(init.rsize_host))
             {
-                string sheme = uri.StartsWith("https:") ? "https" : "http";
-                string rsize_host = init.rsize_host.Replace("{width}", width.ToString()).Replace("{height}", height.ToString())
-                                                   .Replace("{sheme}", sheme).Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+                string rsize_host = init.rsize_host
+                    .Replace("{width}", width.ToString())
+                    .Replace("{height}", height.ToString())
+                    .Replace("{sheme}", uri.StartsWith("https:") ? "https" : "http")
+                    .Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
 
                 if (rsize_host.Contains("{encrypt_uri}"))
-                    rsize_host = rsize_host.Replace("{encrypt_uri}", goEncryptUri(uri));
+                    rsize_host = rsize_host.Replace("{encrypt_uri}", ImgProxyToEncryptUri(HttpContext, uri, plugin, requestInfo.IP, headers));
 
                 return rsize_host;
             }
 
-            return $"{host}/proxyimg:{width}:{height}/{goEncryptUri(uri)}";
+            return $"{host}/proxyimg:{width}:{height}/{ImgProxyToEncryptUri(HttpContext, uri, plugin, requestInfo.IP, headers)}";
+        }
+
+        static string ImgProxyToEncryptUri(HttpContext httpContext, string uri, string plugin, string ip, List<HeadersModel> headers)
+        {
+            var _head = headers != null && headers.Count > 0 ? headers : null;
+
+            string encrypt_uri = ProxyLink.Encrypt(uri, ip, _head, plugin: plugin, verifyip: false, ex: DateTime.Now.AddMinutes(20), IsProxyImg: true);
+            if (AppInit.conf.accsdb.enable && !AppInit.conf.serverproxy.encrypt)
+                encrypt_uri = AccsDbInvk.Args(encrypt_uri, httpContext);
+
+            return encrypt_uri;
         }
         #endregion
 
@@ -278,9 +311,12 @@ namespace Shared
             if (!AppInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
                 return uri?.Split(" ")?[0]?.Trim();
 
-            string _eventUri = InvkEvent.HostStreamProxy(new EventHostStreamProxy(conf, uri, headers, proxy, requestInfo, HttpContext, hybridCache));
-            if (_eventUri != null)
-                return _eventUri;
+            if (InvkEvent.IsHostStreamProxy())
+            {
+                string _eventUri = InvkEvent.HostStreamProxy(new EventHostStreamProxy(conf, uri, headers, proxy, requestInfo, HttpContext, hybridCache));
+                if (_eventUri != null)
+                    return _eventUri;
+            }
 
             if (conf.rhub && !conf.rhub_streamproxy)
                 return uri.Split(" ")[0].Trim();
@@ -312,63 +348,16 @@ namespace Shared
             {
                 if (AppInit.conf.serverproxy.forced_apn || conf.apnstream)
                 {
-                    #region apnlink
-                    string apnlink(ApnConf apn)
-                    {
-                        string link = uri.Split(" ")[0].Split("#")[0].Trim();
-
-                        if (apn.secure == "nginx")
-                        {
-                            using (MD5 md5 = MD5.Create())
-                            {
-                                long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
-                                string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{requestInfo.IP} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
-
-                                return $"{apn.host}/{hash}:{ex}/{link}";
-                            }
-                        }
-                        else if (apn.secure == "cf")
-                        {
-                            using (var sha1 = SHA1.Create())
-                            {
-                                var data = Encoding.UTF8.GetBytes($"{requestInfo.IP}{link}{apn.secret}");
-                                return Convert.ToBase64String(sha1.ComputeHash(data));
-                            }
-                        }
-                        else if (apn.secure == "lampac")
-                        {
-                            string aes = AesTo.Encrypt(System.Text.Json.JsonSerializer.Serialize(new
-                            {
-                                u = link,
-                                i = requestInfo.IP,
-                                v = true,
-                                e = DateTime.Now.AddHours(36),
-                                h = headers?.ToDictionary()
-                            }));
-
-                            if (uri.Contains(".m3u"))
-                                aes += ".m3u8";
-
-                            return $"{apn.host}/proxy/{aes}";
-                        }
-
-                        if (apn.host.Contains("{encode_uri}") || apn.host.Contains("{uri}"))
-                            return apn.host.Replace("{encode_uri}", HttpUtility.UrlEncode(link)).Replace("{uri}", link);
-
-                        return $"{apn.host}/{link}";
-                    }
-                    #endregion
-
                     if (!string.IsNullOrEmpty(conf.apn?.host) && conf.apn.host.StartsWith("http"))
-                        return apnlink(conf.apn);
+                        return apnlink(conf.apn, uri, requestInfo.IP, headers);
 
                     if (!string.IsNullOrEmpty(AppInit.conf?.apn?.host) && AppInit.conf.apn.host.StartsWith("http"))
-                        return apnlink(AppInit.conf.apn);
+                        return apnlink(AppInit.conf.apn, uri, requestInfo.IP, headers);
 
                     return uri;
                 }
 
-                if (conf.headers_stream != null && conf.headers_stream.Count > 0)
+                if (headers == null && conf.headers_stream != null && conf.headers_stream.Count > 0)
                     headers = HeadersModel.Init(conf.headers_stream);
 
                 uri = ProxyLink.Encrypt(uri, requestInfo.IP, httpHeaders(conf.host ?? conf.apihost, headers), conf != null && conf.useproxystream ? proxy : null, conf?.plugin);
@@ -392,6 +381,51 @@ namespace Shared
 
             return uri;
         }
+
+        static string apnlink(ApnConf apn, string uri, string ip, List<HeadersModel> headers)
+        {
+            string link = uri.Split(" ")[0].Split("#")[0].Trim();
+
+            if (apn.secure == "nginx")
+            {
+                using (MD5 md5 = MD5.Create())
+                {
+                    long ex = ((DateTimeOffset)DateTime.Now.AddHours(12)).ToUnixTimeSeconds();
+                    string hash = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes($"{ex}{ip} {apn.secret}"))).Replace("=", "").Replace("+", "-").Replace("/", "_");
+
+                    return $"{apn.host}/{hash}:{ex}/{link}";
+                }
+            }
+            else if (apn.secure == "cf")
+            {
+                using (var sha1 = SHA1.Create())
+                {
+                    var data = Encoding.UTF8.GetBytes($"{ip}{link}{apn.secret}");
+                    return Convert.ToBase64String(sha1.ComputeHash(data));
+                }
+            }
+            else if (apn.secure == "lampac")
+            {
+                string aes = AesTo.Encrypt(System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    u = link,
+                    i = ip,
+                    v = true,
+                    e = DateTime.Now.AddHours(36),
+                    h = headers?.ToDictionary()
+                }));
+
+                if (uri.Contains(".m3u"))
+                    aes += ".m3u8";
+
+                return $"{apn.host}/proxy/{aes}";
+            }
+
+            if (apn.host.Contains("{encode_uri}") || apn.host.Contains("{uri}"))
+                return apn.host.Replace("{encode_uri}", HttpUtility.UrlEncode(link)).Replace("{uri}", link);
+
+            return $"{apn.host}/{link}";
+        }
         #endregion
 
         #region InvokeBaseCache
@@ -401,7 +435,7 @@ namespace Shared
 
             try
             {
-                if (rch.enable == false)
+                if (rch?.enable != true)
                     await semaphore.WaitAsync();
 
                 if (hybridCache.TryGetValue(key, out T val, memory))
@@ -416,7 +450,7 @@ namespace Shared
                 if (val == null || val.Equals(default(T)))
                     return default;
 
-                if (rch.enable == false)
+                if (rch?.enable != true)
                     proxyManager?.Success();
 
                 hybridCache.Set(key, val, time, memory);
@@ -436,7 +470,7 @@ namespace Shared
 
             try
             {
-                if (rch.enable == false)
+                if (rch?.enable != true)
                     await semaphore.WaitAsync();
 
                 if (hybridCache.TryGetValue(key, out T _val, memory))
@@ -454,7 +488,7 @@ namespace Shared
 
                 if (!val.IsSuccess)
                 {
-                    if (val.refresh_proxy && rch.enable == false)
+                    if (val.refresh_proxy && rch?.enable != true)
                         proxyManager?.Refresh();
 
                     return val;
@@ -462,7 +496,7 @@ namespace Shared
 
                 if (val.Value.Equals(default(T)))
                 {
-                    if (val.refresh_proxy && rch.enable == false)
+                    if (val.refresh_proxy && rch?.enable != true)
                         proxyManager?.Refresh();
 
                     return val;
@@ -470,13 +504,13 @@ namespace Shared
 
                 if (typeof(T) == typeof(string) && string.IsNullOrWhiteSpace(val.ToString()))
                 {
-                    if (val.refresh_proxy && rch.enable == false)
+                    if (val.refresh_proxy && rch?.enable != true)
                         proxyManager?.Refresh();
 
                     return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "empty" };
                 }
 
-                if (rch.enable == false)
+                if (rch?.enable != true)
                     proxyManager?.Success();
 
                 hybridCache.Set(key, val.Value, time, memory);
@@ -490,7 +524,7 @@ namespace Shared
         #endregion
 
         #region InvkSemaphore
-        async public Task<ActionResult> InvkSemaphore(string key, RchClient? rch, Func<Task<ActionResult>> func)
+        async public Task<ActionResult> InvkSemaphore(string key, RchClient rch, Func<Task<ActionResult>> func)
         {
             if (rch?.enable == true)
                 return await func.Invoke();
@@ -526,7 +560,10 @@ namespace Shared
         #region IsCacheError
         public bool IsCacheError(BaseSettings init, RchClient rch)
         {
-            if (!AppInit.conf.multiaccess || init.rhub || rch.enable)
+            if (!AppInit.conf.multiaccess || init.rhub)
+                return false;
+
+            if (rch?.enable == true)
                 return false;
 
             if (memoryCache.TryGetValue(ResponseCache.ErrorKey(HttpContext), out object errorCache))
@@ -553,7 +590,18 @@ namespace Shared
         #endregion
 
         #region IsOverridehost
-        async public ValueTask<ActionResult> IsOverridehost(BaseSettings init)
+        public bool IsOverridehost(BaseSettings init)
+        {
+            if (!string.IsNullOrEmpty(init.overridehost))
+                return true;
+
+            if (init.overridehosts != null && init.overridehosts.Length > 0) 
+                return true;
+
+            return true;
+        }
+
+        async public Task<ActionResult> InvokeOverridehost(BaseSettings init)
         {
             string overridehost = null;
 
@@ -632,11 +680,33 @@ namespace Shared
         #region loadKit
         public bool IsKitConf { get; private set; }
 
-        async public ValueTask<JObject> loadKitConf()
+        bool IsLoadKitConf()
         {
             var init = AppInit.conf.kit;
             if (!init.enable || string.IsNullOrEmpty(init.path) || string.IsNullOrEmpty(requestInfo.user_uid))
-                return null;
+                return false;
+
+            return true;
+        }
+
+        async public ValueTask<JObject> loadKitConf()
+        {
+            if (IsLoadKitConf())
+            {
+                var kit_init = AppInit.conf.kit;
+
+                if (kit_init.path.StartsWith("http") && !kit_init.IsAllUsersPath)
+                    return await loadHttpKitConf();
+                else
+                    return loadFileKitConf();
+            }
+
+            return null;
+        }
+
+        JObject loadFileKitConf()
+        {
+            var init = AppInit.conf.kit;
 
             if (init.IsAllUsersPath)
             {
@@ -647,34 +717,21 @@ namespace Shared
             }
             else
             {
-                string memKey = $"loadKit:{requestInfo.user_uid}";
+                string memKey = $"loadFileKit:{requestInfo.user_uid}";
                 if (!memoryCache.TryGetValue(memKey, out JObject appinit))
                 {
-                    string json;
-
-                    if (Regex.IsMatch(init.path, "^https?://"))
-                    {
-                        string uri = init.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
-                        json = await Http.Get(uri, timeoutSeconds: 5);
-                    }
-                    else
+                    try
                     {
                         string init_file = $"{init.path}/{CrypTo.md5(requestInfo.user_uid)}";
 
                         if (init.eval_path != null)
                             init_file = CSharpEval.Execute<string>(init.eval_path, new KitConfEvalPath(init.path, requestInfo.user_uid));
-                       
+
                         if (!IO.File.Exists(init_file))
                             return null;
 
-                        json = IO.File.ReadAllText(init_file);
-                    }
+                        string json = IO.File.ReadAllText(init_file);
 
-                    if (json == null)
-                        return null;
-
-                    try
-                    {
                         if (!json.TrimStart().StartsWith("{"))
                             json = "{" + json + "}";
 
@@ -689,17 +746,70 @@ namespace Shared
             }
         }
 
+        async Task<JObject> loadHttpKitConf()
+        {
+            var init = AppInit.conf.kit;
+
+            string memKey = $"loadHttpKit:{requestInfo.user_uid}";
+            if (!memoryCache.TryGetValue(memKey, out JObject appinit))
+            {
+                try
+                {
+                    string uri = init.path.Replace("{uid}", HttpUtility.UrlEncode(requestInfo.user_uid));
+                    string json = await Http.Get(uri, timeoutSeconds: 5);
+
+                    if (json == null)
+                        return null;
+
+                    if (!json.TrimStart().StartsWith("{"))
+                        json = "{" + json + "}";
+
+                    appinit = JsonConvert.DeserializeObject<JObject>(json);
+                }
+                catch { return null; }
+
+                memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, init.cacheToSeconds)));
+            }
+
+            return appinit;
+        }
+
+        public bool IsLoadKit<T>(T _init) where T : BaseSettings
+        {
+            if (InvkEvent.IsLoadKitInit() || InvkEvent.IsLoadKit())
+                return true;
+
+            if (IsLoadKitConf())
+                return _init.kit;
+
+            return false;
+        }
+
         async public ValueTask<T> loadKit<T>(T _init, Func<JObject, T, T, T> func = null) where T : BaseSettings, ICloneable
         {
             var clone = _init.IsCloneable ? _init : (T)_init.Clone();
 
-            if (_init.kit == false && _init.rhub_fallback == false)
+            if (_init.kit == false)
             {
-                InvkEvent.LoadKitInit(new EventLoadKit(null, clone, null, requestInfo, hybridCache));
+                if (InvkEvent.IsLoadKitInit())
+                    InvkEvent.LoadKitInit(new EventLoadKit(null, clone, null, requestInfo, hybridCache));
+
                 return clone;
             }
 
-            return loadKit(clone, await loadKitConf(), func, false);
+            JObject appinit = null;
+
+            if (IsLoadKitConf())
+            {
+                var kit_init = AppInit.conf.kit;
+
+                if (kit_init.path.StartsWith("http") && !kit_init.IsAllUsersPath)
+                    appinit = await loadHttpKitConf();
+                else
+                    appinit = loadFileKitConf();
+            }
+
+            return loadKit(clone, appinit, func, false);
         }
 
         public T loadKit<T>(T _init, JObject appinit, Func<JObject, T, T, T> func = null, bool clone = true) where T : BaseSettings, ICloneable
@@ -707,13 +817,19 @@ namespace Shared
             var init = clone ? (T)_init.Clone() : _init;
             init.IsKitConf = false;
             init.IsCloneable = true;
-            var defaultinit = InvkEvent.conf.LoadKit != null ? (clone ? _init : (T)_init.Clone()) : null;
 
-            InvkEvent.LoadKitInit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));
+            var defaultinit = InvkEvent.IsLoadKitInit() || InvkEvent.IsLoadKit()
+                ? (clone ? _init : (T)_init.Clone()) 
+                : null;
+
+            if (InvkEvent.IsLoadKitInit())
+                InvkEvent.LoadKitInit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));
 
             if (!init.kit || appinit == null || string.IsNullOrEmpty(init.plugin) || !appinit.ContainsKey(init.plugin))
             {
-                InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));
+                if (InvkEvent.IsLoadKit())
+                    InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, appinit, requestInfo, hybridCache));
+
                 return init;
             }
 
@@ -807,7 +923,8 @@ namespace Shared
             IsKitConf = true;
             init.IsKitConf = true;
 
-            InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, conf, requestInfo, hybridCache));
+            if (InvkEvent.IsLoadKit())
+                InvkEvent.LoadKit(new EventLoadKit(defaultinit, init, conf, requestInfo, hybridCache));
 
             if (func != null)
                 return func.Invoke(conf, init, conf.ToObject<T>());
@@ -831,6 +948,18 @@ namespace Shared
         {
             return Content(html, html.StartsWith("{") || html.StartsWith("[") ? "application/json; charset=utf-8" : "text/html; charset=utf-8");
         }
+        #endregion
+
+        #region ipkey
+        public string ipkey(string key, ProxyManager proxy, RchClient rch)
+        {
+            if (rch != null)
+                return $"{key}:{(rch.enable ? requestInfo.IP : proxy?.CurrentProxyIp)}";
+
+            return $"{key}:{proxy?.CurrentProxyIp}";
+        }
+
+        public string ipkey(string key, RchClient rch) => rch?.enable == true ? $"{key}:{requestInfo.IP}" : key;
         #endregion
     }
 }

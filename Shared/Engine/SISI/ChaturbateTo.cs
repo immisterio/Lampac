@@ -18,24 +18,25 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("display_age");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("display_age", html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
                 if (!row.Contains("\"current_show\":\"public\""))
                     continue;
 
-                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"").Groups[1].Value;
+                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(baba))
                     continue;
 
-                string img = Regex.Match(row, "\"img\":\"([^\"]+)\"").Groups[1].Value;
+                string img = Regex.Match(row, "\"img\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(img))
                     continue;
 
@@ -107,7 +108,7 @@ namespace Shared.Engine.SISI
                 return null;
 
             string html = await onresult.Invoke($"{host}/{baba}/");
-            string hls = new Regex("(https?://[^ ]+/playlist\\.m3u8)").Match(html ?? "").Groups[1].Value;
+            string hls = Regex.Match(html ?? "", "(https?://[^ ]+/playlist\\.m3u8)").Groups[1].Value;
             if (string.IsNullOrWhiteSpace(hls))
                 return null;
 

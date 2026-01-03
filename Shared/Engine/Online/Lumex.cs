@@ -1,8 +1,8 @@
-﻿using Shared.Models.Base;
+﻿using Shared.Models;
+using Shared.Models.Base;
 using Shared.Models.Online.Lumex;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -15,7 +15,7 @@ namespace Shared.Engine.Online
         bool hls;
         string apihost;
         string token;
-        Func<string, string, bool, Task<string>> onget;
+        HttpHydra http;
         Func<string, string> onstreamfile;
         Action requesterror;
 
@@ -27,14 +27,14 @@ namespace Shared.Engine.Online
             return onstreamfile.Invoke(stream);
         }
 
-        public LumexInvoke(string host, LumexSettings init, Func<string, string, bool, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
+        public LumexInvoke(string host, LumexSettings init, HttpHydra httpHydra, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.scheme = init.scheme ?? "http";
             this.hls = init.hls;
             this.apihost = init.cors(init.apihost);
             this.token = init!.token;
-            this.onget = onget;
+            this.http = httpHydra;
             this.onstreamfile = onstreamfile;
             this.requesterror = requesterror;
         }
@@ -54,22 +54,12 @@ namespace Shared.Engine.Online
                 #region api/short
                 string uri = $"{apihost}/api/short?api_token={token}&title={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
-                string json = await onget.Invoke(uri, apihost, true);
-                if (json == null)
+                var root = await http.Get<SearchRoot>(uri, addheaders: HeadersModel.Init("referer", apihost), safety: true);
+                if (root?.data == null || root.data.Length == 0)
                 {
                     requesterror?.Invoke();
                     return default;
                 }
-
-                SearchRoot root = null;
-
-                try
-                {
-                    root = JsonSerializer.Deserialize<SearchRoot>(json);
-                    if (root?.data == null || root.data.Length == 0)
-                        return default;
-                }
-                catch { return default; }
 
                 var stpl = new SimilarTpl(root.data.Length);
 
@@ -93,7 +83,7 @@ namespace Shared.Engine.Online
                     string year = item.add?.Split("-")?[0] ?? string.Empty;
                     string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.title} / {item.orig_title}" : (item.title ?? item.orig_title);
 
-                    string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kp_id}";
+                    string details = $"imdb: {item.imdb_id} {SimilarTpl.OnlineSplit} kinopoisk: {item.kp_id}";
 
                     string img = PosterApi.Find(item.kp_id, item.imdb_id);
                     stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&content_type={item.content_type}&content_id={item.id}&clarification={clarification}", img);
@@ -155,7 +145,7 @@ namespace Shared.Engine.Online
                     string year = item.year?.Split("-")?[0] ?? string.Empty;
                     string name = !string.IsNullOrEmpty(item.ru_title) && !string.IsNullOrEmpty(item.orig_title) ? $"{item.ru_title} / {item.orig_title}" : (item.ru_title ?? item.orig_title);
 
-                    string details = $"imdb: {item.imdb_id} {stpl.OnlineSplit} kinopoisk: {item.kinopoisk_id}";
+                    string details = $"imdb: {item.imdb_id} {SimilarTpl.OnlineSplit} kinopoisk: {item.kinopoisk_id}";
 
                     string img = PosterApi.Find(item.kinopoisk_id, item.imdb_id);
                     stpl.Append(name, year, details, host + $"lite/lumex?title={enc_title}&original_title={enc_original_title}&content_type={item.content_type}&content_id={item.id}&clarification={clarification}", img);
@@ -190,7 +180,7 @@ namespace Shared.Engine.Online
                     {
                         foreach (string srt in media.subtitles)
                         {
-                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
+                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt", RegexOptions.Compiled).Groups[1].Value;
                             subtitles.Append(name, onstream($"{scheme}:{srt}"));
                         }
                     }
@@ -235,7 +225,7 @@ namespace Shared.Engine.Online
                     {
                         #region Перевод
                         var vtpl = new VoiceTpl();
-                        var tmpVoice = new HashSet<int>();
+                        var tmpVoice = new HashSet<int>(20);
 
                         foreach (var media in result.media)
                         {
@@ -283,7 +273,7 @@ namespace Shared.Engine.Online
                                     {
                                         foreach (string srt in media.subtitles)
                                         {
-                                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
+                                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt", RegexOptions.Compiled).Groups[1].Value;
                                             subtitles.Append(name, onstream($"{scheme}:{srt}"));
                                         }
                                     }

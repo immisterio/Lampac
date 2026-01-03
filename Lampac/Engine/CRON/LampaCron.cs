@@ -68,7 +68,7 @@ namespace Lampac.Engine.CRON
                         $"https://github.com/{init.git}/archive/{init.tree}.zip" :
                         $"https://github.com/{init.git}/archive/refs/heads/main.zip";
 
-                    byte[] array = await Http.Download(uri, MaxResponseContentBufferSize: 20_000_000, timeoutSeconds: 40);
+                    byte[] array = await Http.Download(uri);
                     if (array != null)
                     {
                         currentapp = null;

@@ -16,7 +16,7 @@ namespace SISI.Controllers.NextHUB
 
         [HttpGet]
         [Route("nexthub/vidosik")]
-        async public ValueTask<ActionResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled", rcache: false);
@@ -43,13 +43,13 @@ namespace SISI.Controllers.NextHUB
                      init.view.routeEval == null && init.cookies == null && init.view.evalJS == null)
                 {
                     reset:
-                    if (rch.enable == false)
+                    if (rch == null || rch.enable == false)
                         await e.semaphore.WaitAsync();
 
                     video = await goVideoToHttp(plugin, init.cors(url), init);
                     if (string.IsNullOrEmpty(video.file))
                     {
-                        if (IsRhubFallback(init))
+                        if (IsRhubFallback())
                             goto reset;
 
                         return OnError("file", rcache: !init.debug);
@@ -57,7 +57,7 @@ namespace SISI.Controllers.NextHUB
                 }
                 else
                 {
-                    if (rch.enable)
+                    if (rch?.enable == true)
                         return OnError("rch not supported", rcache: false);
 
                     await e.semaphore.WaitAsync();
@@ -76,7 +76,7 @@ namespace SISI.Controllers.NextHUB
                 };
 
                 if (related)
-                    return OnResult(stream_links?.recomends, null, total_pages: 1);
+                    return await PlaylistResult(stream_links?.recomends, null, total_pages: 1);
 
                 return OnResult(stream_links);
             });
@@ -92,7 +92,7 @@ namespace SISI.Controllers.NextHUB
             try
             {
                 string memKey = $"nexthub:view18:goVideo:{url}";
-                if (init.view.bindingToIP)
+                if (init.view.bindingToIP && proxyManager != null)
                     memKey += $":{proxyManager.CurrentProxyIp}";
 
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
@@ -410,7 +410,7 @@ namespace SISI.Controllers.NextHUB
 
                         if (string.IsNullOrEmpty(cache.file))
                         {
-                            proxyManager.Refresh(rch);
+                            proxyManager?.Refresh();
                             return default;
                         }
 
@@ -436,7 +436,7 @@ namespace SISI.Controllers.NextHUB
                         #endregion
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time));
                 }
 
@@ -463,7 +463,7 @@ namespace SISI.Controllers.NextHUB
                 string memKey = $"nexthub:view18:goVideo:{url}";
 
                 if (init.view.bindingToIP)
-                    memKey = rch.ipkey(memKey, proxyManager);
+                    memKey = ipkey(memKey);
 
                 if (!hybridCache.TryGetValue(memKey, out (string file, List<HeadersModel> headers, List<PlaylistItem> recomends) cache))
                 {
@@ -529,7 +529,7 @@ namespace SISI.Controllers.NextHUB
 
                     if (string.IsNullOrEmpty(cache.file))
                     {
-                        proxyManager.Refresh(rch);
+                        proxyManager?.Refresh();
                         return default;
                     }
 
@@ -542,7 +542,7 @@ namespace SISI.Controllers.NextHUB
                     if (init.view.related && cache.recomends == null)
                         cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, plugin);
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
 
                     hybridCache.Set(memKey, cache, cacheTime(init.view.cache_time));
                 }

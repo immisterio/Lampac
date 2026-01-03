@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using Shared.Models;
+﻿using Shared.Models;
 using Shared.Models.Base;
 using System.Net;
 using System.Text;
@@ -22,82 +21,67 @@ namespace Shared.Engine
         }
 
         #region Get
-        async public Task<T> Get<T>(string url, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool IgnoreDeserializeObject = false, bool safety = false)
+        public Task<T> Get<T>(string url, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool IgnoreDeserializeObject = false, bool safety = false)
         {
-            try
-            {
-                string json = await Get(url, addheaders, newheaders, useDefaultHeaders, statusCodeOK, encoding, safety).ConfigureAwait(false);
-                if (json == null)
-                    return default;
+            var headers = JsonHeaders(addheaders, newheaders);
 
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
-
-                return JsonConvert.DeserializeObject<T>(json);
-            }
-            catch
-            {
-                return default;
-            }
+            return IsRchEnable(safety)
+                ? rch.Get<T>(init.cors(url), headers, IgnoreDeserializeObject, useDefaultHeaders)
+                : Http.Get<T>(init.cors(url), timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy, headers: headers, useDefaultHeaders: useDefaultHeaders, statusCodeOK: statusCodeOK);
         }
 
         public Task<string> Get(string url, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool safety = false)
         {
-            var headers = HeadersModel.Init(newheaders ?? basehaders);
+            var headers = JsonHeaders(addheaders, newheaders);
 
-            if (addheaders != null && addheaders.Count > 0)
-                headers = HeadersModel.Join(headers, addheaders);
-
-            bool rch_enable = rch.enable;
-            if (rch_enable)
-            {
-                if (safety && init.rhub_safety)
-                    rch_enable = false;
-            }
-
-            return rch_enable
+            return IsRchEnable(safety)
                 ? rch.Get(init.cors(url), headers, useDefaultHeaders)
                 : Http.Get(init.cors(url), encoding, timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy, headers: headers, useDefaultHeaders: useDefaultHeaders, statusCodeOK: statusCodeOK);
         }
         #endregion
 
         #region Post
-        async public Task<T> Post<T>(string url, string data, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool IgnoreDeserializeObject = false, bool safety = false)
+        public Task<T> Post<T>(string url, string data, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool IgnoreDeserializeObject = false, bool safety = false)
         {
-            try
-            {
-                string json = await Post(url, data, addheaders, newheaders, useDefaultHeaders, statusCodeOK, encoding, safety).ConfigureAwait(false);
-                if (json == null)
-                    return default;
+            var headers = JsonHeaders(addheaders, newheaders);
 
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } });
-
-                return JsonConvert.DeserializeObject<T>(json);
-            }
-            catch
-            {
-                return default;
-            }
+            return IsRchEnable(safety)
+                ? rch.Post<T>(init.cors(url), data, headers, IgnoreDeserializeObject, useDefaultHeaders)
+                : Http.Post<T>(init.cors(url), data, encoding: encoding, timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy, headers: headers, useDefaultHeaders: useDefaultHeaders, statusCodeOK: statusCodeOK);
         }
 
         public Task<string> Post(string url, string data, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool safety = false)
+        {
+            var headers = JsonHeaders(addheaders, newheaders);
+
+            return IsRchEnable(safety)
+                ? rch.Post(init.cors(url), data, headers, useDefaultHeaders)
+                : Http.Post(init.cors(url), data, encoding: encoding, timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy, headers: headers, useDefaultHeaders: useDefaultHeaders, statusCodeOK: statusCodeOK);
+        }
+        #endregion
+
+
+        #region JsonHeaders / IsRchEnable
+        List<HeadersModel> JsonHeaders(List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null)
         {
             var headers = HeadersModel.Init(newheaders ?? basehaders);
 
             if (addheaders != null && addheaders.Count > 0)
                 headers = HeadersModel.Join(headers, addheaders);
 
-            bool rch_enable = rch.enable;
+            return headers;
+        }
+
+        bool IsRchEnable(bool safety)
+        {
+            bool rch_enable = rch != null && rch.enable;
             if (rch_enable)
             {
                 if (safety && init.rhub_safety)
                     rch_enable = false;
             }
 
-            return rch_enable
-                ? rch.Post(init.cors(url), data, headers, useDefaultHeaders)
-                : Http.Post(init.cors(url), data, encoding: encoding, timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy, headers: headers, useDefaultHeaders: useDefaultHeaders, statusCodeOK: statusCodeOK);
+            return rch_enable;
         }
         #endregion
     }

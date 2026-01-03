@@ -8,7 +8,7 @@ namespace SISI.Controllers.Porntrex
 
         [HttpGet]
         [Route("ptx")]
-        async public ValueTask<ActionResult> Index(string search, string sort, string c, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
         {
             if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
@@ -31,7 +31,7 @@ namespace SISI.Controllers.Porntrex
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache,
+            return await PlaylistResult(cache,
                 PorntrexTo.Menu(host, search, sort, c)
             );
         }

@@ -31,7 +31,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/alloha")]
-        async public ValueTask<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool origsource = false, bool rjson = false, bool similar = false)
         {
             if (similar)
                 return await RouteToSpiderSearch(title, rjson);
@@ -74,7 +74,7 @@ namespace Online.Controllers
                     mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
                 }
 
-                return ContentTo(mtpl);
+                return await ContentTpl(mtpl);
                 #endregion
             }
             else
@@ -87,7 +87,7 @@ namespace Online.Controllers
                     foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
                         tpl.Append($"{season.Key} сезон", $"{host}/lite/alloha?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
 
-                    return ContentTo(tpl);
+                    return await ContentTpl(tpl);
                 }
                 else
                 {
@@ -128,7 +128,7 @@ namespace Online.Controllers
                         etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", streamlink: streamlink);
                     }
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                 }
                 #endregion
             }
@@ -184,7 +184,7 @@ namespace Online.Controllers
                         if (!root.ContainsKey("data"))
                             return OnError("data");
 
-                        proxyManager.Success();
+                        proxyManager?.Success();
 
                         data = root["data"];
                         hybridCache.Set(key, data, cacheTime(10));
@@ -201,14 +201,14 @@ namespace Online.Controllers
                     catch { }
                     #endregion
 
-                    List<(string link, string quality)> streams = null;
+                    List<StreamQualityDto> streams = null;
 
                     foreach (var hlsSource in data["file"]["hlsSource"])
                     {
                         // first or default
                         if (streams == null || hlsSource.Value<bool>("default"))
                         {
-                            streams = new List<(string link, string quality)>(6);
+                            streams = new List<StreamQualityDto>(6);
 
                             foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
                             {
@@ -216,7 +216,7 @@ namespace Online.Controllers
                                 if (init.reserve)
                                     file += " or " + hlsSource["reserve"][q.Key].ToString();
 
-                                streams.Add((HostStreamProxy(file), $"{q.Key}p"));
+                                streams.Add(new StreamQualityDto(HostStreamProxy(file), $"{q.Key}p"));
                             }
                         }
                     }
@@ -384,7 +384,7 @@ namespace Online.Controllers
         #region RouteToSpiderSearch
         [HttpGet]
         [Route("lite/alloha-search")]
-        async public ValueTask<ActionResult> RouteToSpiderSearch(string title, bool rjson = false)
+        async public Task<ActionResult> RouteToSpiderSearch(string title, bool rjson = false)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError("title", gbcache: false);
@@ -401,7 +401,7 @@ namespace Online.Controllers
                 return e.Success(root["data"].ToObject<JArray>());
             });
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 var stpl = new SimilarTpl(cache.Value.Count);
 
@@ -481,7 +481,7 @@ namespace Online.Controllers
                 }
 
                 if (res.data != null)
-                    proxyManager.Success();
+                    proxyManager?.Success();
 
                 if (res.data != null || (root.ContainsKey("error_info") && root.Value<string>("error_info") == "not movie"))
                     hybridCache.Set(memKey, res, cacheTime(res.category_id is 1 or 3 ? 120 : 40));

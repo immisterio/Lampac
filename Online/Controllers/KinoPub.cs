@@ -63,7 +63,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinopub")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
@@ -86,9 +86,9 @@ namespace Online.Controllers
                host,
                init.corsHost(),
                token,
-               ongettourl => httpHydra.Get(ongettourl, safety: true),
+               httpHydra,
                (stream, filepath) => HostStreamProxy(stream),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             if (postid == 0)
@@ -105,7 +105,7 @@ namespace Online.Controllers
                     if (search.Value.similars == null)
                         return OnError();
 
-                    return ContentTo(search.Value.similars);
+                    return await ContentTpl(search.Value.similars);
                 }
 
                 postid = search.Value.id;
@@ -119,13 +119,13 @@ namespace Online.Controllers
             if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, init.filetype, title, original_title, postid, s, t, codec, vast: init.vast, rjson: rjson));
         }
 
 
         [HttpGet]
         [Route("lite/kinopub/subtitles.json")]
-        async public ValueTask<ActionResult> Subtitles(int mid)
+        async public Task<ActionResult> Subtitles(int mid)
         {
             if (await IsRequestBlocked(rch: true, rch_check: false))
                 return badInitMsg;
@@ -145,7 +145,7 @@ namespace Online.Controllers
 
             if (root == null || !root.ContainsKey("subtitles"))
             {
-                proxyManager.Refresh(rch);
+                proxyManager?.Refresh();
                 return ContentTo("[]");
             }
 

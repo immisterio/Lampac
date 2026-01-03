@@ -93,8 +93,8 @@ namespace Shared.Engine.SISI
             ModelItem model = null;
             if (IsModel_page) 
             {
-                string name = Regex.Match(html, "itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>").Groups[2].Value.Trim();
-                string href = Regex.Match(html, "rel=\"canonical\" href=\"(https?://[^/]+)?/model/([^/]+)/").Groups[2].Value;
+                string name = Regex.Match(html, "itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>", RegexOptions.Compiled).Groups[2].Value.Trim();
+                string href = Regex.Match(html, "rel=\"canonical\" href=\"(https?://[^/]+)?/model/([^/]+)/", RegexOptions.Compiled).Groups[2].Value;
 
                 if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(href))
                 {
@@ -108,10 +108,11 @@ namespace Shared.Engine.SISI
 
             string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : videoCategory.Contains("<li data-id=") ? "<li data-id=" : "<li id=";
 
-            var rows = videoCategory.Split(splitkey);
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate(splitkey, html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
                 if (row.Contains("brand__badge") || row.Contains("private-vid-title"))
                     continue;
@@ -140,9 +141,9 @@ namespace Shared.Engine.SISI
                 if (!IsModel_page)
                 {
                     model = null;
-                    var gmodel = Regex.Match(row, "href=\"/model/([^\"]+)\"[^>]+>([^<]+)<");
+                    var gmodel = Regex.Match(row, "href=\"/model/([^\"]+)\"[^>]+>([^<]+)<", RegexOptions.Compiled);
                     if (string.IsNullOrEmpty(gmodel.Groups[1].Value))
-                        gmodel = Regex.Match(row, "href=\"/(pornstar/[^\"]+)\"[^>]+>([^<]+)<");
+                        gmodel = Regex.Match(row, "href=\"/(pornstar/[^\"]+)\"[^>]+>([^<]+)<", RegexOptions.Compiled);
 
                     if (!string.IsNullOrEmpty(gmodel.Groups[1].Value))
                     {
@@ -997,7 +998,7 @@ namespace Shared.Engine.SISI
 
             foreach (string q in new string[] { "1080", "720", "480", "240" })
             {
-                string video = Regex.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"").Groups[1].Value;
+                string video = Regex.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"", RegexOptions.Compiled).Groups[1].Value;
                 if (!string.IsNullOrEmpty(video))
                     qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
             }
@@ -1022,7 +1023,7 @@ namespace Shared.Engine.SISI
                 return 1;
 
             int maxpage = 0;
-            foreach (Match match in new Regex("class=\"page_number\"><a [^>]+>([0-9]+)<").Matches(html))
+            foreach (Match match in new Regex("class=\"page_number\"><a [^>]+>([0-9]+)<", RegexOptions.Compiled).Matches(html))
             {
                 if (int.TryParse(match.Groups[1].Value, out int page) && page > maxpage)
                     maxpage = page;

@@ -10,7 +10,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/videodb")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool rjson = false, int serial = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, string t, int s = -1, int sid = -1, bool rjson = false, int serial = -1)
         {
             if (kinopoisk_id == 0)
                 return OnError();
@@ -23,18 +23,18 @@ namespace Online.Controllers
                host,
                init.apihost,
                (url, head) => black_magic(url),
-               () => proxyManager.Refresh(rch)
+               () => proxyManager?.Refresh()
             );
 
             rhubFallback: 
-            var cache = await InvokeCacheResult(rch.ipkey($"videodb:view:{kinopoisk_id}", proxyManager), 20, 
+            var cache = await InvokeCacheResult(ipkey($"videodb:view:{kinopoisk_id}"), 20, 
                 () => oninvk.Embed(kinopoisk_id)
             );
 
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson));
         }
 
 
@@ -52,24 +52,27 @@ namespace Online.Controllers
 
             bool play = HttpContext.Request.Path.Value.Contains(".m3u8");
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
+
+                if (rch.IsNotSupport(out string rch_error))
+                    return ShowError(rch_error);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
-
-            if (rch.IsNotSupport(out string rch_error))
-                return ShowError(rch_error);
 
             return await InvkSemaphore($"videodb:video:{link}", async key =>
             {
                 reset:
-                string memKey = rch.ipkey(key, proxyManager);
+                string memKey = ipkey(key);
                 if (!hybridCache.TryGetValue(memKey, out string location))
                 {
                     try
@@ -82,7 +85,7 @@ namespace Online.Controllers
                             ("referer", "{host}/")
                         ));
 
-                        if (rch.enable)
+                        if (rch?.enable == true)
                         {
                             var res = await rch.Headers(link, null, headers);
                             location = res.currentUrl;
@@ -147,7 +150,7 @@ namespace Online.Controllers
                         return OnError();
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
 
                     hybridCache.Set(memKey, location, cacheTimeBase(20, rhub: 2, init: init));
                 }
@@ -174,7 +177,7 @@ namespace Online.Controllers
                     ("referer", "{host}/")
                 ));
 
-                if (rch.enable || init.priorityBrowser == "http")
+                if (rch?.enable == true || init.priorityBrowser == "http")
                     return await httpHydra.Get(iframe_uri, newheaders: headers);
 
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))

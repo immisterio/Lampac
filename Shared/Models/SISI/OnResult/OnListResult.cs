@@ -2,7 +2,7 @@
 
 namespace Shared.Models.SISI.OnResult
 {
-    public struct OnListResult
+    public readonly struct OnListResult
     {
         public OnListResult(int listCount, int total_pages, IList<MenuItem> menu)
         {
@@ -11,10 +11,10 @@ namespace Shared.Models.SISI.OnResult
             this.menu = menu;
         }
 
-        public IList<MenuItem> menu { get; set; }
+        public IList<MenuItem> menu { get; }
 
-        public int total_pages { get; set; }
+        public int total_pages { get; }
 
-        public OnResultPlaylistItem[] list { get; set; }
+        public OnResultPlaylistItem[] list { get; }
     }
 }

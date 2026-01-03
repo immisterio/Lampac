@@ -100,5 +100,26 @@
             return result;
         }
         #endregion
+
+        #region InitOrNull
+        public static List<HeadersModel> InitOrNull(Dictionary<string, string> headers)
+        {
+            if (headers == null || headers.Count == 0)
+                return null;
+
+            var h = new List<HeadersModel>(headers.Count);
+
+            foreach (var i in headers)
+            {
+                if (!string.IsNullOrWhiteSpace(i.Value))
+                    h.Add(new HeadersModel(i.Key, i.Value));
+            }
+
+            if (h.Count == 0)
+                return null;
+
+            return h;
+        }
+        #endregion
     }
 }

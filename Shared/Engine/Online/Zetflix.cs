@@ -46,12 +46,12 @@ namespace Shared.Engine.Online
                 return null;
 
             string quality = html.Contains("1080p") ? "1080p" : html.Contains("720p") ? "720p" : "480p";
-            string check_url = Regex.Match(html, "(https?://[^\\[\\|,\n\r\t ]+\\.mp4)").Groups[1].Value;
+            string check_url = Regex.Match(html, "(https?://[^\\[\\|,\n\r\t ]+\\.mp4)", RegexOptions.Compiled).Groups[1].Value;
 
-            string file = Regex.Match(html, "file:(\\[[^\n\r]+\\])(,|}\\) ;)").Groups[1].Value;
+            string file = Regex.Match(html, "file:(\\[[^\n\r]+\\])(,|}\\) ;)", RegexOptions.Compiled).Groups[1].Value;
             if (string.IsNullOrWhiteSpace(file))
             {
-                file = Regex.Match(html, "file:\"([^\"]+)\"").Groups[1].Value;
+                file = Regex.Match(html, "file:\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(file))
                     return new EmbedModel() { pl = new List<RootObject>() { new RootObject() { file = file, title = "Дубляж" } }, movie = true, quality = quality, check_url = check_url };
 
@@ -121,7 +121,7 @@ namespace Shared.Engine.Online
 
                     var streamquality = new StreamQualityTpl();
 
-                    foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
+                    foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))", RegexOptions.Compiled))
                     {
                         string link = m.Groups[2].Value;
                         if (string.IsNullOrEmpty(link))
@@ -133,7 +133,7 @@ namespace Shared.Engine.Online
                             link = link.Replace(":hls:manifest.m3u8", "");
 
                         if (isbwa)
-                            link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
+                            link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2", RegexOptions.Compiled);
 
                         streamquality.Insert(onstreamfile.Invoke(link), $"{m.Groups[1].Value}p");
                     }
@@ -215,12 +215,12 @@ namespace Shared.Engine.Online
                                     link = link.Replace(":hls:manifest.m3u8", "");
 
                                 if (isbwa)
-                                    link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2");
+                                    link = Regex.Replace(link, "/([0-9]+)\\.(m3u8|mp4)", $"/{m.Groups[1].Value}.$2", RegexOptions.Compiled);
 
                                 streamquality.Insert(onstreamfile.Invoke(link), $"{m.Groups[1].Value}p");
                             }
 
-                            etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, streamquality: streamquality, vast: vast);
+                            etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, streamquality.Firts().link, streamquality: streamquality, vast: vast);
                         }
                     }
 

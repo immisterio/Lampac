@@ -9,7 +9,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/anilibria")]
-        async public ValueTask<ActionResult> Index(string title, string code, int year, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, string code, int year, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -23,7 +23,7 @@ namespace Online.Controllers
                init.corsHost(),
                ongettourl => httpHydra.Get<List<RootObject>>(ongettourl, IgnoreDeserializeObject: true),
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             rhubFallback:
@@ -34,7 +34,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, title, code, year, vast: init.vast, rjson: rjson, similar: similar));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, title, code, year, vast: init.vast, rjson: rjson, similar: similar));
         }
     }
 }

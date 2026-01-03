@@ -72,30 +72,31 @@ namespace Shared.Engine.SISI
                     section = single;
             }
 
-            var rows = Regex.Split(section, "(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)", html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
                 if (string.IsNullOrWhiteSpace(row) || row.Contains("badge_premium"))
                     continue;
 
-                var g = Regex.Match(row, "__nam[^\"]+\" href=\"https?://[^/]+/([^\"]+)\"([^>]+)?>(<!--[^-]+-->)?([^<]+)").Groups;
+                var g = Regex.Match(row, "__nam[^\"]+\" href=\"https?://[^/]+/([^\"]+)\"([^>]+)?>(<!--[^-]+-->)?([^<]+)", RegexOptions.Compiled).Groups;
                 string title = g[4].Value;
                 string href = g[1].Value;
 
                 if (!string.IsNullOrEmpty(href) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string duration = Regex.Match(row, "data-role=\"video-duration\"><[^>]+>([^<]+)").Groups[1].Value;
+                    string duration = Regex.Match(row, "data-role=\"video-duration\"><[^>]+>([^<]+)", RegexOptions.Compiled).Groups[1].Value;
                     if (string.IsNullOrEmpty(duration))
-                        duration = Regex.Match(row, "datetime=\"([^\"]+)\"").Groups[1].Value;
+                        duration = Regex.Match(row, "datetime=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
 
-                    string img = Regex.Match(row, " srcset=\"([^\"]+)\"").Groups[1].Value;
+                    string img = Regex.Match(row, " srcset=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                     if (!img.StartsWith("http") || img.Contains("(w:16,h:9)"))
                     {
-                        img = Regex.Match(row, "thumb-image-container__image\" src=\"([^\"]+)\"").Groups[1].Value;
+                        img = Regex.Match(row, "thumb-image-container__image\" src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                         if (!img.StartsWith("http"))
-                            img = Regex.Match(row, "<noscript><img src=\"([^\"]+)\"").Groups[1].Value.Trim();
+                            img = Regex.Match(row, "<noscript><img src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value.Trim();
                     }
 
                     if (!img.StartsWith("http"))
@@ -107,7 +108,7 @@ namespace Shared.Engine.SISI
                         video = $"{uri}?uri={href}",
                         picture = img,
                         quality = row.Contains("-hd") ? "HD" : row.Contains("-uhd") ? "4K" : null,
-                        preview = Regex.Match(row, "data-previewvideo=\"([^\"]+)\"").Groups[1].Value,
+                        preview = Regex.Match(row, "data-previewvideo=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value,
                         time = duration?.Trim(),
                         json = true,
                         related = true,
@@ -395,7 +396,7 @@ namespace Shared.Engine.SISI
             if (html == null)
                 return null;
 
-            string stream_link = Regex.Match(html, "rel=\"preload\" href=\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+            string stream_link = Regex.Match(html, "rel=\"preload\" href=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value.Replace("\\", "");
             if (!stream_link.Contains(".m3u"))
                 return null;
 

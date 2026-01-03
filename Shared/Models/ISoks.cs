@@ -8,6 +8,8 @@ namespace Shared.Models
 
         void WebLog(string message, string plugin);
 
-        Task EventsAsync(string connectionId, string uid, string name, string data);
+        Task EventsAsync(string connectionId, string uid, string name, string data); 
+        
+        int CountWeblogClients { get; }
     }
 }

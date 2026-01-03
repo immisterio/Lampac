@@ -155,7 +155,12 @@ namespace Lampac.Engine.Middlewares
                             msg = user.ban_msg ?? "Вы заблокированы";
 
                         else if (DateTime.UtcNow > user.expires)
-                            msg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                        {
+                            msg = accsdb.expiresMesage
+                                .Replace("{account_email}", requestInfo.user_uid)
+                                .Replace("{user_uid}", requestInfo.user_uid)
+                                .Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                        }
                     }
                     #endregion
 
@@ -168,7 +173,12 @@ namespace Lampac.Engine.Middlewares
                             denymsg = user.ban_msg ?? "Вы заблокированы";
 
                         else if (DateTime.UtcNow > user.expires)
-                            denymsg = accsdb.expiresMesage.Replace("{account_email}", requestInfo.user_uid).Replace("{user_uid}", requestInfo.user_uid).Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                        {
+                            denymsg = accsdb.expiresMesage
+                                .Replace("{account_email}", requestInfo.user_uid)
+                                .Replace("{user_uid}", requestInfo.user_uid)
+                                .Replace("{expires}", user.expires.ToString("dd.MM.yyyy"));
+                        }
                     }
                     #endregion
 
@@ -181,8 +191,6 @@ namespace Lampac.Engine.Middlewares
 
 
         #region IsLock
-        static string logsLock = string.Empty;
-
         static bool IsLockHostOrUser(IMemoryCache memoryCache, string account_email, string userip, string uri, out bool islock)
         {
             if (string.IsNullOrEmpty(account_email))
@@ -197,46 +205,11 @@ namespace Lampac.Engine.Middlewares
                 return islock;
             }
 
-            #region setLogs
-            void setLogs(string name)
-            {
-                string logFile = $"cache/logs/accsdb/{DateTime.Now:dd-MM-yyyy}.lock.txt";
-                if (logsLock != string.Empty && !File.Exists(logFile))
-                    logsLock = string.Empty;
-
-                string line = $"{name} / {account_email} / {CrypTo.md5(account_email)}.*.log";
-
-                if (!logsLock.Contains(line))
-                {
-                    logsLock += $"{DateTime.Now}: {line}\n";
-                    File.WriteAllText(logFile, logsLock);
-                }
-            }
-            #endregion
-
-            #region countlock_day
-            int countlock_day(bool update)
-            {
-                string key = $"Accsdb:lock_day:{account_email}:{DateTime.Now.Day}";
-
-                if (!memoryCache.TryGetValue(key, out ConcurrentDictionary<int, byte> lockhour))
-                {
-                    lockhour = new ConcurrentDictionary<int, byte>();
-                    memoryCache.Set(key, lockhour, DateTime.Now.AddDays(1));
-                }
-
-                if (update)
-                    lockhour.TryAdd(DateTime.Now.Hour, 0);
-
-                return lockhour.Count;
-            }
-            #endregion
-
             if (IsLockIpHour(memoryCache, account_email, userip, out islock, out ConcurrentDictionary<string, byte> ips) | 
                 IsLockReqHour(memoryCache, account_email, uri, out islock, out ConcurrentDictionary<string, byte> urls))
             {
-                setLogs("lock_hour");
-                countlock_day(update: true);
+                setLogs("lock_hour", account_email);
+                countlock_day(memoryCache, true, account_email);
 
                 File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.ips.log", ips.Keys);
                 File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.urls.log", urls.Keys);
@@ -244,19 +217,19 @@ namespace Lampac.Engine.Middlewares
                 return islock;
             }
 
-            if (countlock_day(update: false) > AppInit.conf.accsdb.maxlock_day)
+            if (countlock_day(memoryCache, false, account_email) > AppInit.conf.accsdb.maxlock_day)
             {
                 if (AppInit.conf.accsdb.blocked_hour != -1)
                     memoryCache.Set($"Accsdb:blocked_hour:{account_email}", 0, DateTime.Now.AddHours(AppInit.conf.accsdb.blocked_hour));
 
-                setLogs("lock_day");
+                setLogs("lock_day", account_email);
                 islock = true;
                 return islock;
             }
 
             if (memoryCache.TryGetValue($"Accsdb:blocked_hour:{account_email}", out _))
             {
-                setLogs("blocked");
+                setLogs("blocked", account_email);
                 islock = true;
                 return islock;
             }
@@ -268,13 +241,11 @@ namespace Lampac.Engine.Middlewares
 
         static bool IsLockIpHour(IMemoryCache memoryCache, string account_email, string userip, out bool islock, out ConcurrentDictionary<string, byte> ips)
         {
-            string memKeyLocIP = $"Accsdb:IsLockIpHour:{account_email}:{DateTime.Now.Hour}";
-
-            if (!memoryCache.TryGetValue(memKeyLocIP, out ips))
+            ips = memoryCache.GetOrCreate($"Accsdb:IsLockIpHour:{account_email}:{DateTime.Now.Hour}", entry =>
             {
-                ips = new ConcurrentDictionary<string, byte>();
-                memoryCache.Set(memKeyLocIP, ips, DateTime.Now.AddHours(1));
-            }
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                return new ConcurrentDictionary<string, byte>();
+            });
 
             ips.TryAdd(userip, 0);
 
@@ -290,13 +261,11 @@ namespace Lampac.Engine.Middlewares
 
         static bool IsLockReqHour(IMemoryCache memoryCache, string account_email, string uri, out bool islock, out ConcurrentDictionary<string, byte> urls)
         {
-            string memKeyLocIP = $"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}";
-
-            if (!memoryCache.TryGetValue(memKeyLocIP, out urls))
+            urls = memoryCache.GetOrCreate($"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}", entry =>
             {
-                urls = new ConcurrentDictionary<string, byte>();
-                memoryCache.Set(memKeyLocIP, urls, DateTime.Now.AddHours(1));
-            }
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                return new ConcurrentDictionary<string, byte>();
+            });
 
             urls.TryAdd(uri, 0);
 
@@ -308,6 +277,42 @@ namespace Lampac.Engine.Middlewares
 
             islock = false;
             return islock;
+        }
+        #endregion
+
+
+        #region setLogs
+        static string logsLock = string.Empty;
+
+        static void setLogs(string name, string account_email)
+        {
+            string logFile = $"cache/logs/accsdb/{DateTime.Now:dd-MM-yyyy}.lock.txt";
+            if (logsLock != string.Empty && !File.Exists(logFile))
+                logsLock = string.Empty;
+
+            string line = $"{name} / {account_email} / {CrypTo.md5(account_email)}.*.log";
+
+            if (!logsLock.Contains(line))
+            {
+                logsLock += $"{DateTime.Now}: {line}\n";
+                File.WriteAllText(logFile, logsLock);
+            }
+        }
+        #endregion
+
+        #region countlock_day
+        static int countlock_day(IMemoryCache memoryCache, bool update, string account_email)
+        {
+            var lockhour = memoryCache.GetOrCreate($"Accsdb:lock_day:{account_email}:{DateTime.Now.Day}", entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
+                return new ConcurrentDictionary<int, byte>();
+            });
+
+            if (update)
+                lockhour.TryAdd(DateTime.Now.Hour, 0);
+
+            return lockhour.Count;
         }
         #endregion
     }

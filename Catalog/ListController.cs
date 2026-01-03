@@ -21,7 +21,7 @@ namespace Catalog.Controllers
             if (rch.IsNotConnected())
                 rch.Disabled();
 
-            var proxyManager = new ProxyManager(init);
+            var proxyManager = new ProxyManager(init, rch);
             var proxy = proxyManager.BaseGet();
 
             string search = query;
@@ -147,7 +147,7 @@ namespace Catalog.Controllers
                         if (ModInit.IsRhubFallback(init))
                             goto reset;
 
-                        proxyManager.Refresh(rch);
+                        proxyManager.Refresh();
 
                         return BadRequest("playlists");
                     }
@@ -162,7 +162,7 @@ namespace Catalog.Controllers
                             cache.total_pages = _pages;
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager.Success();
 
                     hybridCache.Set(memKey, cache, cacheTimeBase(init.cache_time, init: init), inmemory: false);
                 }

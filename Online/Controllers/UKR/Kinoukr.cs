@@ -8,7 +8,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinoukr")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, string t, int s = -1, string href = null, bool rjson = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, string t, int s = -1, string href = null, bool rjson = false, string source = null, string id = null)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -17,10 +17,9 @@ namespace Online.Controllers
             (
                host,
                init.corsHost(),
-               ongettourl => httpHydra.Get(ongettourl),
-               (url, data) => httpHydra.Post(url, data),
+               httpHydra,
                onstreamtofile => HostStreamProxy(onstreamtofile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
@@ -37,7 +36,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, clarification, title, original_title, year, t, s, href, vast: init.vast, rjson: rjson));
         }
     }
 }

@@ -24,6 +24,7 @@ namespace Shared.Engine
         string plugin;
         bool refresh;
         Iproxy conf;
+        RchClient rch;
 
         bool IsKitConf;
         string KitCurrentProxyIp;
@@ -42,11 +43,12 @@ namespace Shared.Engine
             proxyKeys = [plugin, $"{plugin}:conf", $"{plugin}:globalname"];
         }
 
-        public ProxyManager(BaseSettings conf, bool refresh = true)
+        public ProxyManager(BaseSettings conf, RchClient rch, bool refresh = true)
         {
             if (conf == null)
                 return;
 
+            this.rch = rch;
             IsKitConf = conf.IsKitConf;
             plugin = !string.IsNullOrEmpty(conf.plugin) ? conf.plugin : conf.host ?? conf.apihost;
             this.conf = conf;
@@ -126,15 +128,12 @@ namespace Shared.Engine
         #endregion
 
         #region Refresh
-        public void Refresh(RchClient rch)
-        {
-            if (rch != null && rch.enable == false)
-                Refresh();
-        }
-
         public void Refresh()
         {
             if (!refresh || IsKitConf)
+                return;
+
+            if (rch != null && rch.enable)
                 return;
 
             void update(ProxySettings p, string key)
@@ -180,15 +179,12 @@ namespace Shared.Engine
         #endregion
 
         #region Success
-        public void Success(RchClient rch)
-        {
-            if (rch != null && rch.enable == false)
-                Success();
-        }
-
         public void Success()
         {
             if (IsKitConf)
+                return;
+
+            if (rch != null && rch.enable)
                 return;
 
             foreach (string key in proxyKeys)

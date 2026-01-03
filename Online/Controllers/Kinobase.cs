@@ -12,7 +12,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinobase")]
-        async public ValueTask<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, string t = null, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, string t = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
@@ -38,7 +38,7 @@ namespace Online.Controllers
                    return black_magic(ongettourl);
                },
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch)
+               requesterror: () => proxyManager?.Refresh()
             );
 
             #region search
@@ -54,7 +54,7 @@ namespace Online.Controllers
                 });
 
                 if (similar || string.IsNullOrEmpty(search.Value?.link))
-                    return OnResult(search, () => search.Value.similar);
+                    return await ContentTpl(search, () => search.Value.similar);
 
                 if (string.IsNullOrEmpty(search.Value?.link))
                     return OnError();
@@ -63,7 +63,7 @@ namespace Online.Controllers
             }
             #endregion
 
-            var cache = await InvokeCacheResult<EmbedModel>($"kinobase:view:{href}:{proxyManager.CurrentProxyIp}", 20, async e =>
+            var cache = await InvokeCacheResult<EmbedModel>($"kinobase:view:{href}:{proxyManager?.CurrentProxyIp}", 20, async e =>
             {
                 var content = await oninvk.Embed(href, init.playerjs);
                 if (content == null)
@@ -75,7 +75,7 @@ namespace Online.Controllers
             if (cache.IsSuccess && cache.Value.IsEmpty)
                 return ShowError(cache.Value.errormsg);
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, title, href, s, t, rjson));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, title, href, s, t, rjson));
         }
 
         #region black_magic

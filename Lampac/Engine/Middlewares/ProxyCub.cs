@@ -25,7 +25,7 @@ namespace Lampac.Engine.Middlewares
         #region ProxyCub
         static FileSystemWatcher fileWatcher;
 
-        static ConcurrentDictionary<string, int> cacheFiles = new ();
+        static readonly ConcurrentDictionary<string, int> cacheFiles = new ();
 
         public static int Stat_ContCacheFiles => cacheFiles.IsEmpty ? 0 : cacheFiles.Count;
 
@@ -55,7 +55,9 @@ namespace Lampac.Engine.Middlewares
         {
             try
             {
-                var files = Directory.GetFiles("cache/cub", "*").Select(f => Path.GetFileName(f)).ToHashSet();
+                string[] files = Directory.GetFiles("cache/cub", "*")
+                    .Select(Path.GetFileName)
+                    .ToArray();
 
                 foreach (string md5fileName in cacheFiles.Keys.ToArray())
                 {
@@ -205,7 +207,7 @@ namespace Lampac.Engine.Middlewares
                     }
                     else { handler.UseProxy = false; }
 
-                    var client = FrendlyHttp.HttpMessageClient("proxyRedirect", handler);
+                    var client = FrendlyHttp.MessageClient("proxyRedirect", handler);
                     var request = CreateProxyHttpRequest(httpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
 
                     using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
@@ -228,7 +230,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 await semaphore.WaitAsync().ConfigureAwait(false);
 
-                                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                                byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
 
                                 try
                                 {
@@ -321,7 +323,7 @@ namespace Lampac.Engine.Middlewares
                                 }
                             }
 
-                            var result = await Http.BaseGetAsync($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
+                            var result = await Http.BaseGet($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
                             if (string.IsNullOrEmpty(result.content))
                             {
                                 proxyManager.Refresh();
@@ -420,13 +422,15 @@ namespace Lampac.Engine.Middlewares
             #region Headers
             foreach (var header in request.Headers)
             {
-                if (header.Key.ToLower() is "host" or "origin" or "referer" or "content-disposition" or "accept-encoding")
+                string key = header.Key.ToLowerInvariant().Trim();
+
+                if (key is "host" or "origin" or "referer" or "content-disposition" or "accept-encoding")
                     continue;
 
-                if (viewru && header.Key.ToLower() == "cookie")
+                if (viewru && key == "cookie")
                     continue;
 
-                if (header.Key.ToLower().StartsWith("x-"))
+                if (key.StartsWith("x-"))
                     continue;
 
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
@@ -471,13 +475,15 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
+                    string key = header.Key.ToLowerInvariant().Trim();
+
+                    if (key is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
                         continue;
 
-                    if (header.Key.ToLower().StartsWith("x-"))
+                    if (key.StartsWith("x-"))
                         continue;
 
-                    if (header.Key.ToLower().Contains("access-control"))
+                    if (key.Contains("access-control"))
                         continue;
 
                     string value = string.Empty;
@@ -509,7 +515,7 @@ namespace Lampac.Engine.Middlewares
                 if (!response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnwritableStream");
 
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
 
                 try
                 {

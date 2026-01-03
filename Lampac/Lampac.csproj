@@ -5,6 +5,7 @@
 		<UserSecretsId>7a9d4585-3e95-4564-a350-5fe756d1351f</UserSecretsId>
 		<AssemblyName>Lampac</AssemblyName>
 		<RootNamespace>Lampac</RootNamespace>
+		<ServerGarbageCollection>false</ServerGarbageCollection>
 	</PropertyGroup>
 
 	<ItemGroup>

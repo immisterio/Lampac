@@ -17,7 +17,7 @@ namespace SISI.Controllers.NextHUB
 
         [HttpGet]
         [Route("nexthub")]
-        async public ValueTask<ActionResult> Index(string plugin, string search, string sort, string cat, string model, int pg = 1)
+        async public Task<ActionResult> Index(string plugin, string search, string sort, string cat, string model, int pg = 1)
         {
             if (!AppInit.conf.sisi.NextHUB)
                 return OnError("disabled", rcache: false);
@@ -173,7 +173,7 @@ namespace SISI.Controllers.NextHUB
                 total_pages = init.model.total_pages;
             #endregion
 
-            return OnResult(cache,
+            return await PlaylistResult(cache,
                 menu.Count == 0 ? null : menu,
                 total_pages: total_pages
             );
@@ -611,13 +611,13 @@ namespace SISI.Controllers.NextHUB
 
                 data = data.Replace("{page}", pg.ToString());
 
-                return rch.enable
+                return rch?.enable == true
                     ? await rch.Post(url.Replace("{page}", pg.ToString()), data, httpHeaders(init))
                     : await Http.Post(url.Replace("{page}", pg.ToString()), data, encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
             }
             else
             {
-                return rch.enable 
+                return rch?.enable == true
                     ? await rch.Get(url.Replace("{page}", pg.ToString()), httpHeaders(init)) 
                     : init.priorityBrowser == "http" ? await Http.Get(url.Replace("{page}", pg.ToString()), encoding: encodingResponse, headers: httpHeaders(init), proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion) 
                     : init.list.viewsource ? await PlaywrightBrowser.Get(init, url.Replace("{page}", pg.ToString()), httpHeaders(init), proxy_data, cookies: init.cookies) 

@@ -10,7 +10,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/plvideo")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
         {
             string searchTitle = StringConvert.SearchName(title);
             if (string.IsNullOrEmpty(searchTitle) || year == 0 || serial == 1)
@@ -33,7 +33,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 var mtpl = new MovieTpl(title, original_title, cache.Value.Length);
 

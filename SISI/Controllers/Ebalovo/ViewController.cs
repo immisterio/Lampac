@@ -8,12 +8,12 @@ namespace SISI.Controllers.Ebalovo
 
         [HttpGet]
         [Route("elo/vidosik")]
-        async public ValueTask<ActionResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-            if (rch.enable && 484 > rch.InfoConnected()?.apkVersion)
+            if (rch?.enable == true && 484 > rch.InfoConnected()?.apkVersion)
             {
                 rch.Disabled(); // на версиях ниже java.lang.OutOfMemoryError
                 if (!init.rhub_fallback)
@@ -21,7 +21,7 @@ namespace SISI.Controllers.Ebalovo
             }
 
             rhubFallback:
-            var cache = await InvokeCacheResult<StreamItem>(rch.ipkey($"ebalovo:view:{uri}", proxyManager), 20, async e =>
+            var cache = await InvokeCacheResult<StreamItem>(ipkey($"ebalovo:view:{uri}"), 20, async e =>
             {
                 string ehost = await RootController.goHost(init.corsHost());
 
@@ -45,7 +45,7 @@ namespace SISI.Controllers.Ebalovo
                             ("sec-fetch-site", "same-origin")
                         ));
 
-                        if (rch.enable)
+                        if (rch?.enable == true)
                         {
                             var res = await rch.Headers(init.cors(location), null, headers);
                             return res.currentUrl;
@@ -65,7 +65,7 @@ namespace SISI.Controllers.Ebalovo
                 goto rhubFallback;
 
             if (related)
-                return OnResult(cache.Value?.recomends, null, total_pages: 1);
+                return await PlaylistResult(cache.Value?.recomends, null, total_pages: 1);
 
             return OnResult(cache);
         }

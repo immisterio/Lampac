@@ -16,7 +16,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/animelib")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -83,7 +83,7 @@ namespace Online.Controllers
                         if (catalog.Count == 0)
                             return OnError();
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
 
                         hybridCache.Set(key, catalog, cacheTime(40), inmemory: false);
                     }
@@ -96,7 +96,7 @@ namespace Online.Controllers
                     foreach (var res in catalog)
                         stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}", PosterApi.Size(res.cover));
 
-                    return ContentTo(stpl);
+                    return await ContentTpl(stpl);
                 });
                 #endregion
             }
@@ -119,7 +119,7 @@ namespace Online.Controllers
                         if (episodes.Length == 0)
                             return OnError();
 
-                        proxyManager.Success(rch);
+                        proxyManager?.Success();
 
                         hybridCache.Set(key, episodes, cacheTime(30));
                     }
@@ -128,7 +128,7 @@ namespace Online.Controllers
                     string voice_memkey = $"animelib:video:{episodes.First().id}";
                     if (!hybridCache.TryGetValue(voice_memkey, out Player[] players))
                     {
-                        if (rch.IsNotConnected())
+                        if (rch != null && rch.IsNotConnected())
                             return ContentTo(rch.connectionMsg);
 
                         string req_uri = $"{init.corsHost()}/api/episodes/{episodes.First().id}";
@@ -168,7 +168,7 @@ namespace Online.Controllers
                         etpl.Append($"{episode.number} серия", name, episode.season, episode.number, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
-                    return ContentTo(etpl);
+                    return await ContentTpl(etpl);
                 });
                 #endregion
             }
@@ -187,16 +187,19 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(init.token))
                 return OnError();
 
-            if (rch.IsNotConnected())
+            if (rch != null)
             {
-                if (init.rhub_fallback && play)
-                    rch.Disabled();
-                else
+                if (rch.IsNotConnected())
+                {
+                    if (init.rhub_fallback && play)
+                        rch.Disabled();
+                    else
+                        return ContentTo(rch.connectionMsg);
+                }
+
+                if (!play && rch.IsRequiredConnected())
                     return ContentTo(rch.connectionMsg);
             }
-
-            if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
 
             rhubFallback:
             var cache = await InvokeCacheResult<Player[]>($"animelib:video:{id}", 30, async e =>
@@ -220,48 +223,17 @@ namespace Online.Controllers
 
             var headers_stream = httpHeaders(init.host, init.headers_stream);
 
-            #region goStreams
-            List<(string link, string quality)> goStreams(string _voice)
-            {
-                var _streams = new List<(string link, string quality)>(5);
-
-                foreach (var player in cache.Value)
-                {
-                    if (player.player != "Animelib")
-                        continue;
-
-                    if (!string.IsNullOrEmpty(_voice) && _voice != player.team.name)
-                        continue;
-
-                    foreach (var video in player.video.quality)
-                    {
-                        if (string.IsNullOrEmpty(video.href))
-                            continue;
-
-                        string file = HostStreamProxy("https://video1.cdnlibs.org/.%D0%B0s/" + video.href, headers: headers_stream);
-
-                        _streams.Add((file, $"{video.quality}p"));
-                    }
-
-                    if (_streams.Count > 0)
-                        break;
-                }
-
-                return _streams;
-            }
-            #endregion
-
-            List<(string link, string quality)> streams;
+            IReadOnlyList<StreamQualityDto> streams;
 
             if (string.IsNullOrEmpty(voice))
             {
-                streams = goStreams(null);
+                streams = goStreams(cache.Value, null, headers_stream);
             }
             else
             {
-                streams = goStreams(voice);
+                streams = goStreams(cache.Value, voice, headers_stream);
                 if (streams.Count == 0)
-                    streams = goStreams(null);
+                    streams = goStreams(cache.Value, null, headers_stream);
             }
 
             if (streams == null || streams.Count == 0)
@@ -273,6 +245,38 @@ namespace Online.Controllers
                 return RedirectToPlay(streamquality.Firts().link);
 
             return ContentTo(VideoTpl.ToJson("play", streamquality.Firts().link, title, streamquality: streamquality, vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+        }
+        #endregion
+
+
+        #region goStreams
+        IReadOnlyList<StreamQualityDto> goStreams(in Player[] players, string _voice, List<HeadersModel> headers_stream)
+        {
+            var _streams = new List<StreamQualityDto>(20);
+
+            foreach (var player in players)
+            {
+                if (player.player != "Animelib")
+                    continue;
+
+                if (!string.IsNullOrEmpty(_voice) && _voice != player.team.name)
+                    continue;
+
+                foreach (var video in player.video.quality)
+                {
+                    if (string.IsNullOrEmpty(video.href))
+                        continue;
+
+                    string file = HostStreamProxy("https://video1.cdnlibs.org/.%D0%B0s/" + video.href, headers: headers_stream);
+
+                    _streams.Add(new StreamQualityDto(file, $"{video.quality}p"));
+                }
+
+                if (_streams.Count > 0)
+                    break;
+            }
+
+            return _streams;
         }
         #endregion
 

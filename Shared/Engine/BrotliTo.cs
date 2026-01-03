@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using Microsoft.IO;
+using System.IO.Compression;
 using System.Text;
 
 namespace Shared.Engine
@@ -14,7 +15,7 @@ namespace Shared.Engine
             return Compress(Encoding.UTF8.GetBytes(value));
         }
 
-        public static byte[] Compress(byte[] value)
+        public static byte[] Compress(in byte[] value)
         {
             try
             {
@@ -43,7 +44,7 @@ namespace Shared.Engine
             Compress(outfile, Encoding.UTF8.GetBytes(value));
         }
 
-        public static void Compress(string outfile, byte[] value)
+        public static void Compress(string outfile, in byte[] value)
         {
             try
             {
@@ -77,7 +78,7 @@ namespace Shared.Engine
         {
             try
             {
-                var semaphore = new SemaphorManager(outfile, TimeSpan.FromSeconds(20));
+                var semaphore = new SemaphorManager(outfile, TimeSpan.FromSeconds(15));
 
                 await semaphore.Invoke(async () =>
                 {
@@ -97,10 +98,32 @@ namespace Shared.Engine
             }
             catch { }
         }
+
+        async public static Task CompressAsync(string outfile, RecyclableMemoryStream value)
+        {
+            try
+            {
+                var semaphore = new SemaphorManager(outfile, TimeSpan.FromSeconds(15));
+
+                await semaphore.Invoke(async () =>
+                {
+                    using (var output = new FileStream(outfile, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        try
+                        {
+                            using (var stream = new BrotliStream(output, CompressionLevel.Fastest))
+                                await value.CopyToAsync(stream);
+                        }
+                        catch { }
+                    }
+                });
+            }
+            catch { }
+        }
         #endregion
 
         #region Decompress byte[] 
-        public static string Decompress(byte[] value)
+        public static string Decompress(in byte[] value)
         {
             try
             {

@@ -9,7 +9,7 @@ namespace SISI.Controllers.Spankbang
 
         [HttpGet]
         [Route("sbg")]
-        async public ValueTask<ActionResult> Index(string search, string sort, int pg = 1)
+        async public Task<ActionResult> Index(string search, string sort, int pg = 1)
         {
             if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
@@ -19,7 +19,7 @@ namespace SISI.Controllers.Spankbang
             {
                 string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url =>
                 {
-                    if (rch.enable || init.priorityBrowser == "http")
+                    if (rch?.enable == true || init.priorityBrowser == "http")
                         return httpHydra.Get(url);
 
                     return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
@@ -36,7 +36,7 @@ namespace SISI.Controllers.Spankbang
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache,
+            return await PlaylistResult(cache,
                 string.IsNullOrEmpty(search) ? SpankbangTo.Menu(host, sort) : null
             );
         }

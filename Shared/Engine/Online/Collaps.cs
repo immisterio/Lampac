@@ -72,11 +72,11 @@ namespace Shared.Engine.Online
             if (md.content != null)
             {
                 #region Фильм
-                string stream = Regex.Match(md.content, "hls: +\"(https?://[^\"]+\\.m3u[^\"]+)\"").Groups[1].Value;
+                string stream = Regex.Match(md.content, "hls: +\"(https?://[^\"]+\\.m3u[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
 
                 if (dash)
                 {
-                    string _dash = Regex.Match(md.content, "dasha?: +\"(https?://[^\"]+\\.mp[^\"]+)\"").Groups[1].Value;
+                    string _dash = Regex.Match(md.content, "dasha?: +\"(https?://[^\"]+\\.mp[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                     if (!string.IsNullOrEmpty(_dash))
                         stream = _dash;
                 }
@@ -109,9 +109,9 @@ namespace Shared.Engine.Online
                 catch { }
                 #endregion
 
-                string voicename = Regex.Match(md.content, "audio: +\\{\"names\":\\[\"([^\\]]+)\\]").Groups[1].Value;
+                string voicename = Regex.Match(md.content, "audio: +\\{\"names\":\\[\"([^\\]]+)\\]", RegexOptions.Compiled).Groups[1].Value;
                 voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
-                voicename = Regex.Replace(voicename, "[, ]+$", "");
+                voicename = Regex.Replace(voicename, "[, ]+$", "", RegexOptions.Compiled);
 
                 mtpl.Append(name, onstreamfile.Invoke(stream.Replace("\u0026", "&")), subtitles: subtitles, voice_name: voicename, headers: headers, vast: vast);
 
@@ -160,7 +160,7 @@ namespace Shared.Engine.Online
                             string voicename = string.Empty;
 
                             if (episode.audio.names != null)
-                                voicename = Regex.Replace(string.Join(", ", episode.audio.names), "[, ]+$", "");
+                                voicename = Regex.Replace(string.Join(", ", episode.audio.names), "[, ]+$", "", RegexOptions.Compiled);
                             #endregion
 
                             #region subtitle

@@ -138,7 +138,7 @@ namespace Online.Controllers
 
                 if (res.content == null)
                 {
-                    proxyManager.Refresh();
+                    proxyManager?.Refresh();
                     return (null, null, 0, null);
                 }
 

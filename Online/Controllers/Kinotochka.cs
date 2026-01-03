@@ -10,7 +10,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/kinotochka")]
-        async public ValueTask<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string newsuri, int s = -1)
+        async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string newsuri, int s = -1)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
@@ -88,7 +88,7 @@ namespace Online.Controllers
                     if (IsRhubFallback(cache))
                         goto rhubFallback;
 
-                    return OnResult(cache, () =>
+                    return await ContentTpl(cache, () =>
                     {
                         var tpl = new SeasonTpl(cache.Value.Count);
 
@@ -147,7 +147,7 @@ namespace Online.Controllers
                     if (IsRhubFallback(cache, safety: !string.IsNullOrEmpty(cookie)))
                         goto rhubFallback;
 
-                    return OnResult(cache, () =>
+                    return await ContentTpl(cache, () =>
                     {
                         var etpl = new EpisodeTpl(cache.Value.Count);
 
@@ -192,7 +192,7 @@ namespace Online.Controllers
                 if (IsRhubFallback(cache, safety: !string.IsNullOrEmpty(cookie)))
                     goto rhubFallback;
 
-                return OnResult(cache, () => 
+                return await ContentTpl(cache, () => 
                 {
                     var mtpl = new MovieTpl(title, original_title, 1);
                     mtpl.Append("По умолчанию", HostStreamProxy(cache.Value.content), vast: init.vast);

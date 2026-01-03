@@ -25,7 +25,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/veoveo")]
-        async public ValueTask<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool similar = false)
         {
             if (await IsRequestBlocked(rch: true, rch_check: !similar))
                 return badInitMsg;
@@ -54,7 +54,7 @@ namespace Online.Controllers
             });
             #endregion
 
-            return OnResult(cache, () =>
+            return await ContentTpl(cache, () =>
             {
                 if (cache.Value.First["season"].Value<int>("order") == 0)
                 {

@@ -42,23 +42,24 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            var rows = content.Split("<li class=\"item\">");
             string link = null;
 
-            var similar = new SimilarTpl(rows.Length);
+            var rx = new RxEnumerate("<li class=\"item\">", content, 1);
 
-            foreach (string row in rows.Skip(1))
+            var similar = new SimilarTpl(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
                 if (row.Contains(">Трейлер</span>"))
                     continue;
 
-                string name = Regex.Match(row, "<div class=\"title\"><[^>]+>([^<]+)").Groups[1].Value;
-                string _year = Regex.Match(row, "<span class=\"year\">([0-9]+)").Groups[1].Value;
-                string img = Regex.Match(row, "<img src=\"/([^\"]+)\"").Groups[1].Value;
+                string name = Regex.Match(row, "<div class=\"title\"><[^>]+>([^<]+)", RegexOptions.Compiled).Groups[1].Value;
+                string _year = Regex.Match(row, "<span class=\"year\">([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
+                string img = Regex.Match(row, "<img src=\"/([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (!string.IsNullOrEmpty(img))
                     img = $"{apihost}/{img}";
 
-                string rlnk = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
+                string rlnk = Regex.Match(row, "href=\"/([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(rlnk) || string.IsNullOrEmpty(name))
                     continue;
 
@@ -74,7 +75,7 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(link))
             {
-                if (!content.Contains(">По запросу") && similar.IsEmpty())
+                if (!content.Contains(">По запросу") && similar.IsEmpty)
                 {
                     requesterror?.Invoke();
                     return null;
@@ -111,7 +112,7 @@ namespace Shared.Engine.Online
                     {
                         if (news.Contains("<div class=\"alert\""))
                         {
-                            var h3Match = Regex.Match(news, "<div class=\"alert\">\\s*<h3>([^<]+)</h3>");
+                            var h3Match = Regex.Match(news, "<div class=\"alert\">\\s*<h3>([^<]+)</h3>", RegexOptions.Compiled);
                             return new EmbedModel() { IsEmpty = true, errormsg = h3Match.Success ? h3Match.Groups[1].Value.Trim() : "Ошибка alert" };
                         }
 
@@ -144,7 +145,7 @@ namespace Shared.Engine.Online
                 {
                     try
                     {
-                        string video = Regex.Match(news, "id=\"playlists\">([^<]+)<").Groups[1].Value;
+                        string video = Regex.Match(news, "id=\"playlists\">([^<]+)<", RegexOptions.Compiled).Groups[1].Value;
                         if (string.IsNullOrEmpty(video))
                         {
                             requesterror?.Invoke();
@@ -195,11 +196,11 @@ namespace Shared.Engine.Online
                     if (md.content.Contains("{"))
                     {
                         var voices = md.content.Split("{");
-                        var hash = new HashSet<string>();
+                        var hash = new HashSet<string>(20);
 
                         foreach (string line in voices)
                         {
-                            string voice = Regex.Match(line, "([^\\}]+)\\}").Groups[1].Value.Trim();
+                            string voice = Regex.Match(line, "([^\\}]+)\\}", RegexOptions.Compiled).Groups[1].Value.Trim();
                             if (!string.IsNullOrEmpty(voice) && !hash.Contains(voice))
                             {
                                 hash.Add(voice);
@@ -212,7 +213,7 @@ namespace Shared.Engine.Online
                                     {
                                         if (line2.Contains(voice) && (line2.Contains($"_{q}") || line2.Contains($"_{q}")))
                                         {
-                                            string links = Regex.Match(line2, "\\}([^\\[,;]+)").Groups[1].Value;
+                                            string links = Regex.Match(line2, "\\}([^\\[,;]+)", RegexOptions.Compiled).Groups[1].Value;
                                             if (string.IsNullOrEmpty(links))
                                                 continue;
 
@@ -231,7 +232,7 @@ namespace Shared.Engine.Online
 
                         foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
                         {
-                            string link = Regex.Match(md.content, $"\\[{q}p\\]([^\\[,; ]+)").Groups[1].Value;
+                            string link = Regex.Match(md.content, $"\\[{q}p\\]([^\\[,; ]+)", RegexOptions.Compiled).Groups[1].Value;
                             if (string.IsNullOrEmpty(link))
                                 continue;
 
@@ -247,7 +248,7 @@ namespace Shared.Engine.Online
 
                     foreach (string q in new string[] { "1080", "720", "480", "360" })
                     {
-                        string link = Regex.Match(md.content, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{q}(_10)?.(mp4|m3u8))").Groups[1].Value;
+                        string link = Regex.Match(md.content, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{q}(_10)?.(mp4|m3u8))", RegexOptions.Compiled).Groups[1].Value;
                         if (string.IsNullOrEmpty(link))
                             continue;
 
@@ -292,7 +293,7 @@ namespace Shared.Engine.Online
 
                             foreach (var item in md.serial)
                             {
-                                string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
+                                string season = Regex.Match(item.title.Trim(), "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
                                 string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(t)}&s={season}";
                                 tpl.Append($"{season} сезон", link, season);
                             }
@@ -312,7 +313,7 @@ namespace Shared.Engine.Online
 
                         {
                             var hash_voices = new HashSet<string>();
-                            var m = Regex.Match(episodes.First().file, "\\{([^\\}]+)");
+                            var m = Regex.Match(episodes.First().file, "\\{([^\\}]+)", RegexOptions.Compiled);
                             while (m.Success)
                             {
                                 string voice = m.Groups[1].Value.Trim();
@@ -345,13 +346,13 @@ namespace Shared.Engine.Online
 
                             foreach (string quality in new List<string> { "2160", "1440", "1080", "720", "480", "360" })
                             {
-                                string qline = Regex.Match(episode.file, $"\\[{quality}p( [^\\]]+)?\\]([^\\[]+)").Groups[2].Value;
+                                string qline = Regex.Match(episode.file, $"\\[{quality}p( [^\\]]+)?\\]([^\\[]+)", RegexOptions.Compiled).Groups[2].Value;
                                 if (string.IsNullOrEmpty(qline))
                                     continue;
 
                                 if (string.IsNullOrEmpty(t))
                                 {
-                                    string links = Regex.Match(qline, "({[^\\}]+})?([^\\}\\{\\[,;]+)").Groups[2].Value;
+                                    string links = Regex.Match(qline, "({[^\\}]+})?([^\\}\\{\\[,;]+)", RegexOptions.Compiled).Groups[2].Value;
                                     if (string.IsNullOrEmpty(links))
                                         continue;
 
@@ -359,7 +360,7 @@ namespace Shared.Engine.Online
                                 }
                                 else
                                 {
-                                    string links = Regex.Match(qline, "{" + Regex.Escape(t) + "}" + "([^,;]+)").Groups[1].Value;
+                                    string links = Regex.Match(qline, "{" + Regex.Escape(t) + "}" + "([^,;]+)", RegexOptions.Compiled).Groups[1].Value;
                                     if (string.IsNullOrEmpty(links))
                                         continue;
 
@@ -372,7 +373,7 @@ namespace Shared.Engine.Online
 
                             if (!string.IsNullOrEmpty(episode.subtitle))
                             {
-                                var m = Regex.Match(episode.subtitle, "\\[([^\\]]+)\\]([^\t ]+)");
+                                var m = Regex.Match(episode.subtitle, "\\[([^\\]]+)\\]([^\t ]+)", RegexOptions.Compiled);
                                 while (m.Success)
                                 {
                                     subtitles.Append(m.Groups[1].Value, onstreamfile.Invoke(m.Groups[2].Value));
@@ -382,7 +383,7 @@ namespace Shared.Engine.Online
                             }
                             #endregion
 
-                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, subtitles: subtitles, streamquality: streamquality);
+                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, streamquality.Firts().link, subtitles: subtitles, streamquality: streamquality);
                         }
 
                         return etpl;
@@ -404,14 +405,14 @@ namespace Shared.Engine.Online
 
                             foreach (string quality in new List<string> { "1080", "720", "480", "360" })
                             {
-                                string link = Regex.Match(episode.file, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{quality}.(mp4|m3u8))").Groups[1].Value;
+                                string link = Regex.Match(episode.file, $"(https?://[^\"\\[\\|,;\n\r\t ]+_{quality}.(mp4|m3u8))", RegexOptions.Compiled).Groups[1].Value;
                                 if (string.IsNullOrEmpty(link))
                                     continue;
 
                                 streamquality.Append(onstreamfile.Invoke(link), $"{quality}p");
                             }
 
-                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, streamquality: streamquality);
+                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, streamquality.Firts().link, streamquality: streamquality);
                         }
 
                         return etpl;
@@ -440,7 +441,7 @@ namespace Shared.Engine.Online
 
                             foreach (var item in md.serial)
                             {
-                                string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
+                                string season = Regex.Match(item.title.Trim(), "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
                                 string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s={season}";
                                 tpl.Append($"{season} сезон", link, season);
                             }

@@ -19,31 +19,32 @@ namespace Shared.Engine.SISI
             if (string.IsNullOrEmpty(html))
                 return new List<PlaylistItem>();
 
-            var rows = html.Split("\"gender\"");
-            var playlists = new List<PlaylistItem>(rows.Length);
+            var rx = new RxEnumerate("\"gender\"", html, 1);
 
-            foreach (string row in rows.Skip(1))
+            var playlists = new List<PlaylistItem>(rx.Count());
+
+            foreach (string row in rx.Rows())
             {
-                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"").Groups[1].Value;
+                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(baba))
                     continue;
 
-                string esid = Regex.Match(row, "\"esid\":\"([^\"]+)\"").Groups[1].Value;
+                string esid = Regex.Match(row, "\"esid\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(esid))
                     continue;
 
-                string img = Regex.Match(row, "\"thumb_image\":\"([^\"]+)\"").Groups[1].Value;
+                string img = Regex.Match(row, "\"thumb_image\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(img))
                     continue;
 
-                string title = Regex.Match(row, "\"display_name\":\"([^\"]+)\"").Groups[1].Value;
+                string title = Regex.Match(row, "\"display_name\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
                 if (string.IsNullOrEmpty(title))
                     title = baba;
 
                 var pl = new PlaylistItem()
                 {
                     name = title,
-                    quality = Regex.Match(row, "\"vq\":\"([^\"]+)\"").Groups[1].Value,
+                    quality = Regex.Match(row, "\"vq\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value,
                     video = $"https://{esid}.bcvcdn.com/hls/stream_{baba}/playlist.m3u8",
                     picture = $"https:{img.Replace("\\", "").Replace("{ext}", "jpg")}"
                 };
@@ -54,7 +55,7 @@ namespace Shared.Engine.SISI
                 playlists.Add(pl);
             }
 
-            string total_count = Regex.Match(html, "\"total_count\":([0-9]+),").Groups[1].Value;
+            string total_count = Regex.Match(html, "\"total_count\":([0-9]+),", RegexOptions.Compiled).Groups[1].Value;
             if (int.TryParse(total_count, out int total) && total > 0)
             {
                 if (72 >= total)

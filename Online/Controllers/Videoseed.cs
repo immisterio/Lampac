@@ -11,7 +11,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/videoseed")]
-        async public ValueTask<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int s = -1, bool rjson = false, int serial = -1)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int s = -1, bool rjson = false, int serial = -1)
         {
             if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
                 return OnError();
@@ -37,7 +37,7 @@ namespace Online.Controllers
 
                         if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
                         {
-                            proxyManager.Refresh(rch);
+                            proxyManager?.Refresh();
                             return null;
                         }
 
@@ -51,7 +51,7 @@ namespace Online.Controllers
 
                     if (data == null)
                     {
-                        proxyManager.Refresh(rch);
+                        proxyManager?.Refresh();
                         return OnError();
                     }
 
@@ -62,11 +62,11 @@ namespace Online.Controllers
 
                     if (cache.seasons == null && string.IsNullOrEmpty(cache.iframe))
                     {
-                        proxyManager.Refresh(rch);
+                        proxyManager?.Refresh();
                         return OnError();
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, cache, cacheTime(40));
                 }
                 #endregion
@@ -77,7 +77,7 @@ namespace Online.Controllers
                     var mtpl = new MovieTpl(title, original_title, 1);
                     mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.iframe)}") + "#.m3u8", "call", vast: init.vast);
 
-                    return ContentTo(mtpl);
+                    return await ContentTpl(mtpl);
                     #endregion
                 }
                 else
@@ -96,7 +96,7 @@ namespace Online.Controllers
                             tpl.Append($"{season.Key} сезон", link, season.Key);
                         }
 
-                        return ContentTo(tpl);
+                        return await ContentTpl(tpl);
                     }
                     else
                     {
@@ -111,7 +111,7 @@ namespace Online.Controllers
                             etpl.Append($"{video.Key} серия", title ?? original_title, sArhc, video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}"), "call", vast: init.vast);
                         }
 
-                        return ContentTo(etpl);
+                        return await ContentTpl(etpl);
                     }
                     #endregion
                 }
@@ -130,7 +130,7 @@ namespace Online.Controllers
             if (string.IsNullOrEmpty(iframe))
                 return OnError();
 
-            return await InvkSemaphore($"videoseed:video:{iframe}:{proxyManager.CurrentProxyIp}", async key =>
+            return await InvkSemaphore($"videoseed:video:{iframe}:{proxyManager?.CurrentProxyIp}", async key =>
             {
                 if (!hybridCache.TryGetValue(key, out string location))
                 {
@@ -187,7 +187,7 @@ namespace Online.Controllers
 
                         if (string.IsNullOrEmpty(location))
                         {
-                            proxyManager.Refresh(rch);
+                            proxyManager?.Refresh();
                             return OnError();
                         }
                     }
@@ -196,7 +196,7 @@ namespace Online.Controllers
                         return OnError();
                     }
 
-                    proxyManager.Success(rch);
+                    proxyManager?.Success();
                     hybridCache.Set(key, location, cacheTime(20));
                 }
 

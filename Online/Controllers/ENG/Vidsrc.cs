@@ -12,7 +12,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/vidsrc")]
-        public ValueTask<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+        public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
         {
             return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
         }
@@ -215,7 +215,7 @@ namespace Online.Controllers
                         return default;
                     }
 
-                    proxyManager.Success();
+                    proxyManager?.Success();
                     hybridCache.Set(memKey, cache, cacheTime(20));
                 }
 

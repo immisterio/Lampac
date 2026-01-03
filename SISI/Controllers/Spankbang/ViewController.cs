@@ -9,7 +9,7 @@ namespace SISI.Controllers.Spankbang
 
         [HttpGet]
         [Route("sbg/vidosik")]
-        async public ValueTask<ActionResult> Index(string uri, bool related)
+        async public Task<ActionResult> Index(string uri, bool related)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -19,7 +19,7 @@ namespace SISI.Controllers.Spankbang
             {
                 var stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), uri, url =>
                 {
-                    if (rch.enable || init.priorityBrowser == "http")
+                    if (rch?.enable == true || init.priorityBrowser == "http")
                         return httpHydra.Get(url);
 
                     return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
@@ -35,7 +35,7 @@ namespace SISI.Controllers.Spankbang
                 goto rhubFallback;
 
             if (related)
-                return OnResult(cache.Value?.recomends, null, total_pages: 1);
+                return await PlaylistResult(cache.Value?.recomends, null, total_pages: 1);
 
             return OnResult(cache);
         }

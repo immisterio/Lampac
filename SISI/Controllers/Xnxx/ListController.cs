@@ -8,7 +8,7 @@ namespace SISI.Controllers.Xnxx
 
         [HttpGet]
         [Route("xnx")]
-        async public ValueTask<ActionResult> Index(string search, int pg = 1)
+        async public Task<ActionResult> Index(string search, int pg = 1)
         {
             if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
                 return badInitMsg;
@@ -31,7 +31,7 @@ namespace SISI.Controllers.Xnxx
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return OnResult(cache, 
+            return await PlaylistResult(cache, 
                 string.IsNullOrEmpty(search) ? XnxxTo.Menu(host) : null
             );
         }

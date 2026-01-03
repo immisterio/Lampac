@@ -32,7 +32,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/filmixtv")]
-        async public ValueTask<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool rjson = false, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (postid == 0 && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
@@ -71,7 +71,7 @@ namespace Online.Controllers
                ongettourl => httpHydra.Get(ongettourl, addheaders: bearer, safety: true),
                (url, data) => httpHydra.Post(url, data, addheaders: bearer, safety: true),
                streamfile => HostStreamProxy(streamfile),
-               requesterror: () => proxyManager.Refresh(rch),
+               requesterror: () => proxyManager?.Refresh(),
                rjson: rjson
             );
 
@@ -85,7 +85,7 @@ namespace Online.Controllers
                     return OnError(search.ErrorMsg);
 
                 if (search.Value.id == 0)
-                    return ContentTo(search.Value.similars);
+                    return await ContentTpl(search.Value.similars);
 
                 postid = search.Value.id;
             }
@@ -103,7 +103,7 @@ namespace Online.Controllers
             if (IsRhubFallback(cache, safety: true))
                 goto rhubFallback;
 
-            return OnResult(cache, () => oninvk.Tpl(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
+            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, init.pro, postid, title, original_title, t, s, vast: init.vast));
         }
 
 
