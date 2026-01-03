@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models;
 using Shared.Models.SQL;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Threading;
@@ -385,8 +384,8 @@ namespace Shared.Engine
         #region collection capacity
         static bool IsCapacityCollection(Type type)
         {
-            if (typeof(ICollection).IsAssignableFrom(type))
-                return true;
+            if (type == typeof(string) || type.IsArray)
+                return false;
 
             foreach (var iface in type.GetInterfaces())
             {
@@ -403,12 +402,10 @@ namespace Shared.Engine
 
         static int GetCapacity(object value)
         {
-            var type = value.GetType();
+            if (value is string)
+                return 0;
 
-            if (value is ICollection collection)
-                return collection.Count;
-
-            foreach (var iface in type.GetInterfaces())
+            foreach (var iface in value.GetType().GetInterfaces())
             {
                 if (!iface.IsGenericType)
                     continue;
@@ -429,6 +426,9 @@ namespace Shared.Engine
 
         static object CreateCollectionWithCapacity(Type type, int capacity)
         {
+            if (type == typeof(string) || type.IsArray)
+                return null;
+
             var ctor = type.GetConstructor(new[] { typeof(int) });
             if (ctor != null)
                 return ctor.Invoke(new object[] { capacity });
