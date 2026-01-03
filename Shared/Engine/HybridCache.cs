@@ -4,7 +4,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models;
 using Shared.Models.SQL;
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 
@@ -88,7 +90,8 @@ namespace Shared.Engine
                                         ex = c.ex,
                                         value = c.IsSerialize
                                             ? JsonConvert.SerializeObject(c.value)
-                                            : c.value.ToString()
+                                            : c.value.ToString(),
+                                        capacity = GetCollectionCapacity(c.value)
                                     });
                                 }
                             }
@@ -109,6 +112,43 @@ namespace Shared.Engine
             {
                 Volatile.Write(ref _updatingDb, 0);
             }
+        }
+        #endregion
+
+        #region collection capacity
+        private static int GetCollectionCapacity(object value)
+        {
+            if (value == null || value is string)
+                return 0;
+
+            if (value is Array array)
+                return array.Length;
+
+            if (value is JArray jArray)
+                return jArray.Count;
+
+            if (value is ICollection collection)
+                return collection.Count;
+
+            var type = value.GetType();
+
+            foreach (var iface in type.GetInterfaces())
+            {
+                if (!iface.IsGenericType)
+                    continue;
+
+                var def = iface.GetGenericTypeDefinition();
+
+                if (def == typeof(ICollection<>) || def == typeof(IReadOnlyCollection<>))
+                {
+                    var countProperty = iface.GetProperty("Count");
+
+                    if (countProperty?.PropertyType == typeof(int))
+                        return (int)countProperty.GetValue(value);
+                }
+            }
+
+            return 0;
         }
         #endregion
 
