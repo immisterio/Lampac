@@ -361,15 +361,15 @@ namespace Shared.Engine
         #endregion
 
         #region collection capacity
-        static bool IsCollectionCapacity(object value)
+        static bool IsCollectionCapacity(Type type)
         {
-            if (value == null || value is string)
+            if (type == null)
                 return false;
 
-            if (value is ICollection collection)
+            if (typeof(ICollection).IsAssignableFrom(type))
                 return true;
 
-            foreach (var iface in value.GetType().GetInterfaces())
+            foreach (var iface in type.GetInterfaces())
             {
                 if (!iface.IsGenericType)
                     continue;
