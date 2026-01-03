@@ -90,7 +90,7 @@ namespace Shared.Engine
                                         value = c.IsSerialize
                                             ? JsonConvert.SerializeObject(c.value)
                                             : c.value.ToString(),
-                                        capacity = GetCollectionCapacity(c.value)
+                                        capacity = GetCapacity(c.value)
                                     });
                                 }
                             }
@@ -221,7 +221,7 @@ namespace Shared.Engine
 
                             using (var cmd = conn.CreateCommand())
                             {
-                                cmd.CommandText = "SELECT ex, value FROM files WHERE Id = $id";
+                                cmd.CommandText = "SELECT ex, value, capacity FROM files WHERE Id = $id";
                                 var p = cmd.CreateParameter();
                                 p.ParameterName = "$id";
                                 p.Value = md5key;
@@ -238,13 +238,35 @@ namespace Shared.Engine
 
                                     if (IsDeserialize)
                                     {
-                                        // потоковое чтение TEXT
+                                        bool isCapacity = IsCapacityCollection(type);
+
+                                        int capacity = 0;
+                                        if (isCapacity && !r.IsDBNull(2))
+                                            capacity = r.GetInt32(2);
+
                                         using (var textReader = r.GetTextReader(1))
                                         {
                                             using (var jsonReader = new JsonTextReader(textReader))
                                             {
                                                 var serializer = JsonSerializer.CreateDefault();
-                                                value = serializer.Deserialize<TItem>(jsonReader);
+
+                                                if (isCapacity && capacity > 0)
+                                                {
+                                                    var instance = CreateCollectionWithCapacity(type, capacity);
+                                                    if (instance != null)
+                                                    {
+                                                        serializer.Populate(jsonReader, instance);
+                                                        value = (TItem)instance;
+                                                    }
+                                                    else
+                                                    {
+                                                        value = serializer.Deserialize<TItem>(jsonReader);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    value = serializer.Deserialize<TItem>(jsonReader);
+                                                }
                                             }
                                         }
                                     }
@@ -361,11 +383,8 @@ namespace Shared.Engine
         #endregion
 
         #region collection capacity
-        static bool IsCollectionCapacity(Type type)
+        static bool IsCapacityCollection(Type type)
         {
-            if (type == null)
-                return false;
-
             if (typeof(ICollection).IsAssignableFrom(type))
                 return true;
 
@@ -382,15 +401,12 @@ namespace Shared.Engine
             return false;
         }
 
-        static int GetCollectionCapacity(object value)
+        static int GetCapacity(object value)
         {
-            if (value == null || value is string)
-                return 0;
+            var type = value.GetType();
 
             if (value is ICollection collection)
                 return collection.Count;
-
-            var type = value.GetType();
 
             foreach (var iface in type.GetInterfaces())
             {
@@ -409,6 +425,23 @@ namespace Shared.Engine
             }
 
             return 0;
+        }
+
+        static object CreateCollectionWithCapacity(Type type, int capacity)
+        {
+            var ctor = type.GetConstructor(new[] { typeof(int) });
+            if (ctor != null)
+                return ctor.Invoke(new object[] { capacity });
+
+            if (type.IsInterface && type.IsGenericType)
+            {
+                var listType = typeof(List<>).MakeGenericType(type.GetGenericArguments());
+                var listCtor = listType.GetConstructor(new[] { typeof(int) });
+                if (listCtor != null)
+                    return listCtor.Invoke(new object[] { capacity });
+            }
+
+            return null;
         }
         #endregion
     }
