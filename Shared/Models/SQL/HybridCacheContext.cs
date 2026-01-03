@@ -66,5 +66,7 @@ namespace Shared.Models.SQL
         public DateTime ex { get; set; }
 
         public string value { get; set; }
+
+        public int capacity { get; set; }
     }
 }
