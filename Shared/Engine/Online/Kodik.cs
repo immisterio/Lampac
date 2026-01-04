@@ -206,7 +206,7 @@ namespace Shared.Engine.Online
             }
 
             string uri = null;
-            string player_single = Regex.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"", RegexOptions.Compiled).Groups[1].Value;
+            string player_single = Regex.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"").Groups[1].Value;
             if (!string.IsNullOrEmpty(player_single))
             {
                 if (!psingles.TryGetValue(player_single, out uri))
@@ -219,7 +219,7 @@ namespace Shared.Engine.Online
                         return null;
                     }
 
-                    uri = DecodeUrlBase64(Regex.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)", RegexOptions.Compiled).Groups[1].Value);
+                    uri = DecodeUrlBase64(Regex.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)").Groups[1].Value);
                     if (!string.IsNullOrEmpty(uri))
                         psingles.TryAdd(player_single, uri);
                 }
@@ -228,16 +228,16 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(uri))
                 return null;
 
-            string _frame = Regex.Replace(iframe.Split("advertDebug")[1].Split("preview-icons")[0], "[\n\r\t ]+", "", RegexOptions.Compiled);
-            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-            string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-            string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-            string ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-            string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-            string type = Regex.Match(_frame, "videoInfo.type='([^']+)'", RegexOptions.Compiled).Groups[1].Value;
-            string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'", RegexOptions.Compiled).Groups[1].Value;
-            string id = Regex.Match(_frame, "videoInfo.id='([^']+)'", RegexOptions.Compiled).Groups[1].Value;
+            string _frame = Regex.Replace(iframe.Split("advertDebug")[1].Split("preview-icons")[0], "[\n\r\t ]+", "");
+            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
+            string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
+            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
+            string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
+            string ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
+            string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
+            string type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
+            string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
+            string id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
 
             string json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&bad_user=false&cdn_is_working={cdn_is_working.ToString().ToLower()}&type={type}&hash={hash}&id={id}&info=%7B%7D");
             if (json == null || !json.Contains("\"src\":\""))
@@ -248,7 +248,7 @@ namespace Shared.Engine.Online
 
             var streams = new List<StreamModel>(4);
 
-            var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled).Match(json);
+            var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase ).Match(json);
             while (match.Success)
             {
                 if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))

@@ -54,14 +54,14 @@ namespace SISI.Controllers.Tizam
                 if (row.Contains("pin--premium"))
                     continue;
 
-                string title = Regex.Match(row, "-name=\"name\">([^<]+)<", RegexOptions.Compiled).Groups[1].Value;
-                string href = Regex.Match(row, "href=\"/([^\"]+)\" itemprop=\"url\"", RegexOptions.Compiled).Groups[1].Value;
+                string title = Regex.Match(row, "-name=\"name\">([^<]+)<").Groups[1].Value;
+                string href = Regex.Match(row, "href=\"/([^\"]+)\" itemprop=\"url\"").Groups[1].Value;
 
                 if (!string.IsNullOrEmpty(href) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string duration = Regex.Match(row, "itemprop=\"duration\" content=\"([^<]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                    string duration = Regex.Match(row, "itemprop=\"duration\" content=\"([^<]+)\"").Groups[1].Value;
 
-                    string img = Regex.Match(row, "class=\"item__img\" src=\"/([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                    string img = Regex.Match(row, "class=\"item__img\" src=\"/([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(img))
                         continue;
 

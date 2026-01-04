@@ -32,11 +32,11 @@ namespace Shared.Engine.SISI
                 if (!row.Contains("\"current_show\":\"public\""))
                     continue;
 
-                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrWhiteSpace(baba))
                     continue;
 
-                string img = Regex.Match(row, "\"img\":\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                string img = Regex.Match(row, "\"img\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(img))
                     continue;
 

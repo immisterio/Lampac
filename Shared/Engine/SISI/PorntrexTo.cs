@@ -60,13 +60,13 @@ namespace Shared.Engine.SISI
                 if (row.Contains("<span class=\"line-private\">"))
                     continue;
 
-                var g = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"", RegexOptions.Compiled).Groups;
+                var g = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string quality = Regex.Match(row, "<span class=\"quality\">([^<]+)</span>", RegexOptions.Compiled).Groups[1].Value;
-                    string duration = Regex.Match(row, "<i class=\"fa fa-clock-o\"></i>([^<]+)</div>", RegexOptions.Compiled).Groups[1].Value.Trim();
-                    var img = Regex.Match(row, "data-src=\"(https?:)?//(((ptx|statics)\\.cdntrex\\.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)", RegexOptions.Compiled).Groups;
+                    string quality = Regex.Match(row, "<span class=\"quality\">([^<]+)</span>").Groups[1].Value;
+                    string duration = Regex.Match(row, "<i class=\"fa fa-clock-o\"></i>([^<]+)</div>").Groups[1].Value.Trim();
+                    var img = Regex.Match(row, "data-src=\"(https?:)?//(((ptx|statics)\\.cdntrex\\.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)").Groups;
 
                     var pl = new PlaylistItem()
                     {
@@ -641,7 +641,7 @@ namespace Shared.Engine.SISI
 
             if (stream_links.Count == 0)
             {
-                string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)", RegexOptions.Compiled).Groups[1].Value;
+                string link = Regex.Match(html, "(https?://[^/]+/get_file/[^\\.]+\\.mp4)").Groups[1].Value;
                 if (!string.IsNullOrWhiteSpace(link))
                     stream_links.TryAdd("auto", link);
             }

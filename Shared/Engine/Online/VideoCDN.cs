@@ -113,7 +113,7 @@ namespace Shared.Engine.Online
             }
 
             var result = new EmbedModel();
-            result.type = Regex.Match(content, "id=\"videoType\" value=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+            result.type = Regex.Match(content, "id=\"videoType\" value=\"([^\"]+)\"").Groups[1].Value;
             result.voices = new Dictionary<string, string>();
 
             if (content.Contains("</option>"))
@@ -162,9 +162,9 @@ namespace Shared.Engine.Online
             }
 
             string files = null;
-            string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+            string client_id = Regex.Match(content, "id=\"client_id\" value=\"([^\"]+)\"").Groups[1].Value;
 
-            var m = Regex.Match(content, "<input type=\"hidden\" id=\"[^\"]+\" value=('|\")([^\"']+)", RegexOptions.Compiled);
+            var m = Regex.Match(content, "<input type=\"hidden\" id=\"[^\"]+\" value=('|\")([^\"']+)");
             while (m.Success)
             {
                 string sentry_id = m.Groups[2].Value;
@@ -183,7 +183,7 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(files))
             {
-                files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'", RegexOptions.Compiled).Groups[1].Value;
+                files = Regex.Match(content, "value='(\\{\"[0-9]+\"[^\']+)'").Groups[1].Value;
                 if (string.IsNullOrEmpty(files))
                     return null;
             }    
@@ -260,7 +260,7 @@ namespace Shared.Engine.Online
 
                     var streamquality = new StreamQualityTpl();
 
-                    foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))", RegexOptions.Compiled))
+                    foreach (Match m in Regex.Matches(voice.Value, $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                     {
                         string link = m.Groups[2].Value;
                         if (string.IsNullOrEmpty(link))
@@ -344,7 +344,7 @@ namespace Shared.Engine.Online
                         {
                             var streamquality = new StreamQualityTpl();
 
-                            foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))", RegexOptions.Compiled))
+                            foreach (Match m in Regex.Matches(episode.file ?? "", $"\\[(1080|720|480|360)p?\\]([^\\[\\|,\n\r\t ]+\\.(mp4|m3u8))"))
                             {
                                 string link = m.Groups[2].Value;
                                 if (string.IsNullOrEmpty(link))

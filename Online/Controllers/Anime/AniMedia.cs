@@ -37,7 +37,7 @@ namespace Online.Controllers
 
                             if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrEmpty(g[2].Value))
                             {
-                                string img = Regex.Match(row, "<img src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                                string img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
                                 if (!string.IsNullOrEmpty(img))
                                     img = init.host + img;
 
@@ -82,10 +82,10 @@ namespace Online.Controllers
                         if (html == null)
                             return OnError(refresh_proxy: true);
 
-                        var match = Regex.Match(html, "data-vid=\"([0-9]+)\"[\t ]+data-vlnk=\"([^\"]+)\"", RegexOptions.Compiled);
+                        var match = Regex.Match(html, "data-vid=\"([0-9]+)\"[\t ]+data-vlnk=\"([^\"]+)\"");
                         links = new List<(int episode, string s, string vod)>(match.Length);
 
-                        string pmovie = Regex.Match(html, "class=\"pmovie__main-info ws-nowrap\">([^<]+)<", RegexOptions.Compiled).Groups[1].Value;
+                        string pmovie = Regex.Match(html, "class=\"pmovie__main-info ws-nowrap\">([^<]+)<").Groups[1].Value;
                         string s = Regex.Match(pmovie, "Season[\t ]+([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value;
                         if (string.IsNullOrEmpty(s))
                             s = "1";
@@ -140,7 +140,7 @@ namespace Online.Controllers
                     if (string.IsNullOrEmpty(embed))
                         return OnError(refresh_proxy: true);
 
-                    hls = Regex.Match(embed, "file:\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                    hls = Regex.Match(embed, "file:\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrEmpty(hls))
                         return OnError(refresh_proxy: true);
 

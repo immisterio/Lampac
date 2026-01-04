@@ -47,7 +47,7 @@ namespace Shared.Engine.Online
 
                 foreach (string row in rx.Rows())
                 {
-                    var g = Regex.Match(row, "class=\"item__title( [^\"]+)?\"><a href=\"(?<link>https?://[^\"]+)\">(?<name>[^<]+)</a>", RegexOptions.Compiled).Groups;
+                    var g = Regex.Match(row, "class=\"item__title( [^\"]+)?\"><a href=\"(?<link>https?://[^\"]+)\">(?<name>[^<]+)</a>").Groups;
 
                     string name = g["name"].Value.ToLower();
                     if (name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))
@@ -180,7 +180,7 @@ namespace Shared.Engine.Online
             if (weblinkRow == null)
                 return null;
 
-            string location = Regex.Match(weblinkRow, "\"url\": ?\"(https?://[^/]+)", RegexOptions.Compiled).Groups[1].Value;
+            string location = Regex.Match(weblinkRow, "\"url\": ?\"(https?://[^/]+)").Groups[1].Value;
             if (string.IsNullOrEmpty(location))
                 return null;
 

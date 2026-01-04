@@ -76,19 +76,19 @@ namespace Shared.Engine.SISI
 
             foreach (string row in rx.Rows())
             {
-                var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>", RegexOptions.Compiled).Groups;
-                string quality = Regex.Match(row, "<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)", RegexOptions.Compiled).Groups[2].Value;
+                var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>").Groups;
+                string quality = Regex.Match(row, "<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)").Groups[2].Value;
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string img = Regex.Match(row, " data-src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                    string img = Regex.Match(row, " data-src=\"([^\"]+)\"").Groups[1].Value;
                     if (string.IsNullOrWhiteSpace(img))
-                        img = Regex.Match(row, "<img src=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                        img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
 
-                    string dataid = Regex.Match(row, "data-id=\"([^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-                    string preview = Regex.Replace(img, "/[^/]+$", "", RegexOptions.Compiled) + $"/{dataid}-preview.webm";
+                    string dataid = Regex.Match(row, "data-id=\"([^\"]+)\"").Groups[1].Value;
+                    string preview = Regex.Replace(img, "/[^/]+$", "") + $"/{dataid}-preview.webm";
 
-                    string duration = Regex.Match(row, "<span class=\"mbtim\"([^>]+)?>([^<]+)</span>", RegexOptions.Compiled).Groups[2].Value.Trim();
+                    string duration = Regex.Match(row, "<span class=\"mbtim\"([^>]+)?>([^<]+)</span>").Groups[2].Value.Trim();
 
                     var pl = new PlaylistItem()
                     {

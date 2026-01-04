@@ -53,15 +53,15 @@ namespace Shared.Engine.SISI
                 if (!row.Contains("<div class=\"item-info\">"))
                     continue;
 
-                string link = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
-                string title = Regex.Match(row, "<div class=\"item-title\">([^<]+)</div>", RegexOptions.Compiled).Groups[1].Value;
+                string link = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\"").Groups[1].Value;
+                string title = Regex.Match(row, "<div class=\"item-title\">([^<]+)</div>").Groups[1].Value;
 
                 if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(link))
                 {
-                    string duration = Regex.Match(row, " data-eb=\"([^;\"]+);", RegexOptions.Compiled).Groups[1].Value.Trim();
-                    var img = Regex.Match(row, "( )src=\"(([^\"]+)/[0-9]+.jpg)\"", RegexOptions.Compiled).Groups;
+                    string duration = Regex.Match(row, " data-eb=\"([^;\"]+);").Groups[1].Value.Trim();
+                    var img = Regex.Match(row, "( )src=\"(([^\"]+)/[0-9]+.jpg)\"").Groups;
                     if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
-                        img = Regex.Match(row, "(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"", RegexOptions.Compiled).Groups;
+                        img = Regex.Match(row, "(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"").Groups;
 
                     var pl = new PlaylistItem()
                     {
