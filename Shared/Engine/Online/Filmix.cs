@@ -320,11 +320,11 @@ namespace Shared.Engine.Online
                         if (!v.link.Contains($"{q},"))
                             continue;
 
-                        string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4", RegexOptions.Compiled);
+                        string l = Regex.Replace(v.link, "_\\[[0-9,]+\\]\\.mp4", $"_{q}.mp4");
 
-                        if (init.hls && !Regex.IsMatch(l, "/(HDR10p?|HEVC)/", RegexOptions.Compiled))
+                        if (init.hls && !Regex.IsMatch(l, "/(HDR10p?|HEVC)/"))
                         {
-                            var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)", RegexOptions.Compiled);
+                            var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
                             if (m.Success)
                                 l = $"{m.Groups[1].Value}/hls/{m.Groups[3].Value}/index.m3u8?hash={m.Groups[2].Value}";
                         }
@@ -335,7 +335,7 @@ namespace Shared.Engine.Online
                             {
                                 if (!l.Contains(cdn))
                                 {
-                                    l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn, RegexOptions.Compiled);
+                                    l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn);
                                     break;
                                 }
                             }
@@ -424,7 +424,7 @@ namespace Shared.Engine.Online
                     #endregion
 
                     var cdns = reserve ? episodes
-                        .Select(e => Regex.Match(e.Value.link, "^(https?://[^/]+)", RegexOptions.Compiled).Groups[1].Value)
+                        .Select(e => Regex.Match(e.Value.link, "^(https?://[^/]+)").Groups[1].Value)
                         .ToHashSet() : null;
 
                     #region Серии
@@ -447,9 +447,9 @@ namespace Shared.Engine.Online
 
                             string l = episode.Value.link.Replace("_%s.mp4", $"_{lq}.mp4");
 
-                            if (init.hls && !Regex.IsMatch(l, "/(HDR10p?|HEVC)/", RegexOptions.Compiled))
+                            if (init.hls && !Regex.IsMatch(l, "/(HDR10p?|HEVC)/"))
                             {
-                                var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)", RegexOptions.Compiled);
+                                var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
                                 if (m.Success)
                                     l = $"{m.Groups[1].Value}/hls/{m.Groups[3].Value}/index.m3u8?hash={m.Groups[2].Value}";
                             }
@@ -460,7 +460,7 @@ namespace Shared.Engine.Online
                                 {
                                     if (!l.Contains(cdn))
                                     {
-                                        l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn, RegexOptions.Compiled);
+                                        l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn);
                                         break;
                                     }
                                 }

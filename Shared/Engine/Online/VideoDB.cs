@@ -49,8 +49,8 @@ namespace Shared.Engine.Online
             {
                 try
                 {
-                    string base64 = Regex.Match(_html, "new Player\\(\"([^\n\r]+)\"\\);", RegexOptions.Compiled).Groups[1].Value.Remove(0, 73);
-                    base64 = Regex.Replace(base64, "//[^=]+=", "", RegexOptions.Compiled);
+                    string base64 = Regex.Match(_html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 73);
+                    base64 = Regex.Replace(base64, "//[^=]+=", "");
                     string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
                     //json = json.Split("\"player\",\"file\":")[1].Split(",\"hls\":")[0];
 
@@ -103,7 +103,7 @@ namespace Shared.Engine.Online
                     #region streams
                     var streams = new List<(string link, string quality)>(7);
 
-                    foreach (Match m in Regex.Matches(file, $"\\[(Авто|2160|1440|1080|720|480|360)p?\\]([^\"\\,\\[ ]+)", RegexOptions.Compiled))
+                    foreach (Match m in Regex.Matches(file, $"\\[(Авто|2160|1440|1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
                     {
                         string link = m.Groups[2].Value;
                         if (string.IsNullOrEmpty(link))
@@ -167,7 +167,7 @@ namespace Shared.Engine.Online
                         if (name == null)
                             continue;
 
-                        string season = Regex.Match(name, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value;
+                        string season = Regex.Match(name, "^([0-9]+)").Groups[1].Value;
                         if (string.IsNullOrEmpty(season))
                             continue;
 
@@ -198,7 +198,7 @@ namespace Shared.Engine.Online
                         foreach (var pl in episodes)
                         {
                             // MVO | LostFilm
-                            string perevod = Regex.Replace(pl.title ?? "", "^[a-zA-Z]{3} \\| ", "", RegexOptions.Compiled);
+                            string perevod = Regex.Replace(pl.title ?? "", "^[a-zA-Z]{3} \\| ", "");
                             if (!string.IsNullOrEmpty(perevod) && string.IsNullOrEmpty(t))
                                 t = perevod;
 
@@ -239,11 +239,11 @@ namespace Shared.Engine.Online
                             if (bwa || rhub)
                             {
                                 string streamlink = rhub ? streamquality.Firts().link : null;
-                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, streamquality.Firts().link.Replace("/manifest.m3u8", "/manifest"), "call", streamlink: streamlink);
+                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link.Replace("/manifest.m3u8", "/manifest"), "call", streamlink: streamlink);
                             }
                             else
                             {
-                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, streamquality.Firts().link, streamquality: streamquality);
+                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, streamquality: streamquality);
                             }
                         }
                     }

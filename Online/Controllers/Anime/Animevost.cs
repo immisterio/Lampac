@@ -37,9 +37,9 @@ namespace Online.Controllers
 
                     foreach (string row in rx.Rows())
                     {
-                        var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>", RegexOptions.Compiled).Groups;
-                        string animeyear = Regex.Match(row, "<strong>Год выхода: ?</strong>([0-9]{4})</p>", RegexOptions.Compiled).Groups[1].Value;
-                        string img = Regex.Match(row, " src=\"(/uploads/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                        var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
+                        string animeyear = Regex.Match(row, "<strong>Год выхода: ?</strong>([0-9]{4})</p>").Groups[1].Value;
+                        string img = Regex.Match(row, " src=\"(/uploads/[^\"]+)\"").Groups[1].Value;
                         if (!string.IsNullOrEmpty(img))
                             img = init.host + img;
 
@@ -102,11 +102,11 @@ namespace Online.Controllers
                     if (news == null)
                         return e.Fail("news", refresh_proxy: true);
 
-                    string data = Regex.Match(news, "var data = ([^\n\r]+)", RegexOptions.Compiled).Groups[1].Value;
+                    string data = Regex.Match(news, "var data = ([^\n\r]+)").Groups[1].Value;
                     if (string.IsNullOrEmpty(data))
                         return e.Fail("data", refresh_proxy: true);
 
-                    var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",", RegexOptions.Compiled);
+                    var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",");
                     var links = new List<(string episode, string id)>(match.Length);
 
                     while (match.Success)
@@ -134,7 +134,7 @@ namespace Online.Controllers
                     {
                         string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
 
-                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)", RegexOptions.Compiled).Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
+                        etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
                     }
 
                     return etpl;
@@ -177,11 +177,11 @@ namespace Online.Controllers
 
                 var links = new List<(string l, string q)>(2);
 
-                string mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p", RegexOptions.Compiled).Groups[1].Value;
+                string mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p").Groups[1].Value;
                 if (!string.IsNullOrEmpty(mp4))
                     links.Add((mp4, "720p"));
 
-                mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p", RegexOptions.Compiled).Groups[1].Value;
+                mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p").Groups[1].Value;
                 if (!string.IsNullOrEmpty(mp4))
                     links.Add((mp4, "480p"));
 

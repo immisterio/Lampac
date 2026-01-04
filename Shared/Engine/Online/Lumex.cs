@@ -180,7 +180,7 @@ namespace Shared.Engine.Online
                     {
                         foreach (string srt in media.subtitles)
                         {
-                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt", RegexOptions.Compiled).Groups[1].Value;
+                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
                             subtitles.Append(name, onstream($"{scheme}:{srt}"));
                         }
                     }
@@ -273,7 +273,7 @@ namespace Shared.Engine.Online
                                     {
                                         foreach (string srt in media.subtitles)
                                         {
-                                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt", RegexOptions.Compiled).Groups[1].Value;
+                                            string name = Regex.Match(srt, "/([^\\.\\/]+)\\.srt").Groups[1].Value;
                                             subtitles.Append(name, onstream($"{scheme}:{srt}"));
                                         }
                                     }

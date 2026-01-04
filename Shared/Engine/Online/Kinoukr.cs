@@ -216,13 +216,13 @@ namespace Shared.Engine.Online
             {
                 result.source_type = "ashdi";
 
-                if (Regex.IsMatch(content, "file: ?'\\[", RegexOptions.Compiled))
+                if (Regex.IsMatch(content, "file: ?'\\["))
                 {
                     Models.Online.Ashdi.Voice[] root = null;
 
                     try
                     {
-                        root = JsonSerializer.Deserialize<Models.Online.Ashdi.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',", RegexOptions.Compiled).Groups[1].Value);
+                        root = JsonSerializer.Deserialize<Models.Online.Ashdi.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
                         if (root == null || root.Length == 0)
                             return null;
                     }
@@ -242,13 +242,13 @@ namespace Shared.Engine.Online
             {
                 result.source_type = "tortuga";
 
-                if (Regex.IsMatch(content, "file: ?'", RegexOptions.Compiled))
+                if (Regex.IsMatch(content, "file: ?'"))
                 {
                     Models.Online.Tortuga.Voice[] root = null;
 
                     try
                     {
-                        string file = Regex.Match(content, "file: ?'([^\n\r]+)',", RegexOptions.Compiled).Groups[1].Value;
+                        string file = Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value;
                         if (file.EndsWith("=="))
                         {
                             file = Regex.Replace(file, "==$", "");
@@ -289,10 +289,10 @@ namespace Shared.Engine.Online
                 return null;
             }
 
-            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(iframeUri))
             {
-                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"", RegexOptions.Compiled).Groups[1].Value;
+                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(iframeUri))
                     return null;
             }
@@ -351,11 +351,11 @@ namespace Shared.Engine.Online
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title, 1);
 
-                string hls = Regex.Match(result.content, "file: ?(\"|')(?<hls>https?://[^\"']+/index\\.m3u8)(\"|')", RegexOptions.Compiled).Groups["hls"].Value;
+                string hls = Regex.Match(result.content, "file: ?(\"|')(?<hls>https?://[^\"']+/index\\.m3u8)(\"|')").Groups["hls"].Value;
                 if (string.IsNullOrWhiteSpace(hls))
                 {
-                    string base64 = Regex.Match(result.content, "file: ?(\"|')(?<base64>[^\"']+)(\"|')", RegexOptions.Compiled).Groups["base64"].Value;
-                           base64 = Regex.Replace(base64, "==$", "", RegexOptions.Compiled);
+                    string base64 = Regex.Match(result.content, "file: ?(\"|')(?<base64>[^\"']+)(\"|')").Groups["base64"].Value;
+                           base64 = Regex.Replace(base64, "==$", "");
 
                     hls = string.Join("", CrypTo.DecodeBase64(base64).Reverse());
 
@@ -365,11 +365,11 @@ namespace Shared.Engine.Online
 
                 #region subtitle
                 var subtitles = new SubtitleTpl();
-                string subtitle = new Regex("\"subtitle\": ?\"([^\"]+)\"", RegexOptions.Compiled).Match(result.content).Groups[1].Value;
+                string subtitle = new Regex("\"subtitle\": ?\"([^\"]+)\"").Match(result.content).Groups[1].Value;
 
                 if (!string.IsNullOrEmpty(subtitle))
                 {
-                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)", RegexOptions.Compiled).Match(subtitle);
+                    var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
                     while (match.Success)
                     {
                         subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
