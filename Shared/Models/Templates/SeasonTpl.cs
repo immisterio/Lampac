@@ -9,7 +9,7 @@ namespace Shared.Models.Templates
     {
         static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
 
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(50_000));
+        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(2500));
 
 
         public List<SeasonDto> data { get; private set; }

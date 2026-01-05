@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.Online.Kinotochka;
 
 namespace Online.Controllers
@@ -59,18 +60,18 @@ namespace Online.Controllers
                             if (search == null) 
                                 return e.Fail("search", refresh_proxy: true);
 
-                            var rows = search.Split("sres-wrap clearfix");
-                            links = new List<(string, string, string)>(rows.Length);
+                            var rx = Rx.Split("sres-wrap clearfix", search, 1);
+                            links = new List<(string, string, string)>(rx.Count);
 
                             string stitle = StringConvert.SearchName(title);
 
-                            foreach (string row in rows.Skip(1).Reverse())
+                            foreach (var row in rx.Rows())
                             {
-                                var gname = Regex.Match(row, "<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase).Groups;
+                                var gname = row.Groups("<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase);
 
                                 if (StringConvert.SearchName(gname[1].Value) == stitle)
                                 {
-                                    string uri = Regex.Match(row, "href=\"(https?://[^\"]+\\.html)\"").Groups[1].Value;
+                                    string uri = row.Match("href=\"(https?://[^\"]+\\.html)\"");
                                     if (string.IsNullOrWhiteSpace(uri))
                                         continue;
 
@@ -82,6 +83,7 @@ namespace Online.Controllers
                                 return e.Fail("links");
                         }
 
+                        links.Reverse();
                         return e.Success(links);
                     });
 

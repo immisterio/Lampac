@@ -27,7 +27,7 @@ namespace Shared.Models.Templates
         #region WriteJson
         public static void WriteJson<T>(StringBuilder sb, in T value, JsonSerializerOptions options)
         {
-            var bytes = new ArrayBufferWriter<byte>(512);
+            var bytes = new ArrayBufferWriter<byte>(1024);
 
             using (var writer = new Utf8JsonWriter(bytes, new JsonWriterOptions
             {

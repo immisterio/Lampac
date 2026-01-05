@@ -364,9 +364,6 @@ namespace Shared
             if (tpl == null || tpl.IsEmpty)
                 return OnError(rjson ? "{}" : string.Empty);
 
-            // ниже ~85k безопасно для LOH 
-            const int flushThreshold = 40_000;
-
             var response = HttpContext.Response;
 
             response.Headers.CacheControl = "no-cache";
@@ -382,7 +379,7 @@ namespace Shared
             var encoder = Encoding.UTF8.GetEncoder();
             var ct = HttpContext.RequestAborted;
 
-            var buffer = new ArrayBufferWriter<byte>(Math.Max(flushThreshold, tpl.Length));
+            var buffer = new ArrayBufferWriter<byte>(Math.Min(80_000, tpl.Length));
 
             foreach (var chunk in sb.GetChunks())
             {
@@ -405,8 +402,8 @@ namespace Shared
 
                 buffer.Advance(bytesUsed);
 
-                // Cбрасываем большой буфер в Response
-                if (buffer.WrittenCount > flushThreshold)
+                // Cбрасываем буфер в Response
+                if (buffer.WrittenCount > 40_0000)
                 {
                     await response.BodyWriter.WriteAsync(buffer.WrittenMemory, ct);
                     buffer.Clear();

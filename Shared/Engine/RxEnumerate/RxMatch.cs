@@ -26,5 +26,7 @@ namespace Shared.Engine.RxEnumerate
         public int Count => _ranges.Count;
 
         public RowEnumerable Rows() => new RowEnumerable(_html, _ranges);
+
+        public RxRow First() => new RowEnumerable(_html, _ranges).GetEnumerator().Current;
     }
 }
