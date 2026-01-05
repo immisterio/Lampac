@@ -70,14 +70,17 @@ namespace Lampac.Controllers
                 return Content(ermsg, "text/plain; charset=utf-8");
 
             var now = DateTime.UtcNow;
-            long req_min = memoryCache.Get<long>($"stats:request:{now.Hour}:{now.AddMinutes(-1).Minute}");
+
+            long req_min = 0;
+            if (memoryCache.TryGetValue($"stats:request:{now.Hour}:{now.AddMinutes(-1).Minute}", out CounterRequestInfo _counter))
+                req_min = _counter.Value;
 
             long req_hour = req_min;
             for (int i = 1; i < 60; i++)
             {
                 var cutoff = now.AddMinutes(-i);
-                if (memoryCache.TryGetValue($"stats:request:{cutoff.Hour}:{cutoff.AddMinutes(-i).Minute}", out long _r))
-                    req_hour += _r;
+                if (memoryCache.TryGetValue($"stats:request:{cutoff.Hour}:{cutoff.AddMinutes(-i).Minute}", out CounterRequestInfo _r))
+                    req_hour += _r.Value;
             }
 
             var responseStats = RequestStatisticsTracker.GetResponseTimeStatsLastMinute();

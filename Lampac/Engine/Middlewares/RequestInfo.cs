@@ -35,7 +35,7 @@ namespace Lampac.Engine.Middlewares
                 var counter = memoryCache.GetOrCreate($"stats:request:{now.Hour}:{now.Minute}", entry =>
                 {
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
-                    return new Counter();
+                    return new CounterRequestInfo();
                 });
 
                 Interlocked.Increment(ref counter.Value);
@@ -234,11 +234,11 @@ namespace Lampac.Engine.Middlewares
     </div>
 </body>
 </html>";
+    }
 
 
-        sealed class Counter
-        {
-            public int Value;
-        }
+    public class CounterRequestInfo
+    {
+        public int Value;
     }
 }
