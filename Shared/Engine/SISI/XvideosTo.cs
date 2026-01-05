@@ -1,4 +1,5 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using Shared.Models.SISI.Xvideos;
 using System.Text.Json;
@@ -48,26 +49,26 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("<div id=\"video_", html, 1);
+            var rx = Rx.Split("<div id=\"video_", html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
                 // <a href="/video.ucmdacd450a/_" title="Горничная приходит на работу в коротком платье (лесбуха любит член)">
-                var g = Regex.Match(row, "<a href=\"/(video[^\"]+|search-video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
+                var g = row.Groups("<a href=\"/(video[^\"]+|search-video/[^\"]+)\" title=\"([^\"]+)\"");
                 if (string.IsNullOrEmpty(g[1].Value) || string.IsNullOrEmpty(g[2].Value))
                 {
                     // <a href="/video.ohpbioo5118/_." target="_blank">Я думал, что не переживу его наказания.</a>
-                    g = Regex.Match(row, "<a href=\"\\/(video[^\"]+)\"[^>]+>([^<]+)").Groups;
+                    g = row.Groups("<a href=\"\\/(video[^\"]+)\"[^>]+>([^<]+)");
                 }
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string qmark = Regex.Match(row, "<span class=\"video-hd-mark\">([^<]+)</span>").Groups[1].Value;
-                    string duration = Regex.Match(row, "<span class=\"duration\">([^<]+)</span>").Groups[1].Value.Trim();
+                    string qmark = row.Match("<span class=\"video-hd-mark\">([^<]+)</span>");
+                    string duration = row.Match("<span class=\"duration\">([^<]+)</span>", trim: true);
 
-                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value;
+                    string img = row.Match("data-src=\"([^\"]+)\"");
                     img = Regex.Replace(img, "/videos/thumbs([0-9]+)/", "/videos/thumbs$1lll/");
                     img = Regex.Replace(img, "\\.THUMBNUM\\.(jpg|png)$", ".1.$1", RegexOptions.IgnoreCase );
 
@@ -79,7 +80,7 @@ namespace Shared.Engine.SISI
 
                     img = img.Replace("thumbs169l/", "thumbs169lll/").Replace("thumbs169ll/", "thumbs169lll/");
 
-                    var gm = Regex.Match(row, "href=\"/([^\"]+)\"><span class=\"name\">([^<]+)<").Groups;
+                    var gm = row.Groups("href=\"/([^\"]+)\"><span class=\"name\">([^<]+)<");
                     var model = string.IsNullOrEmpty(gm[1].Value) || string.IsNullOrEmpty(gm[2].Value) ? default : new ModelItem()
                     {
                         name = gm[2].Value,

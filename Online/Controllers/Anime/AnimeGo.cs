@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.RxEnumerate;
 
 namespace Online.Controllers
 {
@@ -30,16 +31,16 @@ namespace Online.Controllers
                         if (search == null)
                             return OnError(refresh_proxy: true);
 
-                        var rx = new RxEnumerate("class=\"p-poster__stack\"", search, 1);
+                        var rx = Rx.Split("class=\"p-poster__stack\"", search, 1);
 
-                        catalog = new List<(string title, string year, string pid, string s, string img)>(rx.Count());
+                        catalog = new List<(string title, string year, string pid, string s, string img)>(rx.Count);
 
-                        foreach (string row in rx.Rows())
+                        foreach (var row in rx.Rows())
                         {
-                            string player_id = Regex.Match(row, "data-ajax-url=\"/[^\"]+-([0-9]+)\"").Groups[1].Value;
-                            string name = Regex.Match(row, "card-title text-truncate\"><a [^>]+>([^<]+)<").Groups[1].Value;
-                            string animeyear = Regex.Match(row, "class=\"anime-year\"><a [^>]+>([0-9]{4})<").Groups[1].Value;
-                            string img = Regex.Match(row, "data-original=\"([^\"]+)\"").Groups[1].Value;
+                            string player_id = row.Match("data-ajax-url=\"/[^\"]+-([0-9]+)\"");
+                            string name = row.Match("card-title text-truncate\"><a [^>]+>([^<]+)<");
+                            string animeyear = row.Match("class=\"anime-year\"><a [^>]+>([0-9]{4})<");
+                            string img = row.Match("data-original=\"([^\"]+)\"");
                             if (string.IsNullOrEmpty(img))
                                 img = null;
 
@@ -49,7 +50,7 @@ namespace Online.Controllers
                                 if (animeyear == year.ToString() && StringConvert.SearchName(name) == StringConvert.SearchName(title))
                                     season = "1";
 
-                                catalog.Add((name, Regex.Match(row, ">([0-9]{4})</a>").Groups[1].Value, player_id, season, img));
+                                catalog.Add((name, row.Match(">([0-9]{4})</a>"), player_id, season, img));
                             }
                         }
 

@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Globalization;
@@ -70,25 +71,25 @@ namespace Shared.Engine.SISI
                     html = html.Split("class=\"relatedtext\"")[1];
             }
 
-            var rx = new RxEnumerate("<div class=\"mb( hdy)?\"", html, 1);
+            var rx = Rx.Split("<div class=\"mb( hdy)?\"", html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
-                var g = Regex.Match(row, "<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>").Groups;
-                string quality = Regex.Match(row, "<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)").Groups[2].Value;
+                var g = row.Groups("<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>");
+                string quality = row.Match("<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)", 2);
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string img = Regex.Match(row, " data-src=\"([^\"]+)\"").Groups[1].Value;
+                    string img = row.Match(" data-src=\"([^\"]+)\"");
                     if (string.IsNullOrWhiteSpace(img))
-                        img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                        img = row.Match("<img src=\"([^\"]+)\"");
 
-                    string dataid = Regex.Match(row, "data-id=\"([^\"]+)\"").Groups[1].Value;
+                    string dataid = row.Match("data-id=\"([^\"]+)\"");
                     string preview = Regex.Replace(img, "/[^/]+$", "") + $"/{dataid}-preview.webm";
 
-                    string duration = Regex.Match(row, "<span class=\"mbtim\"([^>]+)?>([^<]+)</span>").Groups[2].Value.Trim();
+                    string duration = row.Match("<span class=\"mbtim\"([^>]+)?>([^<]+)</span>", 2, trim: true);
 
                     var pl = new PlaylistItem()
                     {

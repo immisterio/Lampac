@@ -1,4 +1,5 @@
-﻿using Shared.Models.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.Base;
 using Shared.Models.Online.Eneyida;
 using Shared.Models.Templates;
 using System.Text.Json;
@@ -51,31 +52,31 @@ namespace Shared.Engine.Online
 
                 onlog?.Invoke("search ok");
 
-                var rx = new RxEnumerate("<article ", search, 1);
+                var rx = Rx.Split("<article ", search, 1);
 
                 string stitle = StringConvert.SearchName(original_title?.ToLower());
 
-                foreach (string row in rx.Rows())
+                foreach (var row in rx.Rows())
                 {
                     if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
                         continue;
 
-                    string newslink = Regex.Match(row, "href=\"(https?://[^/]+/[^\"]+\\.html)\"").Groups[1].Value;
+                    string newslink = row.Match("href=\"(https?://[^/]+/[^\"]+\\.html)\"");
                     if (string.IsNullOrEmpty(newslink))
                         continue;
 
                     // <div class="short_subtitle"><a href="https://eneyida.tv/xfsearch/year/2025/">2025</a> &bull; Thunderbolts</div>
-                    var g = Regex.Match(row, "class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>").Groups;
+                    var g = row.Groups("class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>");
 
                     string name = g[3].Value.Replace("&bull;", "").Trim();
                     if (string.IsNullOrEmpty(name))
                         continue;
 
                     if (result.similars == null)
-                        result.similars = new List<Similar>(rx.Count());
+                        result.similars = new List<Similar>(rx.Count);
 
-                    string uaname = Regex.Match(row, "id=\"short_title\"[^>]+>([^<]+)<").Groups[1].Value;
-                    string img = Regex.Match(row, "data-src=\"/([^\"]+)\"").Groups[1].Value;
+                    string uaname = row.Match("id=\"short_title\"[^>]+>([^<]+)<");
+                    string img = row.Match("data-src=\"/([^\"]+)\"");
 
                     result.similars.Add(new Similar()
                     {

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Engine.RxEnumerate;
 
 namespace Online.Controllers
 {
@@ -27,18 +28,18 @@ namespace Online.Controllers
                         if (search == null)
                             return OnError(refresh_proxy: true);
 
-                        var rx = new RxEnumerate("grid-item d-flex fd-column", search.Split("</article>")[1], 1);
+                        var rx = Rx.Split("grid-item d-flex fd-column", search.Split("</article>")[1], 1);
 
-                        catalog = new List<(string title, string url, string img)>(rx.Count());
+                        catalog = new List<(string title, string url, string img)>(rx.Count);
 
-                        foreach (string row in rx.Rows())
+                        foreach (var row in rx.Rows())
                         {
-                            var g = Regex.Match(row, "<a href=\"https?://[^/]+/([^\"]+)\" class=\"poster__link\"><h3 class=\"poster__title line-clamp\">([^<]+)</h3></a>").Groups;
+                            var g = row.Groups("<a href=\"https?://[^/]+/([^\"]+)\" class=\"poster__link\"><h3 class=\"poster__title line-clamp\">([^<]+)</h3></a>");
 
                             if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrEmpty(g[2].Value))
                             {
-                                string img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
-                                if (!string.IsNullOrEmpty(img))
+                                string img = row.Match("<img src=\"([^\"]+)\"");
+                                if (img != null)
                                     img = init.host + img;
 
                                 if (similar || StringConvert.SearchName(g[2].Value).Contains(StringConvert.SearchName(title)))

@@ -1,4 +1,5 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using Shared.Models.SISI.Xvideos;
 using System.Text.Json;
@@ -23,19 +24,19 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("<div id=\"video_", html, 1);
+            var rx = Rx.Split("<div id=\"video_", html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
-                var g = Regex.Match(row, "<a href=\"/(video-[^\"]+)\" title=\"([^\"]+)\"").Groups;
-                string quality = Regex.Match(row, "<span class=\"superfluous\"> - </span>([^<]+)</span>").Groups[1].Value;
+                var g = row.Groups("<a href=\"/(video-[^\"]+)\" title=\"([^\"]+)\"");
 
                 if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string duration = Regex.Match(row, "</span>([^<]+)<span class=\"video-hd\">").Groups[1].Value.Trim();
-                    string img = Regex.Match(row, "data-src=\"([^\"]+)\"").Groups[1].Value.Replace(".THUMBNUM.", ".1.");
+                    string quality = row.Match("<span class=\"superfluous\"> - </span>([^<]+)</span>");
+                    string duration = row.Match("</span>([^<]+)<span class=\"video-hd\">", trim: true);
+                    string img = row.Match("data-src=\"([^\"]+)\"").Replace(".THUMBNUM.", ".1.");
 
                     // https://cdn77-pic.xvideos-cdn.com/videos/thumbs169ll/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62-2/5a6d4f718214eebf73225ec96b670f62.27.jpg
                     // https://cdn77-pic.xvideos-cdn.com/videos/videopreview/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62_169.mp4

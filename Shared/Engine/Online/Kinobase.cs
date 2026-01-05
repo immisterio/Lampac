@@ -1,4 +1,5 @@
-﻿using Shared.Models.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.Base;
 using Shared.Models.Online.Kinobase;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
@@ -44,22 +45,22 @@ namespace Shared.Engine.Online
 
             string link = null;
 
-            var rx = new RxEnumerate("<li class=\"item\">", content, 1);
+            var rx = Rx.Split("<li class=\"item\">", content, 1);
 
-            var similar = new SimilarTpl(rx.Count());
+            var similar = new SimilarTpl(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
                 if (row.Contains(">Трейлер</span>"))
                     continue;
 
-                string name = Regex.Match(row, "<div class=\"title\"><[^>]+>([^<]+)").Groups[1].Value;
-                string _year = Regex.Match(row, "<span class=\"year\">([0-9]+)").Groups[1].Value;
-                string img = Regex.Match(row, "<img src=\"/([^\"]+)\"").Groups[1].Value;
+                string name = row.Match("<div class=\"title\"><[^>]+>([^<]+)");
+                string _year = row.Match("<span class=\"year\">([0-9]+)");
+                string img = row.Match("<img src=\"/([^\"]+)\"");
                 if (!string.IsNullOrEmpty(img))
                     img = $"{apihost}/{img}";
 
-                string rlnk = Regex.Match(row, "href=\"/([^\"]+)\"").Groups[1].Value;
+                string rlnk = row.Match("href=\"/([^\"]+)\"");
                 if (string.IsNullOrEmpty(rlnk) || string.IsNullOrEmpty(name))
                     continue;
 

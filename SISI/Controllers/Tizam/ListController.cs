@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Engine.RxEnumerate;
 using System.Web;
 
 namespace SISI.Controllers.Tizam
@@ -40,28 +41,32 @@ namespace SISI.Controllers.Tizam
         }
 
 
-        static List<PlaylistItem> Playlist(string html)
+        static List<PlaylistItem> Playlist(ReadOnlySpan<char> html)
         {
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("video-item", html.Split("id=\"pagination\"")[0], 1);
+            var pagination = Rx.Split("id=\"pagination\"", html);
+            if (pagination.Count == 0)
+                return new List<PlaylistItem>();
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var rx = Rx.Split("video-item", pagination.First().Span, 1);
 
-            foreach (string row in rx.Rows())
+            var playlists = new List<PlaylistItem>(rx.Count);
+
+            foreach (var row in rx.Rows())
             {
                 if (row.Contains("pin--premium"))
                     continue;
 
-                string title = Regex.Match(row, "-name=\"name\">([^<]+)<").Groups[1].Value;
-                string href = Regex.Match(row, "href=\"/([^\"]+)\" itemprop=\"url\"").Groups[1].Value;
+                string title = row.Match("-name=\"name\">([^<]+)<");
+                string href = row.Match("href=\"/([^\"]+)\" itemprop=\"url\"");
 
                 if (!string.IsNullOrEmpty(href) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string duration = Regex.Match(row, "itemprop=\"duration\" content=\"([^<]+)\"").Groups[1].Value;
+                    string duration = row.Match("itemprop=\"duration\" content=\"([^<]+)\"");
 
-                    string img = Regex.Match(row, "class=\"item__img\" src=\"/([^\"]+)\"").Groups[1].Value;
+                    string img = row.Match("class=\"item__img\" src=\"/([^\"]+)\"");
                     if (string.IsNullOrEmpty(img))
                         continue;
 

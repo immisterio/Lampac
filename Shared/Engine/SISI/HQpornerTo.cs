@@ -1,4 +1,5 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -40,16 +41,16 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("<div class=\"img-container\">", html, 1);
+            var rx = Rx.Split("<div class=\"img-container\">", html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
-                var g = Regex.Match(row, "href=\"/([^\"]+)\" class=\"atfi[^\"]+\"><img src=\"//([^\"]+)\"[^>]+ alt=\"([^\"]+)\"").Groups;
+                var g = row.Groups("href=\"/([^\"]+)\" class=\"atfi[^\"]+\"><img src=\"//([^\"]+)\"[^>]+ alt=\"([^\"]+)\"");
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value) && !string.IsNullOrWhiteSpace(g[3].Value))
                 {
-                    string duration = Regex.Match(row, "class=\"fa fa-clock-o\" [^>]+></i>([\n\r\t ]+)?([^<]+)<").Groups[2].Value.Trim();
+                    string duration = row.Match("class=\"fa fa-clock-o\" [^>]+></i>([\n\r\t ]+)?([^<]+)<", 2, trim: true);
 
                     var pl = new PlaylistItem()
                     {

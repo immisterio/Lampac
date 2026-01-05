@@ -1,4 +1,5 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using System.Text.RegularExpressions;
 
 namespace Shared.Engine.SISI
@@ -23,20 +24,20 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("display_age", html, 1);
+            var rx = Rx.Split("display_age", html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
                 if (!row.Contains("\"current_show\":\"public\""))
                     continue;
 
-                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"").Groups[1].Value;
+                string baba = row.Match("\"username\":\"([^\"]+)\"");
                 if (string.IsNullOrWhiteSpace(baba))
                     continue;
 
-                string img = Regex.Match(row, "\"img\":\"([^\"]+)\"").Groups[1].Value;
+                string img = row.Match("\"img\":\"([^\"]+)\"");
                 if (string.IsNullOrEmpty(img))
                     continue;
 

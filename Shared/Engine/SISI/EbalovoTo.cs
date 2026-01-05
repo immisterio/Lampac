@@ -1,4 +1,5 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -44,24 +45,24 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("<div class=\"item\">", html);
+            var rx = Rx.Split("<div class=\"item\">", html);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
                 if (!row.Contains("<div class=\"item-info\">"))
                     continue;
 
-                string link = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\"").Groups[1].Value;
-                string title = Regex.Match(row, "<div class=\"item-title\">([^<]+)</div>").Groups[1].Value;
+                string link = row.Match("<a href=\"https?://[^/]+/(video/[^\"]+)\"");
+                string title = row.Match("<div class=\"item-title\">([^<]+)</div>");
 
                 if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(link))
                 {
-                    string duration = Regex.Match(row, " data-eb=\"([^;\"]+);").Groups[1].Value.Trim();
-                    var img = Regex.Match(row, "( )src=\"(([^\"]+)/[0-9]+.jpg)\"").Groups;
+                    string duration = row.Match(" data-eb=\"([^;\"]+);", trim: true);
+                    var img = row.Groups("( )src=\"(([^\"]+)/[0-9]+.jpg)\"");
                     if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
-                        img = Regex.Match(row, "(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"").Groups;
+                        img = row.Groups("(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"");
 
                     var pl = new PlaylistItem()
                     {

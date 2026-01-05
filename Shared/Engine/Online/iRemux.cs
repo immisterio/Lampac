@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.Base;
 using Shared.Models.Online.iRemux;
 using Shared.Models.Templates;
@@ -43,11 +44,11 @@ namespace Shared.Engine.Online
                 string stitle = title?.ToLower();
                 string sorigtitle = original_title?.ToLower();
 
-                var rx = new RxEnumerate("item--announce", search, 1);
+                var rx = Rx.Split("item--announce", search, 1);
 
-                foreach (string row in rx.Rows())
+                foreach (var row in rx.Rows())
                 {
-                    var g = Regex.Match(row, "class=\"item__title( [^\"]+)?\"><a href=\"(?<link>https?://[^\"]+)\">(?<name>[^<]+)</a>").Groups;
+                    var g = row.Groups("class=\"item__title( [^\"]+)?\"><a href=\"(?<link>https?://[^\"]+)\">(?<name>[^<]+)</a>");
 
                     string name = g["name"].Value.ToLower();
                     if (name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))

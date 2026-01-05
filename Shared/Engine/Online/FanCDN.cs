@@ -1,4 +1,5 @@
-﻿using Shared.Models;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online.FanCDN;
 using Shared.Models.Templates;
@@ -42,11 +43,15 @@ namespace Shared.Engine.Online
 
                 string href = null;
 
-                var rx = new RxEnumerate("item-search-serial", search);
+                var rx = Rx.Split("item-search-serial", search);
 
-                foreach (string itemsearch in rx.Rows())
+                foreach (var row in rx.Rows())
                 {
-                    string info = itemsearch.Split("torrent-link")?[0];
+                    var item_search = Rx.Split("item-search-serial", row.Span);
+                    if (item_search.Count == 0)
+                        continue;
+
+                    string info = item_search.Rows().GetEnumerator().Current.ToString();
                     if (!string.IsNullOrEmpty(info) && (info.Contains($"({year - 1}") || info.Contains($"({year}") || info.Contains($"({year + 1}")))
                     {
                         string _info = StringConvert.SearchName(info);

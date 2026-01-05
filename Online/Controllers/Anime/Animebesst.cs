@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Engine.RxEnumerate;
 
 namespace Online.Controllers
 {
@@ -29,16 +30,16 @@ namespace Online.Controllers
                     if (search == null)
                         return e.Fail("search");
 
-                    var rx = new RxEnumerate("class=\"shortstory-listab\"", search.Split("id=\"sidebar\"")[0], 1);
+                    var rx = Rx.Split("class=\"shortstory-listab\"", search.Split("id=\"sidebar\"")[0], 1);
 
-                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count());
+                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
 
-                    foreach (string row in rx.Rows())
+                    foreach (var row in rx.Rows())
                     {
                         if (row.Contains("Новости"))
                             continue;
 
-                        var g = Regex.Match(row, "class=\"shortstory-listab-title\"><a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
+                        var g = row.Groups("class=\"shortstory-listab-title\"><a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>");
 
                         if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                         {
@@ -50,11 +51,11 @@ namespace Online.Controllers
                                     season = "1";
                             }
 
-                            string img = Regex.Match(row, "<img class=\"img-fit lozad\" data-src=\"([^\"]+)\"").Groups[1].Value;
+                            string img = row.Match("<img class=\"img-fit lozad\" data-src=\"([^\"]+)\"");
                             if (string.IsNullOrEmpty(img))
                                 img = null;
 
-                            catalog.Add((g[2].Value, Regex.Match(row, "\">([0-9]{4})</a>").Groups[1].Value, g[1].Value, season, img));
+                            catalog.Add((g[2].Value, row.Match("\">([0-9]{4})</a>"), g[1].Value, season, img));
                         }
                     }
 

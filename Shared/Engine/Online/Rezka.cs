@@ -1,4 +1,5 @@
-﻿using Shared.Models;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online;
 using Shared.Models.Online.Rezka;
@@ -112,11 +113,11 @@ namespace Shared.Engine.Online
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
 
-            var rx = new RxEnumerate("\"b-content__inline_item\"", search, 1);
+            var rx = Rx.Split("\"b-content__inline_item\"", search, 1);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
-                var g = Regex.Match(row, "href=\"https?://[^/]+/([^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})").Groups;
+                var g = row.Groups("href=\"https?://[^/]+/([^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})");
 
                 if (string.IsNullOrEmpty(g[1].Value))
                     continue;
@@ -126,9 +127,9 @@ namespace Shared.Engine.Online
                     continue;
 
                 if (result.similar == null)
-                    result.similar = new List<SimilarModel>(rx.Count());
+                    result.similar = new List<SimilarModel>(rx.Count);
 
-                string img = Regex.Match(row, "<img src=\"([^\"]+)\"").Groups[1].Value;
+                string img = row.Match("<img src=\"([^\"]+)\"");
                 result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
 
                 if ((stitle != null && (name.Contains(" / ") && StringConvert.SearchName(name).Contains(stitle) || StringConvert.SearchName(name) == stitle)) || 
@@ -217,19 +218,19 @@ namespace Shared.Engine.Online
             string link = null;
             var result = new EmbedModel();
 
-            var rx = new RxEnumerate("<li>", search, 1);
+            var rx = Rx.Split("<li>", search, 1);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
-                string href = Regex.Match(row, "href=\"(https?://[^\"]+)\"").Groups[1].Value;
-                string name = Regex.Match(row, "<span class=\"enty\">([^<]+)</span>").Groups[1].Value;
-                string year = Regex.Match(row, ", ([0-9]{4})(\\)| -)").Groups[1].Value;
+                string href = row.Match("href=\"(https?://[^\"]+)\"");
+                string name = row.Match("<span class=\"enty\">([^<]+)</span>");
+                string year = row.Match(", ([0-9]{4})(\\)| -)");
 
                 if (string.IsNullOrEmpty(href) || string.IsNullOrEmpty(name))
                     continue;
 
                 if (result.similar == null)
-                    result.similar = new List<SimilarModel>(rx.Count());
+                    result.similar = new List<SimilarModel>(rx.Count);
 
                 result.similar.Add(new SimilarModel(name, year, href, null));
                 link = href;

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Engine.RxEnumerate;
 
 namespace Online.Controllers
 {
@@ -29,17 +30,16 @@ namespace Online.Controllers
                     if (search == null)
                         return e.Fail("search", refresh_proxy: true);
 
-                    var rx = new RxEnumerate("class=\"shortstory\"", search, 1);
-                    int rxCount = rx.Count();
+                    var rx = Rx.Split("class=\"shortstory\"", search, 1);
 
-                    var smlr = new List<(string title, string year, string uri, string s, string img)>(rxCount);
-                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rxCount);
+                    var smlr = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
+                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
 
-                    foreach (string row in rx.Rows())
+                    foreach (var row in rx.Rows())
                     {
-                        var g = Regex.Match(row, "<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>").Groups;
-                        string animeyear = Regex.Match(row, "<strong>Год выхода: ?</strong>([0-9]{4})</p>").Groups[1].Value;
-                        string img = Regex.Match(row, " src=\"(/uploads/[^\"]+)\"").Groups[1].Value;
+                        var g = row.Groups("<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>");
+                        string animeyear = row.Match("<strong>Год выхода: ?</strong>([0-9]{4})</p>");
+                        string img = row.Match(" src=\"(/uploads/[^\"]+)\"");
                         if (!string.IsNullOrEmpty(img))
                             img = init.host + img;
 

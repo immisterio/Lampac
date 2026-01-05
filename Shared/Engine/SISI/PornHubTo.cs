@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Text.RegularExpressions;
@@ -108,49 +109,40 @@ namespace Shared.Engine.SISI
 
             string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : videoCategory.Contains("<li data-id=") ? "<li data-id=" : "<li id=";
 
-            var rx = new RxEnumerate(splitkey, html, 1);
+            var rx = Rx.Split(splitkey, html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
                 if (row.Contains("brand__badge") || row.Contains("private-vid-title"))
                     continue;
 
-                string m(string pattern, int index = 1)
-                {
-                    string res = Regex.Match(row, pattern).Groups[index].Value;
-                    if (string.IsNullOrWhiteSpace(res))
-                        return null;
-
-                    return res;
-                }
-
-                string vkey = m("(-|_)vkey=\"([^\"]+)\"", 2) ?? m("viewkey=([^\"]+)\"");
+                string vkey = row.Match("(-|_)vkey=\"([^\"]+)\"", 2) ?? row.Match("viewkey=([^\"]+)\"");
                 if (vkey == null)
                     continue;
 
-                string title = m("href=\"/[^\"]+\" title=\"([^\"]+)\"") ?? m("class=\"videoTitle\">([^<]+)<") ?? m("href=\"/view_[^\"]+\" onclick=[^>]+>([^<]+)<");
+                string title = row.Match("href=\"/[^\"]+\" title=\"([^\"]+)\"") ?? row.Match("class=\"videoTitle\">([^<]+)<") ?? row.Match("href=\"/view_[^\"]+\" onclick=[^>]+>([^<]+)<");
                 if (title == null)
                     continue;
 
-                string img = m("data-mediumthumb=\"(https?://[^\"]+)\"") ?? m("<img( [^>]+)? src=\"([^\"]+)\"", 2);
+                string img = row.Match("data-mediumthumb=\"(https?://[^\"]+)\"") ?? row.Match("<img( [^>]+)? src=\"([^\"]+)\"", 2);
                 if (img == null)
                     continue;
 
                 if (!IsModel_page)
                 {
                     model = null;
-                    var gmodel = Regex.Match(row, "href=\"/model/([^\"]+)\"[^>]+>([^<]+)<");
-                    if (string.IsNullOrEmpty(gmodel.Groups[1].Value))
-                        gmodel = Regex.Match(row, "href=\"/(pornstar/[^\"]+)\"[^>]+>([^<]+)<");
+                    var gmodel = row.Groups("href=\"/model/([^\"]+)\"[^>]+>([^<]+)<");
+                    if (string.IsNullOrEmpty(gmodel[1].Value))
+                        gmodel = row.Groups("href=\"/(pornstar/[^\"]+)\"[^>]+>([^<]+)<");
 
-                    if (!string.IsNullOrEmpty(gmodel.Groups[1].Value))
+                    if (!string.IsNullOrEmpty(gmodel[1].Value))
                     {
                         model = new ModelItem()
                         {
-                            name = gmodel.Groups[2].Value,
-                            uri = list_uri + (list_uri.Contains("?") ? "&" : "?") + $"model={gmodel.Groups[1].Value}",
+                            name = gmodel[2].Value,
+                            uri = list_uri + (list_uri.Contains("?") ? "&" : "?") + $"model={gmodel[1].Value}",
                         };
                     }
                 }
@@ -161,8 +153,8 @@ namespace Shared.Engine.SISI
                     video = $"{video_uri}?vkey={vkey}",
                     model = model,
                     picture = img,
-                    preview = m("data-mediabook=\"(https?://[^\"]+)\"") ?? m("data-webm=\"(https?://[^\"]+)\""),
-                    time = m("<var class=\"duration\">([^<]+)</var>") ?? m("class=\"time\">([^<]+)<") ?? m("class=\"videoDuration floatLeft\">([^<]+)<") ?? m("time\">([^<]+)<"),
+                    preview = row.Match("data-mediabook=\"(https?://[^\"]+)\"") ?? row.Match("data-webm=\"(https?://[^\"]+)\""),
+                    time = row.Match("<var class=\"duration\">([^<]+)</var>") ?? row.Match("class=\"time\">([^<]+)<") ?? row.Match("class=\"videoDuration floatLeft\">([^<]+)<") ?? row.Match("time\">([^<]+)<"),
                     json = true,
                     related = true,
                     bookmark = new Bookmark()

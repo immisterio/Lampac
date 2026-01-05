@@ -1,4 +1,5 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -51,22 +52,22 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("<div class=\"video-preview-screen", html, 1);
+            var rx = Rx.Split("<div class=\"video-preview-screen", html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
                 if (row.Contains("<span class=\"line-private\">"))
                     continue;
 
-                var g = Regex.Match(row, "<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"").Groups;
+                var g = row.Groups("<a href=\"https?://[^/]+/(video/[^\"]+)\" title=\"([^\"]+)\"");
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string quality = Regex.Match(row, "<span class=\"quality\">([^<]+)</span>").Groups[1].Value;
-                    string duration = Regex.Match(row, "<i class=\"fa fa-clock-o\"></i>([^<]+)</div>").Groups[1].Value.Trim();
-                    var img = Regex.Match(row, "data-src=\"(https?:)?//(((ptx|statics)\\.cdntrex\\.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)").Groups;
+                    string quality = row.Match("<span class=\"quality\">([^<]+)</span>");
+                    string duration = row.Match("<i class=\"fa fa-clock-o\"></i>([^<]+)</div>", trim: true);
+                    var img = row.Groups("data-src=\"(https?:)?//(((ptx|statics)\\.cdntrex\\.com/contents/videos_screenshots/[0-9]+/[0-9]+)[^\"]+)");
 
                     var pl = new PlaylistItem()
                     {

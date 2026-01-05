@@ -1,4 +1,5 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using System.Text.RegularExpressions;
 
 namespace Shared.Engine.SISI
@@ -12,39 +13,39 @@ namespace Shared.Engine.SISI
             return onresult.Invoke(url);
         }
 
-        public static List<PlaylistItem> Playlist(string html, out int total_pages, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        public static List<PlaylistItem> Playlist(ReadOnlySpan<char> html, out int total_pages, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             total_pages = 0;
 
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return new List<PlaylistItem>();
 
-            var rx = new RxEnumerate("\"gender\"", html, 1);
+            var rx = Rx.Split("\"gender\"", html, 1);
 
-            var playlists = new List<PlaylistItem>(rx.Count());
+            var playlists = new List<PlaylistItem>(rx.Count);
 
-            foreach (string row in rx.Rows())
+            foreach (var row in rx.Rows())
             {
-                string baba = Regex.Match(row, "\"username\":\"([^\"]+)\"").Groups[1].Value;
+                string baba = row.Match("\"username\":\"([^\"]+)\"");
                 if (string.IsNullOrEmpty(baba))
                     continue;
 
-                string esid = Regex.Match(row, "\"esid\":\"([^\"]+)\"").Groups[1].Value;
+                string esid = row.Match("\"esid\":\"([^\"]+)\"");
                 if (string.IsNullOrEmpty(esid))
                     continue;
 
-                string img = Regex.Match(row, "\"thumb_image\":\"([^\"]+)\"").Groups[1].Value;
+                string img = row.Match("\"thumb_image\":\"([^\"]+)\"");
                 if (string.IsNullOrEmpty(img))
                     continue;
 
-                string title = Regex.Match(row, "\"display_name\":\"([^\"]+)\"").Groups[1].Value;
+                string title = row.Match("\"display_name\":\"([^\"]+)\"");
                 if (string.IsNullOrEmpty(title))
                     title = baba;
 
                 var pl = new PlaylistItem()
                 {
                     name = title,
-                    quality = Regex.Match(row, "\"vq\":\"([^\"]+)\"").Groups[1].Value,
+                    quality = row.Match("\"vq\":\"([^\"]+)\""),
                     video = $"https://{esid}.bcvcdn.com/hls/stream_{baba}/playlist.m3u8",
                     picture = $"https:{img.Replace("\\", "").Replace("{ext}", "jpg")}"
                 };
@@ -55,7 +56,7 @@ namespace Shared.Engine.SISI
                 playlists.Add(pl);
             }
 
-            string total_count = Regex.Match(html, "\"total_count\":([0-9]+),").Groups[1].Value;
+            string total_count = Rx.Match(html, "\"total_count\":([0-9]+),");
             if (int.TryParse(total_count, out int total) && total > 0)
             {
                 if (72 >= total)
