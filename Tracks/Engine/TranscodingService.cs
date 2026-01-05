@@ -25,8 +25,8 @@ namespace Tracks.Engine
         static readonly Lazy<TranscodingService> _lazy = new(() => new TranscodingService());
 
         readonly ConcurrentDictionary<string, TranscodingJob> _jobs = new();
-        readonly Regex _safeFileNameRegex = new("^[A-Za-z0-9_.-]+$", RegexOptions.CultureInvariant);
-        readonly Regex _segmentFileRegex = new("^seg_(\\d+)\\.(m4s|ts)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        readonly Regex _safeFileNameRegex = new("^[A-Za-z0-9_.-]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        readonly Regex _segmentFileRegex = new("^seg_(\\d+)\\.(m4s|ts)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         int _segmentCleanupRunning;
         readonly Timer _segmentCleanupTimer;

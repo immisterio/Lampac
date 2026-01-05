@@ -10,6 +10,7 @@ using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
+using System.Buffers;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -363,6 +364,9 @@ namespace Shared
             if (tpl == null || tpl.IsEmpty)
                 return OnError(rjson ? "{}" : string.Empty);
 
+            // ниже ~85k безопасно для LOH 
+            const int flushThreshold = 40_000;
+
             var response = HttpContext.Response;
 
             response.Headers.CacheControl = "no-cache";
@@ -375,45 +379,48 @@ namespace Shared
                 ? tpl.ToBuilderJson()
                 : tpl.ToBuilderHtml();
 
-            if (sb.Length == 0)
-                return new EmptyResult();
-
-            var writer = response.BodyWriter;
             var encoder = Encoding.UTF8.GetEncoder();
             var ct = HttpContext.RequestAborted;
 
+            var buffer = new ArrayBufferWriter<byte>(Math.Max(flushThreshold, tpl.Length));
+
             foreach (var chunk in sb.GetChunks())
             {
+                ct.ThrowIfCancellationRequested();
+
                 ReadOnlySpan<char> chars = chunk.Span;
+                if (chars.IsEmpty)
+                    continue;
 
-                while (!chars.IsEmpty)
+                int maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
+                Span<byte> dest = buffer.GetSpan(maxBytes);
+
+                encoder.Convert(
+                    chars,
+                    dest,
+                    flush: false,
+                    out int charsUsed,
+                    out int bytesUsed,
+                    out bool completed);
+
+                buffer.Advance(bytesUsed);
+
+                // Cбрасываем большой буфер в Response
+                if (buffer.WrittenCount > flushThreshold)
                 {
-                    Span<byte> dest = writer.GetSpan(8192);
-
-                    encoder.Convert(
-                        chars, dest, flush: false,
-                        out int charsUsed,
-                        out int bytesUsed,
-                        out _);
-
-                    // крайне редкий случай: буфер мал (в основном если очень много многобайтных символов)
-                    if (charsUsed == 0 && bytesUsed == 0)
-                    {
-                        dest = writer.GetSpan(64 * 1024);
-                        encoder.Convert(chars, dest, flush: false, out charsUsed, out bytesUsed, out _);
-                    }
-
-                    writer.Advance(bytesUsed);
-                    chars = chars.Slice(charsUsed);
+                    await response.BodyWriter.WriteAsync(buffer.WrittenMemory, ct);
+                    buffer.Clear();
                 }
             }
 
             // Дофлашить состояние энкодера (границы чанков/суррогаты)
-            Span<byte> tail = writer.GetSpan(256);
+            Span<byte> tail = buffer.GetSpan(256);
             encoder.Convert(ReadOnlySpan<char>.Empty, tail, flush: true, out _, out int tailBytes, out _);
-            writer.Advance(tailBytes);
+            buffer.Advance(tailBytes);
 
-            await writer.FlushAsync(ct);
+            if (buffer.WrittenCount > 0)
+                await response.BodyWriter.WriteAsync(buffer.WrittenMemory, ct);
+
             return new EmptyResult();
         }
         #endregion

@@ -6,6 +6,8 @@ namespace Shared.Models.Templates
     {
         public bool IsEmpty { get; }
 
+        public int Length { get; }
+
         public string ToHtml();
 
         public StringBuilder ToBuilderHtml();

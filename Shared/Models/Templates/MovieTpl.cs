@@ -52,6 +52,9 @@ namespace Shared.Models.Templates
 
         public bool IsEmpty => data == null || data.Count == 0;
 
+        public int Length => data?.Count ?? 0;
+
+
         public void Reverse()
         {
             data.Reverse();

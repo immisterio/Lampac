@@ -325,7 +325,10 @@ namespace Shared
             var headers_stream = HeadersModel.InitOrNull(init.headers_stream);
             var headers_image = httpHeaders(init.host, HeadersModel.InitOrNull(init.headers_image));
 
-            var buffer = new ArrayBufferWriter<byte>(8192);
+            // ниже ~85k безопасно для LOH 
+            const int flushThreshold = 40_000;
+
+            var buffer = new ArrayBufferWriter<byte>(flushThreshold);
 
             using (var writer = new Utf8JsonWriter(buffer, jsonWriterOptions))
             {
@@ -369,8 +372,8 @@ namespace Shared
                         myarg = pl.myarg
                     }, jsonOptions);
 
-                    // Периодически "сбрасываем" буфер в Response асинхронно
-                    if ((i & 5) == 0 && buffer.WrittenCount > 0)
+                    // Cбрасываем большой буфер в Response
+                    if (buffer.WrittenCount > flushThreshold) 
                     {
                         writer.Flush(); // в буфер (не в Response) — безопасно
                         await Response.BodyWriter.WriteAsync(buffer.WrittenMemory, ct);
