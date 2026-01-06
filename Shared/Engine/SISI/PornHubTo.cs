@@ -109,7 +109,7 @@ namespace Shared.Engine.SISI
 
             string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : videoCategory.Contains("<li data-id=") ? "<li data-id=" : "<li id=";
 
-            var rx = Rx.Split(splitkey, html, 1);
+            var rx = Rx.Split(splitkey, videoCategory, 1);
 
             var playlists = new List<PlaylistItem>(rx.Count);
 

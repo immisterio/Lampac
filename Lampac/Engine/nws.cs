@@ -357,21 +357,14 @@ namespace Lampac.Engine
             if (connection.Socket.State != WebSocketState.Open || string.IsNullOrEmpty(method))
                 return;
 
-            using (var ms = msm.GetStream())
+            try
             {
-                try
+                await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+
+                using (var ms = msm.GetStream())
                 {
                     JsonSerializer.Serialize(ms, new { method, args = args ?? Array.Empty<object>() }, serializerOptions);
                     ms.Position = 0;
-                }
-                catch
-                {
-                    return;
-                }
-
-                try
-                {
-                    await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                     if (connection.Socket.State == WebSocketState.Open)
                     {
@@ -390,7 +383,10 @@ namespace Lampac.Engine
                                 var pos = seq.Start;
                                 while (seq.TryGet(ref pos, out var mem))
                                 {
-                                    bool isLast = pos.Equals(seq.End);
+                                    var next = pos;
+                                    bool hasMore = seq.TryGet(ref next, out _);
+                                    bool isLast = !hasMore;
+
                                     await connection.Socket
                                         .SendAsync(mem, WebSocketMessageType.Text, isLast, cts.Token)
                                         .ConfigureAwait(false);
@@ -402,16 +398,16 @@ namespace Lampac.Engine
                         connection.UpdateSendActivity();
                     }
                 }
-                catch (WebSocketException)
-                {
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                finally
-                {
-                    connection.SendLock.Release();
-                }
+            }
+            catch (WebSocketException)
+            {
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                connection.SendLock.Release();
             }
         }
 

@@ -425,10 +425,19 @@ namespace Shared
 
             // false - GC старается возвращать высвобождённую виртуальную память ОС
             // true - GC сохраняет адресное пространство/сегменты, чтобы быстрее переиспользовать
-            RetainVM = true, 
+            RetainVM = false,
 
-            //Concurrent = false,
-            ConserveMemory = 9, HighMemoryPercent = 1
+            // false — только Stop-the-World сборки
+            // true  — фоновые (concurrent) сборки
+            Concurrent = null,
+
+            // 1 — минимальная экономия памяти, крупные поколения
+            // 9 — максимальная экономия, маленькие поколения, частые GC
+            ConserveMemory = 3,
+
+            // Процент доступной памяти, после которого GC считает систему под давлением
+            // Ниже значение — раньше и агрессивнее запускаются сборки
+            HighMemoryPercent = 80
         };
 
         public PuppeteerConf chromium = new PuppeteerConf()

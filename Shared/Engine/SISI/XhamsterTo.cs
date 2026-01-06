@@ -73,7 +73,7 @@ namespace Shared.Engine.SISI
                     section = single;
             }
 
-            var rx = Rx.Split("(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)", html, 1);
+            var rx = Rx.Split("(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)", section, 1);
 
             var playlists = new List<PlaylistItem>(rx.Count);
 

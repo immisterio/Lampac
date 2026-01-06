@@ -9,9 +9,7 @@ using Shared.Models;
 using Shared.Models.AppConf;
 using Shared.Models.Base;
 using Shared.Models.Events;
-using Shared.Models.Online.Settings;
 using Shared.Models.SISI.OnResult;
-using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
@@ -28,7 +26,7 @@ namespace Shared
     {
         public static string appversion => "151";
 
-        public static string minorversion => "6";
+        public static string minorversion => "7";
 
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();

@@ -516,26 +516,27 @@ namespace Shared.Engine
         #region SocketClient
         public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) SocketClient()
         {
-            string _ip = ip;
-
             if (AppInit.conf.WebSocket.type == "nws")
             {
-                if (!string.IsNullOrEmpty(connectionId) && clients.ContainsKey(connectionId))
-                    return (connectionId, clients[connectionId]);
-
-                if (httpContext == null)
-                    return default;
-
-                if (httpContext.Request.Query.ContainsKey("nws_id"))
+                if (!string.IsNullOrEmpty(connectionId) && clients.TryGetValue(connectionId, out var _client))
                 {
-                    string nws_id = httpContext.Request.Query["nws_id"].ToString()?.ToLower()?.Trim();
-                    if (!string.IsNullOrEmpty(nws_id) && clients.ContainsKey(nws_id))
-                        return (nws_id, clients[nws_id]);
+                    if (ip == _client.ip)
+                        return (connectionId, _client);
+                }
+
+                if (httpContext != null && httpContext.Request.Query.TryGetValue("nws_id", out var _nwsid))
+                {
+                    string nws_id = _nwsid.ToString();
+                    if (!string.IsNullOrEmpty(nws_id) && clients.TryGetValue(nws_id, out _client))
+                    {
+                        if (ip == _client.ip)
+                            return (nws_id, _client);
+                    }
                 }
             }
             else
             {
-                var client = clients.LastOrDefault(i => i.Value.ip == _ip);
+                var client = clients.LastOrDefault(i => i.Value.ip == ip);
                 if (client.Value.info?.rchtype != null)
                     return (client.Key, client.Value);
             }

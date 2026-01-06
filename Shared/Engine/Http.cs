@@ -927,7 +927,7 @@ namespace Shared.Engine
 
         public static bool IsLogged
         {
-            get 
+            get
             {
                 if (AppInit.conf.filelog)
                     return true;
