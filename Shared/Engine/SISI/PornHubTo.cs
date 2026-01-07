@@ -153,7 +153,7 @@ namespace Shared.Engine.SISI
                 ? "<li data-id=" : "<li id=";
 
             var rx = Rx.Split(splitkey, videoCategory, 1);
-            if (rx.Count > 0)
+            if (rx.Count == 0)
                 return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);

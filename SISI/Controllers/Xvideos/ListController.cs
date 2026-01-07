@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Text.Json.Nodes;
 
 namespace SISI.Controllers.Xvideos
 {
@@ -56,7 +57,7 @@ namespace SISI.Controllers.Xvideos
             var cache = await InvokeCacheResult<List<PlaylistItem>>($"{plugin}:stars:{uri}:{sort}:{pg}", 10, async e =>
             {
                 var playlists = await XvideosTo.Pornstars("xds/vidosik", $"{plugin}/stars", init.corsHost(), plugin, uri, sort, pg, 
-                    url => httpHydra.Get(url)
+                    url => httpHydra.Get<JsonObject>(url)
                 );
 
                 if (playlists == null || playlists.Count == 0)

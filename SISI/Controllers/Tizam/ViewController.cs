@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Engine.RxEnumerate;
-using Shared.Models.Online.KinoPub;
 
 namespace SISI.Controllers.Tizam
 {

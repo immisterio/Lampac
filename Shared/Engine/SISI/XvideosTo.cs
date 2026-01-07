@@ -124,7 +124,7 @@ namespace Shared.Engine.SISI
         #endregion
 
         #region Pornstars
-        async public static Task<List<PlaylistItem>> Pornstars(string uri_video, string uri_star, string host, string plugin, string uri, string sort, int pg, Func<string, Task<string>> onresult)
+        async public static Task<List<PlaylistItem>> Pornstars(string uri_video, string uri_star, string host, string plugin, string uri, string sort, int pg, Func<string, Task<JsonObject>> onresult)
         {
             if (string.IsNullOrEmpty(uri))
                 return null;
@@ -134,16 +134,12 @@ namespace Shared.Engine.SISI
 
             url += $"/{pg}";
 
-            string json = await onresult.Invoke(url);
-            if (json == null || (!json.StartsWith("{") && !json.StartsWith("[")))
+            JsonObject jsonObj = await onresult.Invoke(url);
+            if (jsonObj == null || !jsonObj.ContainsKey("videos"))
                 return null;
 
             try
             {
-                var jsonObj = JsonSerializer.Deserialize<JsonObject>(json);
-                if (jsonObj == null || !jsonObj.ContainsKey("videos"))
-                    return null;
-
                 var videos = jsonObj["videos"]?.Deserialize<List<Related>>();
                 if (videos == null)
                     return null;

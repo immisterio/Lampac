@@ -51,6 +51,8 @@ namespace SISI.Controllers.Tizam
                 return null;
 
             var rx = Rx.Split("video-item", pagination[0].Span, 1);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
@@ -64,10 +66,8 @@ namespace SISI.Controllers.Tizam
 
                 if (!string.IsNullOrEmpty(href) && !string.IsNullOrWhiteSpace(title))
                 {
-                    string duration = row.Match("itemprop=\"duration\" content=\"([^<]+)\"");
-
                     string img = row.Match("class=\"item__img\" src=\"/([^\"]+)\"");
-                    if (string.IsNullOrEmpty(img))
+                    if (img == null)
                         continue;
 
                     var pl = new PlaylistItem()
@@ -75,7 +75,7 @@ namespace SISI.Controllers.Tizam
                         name = title,
                         video = $"tizam/vidosik?uri={HttpUtility.UrlEncode(href)}",
                         picture = $"{AppInit.conf.Tizam.host}/{img}",
-                        time = duration?.Trim(),
+                        time = row.Match("itemprop=\"duration\" content=\"([^<]+)\"", trim: true),
                         json = true,
                         bookmark = new Bookmark()
                         {
