@@ -16,9 +16,9 @@ namespace SISI.Controllers.Porntrex
             rhubFallback:
             var cache = await InvokeCacheResult<List<PlaylistItem>>($"ptx:{search}:{sort}:{c}:{pg}", 10, async e =>
             {
-                string html = await PorntrexTo.InvokeHtml(init.corsHost(), search, sort, c, pg,
-                    url => httpHydra.Get(url)
-                );
+                string url = PorntrexTo.Uri(init.corsHost(), search, sort, c, pg);
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
 
                 var playlists = PorntrexTo.Playlist("ptx/vidosik", html);
 

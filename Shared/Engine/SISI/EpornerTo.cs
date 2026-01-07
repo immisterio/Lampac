@@ -1,5 +1,4 @@
-﻿using HtmlAgilityPack;
-using Shared.Engine.RxEnumerate;
+﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Globalization;
@@ -12,93 +11,101 @@ namespace Shared.Engine.SISI
 {
     public static class EpornerTo
     {
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(64));
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+        static readonly ThreadLocal<StringBuilder> sbHash = new(() => new StringBuilder(64));
 
-
-        public static Task<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
+        #region Uri
+        public static string Uri(string host, string search, string sort, string c, int pg)
         {
-            string url = $"{host}/";
+            var url = sbUri.Value;
+            url.Clear();
+
+            url.Append(host);
+            url.Append("/");
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url += $"search/{HttpUtility.UrlEncode(search)}/";
+                url.Append($"search/{HttpUtility.UrlEncode(search)}/");
 
                 if (pg > 1)
-                    url += $"{pg}/";
+                    url.Append($"{pg}/");
 
                 if (!string.IsNullOrEmpty(sort))
-                    url += $"{sort}/";
+                    url.Append($"{sort}/");
             }
             else
             {
                 if (!string.IsNullOrEmpty(c)) 
                 {
-                    url += $"cat/{c}/";
+                    url.Append($"cat/{c}/");
 
                     if (pg > 1)
-                        url += $"{pg}/";
+                        url.Append($"{pg}/");
                 }
                 else
                 {
                     if (pg > 1)
-                        url += $"{pg}/";
+                        url.Append($"{pg}/");
 
                     if (!string.IsNullOrEmpty(sort))
-                        url += $"{sort}/";
+                        url.Append($"{sort}/");
                 }
             }
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        #region Playlist
+        public static List<PlaylistItem> Playlist(string route, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
-            if (string.IsNullOrEmpty(html))
-                return new List<PlaylistItem>();
+            if (html.IsEmpty)
+                return null;
 
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
+            var single = ReadOnlySpan<char>.Empty;
 
-            string single = doc.DocumentNode.SelectSingleNode("//*[@id='relateddiv' or @id='vidresults']")?.InnerHtml;
-            if (single != null)
-                html = single;
-            else
-            {
-                if (html.Contains("class=\"toptopbelinset\""))
-                    html = html.Split("class=\"toptopbelinset\"")[1];
+            if (html.Contains("id=\"relateddiv\"", StringComparison.Ordinal))
+                single = HtmlSpan.Node(html, "*", "id", "relateddiv", HtmlSpanTargetType.Exact);
 
-                if (html.Contains("class=\"relatedtext\""))
-                    html = html.Split("class=\"relatedtext\"")[1];
-            }
+            else if (html.Contains("id=\"vidresults\"", StringComparison.Ordinal))
+                single = HtmlSpan.Node(html, "*", "id", "vidresults", HtmlSpanTargetType.Exact);
 
-            var rx = Rx.Split("<div class=\"mb( hdy)?\"", html, 1);
+            else if (html.Contains("class=\"toptopbelinset\"", StringComparison.Ordinal))
+                single = Rx.Split("class=\"toptopbelinset\"", html)[1].Span;
+
+            else if (html.Contains("class=\"relatedtext\"", StringComparison.Ordinal))
+                single = Rx.Split("class=\"relatedtext\"", html)[1].Span;
+
+            if (single.IsEmpty)
+                return null;
+
+            var rx = Rx.Split("<div class=\"mb( hdy)?\"", single, 1);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
             foreach (var row in rx.Rows())
             {
                 var g = row.Groups("<p class=\"mbtit\"><a href=\"/([^\"]+)\">([^<]+)</a>");
-                string quality = row.Match("<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)", 2);
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
                     string img = row.Match(" data-src=\"([^\"]+)\"");
-                    if (string.IsNullOrWhiteSpace(img))
+                    if (img == null)
                         img = row.Match("<img src=\"([^\"]+)\"");
 
-                    string dataid = row.Match("data-id=\"([^\"]+)\"");
-                    string preview = Regex.Replace(img, "/[^/]+$", "") + $"/{dataid}-preview.webm";
-
-                    string duration = row.Match("<span class=\"mbtim\"([^>]+)?>([^<]+)</span>", 2, trim: true);
+                    if (img == null)
+                        img = string.Empty;
 
                     var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{uri}?uri={g[1].Value}",
+                        video = $"{route}?uri={g[1].Value}",
                         picture = img,
-                        preview = preview,
-                        quality = quality,
-                        time = duration,
+                        preview = Regex.Replace(img, "/[^/]+$", "") + $"/{row.Match("data-id=\"([^\"]+)\"")}-preview.webm",
+                        quality = row.Match("<div class=\"mvhdico\"([^>]+)?><span>([^\"<]+)", 2),
+                        time = row.Match("<span class=\"mbtim\"([^>]+)?>([^<]+)</span>", 2, trim: true),
                         json = true,
                         related = true,
                         bookmark = new Bookmark()
@@ -118,7 +125,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host, string search, string sort, string c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -572,7 +581,9 @@ namespace Shared.Engine.SISI
 
             return menu;
         }
+        #endregion
 
+        #region StreamLinks
         async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onjson, Func<string, string> onlog = null)
         {
             if (string.IsNullOrEmpty(url))
@@ -610,12 +621,13 @@ namespace Shared.Engine.SISI
                 recomends = Playlist(uri, html)
             };
         }
+        #endregion
 
 
         #region convertHash
         static string convertHash(string h)
         {
-            StringBuilder builder = sb.Value;
+            StringBuilder builder = sbHash.Value;
             builder.Clear();
 
             Base36(h.AsSpan(0, 8), builder);

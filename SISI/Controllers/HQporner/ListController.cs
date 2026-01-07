@@ -16,9 +16,9 @@ namespace SISI.Controllers.HQporner
             rhubFallback:
             var cache = await InvokeCacheResult<List<PlaylistItem>>($"hqr:{search}:{sort}:{c}:{pg}", 10, async e =>
             {
-                string html = await HQpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg,
-                    url => httpHydra.Get(url)
-                );
+                string url = HQpornerTo.Uri(init.corsHost(), search, sort, c, pg);
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
 
                 var playlists = HQpornerTo.Playlist("hqr/vidosik", html);
 

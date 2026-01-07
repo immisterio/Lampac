@@ -20,13 +20,15 @@ namespace SISI.Controllers.Runetki
             rhubFallback:
             var cache = await InvokeCacheResult<(List<PlaylistItem> playlists, int total_pages)>($"{init.plugin}:list:{sort}:{pg}", 5, async e =>
             {
-                string html = await RunetkiTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                {
-                    if (rch?.enable == true || init.priorityBrowser == "http")
-                        return httpHydra.Get(url);
+                string url = RunetkiTo.Uri(init.corsHost(), sort, pg);
 
-                    return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
-                });
+                ReadOnlySpan<char> html;
+
+                if (rch?.enable == true || init.priorityBrowser == "http")
+                    html = await httpHydra.Get(url);
+
+                else
+                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
 
                 var playlists = RunetkiTo.Playlist(html, out int total_pages);
 

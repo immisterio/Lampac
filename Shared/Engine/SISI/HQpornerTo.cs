@@ -1,47 +1,60 @@
 ﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine.SISI
 {
     public static class HQpornerTo
     {
-        public static Task<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+
+        #region Uri
+        public static string Uri(string host, string search, string sort, string c, int pg)
         {
-            string url = $"{host}/";
+            var url = sbUri.Value;
+            url.Clear();
+
+            url.Append(host);
+            url.Append("/");
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url += $"?q={HttpUtility.UrlEncode(search)}&p={pg}";
+                url.Append($"?q={HttpUtility.UrlEncode(search)}&p={pg}");
             }
             else
             {
                 if (!string.IsNullOrEmpty(c))
                 {
-                    url += $"category/{c}";
+                    url.Append($"category/{c}");
                 }
                 else
                 {
                     if (!string.IsNullOrEmpty(sort))
-                        url += $"top/{sort}";
+                        url.Append($"top/{sort}");
 
                     else
-                        url += "hdporn";
+                        url.Append("hdporn");
                 }
 
-                url += $"/{pg}";
+                url.Append($"/{pg}");
             }
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
+        #region Playlist
         public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (html.IsEmpty)
-                return new List<PlaylistItem>();
+                return null;
 
             var rx = Rx.Split("<div class=\"img-container\">", html, 1);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
@@ -50,14 +63,12 @@ namespace Shared.Engine.SISI
                 var g = row.Groups("href=\"/([^\"]+)\" class=\"atfi[^\"]+\"><img src=\"//([^\"]+)\"[^>]+ alt=\"([^\"]+)\"");
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value) && !string.IsNullOrWhiteSpace(g[3].Value))
                 {
-                    string duration = row.Match("class=\"fa fa-clock-o\" [^>]+></i>([\n\r\t ]+)?([^<]+)<", 2, trim: true);
-
                     var pl = new PlaylistItem()
                     {
                         name = g[3].Value.Trim(),
                         video = $"{uri}?uri={g[1].Value}",
                         picture = "https://" + g[2].Value,
-                        time = duration,
+                        time = row.Match("class=\"fa fa-clock-o\" [^>]+></i>([\n\r\t ]+)?([^<]+)<", 2, trim: true),
                         json = true,
                         bookmark = new Bookmark()
                         {
@@ -76,7 +87,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host, string sort, string c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -459,7 +472,9 @@ namespace Shared.Engine.SISI
 
             return menu;
         }
+        #endregion
 
+        #region StreamLinks
         async public static Task<Dictionary<string, string>> StreamLinks(string host, string uri, Func<string, Task<string>> onresult, Func<string, Task<string>> oniframe)
         {
             if (string.IsNullOrWhiteSpace(uri))
@@ -521,5 +536,6 @@ namespace Shared.Engine.SISI
 
             return stream_links.Reverse().ToDictionary(k => k.Key, v => v.Value);
         }
+        #endregion
     }
 }

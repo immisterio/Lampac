@@ -16,9 +16,13 @@ namespace SISI.Controllers.Xvideos
             rhubFallback:
             var cache = await InvokeCacheResult<StreamItem>($"xvideos:view:{uri}", 20, async e =>
             {
-                var stream_links = await XvideosTo.StreamLinks("xds/vidosik", $"{host}/xds/stars", init.corsHost(), uri, 
-                    url => httpHydra.Get(url)
-                );
+                string url = XvideosTo.StreamLinksUri($"{host}/xds/stars", init.corsHost(), uri);
+                if (url == null)
+                    return e.Fail("uri");
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
+
+                var stream_links = XvideosTo.StreamLinks(html, "xds/vidosik", $"{host}/xds/stars");
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

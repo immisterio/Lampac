@@ -37,13 +37,13 @@ namespace SISI.Controllers.Xhamster
                     // user cache разделенный по ip
                     if (rch == null || !hybridCache.TryGetValue(memKey, out playlists))
                     {
-                        string html = await XhamsterTo.InvokeHtml(init.corsHost(), plugin, search, c, q, sort, pg, 
-                            url => httpHydra.Get(url)
-                        );
+                        string url = XhamsterTo.Uri(init.corsHost(), plugin, search, c, q, sort, pg);
+
+                        ReadOnlySpan<char> html = await httpHydra.Get(url);
 
                         playlists = XhamsterTo.Playlist("xmr/vidosik", html);
 
-                        if (playlists.Count == 0)
+                        if (playlists == null || playlists.Count == 0)
                         {
                             if (IsRhubFallback())
                                 goto reset;

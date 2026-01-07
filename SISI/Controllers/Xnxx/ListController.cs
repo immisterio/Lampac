@@ -16,9 +16,9 @@ namespace SISI.Controllers.Xnxx
             rhubFallback:
             var cache = await InvokeCacheResult<List<PlaylistItem>>($"xnx:list:{search}:{pg}", 10, async e =>
             {
-                string html = await XnxxTo.InvokeHtml(init.corsHost(), search, pg, 
-                    url => httpHydra.Get(url)
-                );
+                string url = XnxxTo.Uri(init.corsHost(), search, pg);
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
 
                 var playlists = XnxxTo.Playlist("xnx/vidosik", html);
 

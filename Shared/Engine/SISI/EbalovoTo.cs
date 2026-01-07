@@ -1,51 +1,64 @@
 ﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine.SISI
 {
     public static class EbalovoTo
     {
-        public static Task<string> InvokeHtml(string host, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+
+        #region Uri
+        public static string Uri(string host, string search, string sort, string c, int pg)
         {
-            string url = $"{host}/";
+            var url = sbUri.Value;
+            url.Clear();
+
+            url.Append(host);
+            url.Append("/");
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url += $"search/{HttpUtility.UrlEncode(search)}/";
+                url.Append($"search/{HttpUtility.UrlEncode(search)}/");
             }
             else
             {
                 if (!string.IsNullOrEmpty(c))
                 {
-                    url += $"porno/{c}";
+                    url.Append($"porno/{c}");
 
                     if (sort is "porno-online" or "xxx-top")
-                        url += $"-rating";
+                        url.Append($"-rating");
 
-                    url += "/";
+                    url.Append("/");
                 }
                 else
                 {
                     if (!string.IsNullOrEmpty(sort))
-                        url += $"{sort}/";
+                        url.Append($"{sort}/");
                 }
             }
 
             if (pg > 1)
-                url += $"{pg}/";
+                url.Append($"{pg}/");
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
+        #region Playlist
         public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (html.IsEmpty)
-                return new List<PlaylistItem>();
+                return null;
 
             var rx = Rx.Split("<div class=\"item\">", html);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
@@ -59,7 +72,6 @@ namespace Shared.Engine.SISI
 
                 if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(link))
                 {
-                    string duration = row.Match(" data-eb=\"([^;\"]+);", trim: true);
                     var img = row.Groups("( )src=\"(([^\"]+)/[0-9]+.jpg)\"");
                     if (string.IsNullOrWhiteSpace(img[3].Value) || img[2].Value.Contains("load.png"))
                         img = row.Groups("(data-srcset|data-src|srcset)=\"([^\"]+/[0-9]+.jpg)\"");
@@ -69,7 +81,7 @@ namespace Shared.Engine.SISI
                         name = title.Trim(),
                         video = $"{uri}?uri={link}",
                         picture = img[2].Value,
-                        time = duration,
+                        time = row.Match(" data-eb=\"([^;\"]+);", trim: true),
                         json = true,
                         related = true,
                         bookmark = new Bookmark()
@@ -89,7 +101,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host, string sort, string c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -769,7 +783,9 @@ namespace Shared.Engine.SISI
 
             return menu;
         }
+        #endregion
 
+        #region StreamLinks
         async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onlocation = null)
         {
             if (string.IsNullOrEmpty(url))
@@ -809,5 +825,6 @@ namespace Shared.Engine.SISI
                 recomends = Playlist(uri, html)
             };
         }
+        #endregion
     }
 }

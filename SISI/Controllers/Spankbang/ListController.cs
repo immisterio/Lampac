@@ -17,13 +17,14 @@ namespace SISI.Controllers.Spankbang
             rhubFallback:
             var cache = await InvokeCacheResult<List<PlaylistItem>>($"sbg:{search}:{sort}:{pg}", 10, async e =>
             {
-                string html = await SpankbangTo.InvokeHtml(init.corsHost(), search, sort, pg, url =>
-                {
-                    if (rch?.enable == true || init.priorityBrowser == "http")
-                        return httpHydra.Get(url);
+                string url = SpankbangTo.Uri(init.corsHost(), search, sort, pg);
 
-                    return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
-                });
+                ReadOnlySpan<char> html;
+
+                if (rch?.enable == true || init.priorityBrowser == "http")
+                    html = await httpHydra.Get(url);
+                else
+                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
 
                 var playlists = SpankbangTo.Playlist("sbg/vidosik", html);
 

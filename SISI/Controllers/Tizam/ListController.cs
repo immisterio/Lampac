@@ -44,11 +44,11 @@ namespace SISI.Controllers.Tizam
         static List<PlaylistItem> Playlist(ReadOnlySpan<char> html)
         {
             if (html.IsEmpty)
-                return new List<PlaylistItem>();
+                return null;
 
             var pagination = Rx.Split("id=\"pagination\"", html);
             if (pagination.Count == 0)
-                return new List<PlaylistItem>();
+                return null;
 
             var rx = Rx.Split("video-item", pagination[0].Span, 1);
 

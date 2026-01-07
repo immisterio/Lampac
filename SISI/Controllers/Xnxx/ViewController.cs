@@ -16,9 +16,13 @@ namespace SISI.Controllers.Xnxx
             rhubFallback:
             var cache = await InvokeCacheResult<StreamItem>($"xnxx:view:{uri}", 20, async e =>
             {
-                var stream_links = await XnxxTo.StreamLinks("xnx/vidosik", init.corsHost(), uri, 
-                    url => httpHydra.Get(url)
-                );
+                string url = XnxxTo.StreamLinksUri(init.corsHost(), uri);
+                if (url == null)
+                    return e.Fail("uri");
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
+
+                var stream_links = XnxxTo.StreamLinks(html, "xnx/vidosik");
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

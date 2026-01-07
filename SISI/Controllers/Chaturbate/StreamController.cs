@@ -16,9 +16,13 @@ namespace SISI.Controllers.Chaturbate
             rhubFallback:
             var cache = await InvokeCacheResult<Dictionary<string, string>>($"chaturbate:stream:{baba}", 10, async e =>
             {
-                var stream_links = await ChaturbateTo.StreamLinks(init.corsHost(), baba, 
-                    url => httpHydra.Get(url)
-                );
+                string url = ChaturbateTo.StreamLinksUri(init.corsHost(), baba);
+                if (url == null)
+                    return e.Fail("baba");
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
+
+                var stream_links = ChaturbateTo.StreamLinks(html);
 
                 if (stream_links == null || stream_links.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

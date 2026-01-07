@@ -20,9 +20,9 @@ namespace SISI.Controllers.Xvideos
             rhubFallback:
             var cache = await InvokeCacheResult<List<PlaylistItem>>($"{plugin}:list:{search}:{sort}:{c}:{pg}", 10, async e =>
             {
-                string html = await XvideosTo.InvokeHtml(init.corsHost(), plugin, search, sort, c, pg, 
-                    url => httpHydra.Get(url)
-                );
+                string url = XvideosTo.Uri(init.corsHost(), plugin, search, sort, c, pg);
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
 
                 var playlists = XvideosTo.Playlist("xds/vidosik", $"{plugin}/stars", html);
 

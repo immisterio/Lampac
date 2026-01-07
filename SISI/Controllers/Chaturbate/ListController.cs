@@ -19,9 +19,9 @@ namespace SISI.Controllers.Chaturbate
             rhubFallback:
             var cache = await InvokeCacheResult<List<PlaylistItem>>($"Chaturbate:list:{sort}:{pg}", 5, async e =>
             {
-                string html = await ChaturbateTo.InvokeHtml(init.corsHost(), sort, pg, 
-                    url => httpHydra.Get(url)
-                );
+                string url = ChaturbateTo.Uri(init.corsHost(), sort, pg);
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url);
 
                 var playlists = ChaturbateTo.Playlist("chu/potok", html);
 

@@ -18,15 +18,15 @@ namespace SISI.Controllers.Ebalovo
             {
                 string ehost = await RootController.goHost(init.corsHost(), proxy);
 
-                string html = await EbalovoTo.InvokeHtml(ehost, search, sort, c, pg,
-                    url => httpHydra.Get(url, addheaders: HeadersModel.Init(
-                        ("sec-fetch-dest", "document"),
-                        ("sec-fetch-mode", "navigate"),
-                        ("sec-fetch-site", "same-origin"),
-                        ("sec-fetch-user", "?1"),
-                        ("upgrade-insecure-requests", "1")
-                    ))
-                );
+                string url = EbalovoTo.Uri(ehost, search, sort, c, pg);
+
+                ReadOnlySpan<char> html = await httpHydra.Get(url, addheaders: HeadersModel.Init(
+                    ("sec-fetch-dest", "document"),
+                    ("sec-fetch-mode", "navigate"),
+                    ("sec-fetch-site", "same-origin"),
+                    ("sec-fetch-user", "?1"),
+                    ("upgrade-insecure-requests", "1")
+                ));
 
                 var playlists = EbalovoTo.Playlist("elo/vidosik", html);
 

@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Engine.RxEnumerate;
+using Shared.Models.Online.KinoPub;
 
 namespace SISI.Controllers.Tizam
 {
@@ -15,9 +17,11 @@ namespace SISI.Controllers.Tizam
             rhubFallback:
             var cache = await InvokeCacheResult<StreamItem>($"tizam:view:{uri}", 180, async e =>
             {
-                string html = await httpHydra.Get($"{init.corsHost()}/{uri}");
+                ReadOnlySpan<char> html = await httpHydra.Get($"{init.corsHost()}/{uri}");
+                if (html.IsEmpty)
+                    return e.Fail("html");
 
-                string location = Regex.Match(html ?? string.Empty, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"").Groups[1].Value;
+                string location = Rx.Match(html, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"");
 
                 if (string.IsNullOrEmpty(location))
                     return e.Fail("location", refresh_proxy: true);

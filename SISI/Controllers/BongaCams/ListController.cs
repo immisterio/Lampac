@@ -20,13 +20,16 @@ namespace SISI.Controllers.BongaCams
             rhubFallback:
             var cache = await InvokeCacheResult<(List<PlaylistItem> playlists, int total_pages)>($"BongaCams:list:{sort}:{pg}", 5, async e =>
             {
-                string html = await BongaCamsTo.InvokeHtml(init.corsHost(), sort, pg, url =>
-                {
-                    if (rch?.enable == true || init.priorityBrowser == "http")
-                        return httpHydra.Get(url);
+                string url = BongaCamsTo.Uri(init.corsHost(), sort, pg);
 
-                    return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
-                });
+                ReadOnlySpan<char> html;
+
+                if (rch?.enable == true || init.priorityBrowser == "http")
+                    html = await httpHydra.Get(url);
+                else
+                {
+                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
+                }
 
                 var playlists = BongaCamsTo.Playlist(html, out int total_pages);
 

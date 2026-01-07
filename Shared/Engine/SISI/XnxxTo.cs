@@ -10,21 +10,23 @@ namespace Shared.Engine.SISI
 {
     public static class XnxxTo
     {
-        public static Task<string> InvokeHtml(string host, string search, int pg, Func<string, Task<string>> onresult)
+        public static string Uri(string host, string search, int pg)
         {
-            string url = $"{host}/best/{DateTime.Today.AddMonths(-1):yyyy-MM}/{pg}";
             if (!string.IsNullOrWhiteSpace(search))
-                url = $"{host}/search/{HttpUtility.UrlEncode(search)}/{pg}";
+                return $"{host}/search/{HttpUtility.UrlEncode(search)}/{pg}";
 
-            return onresult.Invoke(url);
+            return $"{host}/best/{DateTime.Today.AddMonths(-1):yyyy-MM}/{pg}";
         }
 
-        public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        #region Playlist
+        public static List<PlaylistItem> Playlist(string route, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (html.IsEmpty)
-                return new List<PlaylistItem>();
+                return null;
 
             var rx = Rx.Split("<div id=\"video_", html, 1);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
@@ -34,24 +36,22 @@ namespace Shared.Engine.SISI
 
                 if (!string.IsNullOrEmpty(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string quality = row.Match("<span class=\"superfluous\"> - </span>([^<]+)</span>");
-                    string duration = row.Match("</span>([^<]+)<span class=\"video-hd\">", trim: true);
-                    string img = row.Match("data-src=\"([^\"]+)\"").Replace(".THUMBNUM.", ".1.");
+                    string img = row.Match("data-src=\"([^\"]+)\"").Replace(".THUMBNUM.", ".1.") ?? string.Empty;
 
                     // https://cdn77-pic.xvideos-cdn.com/videos/thumbs169ll/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62-2/5a6d4f718214eebf73225ec96b670f62.27.jpg
                     // https://cdn77-pic.xvideos-cdn.com/videos/videopreview/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62_169.mp4
-                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/");
+                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/") ?? string.Empty;
                     preview = Regex.Replace(preview, "/[^/]+$", "");
                     preview = Regex.Replace(preview, "-[0-9]+$", "");
 
                     var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{uri}?uri={g[1].Value}",
+                        video = $"{route}?uri={g[1].Value}",
                         picture = img,
                         preview = preview + "_169.mp4",
-                        time = duration,
-                        quality = string.IsNullOrWhiteSpace(quality) ? null : quality,
+                        time = row.Match("</span>([^<]+)<span class=\"video-hd\">", trim: true),
+                        quality = row.Match("<span class=\"superfluous\"> - </span>([^<]+)</span>"),
                         json = true,
                         related = true,
                         bookmark = new Bookmark()
@@ -71,7 +71,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -86,28 +88,34 @@ namespace Shared.Engine.SISI
                 }
             };
         }
+        #endregion
 
-        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onm3u = null)
+        #region StreamLinks
+        public static string StreamLinksUri(string host, string url)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
-            string html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? string.Empty, "^([^/]+)/.*", "$1/_")}");
-            if (html == null)
+            return $"{host}/{Regex.Replace(url ?? string.Empty, "^([^/]+)/.*", "$1/_")}";
+        }
+
+        public static StreamItem StreamLinks(ReadOnlySpan<char> html, string route, Func<string, Task<string>> onm3u = null)
+        {
+            if (html.IsEmpty)
                 return null;
 
-            string stream_link = Regex.Match(html, "html5player\\.setVideoHLS\\('([^']+)'\\);").Groups[1].Value;
+            string stream_link = Rx.Match(html, "html5player\\.setVideoHLS\\('([^']+)'\\);");
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;
 
             #region getRelated
-            List<PlaylistItem> getRelated()
+            List<PlaylistItem> getRelated(ReadOnlySpan<char> html)
             {
-                var related = new List<PlaylistItem>();
-
-                string json = Regex.Match(html!, "video_related=([^\n\r]+);window").Groups[1].Value;
+                string json = Rx.Match(html, "video_related=([^\n\r]+);window");
                 if (string.IsNullOrWhiteSpace(json) || !json.StartsWith("[") || !json.EndsWith("]"))
-                    return related;
+                    return new List<PlaylistItem>();
+
+                var related = new List<PlaylistItem>(40);
 
                 try
                 {
@@ -119,7 +127,7 @@ namespace Shared.Engine.SISI
                         related.Add(new PlaylistItem()
                         {
                             name = r.tf,
-                            video = $"{uri}?uri={r.u.Remove(0, 1)}",
+                            video = $"{route}?uri={r.u.Remove(0, 1)}",
                             picture = r.i,
                             json = true,
                             related = true,
@@ -138,35 +146,45 @@ namespace Shared.Engine.SISI
             }
             #endregion
 
-            string m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
-            if (m3u8 == null)
-            {
-                return new StreamItem()
-                {
-                    qualitys = new Dictionary<string, string>()
-                    {
-                        ["auto"] = stream_link
-                    },
-                    recomends = getRelated()
-                };
-            }
-
-            var stream_links = new Dictionary<int, string>();
-            foreach (Match m in Regex.Matches(m3u8, "(hls-(2160|1440|1080|720|480|360)p[^\n\r\t ]+)"))
-            {
-                string hls = m.Groups[1].Value;
-                if (string.IsNullOrEmpty(hls))
-                    continue;
-
-                hls = $"{Regex.Replace(stream_link, "/hls\\.m3u.*", "")}/{hls}".Replace("https:", "http:");
-                stream_links.Add(int.Parse(m.Groups[2].Value), hls);
-            }
-
             return new StreamItem()
             {
-                qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
-                recomends = getRelated()
+                qualitys = new Dictionary<string, string>()
+                {
+                    ["auto"] = stream_link
+                },
+                recomends = getRelated(html)
             };
+
+            //string m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
+            //if (m3u8 == null)
+            //{
+            //    return new StreamItem()
+            //    {
+            //        qualitys = new Dictionary<string, string>()
+            //        {
+            //            ["auto"] = stream_link
+            //        },
+            //        recomends = getRelated()
+            //    };
+            //}
+
+            //var stream_links = new Dictionary<int, string>();
+            //foreach (Match m in Regex.Matches(m3u8, "(hls-(2160|1440|1080|720|480|360)p[^\n\r\t ]+)"))
+            //{
+            //    string hls = m.Groups[1].Value;
+            //    if (string.IsNullOrEmpty(hls))
+            //        continue;
+
+            //    hls = $"{Regex.Replace(stream_link, "/hls\\.m3u.*", "")}/{hls}".Replace("https:", "http:");
+            //    stream_links.Add(int.Parse(m.Groups[2].Value), hls);
+            //}
+
+            //return new StreamItem()
+            //{
+            //    qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
+            //    recomends = getRelated()
+            //};
         }
+        #endregion
     }
 }

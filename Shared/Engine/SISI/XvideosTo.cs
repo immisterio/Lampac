@@ -2,54 +2,63 @@
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using Shared.Models.SISI.Xvideos;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine.SISI
 {
     public static class XvideosTo
     {
-        public static Task<string> InvokeHtml(string host, string plugin, string search, string sort, string c, int pg, Func<string, Task<string>> onresult)
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+
+        #region Uri
+        public static string Uri(string host, string plugin, string search, string sort, string c, int pg)
         {
-            string url;
+            var url = sbUri.Value;
+            url.Clear();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url = $"{host}/?k={HttpUtility.UrlEncode(search)}&p={pg}";
+                url.Append($"{host}/?k={HttpUtility.UrlEncode(search)}&p={pg}");
             }
             else
             {
                 if (!string.IsNullOrEmpty(c))
                 {
-                    url = $"{host}/c/s:{(sort == "top"  ? "rating" : "uploaddate")}/{c}/{pg}";
+                    url.Append($"{host}/c/s:{(sort == "top"  ? "rating" : "uploaddate")}/{c}/{pg}");
                 }
                 else
                 {
                     if (sort == "top")
                     {
-                        url = $"{host}/{(plugin == "xdsgay" ? "best-of-gay" : plugin == "xdssml" ? "best-of-shemale" : "best")}/{DateTime.Today.AddMonths(-1):yyyy-MM}";
+                        url.Append($"{host}/{(plugin == "xdsgay" ? "best-of-gay" : plugin == "xdssml" ? "best-of-shemale" : "best")}/{DateTime.Today.AddMonths(-1):yyyy-MM}");
                     }
                     else
                     {
-                        url = plugin == "xdsgay" ? $"{host}/gay" : plugin == "xdssml" ? $"{host}/shemale" : $"{host}/new";
+                        url.Append(plugin == "xdsgay" ? $"{host}/gay" : plugin == "xdssml" ? $"{host}/shemale" : $"{host}/new");
                     }
 
-                    url += $"/{pg}";
+                    url.Append($"/{pg}");
                 }
             }
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
-
-        public static List<PlaylistItem> Playlist(string uri, string uri_star, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null, string site = "xds")
+        #region Playlist
+        public static List<PlaylistItem> Playlist(string route, string uri_star, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null, string site = "xds")
         {
             if (html.IsEmpty)
-                return new List<PlaylistItem>();
+                return null;
 
             var rx = Rx.Split("<div id=\"video_", html, 1);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
@@ -65,16 +74,13 @@ namespace Shared.Engine.SISI
 
                 if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                 {
-                    string qmark = row.Match("<span class=\"video-hd-mark\">([^<]+)</span>");
-                    string duration = row.Match("<span class=\"duration\">([^<]+)</span>", trim: true);
-
-                    string img = row.Match("data-src=\"([^\"]+)\"");
+                    string img = row.Match("data-src=\"([^\"]+)\"") ?? string.Empty;
                     img = Regex.Replace(img, "/videos/thumbs([0-9]+)/", "/videos/thumbs$1lll/");
                     img = Regex.Replace(img, "\\.THUMBNUM\\.(jpg|png)$", ".1.$1", RegexOptions.IgnoreCase );
 
                     // https://cdn77-pic.xvideos-cdn.com/videos/thumbs169ll/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62-2/5a6d4f718214eebf73225ec96b670f62.27.jpg
                     // https://cdn77-pic.xvideos-cdn.com/videos/videopreview/5a/6d/4f/5a6d4f718214eebf73225ec96b670f62_169.mp4
-                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/");
+                    string preview = Regex.Replace(img, "/thumbs[^/]+/", "/videopreview/") ?? string.Empty;
                     preview = Regex.Replace(preview, "/[^/]+$", "");
                     preview = Regex.Replace(preview, "-[0-9]+$", "");
 
@@ -90,11 +96,11 @@ namespace Shared.Engine.SISI
                     var pl = new PlaylistItem()
                     {
                         name = g[2].Value,
-                        video = $"{uri}?uri={g[1].Value}",
+                        video = $"{route}?uri={g[1].Value}",
                         picture = img,
                         preview = preview + "_169.mp4",
-                        quality = string.IsNullOrWhiteSpace(qmark) ? null : qmark,
-                        time = duration,
+                        quality = row.Match("<span class=\"video-hd-mark\">([^<]+)</span>"),
+                        time = row.Match("<span class=\"duration\">([^<]+)</span>", trim: true),
                         json = true,
                         related = true,
                         model = model,
@@ -115,8 +121,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
-
+        #region Pornstars
         async public static Task<List<PlaylistItem>> Pornstars(string uri_video, string uri_star, string host, string plugin, string uri, string sort, int pg, Func<string, Task<string>> onresult)
         {
             if (string.IsNullOrEmpty(uri))
@@ -184,8 +191,9 @@ namespace Shared.Engine.SISI
                 return null;
             }
         }
+        #endregion
 
-
+        #region Menu
         public static List<MenuItem> Menu(string host, string plugin, string sort, string c)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -464,30 +472,34 @@ namespace Shared.Engine.SISI
 
             return menu;
         }
+        #endregion
 
-
-        async public static Task<StreamItem> StreamLinks(string uri, string uri_star, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onm3u = null)
+        #region StreamLinks
+        public static string StreamLinksUri(string uri_star, string host, string url)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
-            //string? html = await onresult.Invoke($"{host}/{Regex.Replace(url ?? "", "^([^/]+)/.*", "$1/_")}");
-            string html = await onresult.Invoke($"{host}/{url}");
-            if (html == null)
+            return $"{host}/{url}";
+        }
+
+        public static StreamItem StreamLinks(ReadOnlySpan<char> html, string route, string uri_star, Func<string, Task<string>> onm3u = null)
+        {
+            if (html.IsEmpty)
                 return null;
 
-            string stream_link = new Regex("html5player\\.setVideoHLS\\('([^']+)'\\);").Match(html).Groups[1].Value;
+            string stream_link = Rx.Match(html, "html5player\\.setVideoHLS\\('([^']+)'\\);");
             if (string.IsNullOrWhiteSpace(stream_link))
                 return null;
 
             #region getRelated
-            List<PlaylistItem> getRelated()
+            List<PlaylistItem> getRelated(ReadOnlySpan<char> html)
             {
-                var related = new List<PlaylistItem>();
-
-                string json = Regex.Match(html!, "video_related=([^\n\r]+);window").Groups[1].Value;
+                string json = Rx.Match(html, "video_related=([^\n\r]+);window");
                 if (string.IsNullOrWhiteSpace(json) || !json.StartsWith("[") || !json.EndsWith("]"))
-                    return related;
+                    return new List<PlaylistItem>();
+
+                var related = new List<PlaylistItem>(40);
 
                 try
                 {
@@ -509,7 +521,7 @@ namespace Shared.Engine.SISI
                         related.Add(new PlaylistItem()
                         {
                             name = r.tf,
-                            video = $"{uri}?uri={r.u.Remove(0, 1)}",
+                            video = $"{route}?uri={r.u.Remove(0, 1)}",
                             picture = r.@if,
                             preview = preview + "_169.mp4",
                             time = r.d,
@@ -531,37 +543,47 @@ namespace Shared.Engine.SISI
             }
             #endregion
 
-            string m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
-            if (m3u8 == null)
-            {
-                return new StreamItem()
-                {
-                    qualitys = new Dictionary<string, string>()
-                    {
-                        ["auto"] = stream_link
-                    },
-                    recomends = getRelated()
-                };
-            }
-
-            var stream_links = new Dictionary<int, string>();
-
-            foreach (string line in m3u8.Split('\n'))
-            {
-                if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("hls-"))
-                    continue;
-
-                string _q = new Regex("hls-([0-9]+)p").Match(line).Groups[1].Value;
-
-                if (int.TryParse(_q, out int q) && q > 0)
-                    stream_links.TryAdd(q, $"{Regex.Replace(stream_link, "/hls.m3u8.*", "")}/{line}");
-            }
-
             return new StreamItem()
             {
-                qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
-                recomends = getRelated()
+                qualitys = new Dictionary<string, string>()
+                {
+                    ["auto"] = stream_link
+                },
+                recomends = getRelated(html)
             };
+
+            //string m3u8 = onm3u == null ? null : await onm3u.Invoke(stream_link);
+            //if (m3u8 == null)
+            //{
+            //    return new StreamItem()
+            //    {
+            //        qualitys = new Dictionary<string, string>()
+            //        {
+            //            ["auto"] = stream_link
+            //        },
+            //        recomends = getRelated()
+            //    };
+            //}
+
+            //var stream_links = new Dictionary<int, string>();
+
+            //foreach (string line in m3u8.Split('\n'))
+            //{
+            //    if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("hls-"))
+            //        continue;
+
+            //    string _q = new Regex("hls-([0-9]+)p").Match(line).Groups[1].Value;
+
+            //    if (int.TryParse(_q, out int q) && q > 0)
+            //        stream_links.TryAdd(q, $"{Regex.Replace(stream_link, "/hls.m3u8.*", "")}/{line}");
+            //}
+
+            //return new StreamItem()
+            //{
+            //    qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
+            //    recomends = getRelated()
+            //};
         }
+        #endregion
     }
 }

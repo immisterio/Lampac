@@ -17,13 +17,18 @@ namespace SISI.Controllers.Spankbang
             rhubFallback:
             var cache = await InvokeCacheResult<StreamItem>($"spankbang:view:{uri}", 20, async e =>
             {
-                var stream_links = await SpankbangTo.StreamLinks("sbg/vidosik", init.corsHost(), uri, url =>
-                {
-                    if (rch?.enable == true || init.priorityBrowser == "http")
-                        return httpHydra.Get(url);
+                string url = SpankbangTo.StreamLinksUri(init.corsHost(), uri);
+                if (url == null)
+                    return e.Fail("uri");
 
-                    return PlaywrightBrowser.Get(init, init.cors(url), httpHeaders(init), proxy_data);
-                });
+                ReadOnlySpan<char> html;
+
+                if (rch?.enable == true || init.priorityBrowser == "http")
+                    html = await httpHydra.Get(url);
+                else
+                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
+
+                var stream_links = SpankbangTo.StreamLinks("sbg/vidosik", html);
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

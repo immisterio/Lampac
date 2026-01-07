@@ -23,9 +23,13 @@ namespace SISI.Controllers.Porntrex
                 string memKey = ipkey(e.key);
                 if (!hybridCache.TryGetValue(memKey, out (Dictionary<string, string> links, bool userch) cache))
                 {
-                    cache.links = await PorntrexTo.StreamLinks(init.corsHost(), uri, 
-                        url => httpHydra.Get(url)
-                    );
+                    string url = PorntrexTo.StreamLinksUri(init.corsHost(), uri);
+                    if (url == null)
+                        return OnError("uri");
+
+                    ReadOnlySpan<char> html = await httpHydra.Get(url);
+
+                    cache.links = PorntrexTo.StreamLinks(html);
 
                     if (cache.links == null || cache.links.Count == 0)
                     {

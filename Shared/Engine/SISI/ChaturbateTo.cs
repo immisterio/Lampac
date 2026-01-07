@@ -1,30 +1,42 @@
 ﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
-using System.Text.RegularExpressions;
+using System.Text;
+using System.Threading;
 
 namespace Shared.Engine.SISI
 {
     public static class ChaturbateTo
     {
-        public static Task<string> InvokeHtml(string host, string sort, int pg, Func<string, Task<string>> onresult)
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+
+        #region Uri
+        public static string Uri(string host, string sort, int pg)
         {
-            string url = host + "/api/ts/roomlist/room-list/?enable_recommendations=false&limit=90";
+            var url = sbUri.Value;
+            url.Clear();
+
+            url.Append(host);
+            url.Append("/api/ts/roomlist/room-list/?enable_recommendations=false&limit=90");
 
             if (!string.IsNullOrWhiteSpace(sort))
-                url += $"&genders={sort}";
+                url.Append($"&genders={sort}");
 
             if (pg > 1)
-                url += $"&offset={pg * 90}";
+                url.Append($"&offset={pg * 90}");
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
-        public static List<PlaylistItem> Playlist(string uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        #region Playlist
+        public static List<PlaylistItem> Playlist(string route, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
             if (html.IsEmpty)
-                return new List<PlaylistItem>();
+                return null;
 
             var rx = Rx.Split("display_age", html, 1);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
@@ -45,7 +57,7 @@ namespace Shared.Engine.SISI
                 {
                     name = baba.Trim(),
                     //quality = row.Contains(">HD+</div>") ? "HD+" : row.Contains(">HD</div>") ? "HD" : null,
-                    video = $"{uri}?baba={baba}",
+                    video = $"{route}?baba={baba}",
                     picture = img.Replace("\\", ""),
                     json = true
                 };
@@ -58,7 +70,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host, string sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -102,15 +116,24 @@ namespace Shared.Engine.SISI
                 }
             };
         }
+        #endregion
 
-        async public static Task<Dictionary<string, string>> StreamLinks(string host, string baba, Func<string, Task<string>> onresult)
+        #region StreamLinks
+        public static string StreamLinksUri(string host, string baba)
         {
             if (string.IsNullOrWhiteSpace(baba))
                 return null;
 
-            string html = await onresult.Invoke($"{host}/{baba}/");
-            string hls = Regex.Match(html ?? "", "(https?://[^ ]+/playlist\\.m3u8)").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(hls))
+            return $"{host}/{baba}/";
+        }
+
+        public static Dictionary<string, string> StreamLinks(ReadOnlySpan<char> html)
+        {
+            if (html.IsEmpty)
+                return null;
+
+            string hls = Rx.Match(html, "(https?://[^ ]+/playlist\\.m3u8)");
+            if (hls == null)
                 return null;
 
             return new Dictionary<string, string>()
@@ -118,5 +141,6 @@ namespace Shared.Engine.SISI
                 ["auto"] = hls.Replace("\\u002D", "-").Replace("\\", "")
             };
         }
+        #endregion
     }
 }

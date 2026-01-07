@@ -17,9 +17,15 @@ namespace SISI.Controllers.XvideosRED
             {
                 if (!hybridCache.TryGetValue(key, out StreamItem stream_links))
                 {
-                    stream_links = await XvideosTo.StreamLinks("xdsred/vidosik", "xdsred/stars", init.corsHost(), uri,
-                        url => Http.Get(url, cookie: init.cookie, timeoutSeconds: init.httptimeout, proxy: proxy, headers: httpHeaders(init))
-                    );
+                    string url = XvideosTo.StreamLinksUri("xdsred/stars", init.corsHost(), uri);
+                    if (url == null)
+                        return OnError("stream_links");
+
+                    string html = await Http.Get(url, cookie: init.cookie, timeoutSeconds: init.httptimeout, proxy: proxy, headers: httpHeaders(init));
+                    if (html == null)
+                        return OnError("stream_links");
+
+                    stream_links = XvideosTo.StreamLinks(html, "xdsred/vidosik", "xdsred/stars");
 
                     if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                         return OnError("stream_links", refresh_proxy: true);

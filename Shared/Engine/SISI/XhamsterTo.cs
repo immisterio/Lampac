@@ -1,79 +1,83 @@
-﻿using HtmlAgilityPack;
-using Shared.Engine.RxEnumerate;
+﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
-using System.Text.RegularExpressions;
+using System.Text;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine.SISI
 {
     public static class XhamsterTo
     {
-        public static Task<string> InvokeHtml(string host, string plugin, string search, string c, string q, string sort, int pg, Func<string, Task<string>> onresult)
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+
+        #region Uri
+        public static string Uri(string host, string plugin, string search, string c, string q, string sort, int pg)
         {
-            string url;
+            var url = sbUri.Value;
+            url.Clear();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url = $"{host}/search/{HttpUtility.UrlEncode(search)}?page={pg}";
+                url.Append($"{host}/search/{HttpUtility.UrlEncode(search)}?page={pg}");
             }
             else
             {
                 switch (plugin ?? "")
                 {
                     case "xmrsml":
-                        url = $"{host}/shemale";
+                        url.Append($"{host}/shemale");
                         break;
                     case "xmrgay":
-                        url = $"{host}/gay";
+                        url.Append($"{host}/gay");
                         break;
                     default:
-                        url = host;
+                        url.Append(host);
                         break;
                 }
 
                 if (!string.IsNullOrEmpty(c))
-                    url += $"/categories/{c}";
+                    url.Append($"/categories/{c}");
 
                 if (!string.IsNullOrEmpty(q))
-                    url += $"/{q}";
+                    url.Append($"/{q}");
 
                 switch (sort ?? "")
                 {
                     case "newest":
-                        url += "/newest";
+                        url.Append("/newest");
                         break;
                     case "best":
-                        url += "/best";
+                        url.Append("/best");
                         break;
                     default:
                         break;
                 }
 
                 if (pg > 0)
-                    url += $"/{pg}";
+                    url.Append($"/{pg}");
             }
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        #region Playlist
+        public static List<PlaylistItem> Playlist(string route, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
-            if (string.IsNullOrEmpty(html))
-                return new List<PlaylistItem>();
+            if (html.IsEmpty)
+                return null;
 
-            string section = html;
+            ReadOnlySpan<char> section = html.Contains("mixed-section", StringComparison.Ordinal)
+                ? HtmlSpan.Node(html, "div", "class", "mixed-section", HtmlSpanTargetType.Contains)
+                : html;
 
-            if (html.Contains("mixed-section"))
-            {
-                var doc = new HtmlDocument();
-                doc.LoadHtml(html);
-                string single = doc.DocumentNode.SelectSingleNode("//div[contains(@class, 'mixed-section')]")?.InnerHtml;
-                if (single != null)
-                    section = single;
-            }
+            if (section.IsEmpty)
+                return null;
 
             var rx = Rx.Split("(<div class=\"thumb-list__item video-thumb|thumb-list-mobile-item)", section, 1);
+            if (rx.Count == 0)
+                return null;
 
             var playlists = new List<PlaylistItem>(rx.Count);
 
@@ -92,21 +96,21 @@ namespace Shared.Engine.SISI
                     if (string.IsNullOrEmpty(duration))
                         duration = row.Match("datetime=\"([^\"]+)\"");
 
-                    string img = row.Match(" srcset=\"([^\"]+)\"");
+                    string img = row.Match(" srcset=\"([^\"]+)\"") ?? string.Empty;
                     if (!img.StartsWith("http") || img.Contains("(w:16,h:9)"))
                     {
-                        img = row.Match("thumb-image-container__image\" src=\"([^\"]+)\"");
+                        img = row.Match("thumb-image-container__image\" src=\"([^\"]+)\"") ?? string.Empty;
                         if (!img.StartsWith("http"))
                             img = row.Match("<noscript><img src=\"([^\"]+)\"", trim: true);
                     }
 
-                    if (!img.StartsWith("http"))
+                    if (img == null || !img.StartsWith("http"))
                         continue;
 
                     var pl = new PlaylistItem()
                     {
                         name = title,
-                        video = $"{uri}?uri={href}",
+                        video = $"{route}?uri={href}",
                         picture = img,
                         quality = row.Contains("-hd") ? "HD" : row.Contains("-uhd") ? "4K" : null,
                         preview = row.Match("data-previewvideo=\"([^\"]+)\""),
@@ -130,7 +134,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host, string plugin, string c, string q, string sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -387,31 +393,37 @@ namespace Shared.Engine.SISI
 
             return menu;
         }
+        #endregion
 
-        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult)
+        #region StreamLinks
+        public static string StreamLinksUri(string host, string url)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string html = await onresult.Invoke($"{host}/{url}");
-            if (html == null)
+            return $"{host}/{url}";
+        }
+
+        public static StreamItem StreamLinks(string host, string route, ReadOnlySpan<char> html)
+        {
+            if (html.IsEmpty)
                 return null;
 
-            string stream_link = Regex.Match(html, "rel=\"preload\" href=\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-            if (!stream_link.Contains(".m3u"))
+            string stream_link = Rx.Match(html, "rel=\"preload\" href=\"([^\"]+)\"");
+            if (stream_link == null || !stream_link.Contains(".m3u"))
                 return null;
-
-            if (stream_link.StartsWith("/"))
-                stream_link = host + stream_link;
 
             return new StreamItem()
             {
                 qualitys = new Dictionary<string, string>()
                 {
-                    ["auto"] = stream_link
+                    ["auto"] = stream_link.StartsWith("/")
+                        ? host + stream_link.Replace("\\", "")
+                        : stream_link.Replace("\\", "")
                 },
-                recomends = Playlist(uri, html)
+                recomends = Playlist(route, html)
             };
         }
+        #endregion
     }
 }

@@ -1,67 +1,80 @@
-﻿using Shared.Models.SISI.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine.SISI
 {
     public static class SpankbangTo
     {
-        public static Task<string> InvokeHtml(string host, string search, string sort, int pg, Func<string, Task<string>> onresult)
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+
+        #region Uri
+        public static string Uri(string host, string search, string sort, int pg)
         {
-            string url = $"{host}/";
+            var url = sbUri.Value;
+            url.Clear();
+
+            url.Append(host);
+            url.Append("/");
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url += $"s/{HttpUtility.UrlEncode(search)}/{pg}/";
+                url.Append($"s/{HttpUtility.UrlEncode(search)}/{pg}/");
             }
             else
             {
-                url += $"{sort ?? "new_videos"}/{pg}/";
+                url.Append($"{sort ?? "new_videos"}/{pg}/");
 
                 if (sort == "most_popular")
-                    url += "?p=m";
+                    url.Append("?p=m");
             }
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
-        public static List<PlaylistItem> Playlist(string uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
+        #region Playlist
+        public static List<PlaylistItem> Playlist(string route, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null)
         {
-            if (string.IsNullOrEmpty(html))
-                return new List<PlaylistItem>();
+            if (html.IsEmpty)
+                return null;
 
-            if (html.Contains("class=\"main-container\""))
-                html = html.Split("class=\"main-container\"")[1];
+            ReadOnlySpan<char> container = html.Contains("class=\"main-container\"", StringComparison.Ordinal)
+                ? Rx.Split("class=\"main-container\"", html)[1].Span
+                : html;
 
-            var nodes = HtmlParse.Nodes(html, "//div[@data-testid='video-item']");
-            var playlists = new List<PlaylistItem>(nodes.Count);
+            var playlists = new List<PlaylistItem>(80);
 
-            foreach (var node in nodes)
+            foreach (ReadOnlySpan<char> row in HtmlSpan.Nodes(container, "div", "data-testid", "video-item", HtmlSpanTargetType.Exact))
             {
-                var g = Regex.Match(node.row.InnerHtml, "<a href=\"/(?<link>[^\"]+)\" title=\"(?<title>[^\"]+)\"").Groups;
+                var g = Rx.Groups(row, "<a href=\"/(?<link>[^\"]+)\" title=\"(?<title>[^\"]+)\"");
                 if (!string.IsNullOrWhiteSpace(g["link"].Value) && !string.IsNullOrWhiteSpace(g["title"].Value))
                 {
-                    #region image
-                    string img = node.Regex("([\n\r\t ]+)src=\"([^\"]+)\"", 2);
+                    string img = Rx.Match(row, "([\n\r\t ]+)src=\"([^\"]+)\"", 2) ?? string.Empty;
                     if (!img.Contains("/w:"))
-                        img = node.Regex("data-src=\"([^\"]+)\"");
+                        img = Rx.Match(row, "data-src=\"([^\"]+)\"");
+
+                    if (img == null)
+                        continue;
 
                     img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/");
-                    #endregion
 
-                    string preview = node.Regex("data-preview=\"([^\"]+)\"");
-                    if (string.IsNullOrEmpty(preview))
-                        preview = node.Regex("<source data-src=\"([^\"]+)\"");
+                    string preview = Rx.Match(row, "data-preview=\"([^\"]+)\"");
+                    if (preview == null)
+                        preview = Rx.Match(row, "<source data-src=\"([^\"]+)\"");
 
                     var pl = new PlaylistItem()
                     {
                         name = g["title"].Value,
-                        video = $"{uri}?uri={g["link"].Value}",
-                        quality = node.SelectText(".//*[@data-testid='video-item-resolution']"),
+                        video = $"{route}?uri={g["link"].Value}",
+                        quality = Rx.Match(row, "\"video-item-resolution\">([^<]+)</span>"),
                         picture = img,
                         preview = preview,
-                        time = node.SelectText(".//*[@data-testid='video-item-length']"),
+                        time = Rx.Match(row, "\"video-item-length\">([^<]+)</span>"),
                         json = true,
                         related = true,
                         bookmark = new Bookmark()
@@ -81,7 +94,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host, string sort)
         {
             host = string.IsNullOrWhiteSpace(host) ? string.Empty : $"{host}/";
@@ -119,31 +134,49 @@ namespace Shared.Engine.SISI
                 }
             };
         }
+        #endregion
 
-        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult)
+        #region StreamLinks
+        public static string StreamLinksUri(string host, string url)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string html = await onresult.Invoke($"{host}/{url}");
-            if (string.IsNullOrEmpty(html))
+            return $"{host}/{url}";
+        }
+
+        public static StreamItem StreamLinks(string route, ReadOnlySpan<char> html)
+        {
+            if (html.IsEmpty)
                 return null;
 
-            var stream_links = new Dictionary<int, string>();
+            const string rexvideo = "'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'";
 
-            var match = Regex.Match(html, "'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'");
-            while (match.Success)
+            var rx = Rx.Matches(rexvideo, html);
+            if (rx.Count == 0)
+                return null;
+
+            var stream_links = new Dictionary<int, string>(rx.Count);
+
+            foreach (var row in rx.Rows())
             {
-                int q = $"{match.Groups[1].Value}{match.Groups[2].Value}" == "4k" ? 2160 : int.Parse(match.Groups[1].Value);
-                stream_links.TryAdd(q, match.Groups[3].Value);
-                match = match.NextMatch();
+                var g = row.Groups(rexvideo);
+                if (string.IsNullOrEmpty(g[1].Value))
+                    continue;
+
+                int q = $"{g[1].Value}{g[2].Value}" == "4k" ? 2160  : - 1;
+                if (q == -1)
+                    int.TryParse(g[1].Value, out q);
+
+                stream_links.TryAdd(q, g[3].Value);
             }
 
             return new StreamItem()
             {
                 qualitys = stream_links.OrderByDescending(i => i.Key).ToDictionary(k => $"{k.Key}p", v => v.Value),
-                recomends = Playlist(uri, html)
+                recomends = Playlist(route, html)
             };
         }
+        #endregion
     }
 }
