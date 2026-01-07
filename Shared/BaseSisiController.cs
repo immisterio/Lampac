@@ -527,5 +527,10 @@ namespace Shared
         public string ipkey(string key)
             => ipkey(key, proxyManager, rch);
         #endregion
+
+        #region headerKeys
+        public string headerKeys(string key, params string[] headersKey)
+            => headerKeys(key, proxyManager, rch, headersKey);
+        #endregion
     }
 }

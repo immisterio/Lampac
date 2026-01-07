@@ -50,7 +50,7 @@ namespace SISI.Controllers.Tizam
             if (pagination.Count == 0)
                 return new List<PlaylistItem>();
 
-            var rx = Rx.Split("video-item", pagination.First().Span, 1);
+            var rx = Rx.Split("video-item", pagination[0].Span, 1);
 
             var playlists = new List<PlaylistItem>(rx.Count);
 

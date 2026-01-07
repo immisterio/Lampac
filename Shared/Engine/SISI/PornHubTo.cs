@@ -1,113 +1,156 @@
-﻿using HtmlAgilityPack;
-using Shared.Engine.RxEnumerate;
+﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 
 namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        public static Task<string> InvokeHtml(string host, string plugin, string search, string model, string sort, int c, string hd, int pg, Func<string, Task<string>> onresult)
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+
+        #region Uri
+        public static string Uri(string host, string plugin, string search, string model, string sort, int c, string hd, int pg)
         {
-            string url = $"{host}/";
+            var url = sbUri.Value;
+            url.Clear();
+
+            char splitkey = '?';
+
+            url.Append(host);
+            url.Append("/");
 
             if (!string.IsNullOrEmpty(search))
             {
-                url += $"video/search?search={HttpUtility.UrlEncode(search)}";
+                url.Append($"video/search?search={HttpUtility.UrlEncode(search)}");
 
                 if (!string.IsNullOrEmpty(sort))
-                    url += $"&o={sort}";
+                    url.Append($"&o={sort}");
             }
             else if (!string.IsNullOrEmpty(model))
             {
                 if (model.StartsWith("pornstar/"))
-                    url += $"{model}/videos/upload";
+                    url.Append($"{model}/videos/upload");
                 else
-                    url += $"model/{model}/videos";
+                    url.Append($"model/{model}/videos");
             }
             else
             {
                 switch (plugin ?? "")
                 {
                     case "phubgay":
-                        url += "gay/video";
+                        url.Append("gay/video");
                         break;
                     case "phubsml":
-                        url += "transgender";
+                        url.Append("transgender");
                         break;
                     default:
-                        url += "video";
+                        url.Append("video");
                         break;
                 }
 
                 if (!string.IsNullOrEmpty(sort))
-                    url += $"?o={sort}";
+                {
+                    url.Append($"{splitkey}o={sort}");
+                    splitkey = '&';
+                }
 
                 if (!string.IsNullOrEmpty(hd))
-                    url += (url.Contains("?") ? "&" : "?") + $"hd={hd}";
+                {
+                    url.Append($"{splitkey}hd={hd}");
+                    splitkey = '&';
+                }
 
                 if (c > 0)
-                    url += (url.Contains("?") ? "&" : "?") + $"c={c}";
+                {
+                    url.Append($"{splitkey}c={c}");
+                    splitkey = '&';
+                }
             }
 
             if (pg > 1)
-                url += $"{(url.Contains("?") ? "&" : "?")}page={pg}";
+                url.Append($"{splitkey}page={pg}");
 
-            return onresult.Invoke(url);
+            return url.ToString();
         }
+        #endregion
 
-        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, string html, Func<PlaylistItem, PlaylistItem> onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
+        #region Playlist
+        public static List<PlaylistItem> Playlist(string video_uri, string list_uri, ReadOnlySpan<char> html, Func<PlaylistItem, PlaylistItem> onplaylist = null, bool related = false, bool prem = false, bool IsModel_page = false)
         {
-            if (string.IsNullOrEmpty(html))
-                return new List<PlaylistItem>();
+            if (html.IsEmpty)
+                return null;
 
-            string videoCategory = null;
-
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
-            var node = doc.DocumentNode;
+            var videoCategory = ReadOnlySpan<char>.Empty;
 
             if (related)
             {
-                videoCategory = node.SelectSingleNode("//*[@id='relatedVideosListing' or @id='relatedVideos']")?.InnerHtml;
+                videoCategory = HtmlSpan.Node(html, "*", "id", "relatedVideosListing", HtmlSpanTargetType.Exact);
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "relatedVideos", HtmlSpanTargetType.Exact);
             }
-            else if (html.Contains("id=\"videoCategory\""))
+            else if (html.Contains("id=\"videoCategory\"", StringComparison.Ordinal))
             {
-                videoCategory = node.SelectSingleNode("//*[@id='videoCategory']")?.InnerHtml;
+                videoCategory = HtmlSpan.Node(html, "*", "id", "videoCategory", HtmlSpanTargetType.Exact);
             }
-            else if (html.Contains("videoList clearfix browseVideo-tabSplit"))
+            else if (html.Contains("videoList clearfix browseVideo-tabSplit", StringComparison.Ordinal))
             {
-                var ids = html.Split("videoList clearfix browseVideo-tabSplit");
-                if (ids.Length > 1)
-                    videoCategory = ids[1].Split("<h2>Languages</h2>")[0].Split("pageHeader")[0];
+                var ids = Rx.Split("videoList clearfix browseVideo-tabSplit", html);
+                if (ids.Count > 1)
+                {
+                    videoCategory = ids[1].Span;
+
+                    if (videoCategory.Contains("<h2>Languages</h2>", StringComparison.Ordinal))
+                        videoCategory = Rx.Split("<h2>Languages</h2>", videoCategory)[0].Span;
+
+                    if (videoCategory.Contains("pageHeader", StringComparison.Ordinal))
+                        videoCategory = Rx.Split("pageHeader", videoCategory)[0].Span;
+                }
             }
             else
             {
-                videoCategory = node.SelectSingleNode("//*[@id='videoSearchResult' or @id='mostRecentVideosSection' or @id='moreData' or @id='content-tv-container' or @id='lazyVids']")?.InnerHtml;
+                videoCategory = HtmlSpan.Node(html, "*", "id", "videoSearchResult", HtmlSpanTargetType.Exact);
+
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "mostRecentVideosSection", HtmlSpanTargetType.Exact);
+
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "moreData", HtmlSpanTargetType.Exact);
+
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "content-tv-container", HtmlSpanTargetType.Exact);
+
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "lazyVids", HtmlSpanTargetType.Exact);
             }
 
-            if (videoCategory == null)
-                return new List<PlaylistItem>();
+            if (videoCategory.IsEmpty)
+                return null;
 
             ModelItem model = null;
+
             if (IsModel_page) 
             {
-                string name = Regex.Match(html, "itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>").Groups[2].Value.Trim();
-                string href = Regex.Match(html, "rel=\"canonical\" href=\"(https?://[^/]+)?/model/([^/]+)/").Groups[2].Value;
+                string name = Rx.Match(html, "itemprop=\"name\">([\r\n\t ]+)?([^<]+)</h1>", 2);
+                string href = Rx.Match(html, "rel=\"canonical\" href=\"(https?://[^/]+)?/model/([^/]+)/", 2);
 
                 if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(href))
                 {
                     model = new ModelItem()
                     {
-                        name = name,
+                        name = name.Trim(),
                         uri = list_uri + (list_uri.Contains("?") ? "&" : "?") + $"model={href}",
                     };
                 }
             }
 
-            string splitkey = videoCategory.Contains("pcVideoListItem ") ? "pcVideoListItem " : videoCategory.Contains("data-video-segment") ? "data-video-segment" : videoCategory.Contains("<li data-id=") ? "<li data-id=" : "<li id=";
+            string splitkey = videoCategory.Contains("pcVideoListItem ", StringComparison.Ordinal) 
+                ? "pcVideoListItem " : videoCategory.Contains("data-video-segment", StringComparison.Ordinal) 
+                ? "data-video-segment" : videoCategory.Contains("<li data-id=", StringComparison.Ordinal) 
+                ? "<li data-id=" : "<li id=";
 
             var rx = Rx.Split(splitkey, videoCategory, 1);
 
@@ -173,7 +216,9 @@ namespace Shared.Engine.SISI
 
             return playlists;
         }
+        #endregion
 
+        #region Menu
         public static List<MenuItem> Menu(string host, string plugin, string search, string sort, int c, string hd = null)
         {
             #region getSortName
@@ -976,21 +1021,28 @@ namespace Shared.Engine.SISI
 
             return menu;
         }
+        #endregion
 
-        async public static Task<StreamItem> StreamLinks(string video_uri, string list_uri, string host, string vkey, Func<string, Task<string>> onresult)
+        #region StreamLinks
+        public static string StreamLinksUri(string host, string vkey)
         {
             if (string.IsNullOrEmpty(vkey))
                 return null;
 
-            string html = await onresult.Invoke($"{host}/view_video.php?viewkey={vkey}");
-            if (html == null)
+            return $"{host}/view_video.php?viewkey={vkey}";
+        }
+
+        public static StreamItem StreamLinks(ReadOnlySpan<char> html, string video_uri, string list_uri)
+        {
+            if (html.IsEmpty)
                 return null;
 
             var qualitys = new Dictionary<string, string>();
 
             foreach (string q in new string[] { "1080", "720", "480", "240" })
             {
-                string video = Regex.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"").Groups[1].Value;
+                string video = Rx.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"");
+
                 if (!string.IsNullOrEmpty(video))
                     qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
             }
@@ -1004,21 +1056,27 @@ namespace Shared.Engine.SISI
                 recomends = Playlist(video_uri, list_uri, html, related: true)
             };
         }
+        #endregion
 
-
-        public static int Pages(string html)
+        #region Pages
+        public static int Pages(ReadOnlySpan<char> html)
         { 
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return 0;
 
-            if (!html.Contains("class=\"page_number\""))
+            if (!html.Contains("class=\"page_number\"", StringComparison.Ordinal))
+                return 1;
+
+            var rx = Rx.Matches("class=\"page_number\"><a [^>]+>([0-9]+)<", html);
+            if (rx.Count == 0)
                 return 1;
 
             int maxpage = 0;
-            foreach (Match match in new Regex("class=\"page_number\"><a [^>]+>([0-9]+)<").Matches(html))
+            foreach (var row in rx.Rows())
             {
-                if (int.TryParse(match.Groups[1].Value, out int page) && page > maxpage)
-                    maxpage = page;
+                string page = row.Match("class=\"page_number\"><a [^>]+>([0-9]+)<");
+                if (page != null && int.TryParse(page, out int pg) && pg > maxpage)
+                    maxpage = pg;
             }
 
             // модель 6, навигация 5
@@ -1027,7 +1085,7 @@ namespace Shared.Engine.SISI
 
             return 0;
         }
-
+        #endregion
 
         #region getDirectLinks
         static string getDirectLinks(string pageCode)

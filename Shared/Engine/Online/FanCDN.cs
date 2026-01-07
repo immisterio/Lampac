@@ -51,7 +51,7 @@ namespace Shared.Engine.Online
                     if (item_search.Count == 0)
                         continue;
 
-                    string info = item_search.Rows().GetEnumerator().Current.ToString();
+                    string info = item_search[0].ToString();
                     if (!string.IsNullOrEmpty(info) && (info.Contains($"({year - 1}") || info.Contains($"({year}") || info.Contains($"({year + 1}")))
                     {
                         string _info = StringConvert.SearchName(info);

@@ -8,6 +8,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
+		<PackageReference Include="HtmlKit" Version="1.2.0" />
 		<PackageReference Include="LiteDB" Version="5.0.21" />
 		<PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
 		<PackageReference Include="BencodeNET" Version="5.0.0" />

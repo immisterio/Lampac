@@ -4,11 +4,13 @@
     {
         private readonly ReadOnlySpan<char> _html;
         private readonly List<Range> _ranges;
+
         public RowEnumerable(ReadOnlySpan<char> html, List<Range> ranges)
         {
             _html = html;
             _ranges = ranges;
         }
+
         public RowEnumerator GetEnumerator() => new RowEnumerator(_html, _ranges);
     }
 

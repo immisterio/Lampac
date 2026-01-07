@@ -27,6 +27,15 @@ namespace Shared.Engine.RxEnumerate
 
         public RowEnumerable Rows() => new RowEnumerable(_html, _ranges);
 
-        public RxRow First() => new RowEnumerable(_html, _ranges).GetEnumerator().Current;
+        public RxRow this[int index]
+        {
+            get
+            {
+                if ((uint)index >= (uint)_ranges.Count)
+                    throw new ArgumentOutOfRangeException(nameof(index));
+
+                return new RxRow(_html, _ranges[index]);
+            }
+        }
     }
 }

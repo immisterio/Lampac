@@ -22,7 +22,7 @@ namespace Shared.Engine.RxEnumerate
             if (m.Count == 0)
                 return null;
 
-            return m.Rows().GetEnumerator().Current.Match(pattern, index, false, options);
+            return m[0].Match(pattern, index, false, options);
         }
     }
 }

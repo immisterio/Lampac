@@ -16,7 +16,9 @@ namespace SISI.Controllers.PornHubPremium
             string memKey = $"phubprem:list:{search}:{model}:{sort}:{hd}:{pg}";
             if (!hybridCache.TryGetValue(memKey, out (int total_pages, List<PlaylistItem> playlists) cache))
             {
-                string html = await PornHubTo.InvokeHtml(init.corsHost(), "phubprem", search, model, sort, c, hd, pg, url => Http.Get(init.cors(url), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie))));
+                string uri = PornHubTo.Uri(init.corsHost(), "phubprem", search, model, sort, c, hd, pg);
+
+                string html = await Http.Get(init.cors(uri), timeoutSeconds: 14, proxy: proxy, httpversion: 2, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie)));
                 if (html == null)
                     return OnError("html", refresh_proxy: string.IsNullOrEmpty(search));
 

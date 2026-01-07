@@ -30,8 +30,10 @@ namespace SISI.Controllers.Eporner
                 // fallback cache
                 if (!hybridCache.TryGetValue(semaphoreKey, out playlists))
                 {
+                    string memKey = headerKeys(semaphoreKey, "accept");
+
                     // user cache разделенный по ip
-                    if (rch == null || !hybridCache.TryGetValue(ipkey(semaphoreKey, rch), out playlists))
+                    if (rch == null || !hybridCache.TryGetValue(memKey, out playlists))
                     {
                         string html = await EpornerTo.InvokeHtml(init.corsHost(), search, sort, c, pg, 
                             url => httpHydra.Get(url)
@@ -49,7 +51,7 @@ namespace SISI.Controllers.Eporner
 
                         proxyManager?.Success();
 
-                        hybridCache.Set(ipkey(semaphoreKey, rch), playlists, cacheTime(10));
+                        hybridCache.Set(memKey, playlists, cacheTime(10));
                     }
                 }
             }

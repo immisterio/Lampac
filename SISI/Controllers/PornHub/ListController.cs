@@ -32,17 +32,19 @@ namespace SISI.Controllers.PornHub
                 // fallback cache
                 if (!hybridCache.TryGetValue(semaphoreKey, out cache))
                 {
+                    string memKey = headerKeys(semaphoreKey, "accept");
+
                     // user cache разделенный по ip
-                    if (rch == null || !hybridCache.TryGetValue(ipkey(semaphoreKey, rch), out cache))
+                    if (rch == null || !hybridCache.TryGetValue(memKey, out cache))
                     {
-                        string html = await PornHubTo.InvokeHtml(init.corsHost(), plugin, search, model, sort, c, null, pg, 
-                            url => httpHydra.Get(url)
-                        );
+                        string uri = PornHubTo.Uri(init.corsHost(), plugin, search, model, sort, c, null, pg);
+
+                        string html = await httpHydra.Get(uri);
 
                         cache.total_pages = PornHubTo.Pages(html);
                         cache.playlists = PornHubTo.Playlist("phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
 
-                        if (cache.playlists.Count == 0)
+                        if (cache.playlists == null || cache.playlists.Count == 0)
                         {
                             if (IsRhubFallback())
                                 goto reset;
@@ -52,7 +54,7 @@ namespace SISI.Controllers.PornHub
 
                         proxyManager?.Success();
 
-                        hybridCache.Set(ipkey(semaphoreKey, rch), cache, cacheTime(10));
+                        hybridCache.Set(memKey, cache, cacheTime(10));
                     }
                 }
             }

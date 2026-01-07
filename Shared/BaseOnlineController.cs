@@ -403,7 +403,7 @@ namespace Shared
                 buffer.Advance(bytesUsed);
 
                 // Cбрасываем буфер в Response
-                if (buffer.WrittenCount > 40_0000)
+                if (buffer.WrittenCount > 30_0000)
                 {
                     await response.BodyWriter.WriteAsync(buffer.WrittenMemory, ct);
                     buffer.Clear();

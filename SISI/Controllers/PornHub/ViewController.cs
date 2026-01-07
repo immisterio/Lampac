@@ -16,9 +16,13 @@ namespace SISI.Controllers.PornHub
             rhubFallback:
             var cache = await InvokeCacheResult<StreamItem>($"phub:vidosik:{vkey}", 20, async e =>
             {
-                var stream_links = await PornHubTo.StreamLinks("phub/vidosik", "phub", init.corsHost(), vkey,
-                    url => httpHydra.Get(url)
-                );
+                string url = PornHubTo.StreamLinksUri(init.corsHost(), vkey);
+                if (url == null)
+                    return e.Fail("vkey");
+
+                string html = await httpHydra.Get(url);
+
+                var stream_links = PornHubTo.StreamLinks(html, "phub/vidosik", "phub");
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

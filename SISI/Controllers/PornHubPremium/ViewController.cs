@@ -16,9 +16,13 @@ namespace SISI.Controllers.PornHubPremium
             string memKey = $"phubprem:vidosik:{vkey}";
             if (!hybridCache.TryGetValue(memKey, out StreamItem stream_links))
             {
-                stream_links = await PornHubTo.StreamLinks("phubprem/vidosik", "phubprem", init.corsHost(), vkey, 
-                    url => Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie)))
-                );
+                string url = PornHubTo.StreamLinksUri(init.corsHost(), vkey);
+                if (url == null)
+                    return OnError("vkey", refresh_proxy: false);
+
+                string html = await Http.Get(init.cors(url), httpversion: 2, timeoutSeconds: 8, proxy: proxy, headers: httpHeaders(init, HeadersModel.Init("cookie", init.cookie)));
+
+                stream_links = PornHubTo.StreamLinks(html, "phubprem/vidosik", "phubprem");
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return OnError("stream_links", refresh_proxy: true);

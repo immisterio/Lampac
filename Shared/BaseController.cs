@@ -10,6 +10,7 @@ using Shared.Models.AppConf;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.SISI.OnResult;
+using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
@@ -958,6 +959,35 @@ namespace Shared
         }
 
         public string ipkey(string key, RchClient rch) => rch?.enable == true ? $"{key}:{requestInfo.IP}" : key;
+        #endregion
+
+        #region headerKeys
+        static readonly ThreadLocal<StringBuilder> sbHeaderKeys = new(() => new StringBuilder(1000));
+
+        public string headerKeys(string key, ProxyManager proxy, RchClient rch, params string[] headersKey)
+        {
+            if (rch?.enable != true)
+                return $"{key}:{proxy?.CurrentProxyIp}";
+
+            var value = sbHeaderKeys.Value;
+            value.Clear();
+
+            const char splitKey = ':';
+
+            value.Append(key);
+            value.Append(splitKey);
+
+            foreach (string hk in headersKey)
+            {
+                if (HttpContext.Request.Headers.TryGetValue(hk, out var headerValue))
+                {
+                    value.Append(headerValue);
+                    value.Append(splitKey);
+                }
+            }
+
+            return value.ToString();
+        }
         #endregion
     }
 }
