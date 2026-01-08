@@ -18,9 +18,12 @@ namespace SISI.Controllers.Porntrex
             {
                 string url = PorntrexTo.Uri(init.corsHost(), search, sort, c, pg);
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                List<PlaylistItem> playlists = null;
 
-                var playlists = PorntrexTo.Playlist("ptx/vidosik", html);
+                await httpHydra.GetSpan(url, span => 
+                {
+                    playlists = PorntrexTo.Playlist("ptx/vidosik", span);
+                });
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));

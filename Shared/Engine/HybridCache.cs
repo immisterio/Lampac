@@ -202,9 +202,7 @@ namespace Shared.Engine
 
             try
             {
-                string md5key = CrypTo.md5(key);
-
-                if (tempDb.TryGetValue(md5key, out var _temp))
+                if (tempDb.TryGetValue(key, out var _temp))
                 {
                     value = (TItem)_temp.value;
                     updateRequestHistory(key, _temp.ex, value);
@@ -223,7 +221,7 @@ namespace Shared.Engine
                                 cmd.CommandText = "SELECT ex, value, capacity FROM files WHERE Id = $id";
                                 var p = cmd.CreateParameter();
                                 p.ParameterName = "$id";
-                                p.Value = md5key;
+                                p.Value = key;
                                 cmd.Parameters.Add(p);
 
                                 using (var r = cmd.ExecuteReader())
@@ -319,10 +317,8 @@ namespace Shared.Engine
             if (AppInit.conf.cache.type == "mem")
                 return false;
 
-            string md5key = CrypTo.md5(key);
-
             // кеш уже получен от другого rch клиента
-            if (tempDb.ContainsKey(md5key))
+            if (tempDb.ContainsKey(key))
                 return true;
 
             var type = typeof(TItem);
@@ -347,7 +343,7 @@ namespace Shared.Engine
                 /// дополнительный кеш для сериалов, что бы выборка сезонов/озвучки не дергала sql 
                 var extend = DateTime.Now.AddSeconds(Math.Max(15, AppInit.conf.cache.extend));
 
-                tempDb.TryAdd(md5key, (extend, IsSerialize, absoluteExpiration.DateTime, value));
+                tempDb.TryAdd(key, (extend, IsSerialize, absoluteExpiration.DateTime, value));
 
                 return true;
             }
@@ -376,7 +372,7 @@ namespace Shared.Engine
                 memoryCache.Set(key, value, timecache);
 
                 requestHistory.TryRemove(key, out _);
-                tempDb.TryRemove(CrypTo.md5(key), out _);
+                tempDb.TryRemove(key, out _);
             }
         }
         #endregion

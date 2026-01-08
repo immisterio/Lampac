@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Events;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -80,9 +81,9 @@ namespace Shared.Engine
 
         public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
 
-        public static readonly ConcurrentDictionary<string, (string ip, string host, RchClientInfo info, NwsConnection connection)> clients = new ConcurrentDictionary<string, (string, string, RchClientInfo, NwsConnection)>();
+        public static readonly ConcurrentDictionary<string, (string ip, string host, RchClientInfo info, NwsConnection connection)> clients = new();
 
-        public static readonly ConcurrentDictionary<string, TaskCompletionSource<string>> rchIds = new ConcurrentDictionary<string, TaskCompletionSource<string>>();
+        public static readonly ConcurrentDictionary<string, (IMemoryOwner<char> owner, TaskCompletionSource<(int len, string value)> tcs)> rchIds = new();
 
 
         public static void Registry(string ip, string connectionId, string host = null, string json = null, NwsConnection connection = null)
@@ -263,6 +264,13 @@ namespace Shared.Engine
         }
         #endregion
 
+        #region GetSpan
+        public Task GetSpan(Action<ReadOnlySpan<char>> spanAction, string url, List<HeadersModel> headers = null, bool useDefaultHeaders = true)
+        {
+            return SendHub(url, null, headers, useDefaultHeaders, spanAction: spanAction);
+        }
+        #endregion
+
         #region Post
         public Task<string> Post(string url, string data, List<HeadersModel> headers = null, bool useDefaultHeaders = true) 
         {
@@ -290,7 +298,7 @@ namespace Shared.Engine
         #endregion
 
         #region SendHub
-        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false, bool waiting = true)
+        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false, bool waiting = true, Action<ReadOnlySpan<char>> spanAction = null)
         {
             if (hub == null)
                 return null;
@@ -304,10 +312,11 @@ namespace Shared.Engine
                 return null;
 
             string rchId = Guid.NewGuid().ToString();
+            IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(3_000_000); // 3MB
 
             try
             {
-                var tcs = rchIds.GetOrAdd(rchId, _ => new TaskCompletionSource<string>());
+                var rchHub = rchIds.GetOrAdd(rchId, _ => (owner, new TaskCompletionSource<(int, string)>()));
 
                 #region send_headers
                 Dictionary<string, string> send_headers = null;
@@ -367,13 +376,23 @@ namespace Shared.Engine
                 if (!waiting)
                     return null;
 
-                string result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
-                rchIds.TryRemove(rchId, out _);
+                var (len, stringValue) = await rchHub.tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
 
-                if (string.IsNullOrWhiteSpace(result))
+                if (stringValue != null)
+                    return stringValue;
+
+                if (len == 0 || owner.Memory.IsEmpty)
                     return null;
 
-                return result;
+                ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, len);
+
+                if (spanAction != null)
+                {
+                    spanAction.Invoke(result);
+                    return null;
+                }
+
+                return result.ToString();
             }
             catch
             {
@@ -381,6 +400,7 @@ namespace Shared.Engine
             }
             finally 
             {
+                owner.Dispose();
                 rchIds.TryRemove(rchId, out _);
             }
         }

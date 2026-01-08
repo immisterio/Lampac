@@ -35,10 +35,10 @@ namespace Lampac.Engine.Middlewares
 
         static ProxyImg()
         {
+            Directory.CreateDirectory("cache/img");
+
             if (AppInit.conf.multiaccess == false)
                 return;
-
-            Directory.CreateDirectory("cache/img");
 
             foreach (var item in Directory.EnumerateFiles("cache/img", "*"))
                 cacheFiles.TryAdd(Path.GetFileName(item), (int)new FileInfo(item).Length);

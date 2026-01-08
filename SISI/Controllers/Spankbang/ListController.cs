@@ -19,14 +19,21 @@ namespace SISI.Controllers.Spankbang
             {
                 string url = SpankbangTo.Uri(init.corsHost(), search, sort, pg);
 
-                ReadOnlySpan<char> html;
+                List<PlaylistItem> playlists = null;
 
                 if (rch?.enable == true || init.priorityBrowser == "http")
-                    html = await httpHydra.Get(url);
+                {
+                    await httpHydra.GetSpan(url, span =>
+                    {
+                        playlists = SpankbangTo.Playlist("sbg/vidosik", span);
+                    });
+                }
                 else
-                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
+                {
+                    string html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
 
-                var playlists = SpankbangTo.Playlist("sbg/vidosik", html);
+                    playlists = SpankbangTo.Playlist("sbg/vidosik", html);
+                }
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));

@@ -23,9 +23,12 @@ namespace SISI.Controllers.Xvideos
             {
                 string url = XvideosTo.Uri(init.corsHost(), plugin, search, sort, c, pg);
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                List<PlaylistItem> playlists = null;
 
-                var playlists = XvideosTo.Playlist("xds/vidosik", $"{plugin}/stars", html);
+                await httpHydra.GetSpan(url, span => 
+                {
+                    playlists = XvideosTo.Playlist("xds/vidosik", $"{plugin}/stars", span);
+                });
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));

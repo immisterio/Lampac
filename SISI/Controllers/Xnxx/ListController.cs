@@ -18,9 +18,12 @@ namespace SISI.Controllers.Xnxx
             {
                 string url = XnxxTo.Uri(init.corsHost(), search, pg);
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
-
-                var playlists = XnxxTo.Playlist("xnx/vidosik", html);
+                List<PlaylistItem> playlists = null;
+                
+                await httpHydra.GetSpan(url, span => 
+                {
+                    playlists = XnxxTo.Playlist("xnx/vidosik", span);
+                });
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));

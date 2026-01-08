@@ -20,15 +20,19 @@ namespace SISI.Controllers.Ebalovo
 
                 string url = EbalovoTo.Uri(ehost, search, sort, c, pg);
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url, addheaders: HeadersModel.Init(
+                List<PlaylistItem> playlists = null;
+
+                await httpHydra.GetSpan(url, span => 
+                {
+                    playlists = EbalovoTo.Playlist("elo/vidosik", span);
+                }, 
+                addheaders: HeadersModel.Init(
                     ("sec-fetch-dest", "document"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "same-origin"),
                     ("sec-fetch-user", "?1"),
                     ("upgrade-insecure-requests", "1")
                 ));
-
-                var playlists = EbalovoTo.Playlist("elo/vidosik", html);
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));

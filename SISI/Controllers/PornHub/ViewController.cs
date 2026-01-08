@@ -20,9 +20,12 @@ namespace SISI.Controllers.PornHub
                 if (url == null)
                     return e.Fail("vkey");
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                StreamItem stream_links = null;
 
-                var stream_links = PornHubTo.StreamLinks(html, "phub/vidosik", "phub");
+                await httpHydra.GetSpan(url, span =>
+                {
+                    stream_links = PornHubTo.StreamLinks(span, "phub/vidosik", "phub");
+                });
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

@@ -22,15 +22,22 @@ namespace SISI.Controllers.Runetki
             {
                 string url = RunetkiTo.Uri(init.corsHost(), sort, pg);
 
-                ReadOnlySpan<char> html;
+                int total_pages = 1;
+                List<PlaylistItem> playlists = null;
 
                 if (rch?.enable == true || init.priorityBrowser == "http")
-                    html = await httpHydra.Get(url);
-
+                {
+                    await httpHydra.GetSpan(url, span =>
+                    {
+                        playlists = RunetkiTo.Playlist(span, out total_pages);
+                    });
+                }
                 else
-                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
+                {
+                    string html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
 
-                var playlists = RunetkiTo.Playlist(html, out int total_pages);
+                    playlists = RunetkiTo.Playlist(html, out total_pages);
+                }
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: true);

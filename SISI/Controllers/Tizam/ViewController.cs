@@ -16,11 +16,12 @@ namespace SISI.Controllers.Tizam
             rhubFallback:
             var cache = await InvokeCacheResult<StreamItem>($"tizam:view:{uri}", 180, async e =>
             {
-                ReadOnlySpan<char> html = await httpHydra.Get($"{init.corsHost()}/{uri}");
-                if (html.IsEmpty)
-                    return e.Fail("html");
+                string location = null;
 
-                string location = Rx.Match(html, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"");
+                await httpHydra.GetSpan($"{init.corsHost()}/{uri}", span => 
+                {
+                    location = Rx.Match(span, "src=\"(https?://[^\"]+\\.mp4)\" type=\"video/mp4\"");
+                });
 
                 if (string.IsNullOrEmpty(location))
                     return e.Fail("location", refresh_proxy: true);

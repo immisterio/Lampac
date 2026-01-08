@@ -18,9 +18,12 @@ namespace SISI.Controllers.HQporner
             {
                 string url = HQpornerTo.Uri(init.corsHost(), search, sort, c, pg);
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                List<PlaylistItem> playlists = null;
 
-                var playlists = HQpornerTo.Playlist("hqr/vidosik", html);
+                await httpHydra.GetSpan(url, span => 
+                {
+                    playlists = HQpornerTo.Playlist("hqr/vidosik", span);
+                });
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));

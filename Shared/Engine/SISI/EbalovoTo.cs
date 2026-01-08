@@ -1,8 +1,8 @@
 ﻿using Shared.Engine.RxEnumerate;
+using Shared.Models;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web;
 
@@ -786,23 +786,33 @@ namespace Shared.Engine.SISI
         #endregion
 
         #region StreamLinks
-        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onlocation = null)
+        async public static Task<StreamItem> StreamLinks(HttpHydra http, string uri, string host, string url, Func<string, Task<string>> onlocation = null)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string html = await onresult.Invoke($"{host}/{url}");
-            if (html == null)
-                return null;
-
             string stream_link = null;
+            List<PlaylistItem> recomends = null;
 
-            foreach (string q in new string[] { "video_alt_url", "video_url" })
+            await http.GetSpan($"{host}/{url}", html =>
             {
-                stream_link = Regex.Match(html, $"{q}:([\t ]+)?('|\")(?<link>[^\"']+)").Groups["link"].Value;
+                foreach (string q in new string[] { "video_alt_url", "video_url" })
+                {
+                    stream_link = Rx.Groups(html, $"{q}:([\t ]+)?('|\")(?<link>[^\"']+)")["link"].Value;
+                    if (!string.IsNullOrEmpty(stream_link))
+                        break;
+                }
+
                 if (!string.IsNullOrEmpty(stream_link))
-                    break;
-            }
+                    recomends = Playlist(uri, html);
+            },
+            addheaders: HeadersModel.Init(
+                ("sec-fetch-dest", "document"),
+                ("sec-fetch-mode", "navigate"),
+                ("sec-fetch-site", "same-origin"),
+                ("sec-fetch-user", "?1"),
+                ("upgrade-insecure-requests", "1")
+            ));
 
             if (string.IsNullOrEmpty(stream_link))
                 return null;
@@ -822,7 +832,7 @@ namespace Shared.Engine.SISI
                 {
                     ["auto"] = stream_link
                 },
-                recomends = Playlist(uri, html)
+                recomends = recomends
             };
         }
         #endregion

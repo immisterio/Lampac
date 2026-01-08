@@ -39,10 +39,11 @@ namespace SISI.Controllers.PornHub
                     {
                         string uri = PornHubTo.Uri(init.corsHost(), plugin, search, model, sort, c, null, pg);
 
-                        ReadOnlySpan<char> html = await httpHydra.Get(uri);
-
-                        cache.total_pages = PornHubTo.Pages(html);
-                        cache.playlists = PornHubTo.Playlist("phub/vidosik", "phub", html, IsModel_page: !string.IsNullOrEmpty(model));
+                        await httpHydra.GetSpan(uri, span => 
+                        {
+                            cache.total_pages = PornHubTo.Pages(span);
+                            cache.playlists = PornHubTo.Playlist("phub/vidosik", "phub", span, IsModel_page: !string.IsNullOrEmpty(model));
+                        });
 
                         if (cache.playlists == null || cache.playlists.Count == 0)
                         {

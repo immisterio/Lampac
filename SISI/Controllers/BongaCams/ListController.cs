@@ -22,16 +22,22 @@ namespace SISI.Controllers.BongaCams
             {
                 string url = BongaCamsTo.Uri(init.corsHost(), sort, pg);
 
-                ReadOnlySpan<char> html;
+                int total_pages = 1;
+                List<PlaylistItem> playlists = null;
 
                 if (rch?.enable == true || init.priorityBrowser == "http")
-                    html = await httpHydra.Get(url);
+                {
+                    await httpHydra.GetSpan(url, span =>
+                    {
+                        playlists = BongaCamsTo.Playlist(span, out total_pages);
+                    });
+                }
                 else
                 {
-                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
-                }
+                    string html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
 
-                var playlists = BongaCamsTo.Playlist(html, out int total_pages);
+                    playlists = BongaCamsTo.Playlist(html, out total_pages);
+                }
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: true);

@@ -21,14 +21,21 @@ namespace SISI.Controllers.Spankbang
                 if (url == null)
                     return e.Fail("uri");
 
-                ReadOnlySpan<char> html;
+                StreamItem stream_links = null;
 
                 if (rch?.enable == true || init.priorityBrowser == "http")
-                    html = await httpHydra.Get(url);
+                {
+                    await httpHydra.GetSpan(url, span => 
+                    {
+                        stream_links = SpankbangTo.StreamLinks("sbg/vidosik", span);
+                    });
+                }
                 else
-                    html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
+                {
+                    string html = await PlaywrightBrowser.Get(init, url, httpHeaders(init), proxy_data);
 
-                var stream_links = SpankbangTo.StreamLinks("sbg/vidosik", html);
+                    stream_links = SpankbangTo.StreamLinks("sbg/vidosik", html);
+                }
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

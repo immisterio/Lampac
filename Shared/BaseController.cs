@@ -27,7 +27,7 @@ namespace Shared
     {
         public static string appversion => "151";
 
-        public static string minorversion => "7";
+        public static string minorversion => "8";
 
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();

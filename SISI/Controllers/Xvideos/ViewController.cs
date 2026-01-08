@@ -20,9 +20,12 @@ namespace SISI.Controllers.Xvideos
                 if (url == null)
                     return e.Fail("uri");
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                StreamItem stream_links = null;
 
-                var stream_links = XvideosTo.StreamLinks(html, "xds/vidosik", $"{host}/xds/stars");
+                await httpHydra.GetSpan(url, span =>
+                {
+                    stream_links = XvideosTo.StreamLinks(span, "xds/vidosik", $"{host}/xds/stars");
+                });
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

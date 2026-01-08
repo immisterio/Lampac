@@ -33,10 +33,10 @@ namespace Lampac.Engine.Middlewares
 
         static ProxyTmdb()
         {
+            Directory.CreateDirectory("cache/tmdb");
+
             if (AppInit.conf.multiaccess == false)
                 return;
-
-            Directory.CreateDirectory("cache/tmdb");
 
             foreach (var item in Directory.EnumerateFiles("cache/tmdb", "*"))
                 cacheFiles.TryAdd(Path.GetFileName(item), (int)new FileInfo(item).Length);

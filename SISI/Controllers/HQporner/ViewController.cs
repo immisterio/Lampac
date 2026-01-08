@@ -16,10 +16,7 @@ namespace SISI.Controllers.HQporner
             rhubFallback:
             var cache = await InvokeCacheResult<Dictionary<string, string>>(ipkey($"HQporner:view:{uri}"), 20, async e =>
             {
-                var stream_links = await HQpornerTo.StreamLinks(init.corsHost(), uri,
-                    htmlurl => httpHydra.Get(htmlurl),
-                    iframeurl => httpHydra.Get(iframeurl)
-                );
+                var stream_links = await HQpornerTo.StreamLinks(httpHydra, init.corsHost(), uri);
 
                 if (stream_links == null || stream_links.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

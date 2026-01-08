@@ -27,9 +27,10 @@ namespace SISI.Controllers.Porntrex
                     if (url == null)
                         return OnError("uri");
 
-                    ReadOnlySpan<char> html = await httpHydra.Get(url);
-
-                    cache.links = PorntrexTo.StreamLinks(html);
+                    await httpHydra.GetSpan(url, span => 
+                    {
+                        cache.links = PorntrexTo.StreamLinks(span);
+                    });
 
                     if (cache.links == null || cache.links.Count == 0)
                     {

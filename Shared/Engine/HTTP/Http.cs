@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Shared.Models;
 using Shared.Models.Events;
+using System.Buffers;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -317,6 +318,31 @@ namespace Shared.Engine
         #region BaseGetAsync<T>
         async public static Task<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
+            T result = default;
+
+            var req = await BaseGetReaderAsync(e => 
+            {
+                using (var jsonReader = new JsonTextReader(e.reader))
+                {
+                    var serializer = JsonSerializer.Create(
+                        IgnoreDeserializeObject ? jsonSettings : null
+                    );
+
+                    result = serializer.Deserialize<T>(jsonReader);
+
+                    if (IsLogged)
+                        e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+                }
+            }, 
+            url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog);
+
+            return (default, req.response);
+        }
+        #endregion
+
+        #region BaseGetReaderAsync
+        async public static Task<(bool success, HttpResponseMessage response)> BaseGetReaderAsync(Action<(StreamReader reader, CancellationToken ct, StringBuilder loglines)> action, string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
+        {
             try
             {
                 var loglines = new StringBuilder();
@@ -371,25 +397,14 @@ namespace Shared.Engine
                                     await InvkEvent.HttpAsync(new EventHttpResponse(url, null, client, "ReadAsStream", response, Startup.memoryCache));
 
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                                    return (default, response);
+                                    return (false, response);
 
                                 using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
                                 {
                                     using (var streamReader = new StreamReader(stream))
                                     {
-                                        using (var jsonReader = new JsonTextReader(streamReader))
-                                        {
-                                            var serializer = JsonSerializer.Create(
-                                                IgnoreDeserializeObject ? jsonSettings : null
-                                            );
-
-                                            T result = serializer.Deserialize<T>(jsonReader);
-
-                                            if (IsLogged)
-                                                loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
-
-                                            return (result, response);
-                                        }
+                                        action.Invoke((streamReader, cts.Token, loglines));
+                                        return (true, response);
                                     }
                                 }
                             }
@@ -410,7 +425,7 @@ namespace Shared.Engine
                         }, Startup.memoryCache));
                     }
 
-                    return (default, new HttpResponseMessage()
+                    return (false, new HttpResponseMessage()
                     {
                         StatusCode = HttpStatusCode.InternalServerError,
                         RequestMessage = new HttpRequestMessage()
@@ -425,6 +440,36 @@ namespace Shared.Engine
             catch
             {
                 return default;
+            }
+        }
+        #endregion
+
+
+        #region GetSpan
+        /// <param name="MaxResponseContentBufferSize">5MB</param>
+        async public static Task<bool> GetSpan(Action<ReadOnlySpan<char>> spanAction, string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 5_000_000, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
+        {
+            IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent((int)MaxResponseContentBufferSize);
+
+            try
+            {
+                var req = await BaseGetReaderAsync(async e =>
+                {
+                    var (success, len) = await TextReaderSpan.ReadAllCharsAsync(owner, e.reader, e.ct);
+
+                    ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, len);
+                    spanAction.Invoke(result);
+
+                    if (IsLogged)
+                        e.loglines.Append($"\n{result.ToString()}");
+                },
+                url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog);
+
+                return req.success;
+            }
+            finally
+            {
+                owner.Dispose();
             }
         }
         #endregion

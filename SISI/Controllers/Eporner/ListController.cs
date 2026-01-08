@@ -37,9 +37,10 @@ namespace SISI.Controllers.Eporner
                     {
                         string url = EpornerTo.Uri(init.corsHost(), search, sort, c, pg);
 
-                        ReadOnlySpan<char> html = await httpHydra.Get(url);
-
-                        playlists = EpornerTo.Playlist("epr/vidosik", html);
+                        await httpHydra.GetSpan(url, span => 
+                        {
+                            playlists = EpornerTo.Playlist("epr/vidosik", span);
+                        });
 
                         if (playlists == null || playlists.Count == 0)
                         {

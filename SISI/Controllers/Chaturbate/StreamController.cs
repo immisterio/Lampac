@@ -20,9 +20,12 @@ namespace SISI.Controllers.Chaturbate
                 if (url == null)
                     return e.Fail("baba");
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                Dictionary<string, string> stream_links = null;
 
-                var stream_links = ChaturbateTo.StreamLinks(html);
+                await httpHydra.GetSpan(url, span => 
+                {
+                    stream_links = ChaturbateTo.StreamLinks(span);
+                });
 
                 if (stream_links == null || stream_links.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

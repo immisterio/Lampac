@@ -26,7 +26,12 @@ namespace SISI.Controllers.Tizam
                 if (page > 0)
                     uri += $"?p={page}";
 
-                var playlists = Playlist(await httpHydra.Get(uri));
+                List<PlaylistItem> playlists = null;
+
+                await httpHydra.GetSpan(uri, span => 
+                {
+                    playlists = Playlist(span);
+                });
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: true);

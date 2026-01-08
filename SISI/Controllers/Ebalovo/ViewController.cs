@@ -25,17 +25,7 @@ namespace SISI.Controllers.Ebalovo
             {
                 string ehost = await RootController.goHost(init.corsHost());
 
-                var stream_links = await EbalovoTo.StreamLinks("elo/vidosik", ehost, uri,
-                    url =>
-                    {
-                        return httpHydra.Get(url, addheaders: HeadersModel.Init(
-                            ("sec-fetch-dest", "document"),
-                            ("sec-fetch-mode", "navigate"),
-                            ("sec-fetch-site", "same-origin"),
-                            ("sec-fetch-user", "?1"),
-                            ("upgrade-insecure-requests", "1")
-                        ));
-                    },
+                var stream_links = await EbalovoTo.StreamLinks(httpHydra, "elo/vidosik", ehost, uri,
                     async location =>
                     {
                         var headers = httpHeaders(init, HeadersModel.Init(

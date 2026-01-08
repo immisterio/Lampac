@@ -22,9 +22,12 @@ namespace SISI.Controllers.Xhamster
                 if (url == null)
                     return e.Fail("uri");
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                StreamItem stream_links = null;
 
-                var stream_links = XhamsterTo.StreamLinks(targetHost, "xmr/vidosik", html);
+                await httpHydra.GetSpan(url, span =>
+                {
+                    stream_links = XhamsterTo.StreamLinks(targetHost, "xmr/vidosik", span);
+                });
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

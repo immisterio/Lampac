@@ -16,10 +16,7 @@ namespace SISI.Controllers.Eporner
             rhubFallback:
             var cache = await InvokeCacheResult<StreamItem>(ipkey($"eporner:view:{uri}"), 20, async e =>
             {
-                var stream_links = await EpornerTo.StreamLinks("epr/vidosik", init.corsHost(), uri,
-                    htmlurl => httpHydra.Get(htmlurl),
-                    jsonurl => httpHydra.Get(jsonurl)
-                );
+                var stream_links = await EpornerTo.StreamLinks(httpHydra, "epr/vidosik", init.corsHost(), uri);
 
                 if (stream_links?.qualitys == null || stream_links.qualitys.Count == 0)
                     return e.Fail("stream_links", refresh_proxy: true);

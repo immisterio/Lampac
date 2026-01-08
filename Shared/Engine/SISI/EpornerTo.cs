@@ -584,41 +584,45 @@ namespace Shared.Engine.SISI
         #endregion
 
         #region StreamLinks
-        async public static Task<StreamItem> StreamLinks(string uri, string host, string url, Func<string, Task<string>> onresult, Func<string, Task<string>> onjson, Func<string, string> onlog = null)
+        async public static Task<StreamItem> StreamLinks(HttpHydra http, string route, string host, string url, Func<string, string> onlog = null)
         {
             if (string.IsNullOrEmpty(url))
                 return null;
 
-            string html = await onresult.Invoke($"{host}/{url}");
-            if (html == null)
-                return null;
+            string vid = null, hash = null;
+            List<PlaylistItem> recomends = null;
 
-            string vid = Regex.Match(html, "vid ?= ?'([^']+)'").Groups[1].Value;
-            string hash = Regex.Match(html, "hash ?= ?'([^']+)'").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(vid) || string.IsNullOrWhiteSpace(hash))
-                return null;
-
-            string json = await onjson.Invoke($"{host}/xhr/video/{vid}?hash={convertHash(hash)}&domain={Regex.Replace(host, "^https?://", "")}&fallback=false&embed=false&supportedFormats=dash,mp4&_={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
-            if (json == null)
-                return null;
-
-            onlog?.Invoke("json: " + json);
-
-            var stream_links = new Dictionary<string, string>();
-            var match = new Regex("\"src\":( +)?\"(https?://[^/]+/[^\"]+-([0-9]+p).mp4)\",").Match(json);
-            while (match.Success)
+            await http.GetSpan($"{host}/{url}", html =>
             {
-                onlog?.Invoke($"{match.Groups[3].Value} /  {match.Groups[2].Value}");
-                stream_links.TryAdd(match.Groups[3].Value, match.Groups[2].Value);
-                match = match.NextMatch();
-            }
+                vid = Rx.Match(html, "vid ?= ?'([^']+)'");
+                hash = Rx.Match(html, "hash ?= ?'([^']+)'");
+
+                if (vid != null && hash != null)
+                    recomends = Playlist(route, html);
+            });
+
+            if (vid == null || hash == null)
+                return null;
+
+            var stream_links = new Dictionary<string, string>(5);
+
+            await http.GetSpan($"{host}/xhr/video/{vid}?hash={convertHash(hash)}&domain={Regex.Replace(host, "^https?://", "")}&fallback=false&embed=false&supportedFormats=dash,mp4&_={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", json =>
+            {
+                foreach (var row in Rx.Matches("\"src\":( +)?\"(https?://[^/]+/[^\"]+-([0-9]+p).mp4)\",", json).Rows())
+                {
+                    var g = row.Groups("\"src\":( +)?\"(https?://[^/]+/[^\"]+-([0-9]+p).mp4)\",");
+
+                    if (!string.IsNullOrEmpty(g[3].Value))
+                        stream_links.TryAdd(g[3].Value, g[2].Value);
+                }
+            });
 
             onlog?.Invoke("stream_links: " + stream_links.Count);
 
             return new StreamItem()
             {
                 qualitys = stream_links,
-                recomends = Playlist(uri, html)
+                recomends = recomends
             };
         }
         #endregion

@@ -40,6 +40,17 @@ namespace Shared.Engine
         }
         #endregion
 
+        #region GetSpan
+        public Task GetSpan(string url, Action<ReadOnlySpan<char>> spanAction, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, bool safety = false)
+        {
+            var headers = JsonHeaders(addheaders, newheaders);
+
+            return IsRchEnable(safety)
+                ? rch.GetSpan(spanAction, init.cors(url), headers, useDefaultHeaders)
+                : Http.GetSpan(spanAction, init.cors(url), timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy, headers: headers, useDefaultHeaders: useDefaultHeaders, statusCodeOK: statusCodeOK);
+        }
+        #endregion
+
         #region Post
         public Task<T> Post<T>(string url, string data, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool IgnoreDeserializeObject = false, bool safety = false)
         {

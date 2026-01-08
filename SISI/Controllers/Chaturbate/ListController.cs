@@ -21,9 +21,12 @@ namespace SISI.Controllers.Chaturbate
             {
                 string url = ChaturbateTo.Uri(init.corsHost(), sort, pg);
 
-                ReadOnlySpan<char> html = await httpHydra.Get(url);
+                List<PlaylistItem> playlists = null;
 
-                var playlists = ChaturbateTo.Playlist("chu/potok", html);
+                await httpHydra.GetSpan(url, span =>
+                {
+                    playlists = ChaturbateTo.Playlist("chu/potok", span);
+                });
 
                 if (playlists == null || playlists.Count == 0)
                     return e.Fail("playlists", refresh_proxy: true);

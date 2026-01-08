@@ -39,9 +39,10 @@ namespace SISI.Controllers.Xhamster
                     {
                         string url = XhamsterTo.Uri(init.corsHost(), plugin, search, c, q, sort, pg);
 
-                        ReadOnlySpan<char> html = await httpHydra.Get(url);
-
-                        playlists = XhamsterTo.Playlist("xmr/vidosik", html);
+                        await httpHydra.GetSpan(url, span => 
+                        {
+                            playlists = XhamsterTo.Playlist("xmr/vidosik", span);
+                        });
 
                         if (playlists == null || playlists.Count == 0)
                         {

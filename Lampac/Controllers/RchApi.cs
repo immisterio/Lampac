@@ -30,21 +30,35 @@ namespace Lampac.Controllers
         [HttpPost]
         [AllowAnonymous]
         [Route("rch/result")]
-        public ActionResult WriteResult([FromForm] string id, [FromForm] string value)
+        async public Task<ActionResult> WriteResult([FromQuery] string id)
         {
             if (string.IsNullOrEmpty(id))
+                return BadRequest(401);
+
+            if (!RchClient.rchIds.TryGetValue(id, out var rchHub))
+                return BadRequest(400);
+
+            try
             {
-                HttpContext.Response.StatusCode = 401;
-                return Content(string.Empty);
+                using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
+                {
+                    var (success, len) = await TextReaderSpan.ReadAllCharsAsync(rchHub.owner, reader, cancellationToken: HttpContext.RequestAborted);
+
+                    if (!success)
+                    {
+                        rchHub.tcs.TrySetResult((0, null));
+                        return BadRequest(400);
+                    }
+
+                    rchHub.tcs.TrySetResult((len, null));
+                }
+            }
+            catch
+            {
+                rchHub.tcs.TrySetResult((0, null));
+                return BadRequest(400);
             }
 
-            if (!RchClient.rchIds.TryGetValue(id, out var tcs))
-            {
-                HttpContext.Response.StatusCode = 400;
-                return Content(string.Empty);
-            }
-
-            tcs.TrySetResult(value ?? string.Empty);
             return Ok();
         }
 
@@ -54,21 +68,33 @@ namespace Lampac.Controllers
         async public Task<ActionResult> WriteZipResult([FromQuery] string id)
         {
             if (string.IsNullOrEmpty(id))
-            {
-                HttpContext.Response.StatusCode = 401;
-                return Content(string.Empty);
-            }
+                return BadRequest(401);
 
-            if (!RchClient.rchIds.TryGetValue(id, out var tcs))
-            {
-                HttpContext.Response.StatusCode = 400;
-                return Content(string.Empty);
-            }
+            if (!RchClient.rchIds.TryGetValue(id, out var rchHub))
+                return BadRequest(400);
 
-            using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
+            try
             {
-                using (var reader = new StreamReader(gzip, Encoding.UTF8))
-                    tcs.TrySetResult(await reader.ReadToEndAsync(HttpContext.RequestAborted) ?? string.Empty);
+                using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
+                {
+                    using (var reader = new StreamReader(gzip, Encoding.UTF8))
+                    {
+                        var (success, len) = await TextReaderSpan.ReadAllCharsAsync(rchHub.owner, reader, cancellationToken: HttpContext.RequestAborted);
+
+                        if (!success)
+                        {
+                            rchHub.tcs.TrySetResult((0, null));
+                            return BadRequest(400);
+                        }
+
+                        rchHub.tcs.TrySetResult((len, null));
+                    }
+                }
+            }
+            catch 
+            {
+                rchHub.tcs.TrySetResult((0, null));
+                return BadRequest(400);
             }
 
             return Ok();
