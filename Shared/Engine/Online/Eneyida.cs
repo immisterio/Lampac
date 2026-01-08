@@ -13,18 +13,16 @@ namespace Shared.Engine.Online
         #region EneyidaInvoke
         string host;
         string apihost;
-        Func<string, Task<string>> onget;
-        Func<string, string, Task<string>> onpost;
+        HttpHydra httpHydra;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
 
-        public EneyidaInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public EneyidaInvoke(string host, string apihost, HttpHydra httpHydra, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
-            this.onget = onget;
-            this.onpost = onpost;
+            this.httpHydra = httpHydra;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.requesterror = requesterror;
@@ -43,55 +41,58 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(link))
             {
                 onlog?.Invoke("search start");
-                string search = await onpost.Invoke($"{apihost}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}");
-                if (search == null)
+
+                bool searchEmpty = false;
+                string _site = apihost;
+
+                await httpHydra.PostSpan($"{_site}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}", search => 
                 {
-                    requesterror?.Invoke();
-                    return null;
-                }
+                    if (search.IsEmpty)
+                        return;
 
-                onlog?.Invoke("search ok");
+                    searchEmpty = search.Contains(">Пошук по сайту<", StringComparison.OrdinalIgnoreCase);
 
-                var rx = Rx.Split("<article ", search, 1);
+                    var rx = Rx.Split("<article ", search, 1);
 
-                string stitle = StringConvert.SearchName(original_title?.ToLower());
+                    string stitle = StringConvert.SearchName(original_title?.ToLower());
 
-                foreach (var row in rx.Rows())
-                {
-                    if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
-                        continue;
-
-                    string newslink = row.Match("href=\"(https?://[^/]+/[^\"]+\\.html)\"");
-                    if (string.IsNullOrEmpty(newslink))
-                        continue;
-
-                    // <div class="short_subtitle"><a href="https://eneyida.tv/xfsearch/year/2025/">2025</a> &bull; Thunderbolts</div>
-                    var g = row.Groups("class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>");
-
-                    string name = g[3].Value.Replace("&bull;", "").Trim();
-                    if (string.IsNullOrEmpty(name))
-                        continue;
-
-                    if (result.similars == null)
-                        result.similars = new List<Similar>(rx.Count);
-
-                    string uaname = row.Match("id=\"short_title\"[^>]+>([^<]+)<");
-                    string img = row.Match("data-src=\"/([^\"]+)\"");
-
-                    result.similars.Add(new Similar()
+                    foreach (var row in rx.Rows())
                     {
-                        title = $"{uaname} / {name}",
-                        year = g[2].Value,
-                        href = newslink,
-                        img = string.IsNullOrEmpty(img) ? null : $"{apihost}/{img}"
-                    });
+                        if (row.Contains(">Анонс</div>") || row.Contains(">Трейлер</div>"))
+                            continue;
 
-                    if (StringConvert.SearchName(name) == stitle && g[2].Value == year.ToString())
-                    {
-                        link = newslink;
-                        break;
+                        string newslink = row.Match("href=\"(https?://[^/]+/[^\"]+\\.html)\"");
+                        if (newslink == null)
+                            continue;
+
+                        // <div class="short_subtitle"><a href="https://eneyida.tv/xfsearch/year/2025/">2025</a> &bull; Thunderbolts</div>
+                        var g = row.Groups("class=\"short_subtitle\">(<a [^>]+>([0-9]{4})</a>)?([^<]+)</div>");
+
+                        string name = g[3].Value.Replace("&bull;", "").Trim();
+                        if (string.IsNullOrEmpty(name))
+                            continue;
+
+                        if (result.similars == null)
+                            result.similars = new List<Similar>(rx.Count);
+
+                        string uaname = row.Match("id=\"short_title\"[^>]+>([^<]+)<");
+                        string img = row.Match("data-src=\"/([^\"]+)\"");
+
+                        result.similars.Add(new Similar()
+                        {
+                            title = $"{uaname} / {name}",
+                            year = g[2].Value,
+                            href = newslink,
+                            img = string.IsNullOrEmpty(img) ? null : $"{_site}/{img}"
+                        });
+
+                        if (StringConvert.SearchName(name) == stitle && g[2].Value == year.ToString())
+                        {
+                            link = newslink;
+                            break;
+                        }
                     }
-                }
+                });
 
                 if (similar)
                     return result;
@@ -101,53 +102,62 @@ namespace Shared.Engine.Online
                     if (result.similars.Count > 0)
                         return result;
 
-                    if (search.Contains(">Пошук по сайту<"))
+                    if (searchEmpty)
                         return new EmbedModel() { IsEmpty = true };
 
+                    requesterror?.Invoke();
                     return null;
                 }
             }
 
             onlog?.Invoke("link: " + link);
-            string news = await onget.Invoke(link);
-            if (news == null)
+
+            string iframeUri = null;
+
+            await httpHydra.GetSpan(link, news => 
+            {
+                if (news.IsEmpty)
+                    return;
+
+                if (news.Contains("full_content fx_row", StringComparison.Ordinal))
+                    result.quel = Rx.Match(news, " (1080p|720p|480p)</div>");
+
+                iframeUri = Rx.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"");
+            });
+
+            if (iframeUri == null)
             {
                 requesterror?.Invoke();
                 return null;
             }
-
-            if (news.Contains("full_content fx_row"))
-                result.quel = Regex.Match(news.Split("full_content fx_row")[1].Split("full__favourite")[0], " (1080p|720p|480p)</div>").Groups[1].Value;
-
-            string iframeUri = Regex.Match(news, "<iframe width=\"100%\" height=\"400\" src=\"(https?://[^/]+/[^\"]+/[0-9]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(iframeUri))
-                return null;
 
             onlog?.Invoke("iframeUri: " + iframeUri);
-            string content = await onget.Invoke(iframeUri);
-            if (content == null || !content.Contains("file:"))
+
+            await httpHydra.GetSpan(iframeUri, content => 
+            {
+                if (content.IsEmpty || !content.Contains("file:", StringComparison.Ordinal))
+                    return;
+
+                if (Regex.IsMatch(content, "file: ?'\\["))
+                {
+                    try
+                    {
+                        var root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Rx.Match(content, "file: ?'([^\n\r]+)',"));
+                        if (root != null && root.Length > 0)
+                            result.serial = root;
+                    }
+                    catch { }
+                }
+                else
+                {
+                    result.content = content.ToString();
+                }
+            });
+
+            if (result.serial == null && string.IsNullOrEmpty(result.content))
             {
                 requesterror?.Invoke();
                 return null;
-            }
-
-            if (Regex.IsMatch(content, "file: ?'\\["))
-            {
-                Models.Online.Tortuga.Voice[] root = null;
-
-                try
-                {
-                    root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
-                    if (root == null || root.Length == 0)
-                        return null;
-                }
-                catch { return null; }
-
-                result.serial = root;
-            }
-            else
-            {
-                result.content = content;
             }
 
             return result;

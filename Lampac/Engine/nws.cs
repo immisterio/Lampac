@@ -266,7 +266,7 @@ namespace Lampac.Engine
                         string value = GetStringArg(args, 1) ?? string.Empty;
 
                         if (!string.IsNullOrEmpty(id) && RchClient.rchIds.TryGetValue(id, out var rchHub))
-                            rchHub.tcs.TrySetResult((0, value));
+                            rchHub.tcs.TrySetResult(value);
                     }
                     break;
 

@@ -2,9 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Engine;
-using System.IO;
 using System.IO.Compression;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Lampac.Controllers
@@ -40,22 +38,14 @@ namespace Lampac.Controllers
 
             try
             {
-                using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
-                {
-                    var (success, len) = await TextReaderSpan.ReadAllCharsAsync(rchHub.owner, reader, cancellationToken: HttpContext.RequestAborted);
+                await Request.Body.CopyToAsync(rchHub.ms);
+                rchHub.ms.Position = 0;
 
-                    if (!success)
-                    {
-                        rchHub.tcs.TrySetResult((0, null));
-                        return BadRequest(400);
-                    }
-
-                    rchHub.tcs.TrySetResult((len, null));
-                }
+                rchHub.tcs.TrySetResult(null);
             }
             catch
             {
-                rchHub.tcs.TrySetResult((0, null));
+                rchHub.tcs.TrySetResult(null);
                 return BadRequest(400);
             }
 
@@ -77,23 +67,15 @@ namespace Lampac.Controllers
             {
                 using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
                 {
-                    using (var reader = new StreamReader(gzip, Encoding.UTF8))
-                    {
-                        var (success, len) = await TextReaderSpan.ReadAllCharsAsync(rchHub.owner, reader, cancellationToken: HttpContext.RequestAborted);
+                    await gzip.CopyToAsync(rchHub.ms);
+                    rchHub.ms.Position = 0;
 
-                        if (!success)
-                        {
-                            rchHub.tcs.TrySetResult((0, null));
-                            return BadRequest(400);
-                        }
-
-                        rchHub.tcs.TrySetResult((len, null));
-                    }
+                    rchHub.tcs.TrySetResult(null);
                 }
             }
             catch 
             {
-                rchHub.tcs.TrySetResult((0, null));
+                rchHub.tcs.TrySetResult(null);
                 return BadRequest(400);
             }
 

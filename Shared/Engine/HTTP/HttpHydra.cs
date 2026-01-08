@@ -71,6 +71,17 @@ namespace Shared.Engine
         }
         #endregion
 
+        #region PostSpan
+        public Task PostSpan(string url, string data, Action<ReadOnlySpan<char>> spanAction, List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool safety = false)
+        {
+            var headers = JsonHeaders(addheaders, newheaders);
+
+            return IsRchEnable(safety)
+                ? rch.PostSpan(spanAction, init.cors(url), data, headers, useDefaultHeaders)
+                : Http.PostSpan(spanAction, init.cors(url), data, encoding: encoding, timeoutSeconds: init.httptimeout, httpversion: init.httpversion, proxy: proxy, headers: headers, useDefaultHeaders: useDefaultHeaders, statusCodeOK: statusCodeOK);
+        }
+        #endregion
+
 
         #region JsonHeaders / IsRchEnable
         List<HeadersModel> JsonHeaders(List<HeadersModel> addheaders = null, List<HeadersModel> newheaders = null)

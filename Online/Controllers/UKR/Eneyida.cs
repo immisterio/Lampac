@@ -26,8 +26,7 @@ namespace Online.Controllers
             (
                host,
                init.corsHost(),
-               ongettourl => httpHydra.Get(ongettourl),
-               (url, data) => httpHydra.Post(url, data),
+               httpHydra,
                onstreamtofile => HostStreamProxy(onstreamtofile),
                requesterror: () => proxyManager?.Refresh()
             );

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.IO;
+using Newtonsoft.Json;
 using Shared.Models;
 using Shared.Models.Events;
 using System.Buffers;
@@ -12,6 +13,8 @@ namespace Shared.Engine
 {
     public static class Http
     {
+        static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager();
+
         static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
 
         public static IHttpClientFactory httpClientFactory;
@@ -318,30 +321,40 @@ namespace Shared.Engine
         #region BaseGetAsync<T>
         async public static Task<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
-            T result = default;
-
-            var req = await BaseGetReaderAsync(e => 
+            using (var ms = msm.GetStream())
             {
-                using (var jsonReader = new JsonTextReader(e.reader))
+                T result = default;
+
+                var req = await BaseGetReaderAsync(async e =>
                 {
-                    var serializer = JsonSerializer.Create(
-                        IgnoreDeserializeObject ? jsonSettings : null
-                    );
+                    await e.stream.CopyToAsync(ms, e.ct);
+                    ms.Position = 0;
 
-                    result = serializer.Deserialize<T>(jsonReader);
+                    using (var streamReader = new StreamReader(ms))
+                    {
+                        using (var jsonReader = new JsonTextReader(streamReader))
+                        {
+                            var serializer = JsonSerializer.Create(
+                                IgnoreDeserializeObject ? jsonSettings : null
+                            );
 
-                    if (IsLogged)
-                        e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
-                }
-            }, 
-            url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog);
+                            result = serializer.Deserialize<T>(jsonReader);
 
-            return (result, req.response);
+                            if (IsLogged)
+                                e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+                        }
+                    }
+                },
+                    url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
+                ).ConfigureAwait(false);
+
+                return (result, req.response);
+            }
         }
         #endregion
 
         #region BaseGetReaderAsync
-        async public static Task<(bool success, HttpResponseMessage response)> BaseGetReaderAsync(Action<(StreamReader reader, CancellationToken ct, StringBuilder loglines)> action, string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
+        async public static Task<(bool success, HttpResponseMessage response)> BaseGetReaderAsync(Action<(Stream stream, CancellationToken ct, StringBuilder loglines)> action, string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
             try
             {
@@ -401,11 +414,8 @@ namespace Shared.Engine
 
                                 using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
                                 {
-                                    using (var streamReader = new StreamReader(stream))
-                                    {
-                                        action.Invoke((streamReader, cts.Token, loglines));
-                                        return (true, response);
-                                    }
+                                    action.Invoke((stream, cts.Token, loglines));
+                                    return (true, response);
                                 }
                             }
                         }
@@ -446,30 +456,72 @@ namespace Shared.Engine
 
 
         #region GetSpan
-        /// <param name="MaxResponseContentBufferSize">5MB</param>
-        async public static Task<bool> GetSpan(Action<ReadOnlySpan<char>> spanAction, string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 5_000_000, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
+        async public static Task<bool> GetSpan(Action<ReadOnlySpan<char>> spanAction, string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
-            IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent((int)MaxResponseContentBufferSize);
-
-            try
+            using (var ms = msm.GetStream())
             {
                 var req = await BaseGetReaderAsync(async e =>
                 {
-                    var (success, len) = await TextReaderSpan.ReadAllCharsAsync(owner, e.reader, e.ct);
+                    await e.stream.CopyToAsync(ms, e.ct);
+                    ms.Position = 0;
 
-                    ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, len);
-                    spanAction.Invoke(result);
+                    var encdg = encoding != default ? encoding : Encoding.UTF8;
+                    int charCount = encdg.GetMaxCharCount((int)ms.Length);
 
-                    if (IsLogged)
-                        e.loglines.Append($"\n{result.ToString()}");
+                    using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
+                    {
+                        using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false))
+                        {
+                            int actualChars = reader.Read(owner.Memory.Span);
+                            ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
+
+                            spanAction.Invoke(result);
+
+                            if (IsLogged)
+                                e.loglines.Append($"\n{result.ToString()}");
+                        }
+                    }
                 },
-                url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog);
+                    url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
+                ).ConfigureAwait(false);
 
                 return req.success;
             }
-            finally
+        }
+        #endregion
+
+        #region PostSpan
+        async public static Task<bool> PostSpan(Action<ReadOnlySpan<char>> spanAction, string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
+        {
+            using (var ms = msm.GetStream())
             {
-                owner.Dispose();
+                var req = await BasePostReaderAsync(async e =>
+                {
+                    await e.stream.CopyToAsync(ms, e.ct);
+                    ms.Position = 0;
+
+                    var encdg = encoding != default ? encoding : Encoding.UTF8;
+                    int charCount = encdg.GetMaxCharCount((int)ms.Length);
+
+                    using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
+                    {
+                        using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false))
+                        {
+                            int actualChars = reader.Read(owner.Memory.Span);
+                            ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
+
+                            spanAction.Invoke(result);
+
+                            if (IsLogged)
+                                e.loglines.Append($"\n{result.ToString()}");
+                        }
+                    }
+                },
+                    url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
+                    cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
+                ).ConfigureAwait(false);
+
+                return req.success;
             }
         }
         #endregion
@@ -751,14 +803,40 @@ namespace Shared.Engine
 
         async public static Task<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
         {
-            return (await BasePost<T>(url, data,
-                cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
-            ).ConfigureAwait(false)).content;
+            using (var ms = msm.GetStream())
+            {
+                T result = default;
+
+                var req = await BasePostReaderAsync(async e =>
+                {
+                    await e.stream.CopyToAsync(ms, e.ct);
+                    ms.Position = 0;
+
+                    using (var streamReader = new StreamReader(ms))
+                    {
+                        using (var jsonReader = new JsonTextReader(streamReader))
+                        {
+                            var serializer = JsonSerializer.Create(
+                                IgnoreDeserializeObject ? jsonSettings : null
+                            );
+
+                            result = serializer.Deserialize<T>(jsonReader);
+
+                            if (IsLogged)
+                                e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+                        }
+                    }
+                },
+                    url, data, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
+                ).ConfigureAwait(false);
+
+                return result;
+            }
         }
         #endregion
 
-        #region BasePost<T>
-        async public static Task<(T content, HttpResponseMessage response)> BasePost<T>(string url, HttpContent data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool IgnoreDeserializeObject = false, bool statusCodeOK = true)
+        #region BasePostReaderAsync<T>
+        async public static Task<(bool success, HttpResponseMessage response)> BasePostReaderAsync(Action<(Stream stream, CancellationToken ct, StringBuilder loglines)> action, string url, HttpContent data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool IgnoreDeserializeObject = false, bool statusCodeOK = true)
         {
             var loglines = new StringBuilder();
 
@@ -812,26 +890,12 @@ namespace Shared.Engine
                                 await InvkEvent.HttpAsync(new EventHttpResponse(url, data, client, "ReadAsStream", response, Startup.memoryCache));
 
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                                return (default, response);
+                                return (false, response);
 
                             using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
                             {
-                                using (var streamReader = new StreamReader(stream))
-                                {
-                                    using (var jsonReader = new JsonTextReader(streamReader))
-                                    {
-                                        var serializer = JsonSerializer.Create(
-                                            IgnoreDeserializeObject ? jsonSettings : null
-                                        );
-
-                                        T result = serializer.Deserialize<T>(jsonReader);
-
-                                        if (IsLogged)
-                                            loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
-
-                                        return (result, response);
-                                    }
-                                }
+                                action.Invoke((stream, cts.Token, loglines));
+                                return (true, response);
                             }
                         }
                     }
@@ -851,7 +915,7 @@ namespace Shared.Engine
                     }, Startup.memoryCache));
                 }
 
-                return (default, new HttpResponseMessage()
+                return (false, new HttpResponseMessage()
                 {
                     StatusCode = HttpStatusCode.InternalServerError,
                     RequestMessage = new HttpRequestMessage()

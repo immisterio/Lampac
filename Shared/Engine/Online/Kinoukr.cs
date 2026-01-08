@@ -1,4 +1,5 @@
-﻿using Shared.Models.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.Base;
 using Shared.Models.Online.Eneyida;
 using Shared.Models.Templates;
 using System.Text;
@@ -205,71 +206,66 @@ namespace Shared.Engine.Online
 
             onlog?.Invoke("iframeUri: " + iframeUri);
 
-            string content = await http.Get(iframeUri);
-            if (content == null || !content.Contains("file:"))
+            await http.GetSpan(iframeUri, content =>
+            {
+                if (content.IsEmpty || !content.Contains("file:", StringComparison.Ordinal))
+                    return;
+
+                if (iframeUri.Contains("ashdi"))
+                {
+                    result.source_type = "ashdi";
+
+                    if (Regex.IsMatch(content, "file: ?'\\["))
+                    {
+                        try
+                        {
+                            var root = JsonSerializer.Deserialize<Models.Online.Ashdi.Voice[]>(Rx.Match(content, "file: ?'([^\n\r]+)',"));
+                            if (root != null && root.Length > 0)
+                                result.serial_ashdi = root;
+                        }
+                        catch { }
+                    }
+                    else
+                    {
+                        var rx = Rx.Split("new Playerjs", content);
+                        if (1 > rx.Count)
+                            return;
+
+                        result.content = rx[1].ToString();
+                    }
+                }
+                else
+                {
+                    result.source_type = "tortuga";
+
+                    if (Regex.IsMatch(content, "file: ?'"))
+                    {
+                        try
+                        {
+                            string file = Rx.Match(content, "file: ?'([^\n\r]+)',");
+                            if (file.EndsWith("=="))
+                            {
+                                file = Regex.Replace(file, "==$", "");
+                                file = string.Join("", CrypTo.DecodeBase64(file).Reverse());
+                            }
+
+                            var root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(file);
+                            if (root == null || root.Length == 0)
+                                result.serial = root;
+                        }
+                        catch { }
+                    }
+                    else
+                    {
+                        result.content = content.ToString();
+                    }
+                }
+            });
+
+            if (string.IsNullOrEmpty(result.content) && result.serial_ashdi == null && result.serial == null)
             {
                 requesterror?.Invoke();
                 return null;
-            }
-
-            if (iframeUri.Contains("ashdi"))
-            {
-                result.source_type = "ashdi";
-
-                if (Regex.IsMatch(content, "file: ?'\\["))
-                {
-                    Models.Online.Ashdi.Voice[] root = null;
-
-                    try
-                    {
-                        root = JsonSerializer.Deserialize<Models.Online.Ashdi.Voice[]>(Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value);
-                        if (root == null || root.Length == 0)
-                            return null;
-                    }
-                    catch { return null; }
-
-                    result.serial_ashdi = root;
-                }
-                else
-                {
-                    result.content = content;
-                    onlog?.Invoke("content: " + result.content);
-                }
-
-                return result;
-            }
-            else
-            {
-                result.source_type = "tortuga";
-
-                if (Regex.IsMatch(content, "file: ?'"))
-                {
-                    Models.Online.Tortuga.Voice[] root = null;
-
-                    try
-                    {
-                        string file = Regex.Match(content, "file: ?'([^\n\r]+)',").Groups[1].Value;
-                        if (file.EndsWith("=="))
-                        {
-                            file = Regex.Replace(file, "==$", "");
-                            file = string.Join("", CrypTo.DecodeBase64(file).Reverse());
-                        }
-
-                        root = JsonSerializer.Deserialize<Models.Online.Tortuga.Voice[]>(file);
-                        if (root == null || root.Length == 0)
-                            return null;
-                    }
-                    catch { return null; }
-
-                    result.serial = root;
-                }
-                else
-                {
-                    string player = StringConvert.FindLastText(content, "new TortugaCore", "</script>");
-
-                    result.content = player ?? content;
-                    onlog?.Invoke("content: " + result.content);
-                }
             }
 
             return result;
@@ -282,19 +278,19 @@ namespace Shared.Engine.Online
             if (string.IsNullOrWhiteSpace(link))
                 return null;
 
-            string news = await http.Get(link);
-            if (news == null)
+            string iframeUri = null;
+
+            await http.GetSpan(link, news =>
+            {
+                iframeUri = Rx.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"");
+                if (string.IsNullOrEmpty(iframeUri))
+                    iframeUri = Rx.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"");
+            });
+
+            if (string.IsNullOrEmpty(iframeUri))
             {
                 requesterror?.Invoke();
                 return null;
-            }
-
-            string iframeUri = Regex.Match(news, "src=\"(https?://tortuga\\.[a-z]+/[^\"]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(iframeUri))
-            {
-                iframeUri = Regex.Match(news, "src=\"(https?://ashdi\\.vip/[^\"]+)\"").Groups[1].Value;
-                if (string.IsNullOrEmpty(iframeUri))
-                    return null;
             }
 
             return iframeUri;

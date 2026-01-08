@@ -68,7 +68,7 @@ namespace Shared.Engine.Online
 
                     embed = new EmbedModel()
                     {
-                        content = content.ToString()
+                        content = rx[1].ToString()
                     };
 
                     return;
