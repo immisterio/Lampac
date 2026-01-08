@@ -67,8 +67,7 @@ namespace Online.Controllers
                host,
                token,
                "lite/filmix",
-               ongettourl => httpHydra.Get(ongettourl, useDefaultHeaders: false, safety: !string.IsNullOrEmpty(token)),
-               (url, data, head) => httpHydra.Post(url, data, addheaders: head, useDefaultHeaders: false, safety: !string.IsNullOrEmpty(token)),
+               httpHydra,
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager?.Refresh(),
                rjson: rjson

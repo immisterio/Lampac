@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online.Filmix;
 using Shared.Models.Online.Settings;
@@ -25,14 +24,13 @@ namespace Shared.Engine.Online
         public string token;
         string host, args, route;
         string apihost;
-        Func<string, Task<string>> onget;
-        Func<string, string, List<HeadersModel>, Task<string>> onpost;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
         bool rjson;
+        HttpHydra httpHydra;
 
-        public FilmixInvoke(FilmixSettings init, string host, string token, string route, Func<string, Task<string>> onget, Func<string, string, List<HeadersModel>, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
+        public FilmixInvoke(FilmixSettings init, string host, string token, string route, HttpHydra httpHydra, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
             this.init = init;
             apihost = init.corsHost();
@@ -40,12 +38,11 @@ namespace Shared.Engine.Online
             this.token = token;
             this.route = route;
             this.host = host != null ? $"{host}/" : null;
-            this.onget = onget;
-            this.onpost = onpost;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.requesterror = requesterror;
             this.rjson = rjson;
+            this.httpHydra = httpHydra;
 
             string user_dev_id = user_dev_ids.GetOrAdd(token ?? string.Empty, (k) => UnicTo.Code(16));
 
@@ -62,17 +59,7 @@ namespace Shared.Engine.Online
             string uri = $"{apihost}/api/v2/search?story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&{args}";
             onlog?.Invoke(uri);
             
-            string json = await onget.Invoke(uri);
-            if (json == null)
-                return await Search2(title, original_title, clarification, year);
-
-            List<SearchModel> root = null;
-
-            try
-            {
-                root = JsonConvert.DeserializeObject<List<SearchModel>>(json);
-            }
-            catch { }
+            var root = await httpHydra.Get<List<SearchModel>>(uri, useDefaultHeaders: false, safety: !string.IsNullOrEmpty(token));
 
             if (root == null || root.Count == 0)
                 return await Search2(title, original_title, clarification, year);
@@ -123,22 +110,19 @@ namespace Shared.Engine.Online
                 string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(story)}&limit=48";
                 onlog?.Invoke(uri);
 
-                string json = await onget.Invoke(uri);
-                if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
-                    return null;
-
-                List<SearchModel> root = null;
+                List<SearchModel> items = null;
 
                 try
                 {
-                    root = JObject.Parse(json)?["items"]?.ToObject<List<SearchModel>>();
+                    var root = await httpHydra.Get<JObject>(uri, useDefaultHeaders: false, safety: !string.IsNullOrEmpty(token));
+                    items = root["items"]?.ToObject<List<SearchModel>>();
                 }
                 catch { }
 
-                if (root == null || root.Count == 0)
+                if (items == null || items.Count == 0)
                     return null;
 
-                return root;
+                return items;
             }
 
             var result = await gosearch(clarification == 1 ? original_title : title);
@@ -188,69 +172,69 @@ namespace Shared.Engine.Online
         {
             return null;
 
-            if (disableSphinxSearch)
-            {
-                requesterror?.Invoke();
-                return null;
-            }
+            //if (disableSphinxSearch)
+            //{
+            //    requesterror?.Invoke();
+            //    return null;
+            //}
 
-            onlog?.Invoke("Search3");
+            //onlog?.Invoke("Search3");
 
-            string html = await onpost.Invoke("https://filmix.my/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
-                ("Origin", "https://filmix.my"),
-                ("Referer", "https://filmix.my/search/"),
-                ("X-Requested-With", "XMLHttpRequest"),
-                ("Sec-Fetch-Site", "same-origin"),
-                ("Sec-Fetch-Mode", "cors"),
-                ("Sec-Fetch-Dest", "empty"),
-                ("Cookie", "x-a-key=sinatra; FILMIXNET=2g5orcue70hmbkugbr7vi431l0; _ga_GYLWSWSZ3C=GS1.1.1703578122.1.0.1703578122.0.0.0; _ga=GA1.1.1855910641.1703578123")
-            ));
+            //string html = await onpost.Invoke("https://filmix.my/engine/ajax/sphinx_search.php", $"scf=fx&story={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&search_start=0&do=search&subaction=search&years_ot=1902&years_do={DateTime.Today.Year}&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1", HeadersModel.Init( 
+            //    ("Origin", "https://filmix.my"),
+            //    ("Referer", "https://filmix.my/search/"),
+            //    ("X-Requested-With", "XMLHttpRequest"),
+            //    ("Sec-Fetch-Site", "same-origin"),
+            //    ("Sec-Fetch-Mode", "cors"),
+            //    ("Sec-Fetch-Dest", "empty"),
+            //    ("Cookie", "x-a-key=sinatra; FILMIXNET=2g5orcue70hmbkugbr7vi431l0; _ga_GYLWSWSZ3C=GS1.1.1703578122.1.0.1703578122.0.0.0; _ga=GA1.1.1855910641.1703578123")
+            //));
 
-            if (html == null)
-            {
-                requesterror?.Invoke();
-                return null;
-            }
+            //if (html == null)
+            //{
+            //    requesterror?.Invoke();
+            //    return null;
+            //}
 
-            var rows = html.Split("</article>");
+            //var rows = html.Split("</article>");
 
-            var ids = new List<int>(rows.Length);
-            var stpl = new SimilarTpl(rows.Length);
+            //var ids = new List<int>(rows.Length);
+            //var stpl = new SimilarTpl(rows.Length);
 
-            string enc_title = HttpUtility.UrlEncode(title);
-            string enc_original_title = HttpUtility.UrlEncode(original_title);
+            //string enc_title = HttpUtility.UrlEncode(title);
+            //string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-            string stitle = title?.ToLower();
-            string sorigtitle = original_title?.ToLower();
+            //string stitle = title?.ToLower();
+            //string sorigtitle = original_title?.ToLower();
 
-            foreach (string row in rows)
-            {
-                string ftitle = Regex.Match(row, "itemprop=\"name\" content=\"([^\"]+)\"").Groups[1].Value;
-                string ftitle_orig = Regex.Match(row, "itemprop=\"alternativeHeadline\" content=\"([^\"]+)\"").Groups[1].Value;
-                string fyear = Regex.Match(row, "itemprop=\"copyrightYear\"[^>]+>([0-9]{4})").Groups[1].Value;
-                string fid = Regex.Match(row, "data-id=\"([0-9]+)\"").Groups[1].Value;
+            //foreach (string row in rows)
+            //{
+            //    string ftitle = Regex.Match(row, "itemprop=\"name\" content=\"([^\"]+)\"").Groups[1].Value;
+            //    string ftitle_orig = Regex.Match(row, "itemprop=\"alternativeHeadline\" content=\"([^\"]+)\"").Groups[1].Value;
+            //    string fyear = Regex.Match(row, "itemprop=\"copyrightYear\"[^>]+>([0-9]{4})").Groups[1].Value;
+            //    string fid = Regex.Match(row, "data-id=\"([0-9]+)\"").Groups[1].Value;
 
-                if (int.TryParse(fid, out int id) && id > 0)
-                {
-                    string name = !string.IsNullOrEmpty(ftitle) && !string.IsNullOrEmpty(ftitle_orig) ? $"{ftitle} / {ftitle_orig}" : (ftitle ?? ftitle_orig);
+            //    if (int.TryParse(fid, out int id) && id > 0)
+            //    {
+            //        string name = !string.IsNullOrEmpty(ftitle) && !string.IsNullOrEmpty(ftitle_orig) ? $"{ftitle} / {ftitle_orig}" : (ftitle ?? ftitle_orig);
 
-                    stpl.Append(name, fyear, string.Empty, host + $"{route}?postid={id}&title={enc_title}&original_title={enc_original_title}");
+            //        stpl.Append(name, fyear, string.Empty, host + $"{route}?postid={id}&title={enc_title}&original_title={enc_original_title}");
 
-                    if ((!string.IsNullOrEmpty(stitle) && ftitle.ToLower() == stitle) ||
-                        (!string.IsNullOrEmpty(sorigtitle) && ftitle_orig.ToLower() == sorigtitle))
-                    {
-                        if (fyear == year.ToString())
-                            ids.Add(id);
-                    }
-                }
-            }
+            //        if ((!string.IsNullOrEmpty(stitle) && ftitle.ToLower() == stitle) ||
+            //            (!string.IsNullOrEmpty(sorigtitle) && ftitle_orig.ToLower() == sorigtitle))
+            //        {
+            //            if (fyear == year.ToString())
+            //                ids.Add(id);
+            //        }
+            //    }
+            //}
 
-            onlog?.Invoke("ids: " + ids.Count);
+            //onlog?.Invoke("ids: " + ids.Count);
 
-            if (ids.Count == 1)
-                return new SearchResult() { id = ids[0] };
+            //if (ids.Count == 1)
+            //    return new SearchResult() { id = ids[0] };
 
-            return new SearchResult() { similars = stpl };
+            //return new SearchResult() { similars = stpl };
         }
         #endregion
 
@@ -260,7 +244,7 @@ namespace Shared.Engine.Online
             string uri = $"{apihost}/api/v2/post/{postid}?{args}";
             onlog?.Invoke(uri);
 
-            string json = await onget.Invoke(uri);
+            string json = await httpHydra.Get(uri, useDefaultHeaders: false, safety: !string.IsNullOrEmpty(token));
             if (json == null)
             {
                 requesterror?.Invoke();

@@ -336,7 +336,7 @@ namespace Shared.Engine
             }, 
             url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog);
 
-            return (default, req.response);
+            return (result, req.response);
         }
         #endregion
 

@@ -34,9 +34,9 @@ namespace Online.Controllers
                 (
                    host,
                    module == "dash" ? "lite/collaps-dash" : "lite/collaps",
+                   httpHydra,
                    init.corsHost(),
                    init.dash,
-                   ongettourl => httpHydra.Get(ongettourl),
                    onstreamtofile => rch?.enable == true ? onstreamtofile : HostStreamProxy(onstreamtofile),
                    requesterror: () => proxyManager?.Refresh()
                 );
@@ -55,7 +55,7 @@ namespace Online.Controllers
                 return badInitMsg;
 
             rhubFallback:
-            var cache = await InvokeCacheResult($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", 20, 
+            var cache = await InvokeCacheResult($"collaps:view:{imdb_id}:{kinopoisk_id}:{orid}", 20,
                 () => oninvk.Embed(imdb_id, kinopoisk_id, orid)
             );
 

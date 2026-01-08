@@ -1,4 +1,5 @@
-﻿using Shared.Models.Base;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models.Base;
 using Shared.Models.Online.Ashdi;
 using Shared.Models.Templates;
 using System.Text.Json;
@@ -12,7 +13,7 @@ namespace Shared.Engine.Online
         #region AshdiInvoke
         string host;
         string apihost;
-        HttpHydra http;
+        HttpHydra httpHydra;
         Func<string, string> onstreamfile;
         Action requesterror;
 
@@ -20,7 +21,7 @@ namespace Shared.Engine.Online
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
-            http = httpHydra;
+            this.httpHydra = httpHydra;
             this.onstreamfile = onstreamfile;
             this.requesterror = requesterror;
         }
@@ -29,44 +30,67 @@ namespace Shared.Engine.Online
         #region Embed
         public async Task<EmbedModel> Embed(long kinopoisk_id)
         {
-            string product = await http.Get($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}", statusCodeOK: false);
-            if (product == null)
+            string iframeuri = null;
+            EmbedModel embed = null;
+
+            await httpHydra.GetSpan($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}", product =>
             {
-                requesterror?.Invoke();
-                return null;
-            }
+                if (product.IsEmpty)
+                    return;
 
-            if (product.Contains("Product does not exist"))
-                return new EmbedModel() { IsEmpty = true };
+                if (product.Contains("Product does not exist", StringComparison.OrdinalIgnoreCase))
+                {
+                    embed = new EmbedModel() { IsEmpty = true };
+                    return;
+                }
 
-            string iframeuri = Regex.Match(product, "src=\"(https?://[^\"]+)\"").Groups[1].Value;
+                iframeuri = Rx.Match(product, "src=\"(https?://[^\"]+)\"");
+
+            }, statusCodeOK: false);
+
             if (string.IsNullOrWhiteSpace(iframeuri))
-            {
-                requesterror?.Invoke();
                 return null;
-            }
 
-            string content = await http.Get(iframeuri);
-            if (content == null || !content.Contains("Playerjs"))
+
+            await httpHydra.GetSpan(iframeuri, content =>
             {
+                if (content.IsEmpty)
+                    return;
+
+                if (!content.Contains("new Playerjs", StringComparison.Ordinal))
+                    return;
+
+                if (!Regex.IsMatch(content, "file:([\t ]+)?'\\[\\{"))
+                {
+                    var rx = Rx.Split("new Playerjs", content);
+                    if (1 > rx.Count)
+                        return;
+
+                    embed = new EmbedModel()
+                    {
+                        content = content.ToString()
+                    };
+
+                    return;
+                }
+                else
+                {
+                    try
+                    {
+                        var root = JsonSerializer.Deserialize<Voice[]>(Rx.Match(content, "file:([\t ]+)?'([^\n\r]+)',", 2));
+                        if (root != null && root.Length > 0)
+                            embed = new EmbedModel() { serial = root };
+                    }
+                    catch { }
+                }
+            });
+
+
+
+            if (embed == null)
                 requesterror?.Invoke();
-                return null;
-            }
 
-            if (!Regex.IsMatch(content, "file:([\t ]+)?'\\[\\{"))
-                return new EmbedModel() { content = content };
-
-            Voice[] root = null;
-
-            try
-            {
-                root = JsonSerializer.Deserialize<Voice[]>(Regex.Match(content, "file:([\t ]+)?'([^\n\r]+)',").Groups[2].Value);
-                if (root == null || root.Length == 0)
-                    return null;
-            }
-            catch { return null; }
-
-            return new EmbedModel() { serial = root };
+            return embed;
         }
         #endregion
 

@@ -1,4 +1,5 @@
-﻿using Shared.Models;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online.Collaps;
 using Shared.Models.Templates;
@@ -14,52 +15,67 @@ namespace Shared.Engine.Online
         string host, route;
         string apihost;
         bool dash;
-        Func<string, Task<string>> onget;
         Func<string, string> onstreamfile;
         Action requesterror;
+        HttpHydra httpHydra;
 
-        public CollapsInvoke(string host, string route, string apihost, bool dash, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
+        public CollapsInvoke(string host, string route, HttpHydra httpHydra, string apihost, bool dash, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.route = route;
             this.apihost = apihost;
             this.dash = dash;
-            this.onget = onget;
             this.onstreamfile = onstreamfile;
             this.requesterror = requesterror;
+            this.httpHydra = httpHydra;
         }
         #endregion
 
         #region Embed
-        public async Task<EmbedModel> Embed(string imdb_id, long kinopoisk_id, long orid)
+        async public Task<EmbedModel> Embed(string imdb_id, long kinopoisk_id, long orid)
         {
-            string uri = $"{apihost}/embed/imdb/{imdb_id}";
+            string url = $"{apihost}/embed/imdb/{imdb_id}";
+
             if (kinopoisk_id > 0)
-                uri = $"{apihost}/embed/kp/{kinopoisk_id}";
+                url = $"{apihost}/embed/kp/{kinopoisk_id}";
+
             if (orid > 0)
-                uri = $"{apihost}/embed/movie/{orid}";
+                url = $"{apihost}/embed/movie/{orid}";
 
-            string content = await onget.Invoke(uri);
-            if (string.IsNullOrEmpty(content))
+            EmbedModel embed = null;
+
+            await httpHydra.GetSpan(url, content =>
             {
+                if (content.IsEmpty)
+                    return;
+
+                if (!content.Contains("seasons:", StringComparison.Ordinal))
+                {
+                    var rx = Rx.Split("makePlayer\\(\\{", content);
+                    if (1 > rx.Count)
+                        return;
+
+                    embed = new EmbedModel()
+                    {
+                        content = rx[1].ToString()
+                    };
+                }
+                else
+                {
+                    try
+                    {
+                        var root = JsonSerializer.Deserialize<RootObject[]>(Rx.Match(content, "seasons:([^\n\r]+)"));
+                        if (root != null && root.Length > 0)
+                            embed = new EmbedModel() { serial = root };
+                    }
+                    catch { }
+                }
+            });
+
+            if (embed == null)
                 requesterror?.Invoke();
-                return null;
-            }
 
-            if (!content.Contains("seasons:"))
-                return new EmbedModel() { content = content };
-
-            RootObject[] root = null;
-
-            try
-            {
-                root = JsonSerializer.Deserialize<RootObject[]>(Regex.Match(content, "seasons:([^\n\r]+)").Groups[1].Value);
-                if (root == null || root.Length == 0)
-                    return null;
-            }
-            catch { return null; }
-
-            return new EmbedModel() { serial = root };
+            return embed;
         }
         #endregion
 
