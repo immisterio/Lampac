@@ -323,13 +323,13 @@ namespace Shared.Engine
         {
             using (var ms = msm.GetStream())
             {
-                try
-                {
-                    T result = default;
+                T result = default;
 
-                    var req = await BaseGetReaderAsync(async e =>
+                var req = await BaseGetReaderAsync(async e =>
+                {
+                    try
                     {
-                        await e.stream.CopyToAsync(ms, e.ct);
+                        await e.stream.CopyToAsync(ms, 64_000, e.ct);
                         ms.Position = 0;
 
                         using (var streamReader = new StreamReader(ms))
@@ -346,16 +346,13 @@ namespace Shared.Engine
                                     e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
                             }
                         }
-                    },
-                        url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
-                    ).ConfigureAwait(false);
+                    }
+                    catch { }
+                },
+                    url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
+                ).ConfigureAwait(false);
 
-                    return (result, req.response);
-                }
-                catch 
-                {
-                    return default;
-                }
+                return (result, req.response);
             }
         }
         #endregion
@@ -467,11 +464,11 @@ namespace Shared.Engine
         {
             using (var ms = msm.GetStream())
             {
-                try
+                var req = await BaseGetReaderAsync(async e =>
                 {
-                    var req = await BaseGetReaderAsync(async e =>
+                    try
                     {
-                        await e.stream.CopyToAsync(ms, e.ct);
+                        await e.stream.CopyToAsync(ms, 64_000, e.ct);
                         ms.Position = 0;
 
                         var encdg = encoding != default ? encoding : Encoding.UTF8;
@@ -490,16 +487,13 @@ namespace Shared.Engine
                                     e.loglines.Append($"\n{result.ToString()}");
                             }
                         }
-                    },
-                        url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
-                    ).ConfigureAwait(false);
+                    }
+                    catch { }
+                },
+                    url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
+                ).ConfigureAwait(false);
 
-                    return req.success;
-                }
-                catch 
-                {
-                    return false;
-                }
+                return req.success;
             }
         }
         #endregion
@@ -509,11 +503,11 @@ namespace Shared.Engine
         {
             using (var ms = msm.GetStream())
             {
-                try
+                var req = await BasePostReaderAsync(async e =>
                 {
-                    var req = await BasePostReaderAsync(async e =>
+                    try
                     {
-                        await e.stream.CopyToAsync(ms, e.ct);
+                        await e.stream.CopyToAsync(ms, 64_000, e.ct);
                         ms.Position = 0;
 
                         var encdg = encoding != default ? encoding : Encoding.UTF8;
@@ -532,17 +526,14 @@ namespace Shared.Engine
                                     e.loglines.Append($"\n{result.ToString()}");
                             }
                         }
-                    },
-                        url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
-                        cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
-                    ).ConfigureAwait(false);
+                    }
+                    catch { }
+                },
+                    url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
+                    cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
+                ).ConfigureAwait(false);
 
-                    return req.success;
-                }
-                catch 
-                { 
-                    return false; 
-                }
+                return req.success;
             }
         }
         #endregion
@@ -828,11 +819,11 @@ namespace Shared.Engine
             {
                 T result = default;
 
-                try
+                var req = await BasePostReaderAsync(async e =>
                 {
-                    var req = await BasePostReaderAsync(async e =>
+                    try
                     {
-                        await e.stream.CopyToAsync(ms, e.ct);
+                        await e.stream.CopyToAsync(ms, 64_000, e.ct);
                         ms.Position = 0;
 
                         using (var streamReader = new StreamReader(ms))
@@ -849,11 +840,11 @@ namespace Shared.Engine
                                     e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
                             }
                         }
-                    },
-                        url, data, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
-                    ).ConfigureAwait(false);
-                }
-                catch { }
+                    }
+                    catch { }
+                },
+                    url, data, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
+                ).ConfigureAwait(false);
 
                 return result;
             }
@@ -1039,7 +1030,7 @@ namespace Shared.Engine
                         {
                             using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
                             {
-                                await stream.CopyToAsync(fileStream);
+                                await stream.CopyToAsync(fileStream, 32_000);
                                 return true;
                             }
                         }

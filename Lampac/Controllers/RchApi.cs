@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Engine;
@@ -38,7 +39,7 @@ namespace Lampac.Controllers
 
             try
             {
-                await Request.Body.CopyToAsync(rchHub.ms);
+                await Request.Body.CopyToAsync(rchHub.ms, 64_000, HttpContext.RequestAborted);
                 rchHub.ms.Position = 0;
 
                 rchHub.tcs.TrySetResult(null);
@@ -67,7 +68,7 @@ namespace Lampac.Controllers
             {
                 using (var gzip = new GZipStream(Request.Body, CompressionMode.Decompress, leaveOpen: true))
                 {
-                    await gzip.CopyToAsync(rchHub.ms);
+                    await gzip.CopyToAsync(rchHub.ms, 32_000, HttpContext.RequestAborted);
                     rchHub.ms.Position = 0;
 
                     rchHub.tcs.TrySetResult(null);

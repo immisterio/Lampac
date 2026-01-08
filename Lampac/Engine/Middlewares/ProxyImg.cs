@@ -383,7 +383,7 @@ namespace Lampac.Engine.Middlewares
 
                                 try
                                 {
-                                    await resultArray.CopyToAsync(httpContext.Response.Body, ctsHttp.Token).ConfigureAwait(false);
+                                    await resultArray.CopyToAsync(httpContext.Response.Body, 32_000, ctsHttp.Token).ConfigureAwait(false);
 
                                     if (cacheimg)
                                         await TrySaveCache(resultArray, outFile, md5key);
@@ -472,7 +472,7 @@ namespace Lampac.Engine.Middlewares
                 ms.Position = 0;
 
                 using (var streamFile = File.OpenWrite(outFile))
-                    await ms.CopyToAsync(streamFile);
+                    await ms.CopyToAsync(streamFile, 32_000);
 
                 if (AppInit.conf.multiaccess)
                     cacheFiles[md5key] = (int)ms.Length;
@@ -540,7 +540,7 @@ namespace Lampac.Engine.Middlewares
                 inArray.Position = 0;
 
                 using (var streamFile = File.OpenWrite(inputFilePath))
-                    await inArray.CopyToAsync(streamFile);
+                    await inArray.CopyToAsync(streamFile, 32_000);
 
                 string argsize = width > 0 && height > 0 ? $"{width}x{height}" : width > 0 ? $"{width}x" : $"x{height}";
 
@@ -561,7 +561,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 using (var streamFile = File.OpenRead(outputFilePath))
-                    await streamFile.CopyToAsync(outArray);
+                    await streamFile.CopyToAsync(outArray, 32_000);
 
                 return true;
             }
