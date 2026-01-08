@@ -389,28 +389,37 @@ namespace Shared.Engine
                     string stringValue = await rchHub.tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
 
                     if (stringValue != null)
-                        return stringValue;
-
-                    if (ms.Length == 0)
-                        return null;
-
-                    var encoding = Encoding.UTF8;
-                    int charCount = encoding.GetMaxCharCount((int)ms.Length);
-
-                    using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
                     {
-                        using (var reader = new StreamReader(ms, encoding, detectEncodingFromByteOrderMarks: false))
+                        if (string.IsNullOrWhiteSpace(stringValue))
+                            return null;
+
+                        spanAction?.Invoke(stringValue);
+
+                        return stringValue;
+                    }
+                    else
+                    {
+                        if (ms.Length == 0)
+                            return null;
+
+                        var encoding = Encoding.UTF8;
+                        int charCount = encoding.GetMaxCharCount((int)ms.Length);
+
+                        using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
                         {
-                            int actualChars = reader.Read(owner.Memory.Span);
-                            ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
-
-                            if (spanAction != null)
+                            using (var reader = new StreamReader(ms, encoding, detectEncodingFromByteOrderMarks: false))
                             {
-                                spanAction.Invoke(result);
-                                return null;
-                            }
+                                int actualChars = reader.Read(owner.Memory.Span);
+                                ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
 
-                            return result.ToString();
+                                if (spanAction != null)
+                                {
+                                    spanAction.Invoke(result);
+                                    return null;
+                                }
+
+                                return result.ToString();
+                            }
                         }
                     }
                 }

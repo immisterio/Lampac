@@ -323,32 +323,39 @@ namespace Shared.Engine
         {
             using (var ms = msm.GetStream())
             {
-                T result = default;
-
-                var req = await BaseGetReaderAsync(async e =>
+                try
                 {
-                    await e.stream.CopyToAsync(ms, e.ct);
-                    ms.Position = 0;
+                    T result = default;
 
-                    using (var streamReader = new StreamReader(ms))
+                    var req = await BaseGetReaderAsync(async e =>
                     {
-                        using (var jsonReader = new JsonTextReader(streamReader))
+                        await e.stream.CopyToAsync(ms, e.ct);
+                        ms.Position = 0;
+
+                        using (var streamReader = new StreamReader(ms))
                         {
-                            var serializer = JsonSerializer.Create(
-                                IgnoreDeserializeObject ? jsonSettings : null
-                            );
+                            using (var jsonReader = new JsonTextReader(streamReader))
+                            {
+                                var serializer = JsonSerializer.Create(
+                                    IgnoreDeserializeObject ? jsonSettings : null
+                                );
 
-                            result = serializer.Deserialize<T>(jsonReader);
+                                result = serializer.Deserialize<T>(jsonReader);
 
-                            if (IsLogged)
-                                e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+                                if (IsLogged)
+                                    e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+                            }
                         }
-                    }
-                },
-                    url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
-                ).ConfigureAwait(false);
+                    },
+                        url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
+                    ).ConfigureAwait(false);
 
-                return (result, req.response);
+                    return (result, req.response);
+                }
+                catch 
+                {
+                    return default;
+                }
             }
         }
         #endregion
@@ -460,32 +467,39 @@ namespace Shared.Engine
         {
             using (var ms = msm.GetStream())
             {
-                var req = await BaseGetReaderAsync(async e =>
+                try
                 {
-                    await e.stream.CopyToAsync(ms, e.ct);
-                    ms.Position = 0;
-
-                    var encdg = encoding != default ? encoding : Encoding.UTF8;
-                    int charCount = encdg.GetMaxCharCount((int)ms.Length);
-
-                    using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
+                    var req = await BaseGetReaderAsync(async e =>
                     {
-                        using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false))
+                        await e.stream.CopyToAsync(ms, e.ct);
+                        ms.Position = 0;
+
+                        var encdg = encoding != default ? encoding : Encoding.UTF8;
+                        int charCount = encdg.GetMaxCharCount((int)ms.Length);
+
+                        using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
                         {
-                            int actualChars = reader.Read(owner.Memory.Span);
-                            ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
+                            using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false))
+                            {
+                                int actualChars = reader.Read(owner.Memory.Span);
+                                ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
 
-                            spanAction.Invoke(result);
+                                spanAction.Invoke(result);
 
-                            if (IsLogged)
-                                e.loglines.Append($"\n{result.ToString()}");
+                                if (IsLogged)
+                                    e.loglines.Append($"\n{result.ToString()}");
+                            }
                         }
-                    }
-                },
-                    url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
-                ).ConfigureAwait(false);
+                    },
+                        url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
+                    ).ConfigureAwait(false);
 
-                return req.success;
+                    return req.success;
+                }
+                catch 
+                {
+                    return false;
+                }
             }
         }
         #endregion
@@ -495,33 +509,40 @@ namespace Shared.Engine
         {
             using (var ms = msm.GetStream())
             {
-                var req = await BasePostReaderAsync(async e =>
+                try
                 {
-                    await e.stream.CopyToAsync(ms, e.ct);
-                    ms.Position = 0;
-
-                    var encdg = encoding != default ? encoding : Encoding.UTF8;
-                    int charCount = encdg.GetMaxCharCount((int)ms.Length);
-
-                    using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
+                    var req = await BasePostReaderAsync(async e =>
                     {
-                        using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false))
+                        await e.stream.CopyToAsync(ms, e.ct);
+                        ms.Position = 0;
+
+                        var encdg = encoding != default ? encoding : Encoding.UTF8;
+                        int charCount = encdg.GetMaxCharCount((int)ms.Length);
+
+                        using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
                         {
-                            int actualChars = reader.Read(owner.Memory.Span);
-                            ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
+                            using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false))
+                            {
+                                int actualChars = reader.Read(owner.Memory.Span);
+                                ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
 
-                            spanAction.Invoke(result);
+                                spanAction.Invoke(result);
 
-                            if (IsLogged)
-                                e.loglines.Append($"\n{result.ToString()}");
+                                if (IsLogged)
+                                    e.loglines.Append($"\n{result.ToString()}");
+                            }
                         }
-                    }
-                },
-                    url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
-                    cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
-                ).ConfigureAwait(false);
+                    },
+                        url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
+                        cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
+                    ).ConfigureAwait(false);
 
-                return req.success;
+                    return req.success;
+                }
+                catch 
+                { 
+                    return false; 
+                }
             }
         }
         #endregion
@@ -807,28 +828,32 @@ namespace Shared.Engine
             {
                 T result = default;
 
-                var req = await BasePostReaderAsync(async e =>
+                try
                 {
-                    await e.stream.CopyToAsync(ms, e.ct);
-                    ms.Position = 0;
-
-                    using (var streamReader = new StreamReader(ms))
+                    var req = await BasePostReaderAsync(async e =>
                     {
-                        using (var jsonReader = new JsonTextReader(streamReader))
+                        await e.stream.CopyToAsync(ms, e.ct);
+                        ms.Position = 0;
+
+                        using (var streamReader = new StreamReader(ms))
                         {
-                            var serializer = JsonSerializer.Create(
-                                IgnoreDeserializeObject ? jsonSettings : null
-                            );
+                            using (var jsonReader = new JsonTextReader(streamReader))
+                            {
+                                var serializer = JsonSerializer.Create(
+                                    IgnoreDeserializeObject ? jsonSettings : null
+                                );
 
-                            result = serializer.Deserialize<T>(jsonReader);
+                                result = serializer.Deserialize<T>(jsonReader);
 
-                            if (IsLogged)
-                                e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+                                if (IsLogged)
+                                    e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
+                            }
                         }
-                    }
-                },
-                    url, data, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
-                ).ConfigureAwait(false);
+                    },
+                        url, data, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
+                    ).ConfigureAwait(false);
+                }
+                catch { }
 
                 return result;
             }
