@@ -181,7 +181,7 @@ namespace TorrServer.Controllers
                     return;
                 }
 
-                using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, leaveOpen: true))
+                using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
                 {
                     string requestJson = await reader.ReadToEndAsync().ConfigureAwait(false);
 
@@ -218,7 +218,7 @@ namespace TorrServer.Controllers
                 if (HttpContext.Request.Method == "POST" && pathRequest == "/torrents" && user?.group != 666)
                 {
                     HttpContext.Request.EnableBuffering();
-                    using (var readerBody = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, leaveOpen: true)) // Оставляем поток открытым
+                    using (var readerBody = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, bufferSize: PoolInvk.bufferSize, leaveOpen: true)) // Оставляем поток открытым
                     {
                         string requestJson = await readerBody.ReadToEndAsync().ConfigureAwait(false);
 
@@ -381,7 +381,7 @@ namespace TorrServer.Controllers
             if (!responseStream.CanRead || !response.Body.CanWrite)
                 throw new NotSupportedException("NotSupported_UnreadableStream");
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
 
             try
             {

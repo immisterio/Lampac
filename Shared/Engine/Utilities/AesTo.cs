@@ -50,7 +50,7 @@ namespace Shared.Engine
                 int blockSize = aes.BlockSize / 8; // 16
                 int paddedLen = ((writtenPlain / blockSize) + 1) * blockSize;
 
-                cipherBuf = ArrayPool<byte>.Shared.Rent(paddedLen);
+                cipherBuf = ArrayPool<byte>.Shared.Rent(PoolInvk.Rent(paddedLen));
 
                 // ВАЖНО: iv вторым параметром, destination третьим
                 int cipherLen = aes.EncryptCbc(
@@ -91,7 +91,7 @@ namespace Shared.Engine
                 var aes = state.Aes;
 
                 int maxCipherBytes = GetMaxDecodedLength(cipherText.Length);
-                cipherBuf = ArrayPool<byte>.Shared.Rent(maxCipherBytes);
+                cipherBuf = ArrayPool<byte>.Shared.Rent(PoolInvk.Rent(maxCipherBytes));
 
                 if (!Convert.TryFromBase64String(cipherText, cipherBuf, out int cipherLen))
                     return null;

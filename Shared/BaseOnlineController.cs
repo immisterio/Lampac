@@ -379,7 +379,8 @@ namespace Shared
             var encoder = Encoding.UTF8.GetEncoder();
             var ct = HttpContext.RequestAborted;
 
-            var buffer = new ArrayBufferWriter<byte>(Math.Min(80_000, tpl.Length));
+            var bodyWriter = response.BodyWriter;
+            long pendingBytes = 0;
 
             foreach (var chunk in sb.GetChunks())
             {
@@ -390,7 +391,9 @@ namespace Shared
                     continue;
 
                 int maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
-                Span<byte> dest = buffer.GetSpan(maxBytes);
+
+                // Берём буфер напрямую у PipeWriter
+                Span<byte> dest = bodyWriter.GetSpan(maxBytes);
 
                 encoder.Convert(
                     chars,
@@ -400,23 +403,59 @@ namespace Shared
                     out int bytesUsed,
                     out bool completed);
 
-                buffer.Advance(bytesUsed);
+                // Обычно Convert при достаточном dest использует все chars.
+                // Но оставим защитный цикл на случай, если кто-то поменяет логику/буфер.
+                bodyWriter.Advance(bytesUsed);
+                pendingBytes += bytesUsed;
 
-                // Cбрасываем буфер в Response
-                if (buffer.WrittenCount > 30_0000)
+                while (!completed)
                 {
-                    await response.BodyWriter.WriteAsync(buffer.WrittenMemory, ct);
-                    buffer.Clear();
+                    chars = chars.Slice(charsUsed);
+
+                    maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
+                    dest = bodyWriter.GetSpan(maxBytes);
+
+                    encoder.Convert(
+                        chars,
+                        dest,
+                        flush: false,
+                        out charsUsed,
+                        out bytesUsed,
+                        out completed);
+
+                    bodyWriter.Advance(bytesUsed);
+                    pendingBytes += bytesUsed;
+                }
+
+                // Сбрасываем накопленное в транспорт
+                if (pendingBytes > 30_000)
+                {
+                    await bodyWriter.FlushAsync(ct);
+                    pendingBytes = 0;
                 }
             }
 
             // Дофлашить состояние энкодера (границы чанков/суррогаты)
-            Span<byte> tail = buffer.GetSpan(256);
-            encoder.Convert(ReadOnlySpan<char>.Empty, tail, flush: true, out _, out int tailBytes, out _);
-            buffer.Advance(tailBytes);
+            {
+                Span<byte> tail = bodyWriter.GetSpan(256);
+                encoder.Convert(
+                    ReadOnlySpan<char>.Empty,
+                    tail,
+                    flush: true,
+                    out _,
+                    out int tailBytes,
+                    out _);
 
-            if (buffer.WrittenCount > 0)
-                await response.BodyWriter.WriteAsync(buffer.WrittenMemory, ct);
+                if (tailBytes > 0)
+                {
+                    bodyWriter.Advance(tailBytes);
+                    pendingBytes += tailBytes;
+                }
+            }
+
+            // Финальный flush (если что-то осталось в writer)
+            if (pendingBytes > 0)
+                await bodyWriter.FlushAsync(ct);
 
             return new EmptyResult();
         }

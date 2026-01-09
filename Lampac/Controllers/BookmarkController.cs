@@ -193,7 +193,7 @@ namespace Lampac.Controllers
             if (string.IsNullOrEmpty(requestInfo.user_uid) || !AppInit.conf.sync_user.enable)
                 return JsonFailure();
 
-            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
             {
                 string body = await reader.ReadToEndAsync();
                 if (string.IsNullOrWhiteSpace(body))
@@ -711,7 +711,7 @@ namespace Lampac.Controllers
             JToken token = null;
             var payloads = new List<BookmarkEventPayload>();
 
-            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
             {
                 try
                 {

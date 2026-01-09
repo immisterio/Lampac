@@ -390,17 +390,13 @@ namespace Lampac.Engine.Middlewares
                             #region cache
                             httpContex.Response.Headers["X-Cache-Status"] = "MISS";
 
-                            byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+                            byte[] buffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
 
                             try
                             {
                                 int cacheLength = 0;
 
-                                int bufferSize = response.Content.Headers.ContentLength.HasValue
-                                    ? (int)response.Content.Headers.ContentLength.Value
-                                    : 50_000; // 50kB
-
-                                using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
+                                using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize))
                                 {
                                     using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                     {

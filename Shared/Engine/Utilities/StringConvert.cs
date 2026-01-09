@@ -69,22 +69,20 @@ namespace Shared.Engine
 
 
         #region SearchName
-        public static string SearchName(string val, string empty = null)
+        public static string SearchName(ReadOnlySpan<char> val, string empty = null)
         {
-            if (string.IsNullOrWhiteSpace(val))
+            if (val.IsEmpty || val.Length == 0)
                 return empty;
 
-            var s = val.AsSpan();
-
             // Верхняя граница — длина входа (после фильтрации будет <=)
-            char[] rented = ArrayPool<char>.Shared.Rent(s.Length);
+            char[] rented = ArrayPool<char>.Shared.Rent(PoolInvk.Rent(val.Length));
             int n = 0;
 
             try
             {
-                for (int i = 0; i < s.Length; i++)
+                for (int i = 0; i < val.Length; i++)
                 {
-                    char c = s[i];
+                    char c = val[i];
 
                     // Быстро пропускаем whitespace и прочие явные разделители
                     if (char.IsWhiteSpace(c))

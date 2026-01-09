@@ -32,8 +32,6 @@ namespace Shared.Engine
     public class RchClient
     {
         #region static
-        static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager();
-
         static readonly Timer _checkConnectionTimer = new Timer(CheckConnection, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(4));
 
         static int _cronCheckConnectionWork = 0;
@@ -322,7 +320,7 @@ namespace Shared.Engine
 
             string rchId = Guid.NewGuid().ToString();
 
-            using (var ms = msm.GetStream())
+            using (var ms = PoolInvk.msm.GetStream())
             {
                 try
                 {
@@ -403,11 +401,11 @@ namespace Shared.Engine
                             return null;
 
                         var encoding = Encoding.UTF8;
-                        int charCount = encoding.GetMaxCharCount((int)ms.Length);
+                        int charCount = PoolInvk.MemoryOwner(encoding.GetMaxCharCount((int)ms.Length));
 
                         using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
                         {
-                            using (var reader = new StreamReader(ms, encoding, detectEncodingFromByteOrderMarks: false))
+                            using (var reader = new StreamReader(ms, encoding, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
                             {
                                 int actualChars = reader.Read(owner.Memory.Span);
                                 ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);

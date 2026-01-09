@@ -369,7 +369,7 @@ namespace Tracks.Controllers
                 try
                 {
                     fs = file.Contains(".vtt")
-                        ? new FileStream(resolved, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                        ? new FileStream(resolved, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, PoolInvk.bufferSize)
                         : System.IO.File.OpenRead(resolved);
                     break;
                 }

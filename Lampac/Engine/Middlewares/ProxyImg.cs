@@ -23,8 +23,6 @@ namespace Lampac.Engine.Middlewares
     public class ProxyImg
     {
         #region ProxyImg
-        static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager();
-
         static readonly FileSystemWatcher fileWatcher;
 
         static readonly ConcurrentDictionary<string, int> cacheFiles = new();
@@ -276,17 +274,13 @@ namespace Lampac.Engine.Middlewares
 
                             if (cacheimg)
                             {
-                                byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+                                byte[] buffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
 
                                 try
                                 {
                                     int cacheLength = 0;
 
-                                    int bufferSize = response.Content.Headers.ContentLength.HasValue
-                                        ? (int)response.Content.Headers.ContentLength.Value
-                                        : 50_000; // 50kB
-
-                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
+                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize))
                                     {
                                         using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                         {
@@ -333,7 +327,7 @@ namespace Lampac.Engine.Middlewares
                         #region rsize
                         rsize_reset:
 
-                        using (var inArray = msm.GetStream())
+                        using (var inArray = PoolInvk.msm.GetStream())
                         {
                             var result = await Download(inArray, href, ctsHttp.Token, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
 
@@ -354,7 +348,7 @@ namespace Lampac.Engine.Middlewares
                                 return;
                             }
 
-                            using (var outArray = msm.GetStream())
+                            using (var outArray = PoolInvk.msm.GetStream())
                             {
                                 bool successConvert = false;
 
@@ -383,7 +377,7 @@ namespace Lampac.Engine.Middlewares
 
                                 try
                                 {
-                                    await resultArray.CopyToAsync(httpContext.Response.Body, 32_000, ctsHttp.Token).ConfigureAwait(false);
+                                    await resultArray.CopyToAsync(httpContext.Response.Body, PoolInvk.bufferSize, ctsHttp.Token).ConfigureAwait(false);
 
                                     if (cacheimg)
                                         await TrySaveCache(resultArray, outFile, md5key);
@@ -472,7 +466,7 @@ namespace Lampac.Engine.Middlewares
                 ms.Position = 0;
 
                 using (var streamFile = File.OpenWrite(outFile))
-                    await ms.CopyToAsync(streamFile, 32_000);
+                    await ms.CopyToAsync(streamFile, PoolInvk.bufferSize);
 
                 if (AppInit.conf.multiaccess)
                     cacheFiles[md5key] = (int)ms.Length;
@@ -540,7 +534,7 @@ namespace Lampac.Engine.Middlewares
                 inArray.Position = 0;
 
                 using (var streamFile = File.OpenWrite(inputFilePath))
-                    await inArray.CopyToAsync(streamFile, 32_000);
+                    await inArray.CopyToAsync(streamFile, PoolInvk.bufferSize);
 
                 string argsize = width > 0 && height > 0 ? $"{width}x{height}" : width > 0 ? $"{width}x" : $"x{height}";
 
@@ -561,7 +555,7 @@ namespace Lampac.Engine.Middlewares
                 }
 
                 using (var streamFile = File.OpenRead(outputFilePath))
-                    await streamFile.CopyToAsync(outArray, 32_000);
+                    await streamFile.CopyToAsync(outArray, PoolInvk.bufferSize);
 
                 return true;
             }

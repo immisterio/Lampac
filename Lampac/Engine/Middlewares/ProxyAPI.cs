@@ -697,7 +697,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 while (!context.RequestAborted.IsCancellationRequested)
                                 {
-                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(buffering.rent, 8192));
+                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
 
                                     try
                                     {
@@ -755,7 +755,7 @@ namespace Lampac.Engine.Middlewares
                 }
                 else
                 {
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
 
                     try
                     {
@@ -774,7 +774,7 @@ namespace Lampac.Engine.Middlewares
 
                                 int cacheLength = 0;
 
-                                using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None, 4096*20))
+                                using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize))
                                 {
                                     int bytesRead;
                                     while ((bytesRead = await responseStream.ReadAsync(buffer, context.RequestAborted).ConfigureAwait(false)) != 0)

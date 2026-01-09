@@ -1,7 +1,6 @@
 ﻿using Lampac.Engine;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
@@ -16,8 +15,6 @@ namespace Lampac.Controllers
 {
     public class StorageController : BaseController
     {
-        static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager();
-
         #region StorageController
         static StorageController()
         {
@@ -86,7 +83,7 @@ namespace Lampac.Controllers
             if (outFile == null)
                 return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
-            using (var memoryStream = msm.GetStream())
+            using (var memoryStream = PoolInvk.msm.GetStream())
             {
                 try
                 {
@@ -110,8 +107,8 @@ namespace Lampac.Controllers
                     {
                         await semaphore.WaitAsync();
 
-                        using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                            await memoryStream.CopyToAsync(fileStream);
+                        using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize))
+                            await memoryStream.CopyToAsync(fileStream, PoolInvk.bufferSize);
                     }
                     catch
                     {
@@ -215,7 +212,7 @@ namespace Lampac.Controllers
             if (outFile == null)
                 return ContentTo("{\"success\": false, \"msg\": \"outFile\"}");
 
-            using (var memoryStream = msm.GetStream())
+            using (var memoryStream = PoolInvk.msm.GetStream())
             {
                 try
                 {
@@ -239,8 +236,8 @@ namespace Lampac.Controllers
                     {
                         await semaphore.WaitAsync();
 
-                        using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                            await memoryStream.CopyToAsync(fileStream);
+                        using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize))
+                            await memoryStream.CopyToAsync(fileStream, PoolInvk.bufferSize);
                     }
                     catch
                     {

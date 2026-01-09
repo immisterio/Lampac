@@ -117,7 +117,7 @@ namespace Lampac.Engine.Middlewares
                         if (httpContext.Request.ContentType != null &&
                             httpContext.Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
                         {
-                            using (var reader = new StreamReader(httpContext.Request.Body, leaveOpen: true))
+                            using (var reader = new StreamReader(httpContext.Request.Body, leaveOpen: true, bufferSize: PoolInvk.bufferSize))
                             {
                                 string form = await reader.ReadToEndAsync();
 
@@ -230,17 +230,13 @@ namespace Lampac.Engine.Middlewares
                             {
                                 await semaphore.WaitAsync().ConfigureAwait(false);
 
-                                byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+                                byte[] buffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
 
                                 try
                                 {
                                     int cacheLength = 0;
 
-                                    int bufferSize = response.Content.Headers.ContentLength.HasValue 
-                                        ? (int)response.Content.Headers.ContentLength.Value 
-                                        : 50_000; // 50kB
-
-                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
+                                    using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize))
                                     {
                                         using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                         {
@@ -515,7 +511,7 @@ namespace Lampac.Engine.Middlewares
                 if (!response.Body.CanWrite)
                     throw new NotSupportedException("NotSupported_UnwritableStream");
 
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
 
                 try
                 {

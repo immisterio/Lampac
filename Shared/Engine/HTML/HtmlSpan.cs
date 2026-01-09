@@ -235,7 +235,7 @@ namespace Shared.Engine
 
         private sealed class State
         {
-            public char[] Buffer { get; private set; } = ArrayPool<char>.Shared.Rent(4096);
+            public char[] Buffer { get; private set; } = ArrayPool<char>.Shared.Rent(PoolInvk.rentChunk);
             public ReusableCharArrayTextReader Reader { get; } = new();
 
             public void EnsureCapacity(int requiredLength)
@@ -243,7 +243,7 @@ namespace Shared.Engine
                 if (Buffer.Length >= requiredLength)
                     return;
 
-                var newBuf = ArrayPool<char>.Shared.Rent(requiredLength);
+                var newBuf = ArrayPool<char>.Shared.Rent(PoolInvk.Rent(requiredLength));
                 ArrayPool<char>.Shared.Return(Buffer, clearArray: false);
                 Buffer = newBuf;
             }

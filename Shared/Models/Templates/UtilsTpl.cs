@@ -27,31 +27,60 @@ namespace Shared.Models.Templates
         #region WriteJson
         public static void WriteJson<T>(StringBuilder sb, in T value, JsonSerializerOptions options)
         {
-            var bytes = new ArrayBufferWriter<byte>(1024);
-
-            using (var writer = new Utf8JsonWriter(bytes, new JsonWriterOptions
+            using (var ms = PoolInvk.msm.GetStream())
             {
-                Indented = false,
-                SkipValidation = true
-            }))
-            {
-                JsonSerializer.Serialize(writer, value, options);
-            }
+                using (var writer = new Utf8JsonWriter((Stream)ms, new JsonWriterOptions
+                {
+                    Indented = false,
+                    SkipValidation = true
+                }))
+                {
+                    JsonSerializer.Serialize(writer, value, options);
+                }
 
-            ReadOnlySpan<byte> utf8 = bytes.WrittenSpan;
+                char[] rented = ArrayPool<char>.Shared.Rent(PoolInvk.rentChunk);
 
-            // Декодируем одним вызовом в pooled char[]
-            int charCount = Encoding.UTF8.GetCharCount(utf8);
-            char[] rented = ArrayPool<char>.Shared.Rent(charCount);
+                try
+                {
+                    var decoder = Encoding.UTF8.GetDecoder();
 
-            try
-            {
-                int written = Encoding.UTF8.GetChars(utf8, rented);
-                sb.Append(rented, 0, written);
-            }
-            finally
-            {
-                ArrayPool<char>.Shared.Return(rented);
+                    foreach (var segment in ms.GetReadOnlySequence())
+                    {
+                        ReadOnlySpan<byte> bytes = segment.Span;
+
+                        while (!bytes.IsEmpty)
+                        {
+                            decoder.Convert(
+                                bytes: bytes,
+                                chars: rented,
+                                flush: false,
+                                out int bytesUsed,
+                                out int charsUsed,
+                                out _);
+
+                            if (charsUsed > 0)
+                                sb.Append(rented, 0, charsUsed);
+
+                            bytes = bytes.Slice(bytesUsed);
+                        }
+                    }
+
+                    // финальный flush
+                    decoder.Convert(
+                        bytes: ReadOnlySpan<byte>.Empty,
+                        chars: rented,
+                        flush: true,
+                        out _,
+                        out int finalCharsUsed,
+                        out _);
+
+                    if (finalCharsUsed > 0)
+                        sb.Append(rented, 0, finalCharsUsed);
+                }
+                finally
+                {
+                    ArrayPool<char>.Shared.Return(rented);
+                }
             }
         }
         #endregion

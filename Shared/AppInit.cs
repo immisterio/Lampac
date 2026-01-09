@@ -488,8 +488,7 @@ namespace Shared
             buffering = new ServerproxyBufferingConf()
             {
                 enable = true, 
-                rent = 81920, // 80KB
-                length = 250  // 80KB * 250 ячеек = ~20MB
+                length = 128*16  // (PoolInvk.rentChunk * 128 == 1 MB) * 16 = ~16 MB
             },
             image = new ServerproxyImageConf()
             {

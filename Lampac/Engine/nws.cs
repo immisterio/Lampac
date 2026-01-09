@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.IO;
 using Shared;
 using Shared.Engine;
 using Shared.Models;
@@ -20,8 +19,6 @@ namespace Lampac.Engine
     public class nws : INws
     {
         #region fields
-        static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager();
-
         static readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions
         {
             WriteIndented = false
@@ -361,7 +358,7 @@ namespace Lampac.Engine
             {
                 await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
-                using (var ms = msm.GetStream())
+                using (var ms = PoolInvk.msm.GetStream())
                 {
                     JsonSerializer.Serialize(ms, new { method, args = args ?? Array.Empty<object>() }, serializerOptions);
                     ms.Position = 0;
