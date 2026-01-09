@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.Events;
 using System.Buffers;
@@ -12,6 +13,8 @@ namespace Shared.Engine
 {
     public static class Http
     {
+        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder());
+
         static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
 
         public static IHttpClientFactory httpClientFactory;
@@ -331,7 +334,10 @@ namespace Shared.Engine
 
                         using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
                         {
-                            using (var jsonReader = new JsonTextReader(streamReader))
+                            using (var jsonReader = new JsonTextReader(streamReader)
+                            {
+                                ArrayPool = new NewtonsoftCharArrayPool()
+                            })
                             {
                                 var serializer = JsonSerializer.Create(
                                     IgnoreDeserializeObject ? jsonSettings : null
@@ -359,7 +365,8 @@ namespace Shared.Engine
         {
             try
             {
-                var loglines = new StringBuilder();
+                var loglines = sb.Value;
+                loglines.Clear();
 
                 try
                 {
@@ -546,7 +553,8 @@ namespace Shared.Engine
         #region BaseGet
         async public static Task<(string content, HttpResponseMessage response)> BaseGet(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
-            var loglines = new StringBuilder();
+            var loglines = sb.Value;
+            loglines.Clear();
 
             try
             {
@@ -682,7 +690,8 @@ namespace Shared.Engine
         #region BasePost
         async public static Task<(string content, HttpResponseMessage response)> BasePost(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
         {
-            var loglines = new StringBuilder();
+            var loglines = sb.Value;
+            loglines.Clear();
 
             try
             {
@@ -827,7 +836,10 @@ namespace Shared.Engine
 
                         using (var streamReader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
                         {
-                            using (var jsonReader = new JsonTextReader(streamReader))
+                            using (var jsonReader = new JsonTextReader(streamReader)
+                            { 
+                                ArrayPool = new NewtonsoftCharArrayPool() 
+                            })
                             {
                                 var serializer = JsonSerializer.Create(
                                     IgnoreDeserializeObject ? jsonSettings : null
@@ -850,10 +862,11 @@ namespace Shared.Engine
         }
         #endregion
 
-        #region BasePostReaderAsync<T>
+        #region BasePostReaderAsync
         async public static Task<(bool success, HttpResponseMessage response)> BasePostReaderAsync(Action<(Stream stream, CancellationToken ct, StringBuilder loglines)> action, string url, HttpContent data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool IgnoreDeserializeObject = false, bool statusCodeOK = true)
         {
-            var loglines = new StringBuilder();
+            var loglines = sb.Value;
+            loglines.Clear();
 
             try
             {

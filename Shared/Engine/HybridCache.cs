@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.SQL;
 using System.Collections.Concurrent;
@@ -243,7 +244,10 @@ namespace Shared.Engine
 
                                         using (var textReader = r.GetTextReader(1))
                                         {
-                                            using (var jsonReader = new JsonTextReader(textReader))
+                                            using (var jsonReader = new JsonTextReader(textReader)
+                                            {
+                                                ArrayPool = new NewtonsoftCharArrayPool()
+                                            })
                                             {
                                                 var serializer = JsonSerializer.CreateDefault();
 

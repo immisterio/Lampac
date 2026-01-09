@@ -7,34 +7,35 @@ namespace Shared
         public static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager(new RecyclableMemoryStreamManager.Options
         (
             blockSize: 512 * 1024,                         // small blocks (512 КБ)
-            largeBufferMultiple: 4 * 1024 * 1024,          // ступень роста если blockSize недостаточно
+            largeBufferMultiple: 2 * 1024 * 1024,          // ступень роста если blockSize недостаточно
             maximumBufferSize: 8 * 1024 * 1024,            // не кешируем >8 MB
-            maximumSmallPoolFreeBytes: 128L * 1024 * 1024, // хранить не более 256 small blocks (128 MB)
-            maximumLargePoolFreeBytes: 128L * 1024 * 1024  // общий размер блоков largeBufferMultiple/maximumBufferSize (128 MB)
+            maximumSmallPoolFreeBytes: 256L * 1024 * 1024, // хранить не более 512 small blocks (256 MB)
+            maximumLargePoolFreeBytes: 256L * 1024 * 1024  // общий размер блоков largeBufferMultiple/maximumBufferSize (256 MB)
         )
         {
             AggressiveBufferReturn = true
         });
 
 
-        /// <summary>
-        /// предварительный буфер пишется в msm, поэтому ориентируемся на его размеры 
-        /// </summary>
+        static readonly int[] sizesMemoryOwner =
+        {
+            512 * 1024,
+            2 * 1024 * 1024,
+            4 * 1024 * 1024,
+            6 * 1024 * 1024,
+            8 * 1024 * 1024,
+            10 * 1024 * 1024
+        };
+
         public static int MemoryOwner(int length)
         {
-            int blockSize = 512 * 1024;
-            if (blockSize > length)
-                return blockSize;
+            for (int i = 0; i < sizesMemoryOwner.Length; i++)
+            {
+                if (sizesMemoryOwner[i] >= length)
+                    return sizesMemoryOwner[i];
+            }
 
-            int largeSize = 4 * 1024 * 1024;
-            if (largeSize > length)
-                return largeSize;
-
-            int maximumSize = 8 * 1024 * 1024;
-            if (maximumSize > length)
-                return maximumSize;
-
-            throw new ArgumentException("length > 8 MB");
+            throw new ArgumentException("length > 10 MB");
         }
 
 
@@ -48,23 +49,27 @@ namespace Shared
             if (rentChunk >= length)
                 return rentChunk;
 
-            int smallSize = 256 * 1024;
+            int smallSize = 64 * 1024;
+            if (smallSize >= length)
+                return smallSize;
+
+            smallSize = 128 * 1024;
             if (smallSize >= length)
                 return smallSize;
 
             int blockSize = 512 * 1024;
-            if (blockSize > length)
+            if (blockSize >= length)
                 return blockSize;
 
-            int largeSize = 4 * 1024 * 1024;
-            if (largeSize > length)
+            int largeSize = 2 * 1024 * 1024;
+            if (largeSize >= length)
                 return largeSize;
 
-            int maximumSize = 8 * 1024 * 1024;
-            if (maximumSize > length)
+            int maximumSize = 5 * 1024 * 1024;
+            if (maximumSize >= length)
                 return maximumSize;
 
-            throw new ArgumentException("length > 8 MB");
+            throw new ArgumentException("length > 5 MB");
         }
     }
 }

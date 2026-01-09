@@ -2,6 +2,7 @@
 using Microsoft.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Events;
@@ -198,14 +199,31 @@ namespace Shared.Engine
         {
             try
             {
-                string json = await SendHub("eval", data, useDefaultHeaders: false).ConfigureAwait(false);
-                if (json == null)
-                    return default;
+                T result = default;
 
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, jsonSettings);
+                await SendHub("eval", data, useDefaultHeaders: false, msAction: ms =>
+                {
+                    try
+                    {
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        {
+                            using (var jsonReader = new JsonTextReader(streamReader)
+                            {
+                                ArrayPool = new NewtonsoftCharArrayPool()
+                            })
+                            {
+                                var serializer = JsonSerializer.Create(
+                                    IgnoreDeserializeObject ? jsonSettings : null
+                                );
 
-                return JsonConvert.DeserializeObject<T>(json);
+                                result = serializer.Deserialize<T>(jsonReader);
+                            }
+                        }
+                    }
+                    catch { }
+                }).ConfigureAwait(false);
+
+                return result;
             }
             catch
             {
@@ -250,14 +268,31 @@ namespace Shared.Engine
         {
             try
             {
-                string html = await SendHub(url, null, headers, useDefaultHeaders).ConfigureAwait(false);
-                if (html == null)
-                    return default;
+                T result = default;
 
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(html, jsonSettings);
+                await SendHub(url, null, headers, useDefaultHeaders, msAction: ms =>
+                {
+                    try
+                    {
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        {
+                            using (var jsonReader = new JsonTextReader(streamReader)
+                            {
+                                ArrayPool = new NewtonsoftCharArrayPool()
+                            })
+                            {
+                                var serializer = JsonSerializer.Create(
+                                    IgnoreDeserializeObject ? jsonSettings : null
+                                );
 
-                return JsonConvert.DeserializeObject<T>(html);
+                                result = serializer.Deserialize<T>(jsonReader);
+                            }
+                        }
+                    }
+                    catch { }
+                }).ConfigureAwait(false);
+
+                return result;
             }
             catch
             {
@@ -288,14 +323,31 @@ namespace Shared.Engine
         {
             try
             {
-                string json = await SendHub(url, data, headers, useDefaultHeaders).ConfigureAwait(false);
-                if (json == null)
-                    return default;
+                T result = default;
 
-                if (IgnoreDeserializeObject)
-                    return JsonConvert.DeserializeObject<T>(json, jsonSettings);
+                await SendHub(url, data, headers, useDefaultHeaders, msAction: ms =>
+                {
+                    try
+                    {
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        {
+                            using (var jsonReader = new JsonTextReader(streamReader)
+                            {
+                                ArrayPool = new NewtonsoftCharArrayPool()
+                            })
+                            {
+                                var serializer = JsonSerializer.Create(
+                                    IgnoreDeserializeObject ? jsonSettings : null
+                                );
 
-                return JsonConvert.DeserializeObject<T>(json);
+                                result = serializer.Deserialize<T>(jsonReader);
+                            }
+                        }
+                    }
+                    catch { }
+                }).ConfigureAwait(false);
+
+                return result;
             }
             catch
             {
@@ -305,7 +357,7 @@ namespace Shared.Engine
         #endregion
 
         #region SendHub
-        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false, bool waiting = true, Action<ReadOnlySpan<char>> spanAction = null)
+        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false, bool waiting = true, Action<ReadOnlySpan<char>> spanAction = null, Action<RecyclableMemoryStream> msAction = null)
         {
             if (hub == null)
                 return null;
@@ -399,6 +451,12 @@ namespace Shared.Engine
                     {
                         if (ms.Length == 0)
                             return null;
+
+                        if (msAction != null)
+                        {
+                            msAction.Invoke(ms);
+                            return null;
+                        }
 
                         var encoding = Encoding.UTF8;
                         int charCount = PoolInvk.MemoryOwner(encoding.GetMaxCharCount((int)ms.Length));

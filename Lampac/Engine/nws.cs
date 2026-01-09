@@ -121,6 +121,7 @@ namespace Lampac.Engine
             var decoder = Encoding.UTF8.GetDecoder();
             var buffer = ArrayPool<byte>.Shared.Rent(1024);
             var charBuffer = ArrayPool<char>.Shared.Rent(1024);
+            var rebulder = new StringBuilder(1024);
 
             try
             {
@@ -155,11 +156,15 @@ namespace Lampac.Engine
 
                             if (builder == null)
                             {
-                                builder = result.Count > 100 
-                                    ? new StringBuilder(500)
-                                    : result.Count > 50 
-                                        ? new StringBuilder(100) 
-                                        : new StringBuilder();
+                                if (rebulder.Capacity > result.Count)
+                                {
+                                    rebulder.Clear();
+                                    builder = rebulder;
+                                }
+                                else
+                                {
+                                    builder = new StringBuilder(result.Count);
+                                }
                             }
 
                             if (charsUsed > 0)
