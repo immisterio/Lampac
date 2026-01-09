@@ -105,7 +105,7 @@ namespace Shared.Models.Templates
                 html.Append("'>");
 
                 html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
-                UtilsTpl.HtmlEncode(i.name.AsSpan(), html);
+                UtilsTpl.HtmlEncode(i.name, html);
                 html.Append("</div></div>");
 
                 firstjson = false;

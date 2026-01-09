@@ -475,22 +475,13 @@ namespace Shared.Engine
                         await e.stream.CopyToAsync(ms, PoolInvk.bufferSize, e.ct);
                         ms.Position = 0;
 
-                        var encdg = encoding != default ? encoding : Encoding.UTF8;
-                        int charCount = PoolInvk.MemoryOwner(encdg.GetMaxCharCount((int)ms.Length));
-
-                        using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
+                        OwnerTo.Span(ms, encoding != default ? encoding : Encoding.UTF8, span =>
                         {
-                            using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
-                            {
-                                int actualChars = reader.Read(owner.Memory.Span);
-                                ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
+                            spanAction.Invoke(span);
 
-                                spanAction.Invoke(result);
-
-                                if (IsLogged)
-                                    e.loglines.Append($"\n{result.ToString()}");
-                            }
-                        }
+                            if (IsLogged)
+                                e.loglines.Append($"\n{span.ToString()}");
+                        });
                     }
                     catch { }
                 },
@@ -514,22 +505,13 @@ namespace Shared.Engine
                         await e.stream.CopyToAsync(ms, PoolInvk.bufferSize, e.ct);
                         ms.Position = 0;
 
-                        var encdg = encoding != default ? encoding : Encoding.UTF8;
-                        int charCount = PoolInvk.MemoryOwner(encdg.GetMaxCharCount((int)ms.Length));
-
-                        using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
+                        OwnerTo.Span(ms, encoding != default ? encoding : Encoding.UTF8, span => 
                         {
-                            using (var reader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
-                            {
-                                int actualChars = reader.Read(owner.Memory.Span);
-                                ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
+                            spanAction.Invoke(span);
 
-                                spanAction.Invoke(result);
-
-                                if (IsLogged)
-                                    e.loglines.Append($"\n{result.ToString()}");
-                            }
-                        }
+                            if (IsLogged)
+                                e.loglines.Append($"\n{span.ToString()}");
+                        });
                     }
                     catch { }
                 },

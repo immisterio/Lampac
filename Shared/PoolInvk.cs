@@ -6,68 +6,46 @@ namespace Shared
     {
         public static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager(new RecyclableMemoryStreamManager.Options
         (
-            blockSize: 512 * 1024,                         // small blocks (512 КБ)
-            largeBufferMultiple: 2 * 1024 * 1024,          // ступень роста если blockSize недостаточно
+            blockSize: 128 * 1024,                         // small blocks (128 КБ)
+            largeBufferMultiple: 1024 * 1024,              // ступень роста 1 MB
             maximumBufferSize: 8 * 1024 * 1024,            // не кешируем >8 MB
-            maximumSmallPoolFreeBytes: 256L * 1024 * 1024, // хранить не более 512 small blocks (256 MB)
-            maximumLargePoolFreeBytes: 256L * 1024 * 1024  // общий размер блоков largeBufferMultiple/maximumBufferSize (256 MB)
+            maximumSmallPoolFreeBytes: 128L * 1024 * 1024, // максимальный размер пула small blocks (128 MB)
+            maximumLargePoolFreeBytes: 256L * 1024 * 1024  // общий размер пула largeBufferMultiple/maximumBufferSize (256 MB)
         )
         {
-            AggressiveBufferReturn = true
+            AggressiveBufferReturn = false
         });
-
-
-        static readonly int[] sizesMemoryOwner =
-        {
-            512 * 1024,
-            2 * 1024 * 1024,
-            4 * 1024 * 1024,
-            6 * 1024 * 1024,
-            8 * 1024 * 1024,
-            10 * 1024 * 1024
-        };
-
-        public static int MemoryOwner(int length)
-        {
-            for (int i = 0; i < sizesMemoryOwner.Length; i++)
-            {
-                if (sizesMemoryOwner[i] >= length)
-                    return sizesMemoryOwner[i];
-            }
-
-            throw new ArgumentException("length > 10 MB");
-        }
 
 
         public static int bufferSize => 16 * 1024;
 
         public static int rentChunk => 8 * 1024;
 
+        public static int rentLargeChunk => 64 * 1024;
+
+
+        static readonly int[] sizesRent =
+        {
+            32 * 1024,
+            64 * 1024,
+            128 * 1024,
+            256 * 1024,
+            512 * 1024,
+            1024 * 1024,
+            2 * 1024 * 1024,
+            5 * 1024 * 1024
+        };
 
         public static int Rent(int length)
         {
             if (rentChunk >= length)
                 return rentChunk;
 
-            int smallSize = 64 * 1024;
-            if (smallSize >= length)
-                return smallSize;
-
-            smallSize = 128 * 1024;
-            if (smallSize >= length)
-                return smallSize;
-
-            int blockSize = 512 * 1024;
-            if (blockSize >= length)
-                return blockSize;
-
-            int largeSize = 2 * 1024 * 1024;
-            if (largeSize >= length)
-                return largeSize;
-
-            int maximumSize = 5 * 1024 * 1024;
-            if (maximumSize >= length)
-                return maximumSize;
+            for (int i = 0; i < sizesRent.Length; i++)
+            {
+                if (sizesRent[i] >= length)
+                    return sizesRent[i];
+            }
 
             throw new ArgumentException("length > 5 MB");
         }

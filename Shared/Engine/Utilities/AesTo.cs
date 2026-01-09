@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
@@ -9,6 +8,8 @@ namespace Shared.Engine
     {
         static byte[] aesKey, aesIV;
         static readonly ThreadLocal<ThreadState> tls = new(() => new ThreadState());
+
+        static byte[] cipherBuf = new byte[PoolInvk.rentLargeChunk];
 
         static AesTo()
         {
@@ -35,46 +36,44 @@ namespace Shared.Engine
             if (string.IsNullOrWhiteSpace(plainText))
                 return null;
 
-            byte[] cipherBuf = null;
-
             try
             {
-                var state = tls.Value!;
-                var aes = state.Aes;
+                lock (cipherBuf)
+                {
+                    var state = tls.Value!;
+                    var aes = state.Aes;
 
-                int plainByteCount = Encoding.UTF8.GetByteCount(plainText);
-                EnsureSize(ref state.Plain, plainByteCount);
+                    int plainByteCount = Encoding.UTF8.GetByteCount(plainText);
+                    EnsureSize(ref state.Plain, plainByteCount);
 
-                int writtenPlain = Encoding.UTF8.GetBytes(plainText, 0, plainText.Length, state.Plain, 0);
+                    int writtenPlain = Encoding.UTF8.GetBytes(plainText, 0, plainText.Length, state.Plain, 0);
 
-                int blockSize = aes.BlockSize / 8; // 16
-                int paddedLen = ((writtenPlain / blockSize) + 1) * blockSize;
+                    int blockSize = aes.BlockSize / 8; // 16
+                    int paddedLen = ((writtenPlain / blockSize) + 1) * blockSize;
 
-                cipherBuf = ArrayPool<byte>.Shared.Rent(PoolInvk.Rent(paddedLen));
+                    int rent = PoolInvk.Rent(paddedLen);
+                    if (rent > cipherBuf.Length)
+                        cipherBuf = new byte[rent];
 
-                // ВАЖНО: iv вторым параметром, destination третьим
-                int cipherLen = aes.EncryptCbc(
-                    state.Plain.AsSpan(0, writtenPlain),
-                    aesIV,                               // iv (16 байт)
-                    cipherBuf.AsSpan(0, paddedLen),      // destination
-                    PaddingMode.PKCS7);
+                    // ВАЖНО: iv вторым параметром, destination третьим
+                    int cipherLen = aes.EncryptCbc(
+                        state.Plain.AsSpan(0, writtenPlain),
+                        aesIV,                               // iv (16 байт)
+                        cipherBuf.AsSpan(0, paddedLen),      // destination
+                        PaddingMode.PKCS7);
 
-                int base64Len = GetBase64Length(cipherLen);
-                EnsureSize(ref state.Base64Chars, base64Len);
+                    int base64Len = GetBase64Length(cipherLen);
+                    EnsureSize(ref state.Base64Chars, base64Len);
 
-                if (!Convert.TryToBase64Chars(cipherBuf.AsSpan(0, cipherLen), state.Base64Chars, out int charsWritten))
-                    return null;
+                    if (!Convert.TryToBase64Chars(cipherBuf.AsSpan(0, cipherLen), state.Base64Chars, out int charsWritten))
+                        return null;
 
-                return new string(state.Base64Chars, 0, charsWritten);
+                    return new string(state.Base64Chars, 0, charsWritten);
+                }
             }
             catch
             {
                 return plainText;
-            }
-            finally
-            {
-                if (cipherBuf != null)
-                    ArrayPool<byte>.Shared.Return(cipherBuf);
             }
         }
 
@@ -83,38 +82,37 @@ namespace Shared.Engine
             if (string.IsNullOrWhiteSpace(cipherText))
                 return null;
 
-            byte[] cipherBuf = null;
-
             try
             {
-                var state = tls.Value;
-                var aes = state.Aes;
+                lock (cipherBuf)
+                {
+                    var state = tls.Value;
+                    var aes = state.Aes;
 
-                int maxCipherBytes = GetMaxDecodedLength(cipherText.Length);
-                cipherBuf = ArrayPool<byte>.Shared.Rent(PoolInvk.Rent(maxCipherBytes));
+                    int maxCipherBytes = GetMaxDecodedLength(cipherText.Length);
 
-                if (!Convert.TryFromBase64String(cipherText, cipherBuf, out int cipherLen))
-                    return null;
+                    int rent = PoolInvk.Rent(maxCipherBytes);
+                    if (rent > cipherBuf.Length)
+                        cipherBuf = new byte[rent];
 
-                EnsureSize(ref state.Plain, cipherLen);
+                    if (!Convert.TryFromBase64String(cipherText, cipherBuf, out int cipherLen))
+                        return null;
 
-                // ВАЖНО: iv вторым параметром, destination третьим
-                int plainLen = aes.DecryptCbc(
-                    cipherBuf.AsSpan(0, cipherLen),
-                    aesIV,                              // iv (16 байт)
-                    state.Plain.AsSpan(0, cipherLen),   // destination
-                    PaddingMode.PKCS7);
+                    EnsureSize(ref state.Plain, cipherLen);
 
-                return Encoding.UTF8.GetString(state.Plain, 0, plainLen);
+                    // ВАЖНО: iv вторым параметром, destination третьим
+                    int plainLen = aes.DecryptCbc(
+                        cipherBuf.AsSpan(0, cipherLen),
+                        aesIV,                              // iv (16 байт)
+                        state.Plain.AsSpan(0, cipherLen),   // destination
+                        PaddingMode.PKCS7);
+
+                    return Encoding.UTF8.GetString(state.Plain, 0, plainLen);
+                }
             }
             catch
             {
                 return cipherText;
-            }
-            finally
-            {
-                if (cipherBuf != null)
-                    ArrayPool<byte>.Shared.Return(cipherBuf);
             }
         }
 

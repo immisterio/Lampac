@@ -458,25 +458,20 @@ namespace Shared.Engine
                             return null;
                         }
 
-                        var encoding = Encoding.UTF8;
-                        int charCount = PoolInvk.MemoryOwner(encoding.GetMaxCharCount((int)ms.Length));
+                        string resultString = null;
 
-                        using (IMemoryOwner<char> owner = MemoryPool<char>.Shared.Rent(charCount))
+                        OwnerTo.Span(ms, Encoding.UTF8, span =>
                         {
-                            using (var reader = new StreamReader(ms, encoding, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                            if (spanAction != null)
                             {
-                                int actualChars = reader.Read(owner.Memory.Span);
-                                ReadOnlySpan<char> result = owner.Memory.Span.Slice(0, actualChars);
-
-                                if (spanAction != null)
-                                {
-                                    spanAction.Invoke(result);
-                                    return null;
-                                }
-
-                                return result.ToString();
+                                spanAction.Invoke(span);
+                                return;
                             }
-                        }
+
+                            resultString = span.ToString();
+                        });
+
+                        return resultString;
                     }
                 }
                 catch

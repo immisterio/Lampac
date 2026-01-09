@@ -487,8 +487,9 @@ namespace Shared
             responseContentLength = true,
             buffering = new ServerproxyBufferingConf()
             {
-                enable = true, 
-                length = 128*16  // (PoolInvk.rentChunk * 128 == 1 MB) * 16 = ~16 MB
+                enable = true,
+                rent = 64 * 1024, // 64кб
+                length = 256      // rent * 256 = ~16 MB
             },
             image = new ServerproxyImageConf()
             {

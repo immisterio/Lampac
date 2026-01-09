@@ -324,75 +324,65 @@ namespace Shared
             var headers_stream = HeadersModel.InitOrNull(init.headers_stream);
             var headers_image = httpHeaders(init.host, HeadersModel.InitOrNull(init.headers_image));
 
-            using (var ms = PoolInvk.msm.GetStream())
+            using (var writer = new Utf8JsonWriter(Response.BodyWriter, jsonWriterOptions))
             {
-                using (var writer = new Utf8JsonWriter((Stream)ms, jsonWriterOptions))
+                writer.WriteStartObject();
+                writer.WriteNumber("count", playlists.Count);
+                writer.WriteNumber("totalPages", total_pages);
+
+                writer.WritePropertyName("menu");
+                JsonSerializer.Serialize(writer, menu ?? emptyMenu, jsonOptions);
+
+                writer.WritePropertyName("list");
+                writer.WriteStartArray();
+
+                for (int i = 0; i < playlists.Count; i++)
                 {
-                    writer.WriteStartObject();
-                    writer.WriteNumber("count", playlists.Count);
-                    writer.WriteNumber("totalPages", total_pages);
+                    ct.ThrowIfCancellationRequested();
 
-                    writer.WritePropertyName("menu");
-                    JsonSerializer.Serialize(writer, menu ?? emptyMenu, jsonOptions);
+                    var pl = playlists[i];
 
-                    writer.WritePropertyName("list");
-                    writer.WriteStartArray();
+                    string video = pl.video.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                        ? pl.video
+                        : $"{host}/{pl.video}";
 
-                    for (int i = 0; i < playlists.Count; i++)
+                    if (!video.Contains(host, StringComparison.OrdinalIgnoreCase))
+                        video = HostStreamProxy(video, headers_stream);
+
+                    JsonSerializer.Serialize(writer, new OnResultPlaylistItem
                     {
-                        ct.ThrowIfCancellationRequested();
+                        name = pl.name,
+                        video = video,
+                        model = pl.model != null
+                            ? new OnResultModel(pl.model.name, pl.model.uri)
+                            : null,
+                        picture = HostImgProxy(pl.picture, 0, headers_image, init.plugin),
+                        preview = pl.preview,
+                        time = pl.time,
+                        json = pl.json,
+                        related = pl.related,
+                        quality = pl.quality,
+                        qualitys = pl.qualitys,
+                        bookmark = pl.bookmark != null
+                            ? new OnResultBookmark(pl.bookmark.uid, pl.bookmark.site, pl.bookmark.image, pl.bookmark.href)
+                            : null,
+                        hide = pl.hide,
+                        myarg = pl.myarg
+                    }, jsonOptions);
 
-                        var pl = playlists[i];
-
-                        string video = pl.video.StartsWith("http", StringComparison.OrdinalIgnoreCase)
-                            ? pl.video
-                            : $"{host}/{pl.video}";
-
-                        if (!video.Contains(host, StringComparison.OrdinalIgnoreCase))
-                            video = HostStreamProxy(video, headers_stream);
-
-                        JsonSerializer.Serialize(writer, new OnResultPlaylistItem
-                        {
-                            name = pl.name,
-                            video = video,
-                            model = pl.model != null
-                                ? new OnResultModel(pl.model.name, pl.model.uri)
-                                : null,
-                            picture = HostImgProxy(pl.picture, 0, headers_image, init.plugin),
-                            preview = pl.preview,
-                            time = pl.time,
-                            json = pl.json,
-                            related = pl.related,
-                            quality = pl.quality,
-                            qualitys = pl.qualitys,
-                            bookmark = pl.bookmark != null 
-                                ? new OnResultBookmark(pl.bookmark.uid, pl.bookmark.site, pl.bookmark.image, pl.bookmark.href)
-                                : null,
-                            hide = pl.hide,
-                            myarg = pl.myarg
-                        }, jsonOptions);
-
-                        // Cбрасываем большой буфер в Response
-                        if (ms.Length > 50_000)
-                        {
-                            writer.Flush(); // flush в stream — безопасно
-
-                            // Пишем сегментами из ReadOnlySequence
-                            foreach (var segment in ms.GetReadOnlySequence())
-                                await Response.BodyWriter.WriteAsync(segment, ct);
-
-                            ms.SetLength(0);
-                            ms.Position = 0;
-                        }
+                    // Cбрасываем накопленное из Utf8JsonWriter в транспорт
+                    if (writer.BytesPending > 50_000)
+                    {
+                        writer.Flush(); // flush в PipeWriter
+                        await Response.BodyWriter.FlushAsync(ct); // flush в транспорт
                     }
-
-                    writer.WriteEndArray();
-                    writer.WriteEndObject();
-                    writer.Flush();
-
-                    foreach (var segment in ms.GetReadOnlySequence())
-                        await Response.BodyWriter.WriteAsync(segment, ct);
                 }
+
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+
+                writer.Flush();
+                await Response.BodyWriter.FlushAsync(ct);
             }
 
             return new EmptyResult();

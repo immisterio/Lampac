@@ -180,10 +180,14 @@ namespace Online.Controllers
                         foreach (var link in root["links"].ToObject<Dictionary<string, JObject>>())
                         {
                             string src = link.Value.Value<string>("Src");
-                            if (src.StartsWith("http"))
-                                src = src.Substring(src.IndexOf("://") + 3);
 
-                            cache.streams.Add(($"{link.Key}p", $"https://{src}"));
+                            if (src.StartsWith("http")) { }
+                            else if(src.StartsWith("//"))
+                                src = $"https:{src}";
+                            else
+                                src = $"https://{src}";
+
+                            cache.streams.Add(($"{link.Key}p", src));
                         }
 
                         if (cache.streams.Count == 0)

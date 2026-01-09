@@ -697,7 +697,7 @@ namespace Lampac.Engine.Middlewares
                             {
                                 while (!context.RequestAborted.IsCancellationRequested)
                                 {
-                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(PoolInvk.rentChunk);
+                                    byte[] chunkBuffer = ArrayPool<byte>.Shared.Rent(PoolInvk.Rent(buffering.rent));
 
                                     try
                                     {

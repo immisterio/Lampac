@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace Shared.Engine
 {
@@ -69,17 +68,19 @@ namespace Shared.Engine
 
 
         #region SearchName
+        static readonly char[] _rentedSearchName = new char[PoolInvk.rentLargeChunk];
+
+        static readonly CultureInfo _cultureInfoSearchName = CultureInfo.GetCultureInfo("ru-RU");
+
         public static string SearchName(ReadOnlySpan<char> val, string empty = null)
         {
             if (val.IsEmpty || val.Length == 0)
                 return empty;
 
-            // Верхняя граница — длина входа (после фильтрации будет <=)
-            char[] rented = ArrayPool<char>.Shared.Rent(PoolInvk.Rent(val.Length));
-            int n = 0;
-
-            try
+            lock (_rentedSearchName)
             {
+                int n = 0;
+
                 for (int i = 0; i < val.Length; i++)
                 {
                     char c = val[i];
@@ -102,24 +103,20 @@ namespace Shared.Engine
                         continue;
 
                     // - lower
-                    c = char.ToLower(c, CultureInfo.GetCultureInfo("ru-RU"));
+                    c = char.ToLower(c, _cultureInfoSearchName);
 
                     // - ё -> е
                     // - щ -> ш
                     if (c == 'ё') c = 'е';
                     else if (c == 'щ') c = 'ш';
 
-                    rented[n++] = c;
+                    _rentedSearchName[n++] = c;
                 }
 
                 if (n == 0)
                     return empty;
 
-                return new string(rented, 0, n);
-            }
-            finally
-            {
-                ArrayPool<char>.Shared.Return(rented);
+                return new string(_rentedSearchName, 0, n);
             }
         }
         #endregion
