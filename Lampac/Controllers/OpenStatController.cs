@@ -147,15 +147,15 @@ namespace Lampac.Controllers
                 },
                 pool = new
                 {
-                    MemoryStream = new 
+                    MemoryStream = new
                     {
                         MemoryStreamPool.Count,
-                        MemoryStreamPool.Bytes
+                        MemoryStreamPool.Skip
                     },
-                    StringBuilder = new 
+                    StringBuilder = new
                     {
                         StringBuilderPool.Count,
-                        StringBuilderPool.Bytes
+                        StringBuilderPool.Skip
                     }
                 },
                 memoryCache = memoryCache.GetCurrentStatistics()

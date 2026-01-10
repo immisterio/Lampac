@@ -9,10 +9,10 @@ namespace Shared.Engine.Pools
 
         public static int Count => _pool.Count;
 
-        public static int Bytes => _pool.Sum(i => i.Capacity) * 2; // 1 char == 2 byte
-
+        public static int Skip { get; private set; }
 
         static int rentMax => PoolInvk.rentMax / 2;
+
 
         public static StringBuilder Rent()
         {
@@ -28,6 +28,10 @@ namespace Shared.Engine.Pools
             {
                 sb.Clear();
                 _pool.Add(sb);
+            }
+            else
+            {
+                Skip++;
             }
         }
     }

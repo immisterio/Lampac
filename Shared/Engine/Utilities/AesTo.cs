@@ -34,7 +34,7 @@ namespace Shared.Engine
         public static string Encrypt(string plainText)
         {
             if (string.IsNullOrWhiteSpace(plainText))
-                return null;
+                return plainText;
 
             try
             {
@@ -51,9 +51,8 @@ namespace Shared.Engine
                     int blockSize = aes.BlockSize / 8; // 16
                     int paddedLen = ((writtenPlain / blockSize) + 1) * blockSize;
 
-                    int rent = PoolInvk.Rent(paddedLen);
-                    if (rent > cipherBuf.Length)
-                        cipherBuf = new byte[rent];
+                    if (paddedLen > cipherBuf.Length)
+                        return plainText;
 
                     // ВАЖНО: iv вторым параметром, destination третьим
                     int cipherLen = aes.EncryptCbc(
@@ -66,7 +65,7 @@ namespace Shared.Engine
                     EnsureSize(ref state.Base64Chars, base64Len);
 
                     if (!Convert.TryToBase64Chars(cipherBuf.AsSpan(0, cipherLen), state.Base64Chars, out int charsWritten))
-                        return null;
+                        return plainText;
 
                     return new string(state.Base64Chars, 0, charsWritten);
                 }
@@ -112,7 +111,7 @@ namespace Shared.Engine
             }
             catch
             {
-                return cipherText;
+                return null;
             }
         }
 

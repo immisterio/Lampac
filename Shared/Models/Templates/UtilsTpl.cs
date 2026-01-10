@@ -28,7 +28,7 @@ namespace Shared.Models.Templates
         #region WriteJson
         static readonly ThreadLocal<MemoryStream> _msJson = new(() => new MemoryStream(PoolInvk.rentLargeChunk));
 
-        static char[] _rentedJson = new char[PoolInvk.rentLargeChunk];
+        static char[] _rentedJson = new char[PoolInvk.rentMax / 2];
 
         static readonly object _lockJson = new();
 
@@ -55,9 +55,8 @@ namespace Shared.Models.Templates
 
                     int neededChars = Encoding.UTF8.GetCharCount(utf8);
 
-                    int rent = PoolInvk.Rent(neededChars);
-                    if (rent > _rentedJson.Length)
-                        _rentedJson = new char[rent];
+                    if (neededChars > _rentedJson.Length)
+                        return;
 
                     int charsWritten = Encoding.UTF8.GetChars(utf8, _rentedJson);
                     if (charsWritten > 0)

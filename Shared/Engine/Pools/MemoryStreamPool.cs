@@ -8,7 +8,7 @@ namespace Shared.Engine.Pools
 
         public static int Count => _pool.Count;
 
-        public static int Bytes => _pool.Sum(i => i.Capacity);
+        public static int Skip { get; private set; }
 
 
         public static MemoryStream Rent()
@@ -27,6 +27,10 @@ namespace Shared.Engine.Pools
                 memory.Position = 0;
 
                 _pool.Add(memory);
+            }
+            else
+            {
+                Skip++;
             }
         }
     }
