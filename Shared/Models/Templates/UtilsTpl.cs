@@ -28,7 +28,7 @@ namespace Shared.Models.Templates
         #region WriteJson
         static readonly ThreadLocal<MemoryStream> _msJson = new(() => new MemoryStream(PoolInvk.Rent(1024 * 1024)));
 
-        public static int CountJson => _msJson.Values.Count;
+        public static int CountJson => _msJson.IsValueCreated ? _msJson.Values.Count : 0;
 
         static char[] _rentedJson = new char[PoolInvk.rentMax / 2];
 
