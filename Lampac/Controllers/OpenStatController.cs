@@ -7,7 +7,9 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine;
 using Shared.Engine.Pools;
+using Shared.Engine.Utilities;
 using Shared.Models.AppConf;
+using Shared.Models.Templates;
 using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
@@ -147,16 +149,25 @@ namespace Lampac.Controllers
                 },
                 pool = new
                 {
-                    MemoryStream = new
+                    msm = new
                     {
-                        MemoryStreamPool.Count,
-                        MemoryStreamPool.Skip
+                        PoolInvk.msm.SmallBlocksFree,
+                        PoolInvk.msm.SmallPoolFreeSize,
+                        PoolInvk.msm.LargeBuffersFree,
+                        PoolInvk.msm.LargePoolFreeSize,
                     },
                     StringBuilder = new
                     {
                         StringBuilderPool.Count,
-                        StringBuilderPool.Skip
-                    }
+                        StringBuilderPool.GC
+                    },
+                    JsonConvert = JsonConvertPool.Count,
+                    UtilsTpl_Json = UtilsTpl.CountJson,
+                    //MemoryStream = new
+                    //{
+                    //    MemoryStreamPool.Count,
+                    //    MemoryStreamPool.GC
+                    //}
                 },
                 memoryCache = memoryCache.GetCurrentStatistics()
             });

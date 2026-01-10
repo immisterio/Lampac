@@ -11,6 +11,8 @@ namespace Shared.Engine.Utilities
 
         static readonly ThreadLocal<StringBuilder> _cachedSb = new ThreadLocal<StringBuilder>(() => new StringBuilder(PoolInvk.rentMax / 2));
 
+        public static int Count => _cachedSb.Values.Count;
+
 
         public static string SerializeObject<T>(T value)
         {

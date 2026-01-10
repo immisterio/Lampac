@@ -6,11 +6,11 @@ namespace Shared
     {
         public static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager(new RecyclableMemoryStreamManager.Options
         (
-            blockSize: 32 * 1024,                          // small blocks (32 КБ)
-            largeBufferMultiple: 128 * 1024,               // ступень роста 128 КБ
-            maximumBufferSize: 8 * 1024 * 1024,            // не кешируем >8 MB
-            maximumSmallPoolFreeBytes: 64L * 1024 * 1024,  // максимальный размер пула small blocks (64 MB)
-            maximumLargePoolFreeBytes: 128L * 1024 * 1024  // общий размер пула largeBufferMultiple/maximumBufferSize (128 MB)
+            blockSize: 64 * 1024,                               // small blocks (128 КБ)
+            largeBufferMultiple: 256 * 1024 * 1024,             // ступень роста 256 КБ
+            maximumBufferSize: 5 * 1024 * 1024,                 // не кешируем >5 MB
+            maximumSmallPoolFreeBytes: 2L * 1024 * 1024 * 1024, // максимальный размер пула small blocks (2 GB)
+            maximumLargePoolFreeBytes: 4L * 1024 * 1024 * 1024  // общий размер пула largeBufferMultiple/maximumBufferSize (4 GB)
         )
         {
             AggressiveBufferReturn = false

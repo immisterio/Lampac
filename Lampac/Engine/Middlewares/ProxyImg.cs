@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine;
-using Shared.Engine.Pools;
 using Shared.Models;
 using System;
 using System.Buffers;
@@ -327,10 +326,7 @@ namespace Lampac.Engine.Middlewares
                         #region rsize
                         rsize_reset:
 
-                        var outArray = MemoryStreamPool.Rent();
-                        var inArray = MemoryStreamPool.Rent();
-
-                        try
+                        using (var inArray = PoolInvk.msm.GetStream())
                         {
                             var result = await Download(inArray, href, ctsHttp.Token, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
 
@@ -351,50 +347,48 @@ namespace Lampac.Engine.Middlewares
                                 return;
                             }
 
-                            bool successConvert = false;
-
-                            if ((result.contentType ?? contentType) is "image/png" or "image/webp" or "image/jpeg")
+                            using (var outArray = PoolInvk.msm.GetStream())
                             {
-                                if (AppInit.conf.imagelibrary == "NetVips")
+                                bool successConvert = false;
+
+                                if ((result.contentType ?? contentType) is "image/png" or "image/webp" or "image/jpeg")
                                 {
-                                    successConvert = NetVipsImage(href, inArray, outArray, width, height);
+                                    if (AppInit.conf.imagelibrary == "NetVips")
+                                    {
+                                        successConvert = NetVipsImage(href, inArray, outArray, width, height);
+                                    }
+                                    else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                                    {
+                                        successConvert = await ImageMagick(inArray, outArray, width, height, cacheimg ? outFile : null);
+                                    }
                                 }
-                                else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+
+                                var resultArray = successConvert ? outArray : inArray;
+                                resultArray.Position = 0;
+
+                                if (successConvert)
+                                    proxyManager?.Success();
+
+                                httpContext.Response.ContentType = contentType;
+
+                                if (AppInit.conf.serverproxy.responseContentLength)
+                                    httpContext.Response.ContentLength = resultArray.Length;
+
+                                try
                                 {
-                                    successConvert = await ImageMagick(inArray, outArray, width, height, cacheimg ? outFile : null);
+                                    await resultArray.CopyToAsync(httpContext.Response.Body, PoolInvk.bufferSize, ctsHttp.Token).ConfigureAwait(false);
+
+                                    if (cacheimg)
+                                        await TrySaveCache(resultArray, outFile, md5key);
+                                }
+                                catch
+                                {
+                                    if (cacheimg)
+                                        await TrySaveCache(resultArray, outFile, md5key);
+
+                                    throw;
                                 }
                             }
-
-                            var resultArray = successConvert ? outArray : inArray;
-                            resultArray.Position = 0;
-
-                            if (successConvert)
-                                proxyManager?.Success();
-
-                            httpContext.Response.ContentType = contentType;
-
-                            if (AppInit.conf.serverproxy.responseContentLength)
-                                httpContext.Response.ContentLength = resultArray.Length;
-
-                            try
-                            {
-                                await resultArray.CopyToAsync(httpContext.Response.Body, PoolInvk.bufferSize, ctsHttp.Token).ConfigureAwait(false);
-
-                                if (cacheimg)
-                                    await TrySaveCache(resultArray, outFile, md5key);
-                            }
-                            catch
-                            {
-                                if (cacheimg)
-                                    await TrySaveCache(resultArray, outFile, md5key);
-
-                                throw;
-                            }
-                        }
-                        finally
-                        {
-                            MemoryStreamPool.Return(inArray);
-                            MemoryStreamPool.Return(outArray);
                         }
                         #endregion
                     }

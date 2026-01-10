@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Shared;
 using Shared.Engine;
-using Shared.Engine.Pools;
 using Shared.Models;
 using Shared.Models.Events;
 using System;
@@ -364,31 +363,23 @@ namespace Lampac.Engine
             {
                 await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
-                var ms = MemoryStreamPool.Rent();
-
-                try
+                using (var ms = PoolInvk.msm.GetStream())
                 {
-                    JsonSerializer.Serialize(ms, new { method, args = args ?? Array.Empty<object>() }, serializerOptions);
+                    JsonSerializer.Serialize(ms, new NwsSendModel(method, args = args ?? Array.Empty<object>()), serializerOptions);
                     ms.Position = 0;
 
                     if (connection.Socket.State == WebSocketState.Open)
                     {
                         using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
                         {
-                            var segment = new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-
                             await connection.Socket
-                                .SendAsync(segment, WebSocketMessageType.Text, true, cts.Token)
+                                .SendAsync(ms.GetBuffer().AsMemory(0, (int)ms.Length), WebSocketMessageType.Text, true, cts.Token)
                                 .ConfigureAwait(false);
                         }
 
                         connection.UpdateActivity();
                         connection.UpdateSendActivity();
                     }
-                }
-                finally 
-                {
-                    MemoryStreamPool.Return(ms);
                 }
             }
             catch (WebSocketException)
@@ -532,5 +523,19 @@ namespace Lampac.Engine
                 connection.Value.Cancel();
         }
         #endregion
+
+
+
+        readonly struct NwsSendModel
+        {
+            public string method { get; }
+            public object[] args { get; }
+
+            public NwsSendModel(string method, object[] args)
+            {
+                this.method = method;
+                this.args = args;
+            }
+        }
     }
 }

@@ -392,7 +392,7 @@ namespace Shared.Engine
 
             string rchId = Guid.NewGuid().ToString();
 
-            var ms = MemoryStreamPool.Rent();
+            var ms = PoolInvk.msm.GetStream();
 
             try
             {
@@ -500,7 +500,7 @@ namespace Shared.Engine
             }
             finally
             {
-                MemoryStreamPool.Return(ms);
+                ms.Dispose();
                 rchIds.TryRemove(rchId, out _);
             }
         }

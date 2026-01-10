@@ -322,7 +322,7 @@ namespace Shared.Engine
         #region BaseGetAsync<T>
         async public static Task<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
-            var ms = MemoryStreamPool.Rent();
+            var ms = PoolInvk.msm.GetStream();
 
             try
             {
@@ -362,7 +362,7 @@ namespace Shared.Engine
             }
             finally
             {
-                MemoryStreamPool.Return(ms);
+                ms.Dispose();
             }
         }
         #endregion
@@ -474,7 +474,7 @@ namespace Shared.Engine
         #region GetSpan
         async public static Task<bool> GetSpan(Action<ReadOnlySpan<char>> spanAction, string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
-            var ms = MemoryStreamPool.Rent();
+            var ms = PoolInvk.msm.GetStream();
 
             try
             {
@@ -502,7 +502,7 @@ namespace Shared.Engine
             }
             finally
             {
-                MemoryStreamPool.Return(ms);
+                ms.Dispose();
             }
         }
         #endregion
@@ -510,7 +510,7 @@ namespace Shared.Engine
         #region PostSpan
         async public static Task<bool> PostSpan(Action<ReadOnlySpan<char>> spanAction, string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
         {
-            var ms = MemoryStreamPool.Rent();
+            var ms = PoolInvk.msm.GetStream();
 
             try
             {
@@ -539,7 +539,7 @@ namespace Shared.Engine
             }
             finally
             {
-                MemoryStreamPool.Return(ms);
+                ms.Dispose();
             }
         }
         #endregion
@@ -825,7 +825,7 @@ namespace Shared.Engine
 
         async public static Task<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
         {
-            var ms = MemoryStreamPool.Rent();
+            var ms = PoolInvk.msm.GetStream();
 
             try
             {
@@ -867,7 +867,7 @@ namespace Shared.Engine
             }
             finally
             {
-                MemoryStreamPool.Return(ms);
+                ms.Dispose();
             }
         }
         #endregion

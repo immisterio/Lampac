@@ -9,7 +9,7 @@ namespace Shared.Engine.Pools
 
         public static int Count => _pool.Count;
 
-        public static int Skip { get; private set; }
+        public static int GC { get; private set; }
 
         static int rentMax => PoolInvk.rentMax / 2;
 
@@ -31,7 +31,7 @@ namespace Shared.Engine.Pools
             }
             else
             {
-                Skip++;
+                GC++;
             }
         }
     }
