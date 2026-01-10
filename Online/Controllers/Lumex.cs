@@ -62,7 +62,7 @@ namespace Online.Controllers
         {
             get
             {
-                if (AppInit.conf.multiaccess && databaseCache != null)
+                if (AppInit.conf.multiaccess)
                     return databaseCache ??= JsonHelper.ListReader<DatumDB>("data/lumex.json", 105000);
 
                 return JsonHelper.IEnumerableReader<DatumDB>("data/lumex.json");
