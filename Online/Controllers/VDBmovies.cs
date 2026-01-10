@@ -15,7 +15,7 @@ namespace Online.Controllers
             get
             {
                 if (AppInit.conf.multiaccess)
-                    return databaseCache ??= JsonHelper.ListReader<MovieDB>("data/cdnmovies.json", 105000);
+                    return databaseCache ??= JsonHelper.ListReader<MovieDB>("data/cdnmovies.json", 130_000);
 
                 return JsonHelper.IEnumerableReader<MovieDB>("data/cdnmovies.json");
             }

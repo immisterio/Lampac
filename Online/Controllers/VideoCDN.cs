@@ -411,29 +411,10 @@ namespace Online.Controllers
         #region Search
         async Task<(long content_id, string content_type, SimilarTpl similar)> Search(string imdb_id, long kinopoisk_id, string title, string original_title, int serial, int clarification, bool similar)
         {
-            async Task<JToken> searchId(string imdb_id, long kinopoisk_id)
+            #region database search
+            if (similar == false && (!string.IsNullOrEmpty(imdb_id) || kinopoisk_id > 0))
             {
-                if (string.IsNullOrEmpty(init.token))
-                    return null;
-
-                if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
-                    return null;
-
-                string arg = kinopoisk_id > 0 ? $"&kinopoisk_id={kinopoisk_id}" : $"&imdb_id={imdb_id}";
-                var job = await httpHydra.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, safety: true);
-                if (job == null || !job.ContainsKey("data"))
-                    return null;
-
-                var result = job["data"]?.First;
-                if (result == null)
-                    return null;
-
-                return result;
-            }
-
-            if (!string.IsNullOrEmpty(imdb_id) || kinopoisk_id > 0)
-            {
-                var item = Lumex.database.FirstOrDefault(i => 
+                var item = Lumex.database.FirstOrDefault(i =>
                 {
                     if (string.IsNullOrEmpty(imdb_id) && i.imdb_id == imdb_id)
                         return true;
@@ -475,6 +456,7 @@ namespace Online.Controllers
                     return (item.id, type, default);
                 }
             }
+            #endregion
 
             var movie = similar ? null : (await searchId(imdb_id, 0) ?? await searchId(null, kinopoisk_id));
             if (movie != null)
@@ -537,6 +519,27 @@ namespace Online.Controllers
 
                 return (0, null, stpl);
             }
+        }
+
+
+        async Task<JToken> searchId(string imdb_id, long kinopoisk_id)
+        {
+            if (string.IsNullOrEmpty(init.token))
+                return null;
+
+            if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
+                return null;
+
+            string arg = kinopoisk_id > 0 ? $"&kinopoisk_id={kinopoisk_id}" : $"&imdb_id={imdb_id}";
+            var job = await httpHydra.Get<JObject>($"{init.iframehost}/api/short?api_token={init.token}" + arg, safety: true);
+            if (job == null || !job.ContainsKey("data"))
+                return null;
+
+            var result = job["data"]?.First;
+            if (result == null)
+                return null;
+
+            return result;
         }
         #endregion
     }
