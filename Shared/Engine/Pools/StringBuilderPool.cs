@@ -11,7 +11,7 @@ namespace Shared.Engine.Pools
 
         public static int GC { get; private set; }
 
-        static int rentMax => PoolInvk.rentMax / 2;
+        static int rentMax => PoolInvk.Rent(1024*1024);
 
 
         public static StringBuilder Rent()
