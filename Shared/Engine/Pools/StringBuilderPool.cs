@@ -12,18 +12,23 @@ namespace Shared.Engine.Pools
         public static int Bytes => _pool.Sum(i => i.Capacity) * 2; // 1 char == 2 byte
 
 
+        static int rentMax => PoolInvk.rentMax / 2;
+
         public static StringBuilder Rent()
         {
             if (_pool.TryTake(out var sb))
                 return sb;
 
-            return new StringBuilder(PoolInvk.rentLargeChunk);
+            return new StringBuilder(rentMax);
         }
 
         public static void Return(StringBuilder sb)
         {
-            sb.Clear();
-            _pool.Add(sb);
+            if (rentMax >= sb.Capacity)
+            {
+                sb.Clear();
+                _pool.Add(sb);
+            }
         }
     }
 }

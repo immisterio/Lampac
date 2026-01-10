@@ -7,7 +7,7 @@ namespace Shared.Engine.SISI
 {
     public static class ChaturbateTo
     {
-        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(PoolInvk.rentChunk));
 
         #region Uri
         public static string Uri(string host, string sort, int pg)

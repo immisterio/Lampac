@@ -235,7 +235,7 @@ namespace Shared.Engine
 
         private sealed class State
         {
-            public char[] Buffer { get; private set; } = ArrayPool<char>.Shared.Rent(PoolInvk.rentChunk);
+            public char[] Buffer { get; private set; } = ArrayPool<char>.Shared.Rent(PoolInvk.rentLargeChunk);
             public ReusableCharArrayTextReader Reader { get; } = new();
 
             public void EnsureCapacity(int requiredLength)

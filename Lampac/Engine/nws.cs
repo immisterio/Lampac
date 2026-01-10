@@ -364,7 +364,7 @@ namespace Lampac.Engine
             {
                 await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
-                var ms = MemoryStreamSmallPool.Rent();
+                var ms = MemoryStreamPool.Rent();
 
                 try
                 {
@@ -388,7 +388,7 @@ namespace Lampac.Engine
                 }
                 finally 
                 {
-                    MemoryStreamSmallPool.Return(ms);
+                    MemoryStreamPool.Return(ms);
                 }
             }
             catch (WebSocketException)

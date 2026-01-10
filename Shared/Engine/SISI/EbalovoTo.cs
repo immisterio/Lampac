@@ -10,7 +10,7 @@ namespace Shared.Engine.SISI
 {
     public static class EbalovoTo
     {
-        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(PoolInvk.rentChunk));
 
         #region Uri
         public static string Uri(string host, string search, string sort, string c, int pg)

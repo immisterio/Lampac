@@ -152,11 +152,6 @@ namespace Lampac.Controllers
                         MemoryStreamPool.Count,
                         MemoryStreamPool.Bytes
                     },
-                    MemoryStreamSmall = new
-                    {
-                        MemoryStreamSmallPool.Count,
-                        MemoryStreamSmallPool.Bytes
-                    },
                     StringBuilder = new 
                     {
                         StringBuilderPool.Count,

@@ -8,7 +8,7 @@ namespace Shared.Engine
 {
     public static class AccsDbInvk
     {
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(1000));
+        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(PoolInvk.rentChunk));
 
         public static string Args(string uri, HttpContext httpContext)
         {

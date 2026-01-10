@@ -11,7 +11,7 @@ namespace Shared.Engine.SISI
 {
     public static class EpornerTo
     {
-        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(PoolInvk.rentChunk));
         static readonly ThreadLocal<StringBuilder> sbHash = new(() => new StringBuilder(64));
 
         #region Uri

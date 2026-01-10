@@ -10,7 +10,7 @@ namespace Shared.Engine.SISI
 {
     public static class PornHubTo
     {
-        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(PoolInvk.rentChunk));
 
         #region Uri
         public static string Uri(string host, string plugin, string search, string model, string sort, int c, string hd, int pg)

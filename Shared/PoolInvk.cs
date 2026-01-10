@@ -23,6 +23,8 @@ namespace Shared
 
         public static int rentLargeChunk => 64 * 1024;
 
+        public static int rentMax => 5 * 1024 * 1024;
+
 
         static readonly int[] sizesRent =
         {

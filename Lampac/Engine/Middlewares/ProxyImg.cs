@@ -327,8 +327,8 @@ namespace Lampac.Engine.Middlewares
                         #region rsize
                         rsize_reset:
 
-                        var outArray = MemoryStreamSmallPool.Rent();
-                        var inArray = MemoryStreamSmallPool.Rent();
+                        var outArray = MemoryStreamPool.Rent();
+                        var inArray = MemoryStreamPool.Rent();
 
                         try
                         {
@@ -393,8 +393,8 @@ namespace Lampac.Engine.Middlewares
                         }
                         finally
                         {
-                            MemoryStreamSmallPool.Return(inArray);
-                            MemoryStreamSmallPool.Return(outArray);
+                            MemoryStreamPool.Return(inArray);
+                            MemoryStreamPool.Return(outArray);
                         }
                         #endregion
                     }

@@ -9,7 +9,7 @@ namespace Shared.Engine.Utilities
     {
         static readonly ThreadLocal<JsonSerializer> _serializer = new ThreadLocal<JsonSerializer>(JsonSerializer.CreateDefault);
 
-        static readonly ThreadLocal<StringBuilder> _cachedSb = new ThreadLocal<StringBuilder>(() => new StringBuilder(PoolInvk.rentLargeChunk));
+        static readonly ThreadLocal<StringBuilder> _cachedSb = new ThreadLocal<StringBuilder>(() => new StringBuilder(PoolInvk.rentMax / 2));
 
 
         public static string SerializeObject<T>(T value)

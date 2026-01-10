@@ -7,7 +7,7 @@ namespace Shared.Engine.SISI
 {
     public static class BongaCamsTo
     {
-        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(PoolInvk.rentChunk));
 
         public static string Uri(string host, string sort, int pg)
         {

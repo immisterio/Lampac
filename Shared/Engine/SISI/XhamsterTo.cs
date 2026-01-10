@@ -9,7 +9,7 @@ namespace Shared.Engine.SISI
 {
     public static class XhamsterTo
     {
-        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(400));
+        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(PoolInvk.rentChunk));
 
         #region Uri
         public static string Uri(string host, string plugin, string search, string c, string q, string sort, int pg)

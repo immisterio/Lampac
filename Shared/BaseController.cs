@@ -961,7 +961,7 @@ namespace Shared
         #endregion
 
         #region headerKeys
-        static readonly ThreadLocal<StringBuilder> sbHeaderKeys = new(() => new StringBuilder(PoolInvk.rentChunk));
+        static readonly ThreadLocal<StringBuilder> sbHeaderKeys = new(() => new StringBuilder(PoolInvk.rentLargeChunk));
 
         public string headerKeys(string key, ProxyManager proxy, RchClient rch, params string[] headersKey)
         {
