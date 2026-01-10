@@ -3,6 +3,11 @@ using System.Buffers;
 
 namespace Shared.Engine.Utilities
 {
+    public static class NewtonsoftPool
+    {
+        public static readonly IArrayPool<char> Array = new NewtonsoftCharArrayPool();
+    }
+
     public class NewtonsoftCharArrayPool : IArrayPool<char>
     {
         private readonly ArrayPool<char> _pool;

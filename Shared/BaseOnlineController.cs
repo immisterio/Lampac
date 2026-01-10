@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
+using Shared.Engine.Pools;
 using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Events;
@@ -372,67 +373,74 @@ namespace Shared
                 ? "application/json; charset=utf-8" 
                 : "text/html; charset=utf-8";
 
-            var sb = rjson 
-                ? tpl.ToBuilderJson()
-                : tpl.ToBuilderHtml();
-
             var encoder = Encoding.UTF8.GetEncoder();
             var ct = HttpContext.RequestAborted;
 
             var bodyWriter = response.BodyWriter;
             long pendingBytes = 0;
 
-            foreach (var chunk in sb.GetChunks())
+            var sb = rjson 
+                ? tpl.ToBuilderJson()
+                : tpl.ToBuilderHtml();
+
+            try
             {
-                ct.ThrowIfCancellationRequested();
-
-                ReadOnlySpan<char> chars = chunk.Span;
-                if (chars.IsEmpty)
-                    continue;
-
-                int maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
-
-                // Берём буфер напрямую у PipeWriter
-                Span<byte> dest = bodyWriter.GetSpan(maxBytes);
-
-                encoder.Convert(
-                    chars,
-                    dest,
-                    flush: false,
-                    out int charsUsed,
-                    out int bytesUsed,
-                    out bool completed);
-
-                // Обычно Convert при достаточном dest использует все chars.
-                // Но оставим защитный цикл на случай, если кто-то поменяет логику/буфер.
-                bodyWriter.Advance(bytesUsed);
-                pendingBytes += bytesUsed;
-
-                while (!completed)
+                foreach (var chunk in sb.GetChunks())
                 {
-                    chars = chars.Slice(charsUsed);
+                    ct.ThrowIfCancellationRequested();
 
-                    maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
-                    dest = bodyWriter.GetSpan(maxBytes);
+                    ReadOnlySpan<char> chars = chunk.Span;
+                    if (chars.IsEmpty)
+                        continue;
+
+                    int maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
+
+                    // Берём буфер напрямую у PipeWriter
+                    Span<byte> dest = bodyWriter.GetSpan(maxBytes);
 
                     encoder.Convert(
                         chars,
                         dest,
                         flush: false,
-                        out charsUsed,
-                        out bytesUsed,
-                        out completed);
+                        out int charsUsed,
+                        out int bytesUsed,
+                        out bool completed);
 
+                    // Обычно Convert при достаточном dest использует все chars.
+                    // Но оставим защитный цикл на случай, если кто-то поменяет логику/буфер.
                     bodyWriter.Advance(bytesUsed);
                     pendingBytes += bytesUsed;
-                }
 
-                // Сбрасываем накопленное в транспорт
-                if (pendingBytes > 30_000)
-                {
-                    await bodyWriter.FlushAsync(ct);
-                    pendingBytes = 0;
+                    while (!completed)
+                    {
+                        chars = chars.Slice(charsUsed);
+
+                        maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
+                        dest = bodyWriter.GetSpan(maxBytes);
+
+                        encoder.Convert(
+                            chars,
+                            dest,
+                            flush: false,
+                            out charsUsed,
+                            out bytesUsed,
+                            out completed);
+
+                        bodyWriter.Advance(bytesUsed);
+                        pendingBytes += bytesUsed;
+                    }
+
+                    // Сбрасываем накопленное в транспорт
+                    if (pendingBytes > 30_000)
+                    {
+                        await bodyWriter.FlushAsync(ct);
+                        pendingBytes = 0;
+                    }
                 }
+            }
+            finally
+            {
+                StringBuilderPool.Return(sb);
             }
 
             // Дофлашить состояние энкодера (границы чанков/суррогаты)

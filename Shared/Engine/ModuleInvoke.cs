@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using Shared.Engine.Utilities;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -112,7 +113,7 @@ namespace Shared.Engine
                             var deserialized = deserializer.Deserialize<object>(yaml) ?? new object();
 
                             // Convert deserialized YAML to JSON and then to JObject
-                            var json = Newtonsoft.Json.JsonConvert.SerializeObject(deserialized);
+                            var json = JsonConvertPool.SerializeObject(deserialized);
 
                             JObject yamlJo = null;
                             try

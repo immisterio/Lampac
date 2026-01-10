@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Utilities;
 using Shared.Models;
 using System;
 using System.Buffers;
@@ -207,7 +208,7 @@ namespace Lampac.Engine.Middlewares
                 if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
                 {
                     proxyManager?.Refresh();
-                    cache.json = JsonConvert.SerializeObject(result.content);
+                    cache.json = JsonConvertPool.SerializeObject(result.content);
 
                     if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                         hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(1), inmemory: true);
@@ -216,7 +217,7 @@ namespace Lampac.Engine.Middlewares
                     return;
                 }
 
-                cache.json = JsonConvert.SerializeObject(result.content);
+                cache.json = JsonConvertPool.SerializeObject(result.content);
 
                 if (init.cache_api > 0 && !string.IsNullOrEmpty(cache.json))
                     hybridCache.Set(mkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);

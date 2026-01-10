@@ -164,7 +164,7 @@ namespace Online.Controllers
                                 {
                                     if (browser.IsCompleted || Regex.IsMatch(route.Request.Url.Split("?")[0], "\\.(woff2?|vtt|srt|css|ico)$"))
                                     {
-                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                         await route.AbortAsync();
                                         return;
                                     }
@@ -192,7 +192,7 @@ namespace Online.Controllers
 
                                         lastHeaders = cache.headers;
 
-                                        PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
+                                        PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {route.Request.Url}", cache.headers));
                                         browser.SetPageResult(route.Request.Url);
                                         await route.AbortAsync();
                                         return;

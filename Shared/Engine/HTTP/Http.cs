@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json;
+using Shared.Engine.Pools;
 using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.Events;
-using System.Buffers;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -13,11 +13,12 @@ namespace Shared.Engine
 {
     public static class Http
     {
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder());
+        static readonly ThreadLocal<JsonSerializer> _serializerDefault = new ThreadLocal<JsonSerializer>(JsonSerializer.CreateDefault);
 
-        static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
+        static readonly ThreadLocal<JsonSerializer> _serializerIgnoreDeserialize = new ThreadLocal<JsonSerializer>(() => JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } }));
 
         public static IHttpClientFactory httpClientFactory;
+
 
         #region defaultHeaders / UserAgent
         public static readonly Dictionary<string, string> defaultUaHeaders = new Dictionary<string, string>()
@@ -321,7 +322,9 @@ namespace Shared.Engine
         #region BaseGetAsync<T>
         async public static Task<(T content, HttpResponseMessage response)> BaseGetAsync<T>(string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
-            using (var ms = PoolInvk.msm.GetStream())
+            var ms = MemoryStreamPool.Rent();
+
+            try
             {
                 T result = default;
 
@@ -332,16 +335,16 @@ namespace Shared.Engine
                         await e.stream.CopyToAsync(ms, PoolInvk.bufferSize, e.ct);
                         ms.Position = 0;
 
-                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
                         {
                             using (var jsonReader = new JsonTextReader(streamReader)
                             {
-                                ArrayPool = new NewtonsoftCharArrayPool()
+                                ArrayPool = NewtonsoftPool.Array
                             })
                             {
-                                var serializer = JsonSerializer.Create(
-                                    IgnoreDeserializeObject ? jsonSettings : null
-                                );
+                                var serializer = IgnoreDeserializeObject
+                                    ? _serializerIgnoreDeserialize.Value
+                                    : _serializerDefault.Value;
 
                                 result = serializer.Deserialize<T>(jsonReader);
 
@@ -357,6 +360,10 @@ namespace Shared.Engine
 
                 return (result, req.response);
             }
+            finally
+            {
+                MemoryStreamPool.Return(ms);
+            }
         }
         #endregion
 
@@ -365,8 +372,7 @@ namespace Shared.Engine
         {
             try
             {
-                var loglines = sb.Value;
-                loglines.Clear();
+                var loglines = StringBuilderPool.Rent();
 
                 try
                 {
@@ -453,6 +459,8 @@ namespace Shared.Engine
                 {
                     if (weblog && !url.Contains("127.0.0.1") && IsLogged)
                         WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
+
+                    StringBuilderPool.Return(loglines);
                 }
             }
             catch
@@ -466,7 +474,9 @@ namespace Shared.Engine
         #region GetSpan
         async public static Task<bool> GetSpan(Action<ReadOnlySpan<char>> spanAction, string url, Encoding encoding = default, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, bool weblog = true)
         {
-            using (var ms = PoolInvk.msm.GetStream())
+            var ms = MemoryStreamPool.Rent();
+
+            try
             {
                 var req = await BaseGetReaderAsync(async e =>
                 {
@@ -490,13 +500,19 @@ namespace Shared.Engine
 
                 return req.success;
             }
+            finally
+            {
+                MemoryStreamPool.Return(ms);
+            }
         }
         #endregion
 
         #region PostSpan
         async public static Task<bool> PostSpan(Action<ReadOnlySpan<char>> spanAction, string url, string data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
         {
-            using (var ms = PoolInvk.msm.GetStream())
+            var ms = MemoryStreamPool.Rent();
+
+            try
             {
                 var req = await BasePostReaderAsync(async e =>
                 {
@@ -521,6 +537,10 @@ namespace Shared.Engine
 
                 return req.success;
             }
+            finally
+            {
+                MemoryStreamPool.Return(ms);
+            }
         }
         #endregion
 
@@ -535,8 +555,7 @@ namespace Shared.Engine
         #region BaseGet
         async public static Task<(string content, HttpResponseMessage response)> BaseGet(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
-            var loglines = sb.Value;
-            loglines.Clear();
+            var loglines = StringBuilderPool.Rent();
 
             try
             {
@@ -648,6 +667,8 @@ namespace Shared.Engine
             {
                 if (weblog && !url.Contains("127.0.0.1") && IsLogged)
                     WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
+
+                StringBuilderPool.Return(loglines);
             }
         }
         #endregion
@@ -672,8 +693,7 @@ namespace Shared.Engine
         #region BasePost
         async public static Task<(string content, HttpResponseMessage response)> BasePost(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
         {
-            var loglines = sb.Value;
-            loglines.Clear();
+            var loglines = StringBuilderPool.Rent();
 
             try
             {
@@ -788,6 +808,8 @@ namespace Shared.Engine
             {
                 if (!url.Contains("127.0.0.1") && IsLogged)
                     WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
+
+                StringBuilderPool.Return(loglines);
             }
         }
         #endregion
@@ -803,7 +825,9 @@ namespace Shared.Engine
 
         async public static Task<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, List<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true)
         {
-            using (var ms = PoolInvk.msm.GetStream())
+            var ms = MemoryStreamPool.Rent();
+
+            try
             {
                 T result = default;
 
@@ -816,16 +840,16 @@ namespace Shared.Engine
 
                         var encdg = encoding != default ? encoding : Encoding.UTF8;
 
-                        using (var streamReader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        using (var streamReader = new StreamReader(ms, encdg, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
                         {
                             using (var jsonReader = new JsonTextReader(streamReader)
                             { 
-                                ArrayPool = new NewtonsoftCharArrayPool() 
+                                ArrayPool = NewtonsoftPool.Array
                             })
                             {
-                                var serializer = JsonSerializer.Create(
-                                    IgnoreDeserializeObject ? jsonSettings : null
-                                );
+                                var serializer = IgnoreDeserializeObject
+                                    ? _serializerIgnoreDeserialize.Value
+                                    : _serializerDefault.Value;
 
                                 result = serializer.Deserialize<T>(jsonReader);
 
@@ -841,14 +865,17 @@ namespace Shared.Engine
 
                 return result;
             }
+            finally
+            {
+                MemoryStreamPool.Return(ms);
+            }
         }
         #endregion
 
         #region BasePostReaderAsync
         async public static Task<(bool success, HttpResponseMessage response)> BasePostReaderAsync(Action<(Stream stream, CancellationToken ct, StringBuilder loglines)> action, string url, HttpContent data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool IgnoreDeserializeObject = false, bool statusCodeOK = true)
         {
-            var loglines = sb.Value;
-            loglines.Clear();
+            var loglines = StringBuilderPool.Rent();
 
             try
             {
@@ -935,6 +962,8 @@ namespace Shared.Engine
             {
                 if (!url.Contains("127.0.0.1") && IsLogged)
                     WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
+
+                StringBuilderPool.Return(loglines);
             }
         }
         #endregion

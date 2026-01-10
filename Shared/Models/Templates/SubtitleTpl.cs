@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Shared.Models.Templates
 {
@@ -21,7 +22,7 @@ namespace Shared.Models.Templates
                 data.Add(new SubtitleDto(url, label));
         }
 
-        public string ToJson() => JsonSerializer.Serialize(ToObject());
+        public string ToJson() => JsonSerializer.Serialize(ToObject(), SubtitleJsonContext.Default.ListSubtitleDto);
 
         public IReadOnlyList<SubtitleDto> ToObject(bool emptyToNull = false)
         {
@@ -33,12 +34,22 @@ namespace Shared.Models.Templates
     }
 
 
+    [JsonSourceGenerationOptions(
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+    )]
+    [JsonSerializable(typeof(SubtitleDto))]
+    [JsonSerializable(typeof(List<SubtitleDto>))]
+    public partial class SubtitleJsonContext : JsonSerializerContext
+    {
+    }
+
     public readonly struct SubtitleDto
     {
         public string method { get; }
         public string url { get; }
         public string label { get; }
 
+        [JsonConstructor]
         public SubtitleDto(string url, string label)
         {
             method = "link";

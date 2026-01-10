@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.SQL;
 using System;
@@ -264,7 +265,7 @@ namespace Lampac.Controllers
 
                 if (IsDbInitialization)
                 {
-                    _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvert.SerializeObject(new
+                    _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvertPool.SerializeObject(new
                     {
                         type = "set",
                         data = token,
@@ -326,7 +327,7 @@ namespace Lampac.Controllers
 
                         if (readBody.token != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new
+                            string edata = JsonConvertPool.SerializeObject(new
                             {
                                 type = isAddedRequest ? "added" : "add",
                                 profile_id = getProfileid(requestInfo, HttpContext),
@@ -400,7 +401,7 @@ namespace Lampac.Controllers
 
                         if (readBody.token != null)
                         {
-                            string edata = JsonConvert.SerializeObject(new
+                            string edata = JsonConvertPool.SerializeObject(new
                             {
                                 type = "remove",
                                 profile_id = getProfileid(requestInfo, HttpContext),
@@ -704,7 +705,7 @@ namespace Lampac.Controllers
 
         JsonResult JsonSuccess() => Json(new { success = true });
 
-        ActionResult JsonFailure(string message = null) => ContentTo(JsonConvert.SerializeObject(new { success = false, message }));
+        ActionResult JsonFailure(string message = null) => ContentTo(JsonConvertPool.SerializeObject(new { success = false, message }));
 
         async Task<(IReadOnlyList<BookmarkEventPayload> payloads, JToken token)> ReadPayloadAsync()
         {

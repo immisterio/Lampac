@@ -104,7 +104,7 @@ namespace Online.Controllers
                                 {
                                     if (browser.IsCompleted)
                                     {
-                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                         await route.AbortAsync();
                                         return;
                                     }
@@ -114,7 +114,7 @@ namespace Online.Controllers
 
                                     if (route.Request.Url.Contains("adsco.") || route.Request.Url.Contains("pubtrky.") || route.Request.Url.Contains("clarity."))
                                     {
-                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                         await route.AbortAsync();
                                         return;
                                     }
@@ -130,7 +130,7 @@ namespace Online.Controllers
                                             cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                         }
 
-                                        PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
+                                        PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {route.Request.Url}", cache.headers));
                                         browser.SetPageResult(route.Request.Url);
                                         await route.AbortAsync();
                                         return;

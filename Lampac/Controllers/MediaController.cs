@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.Base;
 using System;
@@ -186,7 +187,7 @@ namespace Lampac.Controllers
         ActionResult JsonError(string message, int statusCode)
         {
             HttpContext.Response.StatusCode = statusCode;
-            return ContentTo(JsonConvert.SerializeObject(new
+            return ContentTo(JsonConvertPool.SerializeObject(new
             {
                 success = false,
                 error = message

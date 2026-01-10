@@ -1,19 +1,13 @@
 ﻿using Shared.Engine;
+using Shared.Engine.Pools;
 using Shared.Models.Base;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 
 namespace Shared.Models.Templates
 {
     public class EpisodeTpl : ITplResult
     {
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(5000));
-
-        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
-
-
         public List<EpisodeDto> data { get; private set; }
 
         public VoiceTpl? vtpl { get; private set; }
@@ -72,8 +66,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderHtml()
         {
-            var html = sb.Value;
-            html.Clear(); 
+            var html = StringBuilderPool.Rent();
             
             if (IsEmpty)
                 return html;
@@ -101,7 +94,7 @@ namespace Shared.Models.Templates
                 html.Append("\" ");
 
                 html.Append("data-json='");
-                UtilsTpl.WriteJson(html, i, jsonOptions);
+                UtilsTpl.WriteJson(html, i, EpisodeJsonContext.Default.EpisodeDto);
                 html.Append("'>");
 
                 html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
@@ -121,8 +114,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderJson()
         {
-            var json = sb.Value;
-            json.Clear();
+            var json = StringBuilderPool.Rent();
 
             if (IsEmpty)
             {
@@ -133,10 +125,31 @@ namespace Shared.Models.Templates
             UtilsTpl.WriteJson(json, new EpisodeResponseDto(
                 vtpl?.ToObject(emptyToNull: true),
                 data
-            ), jsonOptions);
+            ), EpisodeJsonContext.Default.EpisodeResponseDto);
 
             return json;
         }
+    }
+
+
+    [JsonSourceGenerationOptions(
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+    )]
+    [JsonSerializable(typeof(EpisodeDto))]
+    [JsonSerializable(typeof(Dictionary<string, string>))]
+    [JsonSerializable(typeof(SubtitleDto))]
+    [JsonSerializable(typeof(List<SubtitleDto>))]
+    [JsonSerializable(typeof(VastConf))]
+    [JsonSerializable(typeof(SegmentDto))]
+    [JsonSerializable(typeof(List<SegmentDto>))]
+    [JsonSerializable(typeof(Dictionary<string, List<SegmentDto>>))]
+    [JsonSerializable(typeof(EpisodeResponseDto))]
+    [JsonSerializable(typeof(VoiceDto))]
+    [JsonSerializable(typeof(EpisodeDto))]
+    [JsonSerializable(typeof(List<VoiceDto>))]
+    [JsonSerializable(typeof(List<EpisodeDto>))]
+    public partial class EpisodeJsonContext : JsonSerializerContext
+    {
     }
 
     public readonly struct EpisodeDto
@@ -157,6 +170,7 @@ namespace Shared.Models.Templates
         public VastConf vast { get; }
         public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
+        [JsonConstructor]
         public EpisodeDto(
             string method,
             string url,
@@ -198,6 +212,7 @@ namespace Shared.Models.Templates
         public IReadOnlyList<VoiceDto> voice { get; }
         public IReadOnlyList<EpisodeDto> data { get; }
 
+        [JsonConstructor]
         public EpisodeResponseDto(IReadOnlyList<VoiceDto> voice, IReadOnlyList<EpisodeDto> data)
         {
             type = "episode";

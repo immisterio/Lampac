@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Pools;
 using Shared.Models.AppConf;
 using Shared.PlaywrightCore;
 using System;
@@ -143,6 +144,24 @@ namespace Lampac.Controllers
                 {
                     clients = RchClient.clients.Count,
                     Ids = RchClient.rchIds.Count
+                },
+                pool = new
+                {
+                    MemoryStream = new 
+                    {
+                        MemoryStreamPool.Count,
+                        MemoryStreamPool.Bytes
+                    },
+                    MemoryStreamSmall = new
+                    {
+                        MemoryStreamSmallPool.Count,
+                        MemoryStreamSmallPool.Bytes
+                    },
+                    StringBuilder = new 
+                    {
+                        StringBuilderPool.Count,
+                        StringBuilderPool.Bytes
+                    }
                 },
                 memoryCache = memoryCache.GetCurrentStatistics()
             });

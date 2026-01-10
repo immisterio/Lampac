@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Shared.Engine.Utilities;
 using Shared.Models.SQL;
 using System.Web;
 
@@ -16,6 +17,8 @@ namespace SISI
             if (md5user == null)
                 return StatusCode(403, "access denied");
 
+            string localhost = $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}";
+
             var menu = new List<MenuItem>()
             {
                 new MenuItem()
@@ -26,7 +29,6 @@ namespace SISI
                 }
             };
 
-            #region bookmarks
             int total_pages = 0;
             var bookmarks = new List<PlaylistItem>(pageSize);
 
@@ -48,7 +50,7 @@ namespace SISI
                     submenu = new List<MenuItem>(20)
                 };
 
-                foreach (var m in await bookmarksQuery.OrderByDescending(i => i.created).Where(i => i.model != null).Select(i => i.model).ToHashSetAsync())
+                foreach (var m in await bookmarksQuery.Where(i => i.model != null).Select(i => i.model).ToHashSetAsync())
                 {
                     if (string.IsNullOrEmpty(m))
                         continue;
@@ -84,47 +86,38 @@ namespace SISI
 
                         try
                         {
-                            var bookmark = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
-                            if (bookmark != null)
-                                bookmarks.Add(bookmark);
+                            var pl = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
+                            if (pl != null)
+                            {
+                                bookmarks.Add(new PlaylistItem()
+                                {
+                                    name = pl.name,
+                                    video = getvideLink(pl),
+                                    picture = pl.bookmark.image != null
+                                        ? HostImgProxy(pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image, plugin: pl.bookmark.site)
+                                        : null,
+                                    time = pl.time,
+                                    json = pl.json,
+                                    related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
+                                    quality = pl.quality,
+                                    preview = pl.preview != null && pl.preview.StartsWith("bookmarks/") 
+                                        ? $"{host}/{pl.preview}" 
+                                        : null,
+                                    model = pl.model,
+                                    bookmark = new Bookmark() { uid = pl.bookmark.uid }
+                                });
+                            }
                         }
                         catch { }
                     }
                 }
             }
-            #endregion
 
-            #region getvideLink
-            string getvideLink(PlaylistItem pl)
+            return new JsonResult(new Channel()
             {
-                if (pl.bookmark.site is "phub" or "phubprem")
-                    return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
-
-                return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
-            }
-            #endregion
-
-            string localhost = $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}";
-
-            return new JsonResult(new
-            {
-                menu,
-                list = bookmarks.Select(pl => new
-                {
-                    pl.name,
-                    video = getvideLink(pl),
-                    picture = pl.bookmark.image != null 
-                        ? HostImgProxy(pl.bookmark.image.StartsWith("bookmarks/") ? $"{localhost}/{pl.bookmark.image}" : pl.bookmark.image, plugin: pl.bookmark.site) 
-                        : null,
-                    pl.time,
-                    pl.json,
-                    related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
-                    pl.quality,
-                    preview = pl.preview != null && pl.preview.StartsWith("bookmarks/") ? $"{host}/{pl.preview}" : null,
-                    pl.model,
-                    bookmark = new Bookmark() { uid = pl.bookmark.uid }
-                }),
-                total_pages
+                menu = menu,
+                list = bookmarks,
+                total_pages = total_pages
             });
         }
 
@@ -205,7 +198,7 @@ namespace SISI
                         user = md5user,
                         uid = uid,
                         created = DateTime.UtcNow,
-                        json = JsonConvert.SerializeObject(data),
+                        json = JsonConvertPool.SerializeObject(data),
                         name = data.name,
                         model = data.model?.name
                     });
@@ -274,6 +267,14 @@ namespace SISI
                 return profile_id;
 
             return string.Empty;
+        }
+
+        string getvideLink(PlaylistItem pl)
+        {
+            if (pl.bookmark.site is "phub" or "phubprem")
+                return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
+
+            return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
         }
     }
 }

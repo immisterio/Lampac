@@ -2,6 +2,7 @@
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.Utilities;
 using Shared.Models.Online.Alloha;
 using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
@@ -47,7 +48,7 @@ namespace Online.Controllers
                 return Ok();
 
             if (origsource)
-                return ContentTo(JsonConvert.SerializeObject(result.data));
+                return ContentTo(JsonConvertPool.SerializeObject(result.data));
 
             JToken data = result.data;
 
@@ -298,7 +299,7 @@ namespace Online.Controllers
                                 {
                                     if (browser.IsCompleted || route.Request.Url.Contains("blank.mp4") || route.Request.Url.Contains("googleapis.com"))
                                     {
-                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                         await route.AbortAsync();
                                         return;
                                     }
@@ -337,7 +338,7 @@ namespace Online.Controllers
                                                             cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                                     }
 
-                                                    PlaywrightBase.ConsoleLog($"Playwright: SET {response.Request.Url}", cache.headers);
+                                                    PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {response.Request.Url}", cache.headers));
                                                     browser.SetPageResult(response.Request.Url);
                                                 }
                                             }

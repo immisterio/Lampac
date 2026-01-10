@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.IO;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Pools;
 using Shared.Models;
 using System;
 using System.Buffers;
@@ -327,7 +327,10 @@ namespace Lampac.Engine.Middlewares
                         #region rsize
                         rsize_reset:
 
-                        using (var inArray = PoolInvk.msm.GetStream())
+                        var outArray = MemoryStreamSmallPool.Rent();
+                        var inArray = MemoryStreamSmallPool.Rent();
+
+                        try
                         {
                             var result = await Download(inArray, href, ctsHttp.Token, proxy: proxy, headers: decryptLink?.headers).ConfigureAwait(false);
 
@@ -348,48 +351,50 @@ namespace Lampac.Engine.Middlewares
                                 return;
                             }
 
-                            using (var outArray = PoolInvk.msm.GetStream())
+                            bool successConvert = false;
+
+                            if ((result.contentType ?? contentType) is "image/png" or "image/webp" or "image/jpeg")
                             {
-                                bool successConvert = false;
-
-                                if ((result.contentType ?? contentType) is "image/png" or "image/webp" or "image/jpeg")
+                                if (AppInit.conf.imagelibrary == "NetVips")
                                 {
-                                    if (AppInit.conf.imagelibrary == "NetVips")
-                                    {
-                                        successConvert = NetVipsImage(href, inArray, outArray, width, height);
-                                    }
-                                    else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                                    {
-                                        successConvert = await ImageMagick(inArray, outArray, width, height, cacheimg ? outFile : null);
-                                    }
+                                    successConvert = NetVipsImage(href, inArray, outArray, width, height);
                                 }
-
-                                var resultArray = successConvert ? outArray : inArray;
-                                resultArray.Position = 0;
-
-                                if (successConvert)
-                                    proxyManager?.Success();
-
-                                httpContext.Response.ContentType = contentType;
-
-                                if (AppInit.conf.serverproxy.responseContentLength)
-                                    httpContext.Response.ContentLength = resultArray.Length;
-
-                                try
+                                else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                                 {
-                                    await resultArray.CopyToAsync(httpContext.Response.Body, PoolInvk.bufferSize, ctsHttp.Token).ConfigureAwait(false);
-
-                                    if (cacheimg)
-                                        await TrySaveCache(resultArray, outFile, md5key);
-                                }
-                                catch
-                                {
-                                    if (cacheimg)
-                                        await TrySaveCache(resultArray, outFile, md5key);
-
-                                    throw;
+                                    successConvert = await ImageMagick(inArray, outArray, width, height, cacheimg ? outFile : null);
                                 }
                             }
+
+                            var resultArray = successConvert ? outArray : inArray;
+                            resultArray.Position = 0;
+
+                            if (successConvert)
+                                proxyManager?.Success();
+
+                            httpContext.Response.ContentType = contentType;
+
+                            if (AppInit.conf.serverproxy.responseContentLength)
+                                httpContext.Response.ContentLength = resultArray.Length;
+
+                            try
+                            {
+                                await resultArray.CopyToAsync(httpContext.Response.Body, PoolInvk.bufferSize, ctsHttp.Token).ConfigureAwait(false);
+
+                                if (cacheimg)
+                                    await TrySaveCache(resultArray, outFile, md5key);
+                            }
+                            catch
+                            {
+                                if (cacheimg)
+                                    await TrySaveCache(resultArray, outFile, md5key);
+
+                                throw;
+                            }
+                        }
+                        finally
+                        {
+                            MemoryStreamSmallPool.Return(inArray);
+                            MemoryStreamSmallPool.Return(outArray);
                         }
                         #endregion
                     }
@@ -404,7 +409,7 @@ namespace Lampac.Engine.Middlewares
 
 
         #region Download
-        async Task<(bool success, string contentType)> Download(RecyclableMemoryStream ms, string url, CancellationToken cancellationToken, List<HeadersModel> headers = null, WebProxy proxy = null)
+        async Task<(bool success, string contentType)> Download(Stream ms, string url, CancellationToken cancellationToken, List<HeadersModel> headers = null, WebProxy proxy = null)
         {
             try
             {
@@ -459,7 +464,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region TrySaveCache
-        async Task TrySaveCache(RecyclableMemoryStream ms, string outFile, string md5key)
+        async Task TrySaveCache(Stream ms, string outFile, string md5key)
         {
             try
             {
@@ -476,7 +481,7 @@ namespace Lampac.Engine.Middlewares
         #endregion
 
         #region NetVipsImage
-        private bool NetVipsImage(string href, RecyclableMemoryStream inArray, RecyclableMemoryStream outArray, int width, int height)
+        private bool NetVipsImage(string href, Stream inArray, Stream outArray, int width, int height)
         {
             try
             {
@@ -509,7 +514,7 @@ namespace Lampac.Engine.Middlewares
         /// <summary>
         /// apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
         /// </summary>
-        async static Task<bool> ImageMagick(RecyclableMemoryStream inArray, RecyclableMemoryStream outArray, int width, int height, string myoutputFilePath)
+        async static Task<bool> ImageMagick(Stream inArray, Stream outArray, int width, int height, string myoutputFilePath)
         {
             string inputFilePath = null;
             string outputFilePath = null;

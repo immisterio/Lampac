@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Shared.Engine.Utilities;
 using Shared.Models.SQL;
 using System.Web;
 
@@ -44,9 +45,24 @@ namespace SISI
 
                         try
                         {
-                            var history = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
-                            if (history != null)
-                                historys.Add(history);
+                            var pl = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
+                            if (pl != null)
+                            {
+                                historys.Add(new PlaylistItem()
+                                {
+                                    name = pl.name,
+                                    video = getvideLink(pl),
+                                    picture = pl.bookmark.image != null ? HostImgProxy(pl.bookmark.image, plugin: pl.bookmark.site) : null,
+                                    time = pl.time,
+                                    json = pl.json,
+                                    related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
+                                    quality = pl.quality,
+                                    preview = pl.preview,
+                                    model = pl.model,
+                                    bookmark = pl.bookmark,
+                                    history_uid = pl.history_uid
+                                });
+                            }
                         }
                         catch { }
                     }
@@ -66,23 +82,10 @@ namespace SISI
 
             string localhost = $"http://{AppInit.conf.listen.localhost}:{AppInit.conf.listen.port}";
 
-            return new JsonResult(new
+            return new JsonResult(new Channel()
             {
-                list = historys.Select(pl => new
-                {
-                    pl.name,
-                    video = getvideLink(pl),
-                    picture = pl.bookmark.image != null ? HostImgProxy(pl.bookmark.image, plugin: pl.bookmark.site) : null,
-                    pl.time,
-                    pl.json,
-                    related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
-                    pl.quality,
-                    pl.preview,
-                    pl.model,
-                    pl.bookmark,
-                    pl.history_uid
-                }),
-                total_pages
+                list = historys,
+                total_pages = total_pages
             });
         }
 
@@ -112,7 +115,7 @@ namespace SISI
                         user = md5user,
                         uid = uid,
                         created = DateTime.UtcNow,
-                        json = JsonConvert.SerializeObject(data)
+                        json = JsonConvertPool.SerializeObject(data)
                     });
 
                     await sqlDb.SaveChangesLocks();

@@ -25,12 +25,6 @@ namespace Shared
         static readonly List<MenuItem> emptyMenu = new();
 
         #region jsonOptions
-        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-
         static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions 
         { 
             Indented = false, 
@@ -331,7 +325,7 @@ namespace Shared
                 writer.WriteNumber("totalPages", total_pages);
 
                 writer.WritePropertyName("menu");
-                JsonSerializer.Serialize(writer, menu ?? emptyMenu, jsonOptions);
+                JsonSerializer.Serialize(writer, menu ?? emptyMenu, SisiResultJsonContext.Default.ListMenuItem);
 
                 writer.WritePropertyName("list");
                 writer.WriteStartArray();
@@ -368,7 +362,7 @@ namespace Shared
                             : null,
                         hide = pl.hide,
                         myarg = pl.myarg
-                    }, jsonOptions);
+                    }, SisiResultJsonContext.Default.OnResultPlaylistItem);
 
                     // Cбрасываем накопленное из Utf8JsonWriter в транспорт
                     if (writer.BytesPending > 50_000)

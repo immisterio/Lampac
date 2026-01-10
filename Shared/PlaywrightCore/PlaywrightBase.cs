@@ -222,7 +222,7 @@ namespace Shared.PlaywrightCore
         #endregion
 
         #region WebLog
-        public static void WebLog(IRequest request, IResponse response, in string result, (string ip, string username, string password) proxy = default)
+        public static void WebLog(IRequest request, IResponse response, string result, (string ip, string username, string password) proxy = default)
         {
             try
             {
@@ -257,7 +257,7 @@ namespace Shared.PlaywrightCore
             catch { }
         }
 
-        public static void WebLog(string method, string url, in string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
+        public static void WebLog(string method, string url, string result, (string ip, string username, string password) proxy = default, IRequest request = default, IResponse response = default)
         {
             try
             {
@@ -446,17 +446,22 @@ namespace Shared.PlaywrightCore
         #endregion
 
         #region ConsoleLog
-        public static void ConsoleLog(string value, List<HeadersModel> headers = null)
+        public static void ConsoleLog(Func<string> func)
+            => ConsoleLog(() => (func.Invoke(), null));
+
+        public static void ConsoleLog(Func<(string value, List<HeadersModel> headers)> func)
         {
             if (AppInit.conf.chromium.consoleLog || AppInit.conf.firefox.consoleLog)
             {
-                if (headers != null)
+                var r = func.Invoke();
+
+                if (r.headers != null)
                 {
-                    Console.WriteLine($"\n{value}\n{Newtonsoft.Json.JsonConvert.SerializeObject(headers.ToDictionary(), Newtonsoft.Json.Formatting.Indented)}\n");
+                    Console.WriteLine($"\n{r.value}\n{Newtonsoft.Json.JsonConvert.SerializeObject(r.headers.ToDictionary(), Newtonsoft.Json.Formatting.Indented)}\n");
                 }
                 else
                 {
-                    Console.WriteLine(value);
+                    Console.WriteLine(r.value);
                 }
             }
         }

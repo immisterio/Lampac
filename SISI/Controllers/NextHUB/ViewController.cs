@@ -120,7 +120,7 @@ namespace SISI.Controllers.NextHUB
                             {
                                 if (browser.IsCompleted || (init.view.patternAbort != null && Regex.IsMatch(route.Request.Url, init.view.patternAbort, RegexOptions.IgnoreCase)))
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -149,7 +149,7 @@ namespace SISI.Controllers.NextHUB
                                         if (response != null)
                                             result = await response.TextAsync().ConfigureAwait(false);
 
-                                        PlaywrightBase.ConsoleLog($"\nPlaywright: {result}\n");
+                                        PlaywrightBase.ConsoleLog(() => $"\nPlaywright: {result}\n");
                                         browser.SetPageResult(result);
                                     }
                                     else
@@ -186,12 +186,12 @@ namespace SISI.Controllers.NextHUB
                                             if (setUri.StartsWith("//"))
                                                 setUri = $"{(init.host.StartsWith("https") ? "https" : "http")}:{setUri}";
 
-                                            PlaywrightBase.ConsoleLog($"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                            PlaywrightBase.ConsoleLog(() => $"\nPlaywright: SET {setUri}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
                                             browser.SetPageResult(setUri);
                                         }
                                         else
                                         {
-                                            PlaywrightBase.ConsoleLog($"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
+                                            PlaywrightBase.ConsoleLog(() => $"\nPlaywright: SET {route.Request.Url}\n{JsonConvert.SerializeObject(cache.headers.ToDictionary(), Formatting.Indented)}\n");
                                             browser.SetPageResult(route.Request.Url);
                                             await route.AbortAsync();
                                         }
@@ -204,7 +204,7 @@ namespace SISI.Controllers.NextHUB
                                 #region patternAbortEnd
                                 if (init.view.patternAbortEnd != null && Regex.IsMatch(route.Request.Url, init.view.patternAbortEnd, RegexOptions.IgnoreCase))
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -213,7 +213,7 @@ namespace SISI.Controllers.NextHUB
                                 #region patternWhiteRequest
                                 if (init.view.patternWhiteRequest != null && route.Request.Url != url && !Regex.IsMatch(route.Request.Url, init.view.patternWhiteRequest, RegexOptions.IgnoreCase))
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                     await route.AbortAsync();
                                     return;
                                 }
@@ -227,7 +227,7 @@ namespace SISI.Controllers.NextHUB
                                 }
                                 else
                                 {
-                                    PlaywrightBase.ConsoleLog($"Playwright: {route.Request.Method} {route.Request.Url}");
+                                    PlaywrightBase.ConsoleLog(() => $"Playwright: {route.Request.Method} {route.Request.Url}");
                                 }
                                 #endregion
 
@@ -309,7 +309,7 @@ namespace SISI.Controllers.NextHUB
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
-                                    PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
+                                    PlaywrightBase.ConsoleLog(() => "ContentAsync: " + (i + 1));
                                     await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
@@ -318,7 +318,7 @@ namespace SISI.Controllers.NextHUB
                                 cache.file = goFile(html);
                             }
 
-                            PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
+                            PlaywrightBase.ConsoleLog(() => $"Playwright: SET {cache.file}");
                             #endregion
                         }
                         else if (init.view.regexMatch != null)
@@ -335,7 +335,7 @@ namespace SISI.Controllers.NextHUB
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
-                                    PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
+                                    PlaywrightBase.ConsoleLog(() => "ContentAsync: " + (i + 1));
                                     await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
@@ -346,7 +346,7 @@ namespace SISI.Controllers.NextHUB
                                     cache.file = init.view.regexMatch.format.Replace("{value}", cache.file).Replace("{host}", init.host);
                             }
 
-                            PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
+                            PlaywrightBase.ConsoleLog(() => $"Playwright: SET {cache.file}");
                             #endregion
                         }
                         else if (string.IsNullOrEmpty(init.view.eval ?? init.view.evalJS))
@@ -395,7 +395,7 @@ namespace SISI.Controllers.NextHUB
                                     if (!string.IsNullOrEmpty(cache.file))
                                         break;
 
-                                    PlaywrightBase.ConsoleLog("ContentAsync: " + (i + 1));
+                                    PlaywrightBase.ConsoleLog(() => "ContentAsync: " + (i + 1));
                                     await Task.Delay(800).ConfigureAwait(false);
                                 }
                             }
@@ -404,7 +404,7 @@ namespace SISI.Controllers.NextHUB
                                 cache.file = await goFile(html).ConfigureAwait(false);
                             }
 
-                            PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
+                            PlaywrightBase.ConsoleLog(() => $"Playwright: SET {cache.file}");
                         }
                         #endregion
 
@@ -501,7 +501,7 @@ namespace SISI.Controllers.NextHUB
 
                         cache.file = goFile(html);
 
-                        PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
+                        PlaywrightBase.ConsoleLog(() => $"Playwright: SET {cache.file}");
                         #endregion
                     }
                     else if (init.view.regexMatch != null)
@@ -511,7 +511,7 @@ namespace SISI.Controllers.NextHUB
                         if (!string.IsNullOrEmpty(cache.file) && init.view.regexMatch.format != null)
                             cache.file = init.view.regexMatch.format.Replace("{value}", cache.file).Replace("{host}", init.host);
 
-                        PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
+                        PlaywrightBase.ConsoleLog(() => $"Playwright: SET {cache.file}");
                         #endregion
                     }
 
@@ -523,7 +523,7 @@ namespace SISI.Controllers.NextHUB
                         var nxt = new NxtEvalView(init, HttpContext.Request.Query, html, plugin, url, cache.file, cache.headers, proxyManager);
                         cache.file = await CSharpEval.ExecuteAsync<string>(goEval(init.view.eval), nxt, Root.evalOptionsFull).ConfigureAwait(false);
 
-                        PlaywrightBase.ConsoleLog($"Playwright: SET {cache.file}");
+                        PlaywrightBase.ConsoleLog(() => $"Playwright: SET {cache.file}");
                     }
                     #endregion
 

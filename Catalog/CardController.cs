@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Engine.Utilities;
 using Shared.PlaywrightCore;
 using System.Net.Http;
 
@@ -206,7 +207,7 @@ namespace Catalog.Controllers
                     hybridCache.Set(memKey, jo, cacheTimeBase(init.cache_time, init: init), inmemory: false);
                 }
 
-                return ContentTo(JsonConvert.SerializeObject(jo));
+                return ContentTo(JsonConvertPool.SerializeObject(jo));
             });
         }
 

@@ -1,19 +1,13 @@
 ﻿using Shared.Engine;
+using Shared.Engine.Pools;
 using Shared.Models.Base;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 
 namespace Shared.Models.Templates
 {
     public class MovieTpl : ITplResult
     {
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(5000));
-
-        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
-
-
         string title, original_title;
 
         public VoiceTpl? vtpl { get; private set; }
@@ -65,8 +59,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderHtml()
         {
-            var html = sb.Value;
-            html.Clear();
+            var html = StringBuilderPool.Rent();
 
             if (IsEmpty)
                 return html;
@@ -108,11 +101,11 @@ namespace Shared.Models.Templates
                     i.hls_manifest_timeout,
                     vast?.url != null ? vast : null,
                     i.segments?.ToObject()
-                ), jsonOptions);
+                ), MovieJsonContext.Default.MovieDto);
                 html.Append("'>");
 
                 html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
-                UtilsTpl.HtmlEncode(i.voiceOrQuality.AsSpan(), html);
+                UtilsTpl.HtmlEncode(i.voiceOrQuality, html);
                 html.Append("</div></div>");
 
                 if (!string.IsNullOrEmpty(i.quality))
@@ -136,8 +129,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderJson()
         {
-            var json = sb.Value;
-            json.Clear();
+            var json = StringBuilderPool.Rent();
 
             if (IsEmpty)
             {
@@ -176,10 +168,31 @@ namespace Shared.Models.Templates
             (
                 vtpl?.ToObject(emptyToNull: true),
                 arr
-            ), jsonOptions);
+            ), MovieJsonContext.Default.MovieResponseDto);
 
             return json;
         }
+    }
+
+
+    [JsonSourceGenerationOptions(
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+    )]
+    [JsonSerializable(typeof(MovieDto))]
+    [JsonSerializable(typeof(Dictionary<string, string>))]
+    [JsonSerializable(typeof(SubtitleDto))]
+    [JsonSerializable(typeof(List<SubtitleDto>))]
+    [JsonSerializable(typeof(VastConf))]
+    [JsonSerializable(typeof(SegmentDto))]
+    [JsonSerializable(typeof(List<SegmentDto>))]
+    [JsonSerializable(typeof(Dictionary<string, List<SegmentDto>>))]
+    [JsonSerializable(typeof(List<MovieDto>))]
+    [JsonSerializable(typeof(MovieDto[]))]
+    [JsonSerializable(typeof(VoiceDto))]
+    [JsonSerializable(typeof(List<VoiceDto>))]
+    [JsonSerializable(typeof(MovieResponseDto))]
+    public partial class MovieJsonContext : JsonSerializerContext
+    {
     }
 
     public readonly struct MovieDto
@@ -201,6 +214,7 @@ namespace Shared.Models.Templates
         public VastConf vast { get; }
         public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
+        [JsonConstructor]
         public MovieDto(
             string method,
             string url,
@@ -244,6 +258,7 @@ namespace Shared.Models.Templates
         public IReadOnlyList<VoiceDto> voice { get; }
         public MovieDto[] data { get; }
 
+        [JsonConstructor]
         public MovieResponseDto(IReadOnlyList<VoiceDto> voice, MovieDto[] data)
         {
             type = "movie";

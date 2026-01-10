@@ -7,8 +7,6 @@ namespace Shared.Models.Templates
 {
     public static class VideoTpl
     {
-        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
-
         public static string ToJson(string method, string url, string title, in StreamQualityTpl? streamquality = null, in SubtitleTpl? subtitles = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, in SegmentTpl? segments = null, string subtitles_call = null)
         {
             var _vast = vast ?? AppInit.conf.vast;
@@ -27,8 +25,24 @@ namespace Shared.Models.Templates
                 hls_manifest_timeout,
                 _vast?.url != null ? _vast : _vast,
                 segments?.ToObject()
-            ), jsonOptions);
+            ), VideoJsonContext.Default.VideoDto);
         }
+    }
+
+
+    [JsonSourceGenerationOptions(
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+    )]
+    [JsonSerializable(typeof(VideoDto))]
+    [JsonSerializable(typeof(Dictionary<string, string>))]
+    [JsonSerializable(typeof(Dictionary<string, List<SegmentDto>>))]
+    [JsonSerializable(typeof(SubtitleDto))]
+    [JsonSerializable(typeof(List<SubtitleDto>))]
+    [JsonSerializable(typeof(VastConf))]
+    [JsonSerializable(typeof(SegmentDto))]
+    [JsonSerializable(typeof(List<SegmentDto>))]
+    public partial class VideoJsonContext : JsonSerializerContext
+    {
     }
 
     public readonly struct VideoDto
@@ -44,6 +58,7 @@ namespace Shared.Models.Templates
         public VastConf vast { get; }
         public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
+        [JsonConstructor]
         public VideoDto(
             string title,
             string method,

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Pools;
 using Shared.Models;
 using Shared.Models.Events;
 using System;
@@ -363,42 +364,31 @@ namespace Lampac.Engine
             {
                 await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
-                using (var ms = PoolInvk.msm.GetStream())
+                var ms = MemoryStreamSmallPool.Rent();
+
+                try
                 {
                     JsonSerializer.Serialize(ms, new { method, args = args ?? Array.Empty<object>() }, serializerOptions);
                     ms.Position = 0;
 
                     if (connection.Socket.State == WebSocketState.Open)
                     {
-                        ReadOnlySequence<byte> seq = ms.GetReadOnlySequence();
-
                         using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
                         {
-                            if (seq.IsSingleSegment)
-                            {
-                                await connection.Socket
-                                    .SendAsync(seq.First, WebSocketMessageType.Text, true, cts.Token)
-                                    .ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                var pos = seq.Start;
-                                while (seq.TryGet(ref pos, out var mem))
-                                {
-                                    var next = pos;
-                                    bool hasMore = seq.TryGet(ref next, out _);
-                                    bool isLast = !hasMore;
+                            var segment = new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
 
-                                    await connection.Socket
-                                        .SendAsync(mem, WebSocketMessageType.Text, isLast, cts.Token)
-                                        .ConfigureAwait(false);
-                                }
-                            }
+                            await connection.Socket
+                                .SendAsync(segment, WebSocketMessageType.Text, true, cts.Token)
+                                .ConfigureAwait(false);
                         }
 
                         connection.UpdateActivity();
                         connection.UpdateSendActivity();
                     }
+                }
+                finally 
+                {
+                    MemoryStreamSmallPool.Return(ms);
                 }
             }
             catch (WebSocketException)

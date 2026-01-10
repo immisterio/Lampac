@@ -1,5 +1,6 @@
 using Shared.Models.Events;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Shared.Models.Templates
 {
@@ -67,7 +68,7 @@ namespace Shared.Models.Templates
                 data.Insert(0, new StreamQualityDto(link, quality));
         }
 
-        public string ToJson() => JsonSerializer.Serialize(ToObject());
+        public string ToJson() => JsonSerializer.Serialize(ToObject(), StreamQualityJsonContext.Default.DictionaryStringString);
 
         public Dictionary<string, string> ToObject(bool emptyToNull = false)
         {
@@ -105,6 +106,14 @@ namespace Shared.Models.Templates
         }
     }
 
+
+    [JsonSourceGenerationOptions(
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+    )]
+    [JsonSerializable(typeof(Dictionary<string, string>))]
+    public partial class StreamQualityJsonContext : JsonSerializerContext
+    {
+    }
 
     public readonly struct StreamQualityDto
     {

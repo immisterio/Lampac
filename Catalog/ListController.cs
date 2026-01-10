@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Engine.Utilities;
 using Shared.PlaywrightCore;
 using System.Net.Http;
 
@@ -229,7 +230,7 @@ namespace Catalog.Controllers
                 }
                 #endregion
 
-                return ContentTo(JsonConvert.SerializeObject(new 
+                return ContentTo(JsonConvertPool.SerializeObject(new 
                 {
                     page,
                     results,

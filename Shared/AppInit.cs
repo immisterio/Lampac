@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.ResponseCompression;
 using Newtonsoft.Json;
 using Shared.Engine;
+using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.AppConf;
 using Shared.Models.Base;
@@ -245,7 +246,7 @@ namespace Shared
                         var yamlObject = deserializer.Deserialize(new StringReader(yaml));
                         if (yamlObject != null)
                         {
-                            string json = JsonConvert.SerializeObject(yamlObject);
+                            string json = JsonConvertPool.SerializeObject(yamlObject);
                             JsonConvert.PopulateObject(json, conf, new JsonSerializerSettings
                             {
                                 Error = (se, ev) =>
@@ -425,7 +426,7 @@ namespace Shared
 
             // false - GC старается возвращать высвобождённую виртуальную память ОС
             // true - GC сохраняет адресное пространство/сегменты, чтобы быстрее переиспользовать
-            RetainVM = false,
+            RetainVM = true,
 
             // false — только Stop-the-World сборки
             // true  — фоновые (concurrent) сборки
@@ -433,11 +434,11 @@ namespace Shared
 
             // 1 — минимальная экономия памяти, крупные поколения
             // 9 — максимальная экономия, маленькие поколения, частые GC
-            ConserveMemory = 3,
+            ConserveMemory = null,
 
             // Процент доступной памяти, после которого GC считает систему под давлением
             // Ниже значение — раньше и агрессивнее запускаются сборки
-            HighMemoryPercent = 80
+            HighMemoryPercent = 90
         };
 
         public PuppeteerConf chromium = new PuppeteerConf()

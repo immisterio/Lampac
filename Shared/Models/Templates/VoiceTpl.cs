@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Shared.Models.Templates
 {
@@ -38,7 +39,7 @@ namespace Shared.Models.Templates
                 sb.Append(i.url);
                 sb.Append("\"}'>");
 
-                UtilsTpl.HtmlEncode(i.name.AsSpan(), sb);
+                UtilsTpl.HtmlEncode(i.name, sb);
 
                 sb.Append("</div>");
             }
@@ -63,6 +64,7 @@ namespace Shared.Models.Templates
         public bool active { get; }
         public string name { get; }
 
+        [JsonConstructor]
         public VoiceDto(string url, bool active, string name)
         {
             method = "link";

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.Pools;
 using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.Base;
@@ -37,7 +37,9 @@ namespace Shared.Engine
 
         static int _cronCheckConnectionWork = 0;
 
-        static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
+        static readonly ThreadLocal<JsonSerializer> _serializerDefault = new ThreadLocal<JsonSerializer>(JsonSerializer.CreateDefault);
+
+        static readonly ThreadLocal<JsonSerializer> _serializerIgnoreDeserialize = new ThreadLocal<JsonSerializer>(() => JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } }));
 
         async static void CheckConnection(object state)
         {
@@ -86,7 +88,7 @@ namespace Shared.Engine
 
         public static readonly ConcurrentDictionary<string, (string ip, string host, RchClientInfo info, NwsConnection connection)> clients = new();
 
-        public static readonly ConcurrentDictionary<string, (RecyclableMemoryStream ms, TaskCompletionSource<string> tcs)> rchIds = new();
+        public static readonly ConcurrentDictionary<string, (MemoryStream ms, TaskCompletionSource<string> tcs)> rchIds = new();
 
 
         public static void Registry(string ip, string connectionId, string host = null, string json = null, NwsConnection connection = null)
@@ -205,16 +207,16 @@ namespace Shared.Engine
                 {
                     try
                     {
-                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
                         {
                             using (var jsonReader = new JsonTextReader(streamReader)
                             {
-                                ArrayPool = new NewtonsoftCharArrayPool()
+                                ArrayPool = NewtonsoftPool.Array
                             })
                             {
-                                var serializer = JsonSerializer.Create(
-                                    IgnoreDeserializeObject ? jsonSettings : null
-                                );
+                                var serializer = IgnoreDeserializeObject
+                                    ? _serializerIgnoreDeserialize.Value
+                                    : _serializerDefault.Value;
 
                                 result = serializer.Deserialize<T>(jsonReader);
                             }
@@ -241,15 +243,33 @@ namespace Shared.Engine
                 if (484 > InfoConnected()?.apkVersion)
                     return default;
 
-                string json = await SendHub(url, data, headers, useDefaultHeaders, true).ConfigureAwait(false);
-                if (json == null)
-                    return default;
+                (JObject headers, string currentUrl, string body) result = default;
 
-                var job = JsonConvert.DeserializeObject<JObject>(json);
-                if (!job.ContainsKey("body"))
-                    return default;
+                await SendHub(url, data, headers, useDefaultHeaders, true, msAction: ms =>
+                {
+                    try
+                    {
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
+                        {
+                            using (var jsonReader = new JsonTextReader(streamReader)
+                            {
+                                ArrayPool = NewtonsoftPool.Array
+                            })
+                            {
+                                var serializer = _serializerDefault.Value;
 
-                return (job.Value<JObject>("headers"), job.Value<string>("currentUrl"), job.Value<string>("body"));
+                                var job = serializer.Deserialize<JObject>(jsonReader);
+                                if (!job.ContainsKey("body"))
+                                    return;
+
+                                result = (job.Value<JObject>("headers"), job.Value<string>("currentUrl"), job.Value<string>("body"));
+                            }
+                        }
+                    }
+                    catch { }
+                }).ConfigureAwait(false);
+
+                return result;
             }
             catch
             {
@@ -274,16 +294,16 @@ namespace Shared.Engine
                 {
                     try
                     {
-                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
                         {
                             using (var jsonReader = new JsonTextReader(streamReader)
                             {
-                                ArrayPool = new NewtonsoftCharArrayPool()
+                                ArrayPool = NewtonsoftPool.Array
                             })
                             {
-                                var serializer = JsonSerializer.Create(
-                                    IgnoreDeserializeObject ? jsonSettings : null
-                                );
+                                var serializer = IgnoreDeserializeObject
+                                    ? _serializerIgnoreDeserialize.Value
+                                    : _serializerDefault.Value;
 
                                 result = serializer.Deserialize<T>(jsonReader);
                             }
@@ -329,16 +349,16 @@ namespace Shared.Engine
                 {
                     try
                     {
-                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize))
+                        using (var streamReader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: PoolInvk.bufferSize, leaveOpen: true))
                         {
                             using (var jsonReader = new JsonTextReader(streamReader)
                             {
-                                ArrayPool = new NewtonsoftCharArrayPool()
+                                ArrayPool = NewtonsoftPool.Array
                             })
                             {
-                                var serializer = JsonSerializer.Create(
-                                    IgnoreDeserializeObject ? jsonSettings : null
-                                );
+                                var serializer = IgnoreDeserializeObject
+                                    ? _serializerIgnoreDeserialize.Value
+                                    : _serializerDefault.Value;
 
                                 result = serializer.Deserialize<T>(jsonReader);
                             }
@@ -357,7 +377,7 @@ namespace Shared.Engine
         #endregion
 
         #region SendHub
-        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false, bool waiting = true, Action<ReadOnlySpan<char>> spanAction = null, Action<RecyclableMemoryStream> msAction = null)
+        async Task<string> SendHub(string url, string data = null, List<HeadersModel> headers = null, bool useDefaultHeaders = true, bool returnHeaders = false, bool waiting = true, Action<ReadOnlySpan<char>> spanAction = null, Action<MemoryStream> msAction = null)
         {
             if (hub == null)
                 return null;
@@ -372,116 +392,116 @@ namespace Shared.Engine
 
             string rchId = Guid.NewGuid().ToString();
 
-            using (var ms = PoolInvk.msm.GetStream())
+            var ms = MemoryStreamPool.Rent();
+
+            try
             {
-                try
+                var rchHub = rchIds.GetOrAdd(rchId, _ => (ms, new TaskCompletionSource<string>()));
+
+                #region send_headers
+                Dictionary<string, string> send_headers = null;
+
+                if (useDefaultHeaders && clientInfo.data.rch_info.rchtype == "apk")
                 {
-                    var rchHub = rchIds.GetOrAdd(rchId, _ => (ms, new TaskCompletionSource<string>()));
-
-                    #region send_headers
-                    Dictionary<string, string> send_headers = null;
-
-                    if (useDefaultHeaders && clientInfo.data.rch_info.rchtype == "apk")
-                    {
-                        send_headers = new Dictionary<string, string>(Http.defaultUaHeaders)
+                    send_headers = new Dictionary<string, string>(Http.defaultUaHeaders)
                     {
                         { "accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" }
                     };
-                    }
+                }
 
-                    if (headers != null)
+                if (headers != null)
+                {
+                    if (send_headers == null)
+                        send_headers = new Dictionary<string, string>(headers.Count);
+
+                    foreach (var h in headers)
+                        send_headers[h.name.ToLower().Trim()] = h.val;
+                }
+
+                if (send_headers != null && send_headers.Count > 0 && clientInfo.data.rch_info.rchtype != "apk")
+                {
+                    var new_headers = new Dictionary<string, string>(Math.Min(10, send_headers.Count));
+
+                    foreach (var h in send_headers)
                     {
-                        if (send_headers == null)
-                            send_headers = new Dictionary<string, string>(headers.Count);
+                        var key = h.Key;
 
-                        foreach (var h in headers)
-                            send_headers[h.name.ToLower().Trim()] = h.val;
+                        if (key.StartsWith("sec-ch-", StringComparison.OrdinalIgnoreCase) ||
+                            key.StartsWith("sec-fetch-", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        if (key.Equals("user-agent", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("cookie", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("referer", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("origin", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("accept", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("accept-language", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("accept-encoding", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("cache-control", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("dnt", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("pragma", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("priority", StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("upgrade-insecure-requests", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        new_headers[key] = h.Value;
                     }
 
-                    if (send_headers != null && send_headers.Count > 0 && clientInfo.data.rch_info.rchtype != "apk")
-                    {
-                        var new_headers = new Dictionary<string, string>(Math.Min(10, send_headers.Count));
+                    send_headers = new_headers;
+                }
+                #endregion
 
-                        foreach (var h in send_headers)
-                        {
-                            var key = h.Key;
+                hub.Invoke(null, (connectionId, rchId, url, data, Http.NormalizeHeaders(send_headers), returnHeaders));
 
-                            if (key.StartsWith("sec-ch-", StringComparison.OrdinalIgnoreCase) ||
-                                key.StartsWith("sec-fetch-", StringComparison.OrdinalIgnoreCase))
-                                continue;
+                if (!waiting)
+                    return null;
 
-                            if (key.Equals("user-agent", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("cookie", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("referer", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("origin", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("accept", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("accept-language", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("accept-encoding", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("cache-control", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("dnt", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("pragma", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("priority", StringComparison.OrdinalIgnoreCase) ||
-                                key.Equals("upgrade-insecure-requests", StringComparison.OrdinalIgnoreCase))
-                                continue;
+                string stringValue = await rchHub.tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
 
-                            new_headers[key] = h.Value;
-                        }
-
-                        send_headers = new_headers;
-                    }
-                    #endregion
-
-                    hub.Invoke(null, (connectionId, rchId, url, data, Http.NormalizeHeaders(send_headers), returnHeaders));
-
-                    if (!waiting)
+                if (stringValue != null)
+                {
+                    if (string.IsNullOrWhiteSpace(stringValue))
                         return null;
 
-                    string stringValue = await rchHub.tcs.Task.WaitAsync(TimeSpan.FromSeconds(rhub_fallback ? 8 : 12)).ConfigureAwait(false);
+                    spanAction?.Invoke(stringValue);
 
-                    if (stringValue != null)
+                    return stringValue;
+                }
+                else
+                {
+                    if (ms.Length == 0)
+                        return null;
+
+                    if (msAction != null)
                     {
-                        if (string.IsNullOrWhiteSpace(stringValue))
-                            return null;
-
-                        spanAction?.Invoke(stringValue);
-
-                        return stringValue;
+                        msAction.Invoke(ms);
+                        return null;
                     }
-                    else
-                    {
-                        if (ms.Length == 0)
-                            return null;
 
-                        if (msAction != null)
+                    string resultString = null;
+
+                    OwnerTo.Span(ms, Encoding.UTF8, span =>
+                    {
+                        if (spanAction != null)
                         {
-                            msAction.Invoke(ms);
-                            return null;
+                            spanAction.Invoke(span);
+                            return;
                         }
 
-                        string resultString = null;
+                        resultString = span.ToString();
+                    });
 
-                        OwnerTo.Span(ms, Encoding.UTF8, span =>
-                        {
-                            if (spanAction != null)
-                            {
-                                spanAction.Invoke(span);
-                                return;
-                            }
-
-                            resultString = span.ToString();
-                        });
-
-                        return resultString;
-                    }
+                    return resultString;
                 }
-                catch
-                {
-                    return null;
-                }
-                finally
-                {
-                    rchIds.TryRemove(rchId, out _);
-                }
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                MemoryStreamPool.Return(ms);
+                rchIds.TryRemove(rchId, out _);
             }
         }
         #endregion

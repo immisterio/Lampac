@@ -1,16 +1,11 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using Shared.Engine.Pools;
+using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading;
 
 namespace Shared.Models.Templates
 {
     public class SimilarTpl : ITplResult
     {
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(5000));
-
-        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
-
         public static string OnlineSplit => "<span class=\"online-prestige-split\">●</span>";
 
 
@@ -52,8 +47,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderHtml()
         {
-            var html = sb.Value;
-            html.Clear();
+            var html = StringBuilderPool.Rent();
 
             if (IsEmpty)
                 return html;
@@ -70,11 +64,11 @@ namespace Shared.Models.Templates
                 html.Append("\" ");
 
                 html.Append("data-json='");
-                UtilsTpl.WriteJson(html, i, jsonOptions);
+                UtilsTpl.WriteJson(html, i, SimilarJsonContext.Default.SimilarDto);
                 html.Append("'>");
 
                 html.Append("<div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">");
-                UtilsTpl.HtmlEncode(i.title.AsSpan(), html);
+                UtilsTpl.HtmlEncode(i.title, html);
                 html.Append("</div></div></div>");
 
                 firstjson = false;
@@ -91,8 +85,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderJson()
         {
-            var json = sb.Value;
-            json.Clear();
+            var json = StringBuilderPool.Rent();
 
             if (IsEmpty)
             {
@@ -100,12 +93,22 @@ namespace Shared.Models.Templates
                 return json;
             }
 
-            UtilsTpl.WriteJson(json, new SimilarResponseDto(data), jsonOptions);
+            UtilsTpl.WriteJson(json, new SimilarResponseDto(data), SimilarJsonContext.Default.SimilarResponseDto);
 
             return json;
         }
     }
 
+
+    [JsonSourceGenerationOptions(
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+    )]
+    [JsonSerializable(typeof(SimilarDto))]
+    [JsonSerializable(typeof(SimilarResponseDto))]
+    [JsonSerializable(typeof(List<SimilarDto>))]
+    public partial class SimilarJsonContext : JsonSerializerContext
+    {
+    }
 
     public readonly struct SimilarDto
     {
@@ -117,6 +120,7 @@ namespace Shared.Models.Templates
         public string title { get; }
         public string img { get; }
 
+        [JsonConstructor]
         public SimilarDto(
             string url,
             short year,
@@ -140,6 +144,7 @@ namespace Shared.Models.Templates
         public string type { get; }
         public IReadOnlyList<SimilarDto> data { get; }
 
+        [JsonConstructor]
         public SimilarResponseDto(IReadOnlyList<SimilarDto> data)
         {
             type = "similar";

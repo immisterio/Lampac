@@ -14,6 +14,8 @@ namespace Shared.Engine
     public class HybridCache
     {
         #region static
+        static readonly ThreadLocal<JsonSerializer> _serializer = new ThreadLocal<JsonSerializer>(JsonSerializer.CreateDefault);
+
         static IMemoryCache memoryCache;
 
         static Timer _clearTempDb, _clearHistory;
@@ -88,7 +90,7 @@ namespace Shared.Engine
                                         Id = tempid,
                                         ex = c.ex,
                                         value = c.IsSerialize
-                                            ? JsonConvert.SerializeObject(c.value)
+                                            ? JsonConvertPool.SerializeObject(c.value)
                                             : c.value.ToString(),
                                         capacity = GetCapacity(c.value)
                                     });
@@ -246,10 +248,10 @@ namespace Shared.Engine
                                         {
                                             using (var jsonReader = new JsonTextReader(textReader)
                                             {
-                                                ArrayPool = new NewtonsoftCharArrayPool()
+                                                ArrayPool = NewtonsoftPool.Array
                                             })
                                             {
-                                                var serializer = JsonSerializer.CreateDefault();
+                                                var serializer = _serializer.Value;
 
                                                 if (isCapacity && capacity > 0)
                                                 {

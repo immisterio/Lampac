@@ -1,4 +1,6 @@
-﻿namespace Shared.Models.Templates
+﻿using System.Text.Json.Serialization;
+
+namespace Shared.Models.Templates
 {
     public struct SegmentTpl
     {
@@ -44,6 +46,7 @@
         public int start { get; }
         public int end { get; }
 
+        [JsonConstructor]
         public SegmentDto(int start, int end)
         {
             this.start = start;

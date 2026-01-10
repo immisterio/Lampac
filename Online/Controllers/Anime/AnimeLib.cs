@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.Utilities;
 using Shared.Models.Online.AnimeLib;
 using System.Net.Http;
 using System.Text;
@@ -325,7 +326,7 @@ namespace Online.Controllers
 
                 try
                 {
-                    System.IO.File.WriteAllText(TokenCachePath, JsonConvert.SerializeObject(cache));
+                    System.IO.File.WriteAllText(TokenCachePath, JsonConvertPool.SerializeObject(cache));
                 }
                 catch { }
 
@@ -340,7 +341,7 @@ namespace Online.Controllers
 
         async ValueTask<(string accessToken, string refreshToken)?> RequestAnimeLibToken(string refreshToken)
         {
-            var payload = JsonConvert.SerializeObject(new
+            var payload = JsonConvertPool.SerializeObject(new
             {
                 grant_type = "refresh_token",
                 client_id = "1",

@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Jackett;
-using Newtonsoft.Json.Linq;
+﻿using Jackett;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Shared.Engine.Utilities;
 
 namespace JacRed.Controllers
 {
@@ -45,7 +46,7 @@ namespace JacRed.Controllers
                 else
                 {
                     if (Regex.IsMatch(query, "^([^a-z-A-Z]+) ((19|20)[0-9]{2})$"))
-                        return Content(JsonConvert.SerializeObject(new { Results = new List<object>(), jacred = ModInit.conf.typesearch == "red" }), "application/json; charset=utf-8");
+                        return Content(JsonConvertPool.SerializeObject(new { Results = new List<object>(), jacred = ModInit.conf.typesearch == "red" }), "application/json; charset=utf-8");
 
                     mNum = Regex.Match(query, "^([^a-z-A-Z]+) ([^а-я-А-Я]+)$");
 

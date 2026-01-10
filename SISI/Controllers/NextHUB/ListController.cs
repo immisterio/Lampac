@@ -465,7 +465,7 @@ namespace SISI.Controllers.NextHUB
 
                             if (conf.patternAbort != null && Regex.IsMatch(route.Request.Url, conf.patternAbort, RegexOptions.IgnoreCase))
                             {
-                                PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                 await route.AbortAsync();
                                 return;
                             }
@@ -477,12 +477,12 @@ namespace SISI.Controllers.NextHUB
                             }
                             else
                             {
-                                PlaywrightBase.ConsoleLog($"Playwright: {route.Request.Method} {route.Request.Url}");
+                                PlaywrightBase.ConsoleLog(() => $"Playwright: {route.Request.Method} {route.Request.Url}");
                             }
 
                             await browser.ClearContinueAsync(route, page);
                         }
-                        catch (Exception ex) { PlaywrightBase.ConsoleLog(ex.Message); }
+                        catch (Exception ex) { PlaywrightBase.ConsoleLog(() => ex.Message); }
                     });
 
                     string content = null;

@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Utilities;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -135,7 +136,7 @@ namespace Lampac.Controllers
             }
             else
             {
-                string edata = JsonConvert.SerializeObject(new { path, pathfile });
+                string edata = JsonConvertPool.SerializeObject(new { path, pathfile });
                 _ = nws.SendEvents(connectionId, requestInfo.user_uid, "storage", edata).ConfigureAwait(false);
             }
             #endregion

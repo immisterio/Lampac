@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json;
 using Shared;
 using Shared.Engine;
+using Shared.Engine.Utilities;
 using Shared.Models.AppConf;
 using Shared.Models.Templates;
 using System;
@@ -504,7 +505,7 @@ namespace Tracks.Controllers
                 break;
             }
 
-            return Content(JsonConvert.SerializeObject(new
+            return Content(JsonConvertPool.SerializeObject(new
             {
                 job.StreamId,
                 state = state.ToString(),

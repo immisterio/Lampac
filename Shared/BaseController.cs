@@ -10,7 +10,6 @@ using Shared.Models.AppConf;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.SISI.OnResult;
-using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
@@ -27,7 +26,7 @@ namespace Shared
     {
         public static string appversion => "151";
 
-        public static string minorversion => "8";
+        public static string minorversion => "9";
 
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
@@ -962,7 +961,7 @@ namespace Shared
         #endregion
 
         #region headerKeys
-        static readonly ThreadLocal<StringBuilder> sbHeaderKeys = new(() => new StringBuilder(1000));
+        static readonly ThreadLocal<StringBuilder> sbHeaderKeys = new(() => new StringBuilder(PoolInvk.rentChunk));
 
         public string headerKeys(string key, ProxyManager proxy, RchClient rch, params string[] headersKey)
         {

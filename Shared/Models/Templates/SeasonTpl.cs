@@ -1,17 +1,11 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using Shared.Engine.Pools;
+using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading;
 
 namespace Shared.Models.Templates
 {
     public class SeasonTpl : ITplResult
     {
-        static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
-
-        static readonly ThreadLocal<StringBuilder> sb = new(() => new StringBuilder(5000));
-
-
         public List<SeasonDto> data { get; private set; }
 
         public string quality { get; private set; }
@@ -67,8 +61,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderHtml()
         {
-            var html = sb.Value;
-            html.Clear();
+            var html = StringBuilderPool.Rent();
 
             if (IsEmpty)
                 return html;
@@ -95,7 +88,7 @@ namespace Shared.Models.Templates
 
                 html.Append("<div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">");
 
-                UtilsTpl.HtmlEncode(i.name.AsSpan(), html);
+                UtilsTpl.HtmlEncode(i.name, html);
 
                 html.Append("</div></div></div>");
 
@@ -112,8 +105,7 @@ namespace Shared.Models.Templates
 
         public StringBuilder ToBuilderJson()
         {
-            var json = sb.Value;
-            json.Clear();
+            var json = StringBuilderPool.Rent();
 
             if (IsEmpty)
             {
@@ -126,12 +118,24 @@ namespace Shared.Models.Templates
                 quality,
                 vtpl?.ToObject(emptyToNull: true),
                 data
-            ), jsonOptions);
+            ), SeasonJsonContext.Default.SeasonResponseDto);
 
             return json;
         }
     }
 
+
+    [JsonSourceGenerationOptions(
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+    )]
+    [JsonSerializable(typeof(SeasonDto))]
+    [JsonSerializable(typeof(VoiceDto))]
+    [JsonSerializable(typeof(SeasonResponseDto))]
+    [JsonSerializable(typeof(List<VoiceDto>))]
+    [JsonSerializable(typeof(List<SeasonDto>))]
+    public partial class SeasonJsonContext : JsonSerializerContext
+    {
+    }
 
     public readonly struct SeasonDto
     {
@@ -140,6 +144,7 @@ namespace Shared.Models.Templates
         public string url { get; }
         public string name { get; }
 
+        [JsonConstructor]
         public SeasonDto(string url, string name, int? id)
         {
             method = "link";
@@ -156,6 +161,7 @@ namespace Shared.Models.Templates
         public IReadOnlyList<VoiceDto> voice { get; }
         public IReadOnlyList<SeasonDto> data { get; }
 
+        [JsonConstructor]
         public SeasonResponseDto(string maxquality, IReadOnlyList<VoiceDto> voice, IReadOnlyList<SeasonDto> data)
         {
             type = "season";

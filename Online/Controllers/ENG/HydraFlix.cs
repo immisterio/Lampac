@@ -112,7 +112,7 @@ namespace Online.Controllers
 
                                     if (browser.IsCompleted || route.Request.Url.Contains("adsco."))
                                     {
-                                        PlaywrightBase.ConsoleLog($"Playwright: Abort {route.Request.Url}");
+                                        PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
                                         await route.AbortAsync();
                                         return;
                                     }
@@ -128,7 +128,7 @@ namespace Online.Controllers
                                             cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                         }
 
-                                        PlaywrightBase.ConsoleLog($"Playwright: SET {route.Request.Url}", cache.headers);
+                                        PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {route.Request.Url}", cache.headers));
                                         browser.SetPageResult(route.Request.Url);
                                         await route.AbortAsync();
                                         return;
