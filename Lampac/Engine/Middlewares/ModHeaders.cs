@@ -24,7 +24,7 @@ namespace Lampac.Engine.Middlewares
             httpContext.Response.Headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
 
             if (GetAllowHeaders(httpContext, out HashSet<string> allowHeadersSet))
-                httpContext.Response.Headers["Access-Control-Allow-Headers"] = string.Join(", ", httpContext);
+                httpContext.Response.Headers["Access-Control-Allow-Headers"] = string.Join(", ", allowHeadersSet);
             else
                 httpContext.Response.Headers["Access-Control-Allow-Headers"] = stringAllowHeaders;
 

@@ -16,7 +16,7 @@ namespace Online.Controllers
         {
             get
             {
-                if (AppInit.conf.multiaccess || databaseCache != null)
+                if (AppInit.conf.multiaccess && databaseCache != null)
                     return databaseCache ??= JsonHelper.ListReader<Result>("data/kodik.json", 70_000);
 
                 return JsonHelper.IEnumerableReader<Result>("data/kodik.json");

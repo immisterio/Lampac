@@ -431,6 +431,23 @@ namespace Online.Controllers
                 return result;
             }
 
+            if (!string.IsNullOrEmpty(imdb_id) || kinopoisk_id > 0)
+            {
+                var item = Lumex.database.FirstOrDefault(i => 
+                {
+                    if (string.IsNullOrEmpty(imdb_id) && i.imdb_id == imdb_id)
+                        return true;
+
+                    if (kinopoisk_id > 0 && i.kinopoisk_id == kinopoisk_id)
+                        return true;
+
+                    return false;
+                });
+
+                if (item.id > 0)
+                    return (item.id, item.content_type, default);
+            }
+
             var movie = similar ? null : (await searchId(imdb_id, 0) ?? await searchId(null, kinopoisk_id));
             if (movie != null)
             {
