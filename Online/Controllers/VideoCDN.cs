@@ -445,7 +445,35 @@ namespace Online.Controllers
                 });
 
                 if (item.id > 0)
-                    return (item.id, item.content_type, default);
+                {
+                    string type = null;
+                    switch (item.content_type)
+                    {
+                        case "tv series":
+                        case "tv-series":
+                        case "tv_series":
+                        case "tvseries":
+                            type = "tv-series";
+                            break;
+                        case "anime tv series":
+                        case "animetvseries":
+                        case "anime_tv_series":
+                        case "anime-tv-series":
+                            type = "anime-tv-series";
+                            break;
+                        case "show tv series":
+                        case "showtvseries":
+                        case "show-tv-series":
+                        case "show_tv_series":
+                            type = "show-tv-series";
+                            break;
+                        default:
+                            type = item.content_type;
+                            break;
+                    }
+
+                    return (item.id, type, default);
+                }
             }
 
             var movie = similar ? null : (await searchId(imdb_id, 0) ?? await searchId(null, kinopoisk_id));
