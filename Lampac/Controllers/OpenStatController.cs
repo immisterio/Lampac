@@ -151,10 +151,18 @@ namespace Lampac.Controllers
                 {
                     msm = new
                     {
-                        PoolInvk.msm.SmallBlocksFree,
-                        PoolInvk.msm.SmallPoolFreeSize,
-                        PoolInvk.msm.LargeBuffersFree,
-                        PoolInvk.msm.LargePoolFreeSize,
+                        une = new
+                        {
+                            small = PoolInvk.msm.SmallPoolInUseSize,
+                            large = PoolInvk.msm.LargePoolInUseSize
+                        },
+                        free = new
+                        {
+                            PoolInvk.msm.SmallBlocksFree,
+                            PoolInvk.msm.SmallPoolFreeSize,
+                            PoolInvk.msm.LargeBuffersFree,
+                            PoolInvk.msm.LargePoolFreeSize
+                        }
                     },
                     StringBuilder = new
                     {
