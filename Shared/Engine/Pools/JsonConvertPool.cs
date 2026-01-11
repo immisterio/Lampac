@@ -7,29 +7,31 @@ namespace Shared.Engine.Utilities
 {
     public static class JsonConvertPool
     {
-        static readonly ThreadLocal<JsonSerializer> _serializer = new ThreadLocal<JsonSerializer>(JsonSerializer.CreateDefault);
+        static readonly object _lockJson = new();
 
-        static readonly ThreadLocal<StringBuilder> _cachedSb = new ThreadLocal<StringBuilder>(() => new StringBuilder(PoolInvk.rentMax / 2));
+        static readonly JsonSerializer _serializer = JsonSerializer.CreateDefault();
 
-        public static int Count => _cachedSb.IsValueCreated ? _cachedSb.Values.Count : 0;
+        static readonly StringBuilder _sb = new StringBuilder(PoolInvk.rentCharMax);
 
 
         public static string SerializeObject<T>(T value)
         {
-            var sb = _cachedSb.Value;
-            sb.Clear();
-
-            using (var sw = new StringWriter(sb, CultureInfo.InvariantCulture))
+            lock (_lockJson)
             {
-                using (var jw = new JsonTextWriter(sw)
-                {
-                    ArrayPool = NewtonsoftPool.Array
-                })
-                {
-                    _serializer.Value.Serialize(jw, value);
-                    jw.Flush();
+                _sb.Clear();
 
-                    return sb.ToString();
+                using (var sw = new StringWriter(_sb, CultureInfo.InvariantCulture))
+                {
+                    using (var jw = new JsonTextWriter(sw)
+                    {
+                        ArrayPool = NewtonsoftPool.Array
+                    })
+                    {
+                        _serializer.Serialize(jw, value);
+                        jw.Flush();
+
+                        return _sb.ToString();
+                    }
                 }
             }
         }

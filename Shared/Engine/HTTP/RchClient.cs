@@ -482,6 +482,9 @@ namespace Shared.Engine
 
                     OwnerTo.Span(ms, Encoding.UTF8, span =>
                     {
+                        if (span.IsEmpty)
+                            return;
+
                         if (spanAction != null)
                         {
                             spanAction.Invoke(span);

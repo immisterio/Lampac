@@ -46,9 +46,6 @@ namespace Shared.Engine.Online
 
             await httpHydra.GetSpan(url, content =>
             {
-                if (content.IsEmpty)
-                    return;
-
                 if (!content.Contains("seasons:", StringComparison.Ordinal))
                 {
                     var rx = Rx.Split("makePlayer\\(\\{", content);

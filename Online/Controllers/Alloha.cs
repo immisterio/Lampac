@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.Utilities;
 using Shared.Models.Online.Alloha;

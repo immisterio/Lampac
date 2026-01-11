@@ -6,6 +6,8 @@
 
         public string content { get; set; }
 
+        public string trs { get; set; }
+
         public string id { get; set; }
 
         public List<SimilarModel> similar { get; set; }

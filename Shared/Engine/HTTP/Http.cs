@@ -3,6 +3,7 @@ using Shared.Engine.Pools;
 using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.Events;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -353,7 +354,11 @@ namespace Shared.Engine
                             }
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        if (IsLogged)
+                            e.loglines.Append($"\n{ex.Message}");
+                    }
                 },
                     url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
                 ).ConfigureAwait(false);
@@ -487,13 +492,20 @@ namespace Shared.Engine
 
                         OwnerTo.Span(ms, encoding != default ? encoding : Encoding.UTF8, span =>
                         {
+                            if (span.IsEmpty)
+                                return;
+
                             spanAction.Invoke(span);
 
                             if (IsLogged)
                                 e.loglines.Append($"\n{span.ToString()}");
                         });
                     }
-                    catch { }
+                    catch (Exception ex) 
+                    {
+                        if (IsLogged)
+                            e.loglines.Append($"\n{ex.Message}");
+                    }
                 },
                     url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, weblog
                 ).ConfigureAwait(false);
@@ -523,13 +535,20 @@ namespace Shared.Engine
 
                         OwnerTo.Span(ms, encoding != default ? encoding : Encoding.UTF8, span => 
                         {
+                            if (span.IsEmpty)
+                                return;
+
                             spanAction.Invoke(span);
 
                             if (IsLogged)
                                 e.loglines.Append($"\n{span.ToString()}");
                         });
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        if (IsLogged)
+                            e.loglines.Append($"\n{ex.Message}");
+                    }
                 },
                     url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
                     cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
@@ -858,7 +877,11 @@ namespace Shared.Engine
                             }
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        if (IsLogged)
+                            e.loglines.Append($"\n{ex.Message}");
+                    }
                 },
                     url, data, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, IgnoreDeserializeObject, statusCodeOK
                 ).ConfigureAwait(false);
@@ -1104,7 +1127,7 @@ namespace Shared.Engine
             if (!IsLogged)
                 return;
 
-            var log = new StringBuilder(result.Length + (postdata?.Length ?? 0) + 3000);
+            var log = new StringBuilder((result.Length + (postdata?.Length ?? 0)) *2);
 
             log.Append($"{DateTime.Now}\n{method}: {url}\n");
 

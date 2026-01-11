@@ -43,14 +43,23 @@ namespace Shared.Models.Templates
 
 
         public string ToHtml()
-            => ToBuilderHtml().ToString();
+        {
+            if (IsEmpty)
+                return string.Empty;
+
+            var sb = ToBuilderHtml();
+            string result = sb.ToString();
+
+            StringBuilderPool.Return(sb);
+            return result;
+        }
 
         public StringBuilder ToBuilderHtml()
         {
-            var html = StringBuilderPool.Rent();
-
             if (IsEmpty)
-                return html;
+                return StringBuilderPool.EmptyHtml;
+
+            var html = StringBuilderPool.Rent();
 
             bool firstjson = true;
 
@@ -81,17 +90,23 @@ namespace Shared.Models.Templates
 
 
         public string ToJson()
-            => ToBuilderJson().ToString();
+        {
+            if (IsEmpty)
+                return string.Empty;
+
+            var sb = ToBuilderJson();
+            string result = sb.ToString();
+
+            StringBuilderPool.Return(sb);
+            return result;
+        }
 
         public StringBuilder ToBuilderJson()
         {
-            var json = StringBuilderPool.Rent();
-
             if (IsEmpty)
-            {
-                json.Append("{}");
-                return json;
-            }
+                return StringBuilderPool.EmptyJsonObject;
+
+            var json = StringBuilderPool.Rent();
 
             UtilsTpl.WriteJson(json, new SimilarResponseDto(data), SimilarJsonContext.Default.SimilarResponseDto);
 

@@ -28,6 +28,7 @@ namespace Online.Controllers
                 {
                     #region Сезоны
                     rhubFallback:
+
                     var cache = await InvokeCacheResult<List<(string name, string uri, string season)>>($"kinotochka:seasons:{title}", 30, async e =>
                     {
                         List<(string, string, string)> links = null;
@@ -53,34 +54,35 @@ namespace Online.Controllers
                         }
                         else
                         {
+                            bool reqOk = false;
                             string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
 
-                            string search = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", data);
-
-                            if (search == null) 
-                                return e.Fail("search", refresh_proxy: true);
-
-                            var rx = Rx.Split("sres-wrap clearfix", search, 1);
-                            links = new List<(string, string, string)>(rx.Count);
-
-                            string stitle = StringConvert.SearchName(title);
-
-                            foreach (var row in rx.Rows())
+                            await httpHydra.PostSpan($"{init.corsHost()}/index.php?do=search", data, search => 
                             {
-                                var gname = row.Groups("<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase);
+                                reqOk = search.Contains(">Поиск по сайту<", StringComparison.OrdinalIgnoreCase);
 
-                                if (StringConvert.SearchName(gname[1].Value) == stitle)
+                                var rx = Rx.Split("sres-wrap clearfix", search, 1);
+                                links = new List<(string, string, string)>(rx.Count);
+
+                                string stitle = StringConvert.SearchName(title);
+
+                                foreach (var row in rx.Rows())
                                 {
-                                    string uri = row.Match("href=\"(https?://[^\"]+\\.html)\"");
-                                    if (string.IsNullOrWhiteSpace(uri))
-                                        continue;
+                                    var gname = row.Groups("<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase);
 
-                                    links.Add((gname[2].Value.ToLower(), $"{host}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}", gname[3].Value));
+                                    if (StringConvert.SearchName(gname[1].Value) == stitle)
+                                    {
+                                        string uri = row.Match("href=\"(https?://[^\"]+\\.html)\"");
+                                        if (string.IsNullOrWhiteSpace(uri))
+                                            continue;
+
+                                        links.Add((gname[2].Value.ToLower(), $"{host}/lite/kinotochka?title={HttpUtility.UrlEncode(title)}&serial={serial}&s={gname[3].Value}&newsuri={HttpUtility.UrlEncode(uri)}", gname[3].Value));
+                                    }
                                 }
-                            }
+                            });
 
-                            if (links.Count == 0 && !search.Contains(">Поиск по сайту<"))
-                                return e.Fail("links");
+                            if (links == null || links.Count == 0)
+                                return e.Fail("links", refresh_proxy: !reqOk);
                         }
 
                         links.Reverse();
@@ -104,17 +106,19 @@ namespace Online.Controllers
                 else
                 {
                     #region Серии
-                    rhubFallback: 
+                    rhubFallback:
+
                     var cache = await InvokeCacheResult<List<(string name, string uri)>>($"kinotochka:playlist:{newsuri}", 30, async e =>
                     {
-                        string news = await httpHydra.Get(newsuri, addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie));
+                        string filetxt = null;
 
-                        if (news == null)
-                            return e.Fail("news", refresh_proxy: true);
+                        await httpHydra.GetSpan(newsuri, addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie), spanAction: news => 
+                        {
+                            filetxt = Rx.Match(news, "file:\"(https?://[^\"]+\\.txt)\"");
+                        });
 
-                        string filetxt = Regex.Match(news, "file:\"(https?://[^\"]+\\.txt)\"").Groups[1].Value;
                         if (string.IsNullOrEmpty(filetxt))
-                            return e.Fail("filetxt");
+                            return e.Fail("filetxt", refresh_proxy: true);
 
                         var root = await httpHydra.Get<JObject>(filetxt, addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie));
 
@@ -170,23 +174,26 @@ namespace Online.Controllers
                 rhubFallback:
                 var cache = await InvokeCacheResult<EmbedModel>($"kinotochka:view:{kinopoisk_id}", 30, async e =>
                 {
-                    string embed = await httpHydra.Get($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie));
+                    string file = null;
 
-                    if (embed == null)
-                        return e.Fail("embed", refresh_proxy: true);
-
-                    string file = Regex.Match(embed, "id:\"playerjshd\", file:\"(https?://[^\"]+)\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(file))
-                        return e.Fail("file");
-
-                    foreach (string f in file.Split(",").Reverse())
+                    await httpHydra.GetSpan($"{init.corsHost()}/embed/kinopoisk/{kinopoisk_id}", addheaders: HeadersModel.Init("cookie", cookie), safety: !string.IsNullOrEmpty(cookie), spanAction: embed => 
                     {
-                        if (string.IsNullOrWhiteSpace(f))
-                            continue;
+                        file = Rx.Match(embed, "id:\"playerjshd\", file:\"(https?://[^\"]+)\"");
+                        if (string.IsNullOrEmpty(file))
+                            return;
 
-                        file = f;
-                        break;
-                    }
+                        foreach (string f in file.Split(",").Reverse())
+                        {
+                            if (string.IsNullOrWhiteSpace(f))
+                                continue;
+
+                            file = f;
+                            break;
+                        }
+                    });
+
+                    if (string.IsNullOrEmpty(file))
+                        return e.Fail("file", refresh_proxy: true);
 
                     return e.Success(new EmbedModel() { content = file });
                 });

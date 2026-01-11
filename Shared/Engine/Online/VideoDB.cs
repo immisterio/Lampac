@@ -1,4 +1,4 @@
-﻿using Shared.Models;
+﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.Online.VideoDB;
 using Shared.Models.Templates;
 using System.Text;
@@ -14,24 +14,22 @@ namespace Shared.Engine.Online
         #region VideoDBInvoke
         string host;
         string apihost;
-        Func<string, List<HeadersModel>, Task<string>> onget;
         Action requesterror;
 
-        public VideoDBInvoke(string host, string apihost, Func<string, List<HeadersModel>, Task<string>> onget, Action requesterror = null)
+        public VideoDBInvoke(string host, string apihost,  Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost!;
-            this.onget = onget;
             this.requesterror = requesterror;
         }
         #endregion
 
         #region Embed
-        public async Task<EmbedModel> Embed(long kinopoisk_id)
+        public async Task<EmbedModel> Embed(long kinopoisk_id, Func<string, Task<string>> onget)
         {
-            string html = await onget.Invoke($"{apihost}/embed/AN?kinopoisk_id={kinopoisk_id}", null);
+            string html = await onget.Invoke($"{apihost}/embed/AN?kinopoisk_id={kinopoisk_id}");
 
-            if (html == null)
+            if (string.IsNullOrWhiteSpace(html))
             {
                 requesterror?.Invoke();
                 return null;
@@ -40,27 +38,10 @@ namespace Shared.Engine.Online
             return Embed(html);
         }
 
-        public EmbedModel Embed(string html)
+        public EmbedModel Embed(ReadOnlySpan<char> html)
         {
-            if (string.IsNullOrEmpty(html))
+            if (html.IsEmpty)
                 return null;
-
-            string decodePlayer(string _html)
-            {
-                try
-                {
-                    string base64 = Regex.Match(_html, "new Player\\(\"([^\n\r]+)\"\\);").Groups[1].Value.Remove(0, 73);
-                    base64 = Regex.Replace(base64, "//[^=]+=", "");
-                    string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
-                    //json = json.Split("\"player\",\"file\":")[1].Split(",\"hls\":")[0];
-
-                    return json;
-                }
-                catch 
-                {
-                    return null;
-                }
-            }
 
             string file = decodePlayer(html);
             if (file == null)
@@ -72,6 +53,26 @@ namespace Shared.Engine.Online
 
             string quality = file.Contains("2160p") ? "2160p" : file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
             return new EmbedModel() { pl = pl, movie = !file.Contains("\"folder\":"), quality = quality };
+        }
+
+
+        static string decodePlayer(ReadOnlySpan<char> _html)
+        {
+            try
+            {
+                string base64 = Rx.Match(_html, "new Player\\(\".{73}([^\n\r]+)\"\\);");
+                if (base64 == null)
+                    return null;
+
+                if (Regex.IsMatch(base64, "//[^=]+="))
+                    base64 = Regex.Replace(base64, "//[^=]+=", "");
+
+                return Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+            }
+            catch
+            {
+                return null;
+            }
         }
         #endregion
 

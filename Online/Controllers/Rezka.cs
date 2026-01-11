@@ -52,15 +52,10 @@ namespace Online.Controllers
                 (
                     host,
                     "lite/rezka",
-                    init,
-                    (url, hed) =>
-                        rch?.enable == true 
-                            ? rch.Get(url, HeadersModel.Join(hed, headers)) 
-                            : Http.Get(init.cors(url), timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer, statusCodeOK: false),
-                    (url, data, hed) =>
-                        rch?.enable == true 
-                            ? rch.Post(url, data, HeadersModel.Join(hed, headers)) 
-                            : Http.Post(init.cors(url), data, timeoutSeconds: 8, proxy: proxy, headers: HeadersModel.Join(hed, headers), cookieContainer: cookieContainer),
+                    init, 
+                    cookie != null,
+                    headers,
+                    httpHydra,
                     streamfile => HostStreamProxy(RezkaInvoke.fixcdn(country, init.uacdn, streamfile), headers: RezkaInvoke.StreamProxyHeaders(init)),
                     requesterror: () => proxyManager?.Refresh()
                 );
@@ -237,7 +232,7 @@ namespace Online.Controllers
                 );
             }
 
-            if (md == null)
+            if (md?.links == null || md.links.Count == 0)
                 return OnError();
 
             string result = oninvk.Movie(md, title, original_title, play, vast: init.vast);

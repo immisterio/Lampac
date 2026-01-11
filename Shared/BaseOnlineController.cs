@@ -11,7 +11,6 @@ using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
-using System.Buffers;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -431,7 +430,7 @@ namespace Shared
                     }
 
                     // Сбрасываем накопленное в транспорт
-                    if (pendingBytes > 30_000)
+                    if (pendingBytes > 50_000)
                     {
                         await bodyWriter.FlushAsync(ct);
                         pendingBytes = 0;

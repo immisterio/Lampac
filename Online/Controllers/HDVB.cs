@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.Online.HDVB;
 
 namespace Online.Controllers
@@ -149,44 +150,49 @@ namespace Online.Controllers
                     );
 
                     reset:
-                    string html = await httpHydra.Get(iframe, addheaders: header);
 
-                    if (html != null)
+                    string vid = null, href = null, csrftoken = null, file = null;
+
+                    await httpHydra.GetSpan(iframe, addheaders: header, spanAction: html =>
                     {
-                        string vid = "vid11";
-                        string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
-                        string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                        string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                        file = Regex.Replace(file, "^/playlist/", "/");
-                        file = Regex.Replace(file, "\\.txt$", "");
-
-                        if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(csrftoken))
+                        href = Rx.Match(html, "\"href\":\"([^\"]+)\"");
+                        csrftoken = Rx.Match(html, "\"key\":\"([^\"]+)\"")?.Replace("\\", "");
+                        
+                        file = Rx.Match(html, "\"file\":\"([^\"]+)\"")?.Replace("\\", "");
+                        if (file != null)
                         {
-                            string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
+                            file = Regex.Replace(file, "^/playlist/", "/");
+                            file = Regex.Replace(file, "\\.txt$", "");
+                        }
 
-                            header = HeadersModel.Init(
-                                ("accept", "*/*"),
-                                ("origin", origin),
-                                ("referer", $"{origin}/"),
-                                ("sec-fetch-dest", "empty"),
-                                ("sec-fetch-mode", "cors"),
-                                ("sec-fetch-site", "same-site"),
-                                ("x-csrf-token", csrftoken)
-                            );
+                    });
 
-                            urim3u8 = await httpHydra.Post($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: header);
+                    if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(csrftoken))
+                    {
+                        string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
 
-                            if (urim3u8 != null)
+                        header = HeadersModel.Init(
+                            ("accept", "*/*"),
+                            ("origin", origin),
+                            ("referer", $"{origin}/"),
+                            ("sec-fetch-dest", "empty"),
+                            ("sec-fetch-mode", "cors"),
+                            ("sec-fetch-site", "same-site"),
+                            ("x-csrf-token", csrftoken)
+                        );
+
+                        urim3u8 = await httpHydra.Post($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: header);
+
+                        if (urim3u8 != null)
+                        {
+                            if (!urim3u8.Contains("/index.m3u8"))
                             {
-                                if (!urim3u8.Contains("/index.m3u8"))
-                                {
-                                    file = Regex.Match(urim3u8, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                                    file = Regex.Replace(file, "^/playlist/", "/");
-                                    file = Regex.Replace(file, "\\.txt$", "");
+                                file = Regex.Match(urim3u8, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
+                                file = Regex.Replace(file, "^/playlist/", "/");
+                                file = Regex.Replace(file, "\\.txt$", "");
 
-                                    if (!string.IsNullOrEmpty(file))
-                                        urim3u8 = await httpHydra.Post($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: header);
-                                }
+                                if (!string.IsNullOrEmpty(file))
+                                    urim3u8 = await httpHydra.Post($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: header);
                             }
                         }
                     }
@@ -264,57 +270,78 @@ namespace Online.Controllers
                         );
 
                         reset_playlist:
-                        string html = await httpHydra.Get(iframe, addheaders: cache.header);
 
-                        if (html != null)
+                        string href = null, csrftoken = null, file = null;
+
+                        await httpHydra.GetSpan(iframe, addheaders: cache.header, spanAction: html => 
                         {
-                            string href = Regex.Match(html, "\"href\":\"([^\"]+)\"").Groups[1].Value;
-                            string csrftoken = Regex.Match(html, "\"key\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                            string file = Regex.Match(html, "\"file\":\"([^\"]+)\"").Groups[1].Value.Replace("\\", "");
-                            file = Regex.Replace(file, "^/playlist/", "/");
-                            file = Regex.Replace(file, "\\.txt$", "");
+                            href = Rx.Match(html, "\"href\":\"([^\"]+)\"");
+                            csrftoken = Rx.Match(html, "\"key\":\"([^\"]+)\"")?.Replace("\\", "");
+                            
+                            file = Rx.Match(html, "\"file\":\"([^\"]+)\"")?.Replace("\\", "");
 
-                            if (!string.IsNullOrWhiteSpace(href) && !string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(csrftoken))
+                            if (file != null)
                             {
-                                string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
-
-                                cache.header = HeadersModel.Init(
-                                    ("accept", "*/*"),
-                                    ("origin", origin),
-                                    ("referer", $"{origin}/"),
-                                    ("sec-fetch-dest", "empty"),
-                                    ("sec-fetch-mode", "cors"),
-                                    ("sec-fetch-site", "same-site"),
-                                    ("x-csrf-token", csrftoken)
-                                );
-
-                                cache.playlist = await httpHydra.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: cache.header, IgnoreDeserializeObject: true);
-
-                                if (cache.playlist != null && cache.playlist.Count > 0)
-                                {
-                                    cache.href = href;
-                                    hybridCache.Set(mkey_playlist, cache, cacheTime(40));
-                                }
-                                else
-                                {
-                                    proxyManager?.Refresh();
-
-                                    if (init.rhub && init.rhub_fallback)
-                                    {
-                                        init.rhub = false;
-                                        goto reset_playlist;
-                                    }
-
-                                    return OnError();
-                                }
+                                file = Regex.Replace(file, "^/playlist/", "/");
+                                file = Regex.Replace(file, "\\.txt$", "");
                             }
+                        });
+
+                        if (string.IsNullOrWhiteSpace(href) || string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(csrftoken))
+                        {
+                            proxyManager?.Refresh();
+
+                            if (init.rhub && init.rhub_fallback)
+                            {
+                                init.rhub = false;
+                                goto reset_playlist;
+                            }
+
+                            return OnError();
+                        }
+
+                        string origin = Regex.Match(iframe, "(https?://[^/]+)").Groups[1].Value;
+
+                        cache.header = HeadersModel.Init(
+                            ("accept", "*/*"),
+                            ("origin", origin),
+                            ("referer", $"{origin}/"),
+                            ("sec-fetch-dest", "empty"),
+                            ("sec-fetch-mode", "cors"),
+                            ("sec-fetch-site", "same-site"),
+                            ("x-csrf-token", csrftoken)
+                        );
+
+                        cache.playlist = await httpHydra.Post<List<Folder>>($"https://{vid}.{href}/playlist/{file}.txt", "", addheaders: cache.header, IgnoreDeserializeObject: true);
+
+                        if (cache.playlist != null && cache.playlist.Count > 0)
+                        {
+                            cache.href = href;
+                            hybridCache.Set(mkey_playlist, cache, cacheTime(40));
+                        }
+                        else
+                        {
+                            proxyManager?.Refresh();
+
+                            if (init.rhub && init.rhub_fallback)
+                            {
+                                init.rhub = false;
+                                goto reset_playlist;
+                            }
+
+                            return OnError();
                         }
                     }
                     #endregion
 
                     #region episode
+                    if (cache.playlist == null || cache.playlist.Count == 0)
+                        return OnError();
+
                     reset_episode:
+
                     string episode = cache.playlist.First(i => i.id == s).folder.First(i => i.episode == e).folder.First(i => i.title == t).file;
+
                     if (!string.IsNullOrEmpty(episode))
                     {
                         episode = Regex.Replace(episode, "^/playlist/", "/");

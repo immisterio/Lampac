@@ -208,7 +208,7 @@ namespace Shared.Engine.Online
 
             await http.GetSpan(iframeUri, content =>
             {
-                if (content.IsEmpty || !content.Contains("file:", StringComparison.Ordinal))
+                if (!content.Contains("file:", StringComparison.Ordinal))
                     return;
 
                 if (iframeUri.Contains("ashdi"))

@@ -47,9 +47,6 @@ namespace Shared.Engine.Online
 
                 await httpHydra.PostSpan($"{_site}/index.php?do=search", $"do=search&subaction=search&search_start=0&result_from=1&story={HttpUtility.UrlEncode(original_title)}", search => 
                 {
-                    if (search.IsEmpty)
-                        return;
-
                     searchEmpty = search.Contains(">Пошук по сайту<", StringComparison.OrdinalIgnoreCase);
 
                     var rx = Rx.Split("<article ", search, 1);
@@ -116,9 +113,6 @@ namespace Shared.Engine.Online
 
             await httpHydra.GetSpan(link, news => 
             {
-                if (news.IsEmpty)
-                    return;
-
                 if (news.Contains("full_content fx_row", StringComparison.Ordinal))
                     result.quel = Rx.Match(news, " (1080p|720p|480p)</div>");
 
@@ -135,7 +129,7 @@ namespace Shared.Engine.Online
 
             await httpHydra.GetSpan(iframeUri, content => 
             {
-                if (content.IsEmpty || !content.Contains("file:", StringComparison.Ordinal))
+                if (!content.Contains("file:", StringComparison.Ordinal))
                     return;
 
                 if (Regex.IsMatch(content, "file: ?'\\["))

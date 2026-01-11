@@ -274,7 +274,9 @@ namespace Online.Controllers
                 return e.Success(md);
             });
 
-            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson));
+            return await ContentTpl(cache, 
+                () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), content_id, content_type, imdb_id, kinopoisk_id, title, original_title, clarification, t, s, rjson: rjson)
+            );
         }
 
         #region Video
@@ -313,8 +315,6 @@ namespace Online.Controllers
                     hybridCache.Set(key, hls, cacheTime(20));
                 }
 
-                string sproxy(string uri) => HostStreamProxy(uri);
-
                 if (max_quality > 0 && !init.hls)
                 {
                     var streamquality = new StreamQualityTpl();
@@ -322,7 +322,7 @@ namespace Online.Controllers
                     foreach (int q in new int[] { 1080, 720, 480, 360, 240 })
                     {
                         if (max_quality >= q)
-                            streamquality.Append(sproxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p");
+                            streamquality.Append(HostStreamProxy(Regex.Replace(hls, "/hls\\.m3u8$", $"/{q}.mp4")), $"{q}p");
                     }
 
                     if (!streamquality.Any())
@@ -332,7 +332,7 @@ namespace Online.Controllers
                     return ContentTo(VideoTpl.ToJson("play", first.link, first.quality, streamquality: streamquality, vast: init.vast));
                 }
 
-                return Redirect(sproxy(hls));
+                return Redirect(HostStreamProxy(hls));
             });
         }
         #endregion

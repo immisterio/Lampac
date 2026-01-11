@@ -146,7 +146,7 @@ namespace Shared.Engine.Online
                         passArr[i] = (byte)pass[i];
                     }
 
-                    StringBuilder res = new StringBuilder(2000);
+                    StringBuilder res = new StringBuilder(PoolInvk.rentChunk);
 
                     for (int i = 0; i < srcLen; i += 2)
                     {

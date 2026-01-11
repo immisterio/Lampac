@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using System.Threading;
 
 namespace Shared.Models.Templates
 {
@@ -26,11 +25,9 @@ namespace Shared.Models.Templates
         #endregion
 
         #region WriteJson
-        static readonly ThreadLocal<MemoryStream> _msJson = new(() => new MemoryStream(PoolInvk.Rent(1024 * 1024)));
+        static readonly MemoryStream _msJson = new MemoryStream(PoolInvk.rentMax);
 
-        public static int CountJson => _msJson.IsValueCreated ? _msJson.Values.Count : 0;
-
-        static char[] _rentedJson = new char[PoolInvk.rentMax / 2];
+        static char[] _rentedJson = new char[PoolInvk.rentCharMax];
 
         static readonly object _lockJson = new();
 
@@ -38,11 +35,10 @@ namespace Shared.Models.Templates
         {
             lock (_lockJson)
             {
-                var ms = _msJson.Value;
-                ms.Position = 0;
-                ms.SetLength(0);
+                _msJson.SetLength(0);
+                _msJson.Position = 0;
 
-                using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions
+                using (var writer = new Utf8JsonWriter(_msJson, new JsonWriterOptions
                 {
                     Indented = false,
                     SkipValidation = true
@@ -51,9 +47,9 @@ namespace Shared.Models.Templates
                     JsonSerializer.Serialize(writer, value, options);
                 }
 
-                if (ms.TryGetBuffer(out ArraySegment<byte> buffer))
+                if (_msJson.TryGetBuffer(out ArraySegment<byte> buffer))
                 {
-                    ReadOnlySpan<byte> utf8 = buffer.AsSpan(0, (int)ms.Length);
+                    ReadOnlySpan<byte> utf8 = buffer.AsSpan(0, (int)_msJson.Length);
 
                     int neededChars = Encoding.UTF8.GetCharCount(utf8);
 

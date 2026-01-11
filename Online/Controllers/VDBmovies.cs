@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.Online.VDBmovies;
 using Shared.PlaywrightCore;
 
@@ -112,17 +113,40 @@ namespace Online.Controllers
                 if (!string.IsNullOrEmpty(orid))
                     uri = $"{init.corsHost()}/content/{orid}/iframe";
 
-                string html = await black_magic(uri, referer);
+                string file = null, forbidden_quality = null, default_quality = null;
 
-                if (html == null)
-                    return e.Fail("html", refresh_proxy: true);
+                void parseHtml(ReadOnlySpan<char> html)
+                {
+                    file = Rx.Match(html, "file:([\t ]+)?'#.([^']+)", 2);
+                    if (string.IsNullOrEmpty(file))
+                        return;
 
-                string file = Regex.Match(html, "file:([\t ]+)?'(#[^']+)").Groups[2].Value;
+                    forbidden_quality = Rx.Groups(html, "forbidden_quality:([\t ]+)?(\"|')(?<forbidden>[^\"']+)(\"|')")["forbidden"].Value;
+                    default_quality = Rx.Groups(html, "default_quality:([\t ]+)?(\"|')(?<quality>[^\"']+)(\"|')")["quality"].Value;
+                }
+
+                if (rch?.enable == true || init.priorityBrowser == "http")
+                {
+                    var headers = httpHeaders(init, HeadersModel.Init(
+                        ("sec-fetch-dest", "iframe"),
+                        ("sec-fetch-mode", "navigate"),
+                        ("sec-fetch-site", "cross-site"),
+                        ("referer", referer)
+                    ));
+
+                    await httpHydra.GetSpan(uri, newheaders: headers, spanAction: html => 
+                    {
+                        parseHtml(html);
+                    });
+                }
+                else
+                {
+                    string html = await black_magic(uri, referer);
+                    parseHtml(html);
+                }
+
                 if (string.IsNullOrEmpty(file))
-                    return e.Fail("file");
-
-                string forbidden_quality = Regex.Match(html, "forbidden_quality:([\t ]+)?(\"|')(?<forbidden>[^\"']+)(\"|')").Groups["forbidden"].Value;
-                string default_quality = Regex.Match(html, "default_quality:([\t ]+)?(\"|')(?<quality>[^\"']+)(\"|')").Groups["quality"].Value;
+                    return e.Fail("file", refresh_proxy: true);
 
                 return e.Success(oninvk.Embed(oninvk.DecodeEval(file), forbidden_quality, default_quality));
             });
@@ -130,7 +154,9 @@ namespace Online.Controllers
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson));
+            return await ContentTpl(cache, 
+                () => oninvk.Tpl(cache.Value, orid, imdb_id, kinopoisk_id, title, original_title, t, s, sid, vast: init.vast, rjson: rjson)
+            );
         }
 
         #region black_magic
@@ -138,16 +164,6 @@ namespace Online.Controllers
         {
             try
             {
-                var headers = httpHeaders(init, HeadersModel.Init(
-                    ("sec-fetch-dest", "iframe"),
-                    ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "cross-site"),
-                    ("referer", referer)
-                ));
-
-                if (rch?.enable == true || init.priorityBrowser == "http")
-                    return await httpHydra.Get(uri, newheaders: headers);
-
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
                     var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: proxy_data, imitationHuman: init.imitationHuman).ConfigureAwait(false);

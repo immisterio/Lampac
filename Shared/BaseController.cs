@@ -26,7 +26,7 @@ namespace Shared
     {
         public static string appversion => "151";
 
-        public static string minorversion => "9";
+        public static string minorversion => "10";
 
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
@@ -961,31 +961,34 @@ namespace Shared
         #endregion
 
         #region headerKeys
-        static readonly ThreadLocal<StringBuilder> sbHeaderKeys = new(() => new StringBuilder(PoolInvk.rentLargeChunk));
+        static readonly object _lockHeaderKeys = new();
+        static readonly StringBuilder sbHeaderKeys = new StringBuilder(PoolInvk.rentLargeChunk);
 
         public string headerKeys(string key, ProxyManager proxy, RchClient rch, params string[] headersKey)
         {
             if (rch?.enable != true)
                 return $"{key}:{proxy?.CurrentProxyIp}";
 
-            var value = sbHeaderKeys.Value;
-            value.Clear();
-
-            const char splitKey = ':';
-
-            value.Append(key);
-            value.Append(splitKey);
-
-            foreach (string hk in headersKey)
+            lock (_lockHeaderKeys)
             {
-                if (HttpContext.Request.Headers.TryGetValue(hk, out var headerValue))
-                {
-                    value.Append(headerValue);
-                    value.Append(splitKey);
-                }
-            }
+                sbHeaderKeys.Clear();
 
-            return value.ToString();
+                const char splitKey = ':';
+
+                sbHeaderKeys.Append(key);
+                sbHeaderKeys.Append(splitKey);
+
+                foreach (string hk in headersKey)
+                {
+                    if (HttpContext.Request.Headers.TryGetValue(hk, out var headerValue))
+                    {
+                        sbHeaderKeys.Append(headerValue);
+                        sbHeaderKeys.Append(splitKey);
+                    }
+                }
+
+                return sbHeaderKeys.ToString();
+            }
         }
         #endregion
     }

@@ -253,7 +253,11 @@ namespace Shared.Engine.Online
 
             try
             {
-                var root = JsonConvert.DeserializeObject<RootObject>(json.Replace("\"playlist\":[],", "\"playlist\":null,"), jsonSettings);
+                string jsonFix = json.Contains("\"playlist\":[],") 
+                    ? json.Replace("\"playlist\":[],", "\"playlist\":null,")
+                    : json;
+
+                var root = JsonConvert.DeserializeObject<RootObject>(jsonFix, jsonSettings);
 
                 if (root?.player_links == null)
                     return null;

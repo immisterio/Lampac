@@ -58,44 +58,47 @@ namespace Shared.Engine.Online
         #endregion
 
         #region DecodeEval
+        static readonly List<string> trashList = new List<string>
+        {
+            "wNp2wBTNcPRQvTC0_CpxCsq_8T1u9Q",
+            "md-Od2G9RWOgSa5HoBSSbWrCyIqQyY",
+            "kzuOYQqB_QSOL-xzN_Kz3kkgkHhHit",
+            "6-xQWMh7ertLp8t_M9huUDk1M0VrYJ",
+            "RyTwtf15_GLEsXxnpU4Ljjd0ReY-VH"
+        };
+
+        static List<string> trashListBase64;
+
         public string DecodeEval(string file)
         {
-            Func<string, string> enc = str =>
+            if (trashListBase64 == null)
             {
-                var bytes = Encoding.UTF8.GetBytes(str);
-                return Convert.ToBase64String(bytes);
-            };
+                Func<string, string> enc = str =>
+                {
+                    var bytes = Encoding.UTF8.GetBytes(str);
+                    return Convert.ToBase64String(bytes);
+                };
 
-            Func<string, string> dec = str =>
+                trashListBase64 = new List<string>(5);
+
+                foreach (string trash in trashList)
+                    trashListBase64.Add("//" + enc(trash));
+            }
+
+            foreach (string trash in trashListBase64)
             {
-                var bytes = Convert.FromBase64String(str);
-                return Encoding.UTF8.GetString(bytes);
-            };
-
-            List<string> trashList = new List<string>
-            {
-                "wNp2wBTNcPRQvTC0_CpxCsq_8T1u9Q",
-                "md-Od2G9RWOgSa5HoBSSbWrCyIqQyY",
-                "kzuOYQqB_QSOL-xzN_Kz3kkgkHhHit",
-                "6-xQWMh7ertLp8t_M9huUDk1M0VrYJ",
-                "RyTwtf15_GLEsXxnpU4Ljjd0ReY-VH"
-            };
-
-            string x = file.Substring(2);
-
-            foreach (var trash in trashList)
-                x = x.Replace("//" + enc(trash), "");
+                if (file.Contains(trash))
+                    file = file.Replace(trash, "");
+            }
 
             try
             {
-                x = dec(x);
+                var bytes = Convert.FromBase64String(file);
+                return Encoding.UTF8.GetString(bytes);
             }
-            catch
-            {
-                x = string.Empty;
-            }
+            catch { }
 
-            return x;
+            return file;
         }
         #endregion
 

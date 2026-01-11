@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.RxEnumerate;
 
 namespace Online.Controllers
 {
@@ -200,7 +201,7 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(key, out (string file, string subtitle) cache))
                 {
-                    string iframe = await httpHydra.Get(vod + "?partner=lampa", useDefaultHeaders: false, addheaders: HeadersModel.Init(
+                    await httpHydra.GetSpan(vod + "?partner=lampa", useDefaultHeaders: false, addheaders: HeadersModel.Init(
                         ("cache-control", "no-cache"),
                         ("dnt", "1"),
                         ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
@@ -215,14 +216,17 @@ namespace Online.Controllers
                         ("sec-fetch-user", "?1"),
                         ("upgrade-insecure-requests", "1"),
                         ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0")
-                    ));
+                    ), spanAction: iframe => 
+                    {
+                        cache.file = Rx.Match(iframe, "file: ?\"([^\"]+)\"");
 
-                    if (iframe == null)
+                        cache.subtitle = Rx.Match(iframe, "subtitle: ?\"([^\"]+)\"");
+                        if (string.IsNullOrEmpty(cache.subtitle) || cache.subtitle == "null")
+                            cache.subtitle = Rx.Match(iframe, "thumbnails: ?\"([^\"]+)\"");
+                    });
+
+                    if (cache.file == null)
                         return OnError(refresh_proxy: true);
-
-                    cache.file = Regex.Match(iframe, "file: ?\"([^\"]+)\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(cache.file))
-                        return OnError();
 
                     #region stats
                     if (rch?.enable != true)
@@ -244,17 +248,7 @@ namespace Online.Controllers
                             ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
                         ));
                     }
-
-                    //try
-                    //{
-                    //    System.IO.File.AppendAllText($"cache/logs/MoonAnime/{DateTime.Today.ToString("MM-yyyy")}.txt", $"{DateTime.Now.ToString("dd / HH:mm")} - {requestInfo.IP} / {vod}\n");
-                    //}
-                    //catch { }
                     #endregion
-
-                    cache.subtitle = Regex.Match(iframe, "subtitle: ?\"([^\"]+)\"").Groups[1].Value;
-                    if (string.IsNullOrEmpty(cache.subtitle) || cache.subtitle == "null")
-                        cache.subtitle = Regex.Match(iframe, "thumbnails: ?\"([^\"]+)\"").Groups[1].Value;
 
                     proxyManager?.Success();
                     hybridCache.Set(key, cache, cacheTime(30));

@@ -2,6 +2,8 @@
 {
     public class SearchModel
     {
+        public bool IsError { get; set; }
+
         public bool IsEmpty { get; set; }
 
         public string content { get; set; }

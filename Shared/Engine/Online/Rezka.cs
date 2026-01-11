@@ -7,7 +7,6 @@ using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using System.Collections.Concurrent;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -20,34 +19,27 @@ namespace Shared.Engine.Online
         string host, scheme, route;
         string apihost;
         bool usehls, userprem, usereserve;
-        Func<string, List<HeadersModel>, Task<string>> onget;
-        Func<string, string, List<HeadersModel>, Task<string>> onpost;
+        HttpHydra httpHydra;
+        List<HeadersModel> defaultHeaders;
         Func<string, string> onstreamfile;
-        Func<string, string> onlog;
         Action requesterror;
+        bool safety = false;
 
         public string requestlog = string.Empty;
 
         static readonly ConcurrentDictionary<long, string> basereferer = new();
 
-        void log(string msg)
-        {
-            return;
-            requestlog += $"{msg}\n\n===========================================\n\n\n";
-            onlog?.Invoke($"rezka: {msg}\n");
-        }
-
-        public RezkaInvoke(string host, string route, RezkaSettings init, Func<string, List<HeadersModel>, Task<string>> onget, Func<string, string, List<HeadersModel>, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null)
+        public RezkaInvoke(string host, string route, RezkaSettings init, bool safety, List<HeadersModel> defaultHeaders, HttpHydra httpHydra, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.route = route;
             this.init = init;
+            this.safety = safety;
             apihost = init.corsHost();
             scheme = init.scheme;
-            this.onget = onget;
+            this.httpHydra = httpHydra;
+            this.defaultHeaders = defaultHeaders;
             this.onstreamfile = onstreamfile;
-            this.onlog = onlog;
-            this.onpost = onpost;
             usehls = init.hls;
             usereserve = init.reserve;
             userprem = init.premium;
@@ -83,81 +75,103 @@ namespace Shared.Engine.Online
                 ("sec-fetch-mode", "navigate"),
                 ("sec-fetch-site", "same-origin"),
                 ("sec-fetch-user", "?1"),
-                ("upgrade-insecure-requests", "1")
+                ("upgrade-insecure-requests", "1"),
+                ("referer", $"{apihost}/")
             );
+
+            var newheaders = init.premium
+                ? defaultHeaders
+                : HeadersModel.Join(base_headers, defaultHeaders);
 
             result.search_uri = $"{apihost}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
 
-            string search = await onget(result.search_uri, HeadersModel.Join(base_headers, HeadersModel.Init(("referer", $"{apihost}/"))));
-            if (search == null)
+            await httpHydra.GetSpan(result.search_uri, statusCodeOK: false, safety: safety, newheaders: newheaders, spanAction: search => 
             {
-                log("search error");
+                if (search.Contains("class=\"error-code\"", StringComparison.OrdinalIgnoreCase) && search.Contains("ошибка доступа", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (search.Contains("(105)", StringComparison.Ordinal) || 
+                        search.Contains(">105<", StringComparison.Ordinal) || 
+                        search.Contains("(403)", StringComparison.Ordinal) || 
+                        search.Contains(">403<", StringComparison.Ordinal))
+                    {
+                        result = new SearchModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован<br><br>" };
+                        return;
+                    }
+
+                    if (search.Contains("(101)", StringComparison.Ordinal) || 
+                        search.Contains(">101<", StringComparison.Ordinal))
+                    {
+                        result = new SearchModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован<br><br>" };
+                        return;
+                    }
+
+                    var accessError = Rx.Groups(search, "Ошибка доступа[ \t]+\\(([0-9]+)\\)", RegexOptions.IgnoreCase);
+                    result = new SearchModel() { IsEmpty = true, content = $"Ошибка доступа ({accessError[1].Value})" };
+                    return;
+                }
+
+                string stitle = StringConvert.SearchName(title);
+                string sorigtitle = StringConvert.SearchName(original_title);
+
+                var rx = Rx.Split("\"b-content__inline_item\"", search, 1);
+                if (rx.Count == 0)
+                {
+                    result.IsError = true;
+                    return;
+                }
+
+                foreach (var row in rx.Rows())
+                {
+                    var g = row.Groups("href=\"https?://[^/]+/([^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})");
+
+                    if (string.IsNullOrEmpty(g[1].Value))
+                        continue;
+
+                    string name = g[2].Value.Trim();
+                    if (string.IsNullOrEmpty(name))
+                        continue;
+
+                    if (result.similar == null)
+                        result.similar = new List<SimilarModel>(rx.Count);
+
+                    string img = row.Match("<img src=\"([^\"]+)\"");
+                    result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
+
+                    string _sname = StringConvert.SearchName(name);
+
+                    if ((stitle != null && (name.Contains(" / ") && _sname.Contains(stitle) || _sname == stitle)) ||
+                        (sorigtitle != null && (name.Contains(" / ") && _sname.Contains(sorigtitle) || _sname == sorigtitle)))
+                    {
+                        reservedlink = g[1].Value;
+
+                        if (string.IsNullOrEmpty(result.href) && year > 0 && g[3].Value == year.ToString())
+                            result.href = reservedlink;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(result.href))
+                {
+                    if (string.IsNullOrEmpty(reservedlink))
+                    {
+                        if (result.similar.Count > 0)
+                            return;
+
+                        if (search.Contains("Результаты поиска", StringComparison.Ordinal))
+                        {
+                            result = new SearchModel() { IsEmpty = true };
+                            return;
+                        }
+
+                        result.IsError = true;
+                        return;
+                    }
+
+                    result.href = reservedlink;
+                }
+            });
+
+            if (result.IsError)
                 requesterror?.Invoke();
-                return null;
-            }
-
-            if (search.Contains("class=\"error-code\"") && search.ToLower().Contains("ошибка доступа"))
-            {
-                if (search.Contains("(105)") || search.Contains(">105<") || search.Contains("(403)") || search.Contains(">403<"))
-                    return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (105)<br>IP-адрес заблокирован<br><br>" };
-
-                if (search.Contains("(101)") || search.Contains(">101<"))
-                    return new SearchModel() { IsEmpty = true, content = "Ошибка доступа (101)<br>Аккаунт заблокирован<br><br>" };
-
-                var accessError = Regex.Match(search, "Ошибка доступа[ \t]+\\(([0-9]+)\\)", RegexOptions.IgnoreCase).Groups;
-                return new SearchModel() { IsEmpty = true, content = $"Ошибка доступа ({accessError[1].Value})" };
-            }
-
-            log("search OK");
-
-            string stitle = StringConvert.SearchName(title);
-            string sorigtitle = StringConvert.SearchName(original_title);
-
-            var rx = Rx.Split("\"b-content__inline_item\"", search, 1);
-
-            foreach (var row in rx.Rows())
-            {
-                var g = row.Groups("href=\"https?://[^/]+/([^\"]+)\">([^<]+)</a> ?<div>([0-9]{4})");
-
-                if (string.IsNullOrEmpty(g[1].Value))
-                    continue;
-
-                string name = g[2].Value.Trim();
-                if (string.IsNullOrEmpty(name))
-                    continue;
-
-                if (result.similar == null)
-                    result.similar = new List<SimilarModel>(rx.Count);
-
-                string img = row.Match("<img src=\"([^\"]+)\"");
-                result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
-
-                if ((stitle != null && (name.Contains(" / ") && StringConvert.SearchName(name).Contains(stitle) || StringConvert.SearchName(name) == stitle)) || 
-                    (sorigtitle != null && (name.Contains(" / ") && StringConvert.SearchName(name).Contains(sorigtitle) || StringConvert.SearchName(name) == sorigtitle)))
-                {
-                    reservedlink = g[1].Value;
-
-                    if (string.IsNullOrEmpty(result.href) && year > 0 && g[3].Value == year.ToString())
-                        result.href = reservedlink;
-                }
-            }
-
-            if (string.IsNullOrEmpty(result.href))
-            {
-                if (string.IsNullOrEmpty(reservedlink))
-                {
-                    if (result?.similar != null && result.similar.Count > 0)
-                        return result;
-
-                    if (search.Contains("Результаты поиска"))
-                        return new SearchModel() { IsEmpty = true };
-
-                    log("link null");
-                    return null;
-                }
-
-                result.href = reservedlink;
-            }
 
             return result;
         }
@@ -183,82 +197,112 @@ namespace Shared.Engine.Online
                 ("upgrade-insecure-requests", "1")
             );
 
+            if (!string.IsNullOrEmpty(search_uri))
+                base_headers.Add(new HeadersModel("referer", search_uri));
+
+            var newheaders = init.premium
+                ? defaultHeaders
+                : HeadersModel.Join(base_headers, defaultHeaders);
+
             result.id = Regex.Match(href, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
             if (long.TryParse(result.id, out long id) && id > 0)
                 basereferer.TryAdd(id, href);
 
-            if (!string.IsNullOrEmpty(search_uri))
-                base_headers.Add(new HeadersModel("referer", search_uri));
-
-            result.content = await onget(href, base_headers);
-            if (result.content == null || string.IsNullOrEmpty(result.id))
+            await httpHydra.GetSpan(href, safety: safety, newheaders: newheaders, spanAction: html => 
             {
-                if (result.content == null)
-                    requesterror?.Invoke();
+                if (!html.Contains("data-season_id=", StringComparison.Ordinal))
+                {
+                    var rx = Rx.Split("ctrl_token_id", html);
+                    if (rx.Count > 0)
+                    {
+                        var row = Rx.Split("translators-list", rx[0].Span);
+                        if (row.Count > 1)
+                            result.content = row[1].ToString(); // фильм
+                    }
+                }
+                else
+                {
+                    string trs = Rx.Match(html, "\\.initCDNSeriesEvents\\([0-9]+, ([0-9]+),");
+                    if (string.IsNullOrEmpty(trs))
+                        return;
 
-                log($"content {href}\nNullOrEmpty");
-                return null;
-            }
+                    result.trs = trs;
 
-            log($"content {href}\nOK");
-            return result;
-        }
-        #endregion
+                    var rx = Rx.Split("user-network-issues", html);
+                    if (rx.Count > 0)
+                    {
+                        var row = Rx.Split("b-translators__list", rx[0].Span);
+                        if (row.Count > 1)
+                            result.content = row[1].ToString(); // сериал
+                    }
+                }
+            });
 
-        #region EmbedID
-        async public Task<EmbedModel> EmbedID(long kinopoisk_id, string imdb_id)
-        {
-            string search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()), null);
-            if (search == null)
+            if (string.IsNullOrEmpty(result.content))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            string link = null;
-            var result = new EmbedModel();
-
-            var rx = Rx.Split("<li>", search, 1);
-
-            foreach (var row in rx.Rows())
-            {
-                string href = row.Match("href=\"(https?://[^\"]+)\"");
-                string name = row.Match("<span class=\"enty\">([^<]+)</span>");
-                string year = row.Match(", ([0-9]{4})(\\)| -)");
-
-                if (string.IsNullOrEmpty(href) || string.IsNullOrEmpty(name))
-                    continue;
-
-                if (result.similar == null)
-                    result.similar = new List<SimilarModel>(rx.Count);
-
-                result.similar.Add(new SimilarModel(name, year, href, null));
-                link = href;
-            }
-
-            if (result?.similar != null && result.similar.Count > 1)
-                return result;
-
-            if (string.IsNullOrEmpty(link))
-            {
-                if (search.Contains("b-search__section_title"))
-                    return new EmbedModel() { IsEmpty = true };
-
-                return null;
-            }
-
-            result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
-            result.content = await onget(link, null);
-            if (result.content == null || string.IsNullOrEmpty(result.id))
-            {
-                if (result.content == null)
-                    requesterror?.Invoke();
-
-                return null;
-            }
-
             return result;
         }
+        #endregion
+
+        #region EmbedID
+        //async public Task<EmbedModel> EmbedID(long kinopoisk_id, string imdb_id)
+        //{
+        //    string search = await onpost($"{apihost}/engine/ajax/search.php", "q=%2B" + (!string.IsNullOrEmpty(imdb_id) ? imdb_id : kinopoisk_id.ToString()), null);
+        //    if (search == null)
+        //    {
+        //        requesterror?.Invoke();
+        //        return null;
+        //    }
+
+        //    string link = null;
+        //    var result = new EmbedModel();
+
+        //    var rx = Rx.Split("<li>", search, 1);
+
+        //    foreach (var row in rx.Rows())
+        //    {
+        //        string href = row.Match("href=\"(https?://[^\"]+)\"");
+        //        string name = row.Match("<span class=\"enty\">([^<]+)</span>");
+        //        string year = row.Match(", ([0-9]{4})(\\)| -)");
+
+        //        if (string.IsNullOrEmpty(href) || string.IsNullOrEmpty(name))
+        //            continue;
+
+        //        if (result.similar == null)
+        //            result.similar = new List<SimilarModel>(rx.Count);
+
+        //        result.similar.Add(new SimilarModel(name, year, href, null));
+        //        link = href;
+        //    }
+
+        //    if (result?.similar != null && result.similar.Count > 1)
+        //        return result;
+
+        //    if (string.IsNullOrEmpty(link))
+        //    {
+        //        if (search.Contains("b-search__section_title"))
+        //            return new EmbedModel() { IsEmpty = true };
+
+        //        return null;
+        //    }
+
+        //    result!.id = Regex.Match(link, "/([0-9]+)-[^/]+\\.html").Groups[1].Value;
+        //    result.content = await onget(link, null);
+
+        //    if (result.content == null || string.IsNullOrEmpty(result.id))
+        //    {
+        //        if (result.content == null)
+        //            requesterror?.Invoke();
+
+        //        return null;
+        //    }
+
+        //    return result;
+        //}
         #endregion
 
         #region Tpl
@@ -343,11 +387,6 @@ namespace Shared.Engine.Online
             }
             else
             {
-                #region Сериал
-                string trs = new Regex("\\.initCDNSeriesEvents\\([0-9]+, ([0-9]+),").Match(result.content).Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(trs))
-                    return default;
-
                 #region Перевод
                 var vtpl = new VoiceTpl();
 
@@ -375,13 +414,14 @@ namespace Shared.Engine.Online
                             link = host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={voice}&id={result.id}&t={match.Groups["translator"].Value}";
                         }
 
-                        vtpl.Append(name, match.Groups["translator"].Value == trs, link);
+                        vtpl.Append(name, match.Groups["translator"].Value == result.trs, link);
 
                         match = match.NextMatch();
                     }
                 }
                 #endregion
 
+                #region Сериал
                 var tpl = new SeasonTpl(vtpl);
                 var etpl = new EpisodeTpl(vtpl);
                 HashSet<string> eshash = new HashSet<string>();
@@ -398,7 +438,7 @@ namespace Shared.Engine.Online
                         if (!string.IsNullOrEmpty(m.Groups["season"].Value) && !eshash.Contains(sname))
                         {
                             eshash.Add(sname);
-                            string link = host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&t={trs}&s={m.Groups["season"].Value}";
+                            string link = host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&t={result.trs}&s={m.Groups["season"].Value}";
 
                             tpl.Append(sname, link, m.Groups["season"].Value);
                         }
@@ -410,7 +450,7 @@ namespace Shared.Engine.Online
                         if (m.Groups["season"].Value == sArhc && !eshash.Contains(m.Groups["name"].Value))
                         {
                             eshash.Add(m.Groups["name"].Value);
-                            string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={trs}&s={s}&e={m.Groups["episode"].Value}";
+                            string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={result.trs}&s={s}&e={m.Groups["episode"].Value}";
 
                             string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
                             if (!string.IsNullOrEmpty(voice_href))
@@ -444,54 +484,38 @@ namespace Shared.Engine.Online
         #region Serial
         async public Task<Episodes> SerialEmbed(long id, int t)
         {
+            var base_headers = HeadersModel.Init(init.headers,
+                ("accept", "application/json, text/javascript, */*; q=0.01"),
+                ("cache-control", "no-cache"),
+                ("dnt", "1"),
+                ("origin", apihost),
+                ("pragma", "no-cache"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-origin"),
+                ("x-requested-with", "XMLHttpRequest")
+            );
+
+            if (basereferer.TryGetValue(id, out string referer) && !string.IsNullOrEmpty(referer))
+                base_headers.Add(new HeadersModel("referer", referer));
+
+            var newheaders = init.premium
+                ? defaultHeaders
+                : HeadersModel.Join(base_headers, defaultHeaders);
+
             string uri = $"{apihost}/ajax/get_cdn_series/?t={((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}{Random.Shared.Next(101, 999)}";
             string data = $"id={id}&translator_id={t}&action=get_episodes";
 
-            Episodes root = null;
-
-            try
-            {
-                var headers = HeadersModel.Init(init.headers,
-                    ("accept", "application/json, text/javascript, */*; q=0.01"),
-                    ("cache-control", "no-cache"),
-                    ("dnt", "1"),
-                    ("origin", apihost),
-                    ("pragma", "no-cache"),
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "same-origin"),
-                    ("x-requested-with", "XMLHttpRequest")
-                );
-
-                if (basereferer.TryGetValue(id, out string referer) && !string.IsNullOrEmpty(referer))
-                    headers = HeadersModel.Join(headers, HeadersModel.Init(("referer", referer)));
-
-                string json = await onpost(uri, data, headers);
-                if (json == null)
-                {
-                    log("json null");
-                    requesterror?.Invoke();
-                    return null;
-                }
-
-                root = JsonSerializer.Deserialize<Episodes>(json);
-            }
-            catch { }
-
+            var root = await httpHydra.Post<Episodes>(uri, data, safety: safety, newheaders: newheaders);
             if (root == null)
             {
-                log("root null");
+                requesterror?.Invoke();
                 return null;
             }
-
-            log("root OK");
 
             string episodes = root.episodes;
-            if (string.IsNullOrWhiteSpace(episodes) || episodes.ToLower() == "false")
-            {
-                log("episodes null");
+            if (string.IsNullOrWhiteSpace(episodes) || episodes.Contains("false", StringComparison.OrdinalIgnoreCase))
                 return null;
-            }
 
             return root;
         }
@@ -603,7 +627,7 @@ namespace Shared.Engine.Online
                 data = $"id={id}&translator_id={t}&season={s}&episode={e}&favs={favs}&action=get_stream";
             }
 
-            var headers = HeadersModel.Init(init.headers,
+            var base_headers = HeadersModel.Init(init.headers,
                 ("accept", "application/json, text/javascript, */*; q=0.01"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
@@ -616,45 +640,30 @@ namespace Shared.Engine.Online
             );
 
             if (basereferer.TryGetValue(id, out string referer) && !string.IsNullOrEmpty(referer))
-                headers = HeadersModel.Join(headers, HeadersModel.Init(("referer", referer)));
+                base_headers.Add(new HeadersModel("referer", referer));
 
-            string json = await onpost(uri, data, headers);
-            if (string.IsNullOrEmpty(json))
+            var newheaders = init.premium
+                ? defaultHeaders
+                : HeadersModel.Join(base_headers, defaultHeaders);
+
+            var root = await httpHydra.Post<Dictionary<string, object>>(uri, data, safety: safety, newheaders: newheaders);
+
+            if (root == null)
             {
-                log("json null");
-                requesterror?.Invoke();
-                return null;
-            }
-
-            log("json OK");
-
-            Dictionary<string, object> root = null;
-
-            try
-            {
-                root = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-            }
-            catch
-            {
-                log("Deserialize error");
                 requesterror?.Invoke();
                 return null;
             }
 
             string url = root.ContainsKey("url") ? root["url"]?.ToString() : null;
-            if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
+            if (string.IsNullOrEmpty(url) || url.Contains("false", StringComparison.OrdinalIgnoreCase))
             {
-                log("url null");
                 requesterror?.Invoke();
                 return null;
             }
 
             var links = getStreamLink(url);
             if (links.Count == 0)
-            {
-                log("links null");
                 return null;
-            }
 
             string subtitlehtml = null;
 
@@ -669,7 +678,7 @@ namespace Shared.Engine.Online
 
         async public Task<MovieModel> Movie(string href)
         {
-            var headers = HeadersModel.Init(init.headers,
+            var base_headers = HeadersModel.Init(init.headers,
                 ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                 ("cache-control", "no-cache"),
                 ("dnt", "1"),
@@ -681,28 +690,35 @@ namespace Shared.Engine.Online
                 ("upgrade-insecure-requests", "1")
             );
 
-            string html = await onget($"{apihost}/{href}", headers);
-            if (string.IsNullOrEmpty(html))
+            var newheaders = init.premium
+                ? defaultHeaders
+                : HeadersModel.Join(base_headers, defaultHeaders);
+
+            List<ApiModel> links = null;
+            string subtitlehtml = null;
+
+            await httpHydra.GetSpan($"{apihost}/{href}", safety: safety, newheaders: newheaders, spanAction: html => 
+            {
+                string url = Rx.Match(html, "\"streams\"\\s*:\\s*\"(.*?)\"\\s*,");
+                if (string.IsNullOrEmpty(url) || url.Contains("false", StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                links = getStreamLink(url.Replace("\\", ""));
+
+                if (links.Count > 0)
+                    subtitlehtml = Rx.Match(html, "\"subtitle\":\"([^\"]+)\"");
+            });
+
+            if (links == null || links.Count == 0)
             {
                 requesterror?.Invoke();
                 return null;
             }
-
-            string url = Regex.Match(html, "\"streams\"\\s*:\\s*\"(.*?)\"\\s*,").Groups[1].Value;
-            if (string.IsNullOrEmpty(url) || url.ToLower() == "false")
-            {
-                requesterror?.Invoke();
-                return null;
-            }
-
-            var links = getStreamLink(url.Replace("\\", ""));
-            if (links.Count == 0)
-                return null;
 
             return new MovieModel() 
             { 
                 links = links,
-                subtitlehtml = Regex.Match(html, "\"subtitle\":\"([^\"]+)\"").Groups[1].Value 
+                subtitlehtml = subtitlehtml
             };
         }
 
@@ -746,18 +762,22 @@ namespace Shared.Engine.Online
 
 
         #region decodeBase64
+        static string[] trashListBase = ["JCQhIUAkJEBeIUAjJCRA", "QEBAQEAhIyMhXl5e", "IyMjI14hISMjIUBA", "Xl5eIUAjIyEhIyM=", "JCQjISFAIyFAIyM="];
+        static string[] trashListOld = ["QEA=", "QCM=", "QCE=", "QF4=", "QCQ=", "I0A=", "IyM=", "IyE=", "I14=", "IyQ=", "IUA=", "ISM=", "ISE=", "IV4=", "ISQ=", "XkA=", "XiM=", "XiE=", "Xl4=", "XiQ=", "JEA=", "JCM=", "JCE=", "JF4=", "JCQ=", "QEBA", "QEAj", "QEAh", "QEBe", "QEAk", "QCNA", "QCMj", "QCMh", "QCNe", "QCMk", "QCFA", "QCEj", "QCEh", "QCFe", "QCEk", "QF5A", "QF4j", "QF4h", "QF5e", "QF4k", "QCRA", "QCQj", "QCQh", "QCRe", "QCQk", "I0BA", "I0Aj", "I0Ah", "I0Be", "I0Ak", "IyNA", "IyMj", "IyMh", "IyNe", "IyMk", "IyFA", "IyEj", "IyEh", "IyFe", "IyEk", "I15A", "I14j", "I14h", "I15e", "I14k", "IyRA", "IyQj", "IyQh", "IyRe", "IyQk", "IUBA", "IUAj", "IUAh", "IUBe", "IUAk", "ISNA", "ISMj", "ISMh", "ISNe", "ISMk", "ISFA", "ISEj", "ISEh", "ISFe", "ISEk", "IV5A", "IV4j", "IV4h", "IV5e", "IV4k", "ISRA", "ISQj", "ISQh", "ISRe", "ISQk", "XkBA", "XkAj", "XkAh", "XkBe", "XkAk", "XiNA", "XiMj", "XiMh", "XiNe", "XiMk", "XiFA", "XiEj", "XiEh", "XiFe", "XiEk", "Xl5A", "Xl4j", "Xl4h", "Xl5e", "Xl4k", "XiRA", "XiQj", "XiQh", "XiRe", "XiQk", "JEBA", "JEAj", "JEAh", "JEBe", "JEAk", "JCNA", "JCMj", "JCMh", "JCNe", "JCMk", "JCFA", "JCEj", "JCEh", "JCFe", "JCEk", "JF5A", "JF4j", "JF4h", "JF5e", "JF4k", "JCRA", "JCQj", "JCQh", "JCRe", "JCQk"];
+
         static string decodeBase64(string data)
         {
             if (data.StartsWith("#"))
             {
                 try
                 {
-                    string[] trashList = ["JCQhIUAkJEBeIUAjJCRA", "QEBAQEAhIyMhXl5e", "IyMjI14hISMjIUBA", "Xl5eIUAjIyEhIyM=", "JCQjISFAIyFAIyM="];
-
                     string _data = data.Remove(0, 2);
 
-                    foreach (string trash in trashList)
-                        _data = _data.Replace($"//_//{trash}", "");
+                    foreach (string trash in trashListBase)
+                    {
+                        if (_data.Contains($"//_//{trash}"))
+                            _data = _data.Replace($"//_//{trash}", "");
+                    }
 
                     try
                     {
@@ -773,12 +793,13 @@ namespace Shared.Engine.Online
                 }
                 catch
                 {
-                    string[] trashList = ["QEA=", "QCM=", "QCE=", "QF4=", "QCQ=", "I0A=", "IyM=", "IyE=", "I14=", "IyQ=", "IUA=", "ISM=", "ISE=", "IV4=", "ISQ=", "XkA=", "XiM=", "XiE=", "Xl4=", "XiQ=", "JEA=", "JCM=", "JCE=", "JF4=", "JCQ=", "QEBA", "QEAj", "QEAh", "QEBe", "QEAk", "QCNA", "QCMj", "QCMh", "QCNe", "QCMk", "QCFA", "QCEj", "QCEh", "QCFe", "QCEk", "QF5A", "QF4j", "QF4h", "QF5e", "QF4k", "QCRA", "QCQj", "QCQh", "QCRe", "QCQk", "I0BA", "I0Aj", "I0Ah", "I0Be", "I0Ak", "IyNA", "IyMj", "IyMh", "IyNe", "IyMk", "IyFA", "IyEj", "IyEh", "IyFe", "IyEk", "I15A", "I14j", "I14h", "I15e", "I14k", "IyRA", "IyQj", "IyQh", "IyRe", "IyQk", "IUBA", "IUAj", "IUAh", "IUBe", "IUAk", "ISNA", "ISMj", "ISMh", "ISNe", "ISMk", "ISFA", "ISEj", "ISEh", "ISFe", "ISEk", "IV5A", "IV4j", "IV4h", "IV5e", "IV4k", "ISRA", "ISQj", "ISQh", "ISRe", "ISQk", "XkBA", "XkAj", "XkAh", "XkBe", "XkAk", "XiNA", "XiMj", "XiMh", "XiNe", "XiMk", "XiFA", "XiEj", "XiEh", "XiFe", "XiEk", "Xl5A", "Xl4j", "Xl4h", "Xl5e", "Xl4k", "XiRA", "XiQj", "XiQh", "XiRe", "XiQk", "JEBA", "JEAj", "JEAh", "JEBe", "JEAk", "JCNA", "JCMj", "JCMh", "JCNe", "JCMk", "JCFA", "JCEj", "JCEh", "JCFe", "JCEk", "JF5A", "JF4j", "JF4h", "JF5e", "JF4k", "JCRA", "JCQj", "JCQh", "JCRe", "JCQk"];
-
                     string _data = data.Remove(0, 2).Replace("//_//", "");
 
-                    foreach (string trash in trashList)
-                        _data = _data.Replace(trash, "");
+                    foreach (string trash in trashListOld)
+                    {
+                        if (_data.Contains(trash))
+                            _data = _data.Replace(trash, "");
+                    }
 
                     _data = Regex.Replace(_data, "//[^/]+_//", "").Replace("//_//", "");
                     _data = Encoding.UTF8.GetString(Convert.FromBase64String(_data));

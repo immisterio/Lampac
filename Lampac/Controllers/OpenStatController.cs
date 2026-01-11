@@ -151,31 +151,24 @@ namespace Lampac.Controllers
                 {
                     msm = new
                     {
-                        une = new
-                        {
-                            small = PoolInvk.msm.SmallPoolInUseSize,
-                            large = PoolInvk.msm.LargePoolInUseSize
-                        },
-                        free = new
-                        {
-                            PoolInvk.msm.SmallBlocksFree,
-                            PoolInvk.msm.SmallPoolFreeSize,
-                            PoolInvk.msm.LargeBuffersFree,
-                            PoolInvk.msm.LargePoolFreeSize
-                        }
+                        PoolInvk.msm.SmallPoolInUseSize,
+                        PoolInvk.msm.LargePoolInUseSize,
+                        PoolInvk.msm.SmallBlocksFree,
+                        PoolInvk.msm.SmallPoolFreeSize,
+                        PoolInvk.msm.LargeBuffersFree,
+                        PoolInvk.msm.LargePoolFreeSize
                     },
                     StringBuilder = new
                     {
-                        StringBuilderPool.Count,
+                        Rent = StringBuilderPool.RentCont,
+                        Free = StringBuilderPool.FreeCont,
                         StringBuilderPool.GC
                     },
-                    JsonConvert = JsonConvertPool.Count,
-                    UtilsTpl_Json = UtilsTpl.CountJson,
-                    //MemoryStream = new
-                    //{
-                    //    MemoryStreamPool.Count,
-                    //    MemoryStreamPool.GC
-                    //}
+                    MemoryStream = MemoryStreamPool.Count == 0 ? null : new
+                    {
+                        MemoryStreamPool.Count,
+                        MemoryStreamPool.GC
+                    }
                 },
                 memoryCache = memoryCache.GetCurrentStatistics()
             });

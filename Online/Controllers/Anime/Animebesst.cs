@@ -23,44 +23,52 @@ namespace Online.Controllers
                 #region Поиск
                 var cache = await InvokeCacheResult<List<(string title, string year, string uri, string s, string img)>>($"animebesst:search:{title}", 40, async e =>
                 {
+                    bool reqOk = false;
+                    List<(string title, string year, string uri, string s, string img)> catalog = null;
+
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
 
-                    string search = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", data);
-
-                    if (search == null)
-                        return e.Fail("search");
-
-                    var rx = Rx.Split("class=\"shortstory-listab\"", search.Split("id=\"sidebar\"")[0], 1);
-
-                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
-
-                    foreach (var row in rx.Rows())
+                    await httpHydra.PostSpan($"{init.corsHost()}/index.php?do=search", data, search => 
                     {
-                        if (row.Contains("Новости"))
-                            continue;
+                        reqOk = search.Contains(">Поиск по сайту<", StringComparison.OrdinalIgnoreCase);
 
-                        var g = row.Groups("class=\"shortstory-listab-title\"><a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>");
+                        var sidebar = Rx.Split("id=\"sidebar\"", search);
+                        if (sidebar.Count == 0)
+                            return;
 
-                        if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
+                        var rx = Rx.Split("class=\"shortstory-listab\"", sidebar[0].Span, 1);
+                        if (rx.Count == 0)
+                            return;
+
+                        catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
+
+                        foreach (var row in rx.Rows())
                         {
-                            string season = "0";
-                            if (g[2].Value.Contains("сезон"))
+                            if (row.Contains("Новости"))
+                                continue;
+
+                            var g = row.Groups("class=\"shortstory-listab-title\"><a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>");
+
+                            if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                             {
-                                season = Regex.Match(g[2].Value, "([0-9]+) сезон").Groups[1].Value;
-                                if (string.IsNullOrEmpty(season))
-                                    season = "1";
+                                string season = "0";
+                                if (g[2].Value.Contains("сезон"))
+                                {
+                                    season = Regex.Match(g[2].Value, "([0-9]+) сезон").Groups[1].Value;
+                                    if (string.IsNullOrEmpty(season))
+                                        season = "1";
+                                }
+
+                                string img = row.Match("<img class=\"img-fit lozad\" data-src=\"([^\"]+)\"");
+
+                                catalog.Add((g[2].Value, row.Match("\">([0-9]{4})</a>"), g[1].Value, season, img));
                             }
-
-                            string img = row.Match("<img class=\"img-fit lozad\" data-src=\"([^\"]+)\"");
-                            if (string.IsNullOrEmpty(img))
-                                img = null;
-
-                            catalog.Add((g[2].Value, row.Match("\">([0-9]{4})</a>"), g[1].Value, season, img));
                         }
-                    }
+                    });
 
-                    if (catalog.Count == 0 && !search.Contains(">Поиск по сайту<"))
-                        return e.Fail("catalog");
+
+                    if ((catalog == null || catalog.Count == 0) && !reqOk)
+                        return e.Fail("catalog", refresh_proxy: true);
 
                     return e.Success(catalog);
                 });
@@ -93,27 +101,26 @@ namespace Online.Controllers
                 #region Серии
                 var cache = await InvokeCacheResult<List<(string episode, string name, string uri)>>($"animebesst:playlist:{uri}", 30, async e =>
                 {
-                    string news = await httpHydra.Get(uri);
-
-                    if (news == null)
-                        return e.Fail("news", refresh_proxy: true);
-
-                    string videoList = Regex.Match(news, "var videoList ?=([^\n\r]+)").Groups[1].Value.Trim();
-                    if (string.IsNullOrEmpty(videoList))
-                        return e.Fail("videoList");
-
                     var links = new List<(string episode, string name, string uri)>(5);
-                    var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?\\\\/\\\\/([^\"]+)\"");
-                    while (match.Success)
-                    {
-                        if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[4].Value))
-                            links.Add((match.Groups[1].Value, match.Groups[2].Value.Trim(), match.Groups[4].Value.Replace("\\", "")));
 
-                        match = match.NextMatch();
-                    }
+                    await httpHydra.GetSpan(uri, news => 
+                    {
+                        string videoList = Rx.Match(news, "var videoList ?=([^\n\r]+)");
+                        if (videoList == null)
+                            return;
+
+                        var match = Regex.Match(videoList, "\"id\":\"([0-9]+)( [^\"]+)?\",\"link\":\"(https?:)?\\\\/\\\\/([^\"]+)\"");
+                        while (match.Success)
+                        {
+                            if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[4].Value))
+                                links.Add((match.Groups[1].Value, match.Groups[2].Value.Trim(), match.Groups[4].Value.Replace("\\", "")));
+
+                            match = match.NextMatch();
+                        }
+                    });
 
                     if (links.Count == 0)
-                        return e.Fail("links");
+                        return e.Fail("links", refresh_proxy: true);
 
                     return e.Success(links);
                 });
@@ -169,14 +176,15 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<string>($"animebesst:video:{uri}", 30, async e =>
             {
-                string iframe = await httpHydra.Get($"https://{uri}", addheaders: HeadersModel.Init("referer", init.host));
+                string hls = null;
 
-                if (iframe == null)
-                    return e.Fail("iframe", refresh_proxy: true);
+                await httpHydra.GetSpan($"https://{uri}", addheaders: HeadersModel.Init("referer", init.host), spanAction: iframe => 
+                {
+                    hls = Rx.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"");
+                });
 
-                string hls = Regex.Match(iframe, "file:\"(https?://[^\"]+\\.m3u8)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
-                    return e.Fail("hls");
+                    return e.Fail("hls", refresh_proxy: true);
 
                 return e.Success(hls);
             });

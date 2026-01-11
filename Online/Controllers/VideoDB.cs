@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
+using Shared.Models.Online.VideoDB;
 using Shared.PlaywrightCore;
 
 namespace Online.Controllers
@@ -22,19 +23,45 @@ namespace Online.Controllers
             (
                host,
                init.apihost,
-               (url, head) => black_magic(url),
                () => proxyManager?.Refresh()
             );
 
             rhubFallback: 
-            var cache = await InvokeCacheResult(ipkey($"videodb:view:{kinopoisk_id}"), 20, 
-                () => oninvk.Embed(kinopoisk_id)
-            );
+            var cache = await InvokeCacheResult<EmbedModel>(ipkey($"videodb:view:{kinopoisk_id}"), 20, async e => 
+            {
+                EmbedModel embed = null;
+                
+                if (rch?.enable == true || init.priorityBrowser == "http")
+                {
+                    var headers = httpHeaders(init, HeadersModel.Init(
+                        ("sec-fetch-dest", "iframe"),
+                        ("sec-fetch-mode", "navigate"),
+                        ("sec-fetch-site", "cross-site"),
+                        ("referer", "{host}/")
+                    ));
+
+                    await httpHydra.GetSpan($"{init.apihost}/embed/AN?kinopoisk_id={kinopoisk_id}", newheaders: headers, spanAction: html => 
+                    {
+                        embed = oninvk.Embed(html);
+                    });
+                }   
+                else
+                {
+                    embed = await oninvk.Embed(kinopoisk_id, uri => black_magic(uri));
+                }
+
+                if (embed == null)
+                    return e.Fail("embed", refresh_proxy: true);
+
+                return e.Success(embed);
+            });
 
             if (IsRhubFallback(cache))
                 goto rhubFallback;
 
-            return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson));
+            return await ContentTpl(cache, 
+                () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), kinopoisk_id, title, original_title, t, s, sid, rjson)
+            );
         }
 
 
@@ -170,16 +197,6 @@ namespace Online.Controllers
         {
             try
             {
-                var headers = httpHeaders(init, HeadersModel.Init(
-                    ("sec-fetch-dest", "iframe"),
-                    ("sec-fetch-mode", "navigate"),
-                    ("sec-fetch-site", "cross-site"),
-                    ("referer", "{host}/")
-                ));
-
-                if (rch?.enable == true || init.priorityBrowser == "http")
-                    return await httpHydra.Get(iframe_uri, newheaders: headers);
-
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
                     var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: proxy_data, imitationHuman: init.imitationHuman).ConfigureAwait(false);

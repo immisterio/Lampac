@@ -1,9 +1,8 @@
-﻿using HtmlAgilityPack;
-using Shared.Engine.RxEnumerate;
+﻿using Shared.Engine.RxEnumerate;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Online.iRemux;
 using Shared.Models.Templates;
-using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Shared.Engine.Online
@@ -11,17 +10,17 @@ namespace Shared.Engine.Online
     public struct iRemuxInvoke
     {
         #region iRemuxInvoke
-        string host;
-        string apihost;
-        Func<string, Task<string>> onget;
+        string host, cookie, apihost;
+        HttpHydra httpHydra;
         Func<string, string> onstreamfile;
         Action requesterror;
 
-        public iRemuxInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
+        public iRemuxInvoke(string host, string apihost, string cookie, HttpHydra httpHydra, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
-            this.onget = onget;
+            this.cookie = cookie;
+            this.httpHydra = httpHydra;
             this.onstreamfile = onstreamfile;
             this.requesterror = requesterror;
         }
@@ -34,32 +33,40 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(link))
             {
-                string search = await onget($"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}");
-                if (search == null)
+                bool reqOk = false;
+
+                string uri = $"{apihost}/index.php?do=search&subaction=search&from_page=0&story={HttpUtility.UrlEncode(title ?? original_title)}";
+
+                await httpHydra.GetSpan(uri, addheaders: HeadersModel.Init("cookie", cookie), spanAction: search => 
                 {
-                    requesterror?.Invoke();
-                    return null;
-                }
+                    reqOk = search.Contains(">Поиск по сайту<", StringComparison.OrdinalIgnoreCase);
 
-                string stitle = title?.ToLower();
-                string sorigtitle = original_title?.ToLower();
+                    string stitle = StringConvert.SearchName(title);
+                    string sorigtitle = StringConvert.SearchName(original_title);
 
-                var rx = Rx.Split("item--announce", search, 1);
+                    var rx = Rx.Split("item--announce", search, 1);
 
-                foreach (var row in rx.Rows())
-                {
-                    var g = row.Groups("class=\"item__title( [^\"]+)?\"><a href=\"(?<link>https?://[^\"]+)\">(?<name>[^<]+)</a>");
-
-                    string name = g["name"].Value.ToLower();
-                    if (name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))
-                        continue;
-
-                    if ((!string.IsNullOrEmpty(stitle) && name.Contains(stitle)) || (!string.IsNullOrEmpty(sorigtitle) && name.Contains(sorigtitle)))
+                    foreach (var row in rx.Rows())
                     {
+                        var g = row.Groups("class=\"item__title( [^\"]+)?\"><a href=\"(?<link>https?://[^\"]+)\">(?<name>[^<]+)</a>");
+
+                        string name = g["name"].Value.ToLower();
+                        if (string.IsNullOrWhiteSpace(name) || name.Contains("сезон") || name.Contains("серии") || name.Contains("серия"))
+                            continue;
+
                         if (string.IsNullOrEmpty(g["link"].Value))
                             continue;
 
-                        if (name.Contains($"({year}/"))
+                        bool find = false;
+                        string _sname = StringConvert.SearchName(name);
+
+                        if (!string.IsNullOrEmpty(stitle))
+                            find = _sname.Contains(stitle);
+
+                        if (!find && !string.IsNullOrEmpty(sorigtitle))
+                            find = _sname.Contains(sorigtitle);
+
+                        if (find && name.Contains($"({year}/"))
                         {
                             result.similars.Add(new Similar()
                             {
@@ -69,13 +76,14 @@ namespace Shared.Engine.Online
                             });
                         }
                     }
-                }
+                });
 
                 if (result.similars.Count == 0)
                 {
-                    if (search.Contains(">Поиск по сайту<"))
+                    if (reqOk)
                         return new EmbedModel() { IsEmpty = true };
 
+                    requesterror?.Invoke();
                     return null;
                 }
 
@@ -85,22 +93,18 @@ namespace Shared.Engine.Online
                 link = result.similars[0].href;
             }
 
-            string news = await onget(link);
-            if (news == null)
+
+            await httpHydra.GetSpan(link, addheaders: HeadersModel.Init("cookie", cookie), spanAction: news =>
+            {
+                result.content = HtmlSpan.Node(news, "div", "class", "page__desc", HtmlSpanTargetType.Exact).ToString();
+            });
+
+            if (string.IsNullOrEmpty(result.content) || !result.content.Contains("cloud.mail.ru/public/"))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            var doc = new HtmlDocument();
-            doc.LoadHtml(news);
-
-            var pageDescNode = doc.DocumentNode.SelectSingleNode("//div[@class='page__desc']");
-
-            if (pageDescNode == null || !pageDescNode.InnerHtml.Contains("cloud.mail.ru/public/"))
-                return null;
-
-            result.content = pageDescNode.InnerHtml;
             return result;
         }
         #endregion
@@ -170,20 +174,20 @@ namespace Shared.Engine.Online
         #region Weblink
         async public Task<string> Weblink(string linkid)
         {
-            string html = await onget($"https://cloud.mail.ru/public/{linkid}");
-            if (html == null)
+            string location = null;
+
+            await httpHydra.GetSpan($"https://cloud.mail.ru/public/{linkid}", html => 
+            {
+                var rx = Rx.Split("\"weblink_get\":", html, 1);
+                if (rx.Count > 0)
+                    location = rx[0].Match("\"url\": ?\"(https?://[^/]+)");
+            });
+
+            if (string.IsNullOrEmpty(location))
             {
                 requesterror?.Invoke();
                 return null;
             }
-
-            string weblinkRow = StringConvert.FindLastText(html, "\"weblink_get\"", "}");
-            if (weblinkRow == null)
-                return null;
-
-            string location = Regex.Match(weblinkRow, "\"url\": ?\"(https?://[^/]+)").Groups[1].Value;
-            if (string.IsNullOrEmpty(location))
-                return null;
 
             return $"{location}/weblink/view/{linkid}";
         }

@@ -35,9 +35,6 @@ namespace Shared.Engine.Online
 
             await httpHydra.GetSpan($"{apihost}/api/product/read_api.php?kinopoisk={kinopoisk_id}", product =>
             {
-                if (product.IsEmpty)
-                    return;
-
                 if (product.Contains("Product does not exist", StringComparison.OrdinalIgnoreCase))
                 {
                     embed = new EmbedModel() { IsEmpty = true };
@@ -54,9 +51,6 @@ namespace Shared.Engine.Online
 
             await httpHydra.GetSpan(iframeuri, content =>
             {
-                if (content.IsEmpty)
-                    return;
-
                 if (!content.Contains("new Playerjs", StringComparison.Ordinal))
                     return;
 

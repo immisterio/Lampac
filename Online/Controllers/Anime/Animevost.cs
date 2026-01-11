@@ -23,47 +23,50 @@ namespace Online.Controllers
                 #region Поиск
                 var cache = await InvokeCacheResult<List<(string title, string year, string uri, string s, string img)>>($"animevost:search:{title}:{similar}", 40, async e =>
                 {
+                    List<(string title, string year, string uri, string s, string img)> smlr = null;
+                    List<(string title, string year, string uri, string s, string img)> catalog = null;
+
                     string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
 
-                    string search = await httpHydra.Post($"{init.corsHost()}/index.php?do=search", data);
-
-                    if (search == null)
-                        return e.Fail("search", refresh_proxy: true);
-
-                    var rx = Rx.Split("class=\"shortstory\"", search, 1);
-
-                    var smlr = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
-                    var catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
-
-                    foreach (var row in rx.Rows())
+                    await httpHydra.PostSpan($"{init.corsHost()}/index.php?do=search", data, search => 
                     {
-                        var g = row.Groups("<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>");
-                        string animeyear = row.Match("<strong>Год выхода: ?</strong>([0-9]{4})</p>");
-                        string img = row.Match(" src=\"(/uploads/[^\"]+)\"");
-                        if (!string.IsNullOrEmpty(img))
-                            img = init.host + img;
+                        var rx = Rx.Split("class=\"shortstory\"", search, 1);
+                        if (rx.Count == 0)
+                            return;
 
-                        if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
+                        smlr = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
+                        catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
+
+                        foreach (var row in rx.Rows())
                         {
-                            string season = Regex.Match(g[2].Value, "([0-9 ]+) ?nd ", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
-                            if (string.IsNullOrEmpty(season))
+                            var g = row.Groups("<a href=\"(https?://[^\"]+\\.html)\">([^<]+)</a>");
+                            string animeyear = row.Match("<strong>Год выхода: ?</strong>([0-9]{4})</p>");
+                            string img = row.Match(" src=\"(/uploads/[^\"]+)\"");
+                            if (!string.IsNullOrEmpty(img))
+                                img = init.host + img;
+
+                            if (!string.IsNullOrWhiteSpace(g[1].Value) && !string.IsNullOrWhiteSpace(g[2].Value))
                             {
-                                season = Regex.Match(g[2].Value, "Season ([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+                                string season = Regex.Match(g[2].Value, "([0-9 ]+) ?nd ", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
                                 if (string.IsNullOrEmpty(season))
-                                    season = "1";
+                                {
+                                    season = Regex.Match(g[2].Value, "Season ([0-9]+)", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+                                    if (string.IsNullOrEmpty(season))
+                                        season = "1";
+                                }
+
+                                smlr.Add((g[2].Value, animeyear, g[1].Value, season, string.IsNullOrEmpty(img) ? null : img));
+
+                                if (animeyear == year.ToString() && StringConvert.SearchName(g[2].Value).Contains(StringConvert.SearchName(title)))
+                                    catalog.Add((g[2].Value, animeyear, g[1].Value, season, null));
                             }
-
-                            smlr.Add((g[2].Value, animeyear, g[1].Value, season, string.IsNullOrEmpty(img) ? null : img));
-
-                            if (animeyear == year.ToString() && StringConvert.SearchName(g[2].Value).Contains(StringConvert.SearchName(title)))
-                                catalog.Add((g[2].Value, animeyear, g[1].Value, season, null));
                         }
-                    }
+                    });
 
-                    if (catalog.Count == 0 && smlr.Count == 0)
-                        return e.Fail("catalog");
+                    if ((catalog == null || catalog.Count == 0) && (smlr == null || smlr.Count == 0))
+                        return e.Fail("catalog", refresh_proxy: true);
 
-                    if (!similar && catalog.Count > 0)
+                    if (!similar && catalog?.Count > 0)
                         return e.Success(catalog);
 
                     return e.Success(smlr);
@@ -97,28 +100,27 @@ namespace Online.Controllers
                 #region Серии
                 var cache = await InvokeCacheResult<List<(string episode, string id)>>($"animevost:playlist:{uri}", 30, async e =>
                 {
-                    string news = await httpHydra.Get(uri);
+                    var links = new List<(string episode, string id)>(4);
 
-                    if (news == null)
-                        return e.Fail("news", refresh_proxy: true);
-
-                    string data = Regex.Match(news, "var data = ([^\n\r]+)").Groups[1].Value;
-                    if (string.IsNullOrEmpty(data))
-                        return e.Fail("data", refresh_proxy: true);
-
-                    var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",");
-                    var links = new List<(string episode, string id)>(match.Length);
-
-                    while (match.Success)
+                    await httpHydra.GetSpan(uri, news => 
                     {
-                        if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
-                            links.Add((match.Groups[1].Value, match.Groups[2].Value));
+                        string data = Rx.Match(news, "var data = ([^\n\r]+)");
+                        if (data == null)
+                            return;
 
-                        match = match.NextMatch();
-                    }
+                        var match = Regex.Match(data, "\"([^\"]+)\":\"([0-9]+)\",");
+
+                        while (match.Success)
+                        {
+                            if (!string.IsNullOrWhiteSpace(match.Groups[1].Value) && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                                links.Add((match.Groups[1].Value, match.Groups[2].Value));
+
+                            match = match.NextMatch();
+                        }
+                    });
 
                     if (links.Count == 0)
-                        return e.Fail("links");
+                        return e.Fail("links", refresh_proxy: true);
 
                     return e.Success(links);
                 });
@@ -171,19 +173,18 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<List<(string l, string q)>>($"animevost:video:{id}", 20, async e =>
             {
-                string uri = $"{init.corsHost()}/frame5.php?play={id}&old=1";
-
-                string iframe = await httpHydra.Get(uri);
-
                 var links = new List<(string l, string q)>(2);
 
-                string mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p").Groups[1].Value;
-                if (!string.IsNullOrEmpty(mp4))
-                    links.Add((mp4, "720p"));
+                await httpHydra.GetSpan($"{init.corsHost()}/frame5.php?play={id}&old=1", iframe => 
+                {
+                    string mp4 = Rx.Match(iframe, "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">720p");
+                    if (mp4 != null)
+                        links.Add((mp4, "720p"));
 
-                mp4 = Regex.Match(iframe ?? "", "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p").Groups[1].Value;
-                if (!string.IsNullOrEmpty(mp4))
-                    links.Add((mp4, "480p"));
+                    mp4 = Rx.Match(iframe, "download=\"invoice\"[^>]+href=\"(https?://[^\"]+)\">480p");
+                    if (mp4 != null)
+                        links.Add((mp4, "480p"));
+                });
 
                 if (links.Count == 0)
                     return e.Fail("mp4", refresh_proxy: true);

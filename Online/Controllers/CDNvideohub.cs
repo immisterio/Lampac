@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.RxEnumerate;
 
 namespace Online.Controllers
 {
@@ -159,16 +160,18 @@ namespace Online.Controllers
             }
 
             rhubFallback:
+
             var cache = await InvokeCacheResult<string>(ipkey($"cdnvideohub:video:{vkId}"), 20, async e =>
             {
-                string iframe = await httpHydra.Get($"{init.corsHost()}/api/v1/player/sv/video/{vkId}");
+                string hls = null;
 
-                if (iframe == null)
-                    return e.Fail("iframe", refresh_proxy: true);
+                await httpHydra.GetSpan($"{init.corsHost()}/api/v1/player/sv/video/{vkId}", iframe => 
+                {
+                    hls = Rx.Match(iframe, "\"hlsUrl\":\"([^\"]+)\"");
+                });
 
-                string hls = Regex.Match(iframe, "\"hlsUrl\":\"([^\"]+)\"").Groups[1].Value;
                 if (string.IsNullOrEmpty(hls))
-                    return e.Fail("hls");
+                    return e.Fail("hls", refresh_proxy: true);
 
                 return e.Success(hls.Replace("u0026", "&").Replace("\\", ""));
             });

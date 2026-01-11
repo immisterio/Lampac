@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 using Shared.Models.Online.CDNmovies;
+using Shared.Engine.RxEnumerate;
 
 namespace Shared.Engine.Online
 {
@@ -12,15 +13,15 @@ namespace Shared.Engine.Online
         #region CDNmoviesInvoke
         string host;
         string apihost;
-        Func<string, Task<string>> onget;
+        HttpHydra httpHydra;
         Func<string, string> onstreamfile;
         Action requesterror;
 
-        public CDNmoviesInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string> onstreamfile, Action requesterror = null)
+        public CDNmoviesInvoke(string host, string apihost, HttpHydra httpHydra, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
-            this.onget = onget;
+            this.httpHydra = httpHydra;
             this.onstreamfile = onstreamfile;
             this.requesterror = requesterror;
         }
@@ -29,27 +30,19 @@ namespace Shared.Engine.Online
         #region Embed
         public async Task<Voice[]> Embed(long kinopoisk_id)
         {
-            string html = await onget.Invoke($"{apihost}/serial/kinopoisk/{kinopoisk_id}");
-            if (html == null)
+            Voice[] content = null;
+
+            await httpHydra.GetSpan($"{apihost}/serial/kinopoisk/{kinopoisk_id}", html => 
+            {
+                string file = Rx.Match(html, "file:'([^\n\r]+)'");
+                content = JsonSerializer.Deserialize<Voice[]>(file);
+            });
+
+            if (content == null || content.Length == 0)
             {
                 requesterror?.Invoke();
                 return null;
             }
-
-            string file = Regex.Match(html, "file:'([^\n\r]+)'").Groups[1].Value;
-            if (string.IsNullOrEmpty(file))
-                return null;
-
-            Voice[] content;
-
-            try
-            {
-                content = JsonSerializer.Deserialize<Voice[]>(file);
-            }
-            catch { return null; }
-
-            if (content == null || content.Length == 0)
-                return null;
 
             return content;
         }
