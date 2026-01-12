@@ -312,35 +312,58 @@ namespace Online.Controllers
                                     }
                                     else
                                     {
-                                        if (route.Request.Url.Contains("/m/"))
+                                        //if (route.Request.Url.Contains("/m/"))
+                                        //{
+                                        //    await route.ContinueAsync();
+
+                                        //    var response = await page.WaitForResponseAsync(route.Request.Url);
+                                        //    if (response != null && response.Headers.ContainsKey("location"))
+                                        //    {
+                                        //        response = await page.WaitForResponseAsync(response.Headers["location"]);
+                                        //        if (response != null)
+                                        //        {
+                                        //            cache.headers = HeadersModel.Init(Http.defaultFullHeaders,
+                                        //                ("sec-fetch-dest", "empty"),
+                                        //                ("sec-fetch-mode", "cors"),
+                                        //                ("sec-fetch-site", "cross-site")
+                                        //            );
+
+                                        //            foreach (var item in response.Request.Headers)
+                                        //            {
+                                        //                if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                        //                    continue;
+
+                                        //                if (!Http.defaultFullHeaders.ContainsKey(item.Key.ToLower()))
+                                        //                    cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                        //            }
+
+                                        //            PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {response.Request.Url}", cache.headers));
+                                        //            browser.SetPageResult(response.Request.Url);
+                                        //        }
+                                        //    }
+                                        //}
+
+                                        if (route.Request.Url.Contains("/master.m3u8"))
                                         {
-                                            await route.ContinueAsync();
+                                            await route.AbortAsync();
 
-                                            var response = await page.WaitForResponseAsync(route.Request.Url);
-                                            if (response != null && response.Headers.ContainsKey("location"))
+                                            cache.headers = HeadersModel.Init(Http.defaultFullHeaders,
+                                                ("sec-fetch-dest", "empty"),
+                                                ("sec-fetch-mode", "cors"),
+                                                ("sec-fetch-site", "cross-site")
+                                            );
+
+                                            foreach (var item in route.Request.Headers)
                                             {
-                                                response = await page.WaitForResponseAsync(response.Headers["location"]);
-                                                if (response != null)
-                                                {
-                                                    cache.headers = HeadersModel.Init(Http.defaultFullHeaders,
-                                                        ("sec-fetch-dest", "empty"),
-                                                        ("sec-fetch-mode", "cors"),
-                                                        ("sec-fetch-site", "cross-site")
-                                                    );
+                                                if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                                    continue;
 
-                                                    foreach (var item in response.Request.Headers)
-                                                    {
-                                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                                            continue;
-
-                                                        if (!Http.defaultFullHeaders.ContainsKey(item.Key.ToLower()))
-                                                            cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
-                                                    }
-
-                                                    PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {response.Request.Url}", cache.headers));
-                                                    browser.SetPageResult(response.Request.Url);
-                                                }
+                                                if (!Http.defaultFullHeaders.ContainsKey(item.Key.ToLower()))
+                                                    cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                             }
+
+                                            PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {route.Request.Url}", cache.headers));
+                                            browser.SetPageResult(route.Request.Url);
                                         }
                                         else
                                         {

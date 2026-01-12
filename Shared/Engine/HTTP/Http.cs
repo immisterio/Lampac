@@ -3,7 +3,6 @@ using Shared.Engine.Pools;
 using Shared.Engine.Utilities;
 using Shared.Models;
 using Shared.Models.Events;
-using System;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -349,14 +348,14 @@ namespace Shared.Engine
 
                                 result = serializer.Deserialize<T>(jsonReader);
 
-                                if (IsLogged)
+                                if (e.loglines != null)
                                     e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        if (IsLogged)
+                        if (e.loglines != null)
                             e.loglines.Append($"\n{ex.Message}");
                     }
                 },
@@ -387,7 +386,7 @@ namespace Shared.Engine
 
                     var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
-                    if (cookieContainer != null && IsLogged)
+                    if (cookieContainer != null && loglines != null)
                     {
                         var cookiesString = new StringBuilder(200);
                         foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
@@ -409,7 +408,7 @@ namespace Shared.Engine
                     {
                         using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                         {
-                            if (IsLogged && weblog)
+                            if (loglines != null)
                             {
                                 loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
 
@@ -444,7 +443,7 @@ namespace Shared.Engine
                 }
                 catch (Exception ex)
                 {
-                    if (IsLogged && weblog)
+                    if (loglines != null)
                         loglines.Append(ex.ToString());
 
                     if (InvkEvent.IsHttpAsync())
@@ -464,7 +463,7 @@ namespace Shared.Engine
                 }
                 finally
                 {
-                    if (weblog && !url.Contains("127.0.0.1") && IsLogged)
+                    if (!url.Contains("127.0.0.1") && loglines != null)
                         WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
 
                     StringBuilderPool.Return(loglines);
@@ -499,13 +498,13 @@ namespace Shared.Engine
 
                             spanAction.Invoke(span);
 
-                            if (IsLogged)
+                            if (e.loglines != null)
                                 e.loglines.Append($"\n{span.ToString()}");
                         });
                     }
                     catch (Exception ex) 
                     {
-                        if (IsLogged)
+                        if (e.loglines != null)
                             e.loglines.Append($"\n{ex.Message}");
                     }
                 },
@@ -542,13 +541,13 @@ namespace Shared.Engine
 
                             spanAction.Invoke(span);
 
-                            if (IsLogged)
+                            if (e.loglines != null)
                                 e.loglines.Append($"\n{span.ToString()}");
                         });
                     }
                     catch (Exception ex)
                     {
-                        if (IsLogged)
+                        if (e.loglines != null)
                             e.loglines.Append($"\n{ex.Message}");
                     }
                 },
@@ -586,7 +585,7 @@ namespace Shared.Engine
 
                 var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
-                if (cookieContainer != null && IsLogged)
+                if (cookieContainer != null && loglines != null)
                 {
                     var cookiesString = new StringBuilder(200);
                     foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
@@ -608,7 +607,7 @@ namespace Shared.Engine
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        if (IsLogged && weblog)
+                        if (loglines != null)
                         {
                             loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
 
@@ -636,7 +635,7 @@ namespace Shared.Engine
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                if (IsLogged && weblog)
+                                if (loglines != null)
                                     loglines.Append($"\n{res}");
 
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -654,7 +653,7 @@ namespace Shared.Engine
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                if (IsLogged && weblog)
+                                if (loglines != null)
                                     loglines.Append($"\n{res}");
 
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -668,7 +667,7 @@ namespace Shared.Engine
             }
             catch (Exception ex)
             {
-                if (IsLogged && weblog)
+                if (loglines != null)
                     loglines.Append(ex.ToString());
 
                 if (InvkEvent.IsHttpAsync())
@@ -688,7 +687,7 @@ namespace Shared.Engine
             }
             finally
             {
-                if (weblog && !url.Contains("127.0.0.1") && IsLogged)
+                if (!url.Contains("127.0.0.1") && loglines != null)
                     WriteLog(url, "GET", body == null ? null : body.ReadAsStringAsync().Result, loglines);
 
                 StringBuilderPool.Return(loglines);
@@ -726,7 +725,7 @@ namespace Shared.Engine
 
                 var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
-                if (cookieContainer != null && IsLogged)
+                if (cookieContainer != null && loglines != null)
                 {
                     var cookiesString = new StringBuilder(200);
                     foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
@@ -751,7 +750,7 @@ namespace Shared.Engine
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        if (IsLogged)
+                        if (loglines != null)
                         {
                             loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
 
@@ -779,7 +778,7 @@ namespace Shared.Engine
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                if (IsLogged)
+                                if (loglines != null)
                                     loglines.Append($"\n{res}");
 
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -797,7 +796,7 @@ namespace Shared.Engine
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                if (IsLogged)
+                                if (loglines != null)
                                     loglines.Append($"\n{res}");
 
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -811,7 +810,7 @@ namespace Shared.Engine
             }
             catch (Exception ex)
             {
-                if (IsLogged)
+                if (loglines != null)
                     loglines.Append(ex.ToString());
 
                 if (InvkEvent.IsHttpAsync())
@@ -831,7 +830,7 @@ namespace Shared.Engine
             }
             finally
             {
-                if (!url.Contains("127.0.0.1") && IsLogged)
+                if (!url.Contains("127.0.0.1") && loglines != null)
                     WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
 
                 StringBuilderPool.Return(loglines);
@@ -878,14 +877,14 @@ namespace Shared.Engine
 
                                 result = serializer.Deserialize<T>(jsonReader);
 
-                                if (IsLogged)
+                                if (e.loglines != null)
                                     e.loglines.Append($"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        if (IsLogged)
+                        if (e.loglines != null)
                             e.loglines.Append($"\n{ex.Message}");
                     }
                 },
@@ -914,7 +913,7 @@ namespace Shared.Engine
 
                 var client = FrendlyHttp.MessageClient(httpversion == 1 ? "base" : $"http{httpversion}", handler, MaxResponseContentBufferSize);
 
-                if (cookieContainer != null && IsLogged)
+                if (cookieContainer != null && loglines != null)
                 {
                     var cookiesString = new StringBuilder(200);
                     foreach (Cookie c in cookieContainer.GetCookies(new Uri(url)))
@@ -936,7 +935,7 @@ namespace Shared.Engine
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        if (IsLogged)
+                        if (loglines != null)
                         {
                             loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
 
@@ -971,7 +970,7 @@ namespace Shared.Engine
             }
             catch (Exception ex)
             {
-                if (IsLogged)
+                if (loglines != null)
                     loglines.Append(ex.ToString());
 
                 if (InvkEvent.IsHttpAsync())
@@ -991,7 +990,7 @@ namespace Shared.Engine
             }
             finally
             {
-                if (!url.Contains("127.0.0.1") && IsLogged)
+                if (!url.Contains("127.0.0.1") && loglines != null)
                     WriteLog(url, "POST", data.ReadAsStringAsync().Result, loglines);
 
                 StringBuilderPool.Return(loglines);
@@ -1132,7 +1131,7 @@ namespace Shared.Engine
 
         static void WriteLog(string url, string method, in string postdata, StringBuilder result)
         {
-            if (!IsLogged)
+            if (!IsLogged || result == null)
                 return;
 
             var log = new StringBuilder((result.Length + (postdata?.Length ?? 0)) *2);

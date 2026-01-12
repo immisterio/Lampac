@@ -160,10 +160,9 @@ namespace Lampac.Controllers
                     },
                     StringBuilder = new
                     {
+                        Rent = StringBuilderPool.RentNew,
                         Free = StringBuilderPool.FreeCont,
-                        StringBuilderPool.GC,
-                        StringBuilderPool.RentNew,
-                        StringBuilderPool.RentCache
+                        StringBuilderPool.GC
                     },
                     MemoryStream = MemoryStreamPool.Count == 0 ? null : new
                     {

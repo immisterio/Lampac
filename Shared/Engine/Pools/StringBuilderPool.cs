@@ -20,7 +20,7 @@ namespace Shared.Engine.Pools
 
         public static int FreeCont => _pool.Count;
 
-        public static ulong RentCache, RentNew;
+        public static int RentNew;
 
         public static int GC;
 
@@ -28,10 +28,7 @@ namespace Shared.Engine.Pools
         public static StringBuilder Rent()
         {
             if (_pool.TryTake(out var sb))
-            {
-                Interlocked.Increment(ref RentCache);
                 return sb;
-            }
 
             Interlocked.Increment(ref RentNew);
             return new StringBuilder(rent);

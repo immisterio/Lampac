@@ -408,22 +408,46 @@ namespace Online.Controllers
                                     PostData = route.Request.PostDataBuffer
                                 }).ConfigureAwait(false);
 
-                                string body = await fetchResponse.TextAsync().ConfigureAwait(false);
+                                string json = await fetchResponse.TextAsync().ConfigureAwait(false);
 
                                 string targetStream = null;
-                                if (init.m4s)
-                                    targetStream = Regex.Match(body, "\"(2160|1440)\":\"([^\"]+)\"").Groups[2].Value;
+
+                                try
+                                {
+                                    foreach (var hlsSource in JsonConvert.DeserializeObject<JObject>(json)["hlsSource"])
+                                    {
+                                        // first or default
+                                        if (targetStream == null || hlsSource.Value<bool>("default"))
+                                        {
+                                            foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
+                                            {
+                                                if ((q.Key is "2160" or "1440") && !init.m4s)
+                                                    continue;
+
+                                                targetStream = q.Value;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                catch { }
 
                                 if (string.IsNullOrWhiteSpace(targetStream))
-                                    targetStream = Regex.Match(body, "\"(1080|720)\":\"([^\"]+)\"").Groups[2].Value;
+                                {
+                                    if (init.m4s)
+                                        targetStream = Regex.Match(json, "\"(2160|1440)\":\"([^\"]+)\"").Groups[2].Value;
+
+                                    if (string.IsNullOrWhiteSpace(targetStream))
+                                        targetStream = Regex.Match(json, "\"(1080|720)\":\"([^\"]+)\"").Groups[2].Value;
+                                }
 
                                 if (!string.IsNullOrWhiteSpace(targetStream))
-                                    body = Regex.Replace(body, "\"(2160|1440|1080|720|480|360)\":\"[^\"]+\"", $"\"$1\":\"{targetStream}\"");
+                                    json = Regex.Replace(json, "\"(2160|1440|1080|720|480|360)\":\"[^\"]+\"", $"\"$1\":\"{targetStream}\"");
 
                                 await route.FulfillAsync(new RouteFulfillOptions
                                 {
                                     Status = fetchResponse.Status,
-                                    Body = body,
+                                    Body = json,
                                     Headers = fetchResponse.Headers
                                 }).ConfigureAwait(false);
                             }
