@@ -33,13 +33,11 @@ namespace Online.Controllers
                 reset_search:
                 var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", 20, async e =>
                 {
-                    SearchModel result = null;
-                    string data = $"do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(title)}";
+                    string search = rch?.enable == true
+                        ? await rch.Get($"{init.corsHost()}/search/{title}")
+                        : await PlaywrightBrowser.Get(init, $"{init.corsHost()}/search/{title}", proxy: proxy_data);
 
-                    await httpHydra.PostSpan($"{init.corsHost()}/index.php?do=search", data, search => 
-                    {
-                        result = SearchResult(search, title, year);
-                    });
+                    var result = SearchResult(search, title, year);
 
                     if (result == null)
                         return e.Fail("search-result", refresh_proxy: true);
@@ -63,7 +61,7 @@ namespace Online.Controllers
             #endregion
 
             if (string.IsNullOrEmpty(href))
-                return OnError();
+                return OnError("href");
 
             #region embed
             reset_embed:
@@ -73,14 +71,15 @@ namespace Online.Controllers
                 string embedUrl = null;
                 string targetHref = $"{init.corsHost()}/{href}";
 
-                await httpHydra.GetSpan(targetHref, html => 
-                {
-                    string iframeUri = Rx.Match(html, "<iframe [^>]+data-src=\"([^\"]+)\"");
-                    if (string.IsNullOrEmpty(iframeUri))
-                        return;
+                string iframe = rch?.enable == true
+                   ? await rch.Get(init.cors(targetHref))
+                   : await PlaywrightBrowser.Get(init, init.cors(targetHref));
 
-                    embedUrl = iframeUri.StartsWith("//") ? $"https:{iframeUri}" : iframeUri;
-                });
+                string iframeUri = Regex.Match(iframe, "<iframe [^>]+data-src=\"([^\"]+)\"").Groups[1].Value;
+                if (string.IsNullOrEmpty(iframeUri))
+                    return e.Fail("iframeUri", refresh_proxy: true);
+
+                embedUrl = iframeUri.StartsWith("//") ? $"https:{iframeUri}" : iframeUri;
 
                 if (string.IsNullOrEmpty(embedUrl))
                     return e.Fail("embedUrl", refresh_proxy: true);
@@ -259,6 +258,9 @@ namespace Online.Controllers
         #region SearchResult
         SearchModel SearchResult(ReadOnlySpan<char> html, string title, int year)
         {
+            if (html.IsEmpty)
+                return null;
+
             var rx = Rx.Matches("<div id=\"[0-9]+\" class=\"shortstory\">(.*?)<div class=\"shortstory__meta\">", html, 0, RegexOptions.Singleline);
             if (rx.Count == 0)
                 return null;
@@ -271,19 +273,17 @@ namespace Online.Controllers
 
             foreach (var row in rx.Rows())
             {
-                ReadOnlySpan<char> block = row.Groups()[1].ValueSpan;
-
-                string href = Rx.Match(block, "<a href=\"https?://[^/]+/([^\"]+)\"");
+                string href = row.Match("<a href=\"https?://[^/]+/([^\"]+)\"");
                 if (string.IsNullOrEmpty(href))
                     continue;
 
-                string name = Rx.Match(block, "<h2>([^<]+)</h2>");
+                string name = row.Match("<h2>([^<]+)</h2>");
                 if (string.IsNullOrEmpty(name))
                     continue;
-                
-                string blockYear = Rx.Match(block, "Год выпуска:</b><a[^>]*>([0-9]{4})");
 
-                string img = Rx.Match(block, "<img\\s+data-src=\"([^\"]+)\"");
+                string blockYear = row.Match("Год выпуска:</b><a[^>]*>([0-9]{4})");
+
+                string img = row.Match("<img\\s+data-src=\"([^\"]+)\"");
                 if (!string.IsNullOrEmpty(img))
                     img = AppInit.conf.Kinogo.corsHost() + img;
 
