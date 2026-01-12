@@ -16,40 +16,41 @@ namespace Shared.Engine.Pools
         public static readonly StringBuilder EmptyJsonArray = new StringBuilder("[]");
 
 
-        static int rent => 32 * 1024; // 1 char == 2 byte (64кб, ниже LOH лимита ~85кб)
+        public static int rent => 32 * 1024; // 1 char == 2 byte (64кб, ниже LOH лимита ~85кб)
 
         public static int FreeCont => _pool.Count;
 
-        public static int RentCont;
+        public static ulong RentCache, RentNew;
 
         public static int GC;
 
 
         public static StringBuilder Rent()
         {
-            Interlocked.Increment(ref RentCont);
-
             if (_pool.TryTake(out var sb))
+            {
+                Interlocked.Increment(ref RentCache);
                 return sb;
+            }
 
+            Interlocked.Increment(ref RentNew);
             return new StringBuilder(rent);
         }
 
         public static void Return(StringBuilder sb)
         {
-            if (sb.Capacity > 1024 * 1024)
+            if (sb == null)
+                return;
+
+            if (sb.Capacity > PoolInvk.rentCharMax)
             {
                 Interlocked.Increment(ref GC);
-                Interlocked.Decrement(ref RentCont);
             }
-            else if (sb.Capacity > rent)
+            else if (sb.Capacity >= rent)
             {
                 sb.Clear();
                 _pool.Add(sb);
-                Interlocked.Decrement(ref RentCont);
             }
-
-            // empty
         }
     }
 }

@@ -9,12 +9,18 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/aniliberty")]
-        async public Task<ActionResult> Index(string title, int year, int releases, bool rjson = false, bool similar = false)
+        async public Task<ActionResult> Index(string title, int year, string releases, bool rjson = false, bool similar = false, string source = null, string id = null)
         {
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-            if (releases == 0)
+            if (string.IsNullOrEmpty(releases) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
+            {
+                if (source.Contains("aniLiberty", StringComparison.OrdinalIgnoreCase)) 
+                    releases = id;
+            }
+
+            if (string.IsNullOrEmpty(releases))
             {
                 #region Поиск
                 string stitle = StringConvert.SearchName(title);

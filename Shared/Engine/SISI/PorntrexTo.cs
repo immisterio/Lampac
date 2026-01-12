@@ -649,17 +649,13 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return null;
 
-            const string rexfiles = "(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)";
-
-            var rx = Rx.Matches(rexfiles, html);
-            if (rx.Count == 0)
-                return null;
+            var rx = Rx.Matches("(https?://[^/]+/get_file/[^\\.]+_([0-9]+p)\\.mp4)", html);
 
             var stream_links = new Dictionary<string, string>(rx.Count);
 
             foreach (var row in rx.Rows())
             {
-                var g = row.Groups(rexfiles);
+                var g = row.Groups();
                 if (!string.IsNullOrEmpty(g[1].Value))
                     stream_links.TryAdd(g[2].Value, g[1].Value);
             }

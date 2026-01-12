@@ -6,11 +6,11 @@ namespace Shared
     {
         public static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager(new RecyclableMemoryStreamManager.Options
         (
-            blockSize: 32 * 1024,                          // small blocks (32 КБ)
-            largeBufferMultiple: 2 * 1024 * 1024,          // ступень роста 2 MB
-            maximumBufferSize: 4 * 1024 * 1024,            // не кешируем >4 MB
-            maximumSmallPoolFreeBytes: 256L * 1024 * 1024, // максимальный размер пула small blocks (256 MB)
-            maximumLargePoolFreeBytes: 128L * 1024 * 1024  // общий размер пула largeBufferMultiple/maximumBufferSize (128 MB)
+            blockSize: 32 * 1024,                         // small blocks (32 КБ)
+            largeBufferMultiple: 2 * 1024 * 1024,         // ступень роста 2 MB
+            maximumBufferSize: 4 * 1024 * 1024,           // не кешируем >4 MB
+            maximumSmallPoolFreeBytes: 64L * 1024 * 1024, // максимальный размер пула small blocks (128 MB)
+            maximumLargePoolFreeBytes: 32L * 1024 * 1024  // общий размер пула largeBufferMultiple/maximumBufferSize (64 MB)
         )
         {
             AggressiveBufferReturn = false
@@ -23,9 +23,9 @@ namespace Shared
 
         public static int rentLargeChunk => 32 * 1024;
 
-        public static int rentMax => 4 * 1024 * 1024;
+        public static int rentMax => 5 * 1024 * 1024;
 
-        public static int rentCharMax => 2 * 1024 * 1024;
+        public static int rentCharMax => rentMax / 2;
 
 
         static readonly int[] sizesRent =

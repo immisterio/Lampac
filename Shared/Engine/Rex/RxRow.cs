@@ -7,10 +7,12 @@ namespace Shared.Engine.RxEnumerate
         private readonly ReadOnlySpan<char> _html;
         private readonly int _start;
         private readonly int _end;
+        private readonly string _pattern;
 
-        internal RxRow(ReadOnlySpan<char> html, Range range)
+        internal RxRow(ReadOnlySpan<char> html, Range range, string pattern)
         {
             _html = html;
+            _pattern = pattern;
             _start = range.Start.GetOffset(html.Length);
             _end = range.End.GetOffset(html.Length);
         }
@@ -39,6 +41,9 @@ namespace Shared.Engine.RxEnumerate
 
             return true;
         }
+
+        public GroupCollection Groups(RegexOptions options = RegexOptions.CultureInvariant)
+            => Groups(_pattern, options);
 
         public GroupCollection Groups(string pattern, RegexOptions options = RegexOptions.CultureInvariant)
         {

@@ -430,7 +430,7 @@ namespace Shared
                     }
 
                     // Сбрасываем накопленное в транспорт
-                    if (pendingBytes > 50_000)
+                    if (pendingBytes >= (StringBuilderPool.rent * 2))
                     {
                         await bodyWriter.FlushAsync(ct);
                         pendingBytes = 0;

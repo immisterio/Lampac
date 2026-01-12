@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Online.Settings;
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -27,9 +28,37 @@ namespace Online.Controllers
         #region HMAC
         static string HMAC(string key, string message)
         {
-            using (var hash = new HMACSHA256(Encoding.UTF8.GetBytes(key)))
+            var pool = ArrayPool<byte>.Shared;
+
+            int keyByteCount = Encoding.UTF8.GetByteCount(key);
+            byte[] keyBytes = pool.Rent(keyByteCount);
+
+            try
             {
-                return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(message))).Replace("-", "").ToLower();
+                Encoding.UTF8.GetBytes(key, keyBytes);
+
+                Span<byte> msgBytes = stackalloc byte[Encoding.UTF8.GetByteCount(message)];
+                Span<byte> hash = stackalloc byte[32];
+                Span<char> hex = stackalloc char[64];
+
+                Encoding.UTF8.GetBytes(message, msgBytes);
+
+                using (var hmac = new HMACSHA256(keyBytes.AsSpan(0, keyByteCount).ToArray()))
+                    hmac.TryComputeHash(msgBytes, hash, out _);
+
+                const string hexChars = "0123456789abcdef";
+                for (int i = 0; i < 32; i++)
+                {
+                    byte b = hash[i];
+                    hex[i * 2] = hexChars[b >> 4];
+                    hex[i * 2 + 1] = hexChars[b & 0xF];
+                }
+
+                return new string(hex);
+            }
+            finally
+            {
+                pool.Return(keyBytes);
             }
         }
         #endregion
@@ -65,8 +94,7 @@ namespace Online.Controllers
                     init,
                     "video",
                     database,
-                    (uri, head, safety) => httpHydra.Get(uri, safety: safety),
-                    (uri, data) => httpHydra.Post(uri, data),
+                    httpHydra,
                     streamfile => HostStreamProxy(streamfile),
                     requesterror: () => proxyManager?.Refresh()
                 );
@@ -165,7 +193,7 @@ namespace Online.Controllers
                 {
                     if (!hybridCache.TryGetValue(key, out (List<(string q, string url)> streams, SegmentTpl segments) cache))
                     {
-                        string deadline = DateTime.Now.AddHours(4).ToString("yyyy MM dd HH").Replace(" ", "");
+                        string deadline = DateTime.Now.AddHours(4).ToString("yyyyMMddHH");
                         string hmac = HMAC(init.secret_token, $"{link}:{userIp}:{deadline}");
 
                         string uri = $"http://kodik.biz/api/video-links?link={link}&p={init.token}&ip={userIp}&d={deadline}&s={hmac}&auto_proxy={init.auto_proxy.ToString().ToLower()}&skip_segments=true";

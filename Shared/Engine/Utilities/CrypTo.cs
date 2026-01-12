@@ -1,19 +1,40 @@
-﻿using System.Security.Cryptography;
+﻿using System.Buffers;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Shared.Engine
 {
     public class CrypTo
     {
-        public static string md5(string text)
+        public static string md5(ReadOnlySpan<char> text)
         {
-            if (text == null)
+            if (text.IsEmpty)
                 return string.Empty;
 
-            using (var md5 = MD5.Create())
+            int byteCount = Encoding.UTF8.GetByteCount(text);
+
+            byte[] rented = null;
+            Span<byte> utf8 = byteCount <= 512
+                ? stackalloc byte[byteCount]
+                : (rented = ArrayPool<byte>.Shared.Rent(byteCount)).AsSpan(0, byteCount);
+
+            try
             {
-                var result = md5.ComputeHash(Encoding.UTF8.GetBytes(text));
-                return BitConverter.ToString(result).Replace("-", "").ToLower();
+                Encoding.UTF8.GetBytes(text, utf8);
+
+                Span<byte> hash = stackalloc byte[16];     // MD5 = 16 байт
+                MD5.TryHashData(utf8, hash, out _);
+
+                Span<char> hex = stackalloc char[32];      // 16 байт -> 32 hex-символа
+                if (!Convert.TryToHexStringLower(hash, hex, out _))
+                    return string.Empty;
+
+                return new string(hex);
+            }
+            finally
+            {
+                if (rented is not null)
+                    ArrayPool<byte>.Shared.Return(rented);
             }
         }
 

@@ -1,12 +1,11 @@
 ﻿using HtmlAgilityPack;
-using Shared.Models;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.Base;
 using Shared.Models.Online.Kodik;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using System.Collections.Concurrent;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -22,20 +21,18 @@ namespace Shared.Engine.Online
         string host;
         string apihost, token, videopath;
         bool usehls, cdn_is_working;
-        Func<string, List<HeadersModel>, bool, Task<string>> onget;
-        Func<string, string, Task<string>> onpost;
+        HttpHydra httpHydra;
         Func<string, string> onstreamfile;
         Action requesterror;
 
-        public KodikInvoke(string host, KodikSettings init, string videopath, IEnumerable<Result> fallbackDatabase, Func<string, List<HeadersModel>, bool, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Action requesterror = null)
+        public KodikInvoke(string host, KodikSettings init, string videopath, IEnumerable<Result> fallbackDatabase, HttpHydra httpHydra, Func<string, string> onstreamfile, Action requesterror = null)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = init.apihost;
             this.token = init.token;
             this.videopath = videopath;
             this.fallbackDatabase = fallbackDatabase;
-            this.onget = onget;
-            this.onpost = onpost;
+            this.httpHydra = httpHydra;
             this.onstreamfile = onstreamfile;
             this.usehls = init.hls;
             this.cdn_is_working = init.cdn_is_working;
@@ -49,7 +46,6 @@ namespace Shared.Engine.Online
             if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
                 return null;
 
-            string json = null;
             List<Result> results = null;
 
             if (!string.IsNullOrWhiteSpace(token))
@@ -64,34 +60,15 @@ namespace Shared.Engine.Online
                 if (s > 0)
                     url += $"&season={s}";
 
-                try
-                {
-                    json = await onget(url, null, true);
-
-                    if (string.IsNullOrWhiteSpace(json))
-                    {
-                        requesterror?.Invoke();
-                    }
-                    else
-                    {
-                        var root = JsonSerializer.Deserialize<RootObject>(json);
-                        if (root?.results != null)
-                            results = root.results;
-                        else
-                            requesterror?.Invoke();
-                    }
-                }
-                catch
-                {
+                var root = await httpHydra.Get<RootObject>(url, safety: true);
+                if (root?.results != null)
+                    results = root.results;
+                else
                     requesterror?.Invoke();
-                }
             }
 
-            if (json == null || json.Contains("Отсутствует или неверный токен"))
-            {
-                if (results == null)
-                    results = FallbackByIds(imdb_id, kinopoisk_id, s);
-            }
+            if (results == null)
+                results = FallbackByIds(imdb_id, kinopoisk_id, s);
 
             return results;
         }
@@ -104,41 +81,21 @@ namespace Shared.Engine.Online
                 if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(original_title))
                     return null;
 
-                string json = null;
                 List<Result> results = null;
 
                 if (!string.IsNullOrWhiteSpace(token))
                 {
                     string url = $"{apihost}/search?token={token}&limit=100&title={HttpUtility.UrlEncode(original_title ?? title)}&with_episodes=true&with_material_data=true";
 
-                    try
-                    {
-                        json = await onget(url, null, true);
-
-                        if (string.IsNullOrWhiteSpace(json))
-                        {
-                            requesterror?.Invoke();
-                        }
-                        else
-                        {
-                            var root = JsonSerializer.Deserialize<RootObject>(json);
-                            if (root?.results != null)
-                                results = root.results;
-                            else
-                                requesterror?.Invoke();
-                        }
-                    }
-                    catch
-                    {
+                    var root = await httpHydra.Get<RootObject>(url, safety: true);
+                    if (root?.results != null)
+                        results = root.results;
+                    else
                         requesterror?.Invoke();
-                    }
                 }
 
-                if (json == null || json.Contains("Отсутствует или неверный токен"))
-                {
-                    if (results == null)
-                        results = FallbackByTitle(title, original_title);
-                }
+                if (results == null)
+                    results = FallbackByTitle(title, original_title);
 
                 if (results == null)
                     return null;
@@ -198,89 +155,104 @@ namespace Shared.Engine.Online
         #region VideoParse
         async public Task<List<StreamModel>> VideoParse(string linkhost, string link)
         {
-            string iframe = await onget($"https:{link}", null, false);
-            if (iframe == null)
+            List<StreamModel> streams = null;
+
+            string player_single = null;
+            string domain = null, d_sign = null, pd = null, pd_sign = null, ref_domain = null, ref_sign = null, type = null, hash = null, id = null;
+
+            await httpHydra.GetSpan($"https:{link}", iframe => 
+            {
+                player_single = Rx.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"");
+
+                var advertDebug = Rx.Split("advertDebug", iframe);
+                if (advertDebug.Count > 1)
+                {
+                    var preview = Rx.Split("preview-icons", advertDebug[1].Span);
+                    if (preview.Count > 0)
+                    {
+                        string _frame = Regex.Replace(preview[0].ToString(), "[\n\r\t ]+", "");
+                        domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
+                        d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
+                        pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
+                        pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
+                        ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
+                        ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
+                        type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
+                        hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
+                        id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
+                    }
+                }
+            });
+
+            if (string.IsNullOrEmpty(domain) || string.IsNullOrEmpty(player_single))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
             string uri = null;
-            string player_single = Regex.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"").Groups[1].Value;
-            if (!string.IsNullOrEmpty(player_single))
+            if (!psingles.TryGetValue(player_single, out uri))
             {
-                if (!psingles.TryGetValue(player_single, out uri))
+                await httpHydra.GetSpan($"{linkhost}/{player_single}", playerjs => 
                 {
-                    string playerjs = await onget($"{linkhost}/{player_single}", null, false);
-
-                    if (playerjs == null)
-                    {
-                        requesterror?.Invoke();
-                        return null;
-                    }
-
-                    uri = DecodeUrlBase64(Regex.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)").Groups[1].Value);
+                    uri = DecodeUrlBase64(Rx.Match(playerjs, "type:\"POST\",url:atob\\(\"([^\"]+)\"\\)"));
                     if (!string.IsNullOrEmpty(uri))
                         psingles.TryAdd(player_single, uri);
-                }
+                });
             }
 
             if (string.IsNullOrEmpty(uri))
-                return null;
-
-            string _frame = Regex.Replace(iframe.Split("advertDebug")[1].Split("preview-icons")[0], "[\n\r\t ]+", "");
-            string domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
-            string d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
-            string pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
-            string pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
-            string ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
-            string ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
-            string type = Regex.Match(_frame, "videoInfo.type='([^']+)'").Groups[1].Value;
-            string hash = Regex.Match(_frame, "videoInfo.hash='([^']+)'").Groups[1].Value;
-            string id = Regex.Match(_frame, "videoInfo.id='([^']+)'").Groups[1].Value;
-
-            string json = await onpost($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&bad_user=false&cdn_is_working={cdn_is_working.ToString().ToLower()}&type={type}&hash={hash}&id={id}&info=%7B%7D");
-            if (json == null || !json.Contains("\"src\":\""))
             {
                 requesterror?.Invoke();
                 return null;
             }
 
-            var streams = new List<StreamModel>(4);
+            bool _usehls = usehls;
 
-            var match = new Regex("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", RegexOptions.IgnoreCase ).Match(json);
-            while (match.Success)
+            await httpHydra.PostSpan($"{linkhost + uri}", $"d={domain}&d_sign={d_sign}&pd={pd}&pd_sign={pd_sign}&ref={ref_domain}&ref_sign={ref_sign}&bad_user=false&cdn_is_working={cdn_is_working.ToString().ToLower()}&type={type}&hash={hash}&id={id}&info=%7B%7D", json => 
             {
-                if (!string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                var rx = Rx.Matches("\"([0-9]+)p?\":\\[\\{\"src\":\"([^\"]+)", json);
+                if (rx.Count == 0)
+                    return;
+
+                streams = new List<StreamModel>(rx.Count);
+
+                foreach (var row in rx.Rows())
                 {
-                    string m3u = match.Groups[2].Value;
-                    if (!m3u.Contains("manifest.m3u8"))
+                    var g = row.Groups();
+
+                    if (!string.IsNullOrWhiteSpace(g[2].Value))
                     {
-                        int zCharCode = Convert.ToInt32('Z');
-
-                        string src = Regex.Replace(match.Groups[2].Value, "[a-zA-Z]", e =>
+                        string m3u = g[2].Value;
+                        if (!m3u.Contains("manifest.m3u8"))
                         {
-                            int eCharCode = Convert.ToInt32(e.Value[0]);
-                            return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 18) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
-                        });
+                            int zCharCode = Convert.ToInt32('Z');
 
-                        m3u = DecodeUrlBase64(src);
+                            string src = Regex.Replace(g[2].Value, "[a-zA-Z]", e =>
+                            {
+                                int eCharCode = Convert.ToInt32(e.Value[0]);
+                                return ((eCharCode <= zCharCode ? 90 : 122) >= (eCharCode = eCharCode + 18) ? (char)eCharCode : (char)(eCharCode - 26)).ToString();
+                            });
+
+                            m3u = DecodeUrlBase64(src);
+                        }
+
+                        if (m3u.StartsWith("//"))
+                            m3u = $"https:{m3u}";
+
+                        if (!_usehls && m3u.Contains(".m3u"))
+                            m3u = m3u.Replace(":hls:manifest.m3u8", "");
+
+                        streams.Add(new StreamModel() { q = $"{g[1].Value}p", url = m3u });
                     }
-
-                    if (m3u.StartsWith("//"))
-                        m3u = $"https:{m3u}";
-
-                    if (!usehls && m3u.Contains(".m3u"))
-                        m3u = m3u.Replace(":hls:manifest.m3u8", "");
-
-                    streams.Add(new StreamModel() { q = $"{match.Groups[1].Value}p", url = m3u });
                 }
+            });
 
-                match = match.NextMatch();
-            }
-
-            if (streams.Count == 0)
+            if (streams == null || streams.Count == 0)
+            {
+                requesterror?.Invoke();
                 return null;
+            }
 
             streams.Reverse();
 
@@ -432,6 +404,9 @@ namespace Shared.Engine.Online
         #region DecodeUrlBase64
         static string DecodeUrlBase64(string s)
         {
+            if (s == null)
+                return s;
+
             return Encoding.UTF8.GetString(Convert.FromBase64String(s.Replace('-', '+').Replace('_', '/').PadRight(4 * ((s.Length + 3) / 4), '=')));
         }
         #endregion
@@ -543,7 +518,7 @@ namespace Shared.Engine.Online
 
         async Task<Dictionary<string, Season>> LoadSeasonsFromHtml(Result selected)
         {
-            if (string.IsNullOrWhiteSpace(selected.id) || string.IsNullOrWhiteSpace(selected.link) || onget == null)
+            if (string.IsNullOrWhiteSpace(selected.id) || string.IsNullOrWhiteSpace(selected.link) || httpHydra == null)
                 return null;
 
             string cacheKey = $"kodik:series:{selected.id}";
@@ -552,7 +527,7 @@ namespace Shared.Engine.Online
 
             try
             {
-                string html = await onget($"https:{selected.link}", null, false);
+                string html = await httpHydra.Get($"https:{selected.link}");
                 if (string.IsNullOrWhiteSpace(html))
                 {
                     requesterror?.Invoke();

@@ -148,31 +148,6 @@ namespace Online.Controllers
 
             if (!hybridCache.TryGetValue(memKey, out Video root))
             {
-                async Task<Video> goSearch(string imdb_id, long kinopoisk_id)
-                {
-                    if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
-                        return null;
-
-                    string uri = kinopoisk_id > 0 ? $"kp/{kinopoisk_id}" : $"imdb/{imdb_id}";
-
-                    var video = await httpHydra.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", safety: true, addheaders: HeadersModel.Init(
-                        ("Accept", "application/json"),
-                        ("Authorization", $"Bearer {init.token}"),
-                        ("X-CSRF-TOKEN", "")
-                    ));
-
-                    if (video == null)
-                    {
-                        proxyManager?.Refresh();
-                        return null;
-                    }
-
-                    if (string.IsNullOrEmpty(video.iframe_url) || string.IsNullOrEmpty(video.type))
-                        return null;
-
-                    return video;
-                }
-
                 root = await goSearch(null, kinopoisk_id) ?? await goSearch(imdb_id, 0);
                 if (root == null)
                     return null;
@@ -182,6 +157,31 @@ namespace Online.Controllers
             }
 
             return root;
+        }
+
+        async Task<Video> goSearch(string imdb_id, long kinopoisk_id)
+        {
+            if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id == 0)
+                return null;
+
+            string uri = kinopoisk_id > 0 ? $"kp/{kinopoisk_id}" : $"imdb/{imdb_id}";
+
+            var video = await httpHydra.Get<Video>($"{init.host}/api/v1/publisher/videos/{uri}", safety: true, addheaders: HeadersModel.Init(
+                ("Accept", "application/json"),
+                ("Authorization", $"Bearer {init.token}"),
+                ("X-CSRF-TOKEN", "")
+            ));
+
+            if (video == null)
+            {
+                proxyManager?.Refresh();
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(video.iframe_url) || string.IsNullOrEmpty(video.type))
+                return null;
+
+            return video;
         }
         #endregion
     }

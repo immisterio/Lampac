@@ -2,6 +2,7 @@
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared.Engine.RxEnumerate;
 using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
 
@@ -324,19 +325,24 @@ namespace Online.Controllers
             string memKey = $"mirage:iframe:{token_movie}";
             if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active) cache))
             {
+                string json = null;
+
                 string uri = $"{init.linkhost}/?token_movie={token_movie}&token={init.token}";
                 string referer = $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)];
 
-                string html = await httpHydra.Get(uri, safety: true, addheaders: HeadersModel.Init(
+                await httpHydra.GetSpan(uri, safety: true, addheaders: HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                     ("referer", referer),
                     ("sec-fetch-dest", "iframe"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "cross-site"),
                     ("upgrade-insecure-requests", "1")
-                ));
+                ), 
+                spanAction: html => 
+                {
+                    json = Rx.Match(html, "fileList = JSON.parse\\('([^\n\r]+)'\\);");
+                });
 
-                string json = Regex.Match(html ?? "", "fileList = JSON.parse\\('([^\n\r]+)'\\);").Groups[1].Value;
                 if (string.IsNullOrEmpty(json))
                     return default;
 

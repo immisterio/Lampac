@@ -27,27 +27,9 @@ namespace Online.Controllers
                 #region search
                 if (!hybridCache.TryGetValue(key, out (Dictionary<string, JObject> seasons, string iframe) cache))
                 {
-                    #region goSearch
-                    async Task<JToken> goSearch(bool isOk, string arg)
-                    {
-                        if (!isOk)
-                            return null;
-
-                        var root = await httpHydra.Get<JObject>($"{init.corsHost()}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg, safety: true);
-
-                        if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
-                        {
-                            proxyManager?.Refresh();
-                            return null;
-                        }
-
-                        return root["data"]?.First;
-                    }
-                    #endregion
-
-                    var data = await goSearch(kinopoisk_id > 0, $"&kp={kinopoisk_id}") ??
-                               await goSearch(!string.IsNullOrEmpty(imdb_id), $"&tmdb={imdb_id}") ??
-                               await goSearch(!string.IsNullOrEmpty(original_title), $"&q={HttpUtility.UrlEncode(original_title)}&release_year_from={year - 1}&release_year_to={year + 1}");
+                    var data = await goSearch(serial, kinopoisk_id > 0, $"&kp={kinopoisk_id}") 
+                        ?? await goSearch(serial, !string.IsNullOrEmpty(imdb_id), $"&tmdb={imdb_id}") 
+                        ?? await goSearch(serial, !string.IsNullOrEmpty(original_title), $"&q={HttpUtility.UrlEncode(original_title)}&release_year_from={year - 1}&release_year_to={year + 1}");
 
                     if (data == null)
                     {
@@ -203,6 +185,24 @@ namespace Online.Controllers
                 string link = HostStreamProxy(location, headers: HeadersModel.Init("referer", iframe));
                 return ContentTo(VideoTpl.ToJson("play", link, "auto", vast: init.vast));
             });
+        }
+        #endregion
+
+        #region goSearch
+        async Task<JToken> goSearch(int serial, bool isOk, string arg)
+        {
+            if (!isOk)
+                return null;
+
+            var root = await httpHydra.Get<JObject>($"{init.corsHost()}/apiv2.php?item={(serial == 1 ? "serial" : "movie")}&token={init.token}" + arg, safety: true);
+
+            if (root == null || !root.ContainsKey("data") || root.Value<string>("status") == "error")
+            {
+                proxyManager?.Refresh();
+                return null;
+            }
+
+            return root["data"]?.First;
         }
         #endregion
     }

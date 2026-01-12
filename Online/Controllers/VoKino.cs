@@ -57,7 +57,7 @@ namespace Online.Controllers
         {
             if (string.IsNullOrEmpty(origid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
             {
-                if (source.ToLower() == "vokino")
+                if (source.Contains("vokino", StringComparison.OrdinalIgnoreCase))
                     origid = id;
             }
 

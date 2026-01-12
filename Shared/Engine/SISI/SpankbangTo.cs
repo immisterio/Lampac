@@ -150,9 +150,7 @@ namespace Shared.Engine.SISI
             if (html.IsEmpty)
                 return null;
 
-            const string rexvideo = "'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'";
-
-            var rx = Rx.Matches(rexvideo, html);
+            var rx = Rx.Matches("'([0-9]+)(p|k)': ?\\[\'(https?://[^']+)\'", html);
             if (rx.Count == 0)
                 return null;
 
@@ -160,7 +158,7 @@ namespace Shared.Engine.SISI
 
             foreach (var row in rx.Rows())
             {
-                var g = row.Groups(rexvideo);
+                var g = row.Groups();
                 if (string.IsNullOrEmpty(g[1].Value))
                     continue;
 

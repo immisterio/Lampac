@@ -365,7 +365,7 @@ namespace Shared
                     }, SisiResultJsonContext.Default.OnResultPlaylistItem);
 
                     // Cбрасываем накопленное из Utf8JsonWriter в транспорт
-                    if (writer.BytesPending > 50_000)
+                    if (writer.BytesPending > 60_000)
                     {
                         writer.Flush(); // flush в PipeWriter
                         await Response.BodyWriter.FlushAsync(ct); // flush в транспорт

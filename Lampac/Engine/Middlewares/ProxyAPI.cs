@@ -139,7 +139,7 @@ namespace Lampac.Engine.Middlewares
             {
                 string md5key = CrypTo.md5(cacheStream.uriKey);
 
-                if (cacheFiles.ContainsKey(CrypTo.md5(cacheStream.uriKey)))
+                if (cacheFiles.ContainsKey(md5key))
                 {
                     httpContext.Response.Headers["PX-Cache"] = "HIT";
                     httpContext.Response.Headers["accept-ranges"] = "bytes";

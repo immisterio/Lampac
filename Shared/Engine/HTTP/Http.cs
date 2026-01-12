@@ -377,7 +377,9 @@ namespace Shared.Engine
         {
             try
             {
-                var loglines = StringBuilderPool.Rent();
+                var loglines = IsLogged && weblog 
+                    ? StringBuilderPool.Rent() 
+                    : null;
 
                 try
                 {
@@ -407,7 +409,7 @@ namespace Shared.Engine
                     {
                         using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                         {
-                            if (IsLogged)
+                            if (IsLogged && weblog)
                             {
                                 loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
 
@@ -442,7 +444,7 @@ namespace Shared.Engine
                 }
                 catch (Exception ex)
                 {
-                    if (IsLogged)
+                    if (IsLogged && weblog)
                         loglines.Append(ex.ToString());
 
                     if (InvkEvent.IsHttpAsync())
@@ -574,7 +576,9 @@ namespace Shared.Engine
         #region BaseGet
         async public static Task<(string content, HttpResponseMessage response)> BaseGet(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, long MaxResponseContentBufferSize = 0, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null)
         {
-            var loglines = StringBuilderPool.Rent();
+            var loglines = IsLogged && weblog
+                ? StringBuilderPool.Rent()
+                : null;
 
             try
             {
@@ -604,7 +608,7 @@ namespace Shared.Engine
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, cts.Token).ConfigureAwait(false))
                     {
-                        if (IsLogged)
+                        if (IsLogged && weblog)
                         {
                             loglines.Append($"\n\nStatusCode: {(int)response.StatusCode}\n");
 
@@ -632,7 +636,7 @@ namespace Shared.Engine
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                if (IsLogged)
+                                if (IsLogged && weblog)
                                     loglines.Append($"\n{res}");
 
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -650,7 +654,7 @@ namespace Shared.Engine
                                 if (string.IsNullOrWhiteSpace(res))
                                     return (null, response);
 
-                                if (IsLogged)
+                                if (IsLogged && weblog)
                                     loglines.Append($"\n{res}");
 
                                 if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -664,7 +668,7 @@ namespace Shared.Engine
             }
             catch (Exception ex)
             {
-                if (IsLogged)
+                if (IsLogged && weblog)
                     loglines.Append(ex.ToString());
 
                 if (InvkEvent.IsHttpAsync())
@@ -712,7 +716,9 @@ namespace Shared.Engine
         #region BasePost
         async public static Task<(string content, HttpResponseMessage response)> BasePost(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true)
         {
-            var loglines = StringBuilderPool.Rent();
+            var loglines = IsLogged
+                ? StringBuilderPool.Rent()
+                 : null;
 
             try
             {
@@ -898,7 +904,9 @@ namespace Shared.Engine
         #region BasePostReaderAsync
         async public static Task<(bool success, HttpResponseMessage response)> BasePostReaderAsync(Action<(Stream stream, CancellationToken ct, StringBuilder loglines)> action, string url, HttpContent data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, List<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool IgnoreDeserializeObject = false, bool statusCodeOK = true)
         {
-            var loglines = StringBuilderPool.Rent();
+            var loglines = IsLogged
+                ? StringBuilderPool.Rent()
+                : null;
 
             try
             {
