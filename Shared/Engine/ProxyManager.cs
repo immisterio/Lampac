@@ -43,6 +43,9 @@ namespace Shared.Engine
             proxyKeys = [plugin, $"{plugin}:conf", $"{plugin}:globalname"];
         }
 
+        public ProxyManager(BaseSettings conf, bool refresh = true)
+            : this(conf, null, refresh) { }
+
         public ProxyManager(BaseSettings conf, RchClient rch, bool refresh = true)
         {
             if (conf == null)

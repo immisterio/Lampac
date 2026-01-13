@@ -136,7 +136,7 @@ namespace Lampac.Engine
                         var now = DateTime.UtcNow;
                         var counter = memoryCache.GetOrCreate($"stats:nws:{now.Hour}:{now.Minute}", entry =>
                         {
-                            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
+                            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
                             return new CounterNws();
                         });
 
@@ -384,7 +384,7 @@ namespace Lampac.Engine
                     var now = DateTime.UtcNow;
                     var counter = memoryCache.GetOrCreate($"stats:nws:{now.Hour}:{now.Minute}", entry =>
                     {
-                        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
+                        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
                         return new CounterNws();
                     });
 

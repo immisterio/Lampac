@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using NetVips;
 using Shared.Models.Online.Rezka;
 using Shared.Models.Online.Settings;
 using System.Management;

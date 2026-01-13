@@ -19,6 +19,8 @@ namespace Shared
 {
     public class BaseOnlineController : BaseOnlineController<OnlinesSettings>
     {
+        public BaseOnlineController() : base(default) { }
+
         public BaseOnlineController(OnlinesSettings init) : base(init) { }
     }
 
@@ -133,6 +135,10 @@ namespace Shared
 
 
         #region IsRequestBlocked
+        [Obsolete("Метод устарел. Используйте IsRequestBlocked().")]
+        public ValueTask<bool> IsBadInitialization(T init, bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
+            => IsRequestBlocked(init, rch, rch_keepalive, rch_check);
+
         public ValueTask<bool> IsRequestBlocked(T init, bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
         {
             Initialization(init);
@@ -285,6 +291,14 @@ namespace Shared
         #endregion
 
         #region OnError
+        public ActionResult OnError(string msg, ProxyManager manager)
+        {
+            if (rch?.enable != true)
+                proxyManager?.Refresh();
+
+            return OnError(msg);
+        }
+
         public ActionResult OnError(int statusCode = 503, bool refresh_proxy = false) 
             => OnError(string.Empty, statusCode, refresh_proxy);
 
@@ -502,11 +516,17 @@ namespace Shared
         async public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<Task<Tresut>> onget, bool? memory = null)
             => await InvokeBaseCacheResult<Tresut>(key, this.cacheTime(cacheTime), rch, proxyManager, async e => e.Success(await onget()), memory);
 
+        public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, TimeSpan time, Func<CacheResult<Tresut>, Task<CacheResult<Tresut>>> onget, bool? memory = null)
+            => InvokeBaseCacheResult(key, time, rch, proxyManager, onget, memory);
+
         public ValueTask<CacheResult<Tresut>> InvokeCacheResult<Tresut>(string key, int cacheTime, Func<CacheResult<Tresut>, Task<CacheResult<Tresut>>> onget, bool? memory = null)
             => InvokeBaseCacheResult(key, this.cacheTime(cacheTime), rch, proxyManager, onget, memory);
         #endregion
 
         #region InvokeCache
+        public ValueTask<Tresut> InvokeCache<Tresut>(string key, TimeSpan time, Func<Task<Tresut>> onget, bool? memory = null)
+            => InvokeBaseCache(key, time, rch, onget, proxyManager, memory);
+
         public ValueTask<Tresut> InvokeCache<Tresut>(string key, int cacheTime, Func<Task<Tresut>> onget, bool? memory = null)
             => InvokeBaseCache(key, this.cacheTime(cacheTime), rch, onget, proxyManager, memory);
         #endregion

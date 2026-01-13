@@ -402,7 +402,8 @@ namespace Shared
         public HybridCacheConf cache = new HybridCacheConf() 
         {
             type = "sql",  // mem|sql|hybrid
-            extend = -1    // seconds (hybrid)
+            extend = -1,   // seconds (hybrid)
+            reqIPs = 5
         };
 
         public WafConf WAF = new WafConf();

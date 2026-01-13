@@ -118,6 +118,12 @@ namespace Shared.Models.Templates
             return html;
         }
 
+        public string ToJson(in VoiceTpl vtpl)
+        {
+            this.vtpl = vtpl;
+            return ToJson();
+        }
+
         public string ToJson()
         {
             if (IsEmpty)

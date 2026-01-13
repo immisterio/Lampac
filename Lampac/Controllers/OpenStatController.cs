@@ -117,16 +117,12 @@ namespace Lampac.Controllers
 
             var now = DateTime.UtcNow;
 
-            int receive = 0, send  =0;
+            int receive = 0, send = 0;
 
-            for (int i = 1; i < 60; i++)
+            if (memoryCache.TryGetValue($"stats:nws:{now.Hour}:{now.Minute}", out CounterNws _c))
             {
-                var cutoff = now.AddMinutes(-i);
-                if (memoryCache.TryGetValue($"stats:nws:{cutoff.Hour}:{cutoff.Minute}", out CounterNws _c))
-                {
-                    receive += _c.receive;
-                    send += _c.send;
-                }
+                receive = _c.receive;
+                send = _c.send;
             }
 
             return Json(new 

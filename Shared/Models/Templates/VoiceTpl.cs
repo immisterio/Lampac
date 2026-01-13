@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Shared.Engine.Pools;
+using System.Text;
 using System.Text.Json.Serialization;
 
 namespace Shared.Models.Templates
@@ -20,6 +21,18 @@ namespace Shared.Models.Templates
         {
             if (!string.IsNullOrEmpty(name))
                 data.Add(new VoiceDto(link, active, name));
+        }
+
+        public string ToHtml()
+        {
+            if (IsEmpty)
+                return string.Empty;
+
+            var sb = StringBuilderPool.Rent();
+            WriteTo(sb);
+
+            StringBuilderPool.Return(sb);
+            return sb.ToString();
         }
 
         public void WriteTo(StringBuilder sb)

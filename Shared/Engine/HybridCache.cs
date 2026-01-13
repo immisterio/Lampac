@@ -129,7 +129,7 @@ namespace Shared.Engine
 
             try
             {
-                var now = DateTime.Now;
+                var now = DateTime.UtcNow;
                 var cutoff = now.AddSeconds(-60);
 
                 foreach (var history in requestHistory)
@@ -367,9 +367,9 @@ namespace Shared.Engine
                 return;
 
             var history = requestHistory.GetOrAdd(key, _ => (ex, new ConcurrentDictionary<string, DateTime>()));
-            history.requests.AddOrUpdate(requestInfo.IP, DateTime.Now, (k,v) => DateTime.Now);
+            history.requests.AddOrUpdate(requestInfo.IP, DateTime.UtcNow, (k,v) => DateTime.UtcNow);
 
-            if (history.requests.Count >= 5)
+            if (history.requests.Count >= AppInit.conf.cache.reqIPs)
             {
                 var timecache = ex > DateTime.Now.AddMinutes(15) 
                     ? DateTime.Now.AddMinutes(10) 
