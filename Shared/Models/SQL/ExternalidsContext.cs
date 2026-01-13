@@ -17,7 +17,7 @@ namespace Shared.Models.SQL
 
             try
             {
-                var sqlDb = new ExternalidsContext();
+                using (var sqlDb = new ExternalidsContext())
                     sqlDb.Database.EnsureCreated();
             }
             catch (Exception ex)

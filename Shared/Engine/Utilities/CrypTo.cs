@@ -16,7 +16,7 @@ namespace Shared.Engine
             byte[] rented = null;
             Span<byte> utf8 = byteCount <= 512
                 ? stackalloc byte[byteCount]
-                : (rented = ArrayPool<byte>.Shared.Rent(byteCount)).AsSpan(0, byteCount);
+                : (rented = ArrayPool<byte>.Shared.Rent(PoolInvk.Rent(byteCount))).AsSpan(0, byteCount);
 
             try
             {

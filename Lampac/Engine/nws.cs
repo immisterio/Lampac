@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine;
 using Shared.Models;
@@ -19,6 +20,8 @@ namespace Lampac.Engine
     public class nws : INws
     {
         #region fields
+        public static IMemoryCache memoryCache;
+
         static readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions
         {
             WriteIndented = false
@@ -127,6 +130,20 @@ namespace Lampac.Engine
             {
                 while (socket.State == WebSocketState.Open && !token.IsCancellationRequested)
                 {
+                    #region stats
+                    if (AppInit.conf.openstat.enable && memoryCache != null)
+                    {
+                        var now = DateTime.UtcNow;
+                        var counter = memoryCache.GetOrCreate($"stats:nws:{now.Hour}:{now.Minute}", entry =>
+                        {
+                            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
+                            return new CounterNws();
+                        });
+
+                        Interlocked.Increment(ref counter.receive);
+                    }
+                    #endregion
+
                     decoder.Reset();
                     StringBuilder builder = null;
 
@@ -361,6 +378,20 @@ namespace Lampac.Engine
 
             try
             {
+                #region stats
+                if (AppInit.conf.openstat.enable && memoryCache != null)
+                {
+                    var now = DateTime.UtcNow;
+                    var counter = memoryCache.GetOrCreate($"stats:nws:{now.Hour}:{now.Minute}", entry =>
+                    {
+                        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
+                        return new CounterNws();
+                    });
+
+                    Interlocked.Increment(ref counter.send);
+                }
+                #endregion
+
                 await connection.SendLock.WaitAsync(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
 
                 using (var ms = PoolInvk.msm.GetStream())
@@ -537,5 +568,13 @@ namespace Lampac.Engine
                 this.args = args;
             }
         }
+    }
+
+
+    public class CounterNws
+    {
+        public int receive;
+
+        public int send;
     }
 }

@@ -18,7 +18,7 @@ namespace Shared.Models.SQL
 
             try
             {
-                var sqlDb = new SyncUserContext();
+                using (var sqlDb = new SyncUserContext())
                     sqlDb.Database.EnsureCreated();
             }
             catch (Exception ex)

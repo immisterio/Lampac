@@ -14,8 +14,38 @@ namespace Shared.Models.SQL
 
             try
             {
-                var sqlDb = new HybridCacheContext();
+                using (var sqlDb = new HybridCacheContext())
+                {
                     sqlDb.Database.EnsureCreated();
+
+                    using (var cmd = sqlDb.Database.GetDbConnection().CreateCommand())
+                    {
+                        cmd.CommandText = "PRAGMA table_info('files');";
+
+                        if (cmd.Connection.State != System.Data.ConnectionState.Open)
+                            cmd.Connection.Open();
+
+                        bool hasCapacity = false;
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            int nameIndex = reader.GetOrdinal("name");
+
+                            while (reader.Read())
+                            {
+                                var colName = reader.GetString(nameIndex);
+                                if (string.Equals(colName, "capacity", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    hasCapacity = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!hasCapacity)
+                            sqlDb.Database.ExecuteSqlRaw("ALTER TABLE files ADD COLUMN capacity INTEGER NOT NULL DEFAULT 0;");
+                    }
+                }
             }
             catch (Exception ex)
             {

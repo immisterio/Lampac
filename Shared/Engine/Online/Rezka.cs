@@ -208,8 +208,12 @@ namespace Shared.Engine.Online
             if (long.TryParse(result.id, out long id) && id > 0)
                 basereferer.TryAdd(id, href);
 
+            bool IsTrailer = false;
+
             await httpHydra.GetSpan(href, safety: safety, newheaders: newheaders, spanAction: html => 
             {
+                IsTrailer = html.Contains("Ожидаем фильм в хорошем качестве", StringComparison.OrdinalIgnoreCase);
+
                 if (!html.Contains("data-season_id=", StringComparison.Ordinal))
                 {
                     var rx = Rx.Split("ctrl_token_id", html);
@@ -240,6 +244,9 @@ namespace Shared.Engine.Online
 
             if (string.IsNullOrEmpty(result.content))
             {
+                if (IsTrailer)
+                    return new EmbedModel() { IsEmpty = true, content = "Ожидаем фильм в хорошем качестве..." };
+
                 requesterror?.Invoke();
                 return null;
             }

@@ -428,6 +428,7 @@ namespace Lampac
             ProxyManager.Configure(memory);
 
             Http.httpClientFactory = httpClientFactory;
+            nws.memoryCache = memoryCache;
             Http.nws = new nws();
             Http.ws = new soks();
 

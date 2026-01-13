@@ -7,9 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Engine;
 using Shared.Engine.Pools;
-using Shared.Engine.Utilities;
 using Shared.Models.AppConf;
-using Shared.Models.Templates;
 using Shared.PlaywrightCore;
 using System;
 using System.Collections.Generic;
@@ -82,7 +80,7 @@ namespace Lampac.Controllers
             for (int i = 1; i < 60; i++)
             {
                 var cutoff = now.AddMinutes(-i);
-                if (memoryCache.TryGetValue($"stats:request:{cutoff.Hour}:{cutoff.AddMinutes(-i).Minute}", out CounterRequestInfo _r))
+                if (memoryCache.TryGetValue($"stats:request:{cutoff.Hour}:{cutoff.Minute}", out CounterRequestInfo _r))
                     req_hour += _r.Value;
             }
 
@@ -117,10 +115,29 @@ namespace Lampac.Controllers
             if (IsDeny(out string ermsg))
                 return Content(ermsg, "text/plain; charset=utf-8");
 
+            var now = DateTime.UtcNow;
+
+            int receive = 0, send  =0;
+
+            for (int i = 1; i < 60; i++)
+            {
+                var cutoff = now.AddMinutes(-i);
+                if (memoryCache.TryGetValue($"stats:nws:{cutoff.Hour}:{cutoff.Minute}", out CounterNws _c))
+                {
+                    receive += _c.receive;
+                    send += _c.send;
+                }
+            }
+
             return Json(new 
             { 
-                clients = RchClient.clients.Count, 
-                rchIds = RchClient.rchIds.Count 
+                clients = RchClient.clients.Count,
+                counter = new 
+                {
+                    receive,
+                    send
+                },
+                rchIds = RchClient.rchIds.Count
             });
         }
         #endregion

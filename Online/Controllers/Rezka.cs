@@ -154,6 +154,9 @@ namespace Online.Controllers
                 () => oninvk.Embed(href, search_uri)
             );
 
+            if (cache.Value.IsEmpty)
+                return ShowError(cache.Value.content);
+
             return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
         }
 
@@ -176,14 +179,17 @@ namespace Online.Controllers
             if (root == null)
                 return OnError();
 
-            var content = await InvokeCache($"rezka:{href}", 20, 
+            var cache = await InvokeCache($"rezka:{href}", 20, 
                 () => oninvk.Embed(href, null)
             );
 
-            if (content == null)
+            if (cache == null)
                 return OnError();
 
-            return await ContentTpl(oninvk.Serial(root, content, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
+            if (cache.IsEmpty)
+                return ShowError(cache.content);
+
+            return await ContentTpl(oninvk.Serial(root, cache, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
         }
         #endregion
 

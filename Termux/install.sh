@@ -43,6 +43,13 @@ cat <<EOF > init.conf
 {
   "typecache": "mem",
   "mikrotik": true,
+  "GC": {
+    "enable": true,
+    "Concurrent": false,
+    "ConserveMemory": 9,
+    "HighMemoryPercent": 1,
+    "RetainVM": false
+  },
   "pirate_store": false,
   "listen": {
     "compression": false

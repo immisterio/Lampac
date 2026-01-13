@@ -14,7 +14,7 @@ namespace Shared.Models.SQL
 
             try
             {
-                var sqlDb = new ProxyLinkContext();
+                using (var sqlDb = new ProxyLinkContext())
                     sqlDb.Database.EnsureCreated();
             }
             catch (Exception ex)

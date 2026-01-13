@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using NetVips;
 using Shared.Models.Online.Rezka;
 using Shared.Models.Online.Settings;
 using System.Management;
@@ -234,6 +235,9 @@ namespace Online.Controllers
                 () => oninvk.Embed(href, search_uri)
             );
 
+            if (cache.Value.IsEmpty)
+                return ShowError(cache.Value.content);
+
             return await ContentTpl(cache, () => oninvk.Tpl(cache.Value, accsArgs(string.Empty), title, original_title, s, href, true, rjson));
         }
 
@@ -261,6 +265,12 @@ namespace Online.Controllers
             var cache_content = await InvokeCacheResult($"rhsprem:{href}", 10, 
                 () => oninvk.Embed(href, null)
             );
+
+            if (!cache_content.IsSuccess)
+                return OnError();
+
+            if (cache_content?.Value?.IsEmpty == true)
+                return ShowError(cache_content.Value.content);
 
             return await ContentTpl(oninvk.Serial(cache_root.Value, cache_content.Value, accsArgs(string.Empty), title, original_title, href, id, t, s, true, rjson));
         }

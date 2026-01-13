@@ -12,7 +12,7 @@ namespace Shared.Models.SQL
 
             try
             {
-                var sqlDb = new PlaywrightContext();
+                using (var sqlDb = new PlaywrightContext())
                     sqlDb.Database.EnsureCreated();
             }
             catch (Exception ex)

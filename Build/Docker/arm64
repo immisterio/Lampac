@@ -29,7 +29,7 @@ RUN curl -L -k -o ffmpeg.zip https://github.com/immisterio/ffmpeg/releases/downl
     && mv ffprobe data/ffprobe && chmod +x data/ffprobe \
     && mv ffmpeg data/ffmpeg && chmod +x data/ffmpeg
 
-RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"},"typecache":"mem","isarm":true,"mikrotik":true,"serverproxy":{"verifyip":false,"image":{"cache": false,"cache_rsize":false}}}' > init.conf
+RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"},"typecache":"mem","isarm":true,"mikrotik":true,"GC":{"enable":true,"Concurrent":false,"ConserveMemory":9,"HighMemoryPercent":1,"RetainVM":false},"serverproxy":{"verifyip":false,"image":{"cache": false,"cache_rsize":false}}}' > init.conf
 
 RUN echo '{"runtimeOptions":{"tfm":"net9.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"9.0.0"},{"name":"Microsoft.AspNetCore.App","version":"9.0.0"}],"configProperties":{"System.GC.Server":false,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Reflection.NullabilityInfoContext.IsSupported":true,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > Lampac.runtimeconfig.json
 

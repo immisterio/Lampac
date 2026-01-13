@@ -28,7 +28,7 @@ RUN mkdir -p torrserver && curl -L -k -o torrserver/TorrServer-linux https://git
 RUN mkdir -p .playwright/node/linux-arm && curl -L -k -o .playwright/node/linux-arm/node https://github.com/immisterio/playwright/releases/download/chrome/node-linux-armv7l \
     && chmod +x .playwright/node/linux-arm/node && touch .playwright/node/linux-arm/node.ok
 
-RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"},"typecache":"mem","isarm":true,"mikrotik":true,"serverproxy":{"verifyip":false,"image":{"cache": false,"cache_rsize":false}}}' > init.conf
+RUN echo '{"chromium":{"executablePath":"/usr/bin/chromium"},"typecache":"mem","isarm":true,"mikrotik":true,"GC":{"enable":true,"Concurrent":false,"ConserveMemory":9,"HighMemoryPercent":1,"RetainVM":false},"serverproxy":{"verifyip":false,"image":{"cache": false,"cache_rsize":false}}}' > init.conf
 
 RUN echo '{"runtimeOptions":{"tfm":"net9.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"9.0.0"},{"name":"Microsoft.AspNetCore.App","version":"9.0.0"}],"configProperties":{"System.GC.Server":false,"System.Reflection.Metadata.MetadataUpdater.IsSupported":false,"System.Reflection.NullabilityInfoContext.IsSupported":true,"System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization":false}}}' > Lampac.runtimeconfig.json
 
