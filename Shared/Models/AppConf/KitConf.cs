@@ -16,6 +16,8 @@ namespace Shared.Models.AppConf
 
         public int cacheToSeconds { get; set; }
 
+        public int configCheckIntervalSeconds { get; set; }
+
         public bool rhub_fallback { get; set; }
 
         [System.Text.Json.Serialization.JsonIgnore]
@@ -25,4 +27,13 @@ namespace Shared.Models.AppConf
 
 
     public record KitConfEvalPath(string path, string uid);
+
+
+    public class KitCacheEntry
+    {
+        public JObject init { get; set; }
+        public string infile { get; set; }
+        public DateTime lockTimeUtc { get; set; }
+        public DateTime lastWriteTimeUtc { get; set; }
+    }
 }

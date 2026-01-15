@@ -26,7 +26,7 @@ namespace Shared
     {
         public static string appversion => "151";
 
-        public static string minorversion => "12";
+        public static string minorversion => "14";
 
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
@@ -715,32 +715,63 @@ namespace Shared
             }
             else
             {
-                string memKey = $"loadFileKit:{requestInfo.user_uid}";
-                if (!memoryCache.TryGetValue(memKey, out JObject appinit))
+                try
                 {
-                    try
+                    DateTime lastWriteTimeUtc = default;
+                    string memKey = $"loadFileKit:{requestInfo.user_uid}";
+
+                    if (memoryCache.TryGetValue(memKey, out KitCacheEntry _cache))
                     {
-                        string init_file = $"{init.path}/{CrypTo.md5(requestInfo.user_uid)}";
+                        if (_cache.lockTimeUtc > DateTime.UtcNow)
+                            return _cache.init;
 
-                        if (init.eval_path != null)
-                            init_file = CSharpEval.Execute<string>(init.eval_path, new KitConfEvalPath(init.path, requestInfo.user_uid));
-
-                        if (!IO.File.Exists(init_file))
-                            return null;
-
-                        string json = IO.File.ReadAllText(init_file);
-
-                        if (!json.TrimStart().StartsWith("{"))
-                            json = "{" + json + "}";
-
-                        appinit = JsonConvert.DeserializeObject<JObject>(json);
+                        lastWriteTimeUtc = new FileInfo(_cache.infile).LastWriteTimeUtc;
+                        if (_cache.lastWriteTimeUtc == lastWriteTimeUtc)
+                        {
+                            _cache.lockTimeUtc = DateTime.UtcNow.AddSeconds(Math.Max(5, init.configCheckIntervalSeconds));
+                            return _cache.init;
+                        }
                     }
-                    catch { return null; }
 
-                    memoryCache.Set(memKey, appinit, DateTime.Now.AddSeconds(Math.Max(5, init.cacheToSeconds)));
+                    _cache = new KitCacheEntry();
+
+                    _cache.infile = $"{init.path}/{CrypTo.md5(requestInfo.user_uid)}";
+
+                    if (init.eval_path != null)
+                        _cache.infile = CSharpEval.Execute<string>(init.eval_path, new KitConfEvalPath(init.path, requestInfo.user_uid));
+
+                    if (!IO.File.Exists(_cache.infile))
+                        return null;
+
+                    string json = IO.File.ReadAllText(_cache.infile);
+                    if (string.IsNullOrWhiteSpace(json))
+                        return null;
+
+                    if (lastWriteTimeUtc == default)
+                        lastWriteTimeUtc = new FileInfo(_cache.infile).LastWriteTimeUtc;
+
+                    _cache.lastWriteTimeUtc = lastWriteTimeUtc;
+                    _cache.lockTimeUtc = DateTime.UtcNow.AddSeconds(Math.Max(5, init.configCheckIntervalSeconds));
+
+                    ReadOnlySpan<char> span = json.AsSpan();
+
+                    int i = 0;
+                    while (i < span.Length && char.IsWhiteSpace(span[i]))
+                        i++;
+
+                    if (i == span.Length || span[i] != '{')
+                        json = "{" + json + "}";
+
+                    _cache.init = JsonConvert.DeserializeObject<JObject>(json);
+
+                    memoryCache.Set(memKey, _cache, DateTime.Now.AddSeconds(Math.Max(5, init.cacheToSeconds)));
+
+                    return _cache.init;
                 }
-
-                return appinit;
+                catch 
+                {
+                    return null;
+                }
             }
         }
 

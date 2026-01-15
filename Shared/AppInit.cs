@@ -395,7 +395,11 @@ namespace Shared
             inactiveAfterMinutes = 120
         };
 
-        public KitConf kit = new KitConf() { cacheToSeconds = 20 };
+        public KitConf kit = new KitConf() 
+        {
+            cacheToSeconds = 60 * 60 * 3, // 3h
+            configCheckIntervalSeconds = 20
+        };
 
         public SyncConf sync = new SyncConf();
 
@@ -534,7 +538,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "5bf87c0b9eef5c5207a11b238076a0a796ac2a03"
+            tree = "a8a965a46736b879188fe3c4efdb761a3f7c00ef"
         };
 
         public OnlineConf online = new OnlineConf()
