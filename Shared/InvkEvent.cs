@@ -413,6 +413,24 @@ namespace Shared
         }
         #endregion
 
+        #region Staticache
+        public static bool IsStaticache()
+            => conf?.Staticache != null || EventListener.Staticache != null;
+
+        public static bool Staticache(EventStaticache model)
+        {
+            if (string.IsNullOrEmpty(conf?.Staticache))
+                return EventListener.Staticache?.Invoke(model) ?? default;
+
+            var option = ScriptOptions.Default
+                .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models").AddImports("Shared.Models.Events")
+                .AddReferences(typeof(File).Assembly).AddImports("System.IO");
+
+            return Invoke<bool>(conf.Staticache, model, option);
+        }
+        #endregion
+
         #region Middleware
         public static bool IsMiddleware(bool first)
             => (first ? conf?.Middleware?.first : conf?.Middleware?.end) != null || EventListener.Middleware != null;
