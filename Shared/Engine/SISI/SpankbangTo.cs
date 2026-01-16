@@ -61,7 +61,7 @@ namespace Shared.Engine.SISI
                     if (img == null)
                         continue;
 
-                    img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/");
+                    img = Regex.Replace(img, "/w:[0-9]00/", "/w:300/").Replace("http://", "https://");
 
                     string preview = Rx.Match(row, "data-preview=\"([^\"]+)\"");
                     if (preview == null)
