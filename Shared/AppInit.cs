@@ -1027,7 +1027,11 @@ namespace Shared
             geostreamproxy = ["ALL"]
         };
 
-        public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "http://api.vokino.org", streamproxy: false)
+        /// <summary>
+        /// api.vokino.org
+        /// api.vokino.pro
+        /// </summary>
+        public VokinoSettings VoKino { get; set; } = new VokinoSettings("VoKino", "http://api.vokino.pro", streamproxy: false)
         {
             rchstreamproxy = "web",
             rhub_safety = false

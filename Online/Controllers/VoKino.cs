@@ -28,7 +28,7 @@ namespace Online.Controllers
 
             if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
             {
-                html = "Введите данные аккаунта <a href='http://vokino.tv'>vokino.tv</a> <br> <br><form method=\"get\" action=\"/lite/vokinotk\"><input type=\"text\" name=\"login\" placeholder=\"email\"> &nbsp; &nbsp; <input type=\"text\" name=\"pass\" placeholder=\"пароль\"><br><br><button>Добавить устройство</button></form> ";
+                html = "Введите данные аккаунта <a href='https://vokino.pro'>vokino.pro</a> <br> <br><form method=\"get\" action=\"/lite/vokinotk\"><input type=\"text\" name=\"login\" placeholder=\"email\"> &nbsp; &nbsp; <input type=\"text\" name=\"pass\" placeholder=\"пароль\"><br><br><button>Добавить устройство</button></form> ";
             }
             else
             {
