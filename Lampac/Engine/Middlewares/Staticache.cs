@@ -36,6 +36,9 @@ namespace Lampac.Engine.Middlewares
             {
                 try
                 {
+                    if (inFile.EndsWith(".gz"))
+                        continue;
+
                     // cacheKey-<time>.<type>(.gz|br)?
                     ReadOnlySpan<char> fileName = inFile.AsSpan();
                     int lastSlash = fileName.LastIndexOfAny('\\', '/');
@@ -46,6 +49,7 @@ namespace Lampac.Engine.Middlewares
                     if (dash <= 0)
                     {
                         File.Delete(inFile);
+                        File.Delete($"{inFile}.gz");
                         continue;
                     }
 
@@ -54,6 +58,7 @@ namespace Lampac.Engine.Middlewares
                     if (dotRel < 0)
                     {
                         File.Delete(inFile);
+                        File.Delete($"{inFile}.gz");
                         continue;
                     }
                     int firstDot = dash + 1 + dotRel;
@@ -62,6 +67,7 @@ namespace Lampac.Engine.Middlewares
                     if (!long.TryParse(fileTimeSpan, out long fileTime) || fileTime == 0)
                     {
                         File.Delete(inFile);
+                        File.Delete($"{inFile}.gz");
                         continue;
                     }
 
@@ -73,6 +79,7 @@ namespace Lampac.Engine.Middlewares
                     if (typeSpan.Length == 0)
                     {
                         File.Delete(inFile);
+                        File.Delete($"{inFile}.gz");
                         continue;
                     }
 
@@ -87,6 +94,7 @@ namespace Lampac.Engine.Middlewares
                     if (now > ex)
                     {
                         File.Delete(inFile);
+                        File.Delete($"{inFile}.gz");
                         continue;
                     }
 
@@ -95,6 +103,7 @@ namespace Lampac.Engine.Middlewares
                 catch
                 {
                     File.Delete(inFile);
+                    File.Delete($"{inFile}.gz");
                 }
             }
         }
@@ -114,6 +123,7 @@ namespace Lampac.Engine.Middlewares
 
                         string cachefile = getFilePath(_c.Key, _c.Value.ex, _c.Value.contentType);
                         File.Delete(cachefile);
+                        File.Delete($"{cachefile}.gz");
 
                         cacheFiles.TryRemove(_c.Key, out _);
                     }
