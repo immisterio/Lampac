@@ -28,6 +28,8 @@
 
         public EventModelProxyImg ProxyImg { get; set; }
 
+        public string Staticache { get; set; }
+
         public EventModelTranscoding Transcoding { get; set; }
 
         public EventModelRch Rch { get; set; }

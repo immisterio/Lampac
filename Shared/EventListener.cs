@@ -18,6 +18,8 @@ namespace Shared
 
         public static Func<EventProxyImgMd5key, string> ProxyImgMd5key;
 
+        public static Func<EventStaticache, bool> Staticache;
+
         public static Func<EventBadInitialization, Task<ActionResult>> BadInitialization;
 
         public static Func<EventHostStreamProxy, string> HostStreamProxy;
