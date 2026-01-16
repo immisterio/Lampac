@@ -33,7 +33,7 @@ namespace Shared.Models.AppConf
     {
         public JObject init { get; set; }
         public string infile { get; set; }
-        public DateTime lockTimeUtc { get; set; }
+        public DateTime lockTime { get; set; }
         public DateTime lastWriteTimeUtc { get; set; }
     }
 }

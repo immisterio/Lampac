@@ -718,22 +718,24 @@ namespace Shared
                 try
                 {
                     DateTime lastWriteTimeUtc = default;
+
                     string memKey = $"loadFileKit:{requestInfo.user_uid}";
 
                     if (memoryCache.TryGetValue(memKey, out KitCacheEntry _cache))
                     {
-                        if (_cache.lockTimeUtc > DateTime.UtcNow)
+                        if (_cache.lockTime >= DateTime.Now)
                             return _cache.init;
 
                         lastWriteTimeUtc = new FileInfo(_cache.infile).LastWriteTimeUtc;
                         if (_cache.lastWriteTimeUtc == lastWriteTimeUtc)
                         {
-                            _cache.lockTimeUtc = DateTime.UtcNow.AddSeconds(Math.Max(5, init.configCheckIntervalSeconds));
+                            _cache.lockTime = DateTime.Now.AddSeconds(Math.Max(5, init.configCheckIntervalSeconds));
                             return _cache.init;
                         }
                     }
 
                     _cache = new KitCacheEntry();
+                    var lockTime = DateTime.Now.AddSeconds(Math.Max(5, init.configCheckIntervalSeconds));
 
                     _cache.infile = $"{init.path}/{CrypTo.md5(requestInfo.user_uid)}";
 
@@ -741,17 +743,25 @@ namespace Shared
                         _cache.infile = CSharpEval.Execute<string>(init.eval_path, new KitConfEvalPath(init.path, requestInfo.user_uid));
 
                     if (!IO.File.Exists(_cache.infile))
+                    {
+                        _cache.lockTime = lockTime;
+                        memoryCache.Set(memKey, _cache, _cache.lockTime);
                         return null;
+                    }
 
                     string json = IO.File.ReadAllText(_cache.infile);
                     if (string.IsNullOrWhiteSpace(json))
+                    {
+                        _cache.lockTime = lockTime;
+                        memoryCache.Set(memKey, _cache, _cache.lockTime);
                         return null;
+                    }
 
                     if (lastWriteTimeUtc == default)
                         lastWriteTimeUtc = new FileInfo(_cache.infile).LastWriteTimeUtc;
 
                     _cache.lastWriteTimeUtc = lastWriteTimeUtc;
-                    _cache.lockTimeUtc = DateTime.UtcNow.AddSeconds(Math.Max(5, init.configCheckIntervalSeconds));
+                    _cache.lockTime = lockTime;
 
                     ReadOnlySpan<char> span = json.AsSpan();
 
