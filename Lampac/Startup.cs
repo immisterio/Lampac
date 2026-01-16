@@ -502,6 +502,8 @@ namespace Lampac
                 });
             });
 
+            app.UseStaticache();
+
             app.UseRouting();
 
             if (AppInit.conf.listen.compression)
