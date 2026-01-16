@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IO;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Engine.Pools;
@@ -398,6 +399,8 @@ namespace Shared
 
             try
             {
+                var msm = HttpContext.Features.Get<RecyclableMemoryStream>();
+
                 foreach (var chunk in sb.GetChunks())
                 {
                     ct.ThrowIfCancellationRequested();
@@ -424,6 +427,9 @@ namespace Shared
                     bodyWriter.Advance(bytesUsed);
                     pendingBytes += bytesUsed;
 
+                    if (msm != null)
+                        msm.Write(dest.Slice(0, bytesUsed));
+
                     while (!completed)
                     {
                         chars = chars.Slice(charsUsed);
@@ -441,6 +447,9 @@ namespace Shared
 
                         bodyWriter.Advance(bytesUsed);
                         pendingBytes += bytesUsed;
+
+                        if (msm != null)
+                            msm.Write(dest.Slice(0, bytesUsed));
                     }
 
                     // Сбрасываем накопленное в транспорт

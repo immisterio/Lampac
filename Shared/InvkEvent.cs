@@ -424,7 +424,7 @@ namespace Shared
 
             var option = ScriptOptions.Default
                 .AddReferences(typeof(HttpContext).Assembly).AddImports("Microsoft.AspNetCore.Http")
-                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared.Models").AddImports("Shared.Models.Events")
+                .AddReferences(CSharpEval.ReferenceFromFile("Shared.dll")).AddImports("Shared").AddImports("Shared.Models").AddImports("Shared.Engine")
                 .AddReferences(typeof(File).Assembly).AddImports("System.IO");
 
             return Invoke<bool>(conf.Staticache, model, option);

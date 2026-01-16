@@ -410,10 +410,7 @@ namespace Shared
             reqIPs = 5
         };
 
-        public StaticacheConf Staticache { get; set; } = new StaticacheConf()
-        {
-            enable = true
-        };
+        public StaticacheConf Staticache { get; set; } = new StaticacheConf();
 
         public WafConf WAF = new WafConf();
 

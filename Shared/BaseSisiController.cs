@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.IO;
 using Newtonsoft.Json.Linq;
 using Shared.Engine;
 using Shared.Models;
@@ -318,7 +319,9 @@ namespace Shared
             var headers_stream = HeadersModel.InitOrNull(init.headers_stream);
             var headers_image = httpHeaders(init.host, HeadersModel.InitOrNull(init.headers_image));
 
-            using (var writer = new Utf8JsonWriter(Response.BodyWriter, jsonWriterOptions))
+            var msm = HttpContext.Features.Get<RecyclableMemoryStream>();
+
+            using (var writer = new Utf8JsonWriter(msm != null ? msm : Response.BodyWriter, jsonWriterOptions))
             {
                 writer.WriteStartObject();
                 writer.WriteNumber("count", playlists.Count);
@@ -365,7 +368,7 @@ namespace Shared
                     }, SisiResultJsonContext.Default.OnResultPlaylistItem);
 
                     // Cбрасываем накопленное из Utf8JsonWriter в транспорт
-                    if (writer.BytesPending > 60_000)
+                    if (msm == null && writer.BytesPending > 60_000)
                     {
                         writer.Flush(); // flush в PipeWriter
                         await Response.BodyWriter.FlushAsync(ct); // flush в транспорт
@@ -376,7 +379,16 @@ namespace Shared
                 writer.WriteEndObject();
 
                 writer.Flush();
-                await Response.BodyWriter.FlushAsync(ct);
+
+                if (msm != null)
+                {
+                    msm.Position = 0;
+                    await msm.CopyToAsync(Response.Body, PoolInvk.bufferSize, ct);
+                }
+                else
+                {
+                    await Response.BodyWriter.FlushAsync(ct);
+                }
             }
 
             return new EmptyResult();
