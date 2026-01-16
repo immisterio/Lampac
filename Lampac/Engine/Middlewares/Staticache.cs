@@ -8,6 +8,8 @@ using Shared.Models.Events;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -32,33 +34,68 @@ namespace Lampac.Engine.Middlewares
 
             foreach (string inFile in Directory.EnumerateFiles("cache/static", "*"))
             {
-                string fileName = Path.GetFileName(inFile);
-                if (!fileName.Contains("-") || !fileName.Contains("."))
+                try
+                {
+                    // cacheKey-<time>.<type>(.gz|br)?
+                    ReadOnlySpan<char> fileName = inFile.AsSpan();
+                    int lastSlash = fileName.LastIndexOfAny('\\', '/');
+                    if (lastSlash >= 0)
+                        fileName = fileName.Slice(lastSlash + 1);
+
+                    int dash = fileName.IndexOf('-');
+                    if (dash <= 0)
+                    {
+                        File.Delete(inFile);
+                        continue;
+                    }
+
+                    // '.' после дефиса
+                    int dotRel = fileName.Slice(dash + 1).IndexOf('.');
+                    if (dotRel < 0)
+                    {
+                        File.Delete(inFile);
+                        continue;
+                    }
+                    int firstDot = dash + 1 + dotRel;
+
+                    ReadOnlySpan<char> fileTimeSpan = fileName.Slice(dash + 1, firstDot - dash - 1);
+                    if (!long.TryParse(fileTimeSpan, out long fileTime) || fileTime == 0)
+                    {
+                        File.Delete(inFile);
+                        continue;
+                    }
+
+                    // <type> = первое расширение после точки (игнорируем ".gz" и любые суффиксы)
+                    int typeEndRel = fileName.Slice(firstDot + 1).IndexOf('.');
+                    int typeEnd = typeEndRel < 0 ? fileName.Length : firstDot + 1 + typeEndRel;
+
+                    ReadOnlySpan<char> typeSpan = fileName.Slice(firstDot + 1, typeEnd - (firstDot + 1));
+                    if (typeSpan.Length == 0)
+                    {
+                        File.Delete(inFile);
+                        continue;
+                    }
+
+                    string cachekey = new string(fileName.Slice(0, dash));
+
+                    string contentType = typeSpan.SequenceEqual("html")
+                        ? "text/html; charset=utf-8"
+                        : "application/json; charset=utf-8";
+
+                    var ex = DateTime.FromFileTime(fileTime);
+
+                    if (now > ex)
+                    {
+                        File.Delete(inFile);
+                        continue;
+                    }
+
+                    cacheFiles.TryAdd(cachekey, (ex, contentType));
+                }
+                catch
                 {
                     File.Delete(inFile);
-                    continue;
                 }
-
-                string[] tmp = fileName.Split('-');
-                string cachekey = tmp[0];
-
-                tmp = tmp[1].Split(".");
-                string contentType = tmp[1] == "html" ? "text/html; charset=utf-8" : "application/json; charset=utf-8";
-
-                if (!long.TryParse(tmp[0], out long _ex) || _ex == 0)
-                {
-                    File.Delete(inFile);
-                    continue;
-                }
-
-                var ex = DateTime.FromFileTime(_ex);
-                if (now > ex)
-                {
-                    File.Delete(inFile);
-                    continue;
-                }
-
-                cacheFiles.TryAdd(cachekey, (ex, contentType));
             }
         }
 
@@ -136,12 +173,29 @@ namespace Lampac.Engine.Middlewares
 
             string cachekey = getQueryKeys(httpContext, route.queryKeys);
 
-            if (cacheFiles.TryGetValue(cachekey, out var _r) && _r.ex > DateTime.Now)
+            if (cacheFiles.TryGetValue(cachekey, out var _r))
             {
                 httpContext.Response.Headers["X-StatiCache-Status"] = "HIT";
                 httpContext.Response.ContentType = _r.contentType ?? route.contentType ?? "text/html; charset=utf-8";
 
                 string cachefile = getFilePath(cachekey, _r.ex, httpContext.Response.ContentType);
+
+                if (httpContext.Request.Headers.TryGetValue("Accept-Encoding", out StringValues values))
+                {
+                    for (int i = 0; i < values.Count; i++)
+                    {
+                        var v = values[i].AsSpan();
+
+                        if (v.IndexOf("gzip", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                            v.IndexOf("gzip;q=0", StringComparison.OrdinalIgnoreCase) < 0)
+                        {
+                            httpContext.Response.Headers.ContentEncoding = "gzip";
+                            cachefile += ".gz";
+                            break;
+                        }
+                    }
+                }
+
                 await httpContext.Response.SendFileAsync(cachefile, httpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
@@ -166,7 +220,14 @@ namespace Lampac.Engine.Middlewares
                         using (var fileStream = File.OpenWrite(cachefile))
                             await msm.CopyToAsync(fileStream, PoolInvk.bufferSize);
 
-                        cacheFiles.AddOrUpdate(cachekey, (ex, route.contentType), (k,v) => (ex, route.contentType));
+                        msm.Position = 0;
+                        using (var fileStream = File.OpenWrite($"{cachefile}.gz"))
+                        {
+                            using (var gzip = new GZipStream(fileStream, CompressionLevel.Optimal))
+                                await msm.CopyToAsync(gzip, PoolInvk.bufferSize);
+                        }
+
+                        cacheFiles.TryAdd(cachekey, (ex, route.contentType));
                     }
                     catch (Exception ex) 
                     { 
