@@ -68,5 +68,10 @@ namespace Lampac.Engine.Middlewares
         {
             return builder.UseMiddleware<Module>(first);
         }
+
+        public static IApplicationBuilder UseStaticache(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<Staticache>();
+        }
     }
 }
