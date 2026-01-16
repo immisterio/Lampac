@@ -535,8 +535,8 @@ namespace Shared.Engine
                     return false;
             }
 
-            if (AppInit.conf.rch.requiredConnected  // Обязательное подключение
-                || init.rchstreamproxy != null)     // Нужно знать rchtype устройства 
+            if (AppInit.conf.rch.requiredConnected                       // Обязательное подключение
+                || (init.rchstreamproxy != null && !init.streamproxy))   // Нужно знать rchtype устройства 
                 return SocketClient().connectionId == null;
 
             return false;
