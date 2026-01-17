@@ -1042,11 +1042,22 @@ namespace Shared
         public IframeVideoSettings IframeVideo { get; set; } = new IframeVideoSettings("IframeVideo", "kwwsv=22liudph1ylghr", "kwwsv=22ylghriudph1vsdfh", enable: false);
 
         /// <summary>
+        /// aHR0cHM6Ly9tb3ZpZWxhYi5vbmU=
         /// aHR0cHM6Ly92aWQxNzMwODAxMzcwLmZvdHBybzEzNWFsdG8uY29tL2FwaS9pZGtwP2twX2lkPTEzOTI1NTAmZD1raW5vZ28uaW5j
         /// </summary>
-        public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5", rch_access: "apk", stream_access: "apk,cors,web")
+        public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22ylg4:667649;41hqwrxdhgrq1frp", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5", rch_access: "apk", stream_access: "apk,cors,web")
         {
-            headers = Http.defaultFullHeaders
+            streamproxy = true,
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
+                ("referer", "{host}"),
+                ("origin", "{host}/"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site")
+            ).ToDictionary(),
+            headers = HeadersModel.Init(Http.defaultFullHeaders,
+                ("referer", "encrypt:kwwsv=22prylhode1rqh2")
+            ).ToDictionary(),
         };
 
         /// <summary>
