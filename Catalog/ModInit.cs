@@ -1,4 +1,5 @@
-﻿using YamlDotNet.Serialization;
+﻿using System.Globalization;
+using YamlDotNet.Serialization;
 
 namespace Catalog
 {
@@ -276,7 +277,7 @@ namespace Catalog
                 if (arg.name_arg is "kp_rating" or "imdb_rating")
                 {
                     string rating = val?.ToString()?.Trim();
-                    if (!string.IsNullOrEmpty(rating) && rating != "0" && rating != "0.0" && double.TryParse(rating.Replace(".", ","), out _))
+                    if (!string.IsNullOrEmpty(rating) && rating != "0" && rating != "0.0" && double.TryParse(rating, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
                     {
                         rating = rating.Length > 3 ? rating.Substring(0, 3) : rating;
                         if (rating.Length == 1)
@@ -287,8 +288,8 @@ namespace Catalog
                 }
                 else if (arg.name_arg is "vote_average")
                 {
-                    string value = val?.ToString()?.Trim()?.Replace(".", ",");
-                    if (!string.IsNullOrEmpty(value) && double.TryParse(value, out double _v) && _v > 0)
+                    string value = val?.ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(value) && double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out double _v) && _v > 0)
                         jo[arg.name_arg] = JToken.FromObject(_v);
                 }
                 else if (arg.name_arg is "runtime" or "PG")
