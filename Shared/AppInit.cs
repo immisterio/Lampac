@@ -1048,16 +1048,16 @@ namespace Shared
         public OnlinesSettings HDVB { get; set; } = new OnlinesSettings("HDVB", "kwwsv=22ylg4:667649;41hqwrxdhgrq1frp", "kwwsv=22dslye1frp", token: "8h5ih7f:3edig<d:747f7i4:3hh4e4<5", rch_access: "apk", stream_access: "apk,cors,web")
         {
             streamproxy = true,
-            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
-                ("referer", "{host}"),
-                ("origin", "{host}/"),
-                ("sec-fetch-dest", "empty"),
-                ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "same-site")
-            ).ToDictionary(),
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("referer", "encrypt:kwwsv=22prylhode1rqh2")
             ).ToDictionary(),
+            headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
+                ("origin", "{host}"),
+                ("referer", "{host}/"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
+                ("sec-fetch-site", "same-site")
+            ).ToDictionary()
         };
 
         /// <summary>

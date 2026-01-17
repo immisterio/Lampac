@@ -266,8 +266,7 @@ namespace Online.Controllers
                             ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
                             ("sec-fetch-dest", "iframe"),
                             ("sec-fetch-mode", "navigate"),
-                            ("sec-fetch-site", "cross-site"),
-                            ("referer", $"{init.host}/")
+                            ("sec-fetch-site", "cross-site")
                         );
 
                         reset_playlist:
@@ -392,7 +391,8 @@ namespace Online.Controllers
             rhubFallback:
             var cache = await InvokeCacheResult<JArray>($"hdvb:search:{title}", 40, async e =>
             {
-                var root = await httpHydra.Get<JArray>($"{init.cors(init.apihost)}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}", safety: true);
+                var newheaders = HeadersModel.Init(Http.defaultFullHeaders);
+                var root = await httpHydra.Get<JArray>($"{init.cors(init.apihost)}/api/videos.json?token={init.token}&title={HttpUtility.UrlEncode(title)}", safety: true, newheaders: newheaders);
 
                 if (root == null)
                     return e.Fail("results");
@@ -432,7 +432,8 @@ namespace Online.Controllers
 
             if (!hybridCache.TryGetValue(memKey, out JArray root, inmemory: false))
             {
-                root = await httpHydra.Get<JArray>($"{init.cors(init.apihost)}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", safety: true);
+                var newheaders = HeadersModel.Init(Http.defaultFullHeaders);
+                root = await httpHydra.Get<JArray>($"{init.cors(init.apihost)}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", safety: true, newheaders: newheaders);
 
                 if (root == null)
                 {
