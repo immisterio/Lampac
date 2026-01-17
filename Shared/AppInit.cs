@@ -1080,9 +1080,8 @@ namespace Shared
                 ("upgrade-insecure-requests", "1")
             ).ToDictionary(),
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
-                ("referer", "encrypt:kwwsv=22wy040nlqrvhuldo1qhw2"),
-                ("sec-fetch-dest", "video"),
-                ("sec-fetch-mode", "no-cors"),
+                ("sec-fetch-dest", "empty"),
+                ("sec-fetch-mode", "cors"),
                 ("sec-fetch-site", "cross-site")
             ).ToDictionary()
         };

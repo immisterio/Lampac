@@ -187,7 +187,9 @@ namespace Online.Controllers
                 if (play)
                     return RedirectToPlay(hls);
 
-                return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast));
+                var headers_stream = init.streamproxy ? null : httpHeaders(init.corsHost(), init.headers_stream);
+
+                return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast, headers: headers_stream));
             });
         }
         #endregion

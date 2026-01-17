@@ -116,7 +116,10 @@ namespace Online.Controllers
             {
                 if (!hybridCache.TryGetValue(key, out string location))
                 {
-                    var headers = httpHeaders(init);
+                    var headers = httpHeaders(init, HeadersModel.Init
+                    (
+                        ("referer", "encrypt:kwwsv=22ylghrvhhg1wy2")
+                    ));
 
                     try
                     {
@@ -182,7 +185,10 @@ namespace Online.Controllers
                     hybridCache.Set(key, location, cacheTime(20));
                 }
 
-                string link = HostStreamProxy(location, headers: HeadersModel.Init("referer", iframe));
+                string referer = Regex.Match(iframe, "(^https?://[^/]+)").Groups[1].Value;
+                var headers_stream = httpHeaders(init.corsHost(), HeadersModel.Join(HeadersModel.Init("referer", referer), init.headers_stream));
+
+                string link = HostStreamProxy(location, headers: headers_stream);
                 return ContentTo(VideoTpl.ToJson("play", link, "auto", vast: init.vast));
             });
         }
