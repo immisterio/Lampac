@@ -32,22 +32,24 @@ namespace Lampac.Engine.Middlewares
         {
             var requestInfo = httpContext.Features.Get<RequestModel>();
 
+            #region manifest/install
+            if (!manifestInitial)
+            {
+                if (!File.Exists("module/manifest.json"))
+                {
+                    if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
+                        return _next(httpContext);
+
+                    httpContext.Response.Redirect("/admin/manifest/install");
+                    return Task.CompletedTask;
+                }
+                else { manifestInitial = true; }
+            }
+            #endregion
+
             #region admin
             if (httpContext.Request.Path.Value.StartsWith("/admin"))
             {
-                if (!manifestInitial)
-                {
-                    if (!File.Exists("module/manifest.json"))
-                    {
-                        if (httpContext.Request.Path.Value.StartsWith("/admin/manifest/install"))
-                            return _next(httpContext);
-
-                        httpContext.Response.Redirect("/admin/manifest/install");
-                        return Task.CompletedTask;
-                    }
-                    else { manifestInitial = true; }
-                }
-
                 if (httpContext.Request.Cookies.TryGetValue("passwd", out string passwd))
                 {
                     string ipKey = $"Accsdb:auth:IP:{requestInfo.IP}";
