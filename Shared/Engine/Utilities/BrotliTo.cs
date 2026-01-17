@@ -99,7 +99,7 @@ namespace Shared.Engine
             catch { }
         }
 
-        async public static Task CompressAsync(string outfile, RecyclableMemoryStream value)
+        async public static Task CompressAsync(string outfile, MemoryStream value)
         {
             try
             {

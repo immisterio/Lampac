@@ -35,8 +35,11 @@ namespace Lampac.Engine.Middlewares
         {
             Directory.CreateDirectory("cache/cub");
 
-            foreach (var item in Directory.EnumerateFiles("cache/cub", "*"))
-                cacheFiles.TryAdd(Path.GetFileName(item), (int)new FileInfo(item).Length);
+            foreach (string path in Directory.EnumerateFiles("cache/cub", "*"))
+            {
+                using (var handle = File.OpenHandle(path))
+                    cacheFiles.TryAdd(Path.GetFileName(path), (int)RandomAccess.GetLength(handle));
+            }
 
             fileWatcher = new FileSystemWatcher
             {

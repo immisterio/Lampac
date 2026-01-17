@@ -1,16 +1,17 @@
-﻿using Shared.Models.Module;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shared;
+using Shared.Engine;
+using Shared.Models.Module;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using IO = System.IO;
-using Shared;
 using System.Threading.Tasks;
-using Shared.Engine;
+using IO = System.IO;
 
 namespace Lampac.Controllers
 {
@@ -27,29 +28,17 @@ namespace Lampac.Controllers
                 return renderAdmin();
             }
 
+            HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd);
+
             if (!string.IsNullOrEmpty(parol))
-			{
-                string ipKey = $"Accsdb:auth:IP:{requestInfo.IP}";
-                if (!memoryCache.TryGetValue(ipKey, out HashSet<string> passwds))
-                    passwds = new HashSet<string>();
-
-                passwds.Add(parol);
-                memoryCache.Set(ipKey, passwds, DateTime.Today.AddDays(1));
-
-                if (passwds.Count > 5)
-                    return Content("Too many attempts, try again tomorrow.");
-
-                if (AppInit.rootPasswd == parol.Trim())
-				{
-					HttpContext.Response.Cookies.Append("passwd", parol.Trim());
-					return Redirect("/admin");
-				}
+            {
+                passwd = parol.Trim();
+                HttpContext.Response.Cookies.Append("passwd", passwd);
             }
 
-			if (HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) && passwd == AppInit.rootPasswd)
-				return renderAdmin();
-
-            string html = @"
+            if (string.IsNullOrEmpty(passwd))
+            {
+                string html = @"
 <!DOCTYPE html>
 <html>
 <head>
@@ -103,7 +92,26 @@ namespace Lampac.Controllers
 </html>
 ";
 
-            return Content(html, contentType: "text/html; charset=utf-8");
+                return Content(html, "text/html; charset=utf-8");
+            }
+
+            string ipKey = $"Accsdb:auth:IP:{requestInfo.IP}";
+            if (!memoryCache.TryGetValue(ipKey, out ConcurrentDictionary<string, byte> passwds))
+            {
+                passwds = new ConcurrentDictionary<string, byte>();
+                memoryCache.Set(ipKey, passwds, DateTime.Today.AddDays(1));
+            }
+
+            passwds.TryAdd(passwd, 0);
+
+            if (passwds.Count > 10)
+                return Content("Too many attempts, try again tomorrow.");
+
+            if (AppInit.rootPasswd == passwd)
+                return renderAdmin();
+
+            HttpContext.Response.Cookies.Delete("passwd");
+            return Content("Incorrect password");
         }
 
         ActionResult renderAdmin()

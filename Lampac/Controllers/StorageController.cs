@@ -89,6 +89,7 @@ namespace Lampac.Controllers
                 try
                 {
                     await HttpContext.Request.Body.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
                 }
                 catch
                 {
@@ -218,6 +219,7 @@ namespace Lampac.Controllers
                 try
                 {
                     await HttpContext.Request.Body.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
                 }
                 catch
                 {

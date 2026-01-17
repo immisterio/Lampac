@@ -37,8 +37,11 @@ namespace Lampac.Engine.Middlewares
             if (AppInit.conf.multiaccess == false)
                 return;
 
-            foreach (var item in Directory.EnumerateFiles("cache/img", "*"))
-                cacheFiles.TryAdd(Path.GetFileName(item), (int)new FileInfo(item).Length);
+            foreach (string path in Directory.EnumerateFiles("cache/img", "*"))
+            {
+                using (var handle = File.OpenHandle(path))
+                    cacheFiles.TryAdd(Path.GetFileName(path), (int)RandomAccess.GetLength(handle));
+            }
 
             fileWatcher = new FileSystemWatcher
             {

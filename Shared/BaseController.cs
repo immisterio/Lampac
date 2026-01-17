@@ -24,9 +24,9 @@ namespace Shared
 {
     public class BaseController : Controller
     {
-        public static string appversion => "151";
+        public static string appversion => "152";
 
-        public static string minorversion => "15";
+        public static string minorversion => "1";
 
 
         protected static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphoreLocks = new();
@@ -726,7 +726,7 @@ namespace Shared
                         if (_cache.lockTime >= DateTime.Now)
                             return _cache.init;
 
-                        lastWriteTimeUtc = new FileInfo(_cache.infile).LastWriteTimeUtc;
+                        lastWriteTimeUtc = IO.File.GetLastWriteTimeUtc(_cache.infile);
                         if (_cache.lastWriteTimeUtc == lastWriteTimeUtc)
                         {
                             _cache.lockTime = DateTime.Now.AddSeconds(Math.Max(5, init.configCheckIntervalSeconds));
@@ -758,7 +758,7 @@ namespace Shared
                     }
 
                     if (lastWriteTimeUtc == default)
-                        lastWriteTimeUtc = new FileInfo(_cache.infile).LastWriteTimeUtc;
+                        lastWriteTimeUtc = IO.File.GetLastWriteTimeUtc(_cache.infile);
 
                     _cache.lastWriteTimeUtc = lastWriteTimeUtc;
                     _cache.lockTime = lockTime;
