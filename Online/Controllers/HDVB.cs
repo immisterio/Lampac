@@ -221,7 +221,9 @@ namespace Online.Controllers
                 if (play)
                     return RedirectToPlay(m3u8);
 
-                return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast));
+                var headers_stream = init.streamproxy ? null : httpHeaders(init.corsHost(), init.headers_stream);
+
+                return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast, headers: headers_stream));
             });
         }
         #endregion
@@ -369,10 +371,14 @@ namespace Online.Controllers
                     #endregion
                 }
 
-                if (play)
-                    return Redirect(HostStreamProxy(urim3u8));
+                string m3u8 = HostStreamProxy(urim3u8);
 
-                return ContentTo("{\"method\":\"play\",\"url\":\"" + HostStreamProxy(urim3u8) + "\",\"title\":\"" + (title ?? original_title) + "\"}");
+                if (play)
+                    return Redirect(m3u8);
+
+                var headers_stream = init.streamproxy ? null : httpHeaders(init.corsHost(), init.headers_stream);
+
+                return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast, headers: headers_stream));
             });
         }
         #endregion
