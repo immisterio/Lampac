@@ -21,7 +21,7 @@ namespace Shared.Engine.SISI
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                url.Append($"{host}/search/{HttpUtility.UrlEncode(search)}/");
+                url.Append($"search/{HttpUtility.UrlEncode(search)}/");
 
                 if (!string.IsNullOrEmpty(sort))
                     url.Append($"{sort}/");

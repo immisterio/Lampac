@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Filmix;
 using Shared.Models.Online.Settings;
@@ -261,28 +260,19 @@ namespace Online.Controllers
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return null;
 
-            string uri = $"{init.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi";
+            string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(title)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token={init.token}&user_dev_vendor=Xiaomi";
 
-            string json = await Http.Get(init.cors(uri), timeoutSeconds: 7, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
+            var root = await Http.Get<List<SearchModel>>(init.cors(uri), timeoutSeconds: 7, proxy: proxy, useDefaultHeaders: false, headers: HeadersModel.Init(
                 ("Accept-Encoding", "gzip")
             ));
 
-            if (json == null)
-            {
-                proxyManager?.Refresh();
-                return await Search2(title, original_title, year);
-            }
-
-            List<SearchModel> root = null;
-
-            try
-            {
-                root = JsonConvert.DeserializeObject<List<SearchModel>>(json);
-            }
-            catch { }
-
             if (root == null || root.Count == 0)
+            {
+                if (root == null)
+                    proxyManager?.Refresh();
+
                 return await Search2(title, original_title, year);
+            }
 
             var ids = new List<int>();
             var stpl = new SimilarTpl(root.Count);
@@ -317,31 +307,21 @@ namespace Online.Controllers
         }
 
 
-        async Task<SearchResult> Search2(string? title, string? original_title, int year)
+        async Task<SearchResult> Search2(string title, string original_title, int year)
         {
-            async Task<List<SearchModel>> gosearch(string? story)
+            async Task<List<SearchModel>> gosearch(string story)
             {
                 if (string.IsNullOrEmpty(story))
                     return null;
 
-                string uri = $"https://api.filmix.tv/api-fx/list?search={HttpUtility.UrlEncode(story)}&limit=48";
+                string uri = $"{AppInit.conf.FilmixTV.corsHost()}/api-fx/list?search={HttpUtility.UrlEncode(story)}&limit=48";
 
-                string json = await Http.Get(uri, proxy: proxy, timeoutSeconds: 5);
-                if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
+                var root = await Http.Get<JObject>(uri, proxy: proxy, timeoutSeconds: 5);
+
+                if (root == null || !root.ContainsKey("items"))
                     return null;
 
-                List<SearchModel> root = null;
-
-                try
-                {
-                    root = JsonConvert.DeserializeObject<List<SearchModel>>(json);
-                }
-                catch { }
-
-                if (root == null || root.Count == 0)
-                    return null;
-
-                return root;
+                return root["items"].ToObject<List<SearchModel>>();
             }
 
             var result = await gosearch(original_title);

@@ -1,23 +1,13 @@
 ﻿using Shared.Engine.RxEnumerate;
 using Shared.Models.SISI.Base;
-using System.Text;
-using System.Threading;
 
 namespace Shared.Engine.SISI
 {
     public static class RunetkiTo
     {
-        static readonly ThreadLocal<StringBuilder> sbUri = new(() => new StringBuilder(PoolInvk.rentChunk));
-
         public static string Uri(string host, string sort, int pg)
         {
-            var url = sbUri.Value;
-            url.Clear();
-
-            url.Append(host);
-            url.Append($"/tools/listing_v3.php?livetab={sort ?? "all"}&offset={(pg > 1 ? ((pg - 1) * 72) : 0)}&limit=72");
-
-            return url.ToString();
+            return $"{host}/tools/listing_v3.php?livetab={sort ?? "all"}&offset={(pg > 1 ? ((pg - 1) * 72) : 0)}&limit=72";
         }
 
         public static List<PlaylistItem> Playlist(ReadOnlySpan<char> html, out int total_pages, Func<PlaylistItem, PlaylistItem> onplaylist = null)

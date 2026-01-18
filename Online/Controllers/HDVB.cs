@@ -139,7 +139,7 @@ namespace Online.Controllers
                     return ShowError(rch_error);
             }
 
-            return await InvkSemaphore($"video:view:video:{iframe}", async key =>
+            return await InvkSemaphore(ipkey($"video:view:video:{iframe}"), async key =>
             {
                 if (!hybridCache.TryGetValue(key, out string urim3u8))
                 {
@@ -254,7 +254,7 @@ namespace Online.Controllers
                     return ShowError(rch_error);
             }
 
-            return await InvkSemaphore($"video:view:serial:{iframe}:{t}:{s}:{e}", async key =>
+            return await InvkSemaphore(ipkey($"video:view:serial:{iframe}:{t}:{s}:{e}"), async key =>
             {
                 if (!hybridCache.TryGetValue(key, out string urim3u8))
                 {

@@ -1,9 +1,10 @@
-﻿using Shared.Models.Base;
+﻿using Newtonsoft.Json.Linq;
+using Shared.Models;
+using Shared.Models.Base;
 using Shared.Models.Online.Filmix;
 using Shared.Models.Online.FilmixTV;
 using Shared.Models.Templates;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Web;
 
 namespace Shared.Engine.Online
@@ -13,19 +14,19 @@ namespace Shared.Engine.Online
         #region FilmixTVInvoke
         string host;
         string apihost;
-        Func<string, Task<string>> onget;
-        Func<string, string, Task<string>> onpost;
+        List<HeadersModel> bearer;
+        HttpHydra httpHydra;
         Func<string, string> onstreamfile;
         Func<string, string> onlog;
         Action requesterror;
         bool rjson;
 
-        public FilmixTVInvoke(string host, string apihost, Func<string, Task<string>> onget, Func<string, string, Task<string>> onpost, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
+        public FilmixTVInvoke(string host, string apihost, List<HeadersModel> bearer, HttpHydra httpHydra, Func<string, string> onstreamfile, Func<string, string> onlog = null, Action requesterror = null, bool rjson = false)
         {
             this.host = host != null ? $"{host}/" : null;
             this.apihost = apihost;
-            this.onget = onget;
-            this.onpost = onpost;
+            this.bearer = bearer;
+            this.httpHydra = httpHydra;
             this.onstreamfile = onstreamfile;
             this.onlog = onlog;
             this.requesterror = requesterror;
@@ -42,23 +43,23 @@ namespace Shared.Engine.Online
             string uri = $"{apihost}/api-fx/list?search={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}&limit=48";
             onlog?.Invoke(uri);
 
-            string json = await onget.Invoke(uri);
-            if (string.IsNullOrEmpty(json) || !json.Contains("\"status\":\"ok\""))
+            var root = await httpHydra.Get<JObject>(uri, addheaders: bearer, safety: true);
+            if (root == null || !root.ContainsKey("items"))
                 return await Search2(title, original_title, year, clarification);
 
-            List<SearchModel> root = null;
+            List<SearchModel> items = null;
 
             try
             {
-                root = JsonNode.Parse(json)?["items"]?.Deserialize<List<SearchModel>>();
+                items = root["items"].ToObject<List<SearchModel>>();
             }
             catch { }
 
-            if (root == null || root.Count == 0)
+            if (items == null || items.Count == 0)
                 return await Search2(title, original_title, year, clarification);
 
-            var ids = new List<int>(root.Count);
-            var stpl = new SimilarTpl(root.Count);
+            var ids = new List<int>(items.Count);
+            var stpl = new SimilarTpl(items.Count);
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -66,7 +67,7 @@ namespace Shared.Engine.Online
             string stitle = StringConvert.SearchName(title);
             string sorigtitle = StringConvert.SearchName(original_title);
 
-            foreach (var item in root)
+            foreach (var item in items)
             {
                 if (item == null)
                     continue;
@@ -83,8 +84,6 @@ namespace Shared.Engine.Online
                 }
             }
 
-            onlog?.Invoke("ids: " + ids.Count);
-
             if (ids.Count == 1 && !similar)
                 return new SearchResult() { id = ids[0] };
 
@@ -95,32 +94,6 @@ namespace Shared.Engine.Online
         #region Search2
         async Task<SearchResult> Search2(string title, string original_title, int year, int clarification)
         {
-            async Task<List<SearchModel>> gosearch(string story)
-            {
-                if (string.IsNullOrEmpty(story))
-                    return null;
-
-                string uri = $"http://filmixapp.cyou/api/v2/search?story={HttpUtility.UrlEncode(story)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi";
-                onlog?.Invoke(uri);
-
-                string json = await onget.Invoke(uri);
-                if (json == null)
-                    return null;
-
-                List<SearchModel> root = null;
-
-                try
-                {
-                    root = JsonSerializer.Deserialize<List<SearchModel>>(json);
-                }
-                catch { }
-
-                if (root == null || root.Count == 0)
-                    return null;
-
-                return root;
-            }
-
             var result = await gosearch(clarification == 1 ? original_title : title);
             if (result == null)
                 result = await gosearch(clarification == 1 ? title : original_title);
@@ -154,12 +127,25 @@ namespace Shared.Engine.Online
                 }
             }
 
-            onlog?.Invoke("ids: " + ids.Count);
-
             if (ids.Count == 1)
                 return new SearchResult() { id = ids[0] };
 
             return new SearchResult() { similars = stpl };
+        }
+
+        async Task<List<SearchModel>> gosearch(string story)
+        {
+            if (string.IsNullOrEmpty(story))
+                return null;
+
+            string uri = $"{AppInit.conf.Filmix.corsHost()}/api/v2/search?story={HttpUtility.UrlEncode(story)}&user_dev_apk=2.0.1&user_dev_id=&user_dev_name=Xiaomi&user_dev_os=11&user_dev_token=&user_dev_vendor=Xiaomi";
+
+            var root = await httpHydra.Get<List<SearchModel>>(uri, addheaders: bearer, safety: true);
+
+            if (root == null || root.Count == 0)
+                return null;
+
+            return root;
         }
         #endregion
 

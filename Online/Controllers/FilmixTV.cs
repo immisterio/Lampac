@@ -4,7 +4,6 @@ using Shared.Models.Online.FilmixTV;
 using Shared.Models.Online.Settings;
 using System.Text;
 using System.Threading;
-using YamlDotNet.Core.Tokens;
 using F = System.IO.File;
 
 namespace Online.Controllers
@@ -68,8 +67,8 @@ namespace Online.Controllers
             (
                host,
                init.corsHost(),
-               ongettourl => httpHydra.Get(ongettourl, addheaders: bearer, safety: true),
-               (url, data) => httpHydra.Post(url, data, addheaders: bearer, safety: true),
+               bearer,
+               httpHydra,
                streamfile => HostStreamProxy(streamfile),
                requesterror: () => proxyManager?.Refresh(),
                rjson: rjson
