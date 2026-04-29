@@ -127,6 +127,10 @@ public static class PornHubTo
                     videoCategory = Rx.Split("pageHeader", videoCategory)[0].Span;
             }
         }
+        else if (html.Contains("id=\"profileContent\"", StringComparison.Ordinal))
+        {
+            videoCategory = Rx.Slice(html, "id=\"profileContent\"", "</section>");
+        }
         else
         {
             videoCategory = HtmlSpan.Node(html, "*", "id", "videoSearchResult", HtmlSpanTargetType.Exact);

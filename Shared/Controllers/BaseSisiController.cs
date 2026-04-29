@@ -336,7 +336,7 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
             {
                 writer.WriteStartObject();
                 writer.WriteNumber("count", playlists.Count);
-                writer.WriteNumber("totalPages", total_pages);
+                writer.WriteNumber("total_pages", total_pages);
 
                 writer.WritePropertyName("menu");
                 JsonSerializer.Serialize(writer, menu ?? emptyMenu, SisiJsonContext.Default.ListMenuItem);

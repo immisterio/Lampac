@@ -14,7 +14,7 @@ namespace PornHub;
 
 public class PornHubController : BaseSisiController
 {
-    static readonly HttpClient http2Client = FriendlyHttp.CreateHttp2Client();
+    static readonly HttpClient http2Client = FriendlyHttp.CreateHttp2Client(useCookies: false);
 
     public PornHubController() : base(ModInit.conf.PornHub)
     {
@@ -132,7 +132,7 @@ public class PornHubController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"phub:vidosik:{vkey}", 20, jsonContext.StreamItem, async e =>
         {
             string url = PornHubTo.StreamLinksUri(init.host, vkey);
