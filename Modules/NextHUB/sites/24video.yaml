@@ -5,7 +5,7 @@ rch_access: apk,cors
 stream_access: apk,cors
 rchstreamproxy: web
 #24videos.porn
-host: https://porn.24videos.space
+host: https://hub.24videos.space
 priorityBrowser: http
 
 menu:
