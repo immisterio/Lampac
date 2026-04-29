@@ -109,6 +109,7 @@ public static class CSharpEval
 
     #region Compilation
     public static List<PortableExecutableReference> appReferences;
+    static readonly string vshared = CrypTo.md5File("Shared.dll");
     static readonly object lockCompilationObj = new();
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -120,7 +121,7 @@ public static class CSharpEval
 
             if (Directory.Exists(path))
             {
-                var sumhash = new StringBuilder("28042026");
+                var sumhash = new StringBuilder(vshared);
 
                 #region syntaxTree
                 var syntaxTree = new List<SyntaxTree>();

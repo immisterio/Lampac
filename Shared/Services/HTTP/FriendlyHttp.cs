@@ -116,7 +116,7 @@ public static class FriendlyHttp
 
 
     #region CreateHttp2Client
-    public static HttpClient CreateHttp2Client()
+    public static HttpClient CreateHttp2Client(bool useCookies = true)
     {
         return new HttpClient(new SocketsHttpHandler
         {
@@ -126,7 +126,10 @@ public static class FriendlyHttp
             PooledConnectionLifetime = TimeSpan.FromMinutes(10),
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             EnableMultipleHttp2Connections = true,
+            EnableMultipleHttp3Connections = true,
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+            CookieContainer = useCookies ? new CookieContainer() : null,
+            UseCookies = useCookies
         })
         {
             MaxResponseContentBufferSize = 10_000_000,
@@ -137,7 +140,7 @@ public static class FriendlyHttp
     #endregion
 
     #region CreateHttpClient
-    public static HttpClient CreateHttpClient()
+    public static HttpClient CreateHttpClient(bool useCookies = true)
     {
         return new HttpClient(new SocketsHttpHandler
         {
@@ -147,6 +150,8 @@ public static class FriendlyHttp
             PooledConnectionLifetime = TimeSpan.FromMinutes(10),
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+            CookieContainer = useCookies ? new CookieContainer() : null,
+            UseCookies = useCookies
         })
         {
             MaxResponseContentBufferSize = 10_000_000,
