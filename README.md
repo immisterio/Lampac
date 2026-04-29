@@ -45,6 +45,7 @@
   - [Быстрый старт](#быстрый-старт)
     - [Docker](#docker)
     - [Нативная установка (Linux)](#нативная-установка-linux)
+    - [Нативная установка (Windows)](#нативная-установка-windows)
     - [Ручная сборка](#ручная-сборка)
   - [Конфигурация](#конфигурация)
   - [Модули](#модули)
@@ -228,6 +229,43 @@ config/local.conf
 
 </details>
 
+---
+
+### Нативная установка (Windows)
+
+1. **Установите .NET 10 Runtime**
+   Скачайте и установите **.NET 10.0 Runtime** с [официального сайта](https://dotnet.microsoft.com/download/dotnet/10.0) (выберите `ASP.NET Core Runtime` под Windows).
+
+2. **Скачайте релиз**
+   Перейдите на [страницу релизов](https://github.com/lampac-nextgen/lampac/releases) и скачайте архив `lampac-nextgen.zip`. Распакуйте в любое место, например `C:\lampacNG`.
+
+3. **Настройте конфигурацию**
+   Переименуйте `example.init.conf` в `init.conf` и отредактируйте под свои нужды.
+
+4. **Запустите сервер**
+   Откройте командную строку (cmd или PowerShell) в распакованной папке и выполните команду: `dotnet Core.dll`
+
+Сервер запустится на порту 9118 (или другом, указанном в init.conf). Для остановки нажмите `Ctrl+C`.
+
+> **NOTE**
+> Для запуска в фоне можно использовать NSSM (создать сервис в Windows):
+>
+> 1. Для создания сервиса необходимо скачать инструмент [NSSM](https://nssm.cc/download) и распаковать, например, в `C:\nssm`
+>
+> 2. Создание сервиса через **CMD** от имени администратора:
+> ```
+> "C:\nssm\win64\nssm.exe" install Lampac "C:\Program Files\dotnet\dotnet.exe" "C:\lampacNG\Core.dll"
+> "C:\nssm\win64\nssm.exe" set Lampac AppDirectory "C:\lampacNG"
+> "C:\nssm\win64\nssm.exe" set Lampac Start SERVICE_AUTO_START
+> "C:\nssm\win64\nssm.exe" start Lampac
+> ```
+>
+> 3. Удаление сервиса:
+> ```
+> "C:\nssm\win64\nssm.exe" stop Lampac
+> "C:\nssm\win64\nssm.exe" remove Lampac
+> ```
+> Важно помнить, что для обновления сервиса необходимо сначала его остановить, затем заменить файлы в папке `C:\lampacNG` на новые из архива, и после этого снова запустить сервис.
 ---
 
 ### Ручная сборка
