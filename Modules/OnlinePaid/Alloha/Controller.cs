@@ -62,7 +62,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
             return badInitMsg;
 
         #region search
-    rhubFallback:
+        rhubFallback:
 
         string memKey = string.IsNullOrEmpty(orid)
             ? $"alloha:search:{imdb_id}:{kinopoisk_id}"
@@ -115,7 +115,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                         voice_name: quality,
                         quality: uhd ? "2160p" : ""
                     );
-        }
+                }
 
                 mtpl.Append(
                     translation.name,

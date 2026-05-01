@@ -47,7 +47,7 @@ public class KinotochkaController : BaseOnlineController
         {
             if (s == -1)
             {
-                #region Сезоны
+            #region Сезоны
             rhubFallback:
 
                 var cache = await InvokeCacheResult<List<Season>>($"kinotochka:seasons:{title}", TimeSpan.FromHours(4), textJson: true, onget: async e =>
@@ -144,7 +144,7 @@ public class KinotochkaController : BaseOnlineController
             }
             else
             {
-                #region Серии
+            #region Серии
             rhubFallback:
 
                 var cache = await InvokeCacheResult<List<Episode>>($"kinotochka:playlist:{newsuri}", 30, textJson: true, onget: async e =>
@@ -190,7 +190,8 @@ public class KinotochkaController : BaseOnlineController
                 {
                     var etpl = new EpisodeTpl(cache.Value.Count);
 
-                    foreach (var l in cache.Value) {
+                    foreach (var l in cache.Value)
+                    {
                         etpl.Append(
                             l.comment,
                             title,
@@ -213,7 +214,7 @@ public class KinotochkaController : BaseOnlineController
             if (kinopoisk_id == 0)
                 return OnError();
 
-        rhubFallback:
+            rhubFallback:
             var cache = await InvokeCacheResult<EmbedModel>($"kinotochka:view:{kinopoisk_id}", 30, textJson: true, onget: async e =>
             {
                 string file = null;

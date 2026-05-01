@@ -49,7 +49,7 @@ public class AniLibertyController : BaseOnlineController
             if (string.IsNullOrEmpty(stitle))
                 return OnError();
 
-        rhubFallback:
+            rhubFallback:
             var cache = await InvokeCacheResult<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", TimeSpan.FromHours(4), async e =>
             {
                 var search = await httpHydra.Get<List<SearchItem>>($"{init.host}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}");
@@ -118,7 +118,7 @@ public class AniLibertyController : BaseOnlineController
         }
         else
         {
-            #region Серии
+        #region Серии
         rhubFallback:
             var cache = await InvokeCacheResult<Release>($"aniliberty:releases:{releases}", 20, async e =>
             {

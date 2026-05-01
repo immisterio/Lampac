@@ -45,7 +45,7 @@ public class AnimeLibController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-        rhubFallback:
+            rhubFallback:
             var search = await InvokeCacheResult<List<(string title, string year, string uri, bool coincidence, string cover)>>($"animelib:search:{title}:{original_title}", TimeSpan.FromHours(4), async e =>
             {
                 async Task<DataSearch[]> goSearch(string q)
@@ -125,7 +125,7 @@ public class AnimeLibController : BaseOnlineController
         }
         else
         {
-            #region Серии
+        #region Серии
         rhubFallback:
             var cache = await InvokeCacheResult<Episode[]>($"animelib:playlist:{uri}", TimeSpan.FromHours(1), async e =>
             {

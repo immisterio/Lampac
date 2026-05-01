@@ -35,7 +35,7 @@ public class RutubeMovieController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-    rhubFallback:
+        rhubFallback:
         string memKey = $"rutubemovie:view:{searchTitle}:{year}:{(rch?.enable == true ? requestInfo.Country : "")}";
 
         var cache = await InvokeCacheResult<List<Result>>(memKey, TimeSpan.FromHours(4), textJson: true, onget: async e =>
@@ -101,7 +101,7 @@ public class RutubeMovieController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-    rhubFallback:
+        rhubFallback:
         var cache = await InvokeCacheResult<string>($"rutubemovie:play:{linkid}", 20, async e =>
         {
             var root = await httpHydra.Get<RootPlayOptions>($"{init.host}/api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp");

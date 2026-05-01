@@ -9,7 +9,7 @@ using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
 using Shared.Services.Utilities;
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Shared.Services.RxEnumerate;
 
@@ -26,7 +26,7 @@ public class KinoflixController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-    rhubFallback:
+        rhubFallback:
 
         #region search
         if (string.IsNullOrEmpty(href))

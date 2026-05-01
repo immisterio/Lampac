@@ -31,7 +31,7 @@ public class DreamerscastController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-        rhubFallback:
+            rhubFallback:
             var cache = await InvokeCacheResult<List<SearchItem>>($"dreamerscast:search:{title}", TimeSpan.FromHours(4), textJson: true, onget: async e =>
             {
                 var search = await httpHydra.Post<SearchResponse>($"{init.host}/", $"search={HttpUtility.UrlEncode(title)}&status=&pageSize=16&pageNumber=1", textJson: true, addheaders: HeadersModel.Init(

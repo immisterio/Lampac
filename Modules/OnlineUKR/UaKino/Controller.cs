@@ -39,7 +39,7 @@ public class UaKinoController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return OnError();
 
-        searchFallback:
+            searchFallback:
 
             string query = (similar || clarification == 1) ? title : original_title;
 
@@ -74,7 +74,7 @@ public class UaKinoController : BaseOnlineController
                 return stpl;
             });
         }
-        #endregion
+    #endregion
 
     rhubFallback:
 

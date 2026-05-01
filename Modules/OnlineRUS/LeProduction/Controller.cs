@@ -26,7 +26,7 @@ public class LeProductionController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-    rhubFallback:
+        rhubFallback:
 
         #region search
         if (string.IsNullOrEmpty(href))

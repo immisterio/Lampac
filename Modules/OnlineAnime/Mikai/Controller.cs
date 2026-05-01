@@ -33,7 +33,7 @@ public class MikaiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-        rhubFallbackSearch:
+            rhubFallbackSearch:
             var search = await InvokeCacheResult<List<(int id, string title, string year, string poster)>>($"mikai:search:{title}", TimeSpan.FromHours(4), async e =>
             {
                 var root = await httpHydra.Get<SearchResponse>($"{init.host}/v1/anime/search?page=1&limit=24&sort=year&order=desc&name={HttpUtility.UrlEncode(title)}");
@@ -86,7 +86,7 @@ public class MikaiController : BaseOnlineController
 
             return ContentTpl(stpl);
         }
-        #endregion
+    #endregion
 
     rhubFallbackAnime:
         var anime = await InvokeCacheResult<AnimeResult>($"mikai:anime:{animeid}", TimeSpan.FromHours(2), async e =>
