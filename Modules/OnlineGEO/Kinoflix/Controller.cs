@@ -151,13 +151,9 @@ public class KinoflixController : BaseOnlineController
                         string seasonNum = Regex.Match(seasonName, "([0-9]+)").Groups[1].Value;
 
                         tpl.Append(
-
                             seasonName ?? $"{seasonNum} сезон",
-
                             $"{host}/lite/kinoflix?title={enc_title}&original_title={enc_original_title}&href={enc_href}&s={seasonNum}",
-
                             seasonNum
-
                         );
                     }
 

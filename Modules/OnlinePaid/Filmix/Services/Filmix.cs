@@ -346,13 +346,8 @@ public class FilmixInvoke
                 foreach (var season in player_links.playlist)
                 {
                     tpl.Append(
-
-                        $"{season.Key.Replace("-1",
-
-                        "1")} сезон",
-
+                        $"{season.Key.Replace("-1", "1")} сезон",
                         host + $"{route}?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}", season.Key
-
                     );
                 }
 
