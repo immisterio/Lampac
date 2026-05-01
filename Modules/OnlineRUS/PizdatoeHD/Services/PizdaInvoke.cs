@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.Pools;
@@ -225,7 +226,7 @@ public class PizdaInvoke
         };
     }
 
-    public string Movie(MovieModel md, string title, string original_title, bool play, VastConf vast = null)
+    public string Movie(MovieModel md, string title, string original_title, bool play, HttpContext httpContext, VastConf vast = null)
     {
         if (play)
             return onstreamfile(md.links[0].stream_url);
@@ -257,11 +258,15 @@ public class PizdaInvoke
         foreach (var l in md.links)
             streamquality.Append(onstreamfile(l.stream_url), l.title);
 
-        return VideoTpl.ToJson("play", onstreamfile(md.links[0].stream_url), (title ?? original_title ?? "auto"),
+        return VideoTpl.ToJson(
+            "play",
+            onstreamfile(md.links[0].stream_url),
+            (title ?? original_title ?? "auto"),
             streamquality: streamquality,
             subtitles: subtitles,
             vast: vast,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
+            httpContext: httpContext
         );
     }
     #endregion
@@ -322,7 +327,12 @@ public class PizdaInvoke
                         string stream = init.hls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
                         stream += args;
 
-                        mtpl.Append(voice, link, "call", stream);
+                        mtpl.Append(
+                            voice,
+                            link,
+                            "call",
+                            stream
+                        );
                     }
 
                     match = match.NextMatch();
@@ -339,7 +349,13 @@ public class PizdaInvoke
 
                 var first = streamquality.Firts();
                 if (first != null)
-                    mtpl.Append(first.quality, onstreamfile(first.link), streamquality: streamquality);
+                {
+                    mtpl.Append(
+                        first.quality,
+                        onstreamfile(first.link),
+                        streamquality: streamquality
+                    );
+                }
             }
 
             return mtpl;
@@ -373,9 +389,11 @@ public class PizdaInvoke
                     if (string.IsNullOrEmpty(voice))
                         voice = enc_href;
 
-                    string link = host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={voice}&t={match.Groups["translator"].Value}";
-
-                    vtpl.Append(name, match.Groups["translator"].Value == selectVoice, link);
+                    vtpl.Append(
+                        name,
+                        match.Groups["translator"].Value == selectVoice,
+                        host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={voice}&t={match.Groups["translator"].Value}"
+                    );
 
                     match = match.NextMatch();
                 }
@@ -399,9 +417,12 @@ public class PizdaInvoke
                     if (!string.IsNullOrEmpty(m.Groups["season"].Value) && !eshash.Contains(sname))
                     {
                         eshash.Add(sname);
-                        string link = host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&t={selectVoice}&s={m.Groups["season"].Value}";
 
-                        tpl.Append(sname, link, m.Groups["season"].Value);
+                        tpl.Append(
+                            sname,
+                            host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&t={selectVoice}&s={m.Groups["season"].Value}",
+                            m.Groups["season"].Value
+                        );
                     }
                     #endregion
                 }
@@ -419,7 +440,15 @@ public class PizdaInvoke
                         string stream = init.hls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
                         stream += args;
 
-                        etpl.Append(m.Groups["name"].Value, title ?? original_title, sArhc, m.Groups["episode"].Value, link, "call", streamlink: stream);
+                        etpl.Append(
+                            m.Groups["name"].Value,
+                            title ?? original_title,
+                            sArhc,
+                            m.Groups["episode"].Value,
+                            link,
+                            "call",
+                            streamlink: stream
+                        );
                     }
                     #endregion
                 }

@@ -70,7 +70,7 @@ public class iRemuxController : BaseOnlineController
         if (weblink == null)
             return OnError();
 
-        return ContentTo(oninvk.Movie(weblink, quality, title, original_title, vast: init.vast));
+        return ContentTo(oninvk.Movie(weblink, quality, title, original_title, HttpContext, vast: init.vast));
     }
 
 

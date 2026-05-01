@@ -48,9 +48,9 @@ public class VeoVeoController : BaseOnlineController
 
             movieid = movie.id;
         }
-    #endregion
+        #endregion
 
-    #region media
+        #region media
     rhubFallback:
 
         var cache = await InvokeCacheResult<List<CatalogItem>>($"{init.plugin}:view:{movieid}", 20, async e =>
@@ -90,7 +90,11 @@ public class VeoVeoController : BaseOnlineController
                                     ? accsArgs($"{host}/lite/veoveo/parsed.m3u8?link={EncryptQuery(file)}")
                                     : HostStreamProxy(file);
 
-                                mtpl.Append(episode.title ?? "1080p", stream, vast: init.vast);
+                                mtpl.Append(
+                                    episode.title ?? "1080p",
+                                    stream,
+                                    vast: init.vast
+                                );
                             }
                         }
                     }
@@ -115,8 +119,11 @@ public class VeoVeoController : BaseOnlineController
                         if (!hash.Add(season))
                             continue;
 
-                        string link = $"{host}/lite/veoveo?rjson={rjson}&movieid={movieid}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season}";
-                        tpl.Append($"{season} сезон", link, season);
+                        tpl.Append(
+                            $"{season} сезон",
+                            $"{host}/lite/veoveo?rjson={rjson}&movieid={movieid}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season}",
+                            season
+                        );
                     }
 
                     return tpl;
@@ -144,7 +151,14 @@ public class VeoVeoController : BaseOnlineController
                             if (stream.Contains(".json"))
                                 stream = accsArgs($"{host}/lite/veoveo/parsed.m3u8?link={EncryptQuery(file)}");
 
-                            etpl.Append(name ?? $"{episode.order} серия", title ?? original_title, sArhc, episode.order.ToString(), stream, vast: init.vast);
+                            etpl.Append(
+                                name ?? $"{episode.order} серия",
+                                title ?? original_title,
+                                sArhc,
+                                episode.order.ToString(),
+                                stream,
+                                vast: init.vast
+                            );
                         }
                     }
 
@@ -205,8 +219,13 @@ public class VeoVeoController : BaseOnlineController
             if (StringConvert.SearchName(m.title, string.Empty).Contains(_t) ||
                 StringConvert.SearchName(m.originalTitle, string.Empty).Contains(_t))
             {
-                string uri = $"{host}/lite/veoveo?movieid={m.id}";
-                stpl.Append(m.title ?? m.originalTitle, m.year.ToString(), string.Empty, uri, PosterApi.Find(m.kinopoiskId, m.imdbId));
+                stpl.Append(
+                    m.title ?? m.originalTitle,
+                    m.year.ToString(),
+                    string.Empty,
+                    $"{host}/lite/veoveo?movieid={m.id}",
+                    PosterApi.Find(m.kinopoiskId, m.imdbId)
+                );
             }
         }
 

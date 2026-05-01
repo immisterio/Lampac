@@ -79,8 +79,13 @@ public class AnimeGoController : BaseOnlineController
 
             foreach (var res in cache.Value)
             {
-                string uri = $"{host}/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={res.pid}&s={res.s}";
-                stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.img));
+                stpl.Append(
+                    res.title,
+                    res.year,
+                    string.Empty,
+                    $"{host}/lite/animego?title={HttpUtility.UrlEncode(title)}&pid={res.pid}&s={res.s}",
+                    PosterApi.Size(res.img)
+                );
             }
 
             return ContentTpl(stpl);
@@ -161,8 +166,11 @@ public class AnimeGoController : BaseOnlineController
 
                 foreach (var translation in cache.Value.translations)
                 {
-                    string link = $"{host}/lite/animego?pid={pid}&title={HttpUtility.UrlEncode(title)}&s={s}&t={translation.id}";
-                    vtpl.Append(translation.name, t == translation.id, link);
+                    vtpl.Append(
+                        translation.name,
+                        t == translation.id,
+                        $"{host}/lite/animego?pid={pid}&title={HttpUtility.UrlEncode(title)}&s={s}&t={translation.id}"
+                    );
                 }
                 #endregion
 
@@ -172,7 +180,15 @@ public class AnimeGoController : BaseOnlineController
                 {
                     string hls = accsArgs($"{host}/lite/animego/{l.uri}&t={t ?? cache.Value.translation}");
 
-                    etpl.Append($"{l.episode} серия", title, s.ToString(), l.episode, hls, "play", headers: headers_stream);
+                    etpl.Append(
+                        $"{l.episode} серия",
+                        title,
+                        s.ToString(),
+                        l.episode,
+                        hls,
+                        "play",
+                        headers: headers_stream
+                    );
                 }
 
                 return etpl;

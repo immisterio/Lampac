@@ -56,7 +56,14 @@ public class AutoEmbedController : BaseENGController
         if (play)
             return RedirectToPlay(file);
 
-        return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            file,
+            "English",
+            vast: init.vast,
+            headers: init.streamproxy ? null : headers_stream,
+            httpContext: HttpContext
+        ));
     }
 
     private async Task<(string file, List<HeadersModel> headers)> black_magic(string uri)

@@ -24,7 +24,7 @@ public class AnimebesstController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         if (string.IsNullOrEmpty(uri))
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -98,8 +98,13 @@ public class AnimebesstController : BaseOnlineController
 
                 foreach (var res in cache.Value)
                 {
-                    string _u = $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
-                    stpl.Append(res.title, res.year, string.Empty, _u, PosterApi.Size(res.img));
+                    stpl.Append(
+                        res.title,
+                        res.year,
+                        string.Empty,
+                        $"{host}/lite/animebesst?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}",
+                        PosterApi.Size(res.img)
+                    );
                 }
 
                 return stpl;
@@ -149,7 +154,16 @@ public class AnimebesstController : BaseOnlineController
 
                     string link = accsArgs($"{host}/lite/animebesst/video.m3u8?uri={HttpUtility.UrlEncode(l.uri)}&title={HttpUtility.UrlEncode(title)}");
 
-                    etpl.Append(name, $"{title} / {name}", s.ToString(), l.episode, link, "call", streamlink: $"{link}&play=true", voice_name: Regex.Unescape(voice_name));
+                    etpl.Append(
+                        name,
+                        $"{title} / {name}",
+                        s.ToString(),
+                        l.episode,
+                        link,
+                        "call",
+                        streamlink: $"{link}&play=true",
+                        voice_name: Regex.Unescape(voice_name)
+                    );
                 }
 
                 return etpl;
@@ -210,7 +224,13 @@ public class AnimebesstController : BaseOnlineController
         if (play)
             return RedirectToPlay(link);
 
-        return ContentTo(VideoTpl.ToJson("play", link, title, vast: init.vast));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            link,
+            title,
+            vast: init.vast,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 }

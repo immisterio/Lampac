@@ -54,8 +54,11 @@ public class BaseENGController : BaseOnlineController
                     if (1 > number)
                         continue;
 
-                    string link = $"{host}/lite/{init.plugin.ToLower()}?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={number}";
-                    tpl.Append($"{number} сезон", link, number);
+                    tpl.Append(
+                        $"{number} сезон",
+                        $"{host}/lite/{init.plugin.ToLower()}?id={id}&imdb_id={imdb_id}&serial=1&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={number}",
+                        number
+                    );
                 }
 
                 return ContentTpl(tpl);
@@ -80,7 +83,16 @@ public class BaseENGController : BaseOnlineController
                         if (method == "play")
                             uri = accsArgs(uri);
 
-                        etpl.Append($"{i} серия", title ?? original_title, s.ToString(), i.ToString(), uri, method, streamlink: stream, vast: init.vast, hls_manifest_timeout: hls_manifest_timeout);
+                        etpl.Append(
+                            $"{i} серия",
+                            title ?? original_title,
+                            s.ToString(), i.ToString(),
+                            uri,
+                            method,
+                            streamlink: stream,
+                            vast: init.vast,
+                            hls_manifest_timeout: hls_manifest_timeout
+                        );
                     }
                 }
 
@@ -101,7 +113,14 @@ public class BaseENGController : BaseOnlineController
             if (method == "play")
                 uri = accsArgs(uri);
 
-            mtpl.Append("English", uri, method, stream: stream, vast: init.vast, hls_manifest_timeout: hls_manifest_timeout);
+            mtpl.Append(
+                "English",
+                uri,
+                method,
+                stream: stream,
+                vast: init.vast,
+                hls_manifest_timeout: hls_manifest_timeout
+            );
 
             return ContentTpl(mtpl);
             #endregion

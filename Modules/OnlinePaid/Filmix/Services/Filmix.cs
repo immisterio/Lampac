@@ -70,7 +70,13 @@ public class FilmixInvoke
 
             string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
-            stpl.Append(name, item.year.ToString(), string.Empty, host + $"{route}?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
+            stpl.Append(
+                name,
+                item.year.ToString(),
+                string.Empty,
+                host + $"{route}?postid={item.id}&title={enc_title}&original_title={enc_original_title}",
+                PosterApi.Size(item.poster)
+            );
 
             if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                 (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
@@ -126,7 +132,12 @@ public class FilmixInvoke
 
             string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_name) ? $"{item.title} / {item.original_name}" : (item.title ?? item.original_name);
 
-            stpl.Append(name, item.year.ToString(), string.Empty, host + $"{route}?postid={item.id}&title={enc_title}&original_title={enc_original_title}");
+            stpl.Append(
+                name,
+                item.year.ToString(),
+                string.Empty,
+                host + $"{route}?postid={item.id}&title={enc_title}&original_title={enc_original_title}"
+            );
 
             if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                 (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_name) == sorigtitle))
@@ -305,7 +316,14 @@ public class FilmixInvoke
 
                 var first = streamquality.Firts();
                 if (first != null)
-                    mtpl.Append(v.translation, first.link, streamquality: streamquality, vast: vast);
+                {
+                    mtpl.Append(
+                        v.translation,
+                        first.link,
+                        streamquality: streamquality,
+                        vast: vast
+                    );
+                }
             }
 
             return mtpl;
@@ -327,8 +345,15 @@ public class FilmixInvoke
 
                 foreach (var season in player_links.playlist)
                 {
-                    string link = host + $"{route}?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
-                    tpl.Append($"{season.Key.Replace("-1", "1")} сезон", link, season.Key);
+                    tpl.Append(
+
+                        $"{season.Key.Replace("-1",
+
+                        "1")} сезон",
+
+                        host + $"{route}?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Key}", season.Key
+
+                    );
                 }
 
                 return tpl;
@@ -353,7 +378,11 @@ public class FilmixInvoke
                     bool active = t == indexTranslate;
 
                     indexTranslate++;
-                    vtpl.Append(translation.Key, active, link);
+                    vtpl.Append(
+                        translation.Key,
+                        active,
+                        link
+                    );
                 }
                 #endregion
 
@@ -437,7 +466,17 @@ public class FilmixInvoke
 
                     var first = streamquality.Firts();
                     if (first != null)
-                        etpl.Append($"{episode.Key} серия", title ?? original_title, fis.ToString(), episode.Key, first.link, streamquality: streamquality, vast: vast);
+                    {
+                        etpl.Append(
+                            $"{episode.Key} серия",
+                            title ?? original_title,
+                            fis.ToString(),
+                            episode.Key,
+                            first.link,
+                            streamquality: streamquality,
+                            vast: vast
+                        );
+                    }
                 }
                 #endregion
 

@@ -31,7 +31,7 @@ public class DreamerscastController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            rhubFallback:
+        rhubFallback:
             var cache = await InvokeCacheResult<List<SearchItem>>($"dreamerscast:search:{title}", TimeSpan.FromHours(4), textJson: true, onget: async e =>
             {
                 var search = await httpHydra.Post<SearchResponse>($"{init.host}/", $"search={HttpUtility.UrlEncode(title)}&status=&pageSize=16&pageNumber=1", textJson: true, addheaders: HeadersModel.Init(
@@ -85,8 +85,13 @@ public class DreamerscastController : BaseOnlineController
 
                 foreach (var res in cache.Value)
                 {
-                    string link = $"{host}/lite/dreamerscast?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
-                    stpl.Append(res.title, res.year.ToString(), string.Empty, link, PosterApi.Size(res.img));
+                    stpl.Append(
+                        res.title,
+                        res.year.ToString(),
+                        string.Empty,
+                        $"{host}/lite/dreamerscast?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}",
+                        PosterApi.Size(res.img)
+                    );
                 }
 
                 return stpl;
@@ -149,7 +154,13 @@ public class DreamerscastController : BaseOnlineController
                     string ep = string.IsNullOrWhiteSpace(item.episode) ? "1" : item.episode;
                     string nm = string.IsNullOrWhiteSpace(item.name) ? $"{ep} серия" : item.name;
 
-                    etpl.Append(nm, title, season, ep, HostStreamProxy(item.hls));
+                    etpl.Append(
+                        nm,
+                        title,
+                        season,
+                        ep,
+                        HostStreamProxy(item.hls)
+                    );
                 }
 
                 return etpl;

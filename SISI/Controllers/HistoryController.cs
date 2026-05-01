@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Shared.Models.Events;
 using Shared.Services.Pools.Json;
 using System.Web;
 
@@ -85,6 +86,17 @@ public class HistoryController : BaseController
                         Log.Error(ex, "CatchId={CatchId}", "id_5ztrqzhr");
                     }
                 }
+            }
+        }
+
+        if (EventListener.SisiHistorys != null)
+        {
+            var em = new EventSisiHistorys(this, HttpContext, historys, pg, pageSize);
+            foreach (Func<EventSisiHistorys, ActionResult> handler in EventListener.SisiHistorys.GetInvocationList())
+            {
+                var result = handler(em);
+                if (result != null)
+                    return result;
             }
         }
 

@@ -65,9 +65,14 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                 bool uhd = init.m4s ? file.Value<bool>("uhd") : false;
 
                 string link = $"{host}/lite/spectre/video?id_file={id}&token_movie={data.Value<string>("token_movie")}";
-                string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
-
-                mtpl.Append(translation, link, "call", streamlink, voice_name: uhd ? "2160p" : quality, quality: uhd ? "2160p" : "");
+                mtpl.Append(
+                    translation,
+                    link,
+                    "call",
+                    accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true"),
+                    voice_name: uhd ? "2160p" : quality,
+                    quality: uhd ? "2160p" : ""
+                );
             }
 
             return ContentTpl(mtpl);
@@ -119,7 +124,13 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                         seasonNumbers.Add(frame.active.Value<int>("seasons"));
 
                     foreach (int i in seasonNumbers.OrderBy(i => i))
-                        tpl.Append($"{i} сезон", $"{host}/lite/spectre?rjson={rjson}&s={i}{defaultargs}", i.ToString());
+                    {
+                        tpl.Append(
+                            $"{i} сезон",
+                            $"{host}/lite/spectre?rjson={rjson}&s={i}{defaultargs}",
+                            i.ToString()
+                        );
+                    }
 
                     return ContentTpl(tpl);
                 }
@@ -128,7 +139,13 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                     var tpl = new SeasonTpl(q, seasons.Count);
 
                     foreach (var season in seasons)
-                        tpl.Append($"{season.Key} сезон", $"{host}/lite/spectre?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
+                    {
+                        tpl.Append(
+                            $"{season.Key} сезон",
+                            $"{host}/lite/spectre?rjson={rjson}&s={season.Key}{defaultargs}",
+                            season.Key
+                        );
+                    }
 
                     return ContentTpl(tpl);
                 }
@@ -158,10 +175,11 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                             if (t == -1)
                                 t = id_translation;
 
-                            string link = $"{host}/lite/spectre?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
-                            bool active = t == id_translation;
-
-                            vtpl.Append(voice.Value<string>("translation"), active, link);
+                            vtpl.Append(
+                                voice.Value<string>("translation"),
+                                t == id_translation,
+                                $"{host}/lite/spectre?rjson={rjson}&s={s}&t={id_translation}{defaultargs}"
+                            );
                         }
                     }
                     #endregion
@@ -183,7 +201,18 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                             string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                             if (e > 0)
-                                etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                            {
+                                etpl.Append(
+                                    $"{e} серия",
+                                    title ?? original_title,
+                                    sArhc,
+                                    e.ToString(),
+                                    link,
+                                    "call",
+                                    voice_name: translation,
+                                    streamlink: streamlink
+                                );
+                            }
                         }
                     }
                 }
@@ -205,10 +234,11 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                         if (t == -1)
                             t = id_translation;
 
-                        string link = $"{host}/lite/spectre?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
-                        bool active = t == id_translation;
-
-                        vtpl.Append(voice.Value<string>("translation"), active, link);
+                        vtpl.Append(
+                            voice.Value<string>("translation"),
+                            t == id_translation,
+                            $"{host}/lite/spectre?rjson={rjson}&s={s}&t={id_translation}{defaultargs}"
+                        );
                     }
                     #endregion
 
@@ -239,7 +269,18 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                     if (e > 0)
-                                        etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                                    {
+                                        etpl.Append(
+                                            $"{e} серия",
+                                            title ?? original_title,
+                                            sArhc,
+                                            e.ToString(),
+                                            link,
+                                            "call",
+                                            voice_name: translation,
+                                            streamlink: streamlink
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -261,10 +302,11 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                             if (t == -1)
                                 t = id_translation;
 
-                            string link = $"{host}/lite/spectre?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
-                            bool active = t == id_translation;
-
-                            vtpl.Append(voice.Value<string>("translation"), active, link);
+                            vtpl.Append(
+                                voice.Value<string>("translation"),
+                                t == id_translation,
+                                $"{host}/lite/spectre?rjson={rjson}&s={s}&t={id_translation}{defaultargs}"
+                            );
                         }
                     }
                     #endregion
@@ -282,7 +324,16 @@ public class SpectreController : BaseOnlineController<ModuleConf>
                             string link = $"{host}/lite/spectre/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
                             string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                            etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
+                            etpl.Append(
+                                $"{episode.Key} серия",
+                                title ?? original_title,
+                                sArhc,
+                                episode.Key,
+                                link,
+                                "call",
+                                voice_name: translation,
+                                streamlink: streamlink
+                            );
                         }
                     }
                 }
@@ -326,10 +377,14 @@ public class SpectreController : BaseOnlineController<ModuleConf>
         if (play)
             return Redirect(first.link);
 
-        return ContentTo(VideoTpl.ToJson("play", first.link, "auto",
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            first.link,
+            "auto",
             streamquality: result.streams,
             vast: init.vast,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds
+            hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds,
+            httpContext: HttpContext
         ));
     }
     #endregion
@@ -360,8 +415,13 @@ public class SpectreController : BaseOnlineController<ModuleConf>
 
             foreach (var j in cache.Value)
             {
-                string uri = $"{host}/lite/spectre?orid={j.Value<string>("token_movie")}";
-                stpl.Append(j.Value<string>("name") ?? j.Value<string>("original_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                stpl.Append(
+                    j.Value<string>("name") ?? j.Value<string>("original_name"),
+                    j.Value<int>("year").ToString(),
+                    string.Empty,
+                    $"{host}/lite/spectre?orid={j.Value<string>("token_movie")}",
+                    PosterApi.Size(j.Value<string>("poster"))
+                );
             }
 
             return stpl;

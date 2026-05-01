@@ -111,7 +111,15 @@ public class VidSrcController : BaseENGController
         if (play)
             return RedirectToPlay(cache.Value.file);
 
-        return ContentTo(VideoTpl.ToJson("play", cache.Value.file, "English", subtitles: cache.Value.subtitles, vast: init.vast, headers: init.streamproxy ? null : cache.Value.headers));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            cache.Value.file,
+            "English",
+            subtitles: cache.Value.subtitles,
+            vast: init.vast,
+            headers: init.streamproxy ? null : cache.Value.headers,
+            httpContext: HttpContext
+        ));
     }
 
     private async Task<(string m3u8, List<HeadersModel> headers)> ExtractPlaylist(long id, string uri)

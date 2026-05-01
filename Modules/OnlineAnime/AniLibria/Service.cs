@@ -93,7 +93,17 @@ public struct AniLibriaInvoke
 
                 var first = streamquality.Firts();
                 if (first != null)
-                    etpl.Append($"{episode.serie} серия", title, season, episode.serie.ToString(), first.link, streamquality: streamquality, vast: vast);
+                {
+                    etpl.Append(
+                        $"{episode.serie} серия",
+                        title,
+                        season,
+                        episode.serie.ToString(),
+                        first.link,
+                        streamquality: streamquality,
+                        vast: vast
+                    );
+                }
             }
 
             return etpl;
@@ -111,7 +121,13 @@ public struct AniLibriaInvoke
                 if (!string.IsNullOrEmpty(img))
                     img = "https://anilibria.tv" + img;
 
-                stpl.Append(name, root.season.year.ToString(), string.Empty, host + $"lite/anilibria?title={enc_title}&code={root.code}", PosterApi.Size(img));
+                stpl.Append(
+                    name,
+                    root.season.year.ToString(),
+                    string.Empty,
+                    host + $"lite/anilibria?title={enc_title}&code={root.code}",
+                    PosterApi.Size(img)
+                );
             }
 
             return stpl;

@@ -34,7 +34,7 @@ public class BamBooController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return OnError();
 
-            searchFallback:
+        searchFallback:
 
             string query = (similar || clarification == 1) ? title : original_title;
 
@@ -58,14 +58,19 @@ public class BamBooController : BaseOnlineController
 
                 foreach (var similar in search.Value.similars)
                 {
-                    string link = $"{host}/lite/bamboo?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}";
-                    stpl.Append(similar.title, similar.year, string.Empty, link, PosterApi.Size(similar.img));
+                    stpl.Append(
+                        similar.title,
+                        similar.year,
+                        string.Empty,
+                        $"{host}/lite/bamboo?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}",
+                        PosterApi.Size(similar.img)
+                    );
                 }
 
                 return stpl;
             });
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 

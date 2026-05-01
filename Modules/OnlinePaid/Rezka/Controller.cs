@@ -148,7 +148,13 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
                     {
                         string link = $"{host}/lite/rezka?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                        stpl.Append(similar.title, similar.year, string.Empty, link, PosterApi.Size(similar.img));
+                        stpl.Append(
+                            similar.title,
+                            similar.year,
+                            string.Empty,
+                            link,
+                            PosterApi.Size(similar.img)
+                        );
                     }
 
                     return stpl;
@@ -256,7 +262,7 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
         if (md?.links == null || md.links.Count == 0)
             return OnError();
 
-        string result = oninvk.Movie(md, title, original_title, play, vast: init.vast);
+        string result = oninvk.Movie(md, title, original_title, play, HttpContext, vast: init.vast);
         if (result == null)
             return OnError();
 

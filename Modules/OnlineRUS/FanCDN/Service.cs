@@ -204,7 +204,13 @@ public struct FanCDNInvoke
                 }
                 #endregion
 
-                mtpl.Append(m.title, onstreamfile.Invoke(m.file), subtitles: subtitles, vast: vast, headers: headers);
+                mtpl.Append(
+                    m.title,
+                    onstreamfile.Invoke(m.file),
+                    subtitles: subtitles,
+                    vast: vast,
+                    headers: headers
+                );
             }
 
             return mtpl;
@@ -223,13 +229,14 @@ public struct FanCDNInvoke
 
                 foreach (var voice in root.serial.OrderBy(i => i.seasons))
                 {
-                    if (hash.Contains(voice.seasons))
+                    if (!hash.Add(voice.seasons))
                         continue;
 
-                    hash.Add(voice.seasons);
-
-                    string link = host + $"lite/fancdn?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={voice.seasons}";
-                    tpl.Append($"{voice.seasons} сезон", link, voice.seasons);
+                    tpl.Append(
+                        $"{voice.seasons} сезон",
+                        host + $"lite/fancdn?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={voice.seasons}",
+                        voice.seasons
+                    );
                 }
 
                 return tpl;
@@ -248,10 +255,11 @@ public struct FanCDNInvoke
                     if (t == -1)
                         t = voice.id;
 
-                    string link = host + $"lite/fancdn?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.id}";
-                    bool active = t == voice.id;
-
-                    vtpl.Append(voice.title, active, link);
+                    vtpl.Append(
+                        voice.title,
+                        t == voice.id,
+                        host + $"lite/fancdn?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={voice.id}"
+                    );
                 }
                 #endregion
 
@@ -261,7 +269,17 @@ public struct FanCDNInvoke
                 string sArhc = s.ToString();
 
                 foreach (var episode in episodes)
-                    etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, onstreamfile.Invoke(episode.Value.file), vast: vast, headers: headers);
+                {
+                    etpl.Append(
+                        $"{episode.Key} серия",
+                        title ?? original_title,
+                        sArhc,
+                        episode.Key,
+                        onstreamfile.Invoke(episode.Value.file),
+                        vast: vast,
+                        headers: headers
+                    );
+                }
 
                 return etpl;
             }

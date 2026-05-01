@@ -41,7 +41,7 @@ public class FlixCDNController : BaseOnlineController
         if (string.IsNullOrEmpty(init?.token))
             return OnError();
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<SearchItem>($"flixcdn:search:{imdb_id}:{kinopoisk_id}:{title}:{similar}", TimeSpan.FromHours(4), async e =>
         {
             if (similar || (kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id)))
@@ -82,8 +82,12 @@ public class FlixCDNController : BaseOnlineController
 
                 foreach (var voice in result.translations)
                 {
-                    string link = $"{host}/lite/flixcdn/stream?iframe={EncryptQuery(result.iframe_url)}&t={voice.id}";
-                    mtpl.Append(voice.title, link, "call", vast: init.vast);
+                    mtpl.Append(
+                        voice.title,
+                        $"{host}/lite/flixcdn/stream?iframe={EncryptQuery(result.iframe_url)}&t={voice.id}",
+                        "call",
+                        vast: init.vast
+                    );
                 }
 
                 return mtpl;
@@ -103,8 +107,11 @@ public class FlixCDNController : BaseOnlineController
                     {
                         if (hash.Add(voice.season))
                         {
-                            string link = $"{host}/lite/flixcdn?similar={similar}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&t={t}&s={voice.season}";
-                            tpl.Append($"{voice.season} сезон", link, voice.season);
+                            tpl.Append(
+                                $"{voice.season} сезон",
+                                $"{host}/lite/flixcdn?similar={similar}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&t={t}&s={voice.season}",
+                                voice.season
+                            );
                         }
                     }
 
@@ -123,7 +130,11 @@ public class FlixCDNController : BaseOnlineController
                             if (t == -1)
                                 t = voice.id;
 
-                            vtpl.Append(voice.title, t == voice.id, $"{host}/lite/flixcdn?similar={similar}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&t={voice.id}&s={s}");
+                            vtpl.Append(
+                                voice.title,
+                                t == voice.id,
+                                $"{host}/lite/flixcdn?similar={similar}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&t={voice.id}&s={s}"
+                            );
                         }
                     }
                     #endregion
@@ -138,7 +149,17 @@ public class FlixCDNController : BaseOnlineController
                     for (int e = 1; e <= targetVoice.episode; e++)
                     {
                         string link = $"{host}/lite/flixcdn/stream?iframe={EncryptQuery(result.iframe_url)}&t={t}&s={s}&e={e}";
-                        etpl.Append($"Серия {e}", title ?? original_title, sArhc, e.ToString(), link, "call", streamlink: $"{link}&play=true", vast: init.vast);
+
+                        etpl.Append(
+                            $"Серия {e}",
+                            title ?? original_title,
+                            sArhc,
+                            e.ToString(),
+                            link,
+                            "call",
+                            streamlink: $"{link}&play=true",
+                            vast: init.vast
+                        );
                     }
 
                     return etpl;
@@ -209,10 +230,14 @@ public class FlixCDNController : BaseOnlineController
         if (play)
             return RedirectToPlay(first.link);
 
-        return ContentTo(VideoTpl.ToJson("play", first.link, "auto",
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            first.link,
+            "auto",
             streamquality: streamquality,
             vast: init.vast,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
+            httpContext: HttpContext
         ));
     }
 
@@ -240,9 +265,14 @@ public class FlixCDNController : BaseOnlineController
         {
             string name = item.title_rus ?? item.title_orig;
             string details = item.year > 0 ? item.year.ToString() : string.Empty;
-            string link = $"{host}/lite/flixcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={HttpUtility.UrlEncode(item.title_rus)}&original_title={HttpUtility.UrlEncode(item.title_orig)}&year={item.year}";
 
-            stpl.Append(name, details, string.Empty, link, PosterApi.Size(item.poster));
+            stpl.Append(
+                name,
+                details,
+                string.Empty,
+                $"{host}/lite/flixcdn?kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={HttpUtility.UrlEncode(item.title_rus)}&original_title={HttpUtility.UrlEncode(item.title_orig)}&year={item.year}",
+                PosterApi.Size(item.poster)
+            );
 
             if (exact == null && !string.IsNullOrEmpty(name))
             {

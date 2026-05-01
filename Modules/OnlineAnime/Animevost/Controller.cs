@@ -28,7 +28,7 @@ public class AnimevostController : BaseOnlineController
         if (string.IsNullOrWhiteSpace(title))
             return OnError();
 
-        rhubFallback:
+    rhubFallback:
         if (string.IsNullOrWhiteSpace(uri))
         {
             #region Поиск
@@ -98,8 +98,13 @@ public class AnimevostController : BaseOnlineController
 
                 foreach (var res in cache.Value)
                 {
-                    string uri = $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}";
-                    stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.img));
+                    stpl.Append(
+                        res.title,
+                        res.year,
+                        string.Empty,
+                        $"{host}/lite/animevost?title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}&s={res.s}",
+                        PosterApi.Size(res.img)
+                    );
                 }
 
                 return stpl;
@@ -147,7 +152,16 @@ public class AnimevostController : BaseOnlineController
                 {
                     string link = $"{host}/lite/animevost/video?id={l.id}&title={HttpUtility.UrlEncode(title)}";
 
-                    etpl.Append(l.episode, title, s.ToString(), Regex.Match(l.episode, "^([0-9]+)").Groups[1].Value, link, "call", streamlink: accsArgs($"{link}&play=true"));
+                    etpl.Append(
+                        l.episode,
+                        title,
+                        s.ToString(),
+                        Regex.Match(l.episode,
+                        "^([0-9]+)").Groups[1].Value,
+                        link,
+                        "call",
+                        streamlink: accsArgs($"{link}&play=true")
+                    );
                 }
 
                 return etpl;
@@ -212,7 +226,13 @@ public class AnimevostController : BaseOnlineController
         return OnResult(cache, () =>
         {
             string link = HostStreamProxy(cache.Value[0].l);
-            return VideoTpl.ToJson("play", link, title, vast: init.vast);
+            return VideoTpl.ToJson(
+                "play",
+                link,
+                title,
+                vast: init.vast,
+                httpContext: HttpContext
+            );
         });
     }
     #endregion

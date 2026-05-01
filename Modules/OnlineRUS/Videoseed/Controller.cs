@@ -62,7 +62,12 @@ public class VideoseedController : BaseOnlineController
             {
                 #region Фильм
                 var mtpl = new MovieTpl(title, original_title, 1);
-                mtpl.Append("По-умолчанию", accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.Value.iframe)}") + "#.m3u8", "call", vast: init.vast);
+                mtpl.Append(
+                    "По-умолчанию",
+                    accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(cache.Value.iframe)}") + "#.m3u8",
+                    "call",
+                    vast: init.vast
+                );
 
                 return mtpl;
                 #endregion
@@ -79,8 +84,11 @@ public class VideoseedController : BaseOnlineController
 
                     foreach (var season in cache.Value.seasons)
                     {
-                        string link = $"{host}/lite/videoseed?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season.Key}";
-                        tpl.Append($"{season.Key} сезон", link, season.Key);
+                        tpl.Append(
+                            $"{season.Key} сезон",
+                            $"{host}/lite/videoseed?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season.Key}",
+                            season.Key
+                        );
                     }
 
                     return tpl;
@@ -95,7 +103,15 @@ public class VideoseedController : BaseOnlineController
                     foreach (var video in videos)
                     {
                         string iframe = video.Value.iframe;
-                        etpl.Append($"{video.Key} серия", title ?? original_title, sArhc, video.Key, accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}") + "#.m3u8", "call", vast: init.vast);
+                        etpl.Append(
+                            $"{video.Key} серия",
+                            title ?? original_title,
+                            sArhc,
+                            video.Key,
+                            accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}") + "#.m3u8",
+                            "call",
+                            vast: init.vast
+                        );
                     }
 
                     return etpl;
@@ -214,7 +230,13 @@ public class VideoseedController : BaseOnlineController
         var headers_stream = httpHeaders(init.host, HeadersModel.Join(HeadersModel.Init("referer", referer), init.headers_stream));
 
         string link = HostStreamProxy(cache.Value, headers: headers_stream);
-        return ContentTo(VideoTpl.ToJson("play", link, "auto", vast: init.vast));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            link,
+            "auto",
+            vast: init.vast,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 

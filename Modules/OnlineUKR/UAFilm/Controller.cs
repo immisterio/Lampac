@@ -61,17 +61,21 @@ public class ApiController : BaseOnlineController
                         break;
                     }
                 }
-
-                string link = $"{host}/lite/uafilm?orid={res.id}{defaultargs}";
-                stpl.Append(res.name, res.year.ToString(), res.original_title, link, PosterApi.Size(res.poster));
+                stpl.Append(
+                    res.name,
+                    res.year.ToString(),
+                    res.original_title,
+                    $"{host}/lite/uafilm?orid={res.id}{defaultargs}",
+                    PosterApi.Size(res.poster)
+                );
             }
 
             if (orid == 0)
                 return ContentTpl(stpl);
         }
-    #endregion
+        #endregion
 
-    #region cache
+        #region cache
     rhubFallback:
 
         var cache = await InvokeCacheResult<ItemRoot>($"uafilm:{orid}:{(s > 0 ? s : 1)}", TimeSpan.FromHours(1), async e =>
@@ -108,7 +112,13 @@ public class ApiController : BaseOnlineController
                 var tpl = new SeasonTpl();
 
                 for (int i = 1; i <= cache.Value.title.seasons_count; i++)
-                    tpl.Append($"{i} сезон", $"{host}/lite/uafilm?rjson={rjson}&s={i}{defaultargs}", i.ToString());
+                {
+                    tpl.Append(
+                        $"{i} сезон",
+                        $"{host}/lite/uafilm?rjson={rjson}&s={i}{defaultargs}",
+                        i.ToString()
+                    );
+                }
 
                 return ContentTpl(tpl);
             }
@@ -122,7 +132,13 @@ public class ApiController : BaseOnlineController
                     string episodeNum = episode.episode_number.ToString();
                     string link = $"{host}/lite/uafilm/video.m3u8?id={episode.primary_video.id}";
 
-                    etpl.Append($"{episodeNum} серия", episode.primary_video.name ?? title ?? original_title, sArhc, episodeNum, accsArgs(link));
+                    etpl.Append(
+                        $"{episodeNum} серия",
+                        episode.primary_video.name ?? title ?? original_title,
+                        sArhc,
+                        episodeNum,
+                        accsArgs(link)
+                    );
                 }
 
                 return ContentTpl(etpl);
@@ -169,4 +185,3 @@ public class ApiController : BaseOnlineController
     }
     #endregion
 }
-

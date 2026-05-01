@@ -31,7 +31,7 @@ public class MoonAnimeController : BaseOnlineController
 
         if (animeid == 0)
         {
-        #region Поиск
+            #region Поиск
         rhubFallback:
             var cache = await InvokeCacheResult<List<(string title, string year, long id, string poster)>>($"moonanime:search:{imdb_id}:{title}:{original_title}", TimeSpan.FromHours(4), async e =>
             {
@@ -90,8 +90,13 @@ public class MoonAnimeController : BaseOnlineController
 
             foreach (var res in cache.Value)
             {
-                string uri = $"{host}/lite/moonanime?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&animeid={res.id}";
-                stpl.Append(res.title, res.year, string.Empty, uri, PosterApi.Size(res.poster));
+                stpl.Append(
+                    res.title,
+                    res.year,
+                    string.Empty,
+                    $"{host}/lite/moonanime?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&animeid={res.id}",
+                    PosterApi.Size(res.poster)
+                );
             }
 
             return ContentTpl(stpl);
@@ -99,7 +104,7 @@ public class MoonAnimeController : BaseOnlineController
         }
         else
         {
-        #region Серии
+            #region Серии
         rhubFallback:
             var cache = await InvokeCacheResult<List<Dictionary<string, Dictionary<string, List<Episode>>>>>($"moonanime:playlist:{animeid}", 30, async e =>
             {
@@ -136,7 +141,19 @@ public class MoonAnimeController : BaseOnlineController
 
                             temp.Add(season.Key);
 
-                            tpl.Append($"{season.Key} сезон", $"{host}/lite/moonanime?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&animeid={animeid}&s={season.Key}", season.Key);
+                            tpl.Append(
+
+
+                                $"{season.Key} сезон",
+
+
+                                $"{host}/lite/moonanime?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&animeid={animeid}&s={season.Key}",
+
+
+                                season.Key
+
+
+                            );
                         }
                     }
                 }
@@ -166,7 +183,11 @@ public class MoonAnimeController : BaseOnlineController
                                 activTranslate = voice.Key;
 
                             hasTranslate = true;
-                            vtpl.Append(voice.Key, activTranslate == voice.Key, $"{host}/lite/moonanime?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&animeid={animeid}&s={s}&t={HttpUtility.UrlEncode(voice.Key)}");
+                            vtpl.Append(
+                                voice.Key,
+                                activTranslate == voice.Key,
+                                $"{host}/lite/moonanime?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&animeid={animeid}&s={s}&t={HttpUtility.UrlEncode(voice.Key)}"
+                            );
                         }
                     }
                 }
@@ -202,7 +223,15 @@ public class MoonAnimeController : BaseOnlineController
                                 string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                 hasEpisode = true;
-                                etpl.Append($"{episode} серия", title, sArhc, episode.ToString(), link, "call", streamlink: streamlink);
+                                etpl.Append(
+                                    $"{episode} серия",
+                                    title,
+                                    sArhc,
+                                    episode.ToString(),
+                                    link,
+                                    "call",
+                                    streamlink: streamlink
+                                );
                             }
                         }
                     }
@@ -229,7 +258,7 @@ public class MoonAnimeController : BaseOnlineController
         if (string.IsNullOrEmpty(init.token))
             return OnError("token", statusCode: 401, gbcache: false);
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<(string file, string subtitle)>($"moonanime:vod:{vod}", 30, async e =>
         {
             (string file, string subtitle) data = (null, null);
@@ -277,7 +306,14 @@ public class MoonAnimeController : BaseOnlineController
         if (play)
             return RedirectToPlay(file);
 
-        return ContentTo(VideoTpl.ToJson("play", file, (title ?? original_title), subtitles: subtitles, vast: init.vast));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            file,
+            (title ?? original_title),
+            subtitles: subtitles,
+            vast: init.vast,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 

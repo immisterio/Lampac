@@ -81,8 +81,13 @@ public class AniMediaController : BaseOnlineController
 
             foreach (var res in cache.Value)
             {
-                string uri = $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&news={HttpUtility.UrlEncode(res.url)}";
-                stpl.Append(res.title, string.Empty, string.Empty, uri, PosterApi.Size(res.img));
+                stpl.Append(
+                    res.title,
+                    string.Empty,
+                    string.Empty,
+                    $"{host}/lite/animedia?title={HttpUtility.UrlEncode(title)}&news={HttpUtility.UrlEncode(res.url)}",
+                    PosterApi.Size(res.img)
+                );
             }
 
             return ContentTpl(stpl);
@@ -135,7 +140,16 @@ public class AniMediaController : BaseOnlineController
                 var etpl = new EpisodeTpl(cache.Value.Count);
 
                 foreach (var l in cache.Value)
-                    etpl.Append($"{l.episode} серия", title, l.s, l.episode.ToString(), accsArgs($"{host}/lite/animedia/video.m3u8?vod={HttpUtility.UrlEncode(l.vod)}"), vast: init.vast);
+                {
+                    etpl.Append(
+                        $"{l.episode} серия",
+                        title,
+                        l.s,
+                        l.episode.ToString(),
+                        accsArgs($"{host}/lite/animedia/video.m3u8?vod={HttpUtility.UrlEncode(l.vod)}"),
+                        vast: init.vast
+                    );
+                }
 
                 return etpl;
             });

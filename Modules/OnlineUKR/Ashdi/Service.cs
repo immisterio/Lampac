@@ -110,7 +110,12 @@ public struct AshdiInvoke
             }
             #endregion
 
-            mtpl.Append("По умолчанию", onstreamfile.Invoke(fixStream(hls)), subtitles: subtitles, vast: vast);
+            mtpl.Append(
+                "По умолчанию",
+                onstreamfile.Invoke(fixStream(hls)),
+                subtitles: subtitles,
+                vast: vast
+            );
 
             return mtpl;
             #endregion
@@ -136,9 +141,11 @@ public struct AshdiInvoke
                             if (string.IsNullOrEmpty(numberseason))
                                 continue;
 
-                            string link = host + $"lite/ashdi?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={numberseason}";
-
-                            tpl.Append(season.title, link, numberseason);
+                            tpl.Append(
+                                season.title,
+                                host + $"lite/ashdi?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={numberseason}",
+                                numberseason
+                            );
                         }
                     }
 
@@ -157,9 +164,11 @@ public struct AshdiInvoke
                         if (t == -1)
                             t = i;
 
-                        string link = host + $"lite/ashdi?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={s}&t={i}";
-
-                        vtpl.Append(md.serial[i].title, t == i, link);
+                        vtpl.Append(
+                            md.serial[i].title,
+                            t == i,
+                            host + $"lite/ashdi?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={s}&t={i}"
+                        );
                     }
                     #endregion
 
@@ -187,7 +196,16 @@ public struct AshdiInvoke
                         #endregion
 
                         string file = onstreamfile.Invoke(fixStream(episode.file));
-                        etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                        etpl.Append(
+                            episode.title,
+                            title ?? original_title,
+                            sArch,
+                            Regex.Match(episode.title,
+                            "([0-9]+)$").Groups[1].Value,
+                            file,
+                            subtitles: subtitles,
+                            vast: vast
+                        );
                     }
 
                     return etpl;

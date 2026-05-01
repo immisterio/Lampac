@@ -40,7 +40,7 @@ public class EneyidaController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return OnError();
 
-            searchFallback:
+        searchFallback:
 
             string _y = year.ToString();
             string query = (similar || clarification == 1) ? title : original_title;
@@ -66,8 +66,13 @@ public class EneyidaController : BaseOnlineController
 
                     foreach (var similar in search.Value.similars)
                     {
-                        string link = $"{host}/lite/eneyida?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}";
-                        stpl.Append(similar.title, similar.year, string.Empty, link, PosterApi.Size(similar.img));
+                        stpl.Append(
+                            similar.title,
+                            similar.year,
+                            string.Empty,
+                            $"{host}/lite/eneyida?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}",
+                            PosterApi.Size(similar.img)
+                        );
                     }
 
                     return stpl;
@@ -76,7 +81,7 @@ public class EneyidaController : BaseOnlineController
 
             href = search.Value.similars.FirstOrDefault(i => i.year == _y).href;
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 

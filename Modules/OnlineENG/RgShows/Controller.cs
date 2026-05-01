@@ -41,7 +41,15 @@ public class RgShowsController : BaseENGController
         if (play)
             return RedirectToPlay(file);
 
-        return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream), hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            file,
+            "English",
+            vast: init.vast,
+            headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream),
+            hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds,
+            httpContext: HttpContext
+        ));
     }
 
     private async ValueTask<string> Magic(string uri)

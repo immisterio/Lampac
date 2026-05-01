@@ -114,11 +114,19 @@ public struct VideoDBInvoke
 
                 if (rhub)
                 {
-                    mtpl.Append(name, streams[0].link.Replace("/manifest.m3u8", "/manifest"), "call");
+                    mtpl.Append(
+                        name,
+                        streams[0].link.Replace("/manifest.m3u8", "/manifest"),
+                        "call"
+                    );
                 }
                 else
                 {
-                    mtpl.Append(name, streams[0].link, quality: streams[0].quality);
+                    mtpl.Append(
+                        name,
+                        streams[0].link,
+                        quality: streams[0].quality
+                    );
                 }
             }
 
@@ -142,7 +150,11 @@ public struct VideoDBInvoke
                     if (string.IsNullOrEmpty(season))
                         continue;
 
-                    tpl.Append(name, host + $"lite/videodb?rjson={rjson}&uri={HttpUtility.UrlEncode(uri)}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}", season);
+                    tpl.Append(
+                        name,
+                        host + $"lite/videodb?rjson={rjson}&uri={HttpUtility.UrlEncode(uri)}&rjson={rjson}&title={enc_title}&original_title={enc_original_title}&s={season}&sid={i}",
+                        season
+                    );
                 }
 
                 return tpl;
@@ -176,9 +188,11 @@ public struct VideoDBInvoke
                         if (!hashvoices.Contains(perevod))
                         {
                             hashvoices.Add(perevod);
-                            string link = host + $"lite/videodb?rjson={rjson}&uri={HttpUtility.UrlEncode(uri)}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}";
-
-                            vtpl.Append(perevod, t == perevod, link);
+                            vtpl.Append(
+                                perevod,
+                                t == perevod,
+                                host + $"lite/videodb?rjson={rjson}&uri={HttpUtility.UrlEncode(uri)}&title={enc_title}&original_title={enc_original_title}&s={s}&sid={sid}&t={HttpUtility.UrlEncode(perevod)}"
+                            );
                         }
                         #endregion
 
@@ -210,11 +224,31 @@ public struct VideoDBInvoke
                             string streamlink = rhub ? streamquality.Firts().link : null;
 
                             if (streamlink != null)
-                                etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link.Replace("/manifest.m3u8", "/manifest"), "call", streamlink: streamlink);
+                            {
+                                etpl.Append(
+                                    name,
+                                    title ?? original_title,
+                                    sArhc,
+                                    Regex.Match(name,
+                                    "^([0-9]+)").Groups[1].Value,
+                                    streamquality.Firts().link.Replace("/manifest.m3u8",
+                                    "/manifest"),
+                                    "call",
+                                    streamlink: streamlink
+                                );
+                            }
                         }
                         else
                         {
-                            etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "^([0-9]+)").Groups[1].Value, streamquality.Firts().link, streamquality: streamquality);
+                            etpl.Append(
+                                name,
+                                title ?? original_title,
+                                sArhc,
+                                Regex.Match(name,
+                                "^([0-9]+)").Groups[1].Value,
+                                streamquality.Firts().link,
+                                streamquality: streamquality
+                            );
                         }
                     }
                 }

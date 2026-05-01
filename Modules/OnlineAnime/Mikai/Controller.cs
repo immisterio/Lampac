@@ -33,7 +33,7 @@ public class MikaiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            rhubFallbackSearch:
+        rhubFallbackSearch:
             var search = await InvokeCacheResult<List<(int id, string title, string year, string poster)>>($"mikai:search:{title}", TimeSpan.FromHours(4), async e =>
             {
                 var root = await httpHydra.Get<SearchResponse>($"{init.host}/v1/anime/search?page=1&limit=24&sort=year&order=desc&name={HttpUtility.UrlEncode(title)}");
@@ -75,13 +75,18 @@ public class MikaiController : BaseOnlineController
 
             foreach (var item in search.Value)
             {
-                string link = $"{host}/lite/mikai?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={item.id}";
-                stpl.Append(item.title, item.year, string.Empty, link, item.poster);
+                stpl.Append(
+                    item.title,
+                    item.year,
+                    string.Empty,
+                    $"{host}/lite/mikai?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={item.id}",
+                    item.poster
+                );
             }
 
             return ContentTpl(stpl);
         }
-    #endregion
+        #endregion
 
     rhubFallbackAnime:
         var anime = await InvokeCacheResult<AnimeResult>($"mikai:anime:{animeid}", TimeSpan.FromHours(2), async e =>
@@ -129,8 +134,11 @@ public class MikaiController : BaseOnlineController
         var vtpl = new VoiceTpl(voices.Count);
         for (int i = 0; i < voices.Count; i++)
         {
-            string link = $"{host}/lite/mikai?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={animeid}&t={i}";
-            vtpl.Append(voices[i].title, i == t, link);
+            vtpl.Append(
+                voices[i].title,
+                i == t,
+                $"{host}/lite/mikai?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={animeid}&t={i}"
+            );
         }
 
         var episodes = currentVoice.episodes
@@ -149,7 +157,16 @@ public class MikaiController : BaseOnlineController
             string episodeTitle = $"{episodeNum} серия";
             string link = accsArgs($"{host}/lite/ashdi/vod.m3u8?uri={EncryptQuery(item.playLink)}");
 
-            etpl.Append(episodeTitle, title ?? original_title, season, episodeNum.ToString(), link, "call", streamlink: $"{link}&play=true", vast: init.vast);
+            etpl.Append(
+                episodeTitle,
+                title ?? original_title,
+                season,
+                episodeNum.ToString(),
+                link,
+                "call",
+                streamlink: $"{link}&play=true",
+                vast: init.vast
+            );
         }
 
         return ContentTpl(etpl);

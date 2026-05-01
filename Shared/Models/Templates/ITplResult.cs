@@ -15,4 +15,6 @@ public interface ITplResult
     public string ToJson();
 
     public StringBuilder ToBuilderJson();
+
+    public object ToObject();
 }

@@ -117,7 +117,12 @@ public struct TortugaInvoke
             }
             #endregion
 
-            mtpl.Append("По умолчанию", onstreamfile.Invoke(hls), subtitles: subtitles, vast: vast);
+            mtpl.Append(
+                "По умолчанию",
+                onstreamfile.Invoke(hls),
+                subtitles: subtitles,
+                vast: vast
+            );
 
             return mtpl;
             #endregion
@@ -134,9 +139,11 @@ public struct TortugaInvoke
 
                     foreach (var season in result.serial)
                     {
-                        string link = host + $"lite/tortuga?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={season.season}";
-
-                        tpl.Append(season.title, link, season.season);
+                        tpl.Append(
+                            season.title,
+                            host + $"lite/tortuga?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={season.season}",
+                            season.season
+                        );
                     }
 
                     return tpl;
@@ -161,8 +168,11 @@ public struct TortugaInvoke
                             if (string.IsNullOrEmpty(t))
                                 t = voice.title;
 
-                            string link = host + $"lite/tortuga?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={s}&t={voice.title}";
-                            vtpl.Append(voice.title, t == voice.title, link);
+                            vtpl.Append(
+                                voice.title,
+                                t == voice.title,
+                                host + $"lite/tortuga?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={s}&t={voice.title}"
+                            );
                         }
                     }
                     #endregion
@@ -190,7 +200,15 @@ public struct TortugaInvoke
                         #endregion
 
                         string file = onstreamfile.Invoke(video.file);
-                        etpl.Append(episode.title, title ?? original_title, sArhc, episode.number, file, subtitles: subtitles, vast: vast);
+                        etpl.Append(
+                            episode.title,
+                            title ?? original_title,
+                            sArhc,
+                            episode.number,
+                            file,
+                            subtitles: subtitles,
+                            vast: vast
+                        );
                     }
 
                     return etpl;

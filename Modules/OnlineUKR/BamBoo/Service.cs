@@ -190,8 +190,11 @@ public struct BamBooInvoke
                     if (t == -1)
                         t = i;
 
-                    string link = host + $"lite/bamboo?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&t={i}";
-                    vtpl.Append(result.serial[i].title, t == i, link);
+                    vtpl.Append(
+                        result.serial[i].title,
+                        t == i,
+                        host + $"lite/bamboo?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&t={i}"
+                    );
                 }
 
                 string sArch = result.season.ToString();
@@ -200,8 +203,14 @@ public struct BamBooInvoke
 
                 foreach (var episode in episodes)
                 {
-                    string eNum = Regex.Match(episode.title ?? string.Empty, "([0-9]+)").Groups[1].Value;
-                    etpl.Append(episode.title, title ?? original_title, sArch, eNum, onstreamfile.Invoke(episode.file), vast: vast);
+                    etpl.Append(
+                        episode.title,
+                        title ?? original_title,
+                        sArch,
+                        Regex.Match(episode.title ?? string.Empty, "([0-9]+)").Groups[1].Value,
+                        onstreamfile.Invoke(episode.file),
+                        vast: vast
+                    );
                 }
 
                 return etpl;

@@ -79,13 +79,18 @@ public class AnimeONController : BaseOnlineController
 
             foreach (var item in search.Value)
             {
-                string link = $"{host}/lite/animeon?rjson={rjson}&s={item.Season}&imdb_id={HttpUtility.UrlEncode(imdb_id)}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={item.Id}";
-                stpl.Append(item.Title, item.Year, string.Empty, link, PosterApi.Size($"{init.host}/api/uploads/images/{item.Poster}"));
+                stpl.Append(
+                    item.Title,
+                    item.Year,
+                    string.Empty,
+                    $"{host}/lite/animeon?rjson={rjson}&s={item.Season}&imdb_id={HttpUtility.UrlEncode(imdb_id)}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={item.Id}",
+                    PosterApi.Size($"{init.host}/api/uploads/images/{item.Poster}")
+                );
             }
 
             return ContentTpl(stpl);
         }
-    #endregion
+        #endregion
 
     rhubFallbackTranslations:
         var translations = await InvokeCacheResult<List<TranslationOption>>($"animeon:translations:{animeid}", TimeSpan.FromHours(2), async e =>
@@ -180,8 +185,11 @@ public class AnimeONController : BaseOnlineController
         for (int i = 0; i < translations.Value.Count; i++)
         {
             var voice = translations.Value[i];
-            string link = $"{host}/lite/animeon?rjson={rjson}&imdb_id={HttpUtility.UrlEncode(imdb_id)}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={animeid}&s={s}&t={i}";
-            vtpl.Append(voice.Title, i == t, link);
+            vtpl.Append(
+                voice.Title,
+                i == t,
+                $"{host}/lite/animeon?rjson={rjson}&imdb_id={HttpUtility.UrlEncode(imdb_id)}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={animeid}&s={s}&t={i}"
+            );
         }
 
         var etpl = new EpisodeTpl(vtpl, episodes.Value.Count);
@@ -194,7 +202,14 @@ public class AnimeONController : BaseOnlineController
             if (string.IsNullOrEmpty(epNum))
                 epNum = (episodes.Value.IndexOf(item) + 1).ToString();
 
-            etpl.Append(item.Title, title ?? original_title, sArch, epNum, stream, vast: init.vast);
+            etpl.Append(
+                item.Title,
+                title ?? original_title,
+                sArch,
+                epNum,
+                stream,
+                vast: init.vast
+            );
         }
 
         return ContentTpl(etpl);

@@ -57,7 +57,14 @@ public class MovPIController : BaseENGController
         if (play)
             return RedirectToPlay(hls);
 
-        return ContentTo(VideoTpl.ToJson("play", hls, "English", vast: init.vast, headers: init.streamproxy ? null : headersStream));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            hls,
+            "English",
+            vast: init.vast,
+            headers: init.streamproxy ? null : headersStream,
+            httpContext: HttpContext
+        ));
     }
 
     private async Task<(string m3u8, List<HeadersModel> headers)> BlackMagic(string uri)

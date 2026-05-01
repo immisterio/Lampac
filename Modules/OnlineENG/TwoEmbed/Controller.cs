@@ -52,7 +52,14 @@ public class TwoEmbedController : BaseENGController
         if (play)
             return RedirectToPlay(source);
 
-        return ContentTo(VideoTpl.ToJson("play", source, "English", vast: init.vast, headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream)));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            source,
+            "English",
+            vast: init.vast,
+            headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream),
+            httpContext: HttpContext
+        ));
     }
 
     private async Task<string> BlackMagic(string uri)

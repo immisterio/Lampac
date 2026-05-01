@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.Web;
 
 namespace Shared.Models.Module;
 
@@ -44,4 +45,7 @@ public class OnlineEventsModel
     public string token { get; set; }
     public string nws_id { get; set; }
     public JObject kitconf { get; set; }
+
+    public string ToArgs()
+        => $"imdb_id={HttpUtility.UrlEncode(imdb_id)}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&serial={serial}&original_language={HttpUtility.UrlEncode(original_language)}&year={year}&source={HttpUtility.UrlEncode(source)}&rchtype={HttpUtility.UrlEncode(rchtype)}&isanime={(isanime ? "1" : "0")}&life={(life ? "1" : "0")}&islite={(islite ? "1" : "0")}&account_email={HttpUtility.UrlEncode(account_email)}&uid={HttpUtility.UrlEncode(uid)}&token={HttpUtility.UrlEncode(token)}&nws_id={HttpUtility.UrlEncode(nws_id)}";
 }

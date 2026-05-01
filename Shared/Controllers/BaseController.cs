@@ -36,15 +36,7 @@ public class BaseController : Controller
     private IHybridCache _hybridCache;
 
     protected IHybridCache hybridCache
-    {
-        get
-        {
-            if (_hybridCache == null)
-                _hybridCache = HybridCache.Get();
-
-            return _hybridCache;
-        }
-    }
+        => _hybridCache ??= HybridCache.Get();
     #endregion
 
     #region memoryCache
@@ -75,30 +67,14 @@ public class BaseController : Controller
     private RequestModel _requestInfo;
 
     protected RequestModel requestInfo
-    {
-        get
-        {
-            if (_requestInfo == null)
-                _requestInfo = HttpContext.Features.Get<RequestModel>();
-
-            return _requestInfo;
-        }
-    }
+        => _requestInfo ??= HttpContext.Features.Get<RequestModel>();
     #endregion
 
     #region host
     private string _host;
 
     public string host
-    {
-        get
-        {
-            if (_host == null)
-                _host = CoreInit.Host(HttpContext);
-
-            return _host;
-        }
-    }
+        => _host ??= CoreInit.Host(HttpContext);
     #endregion
 
 

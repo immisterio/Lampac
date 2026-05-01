@@ -117,8 +117,11 @@ public class VibixController : BaseOnlineController
                     string name = season.title;
                     if (int.TryParse(Regex.Match(name, "([0-9]+)$").Groups[1].Value, out int _s) && _s > 0)
                     {
-                        string link = $"{host}/lite/vibix?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={_s}";
-                        tpl.Append($"{_s} сезон", link, _s);
+                        tpl.Append(
+                            $"{_s} сезон",
+                            $"{host}/lite/vibix?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={_s}",
+                            _s
+                        );
                     }
                 }
 
@@ -153,7 +156,18 @@ public class VibixController : BaseOnlineController
 
                         var first = streams.Firts();
                         if (first != null)
-                            etpl.Append(name, title ?? original_title, sArhc, Regex.Match(name, "([0-9]+)").Groups[1].Value, first.link, streamquality: streams, vast: init.vast);
+                        {
+                            etpl.Append(
+                                name,
+                                title ?? original_title,
+                                sArhc,
+                                Regex.Match(name,
+                                "([0-9]+)").Groups[1].Value,
+                                first.link,
+                                streamquality: streams,
+                                vast: init.vast
+                            );
+                        }
                     }
                 }
 

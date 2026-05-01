@@ -13,6 +13,8 @@ namespace Core.Controllers;
 public class ApiController : BaseController
 {
     #region Version / Headers / geo / myip
+    static readonly string versionHash = CrypTo.md5File("Shared.dll");
+
     [HttpGet]
     [AllowAnonymous]
     [Route("/version")]
@@ -20,10 +22,13 @@ public class ApiController : BaseController
     {
         if (CoreInit.conf.listen.version)
         {
-            if (type == "name")
-                return Content("Fox", "text/plain; charset=utf-8");
+            if (type == "hash")
+                return Content(versionHash, "text/plain; charset=utf-8");
 
-            return Redirect("https://youtu.be/jofNR_WkoCE");
+            if (type == "name")
+                return Content("Sexy", "text/plain; charset=utf-8");
+
+            return Redirect("https://youtu.be/wyx6JDQCslE");
         }
 
         return StatusCode(404);

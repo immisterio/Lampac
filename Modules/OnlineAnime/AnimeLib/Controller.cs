@@ -45,7 +45,7 @@ public class AnimeLibController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-            rhubFallback:
+        rhubFallback:
             var search = await InvokeCacheResult<List<(string title, string year, string uri, bool coincidence, string cover)>>($"animelib:search:{title}:{original_title}", TimeSpan.FromHours(4), async e =>
             {
                 async Task<DataSearch[]> goSearch(string q)
@@ -110,14 +110,22 @@ public class AnimeLibController : BaseOnlineController
             var stpl = new SimilarTpl(catalog.Count);
 
             foreach (var res in catalog)
-                stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}", PosterApi.Size(res.cover));
+            {
+                stpl.Append(
+                    res.title,
+                    res.year,
+                    string.Empty,
+                    $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(res.uri)}",
+                    PosterApi.Size(res.cover)
+                );
 
+            }
             return ContentTpl(stpl);
             #endregion
         }
         else
         {
-        #region Серии
+            #region Серии
         rhubFallback:
             var cache = await InvokeCacheResult<Episode[]>($"animelib:playlist:{uri}", TimeSpan.FromHours(1), async e =>
             {
@@ -173,7 +181,11 @@ public class AnimeLibController : BaseOnlineController
                 if (string.IsNullOrEmpty(activTranslate))
                     activTranslate = player.team.name;
 
-                vtpl.Append(player.team.name, activTranslate == player.team.name, $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(uri)}&t={HttpUtility.UrlEncode(player.team.name)}");
+                vtpl.Append(
+                    player.team.name,
+                    activTranslate == player.team.name,
+                    $"{host}/lite/animelib?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&uri={HttpUtility.UrlEncode(uri)}&t={HttpUtility.UrlEncode(player.team.name)}"
+                );
             }
             #endregion
 
@@ -185,7 +197,15 @@ public class AnimeLibController : BaseOnlineController
 
                 string link = $"{host}/lite/animelib/video?id={episode.id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
 
-                etpl.Append($"{episode.number} серия", name, episode.season, episode.number, link, "call", streamlink: accsArgs($"{link}&play=true"));
+                etpl.Append(
+                    $"{episode.number} серия",
+                    name,
+                    episode.season,
+                    episode.number,
+                    link,
+                    "call",
+                    streamlink: accsArgs($"{link}&play=true")
+                );
             }
 
             return ContentTpl(etpl);
@@ -267,7 +287,15 @@ public class AnimeLibController : BaseOnlineController
         if (play)
             return RedirectToPlay(first.link);
 
-        return ContentTo(VideoTpl.ToJson("play", first.link, title, streamquality: streamquality, vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            first.link,
+            title,
+            streamquality: streamquality,
+            vast: init.vast,
+            headers: init.streamproxy ? null : headers_stream,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 

@@ -53,7 +53,14 @@ public class HydraFlixController : BaseENGController
         if (play)
             return RedirectToPlay(file);
 
-        return ContentTo(VideoTpl.ToJson("play", file, "English", vast: init.vast, headers: init.streamproxy ? null : headers_stream));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            file,
+            "English",
+            vast: init.vast,
+            headers: init.streamproxy ? null : headers_stream,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 

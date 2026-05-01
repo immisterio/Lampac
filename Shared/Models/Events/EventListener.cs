@@ -27,6 +27,16 @@ public class EventListener
 
     public static Func<EventBadInitialization, Task<ActionResult>> BadInitialization;
 
+    public static Func<EventSisiChannels, ActionResult> SisiChannels;
+
+    public static Func<EventSisiPlaylistResult, ActionResult> SisiPlaylistResult;
+
+    public static Func<EventSisiOnResult, ActionResult> SisiOnResult;
+
+    public static Func<EventSisiBookmarks, ActionResult> SisiBookmarks;
+
+    public static Func<EventSisiHistorys, ActionResult> SisiHistorys;
+
     public static Func<EventHostStreamProxy, string> HostStreamProxy;
 
     public static Func<EventHostImgProxy, string> HostImgProxy;
@@ -52,6 +62,12 @@ public class EventListener
     public static Func<EventStreamQuality, (bool? next, string link)> StreamQuality;
 
     public static Func<EventStreamQualityFirts, StreamQualityDto> StreamQualityFirts;
+
+    public static Func<EventVideoTpl, string> VideoTpl;
+
+    public static Func<EventOnline, ActionResult> OnlineChannels;
+
+    public static Func<EventOnlineTpl, ActionResult> OnlineContentTpl;
 
     public static Func<EventOnlineApiQuality, string> OnlineApiQuality;
 

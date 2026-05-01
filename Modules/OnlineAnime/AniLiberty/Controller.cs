@@ -49,7 +49,7 @@ public class AniLibertyController : BaseOnlineController
             if (string.IsNullOrEmpty(stitle))
                 return OnError();
 
-            rhubFallback:
+        rhubFallback:
             var cache = await InvokeCacheResult<List<(string title, string year, int releases, string cover)>>($"aniliberty:search:{title}:{similar}", TimeSpan.FromHours(4), async e =>
             {
                 var search = await httpHydra.Get<List<SearchItem>>($"{init.host}/api/v1/app/search/releases?query={HttpUtility.UrlEncode(title)}");
@@ -101,7 +101,15 @@ public class AniLibertyController : BaseOnlineController
                 var stpl = new SimilarTpl(cache.Value.Count);
 
                 foreach (var res in cache.Value)
-                    stpl.Append(res.title, res.year, string.Empty, $"{host}/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={res.releases}", PosterApi.Size(res.cover));
+                {
+                    stpl.Append(
+                        res.title,
+                        res.year,
+                        string.Empty,
+                        $"{host}/lite/aniliberty?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&releases={res.releases}",
+                        PosterApi.Size(res.cover)
+                    );
+                }
 
                 return stpl;
 
@@ -110,7 +118,7 @@ public class AniLibertyController : BaseOnlineController
         }
         else
         {
-        #region Серии
+            #region Серии
         rhubFallback:
             var cache = await InvokeCacheResult<Release>($"aniliberty:releases:{releases}", 20, async e =>
             {
@@ -162,7 +170,16 @@ public class AniLibertyController : BaseOnlineController
 
                     var first = streams.Firts();
                     if (first != null)
-                        etpl.Append(name, title, season, number, first.link, streamquality: streams);
+                    {
+                        etpl.Append(
+                            name,
+                            title,
+                            season,
+                            number,
+                            first.link,
+                            streamquality: streams
+                        );
+                    }
                 }
 
                 return etpl;

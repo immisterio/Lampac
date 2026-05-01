@@ -107,7 +107,11 @@ public class IptvOnlineController : BaseOnlineController
                 if (quality != null)
                     quality += "p";
 
-                mtpl.Append(quality ?? title, stream, vast: init.vast);
+                mtpl.Append(
+                    quality ?? title,
+                    stream,
+                    vast: init.vast
+                );
 
                 return mtpl;
                 #endregion
@@ -129,8 +133,12 @@ public class IptvOnlineController : BaseOnlineController
                     foreach (var media in cache.Value["medias"])
                     {
                         int season = media.Value<int>("season");
-                        string link = $"{host}/lite/iptvonline?rjson={rjson}&serial={serial}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season}";
-                        tpl.Append($"{season} сезон", link, season);
+
+                        tpl.Append(
+                            $"{season} сезон",
+                            $"{host}/lite/iptvonline?rjson={rjson}&serial={serial}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&title={enc_title}&original_title={enc_original_title}&s={season}",
+                            season
+                        );
                     }
 
                     return tpl;
@@ -149,7 +157,14 @@ public class IptvOnlineController : BaseOnlineController
                             continue;
 
                         string stream = HostStreamProxy(file);
-                        etpl.Append(name ?? $"{episode.Value<int>("episode")} серия", title ?? original_title, sArhc, episode.Value<int>("episode").ToString(), stream, vast: init.vast);
+                        etpl.Append(
+                            name ?? $"{episode.Value<int>("episode")} серия",
+                            title ?? original_title,
+                            sArhc,
+                            episode.Value<int>("episode").ToString(),
+                            stream,
+                            vast: init.vast
+                        );
                     }
 
                     return etpl;

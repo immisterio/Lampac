@@ -9,7 +9,7 @@ using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
 using Shared.Services.Utilities;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Shared.Services.RxEnumerate;
 
@@ -26,7 +26,7 @@ public class KinoflixController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
 
         #region search
         if (string.IsNullOrEmpty(href))
@@ -115,7 +115,16 @@ public class KinoflixController : BaseOnlineController
 
                     var first = streamQuality.Firts();
                     if (first != null)
-                        mtpl.Append(v.Key, first.link, quality: first.quality, streamquality: streamQuality, headers: headers_stream, vast: init.vast);
+                    {
+                        mtpl.Append(
+                            v.Key,
+                            first.link,
+                            quality: first.quality,
+                            streamquality: streamQuality,
+                            headers: headers_stream,
+                            vast: init.vast
+                        );
+                    }
                 }
 
                 return mtpl;
@@ -141,8 +150,15 @@ public class KinoflixController : BaseOnlineController
                         string seasonName = season.title;
                         string seasonNum = Regex.Match(seasonName, "([0-9]+)").Groups[1].Value;
 
-                        string link = $"{host}/lite/kinoflix?title={enc_title}&original_title={enc_original_title}&href={enc_href}&s={seasonNum}";
-                        tpl.Append(seasonName ?? $"{seasonNum} сезон", link, seasonNum);
+                        tpl.Append(
+
+                            seasonName ?? $"{seasonNum} сезон",
+
+                            $"{host}/lite/kinoflix?title={enc_title}&original_title={enc_original_title}&href={enc_href}&s={seasonNum}",
+
+                            seasonNum
+
+                        );
                     }
 
                     return tpl;
@@ -171,7 +187,11 @@ public class KinoflixController : BaseOnlineController
                                     t = voice;
 
                                 string vlink = $"{host}/lite/kinoflix?s={s}&t={HttpUtility.UrlEncode(voice)}" + defaultargs;
-                                vtpl.Append(voice, t == voice, vlink);
+                                vtpl.Append(
+                                    voice,
+                                    t == voice,
+                                    vlink
+                                );
                             }
                         }
                     }
@@ -195,7 +215,18 @@ public class KinoflixController : BaseOnlineController
 
                                 var first = streamQuality.Firts();
                                 if (first != null)
-                                    etpl.Append(episode.title, title ?? original_title, _s, epNum, first.link, streamquality: streamQuality, headers: headers_stream, vast: init.vast);
+                                {
+                                    etpl.Append(
+                                        episode.title,
+                                        title ?? original_title,
+                                        _s,
+                                        epNum,
+                                        first.link,
+                                        streamquality: streamQuality,
+                                        headers: headers_stream,
+                                        vast: init.vast
+                                    );
+                                }
                             }
                         }
                     }

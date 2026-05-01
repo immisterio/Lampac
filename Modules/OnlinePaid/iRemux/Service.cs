@@ -1,4 +1,5 @@
 using Shared.Services.RxEnumerate;
+using Microsoft.AspNetCore.Http;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
@@ -154,7 +155,12 @@ public struct iRemuxInvoke
                 {
                     string link = host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                    stpl.Append(similar.title, similar.year, string.Empty, link);
+                    stpl.Append(
+                        similar.title,
+                        similar.year,
+                        string.Empty,
+                        link
+                    );
                 }
 
                 return stpl;
@@ -167,7 +173,13 @@ public struct iRemuxInvoke
         var mtpl = new MovieTpl(title, original_title, result.links.Count);
 
         foreach (var link in result.links)
-            mtpl.Append(link.quality, host + $"lite/remux/movie?linkid={link.linkid}&quality={link.quality}&title={enc_title}&original_title={enc_original_title}", "call");
+        {
+            mtpl.Append(
+                link.quality,
+                host + $"lite/remux/movie?linkid={link.linkid}&quality={link.quality}&title={enc_title}&original_title={enc_original_title}",
+                "call"
+            );
+        }
 
         return mtpl;
     }
@@ -196,9 +208,16 @@ public struct iRemuxInvoke
     #endregion
 
     #region Movie
-    public string Movie(string weblink, string quality, string title, string original_title, VastConf vast = null)
+    public string Movie(string weblink, string quality, string title, string original_title, HttpContext httpContext, VastConf vast = null)
     {
-        return VideoTpl.ToJson("play", onstreamfile?.Invoke(weblink), (title ?? original_title), quality: quality, vast: vast);
+        return VideoTpl.ToJson(
+            "play",
+            onstreamfile?.Invoke(weblink),
+            (title ?? original_title),
+            quality: quality,
+            vast: vast,
+            httpContext: httpContext
+        );
     }
     #endregion
 }

@@ -26,7 +26,7 @@ public class LeProductionController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
 
         #region search
         if (string.IsNullOrEmpty(href))
@@ -152,8 +152,11 @@ public class LeProductionController : BaseOnlineController
 
                 foreach (var seasonItem in search.Value.seasons.OrderBy(i => i.season))
                 {
-                    string encHref = HttpUtility.UrlEncode(seasonItem.href);
-                    tpl.Append($"{seasonItem.season} сезон", $"{host}/lite/leproduction?rjson={rjson}&serial=1&title={encTitle}&original_title={encOriginalTitle}&clarification={clarification}&href={encHref}", seasonItem.season);
+                    tpl.Append(
+                        $"{seasonItem.season} сезон",
+                        $"{host}/lite/leproduction?rjson={rjson}&serial=1&title={encTitle}&original_title={encOriginalTitle}&clarification={clarification}&href={HttpUtility.UrlEncode(seasonItem.href)}",
+                        seasonItem.season
+                    );
                 }
 
                 return ContentTpl(tpl);
@@ -221,7 +224,13 @@ public class LeProductionController : BaseOnlineController
                     string encHref = HttpUtility.UrlEncode(href);
 
                     foreach (int season in seasons)
-                        tpl.Append($"{season} сезон", $"{host}/lite/leproduction?rjson={rjson}&serial=1&title={encTitle}&original_title={encOriginalTitle}&clarification={clarification}&href={encHref}&s={season}", season);
+                    {
+                        tpl.Append(
+                            $"{season} сезон",
+                            $"{host}/lite/leproduction?rjson={rjson}&serial=1&title={encTitle}&original_title={encOriginalTitle}&clarification={clarification}&href={encHref}&s={season}",
+                            season
+                        );
+                    }
 
                     return tpl;
                 }
@@ -241,7 +250,13 @@ public class LeProductionController : BaseOnlineController
             return null;
 
         var first = streamQuality.Firts();
-        mtpl.Append("По умолчанию", first.link, quality: first.quality, streamquality: streamQuality, vast: init.vast);
+        mtpl.Append(
+            "По умолчанию",
+            first.link,
+            quality: first.quality,
+            streamquality: streamQuality,
+            vast: init.vast
+        );
         return mtpl;
     }
 
@@ -268,7 +283,15 @@ public class LeProductionController : BaseOnlineController
             var first = streamQuality.Firts();
             string episodeNum = (item.episode <= 0 ? etpl.Length + 1 : item.episode).ToString();
             string episodeTitle = item.episode > 0 ? $"{item.episode} серия" : item.comment;
-            etpl.Append(episodeTitle, title ?? original_title, seasonNum, episodeNum, first.link, streamquality: streamQuality, vast: init.vast);
+            etpl.Append(
+                episodeTitle,
+                title ?? original_title,
+                seasonNum,
+                episodeNum,
+                first.link,
+                streamquality: streamQuality,
+                vast: init.vast
+            );
         }
 
         return etpl.IsEmpty ? null : etpl;

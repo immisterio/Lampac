@@ -18,6 +18,7 @@ public class KinoPubInvoke
     string apihost;
     HttpHydra http;
     Func<string, string, string> onstreamfile;
+
     public KinoPubInvoke(string host, string apihost, string token, HttpHydra httpHydra, Func<string, string, string> onstreamfile)
     {
         this.host = host != null ? $"{host}/" : null;
@@ -150,7 +151,15 @@ public class KinoPubInvoke
                     #endregion
 
                     var first = streamquality.Firts();
-                    mtpl.Append(voice, first.link, streamquality: streamquality, subtitles: subtitles, subtitles_call: subtitles_call, voice_name: a.codec, vast: vast);
+                    mtpl.Append(
+                        voice,
+                        first.link,
+                        streamquality: streamquality,
+                        subtitles: subtitles,
+                        subtitles_call: subtitles_call,
+                        voice_name: a.codec,
+                        vast: vast
+                    );
                 }
             }
             else
@@ -188,7 +197,14 @@ public class KinoPubInvoke
                     if (filetype == "hls4")
                     {
                         if (v.files[0].url.hls4 != null)
-                            mtpl.Append(v.files[0].quality, onstreamfile(v.files[0].url.hls4, null), voice_name: voicename, vast: vast);
+                        {
+                            mtpl.Append(
+                                v.files[0].quality,
+                                onstreamfile(v.files[0].url.hls4, null),
+                                voice_name: voicename,
+                                vast: vast
+                            );
+                        }
                     }
                     else
                     {
@@ -219,7 +235,17 @@ public class KinoPubInvoke
 
                         var first = streamquality.Firts();
                         if (first != null)
-                            mtpl.Append(first.quality, first.link, subtitles: subtitles, subtitles_call: subtitles_call, voice_name: voicename, streamquality: streamquality, vast: vast);
+                        {
+                            mtpl.Append(
+                                first.quality,
+                                first.link,
+                                subtitles: subtitles,
+                                subtitles_call: subtitles_call,
+                                voice_name: voicename,
+                                streamquality: streamquality,
+                                vast: vast
+                            );
+                        }
                     }
                 }
             }
@@ -243,8 +269,11 @@ public class KinoPubInvoke
 
                 foreach (var season in root.item.seasons)
                 {
-                    string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.number}";
-                    tpl.Append($"{season.number} сезон", link, season.number);
+                    tpl.Append(
+                        $"{season.number} сезон",
+                        host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.number}",
+                        season.number
+                    );
                 }
 
                 return tpl;
@@ -299,7 +328,11 @@ public class KinoPubInvoke
                             string link = host + $"lite/kinopub?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={s}&t={idt}&codec={a.codec}";
                             bool active = t == idt && (codec == null || codec == a.codec);
 
-                            vtpl.Append($"{voice} ({a.codec})", active, link);
+                            vtpl.Append(
+                                $"{voice} ({a.codec})",
+                                active,
+                                link
+                            );
                         }
                     }
                     #endregion
@@ -361,7 +394,19 @@ public class KinoPubInvoke
 
                         var first = streamquality.Firts();
                         if (first != null)
-                            etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), first.link, streamquality: streamquality, subtitles: subtitles, subtitles_call: subtitles_call, vast: vast);
+                        {
+                            etpl.Append(
+                                $"{episode.number} серия",
+                                title ?? original_title,
+                                sArhc,
+                                episode.number.ToString(),
+                                first.link,
+                                streamquality: streamquality,
+                                subtitles: subtitles,
+                                subtitles_call: subtitles_call,
+                                vast: vast
+                            );
+                        }
                     }
                     #endregion
 
@@ -396,7 +441,16 @@ public class KinoPubInvoke
                             if (episode.files[0].url.hls4 == null)
                                 continue;
 
-                            etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), onstreamfile(episode.files[0].url.hls4, null), voice_name: voicename, vast: vast);
+                            etpl.Append(
+                                $"{episode.number} серия",
+                                title ?? original_title,
+                                sArhc,
+                                episode.number.ToString(),
+                                onstreamfile(episode.files[0].url.hls4,
+                                null),
+                                voice_name: voicename,
+                                vast: vast
+                            );
                         }
                         else
                         {
@@ -432,7 +486,20 @@ public class KinoPubInvoke
 
                             var first = streamquality.Firts();
                             if (first != null)
-                                etpl.Append($"{episode.number} серия", title ?? original_title, sArhc, episode.number.ToString(), first.link, subtitles: subtitles, subtitles_call: subtitles_call, voice_name: voicename, streamquality: streamquality, vast: vast);
+                            {
+                                etpl.Append(
+                                    $"{episode.number} серия",
+                                    title ?? original_title,
+                                    sArhc,
+                                    episode.number.ToString(),
+                                    first.link,
+                                    subtitles: subtitles,
+                                    subtitles_call: subtitles_call,
+                                    voice_name: voicename,
+                                    streamquality: streamquality,
+                                    vast: vast
+                                );
+                            }
                         }
                     }
 

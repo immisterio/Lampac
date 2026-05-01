@@ -116,7 +116,7 @@ public class SisiApiController : BaseController
 
     [HttpGet]
     [Route("sisi")]
-    async public Task<JsonResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
+    async public Task<ActionResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
     {
         var appConf = ModInit.conf;
         JObject kitconf = loadKitConf();
@@ -248,6 +248,20 @@ public class SisiApiController : BaseController
                 {
                     Serilog.Log.Error(ex, "CatchId={CatchId}", "id_g7b1zx6i");
                 }
+            }
+        }
+        #endregion
+
+        #region EventListener
+        if (EventListener.SisiChannels != null)
+        {
+            var em = new EventSisiChannels(this, HttpContext, channels);
+
+            foreach (Func<EventSisiChannels, ActionResult> handler in EventListener.SisiChannels.GetInvocationList())
+            {
+                var eventResult = handler(em);
+                if (eventResult != null)
+                    return eventResult;
             }
         }
         #endregion

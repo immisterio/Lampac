@@ -34,7 +34,7 @@ public class CDNvideohubController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<RootObject>($"cdnvideohub:view:{kinopoisk_id}", TimeSpan.FromHours(4), async e =>
         {
             var root = await httpHydra.Get<RootObject>($"{init.host}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}");
@@ -68,11 +68,14 @@ public class CDNvideohubController : BaseOnlineController
                     {
                         int season = video.season;
 
-                        if (hash.Contains(season))
+                        if (!hash.Add(season))
                             continue;
 
-                        hash.Add(season);
-                        tpl.Append($"{season} сезон", $"{host}/lite/cdnvideohub?s={season}{defaultargs}", season);
+                        tpl.Append(
+                            $"{season} сезон",
+                            $"{host}/lite/cdnvideohub?s={season}{defaultargs}",
+                            season
+                        );
                     }
 
                     return tpl;
@@ -98,7 +101,11 @@ public class CDNvideohubController : BaseOnlineController
                         if (string.IsNullOrEmpty(t))
                             t = voice_studio;
 
-                        vtpl.Append(voice_studio, t == voice_studio, $"{host}/lite/cdnvideohub?s={s}&t={HttpUtility.UrlEncode(voice_studio)}{defaultargs}");
+                        vtpl.Append(
+                            voice_studio,
+                            t == voice_studio,
+                            $"{host}/lite/cdnvideohub?s={s}&t={HttpUtility.UrlEncode(voice_studio)}{defaultargs}"
+                        );
                     }
                     #endregion
 
@@ -121,9 +128,18 @@ public class CDNvideohubController : BaseOnlineController
 
                         tmpEpisode.Add(episode);
 
-                        string link = accsArgs($"{host}/lite/cdnvideohub/video.m3u8?vkId={vkId}&title={HttpUtility.UrlEncode(title)}");
+                        string link = $"{host}/lite/cdnvideohub/video.m3u8?vkId={vkId}&title={HttpUtility.UrlEncode(title)}";
 
-                        etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: $"{link}&play=true", vast: init.vast);
+                        etpl.Append(
+                            $"{episode} серия",
+                            title ?? original_title,
+                            s.ToString(),
+                            episode.ToString(),
+                            link,
+                            "call",
+                            streamlink: accsArgs($"{link}&play=true"),
+                            vast: init.vast
+                        );
                     }
 
                     return etpl;
@@ -137,12 +153,12 @@ public class CDNvideohubController : BaseOnlineController
 
                 foreach (var video in cache.Value.items)
                 {
-                    string voice = video.voiceStudio ?? video.voiceType;
-                    string vkId = video.vkId;
-
-                    string link = accsArgs($"{host}/lite/cdnvideohub/video.m3u8?vkId={vkId}&title={HttpUtility.UrlEncode(title)}");
-
-                    mtpl.Append(voice, link, "call", vast: init.vast);
+                    mtpl.Append(
+                        video.voiceStudio ?? video.voiceType,
+                        accsArgs($"{host}/lite/cdnvideohub/video.m3u8?vkId={video.vkId}&title={HttpUtility.UrlEncode(title)}"),
+                        "call",
+                        vast: init.vast
+                    );
                 }
 
                 return mtpl;
@@ -205,7 +221,13 @@ public class CDNvideohubController : BaseOnlineController
         if (play)
             return RedirectToPlay(link);
 
-        return ContentTo(VideoTpl.ToJson("play", link, title, vast: init.vast));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            link,
+            title,
+            vast: init.vast,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 }

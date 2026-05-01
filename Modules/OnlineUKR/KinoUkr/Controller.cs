@@ -29,7 +29,7 @@ public class KinoUkrController : BaseOnlineController
         {
             if (source.Equals("kinoukr", StringComparison.OrdinalIgnoreCase))
             {
-            rhubFallback:
+                rhubFallback:
 
                 var cache = await InvokeCacheResult($"kinoukr:view:{id}", 240,
                     () => oninvk.Embed($"{init.host}/{id}")
@@ -65,8 +65,12 @@ public class KinoUkrController : BaseOnlineController
 
                 foreach (var s in search.similars)
                 {
-                    string link = $"{host}/lite/kinoukr?title={enc_title}&original_title={enc_original_title}&iframe={EncryptQuery(s.href)}";
-                    stpl.Append(s.title, s.year, string.Empty, link);
+                    stpl.Append(
+                        s.title,
+                        s.year,
+                        string.Empty,
+                        $"{host}/lite/kinoukr?title={enc_title}&original_title={enc_original_title}&iframe={EncryptQuery(s.href)}"
+                    );
                 }
 
                 return ContentTpl(stpl);

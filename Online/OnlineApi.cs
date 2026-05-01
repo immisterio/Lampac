@@ -768,6 +768,17 @@ public class OnlineApiController : BaseController
         }
         #endregion
 
+        if (EventListener.OnlineChannels != null)
+        {
+            var em = new EventOnline(this, online, moduleArgs, kitconf, HttpContext);
+            foreach (Func<EventOnline, ActionResult> handler in EventListener.OnlineChannels.GetInvocationList())
+            {
+                var eventResult = handler(em);
+                if (eventResult != null)
+                    return eventResult;
+            }
+        }
+
         string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
         return ContentTo($"[{online_result.Replace("{localhost}", host)}]");
     }

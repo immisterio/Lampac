@@ -59,7 +59,14 @@ public class VideasyController : BaseENGController
         if (play)
             return RedirectToPlay(cache.Value.hls);
 
-        return ContentTo(VideoTpl.ToJson("play", cache.Value.hls, "English", vast: init.vast, headers: cache.Value.headers));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            cache.Value.hls,
+            "English",
+            vast: init.vast,
+            headers: cache.Value.headers,
+            httpContext: HttpContext
+        ));
     }
 
     private async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)

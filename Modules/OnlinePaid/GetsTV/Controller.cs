@@ -127,9 +127,13 @@ public class GetsTVController : BaseOnlineController
                 foreach (var media in cache.Value.media)
                 {
                     string link = $"{host}/lite/getstv/video.m3u8?id={media._id}";
-                    string streamlink = accsArgs($"{link}&play=true");
-
-                    mtpl.Append(media.trName, link, "call", streamlink, details: media.sourceType);
+                    mtpl.Append(
+                        media.trName,
+                        link,
+                        "call",
+                        accsArgs($"{link}&play=true"),
+                        details: media.sourceType
+                    );
                 }
 
                 return mtpl;
@@ -145,7 +149,12 @@ public class GetsTVController : BaseOnlineController
                     foreach (var season in cache.Value.seasons)
                     {
                         int seasonNum = season.seasonNum;
-                        tpl.Append($"{seasonNum} сезон", $"{host}/lite/getstv?rjson={rjson}&s={seasonNum}{defaultargs}", seasonNum);
+
+                        tpl.Append(
+                            $"{seasonNum} сезон",
+                            $"{host}/lite/getstv?rjson={rjson}&s={seasonNum}{defaultargs}",
+                            seasonNum
+                        );
                     }
 
                     return tpl;
@@ -171,7 +180,11 @@ public class GetsTVController : BaseOnlineController
                             if (t == -1)
                                 t = trId;
 
-                            vtpl.Append(tr.trName, t == trId, $"{host}/lite/getstv?rjson={rjson}&s={s}&t={trId}{defaultargs}");
+                            vtpl.Append(
+                                tr.trName,
+                                t == trId,
+                                $"{host}/lite/getstv?rjson={rjson}&s={s}&t={trId}{defaultargs}"
+                            );
                         }
                     }
                     #endregion
@@ -188,7 +201,15 @@ public class GetsTVController : BaseOnlineController
                                 string link = $"{host}/lite/getstv/video.m3u8?id={tr._id}";
                                 string streamlink = accsArgs($"{link}&play=true");
 
-                                etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), link, "call", streamlink: streamlink);
+                                etpl.Append(
+                                    $"{e} серия",
+                                    title ?? original_title,
+                                    s.ToString(),
+                                    e.ToString(),
+                                    link,
+                                    "call",
+                                    streamlink: streamlink
+                                );
                                 break;
                             }
                         }
@@ -209,7 +230,7 @@ public class GetsTVController : BaseOnlineController
         if (await IsRequestBlocked(rch: true, rch_check: !play))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<MediaStreamRoot>($"getstv:view:stream:{id}:{init.token}", 10, async e =>
         {
             var root = await httpHydra.Get<MediaStreamRoot>($"{init.host}/api/media/{id}?format=m3u8&protocol=https",
@@ -263,10 +284,14 @@ public class GetsTVController : BaseOnlineController
         if (titleRu != null && titleEn != null)
             name = $"{titleRu} / {titleEn}";
 
-        return ContentTo(VideoTpl.ToJson("play", first.link, name,
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            first.link,
+            name,
             streamquality: streamquality,
             vast: init.vast,
-            subtitles: subtitles
+            subtitles: subtitles,
+            httpContext: HttpContext
         ));
     }
     #endregion
@@ -344,7 +369,13 @@ public class GetsTVController : BaseOnlineController
 
             int released = j.released.Year;
             string img = $"https://img.getstv.com/poster/cover/345x518/{j.poster}.jpg";
-            stpl.Append(name, released.ToString(), j.contentType, uri, PosterApi.Size(img));
+            stpl.Append(
+                name,
+                released.ToString(),
+                j.contentType,
+                uri,
+                PosterApi.Size(img)
+            );
 
             if ((titleRu != null && (StringConvert.SearchName(titleRu) == stitle || StringConvert.SearchName(titleRu) == soriginal_title)) ||
                 (titleEn != null && (StringConvert.SearchName(titleEn) == stitle || StringConvert.SearchName(titleEn) == soriginal_title)))

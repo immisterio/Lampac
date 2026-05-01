@@ -29,7 +29,7 @@ public class HDVBController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        reset:
+    reset:
 
         #region search
         List<Video> data = await search(kinopoisk_id);
@@ -56,9 +56,12 @@ public class HDVBController : BaseOnlineController
             foreach (var m in data)
             {
                 string iframe = fixframe(init.host, m.iframe_url);
-                string link = $"{host}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&iframe={HttpUtility.UrlEncode(iframe)}";
-
-                mtpl.Append(m.translator, link, "call", accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true"));
+                mtpl.Append(
+                    m.translator,
+                    $"{host}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&iframe={HttpUtility.UrlEncode(iframe)}",
+                    "call",
+                    accsArgs($"{host}/lite/hdvb/video.m3u8?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&iframe={HttpUtility.UrlEncode(iframe)}&play=true")
+                );
             }
 
             return ContentTpl(mtpl);
@@ -80,13 +83,14 @@ public class HDVBController : BaseOnlineController
                             continue;
 
                         string season_name = $"{season.season_number.Value} сезон";
-                        if (tmp_season.Contains(season_name))
+                        if (!tmp_season.Add(season_name))
                             continue;
 
-                        tmp_season.Add(season_name);
-
-                        string link = $"{host}/lite/hdvb?rjson={rjson}&serial=1&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season.season_number.Value}";
-                        tpl.Append(season_name, link, season.season_number.Value);
+                        tpl.Append(
+                            season_name,
+                            $"{host}/lite/hdvb?rjson={rjson}&serial=1&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season.season_number.Value}",
+                            season.season_number.Value
+                        );
                     }
                 }
 
@@ -105,8 +109,11 @@ public class HDVBController : BaseOnlineController
                     if (t == -1)
                         t = i;
 
-                    string link = $"{host}/lite/hdvb?rjson={rjson}&serial=1&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={i}";
-                    vtpl.Append(data[i].translator, t == i, link);
+                    vtpl.Append(
+                        data[i].translator,
+                        t == i,
+                        $"{host}/lite/hdvb?rjson={rjson}&serial=1&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={s}&t={i}"
+                    );
                 }
                 #endregion
 
@@ -119,7 +126,15 @@ public class HDVBController : BaseOnlineController
                     string link = $"{host}/lite/hdvb/serial?title={enc_title}&original_title={enc_original_title}&iframe={iframe}&t={translator}&s={s}&e={episode}";
                     string streamlink = accsArgs($"{link.Replace("/serial", "/serial.m3u8")}&play=true");
 
-                    etpl.Append($"{episode} серия", title ?? original_title, s.ToString(), episode.ToString(), link, "call", streamlink: streamlink);
+                    etpl.Append(
+                        $"{episode} серия",
+                        title ?? original_title,
+                        s.ToString(),
+                        episode.ToString(),
+                        link,
+                        "call",
+                        streamlink: streamlink
+                    );
                 }
 
                 return ContentTpl(etpl);
@@ -233,7 +248,14 @@ public class HDVBController : BaseOnlineController
 
         var headers_stream = init.streamproxy ? null : httpHeaders(init.host, init.headers_stream);
 
-        return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast, headers: headers_stream));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            m3u8,
+            (title ?? original_title),
+            vast: init.vast,
+            headers: headers_stream,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 
@@ -343,7 +365,7 @@ public class HDVBController : BaseOnlineController
             if (cache.playlist == null || cache.playlist.Count == 0)
                 return result.Fail("playlist:empty");
 
-            reset_episode:
+        reset_episode:
 
             string episode = cache.playlist
                 .FirstOrDefault(i => i.id == s)?.folder
@@ -385,7 +407,14 @@ public class HDVBController : BaseOnlineController
 
         var headers_stream = init.streamproxy ? null : httpHeaders(init.host, init.headers_stream);
 
-        return ContentTo(VideoTpl.ToJson("play", m3u8, (title ?? original_title), vast: init.vast, headers: headers_stream));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            m3u8,
+            (title ?? original_title),
+            vast: init.vast,
+            headers: headers_stream,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 
@@ -400,7 +429,7 @@ public class HDVBController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<List<Video>>($"hdvb:search:{title}", TimeSpan.FromHours(4), async e =>
         {
             var newheaders = HeadersModel.Init(Http.defaultFullHeaders);
@@ -426,8 +455,13 @@ public class HDVBController : BaseOnlineController
                 if (kinopoisk_id > 0 && !hash.Contains((long)kinopoisk_id))
                 {
                     hash.Add((long)kinopoisk_id);
-                    string uri = $"{host}/lite/hdvb?kinopoisk_id={kinopoisk_id}";
-                    stpl.Append(j.title_ru ?? j.title_en, (j.year ?? 0).ToString(), string.Empty, uri, PosterApi.Size(j.poster));
+                    stpl.Append(
+                        j.title_ru ?? j.title_en,
+                        (j.year ?? 0).ToString(),
+                        string.Empty,
+                        $"{host}/lite/hdvb?kinopoisk_id={kinopoisk_id}",
+                        PosterApi.Size(j.poster)
+                    );
                 }
             }
 

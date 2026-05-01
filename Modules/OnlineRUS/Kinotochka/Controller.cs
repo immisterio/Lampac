@@ -47,7 +47,7 @@ public class KinotochkaController : BaseOnlineController
         {
             if (s == -1)
             {
-            #region Сезоны
+                #region Сезоны
             rhubFallback:
 
                 var cache = await InvokeCacheResult<List<Season>>($"kinotochka:seasons:{title}", TimeSpan.FromHours(4), textJson: true, onget: async e =>
@@ -130,7 +130,13 @@ public class KinotochkaController : BaseOnlineController
                     var tpl = new SeasonTpl(cache.Value.Count);
 
                     foreach (var l in cache.Value)
-                        tpl.Append(l.name, l.url, l.season);
+                    {
+                        tpl.Append(
+                            l.name,
+                            l.url,
+                            l.season
+                        );
+                    }
 
                     return tpl;
                 });
@@ -138,7 +144,7 @@ public class KinotochkaController : BaseOnlineController
             }
             else
             {
-            #region Серии
+                #region Серии
             rhubFallback:
 
                 var cache = await InvokeCacheResult<List<Episode>>($"kinotochka:playlist:{newsuri}", 30, textJson: true, onget: async e =>
@@ -184,8 +190,17 @@ public class KinotochkaController : BaseOnlineController
                 {
                     var etpl = new EpisodeTpl(cache.Value.Count);
 
-                    foreach (var l in cache.Value)
-                        etpl.Append(l.comment, title, s.ToString(), Regex.Match(l.comment, "^([0-9]+)").Groups[1].Value, HostStreamProxy(l.file), vast: init.vast);
+                    foreach (var l in cache.Value) {
+                        etpl.Append(
+                            l.comment,
+                            title,
+                            s.ToString(),
+                            Regex.Match(l.comment,
+                            "^([0-9]+)").Groups[1].Value,
+                            HostStreamProxy(l.file),
+                            vast: init.vast
+                        );
+                    }
 
                     return etpl;
                 });
@@ -198,7 +213,7 @@ public class KinotochkaController : BaseOnlineController
             if (kinopoisk_id == 0)
                 return OnError();
 
-            rhubFallback:
+        rhubFallback:
             var cache = await InvokeCacheResult<EmbedModel>($"kinotochka:view:{kinopoisk_id}", 30, textJson: true, onget: async e =>
             {
                 string file = null;
@@ -231,7 +246,11 @@ public class KinotochkaController : BaseOnlineController
             return ContentTpl(cache, () =>
             {
                 var mtpl = new MovieTpl(title, original_title, 1);
-                mtpl.Append("По умолчанию", HostStreamProxy(cache.Value.content), vast: init.vast);
+                mtpl.Append(
+                    "По умолчанию",
+                    HostStreamProxy(cache.Value.content),
+                    vast: init.vast
+                );
 
                 return mtpl;
             });

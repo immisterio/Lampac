@@ -81,15 +81,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
     WebProxy _proxy = null;
 
     public WebProxy proxy
-    {
-        get
-        {
-            if (_proxy == null)
-                _proxy = proxyManager?.Get();
-
-            return _proxy;
-        }
-    }
+        => _proxy ??= proxyManager?.Get();
     #endregion
 
     #region proxy_data
@@ -291,6 +283,17 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
         if (tpl == null || tpl.IsEmpty)
             return OnError(rjson ? "{}" : string.Empty);
+
+        if (EventListener.OnlineContentTpl != null)
+        {
+            var em = new EventOnlineTpl(this, init, HttpContext, rjson, tpl);
+            foreach (Func<EventOnlineTpl, ActionResult> handler in EventListener.OnlineContentTpl.GetInvocationList())
+            {
+                var eventResult = handler(em);
+                if (eventResult != null)
+                    return eventResult;
+            }
+        }
 
         var response = HttpContext.Response;
         response.Headers.CacheControl = "no-cache";

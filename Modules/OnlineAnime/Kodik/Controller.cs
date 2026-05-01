@@ -172,7 +172,7 @@ public class KodikController : BaseOnlineController<ModuleConf>
             if (streams == null)
                 return OnError();
 
-            string result = oninvk.VideoParse(streams, title, original_title, episode, play, vast: init.vast);
+            string result = oninvk.VideoParse(streams, title, original_title, episode, play, HttpContext, vast: init.vast);
             if (string.IsNullOrEmpty(result))
                 return OnError();
 
@@ -275,7 +275,15 @@ public class KodikController : BaseOnlineController<ModuleConf>
             if (episode > 0)
                 name += $" ({episode} серия)";
 
-            return ContentTo(VideoTpl.ToJson("play", first.link, name, streamquality: streamquality, vast: init.vast, segments: cache.Value.segments));
+            return ContentTo(VideoTpl.ToJson(
+                "play",
+                first.link,
+                name,
+                streamquality: streamquality,
+                vast: init.vast,
+                segments: cache.Value.segments,
+                httpContext: HttpContext
+            ));
         }
     }
     #endregion

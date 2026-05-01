@@ -99,7 +99,12 @@ public struct HdvbUAInvoke
             }
             #endregion
 
-            mtpl.Append("По умолчанию", onstreamfile.Invoke(hls), subtitles: subtitles, vast: vast);
+            mtpl.Append(
+                "По умолчанию",
+                onstreamfile.Invoke(hls),
+                subtitles: subtitles,
+                vast: vast
+            );
 
             return mtpl;
             #endregion
@@ -122,9 +127,11 @@ public struct HdvbUAInvoke
                         if (string.IsNullOrEmpty(numberseason))
                             continue;
 
-                        string link = host + $"lite/hdvbua?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={numberseason}";
-
-                        tpl.Append(season.title, link, numberseason);
+                        tpl.Append(
+                            season.title,
+                            host + $"lite/hdvbua?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={numberseason}",
+                            numberseason
+                        );
                     }
 
                     return tpl;
@@ -146,9 +153,11 @@ public struct HdvbUAInvoke
                         if (t == -1)
                             t = i;
 
-                        string link = host + $"lite/hdvbua?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={s}&t={i}";
-
-                        vtpl.Append(season.folder[i].title, t == i, link);
+                        vtpl.Append(
+                            season.folder[i].title,
+                            t == i,
+                            host + $"lite/hdvbua?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={s}&t={i}"
+                        );
                     }
                     #endregion
 
@@ -176,7 +185,16 @@ public struct HdvbUAInvoke
                         #endregion
 
                         string file = onstreamfile.Invoke(episode.file);
-                        etpl.Append(episode.title, title ?? original_title, sArch, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, file, subtitles: subtitles, vast: vast);
+                        etpl.Append(
+                            episode.title,
+                            title ?? original_title,
+                            sArch,
+                            Regex.Match(episode.title,
+                            "^([0-9]+)").Groups[1].Value,
+                            file,
+                            subtitles: subtitles,
+                            vast: vast
+                        );
                     }
 
                     return etpl;

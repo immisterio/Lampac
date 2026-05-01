@@ -111,7 +111,14 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
 
                 var first = streamquality.Firts();
                 if (first != null)
-                    mtpl.Append(movie.Value<string>("name"), first.link, streamquality: streamquality, vast: init.vast);
+                {
+                    mtpl.Append(
+                        movie.Value<string>("name"),
+                        first.link,
+                        streamquality: streamquality,
+                        vast: init.vast
+                    );
+                }
             }
 
             return ContentTpl(mtpl);
@@ -135,11 +142,13 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
                         int sid = season.Value<int>("season");
                         string sname = $"{sid} сезон";
 
-                        if (!temp_season.Contains(sid))
+                        if (!temp_season.Add(sid))
                         {
-                            temp_season.Add(sid);
-                            string link = $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={sid}";
-                            tpl.Append(sname, link, sid);
+                            tpl.Append(
+                                sname,
+                                $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={sid}",
+                                sid
+                            );
                         }
                     }
                 }
@@ -167,7 +176,11 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
                             if (t == -1)
                                 t = indexTranslate;
 
-                            vtpl.Append(translation.Value<string>("name"), active, link);
+                            vtpl.Append(
+                                translation.Value<string>("name"),
+                                active,
+                                link
+                            );
                             break;
                         }
                     }
@@ -199,7 +212,17 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
 
                     var first = streamquality.Firts();
                     if (first != null)
-                        etpl.Append($"{e} серия", title ?? original_title, s.ToString(), e.ToString(), first.link, streamquality: streamquality, vast: init.vast);
+                    {
+                        etpl.Append(
+                            $"{e} серия",
+                            title ?? original_title,
+                            s.ToString(),
+                            e.ToString(),
+                            first.link,
+                            streamquality: streamquality,
+                            vast: init.vast
+                        );
+                    }
                 }
                 #endregion
 
@@ -299,7 +322,13 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
 
             string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
-            stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/fxapi?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
+            stpl.Append(
+                name,
+                item.year.ToString(),
+                string.Empty,
+                host + $"lite/fxapi?postid={item.id}&title={enc_title}&original_title={enc_original_title}",
+                PosterApi.Size(item.poster)
+            );
 
             if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                 (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
@@ -357,7 +386,13 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
 
             string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
-            stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
+            stpl.Append(
+                name,
+                item.year.ToString(),
+                string.Empty,
+                host + $"lite/filmix?postid={item.id}&title={enc_title}&original_title={enc_original_title}",
+                PosterApi.Size(item.poster)
+            );
 
             if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                 (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))

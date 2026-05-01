@@ -301,7 +301,13 @@ public class PiTor : BaseOnlineController
                     }
 
                     foreach (int season in seasons.OrderBy(i => i))
-                        tpl.Append($"{season} сезон", $"{host}/lite/pidtor?rjson={rjson}&title={en_title}&original_title={en_original_title}&year={year}&original_language={original_language}&serial=1&s={season}", season);
+                    {
+                        tpl.Append(
+                            $"{season} сезон",
+                            $"{host}/lite/pidtor?rjson={rjson}&title={en_title}&original_title={en_original_title}&year={year}&original_language={original_language}&serial=1&s={season}",
+                            season
+                        );
+                    }
 
                     return tpl;
                 }
@@ -321,7 +327,12 @@ public class PiTor : BaseOnlineController
                         if (string.IsNullOrWhiteSpace(hashmagnet))
                             continue;
 
-                        stpl.Append(torrent.voice, null, $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", accsArgs($"{host}/lite/pidtor/serial/{hashmagnet}?{torrent.tr}&rjson={rjson}&title={en_title}&original_title={en_original_title}&s={s}"));
+                        stpl.Append(
+                            torrent.voice,
+                            null,
+                            $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}",
+                            accsArgs($"{host}/lite/pidtor/serial/{hashmagnet}?{torrent.tr}&rjson={rjson}&title={en_title}&original_title={en_original_title}&s={s}")
+                        );
                     }
 
                     return stpl;
@@ -337,7 +348,12 @@ public class PiTor : BaseOnlineController
                     if (string.IsNullOrWhiteSpace(hashmagnet))
                         continue;
 
-                    mtpl.Append(torrent.voice, accsArgs($"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}"), voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}", quality: torrent.quality.Replace("p", ""));
+                    mtpl.Append(
+                        torrent.voice,
+                        accsArgs($"{host}/lite/pidtor/s{hashmagnet}?{torrent.tr}"),
+                        voice_name: $"{torrent.quality} / {torrent.mediainfo} / {torrent.sid}",
+                        quality: torrent.quality.Replace("p", "")
+                    );
                 }
 
                 return mtpl;
@@ -433,7 +449,13 @@ public class PiTor : BaseOnlineController
                 if (Path.GetExtension(torrent.path) is ".srt" or ".txt" or ".jpg" or ".png")
                     continue;
 
-                mtpl.Append(Path.GetFileName(torrent.path), title ?? original_title, s.ToString(), torrent.id.ToString(), accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.id}"));
+                mtpl.Append(
+                    Path.GetFileName(torrent.path),
+                    title ?? original_title,
+                    s.ToString(),
+                    torrent.id.ToString(),
+                    accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.id}")
+                );
             }
 
             return mtpl;

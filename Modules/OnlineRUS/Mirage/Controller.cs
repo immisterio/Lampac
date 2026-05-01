@@ -98,9 +98,14 @@ public class MirageController : BaseOnlineController<ModuleConf>
                 bool uhd = init.m4s ? file.Value<bool>("uhd") : false;
 
                 string link = $"{host}/lite/mirage/video?id_file={id}&token_movie={data.Value<string>("token_movie")}";
-                string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
-
-                mtpl.Append(translation, link, "call", streamlink, voice_name: uhd ? "2160p" : quality, quality: uhd ? "2160p" : "");
+                mtpl.Append(
+                    translation,
+                    link,
+                    "call",
+                    accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true"),
+                    voice_name: uhd ? "2160p" : quality,
+                    quality: uhd ? "2160p" : ""
+                );
             }
 
             return ContentTpl(mtpl);
@@ -152,7 +157,13 @@ public class MirageController : BaseOnlineController<ModuleConf>
                         seasonNumbers.Add(frame.active.Value<int>("seasons"));
 
                     foreach (int i in seasonNumbers.OrderBy(i => i))
-                        tpl.Append($"{i} сезон", $"{host}/lite/mirage?rjson={rjson}&s={i}{defaultargs}", i.ToString());
+                    {
+                        tpl.Append(
+                            $"{i} сезон",
+                            $"{host}/lite/mirage?rjson={rjson}&s={i}{defaultargs}",
+                            i.ToString()
+                        );
+                    }
 
                     return ContentTpl(tpl);
                 }
@@ -161,7 +172,13 @@ public class MirageController : BaseOnlineController<ModuleConf>
                     var tpl = new SeasonTpl(q, seasons.Count);
 
                     foreach (var season in seasons)
-                        tpl.Append($"{season.Key} сезон", $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
+                    {
+                        tpl.Append(
+                            $"{season.Key} сезон",
+                            $"{host}/lite/mirage?rjson={rjson}&s={season.Key}{defaultargs}",
+                            season.Key
+                        );
+                    }
 
                     return ContentTpl(tpl);
                 }
@@ -191,10 +208,11 @@ public class MirageController : BaseOnlineController<ModuleConf>
                             if (t == -1)
                                 t = id_translation;
 
-                            string link = $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
-                            bool active = t == id_translation;
-
-                            vtpl.Append(voice.Value<string>("translation"), active, link);
+                            vtpl.Append(
+                                voice.Value<string>("translation"),
+                                t == id_translation,
+                                $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}"
+                            );
                         }
                     }
                     #endregion
@@ -213,7 +231,18 @@ public class MirageController : BaseOnlineController<ModuleConf>
                             string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                             if (e > 0)
-                                etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                            {
+                                etpl.Append(
+                                    $"{e} серия",
+                                    title ?? original_title,
+                                    sArhc,
+                                    e.ToString(),
+                                    link,
+                                    "call",
+                                    voice_name: translation,
+                                    streamlink: streamlink
+                                );
+                            }
                         }
                     }
                 }
@@ -235,10 +264,11 @@ public class MirageController : BaseOnlineController<ModuleConf>
                         if (t == -1)
                             t = id_translation;
 
-                        string link = $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
-                        bool active = t == id_translation;
-
-                        vtpl.Append(voice.Value<string>("translation"), active, link);
+                        vtpl.Append(
+                            voice.Value<string>("translation"),
+                            t == id_translation,
+                            $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}"
+                        );
                     }
                     #endregion
 
@@ -267,7 +297,18 @@ public class MirageController : BaseOnlineController<ModuleConf>
                                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                                     if (e > 0)
-                                        etpl.Append($"{e} серия", title ?? original_title, sArhc, e.ToString(), link, "call", voice_name: translation, streamlink: streamlink);
+                                    {
+                                        etpl.Append(
+                                            $"{e} серия",
+                                            title ?? original_title,
+                                            sArhc,
+                                            e.ToString(),
+                                            link,
+                                            "call",
+                                            voice_name: translation,
+                                            streamlink: streamlink
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -289,10 +330,11 @@ public class MirageController : BaseOnlineController<ModuleConf>
                             if (t == -1)
                                 t = id_translation;
 
-                            string link = $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}";
-                            bool active = t == id_translation;
-
-                            vtpl.Append(voice.Value<string>("translation"), active, link);
+                            vtpl.Append(
+                                voice.Value<string>("translation"),
+                                t == id_translation,
+                                $"{host}/lite/mirage?rjson={rjson}&s={s}&t={id_translation}{defaultargs}"
+                            );
                         }
                     }
                     #endregion
@@ -308,7 +350,16 @@ public class MirageController : BaseOnlineController<ModuleConf>
                             string link = $"{host}/lite/mirage/video?id_file={voice.Value<long>("id")}&token_movie={data.Value<string>("token_movie")}";
                             string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                            etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", voice_name: translation, streamlink: streamlink);
+                            etpl.Append(
+                                $"{episode.Key} серия",
+                                title ?? original_title,
+                                sArhc,
+                                episode.Key,
+                                link,
+                                "call",
+                                voice_name: translation,
+                                streamlink: streamlink
+                            );
                         }
                     }
                 }
@@ -347,9 +398,13 @@ public class MirageController : BaseOnlineController<ModuleConf>
         if (play)
             return Redirect(hls);
 
-        return ContentTo(VideoTpl.ToJson("play", hls, "auto",
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            hls,
+            "auto",
             vast: init.vast,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
+            httpContext: HttpContext
         ));
     }
 
@@ -430,7 +485,6 @@ public class MirageController : BaseOnlineController<ModuleConf>
         if (!hybridCache.TryGetValue(memKey, out (JToken all, JToken active) cache))
         {
             string json = null;
-
             string uri = $"{init.linkhost}/?token_movie={token_movie}&token={init.token}";
 
             await httpHydra.GetSpan(uri, safety: true, addheaders: HeadersModel.Init(
@@ -682,8 +736,13 @@ public class MirageController : BaseOnlineController<ModuleConf>
 
             foreach (var j in cache.Value)
             {
-                string uri = $"{host}/lite/mirage?orid={j.Value<string>("token_movie")}";
-                stpl.Append(j.Value<string>("name") ?? j.Value<string>("original_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                stpl.Append(
+                    j.Value<string>("name") ?? j.Value<string>("original_name"),
+                    j.Value<int>("year").ToString(),
+                    string.Empty,
+                    $"{host}/lite/mirage?orid={j.Value<string>("token_movie")}",
+                    PosterApi.Size(j.Value<string>("poster"))
+                );
             }
 
             return stpl;

@@ -20,6 +20,7 @@ public struct KinobaseInvoke
     string apihost;
     Func<string, Task<string>> onget;
     Func<string, string> onstreamfile;
+
     public KinobaseInvoke(string host, ModuleConf init, Func<string, Task<string>> onget, Func<string, string> onstreamfile)
     {
         this.init = init;
@@ -224,7 +225,13 @@ public struct KinobaseInvoke
 
                             var first = streamquality.Firts();
                             if (first != null)
-                                mtpl.Append(voice, first.link, streamquality: streamquality);
+                            {
+                                mtpl.Append(
+                                    voice,
+                                    first.link,
+                                    streamquality: streamquality
+                                );
+                            }
                         }
                     }
                 }
@@ -243,7 +250,13 @@ public struct KinobaseInvoke
 
                     var first = streamquality.Firts();
                     if (first != null)
-                        mtpl.Append("По умолчанию", first.link, streamquality: streamquality);
+                    {
+                        mtpl.Append(
+                            "По умолчанию",
+                            first.link,
+                            streamquality: streamquality
+                        );
+                    }
                 }
             }
             else
@@ -261,7 +274,13 @@ public struct KinobaseInvoke
 
                 var first = streamquality.Firts();
                 if (first != null)
-                    mtpl.Append(first.quality, first.link, streamquality: streamquality);
+                {
+                    mtpl.Append(
+                        first.quality,
+                        first.link,
+                        streamquality: streamquality
+                    );
+                }
             }
 
             return mtpl;
@@ -280,8 +299,12 @@ public struct KinobaseInvoke
                     if (s == -1)
                     {
                         var tpl = new SeasonTpl(md.quality);
-                        string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(t)}&s=1";
-                        tpl.Append("1 сезон", link, 1);
+
+                        tpl.Append(
+                            "1 сезон",
+                            host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(t)}&s=1",
+                            1
+                        );
 
                         return tpl;
                     }
@@ -299,8 +322,12 @@ public struct KinobaseInvoke
                         foreach (var item in md.serial)
                         {
                             string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
-                            string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(t)}&s={season}";
-                            tpl.Append($"{season} сезон", link, season);
+
+                            tpl.Append(
+                                $"{season} сезон",
+                                host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(t)}&s={season}",
+                                season
+                            );
                         }
 
                         return tpl;
@@ -329,10 +356,11 @@ public struct KinobaseInvoke
                                 if (string.IsNullOrEmpty(t))
                                     t = voice;
 
-                                string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(voice)}&s={s}";
-                                bool active = t == voice;
-
-                                vtpl.Append(voice, active, link);
+                                vtpl.Append(
+                                    voice,
+                                    t == voice,
+                                    host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&t={HttpUtility.UrlEncode(voice)}&s={s}"
+                                );
                             }
 
                             m = m.NextMatch();
@@ -390,7 +418,18 @@ public struct KinobaseInvoke
 
                         var first = streamquality.Firts();
                         if (first != null)
-                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, first.link, subtitles: subtitles, streamquality: streamquality);
+                        {
+                            etpl.Append(
+                                episode.title,
+                                title,
+                                sArhc,
+                                Regex.Match(episode.title,
+                                "^([0-9]+)").Groups[1].Value,
+                                first.link,
+                                subtitles: subtitles,
+                                streamquality: streamquality
+                            );
+                        }
                     }
 
                     return etpl;
@@ -421,7 +460,17 @@ public struct KinobaseInvoke
 
                         var first = streamquality.Firts();
                         if (first != null)
-                            etpl.Append(episode.title, title, sArhc, Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value, first.link, streamquality: streamquality);
+                        {
+                            etpl.Append(
+                                episode.title,
+                                title,
+                                sArhc,
+                                Regex.Match(episode.title,
+                                "^([0-9]+)").Groups[1].Value,
+                                first.link,
+                                streamquality: streamquality
+                            );
+                        }
                     }
 
                     return etpl;
@@ -432,8 +481,12 @@ public struct KinobaseInvoke
                     if (s == -1)
                     {
                         var tpl = new SeasonTpl(md.quality);
-                        string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s=1";
-                        tpl.Append("1 сезон", link, 1);
+
+                        tpl.Append(
+                            "1 сезон",
+                            host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s=1",
+                            1
+                        );
 
                         return tpl;
                     }
@@ -451,8 +504,12 @@ public struct KinobaseInvoke
                         foreach (var item in md.serial)
                         {
                             string season = Regex.Match(item.title.Trim(), "^([0-9]+)").Groups[1].Value;
-                            string link = host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s={season}";
-                            tpl.Append($"{season} сезон", link, season);
+
+                            tpl.Append(
+                                $"{season} сезон",
+                                host + $"lite/kinobase?title={enc_title}&href={HttpUtility.UrlEncode(href)}&s={season}",
+                                season
+                            );
                         }
 
                         return tpl;

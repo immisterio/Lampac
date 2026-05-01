@@ -104,7 +104,12 @@ public struct VoKinoInvoke
             {
                 string link = host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&balancer={similar.balancer}";
 
-                stpl.Append(similar.title, string.Empty, string.Empty, link);
+                stpl.Append(
+                    similar.title,
+                    string.Empty,
+                    string.Empty,
+                    link
+                );
             }
 
             return stpl;
@@ -125,7 +130,11 @@ public struct VoKinoInvoke
                 if (translation.playlist_url != null && translation.playlist_url.Contains("?"))
                 {
                     string _t = HttpUtility.UrlEncode(translation.playlist_url.Split("?")[1]);
-                    vtpl.Append(translation.title, translation.selected, host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={_t}&s={s}");
+                    vtpl.Append(
+                        translation.title,
+                        translation.selected,
+                        host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={_t}&s={s}"
+                    );
                 }
             }
         }
@@ -143,7 +152,11 @@ public struct VoKinoInvoke
                     if (string.IsNullOrEmpty(sname))
                         sname = Regex.Match(ch.title, "([0-9]+)$").Groups[1].Value;
 
-                    tpl.Append(ch.title, host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}", sname);
+                    tpl.Append(
+                        ch.title,
+                        host + $"lite/vokino?rjson={rjson}&origid={origid}&kinopoisk_id={kinopoisk_id}&balancer={balancer}&title={enc_title}&original_title={enc_original_title}&t={t}&s={sname}",
+                        sname
+                    );
                 }
 
                 return tpl;
@@ -156,8 +169,14 @@ public struct VoKinoInvoke
 
                 foreach (var e in series)
                 {
-                    string ename = Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value;
-                    etpl.Append(e.title, title ?? original_title, s.ToString(), ename, onstreamfile(e.stream_url), vast: vast);
+                    etpl.Append(
+                        e.title,
+                        title ?? original_title,
+                        s.ToString(),
+                        Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value,
+                        onstreamfile(e.stream_url),
+                        vast: vast
+                    );
                 }
 
                 return etpl;
@@ -178,7 +197,11 @@ public struct VoKinoInvoke
                         name += $" - {size}";
                 }
 
-                mtpl.Append(name, onstreamfile(ch.stream_url), vast: vast);
+                mtpl.Append(
+                    name,
+                    onstreamfile(ch.stream_url),
+                    vast: vast
+                );
             }
 
             return mtpl;

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Shared.Models.Events;
 using Shared.Services.Pools.Json;
 using System.Web;
 
@@ -113,6 +114,17 @@ public class BookmarkController : BaseController
                         Log.Error(ex, "CatchId={CatchId}", "id_gw4vznko");
                     }
                 }
+            }
+        }
+
+        if (EventListener.SisiBookmarks != null)
+        {
+            var em = new EventSisiBookmarks(this, HttpContext, menu, bookmarks, pg, pageSize, total_pages);
+            foreach (Func<EventSisiBookmarks, ActionResult> handler in EventListener.SisiBookmarks.GetInvocationList())
+            {
+                var result = handler(em);
+                if (result != null)
+                    return result;
             }
         }
 

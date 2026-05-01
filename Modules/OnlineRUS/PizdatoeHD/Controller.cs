@@ -156,7 +156,13 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
                         {
                             string link = $"{host}/lite/pizdatoehd?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(similar.href)}";
 
-                            stpl.Append(similar.title, similar.year, string.Empty, link, PosterApi.Size(similar.img));
+                            stpl.Append(
+                                similar.title,
+                                similar.year,
+                                string.Empty,
+                                link,
+                                PosterApi.Size(similar.img)
+                            );
                         }
 
                         return stpl;
@@ -329,7 +335,7 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
         if (cache.Value?.links == null || cache.Value.links.Count == 0)
             return OnError();
 
-        string result = oninvk.Movie(cache.Value, title, original_title, play, vast: init.vast);
+        string result = oninvk.Movie(cache.Value, title, original_title, play, HttpContext, vast: init.vast);
         if (result == null)
             return OnError();
 

@@ -39,7 +39,7 @@ public class UaKinoController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return OnError();
 
-            searchFallback:
+        searchFallback:
 
             string query = (similar || clarification == 1) ? title : original_title;
 
@@ -62,14 +62,19 @@ public class UaKinoController : BaseOnlineController
 
                 foreach (var item in search.Value.similars)
                 {
-                    string link = $"{host}/lite/uakino?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(item.href)}";
-                    stpl.Append(item.title, string.Empty, string.Empty, link, PosterApi.Size(item.img));
+                    stpl.Append(
+                        item.title,
+                        string.Empty,
+                        string.Empty,
+                        $"{host}/lite/uakino?title={enc_title}&original_title={enc_original_title}&href={HttpUtility.UrlEncode(item.href)}",
+                        PosterApi.Size(item.img)
+                    );
                 }
 
                 return stpl;
             });
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 

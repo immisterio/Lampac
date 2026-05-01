@@ -50,9 +50,14 @@ public class SeasonTpl : ITplResult
     }
 
 
-    public bool IsEmpty => data == null || data.Count == 0;
+    public bool IsEmpty
+        => data == null || data.Count == 0;
 
-    public int Length => data?.Count ?? 0;
+    public int Length
+        => data?.Count ?? 0;
+
+    public object ToObject()
+        => this;
 
 
     public string ToHtml()

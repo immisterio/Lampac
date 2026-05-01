@@ -1,4 +1,6 @@
-﻿using Shared.Services;
+﻿using Microsoft.AspNetCore.Http;
+using Shared.Models.Events;
+using Shared.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -6,11 +8,11 @@ namespace Shared.Models.Templates;
 
 public static class VideoTpl
 {
-    public static string ToJson(string method, string url, string title, StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl segments = null, string subtitles_call = null)
+    public static string ToJson(string method, string url, string title, StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string quality = null, VastConf vast = null, List<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl segments = null, string subtitles_call = null, HttpContext httpContext = null)
     {
         var _vast = vast ?? CoreInit.conf.vast;
 
-        return JsonSerializer.Serialize(new VideoDto(
+        var md = new VideoDto(
             title,
             method,
             url,
@@ -24,7 +26,20 @@ public static class VideoTpl
             hls_manifest_timeout,
             _vast?.url != null ? _vast : null,
             segments?.ToObject()
-        ), VideoJsonContext.Default.VideoDto);
+        );
+
+        if (EventListener.VideoTpl != null)
+        {
+            var em = new EventVideoTpl(md, httpContext);
+            foreach (Func<EventVideoTpl, string> handler in EventListener.VideoTpl.GetInvocationList())
+            {
+                var eventResult = handler(em);
+                if (eventResult != null)
+                    return eventResult;
+            }
+        }
+
+        return JsonSerializer.Serialize(md, VideoJsonContext.Default.VideoDto);
     }
 }
 

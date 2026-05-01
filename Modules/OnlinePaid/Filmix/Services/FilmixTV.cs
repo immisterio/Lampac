@@ -55,7 +55,13 @@ public class FilmixTVInvoke
 
             string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_name) ? $"{item.title} / {item.original_name}" : (item.title ?? item.original_name);
 
-            stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
+            stpl.Append(
+                name,
+                item.year.ToString(),
+                string.Empty,
+                host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}",
+                PosterApi.Size(item.poster)
+            );
 
             if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                 (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_name) == sorigtitle))
@@ -98,7 +104,13 @@ public class FilmixTVInvoke
 
             string name = !string.IsNullOrEmpty(item.title) && !string.IsNullOrEmpty(item.original_title) ? $"{item.title} / {item.original_title}" : (item.title ?? item.original_title);
 
-            stpl.Append(name, item.year.ToString(), string.Empty, host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}", PosterApi.Size(item.poster));
+            stpl.Append(
+                name,
+                item.year.ToString(),
+                string.Empty,
+                host + $"lite/filmixtv?postid={item.id}&title={enc_title}&original_title={enc_original_title}",
+                PosterApi.Size(item.poster)
+            );
 
             if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
                 (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
@@ -188,13 +200,14 @@ public class FilmixTVInvoke
                 {
                     foreach (var season in translation.Value)
                     {
-                        if (temp.Contains(season.Value.season))
+                        if (!temp.Add(season.Value.season))
                             continue;
 
-                        temp.Add(season.Value.season);
-
-                        var link = $"{host}lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}";
-                        tpl.Append($"{season.Value.season} сезон", link, season.Value.season);
+                        tpl.Append(
+                            $"{season.Value.season} сезон",
+                            $"{host}lite/filmixtv?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={season.Value.season}",
+                            season.Value.season
+                        );
                     }
                 }
 
@@ -219,7 +232,11 @@ public class FilmixTVInvoke
                             if (t == -1)
                                 t = indexTranslate;
 
-                            vtpl.Append(translation.Key, active, link);
+                            vtpl.Append(
+                                translation.Key,
+                                active,
+                                link
+                            );
                         }
                     }
 
@@ -247,7 +264,17 @@ public class FilmixTVInvoke
 
                     var first = streamquality.Firts();
                     if (first != null)
-                        etpl.Append($"{episode.Key.TrimStart('e')} серия", title ?? original_title, selectedSeason.Value.season.ToString(), episode.Key.TrimStart('e'), first.link, streamquality: streamquality, vast: vast);
+                    {
+                        etpl.Append(
+                            $"{episode.Key.TrimStart('e')} серия",
+                            title ?? original_title,
+                            selectedSeason.Value.season.ToString(),
+                            episode.Key.TrimStart('e'),
+                            first.link,
+                            streamquality: streamquality,
+                            vast: vast
+                        );
+                    }
                 }
 
                 return etpl;
@@ -280,7 +307,14 @@ public class FilmixTVInvoke
 
                 var first = streamquality.Firts();
                 if (first != null)
-                    mtpl.Append(item.voiceover, first.link, streamquality: streamquality, vast: vast);
+                {
+                    mtpl.Append(
+                        item.voiceover,
+                        first.link,
+                        streamquality: streamquality,
+                        vast: vast
+                    );
+                }
             }
 
             return mtpl;

@@ -209,7 +209,14 @@ public class VideoDBController : BaseOnlineController
 
         var headers_stream = init.streamproxy ? null : httpHeaders(init.host, init.headers_stream);
 
-        return ContentTo(VideoTpl.ToJson("play", hls, "auto", vast: init.vast, headers: headers_stream));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            hls,
+            "auto",
+            vast: init.vast,
+            headers: headers_stream,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 

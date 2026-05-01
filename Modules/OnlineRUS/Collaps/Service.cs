@@ -142,7 +142,14 @@ public struct CollapsInvoke
             voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
             voicename = Regex.Replace(voicename, "[, ]+$", "");
 
-            mtpl.Append(name, onstreamfile.Invoke(stream.Replace("\u0026", "&")), subtitles: subtitles, voice_name: voicename, headers: headers, vast: vast);
+            mtpl.Append(
+                name,
+                onstreamfile.Invoke(stream.Replace("\u0026", "&")),
+                subtitles: subtitles,
+                voice_name: voicename,
+                headers: headers,
+                vast: vast
+            );
 
             return mtpl;
             #endregion
@@ -161,8 +168,11 @@ public struct CollapsInvoke
 
                     foreach (var season in md.serial.OrderBy(i => i.season))
                     {
-                        string link = host + $"{route}?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&orid={orid}&title={enc_title}&original_title={enc_original_title}&s={season.season}";
-                        tpl.Append($"{season.season} сезон", link, season.season);
+                        tpl.Append(
+                            $"{season.season} сезон",
+                            host + $"{route}?rjson={rjson}&kinopoisk_id={kinopoisk_id}&imdb_id={imdb_id}&orid={orid}&title={enc_title}&original_title={enc_original_title}&s={season.season}",
+                            season.season
+                        );
                     }
 
                     return tpl;
@@ -205,8 +215,17 @@ public struct CollapsInvoke
                         }
                         #endregion
 
-                        string file = onstreamfile.Invoke(stream.Replace("\u0026", "&"));
-                        etpl.Append($"{episode.episode} серия", title ?? original_title, sArch, episode.episode, file, subtitles: subtitles, voice_name: voicename, headers: headers, vast: vast);
+                        etpl.Append(
+                            $"{episode.episode} серия",
+                            title ?? original_title,
+                            sArch,
+                            episode.episode,
+                            onstreamfile.Invoke(stream.Replace("\u0026", "&")),
+                            subtitles: subtitles,
+                            voice_name: voicename,
+                            headers: headers,
+                            vast: vast
+                        );
                     }
 
                     return etpl;

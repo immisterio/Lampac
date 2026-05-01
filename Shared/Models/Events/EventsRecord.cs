@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
 using Shared.Services;
 using Shared.Models.Proxy;
+using Shared.Models.SISI.Base;
+using Shared.Models.SISI.OnResult;
 using Shared.Models.Templates;
 using System.Net;
 using System.Net.Http;
@@ -18,6 +20,16 @@ public record EventMiddleware(bool first, HttpContext httpContext);
 
 public record EventBadInitialization(BaseSettings init, bool? rch, RequestModel requestInfo, string host, HttpRequest request, HttpContext httpContext);
 
+public record EventSisiChannels(BaseController controller, HttpContext httpContext, IList<ChannelItem> channels);
+
+public record EventSisiPlaylistResult(BaseController controller, BaseSettings init, HttpContext httpContext, IList<PlaylistItem> playlists, bool singleCache, IList<MenuItem> menu, int total_pages, List<HeadersModel> headers_stream, List<HeadersModel> headers_image);
+
+public record EventSisiOnResult(BaseController controller, BaseSettings init, HttpContext httpContext, StreamItem stream_links, List<HeadersModel> headers_stream, List<HeadersModel> headers_image);
+
+public record EventSisiBookmarks(BaseController controller, HttpContext httpContext, IList<MenuItem> menu, IList<PlaylistItem> bookmarks, int pg, int pageSize, int total_pages);
+
+public record EventSisiHistorys(BaseController controller, HttpContext httpContext, IList<PlaylistItem> historys, int pg, int pageSize);
+
 public record EventAppReplace(string source, string token, string arg, string host, RequestModel requestInfo, HttpRequest request);
 
 public record EventExternalids(string id, string imdb_id, string kinopoisk_id, int serial);
@@ -33,6 +45,12 @@ public record EventControllerHttpHeaders(string site, Dictionary<string, string>
 public record EventStreamQuality(string link, string quality, bool prepend);
 
 public record EventStreamQualityFirts(IReadOnlyList<StreamQualityDto> data);
+
+public record EventVideoTpl(VideoDto video, HttpContext httpContext);
+
+public record EventOnline(BaseController controller, List<(string name, string url, string plugin, int index)> online, Shared.Models.Module.OnlineEventsModel moduleArgs, JObject kitconf, HttpContext httpContext);
+
+public record EventOnlineTpl(BaseController controller, BaseSettings init, HttpContext httpContext, bool rjson, ITplResult tpl);
 
 public record EventOnlineApiQuality(string balanser, JObject kitconf);
 

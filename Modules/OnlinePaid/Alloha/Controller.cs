@@ -62,7 +62,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
             return badInitMsg;
 
         #region search
-        rhubFallback:
+    rhubFallback:
 
         string memKey = string.IsNullOrEmpty(orid)
             ? $"alloha:search:{imdb_id}:{kinopoisk_id}"
@@ -106,9 +106,25 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                 string quality = uhd ? "2160p" : translation.quality;
 
                 if (directors_cut && trId == 66)
-                    mtpl.Append("Режиссерская версия", $"{link}&directors_cut=true", "call", $"{streamlink}&directors_cut=true", voice_name: quality, quality: uhd ? "2160p" : "");
+                {
+                    mtpl.Append(
+                        "Режиссерская версия",
+                        $"{link}&directors_cut=true",
+                        "call",
+                        $"{streamlink}&directors_cut=true",
+                        voice_name: quality,
+                        quality: uhd ? "2160p" : ""
+                    );
+        }
 
-                mtpl.Append(translation.name, link, "call", streamlink, voice_name: quality, quality: uhd ? "2160p" : "");
+                mtpl.Append(
+                    translation.name,
+                    link,
+                    "call",
+                    streamlink,
+                    voice_name: quality,
+                    quality: uhd ? "2160p" : ""
+                );
             }
 
             return ContentTpl(mtpl);
@@ -122,7 +138,13 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                 var tpl = new SeasonTpl(data.flags.uhd && init.m4s ? "2160p" : null);
 
                 foreach (var season in data.seasons.OrderBy(x => x.season))
-                    tpl.Append($"{season.season} сезон", $"{host}/lite/alloha?rjson={rjson}&s={season.season}{defaultargs}", season.season.ToString());
+                {
+                    tpl.Append(
+                        $"{season.season} сезон",
+                        $"{host}/lite/alloha?rjson={rjson}&s={season.season}{defaultargs}",
+                        season.season.ToString()
+                    );
+                }
 
                 return ContentTpl(tpl);
             }
@@ -149,7 +171,11 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                             if (activTranslate == -1)
                                 activTranslate = translation.id;
 
-                            vtpl.Append(translation.name, activTranslate == translation.id, $"{host}/lite/alloha?rjson={rjson}&s={s}&t={translation.id}{defaultargs}");
+                            vtpl.Append(
+                                translation.name,
+                                activTranslate == translation.id,
+                                $"{host}/lite/alloha?rjson={rjson}&s={s}&t={translation.id}{defaultargs}"
+                            );
                         }
                     }
                 }
@@ -167,7 +193,15 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                     string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episodeNum}&token_movie={data.token}" + defaultargs;
                     string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                    etpl.Append($"{episodeNum} серия", title ?? original_title, sArhc, episodeNum, link, "call", streamlink: streamlink);
+                    etpl.Append(
+                        $"{episodeNum} серия",
+                        title ?? original_title,
+                        sArhc,
+                        episodeNum,
+                        link,
+                        "call",
+                        streamlink: streamlink
+                    );
                 }
 
                 return ContentTpl(etpl);
@@ -293,12 +327,16 @@ public class AllohaController : BaseOnlineController<ModuleConf>
         }
         #endregion
 
-        return ContentTo(VideoTpl.ToJson("play", first.link, (title ?? original_title),
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            first.link,
+            (title ?? original_title),
             streamquality: streamquality,
             vast: init.vast,
             subtitles: subtitles,
             segments: segments,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
+            httpContext: HttpContext
         ));
     }
     #endregion
@@ -329,8 +367,13 @@ public class AllohaController : BaseOnlineController<ModuleConf>
 
             foreach (var j in cache.Value)
             {
-                string uri = $"{host}/lite/alloha?orid={j.token}";
-                stpl.Append(j.name ?? j.original_name, j.year.ToString(), string.Empty, uri, PosterApi.Size(j.poster));
+                stpl.Append(
+                    j.name ?? j.original_name,
+                    j.year.ToString(),
+                    string.Empty,
+                    $"{host}/lite/alloha?orid={j.token}",
+                    PosterApi.Size(j.poster)
+                );
             }
 
             return stpl;

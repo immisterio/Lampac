@@ -53,7 +53,7 @@ public class AsiaGeController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(searchTitle))
                 return OnError();
 
-            rhubSearchFallback:
+        rhubSearchFallback:
 
             var search = await InvokeCacheResult<EmbedModel>($"asiage:search:{searchTitle}:{year}", TimeSpan.FromHours(4), async e =>
             {
@@ -89,7 +89,7 @@ public class AsiaGeController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(href))
                 return ContentTpl(search.Value.similar);
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 
@@ -140,7 +140,14 @@ public class AsiaGeController : BaseOnlineController
                     if (string.IsNullOrWhiteSpace(epNum))
                         epNum = epIndex.ToString();
 
-                    etpl.Append(episode.title, title, "1", epNum, link, vast: init.vast);
+                    etpl.Append(
+                        episode.title,
+                        title,
+                        "1",
+                        epNum,
+                        link,
+                        vast: init.vast
+                    );
                 }
 
                 epIndex++;

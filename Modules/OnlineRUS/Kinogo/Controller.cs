@@ -5,7 +5,6 @@ using Shared.Models.Base;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
-using Shared.Services;
 using Shared.Services.RxEnumerate;
 using Shared.Services.Utilities;
 using System;
@@ -34,7 +33,7 @@ public class KinogoController : BaseOnlineController
             if (string.IsNullOrEmpty(title))
                 return OnError("search params");
 
-            reset_search:
+        reset_search:
             var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", TimeSpan.FromHours(4), async e =>
             {
                 string search = rch?.enable == true
@@ -68,7 +67,7 @@ public class KinogoController : BaseOnlineController
             return OnError("href");
 
         #region embed
-        reset_embed:
+    reset_embed:
 
         var cache = await InvokeCacheResult<List<PlaylistItem>>(ipkey(href), 20, async e =>
         {
@@ -168,8 +167,12 @@ public class KinogoController : BaseOnlineController
                 }
                 #endregion
 
-                voice = Regex.Replace(voice, "<[^>]+>", "");
-                mtpl.Append(voice, HostStreamProxy(file), subtitles: subtitles, vast: init.vast);
+                mtpl.Append(
+                    Regex.Replace(voice, "<[^>]+>", ""),
+                    HostStreamProxy(file),
+                    subtitles: subtitles,
+                    vast: init.vast
+                );
             }
 
             return mtpl;
@@ -188,8 +191,11 @@ public class KinogoController : BaseOnlineController
                     string _s = Regex.Match(season.title ?? string.Empty, " ([0-9]+)$").Groups[1].Value;
                     if (!string.IsNullOrEmpty(_s))
                     {
-                        string link = $"{host}/lite/kinogo?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={_s}";
-                        tpl.Append($"{_s} сезон", link, _s);
+                        tpl.Append(
+                            $"{_s} сезон",
+                            $"{host}/lite/kinogo?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={_s}",
+                            _s
+                        );
                     }
                 }
 
@@ -217,10 +223,11 @@ public class KinogoController : BaseOnlineController
                         if (t == -1)
                             t = voice_id;
 
-                        string link = $"{host}/lite/kinogo?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={voice_id}";
-                        bool active = t == voice_id;
-
-                        vtpl.Append(voice.title, active, link);
+                        vtpl.Append(
+                            voice.title,
+                            t == voice_id,
+                            $"{host}/lite/kinogo?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}&s={s}&t={voice_id}"
+                        );
                     }
                 }
                 #endregion
@@ -258,7 +265,16 @@ public class KinogoController : BaseOnlineController
                     #endregion
 
                     string stream = HostStreamProxy(file);
-                    etpl.Append(name, title ?? original_title, s.ToString(), Regex.Match(name, " ([0-9]+)$").Groups[1].Value, stream, subtitles: subtitles, vast: init.vast);
+                    etpl.Append(
+                        name,
+                        title ?? original_title,
+                        s.ToString(),
+                        Regex.Match(name,
+                        " ([0-9]+)$").Groups[1].Value,
+                        stream,
+                        subtitles: subtitles,
+                        vast: init.vast
+                    );
                 }
 
                 return etpl;

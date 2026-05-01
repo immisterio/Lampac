@@ -87,15 +87,7 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
     WebProxy _proxy = null;
 
     public WebProxy proxy
-    {
-        get
-        {
-            if (_proxy == null)
-                _proxy = proxyManager?.Get();
-
-            return _proxy;
-        }
-    }
+        => _proxy ??= proxyManager?.Get();
     #endregion
 
     #region proxy_data
@@ -297,12 +289,24 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
         if (playlists == null || playlists.Count == 0)
             return OnError("playlists", false);
 
+        var headers_stream = HeadersModel.InitOrNull(init.headers_stream);
+        var headers_image = httpHeaders(init.host, HeadersModel.InitOrNull(init.headers_image));
+
+        if (EventListener.SisiPlaylistResult != null)
+        {
+            var em = new EventSisiPlaylistResult(this, init, HttpContext, playlists, singleCache, menu, total_pages, headers_stream, headers_image);
+
+            foreach (Func<EventSisiPlaylistResult, ActionResult> handler in EventListener.SisiPlaylistResult.GetInvocationList())
+            {
+                var eventResult = handler(em);
+                if (eventResult != null)
+                    return eventResult;
+            }
+        }
+
         var utf8Writer = StatiCacheDisabled
             ? null
             : HttpContext.Features.Get<BufferWriterPool<byte>>();
-
-        var headers_stream = HeadersModel.InitOrNull(init.headers_stream);
-        var headers_image = httpHeaders(init.host, HeadersModel.InitOrNull(init.headers_image));
 
         if (singleCache && utf8Writer == null)
         {
@@ -321,7 +325,12 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
                 }
             }
 
-            return Json(new Channel() { list = playlists, menu = menu, total_pages = total_pages });
+            return Json(new Channel()
+            {
+                list = playlists,
+                menu = menu,
+                total_pages = total_pages
+            });
         }
         else
         {
@@ -468,6 +477,18 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
 
         var headers_stream = HeadersModel.InitOrNull(init.headers_stream);
         var headers_image = httpHeaders(init.host, HeadersModel.InitOrNull(init.headers_image));
+
+        if (EventListener.SisiOnResult != null)
+        {
+            var em = new EventSisiOnResult(this, init, HttpContext, stream_links, headers_stream, headers_image);
+
+            foreach (Func<EventSisiOnResult, ActionResult> handler in EventListener.SisiOnResult.GetInvocationList())
+            {
+                var eventResult = handler(em);
+                if (eventResult != null)
+                    return eventResult;
+            }
+        }
 
         Response.ContentType = "application/json; charset=utf-8";
         Response.Headers.CacheControl = "no-cache";

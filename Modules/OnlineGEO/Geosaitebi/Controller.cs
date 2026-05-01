@@ -4,7 +4,7 @@ using System.Web;
 using Shared;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Attributes;
 using Shared.Services.RxEnumerate;
 
@@ -32,7 +32,7 @@ public class GeosaitebiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(searchTitle))
                 return OnError();
 
-            rhubSearchFallback:
+        rhubSearchFallback:
 
             var cache = await InvokeCacheResult<EmbedModel>($"geosaitebi:search:{searchTitle}:{year}", TimeSpan.FromHours(4), async e =>
             {
@@ -69,7 +69,7 @@ public class GeosaitebiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(href))
                 return ContentTpl(cache.Value.similar);
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 
@@ -96,7 +96,13 @@ public class GeosaitebiController : BaseOnlineController
             var mtpl = new MovieTpl(title, original_title);
 
             string hls = HostStreamProxy(movie.Value);
-            mtpl.Append(title ?? "ქართული", hls, voice_name: "ქართული", headers: httpHeaders(init.host, init.headers_stream), vast: init.vast);
+            mtpl.Append(
+                title ?? "ქართული",
+                hls,
+                voice_name: "ქართული",
+                headers: httpHeaders(init.host, init.headers_stream),
+                vast: init.vast
+            );
 
             return mtpl;
         });

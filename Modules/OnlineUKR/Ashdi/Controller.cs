@@ -103,6 +103,12 @@ public class AshdiController : BaseOnlineController
         if (play)
             return RedirectToPlay(link);
 
-        return ContentTo(VideoTpl.ToJson("play", link, title, vast: init.vast));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            link,
+            title,
+            vast: init.vast,
+            httpContext: HttpContext
+        ));
     }
 }

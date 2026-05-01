@@ -1,4 +1,5 @@
-﻿using Shared.Services.RxEnumerate;
+﻿using Microsoft.AspNetCore.Http;
+using Shared.Services.RxEnumerate;
 using System.Text;
 using Shared.Models.Base;
 using Shared.Models.Templates;
@@ -134,7 +135,13 @@ public struct KodikInvoke
 
                 var matd = similar.material_data;
                 string img = PosterApi.Size(matd.anime_poster_url ?? matd.drama_poster_url ?? matd.poster_url);
-                stpl.Append(name, similar.year?.ToString(), details, host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}", img);
+                stpl.Append(
+                    name,
+                    similar.year?.ToString(),
+                    details,
+                    host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}",
+                    img
+                );
             }
 
             return new EmbedModel()
@@ -198,9 +205,7 @@ public struct KodikInvoke
         });
 
         if (string.IsNullOrEmpty(domain) || string.IsNullOrEmpty(player_single))
-        {
             return null;
-        }
 
         string uri = null;
         if (!psingles.TryGetValue(player_single, out uri))
@@ -214,9 +219,7 @@ public struct KodikInvoke
         }
 
         if (string.IsNullOrEmpty(uri))
-        {
             return null;
-        }
 
         bool _usehls = usehls;
 
@@ -260,16 +263,14 @@ public struct KodikInvoke
         });
 
         if (streams == null || streams.Count == 0)
-        {
             return null;
-        }
 
         streams.Reverse();
 
         return streams;
     }
 
-    public string VideoParse(List<StreamModel> streams, string title, string original_title, int episode, bool play, VastConf vast = null)
+    public string VideoParse(List<StreamModel> streams, string title, string original_title, int episode, bool play, HttpContext httpContext, VastConf vast = null)
     {
         if (streams == null || streams.Count == 0)
             return string.Empty;
@@ -285,7 +286,14 @@ public struct KodikInvoke
         foreach (var l in streams)
             streamquality.Append(onstreamfile(l.url), l.q);
 
-        return VideoTpl.ToJson("play", onstreamfile(streams[0].url), name, streamquality: streamquality, vast: vast);
+        return VideoTpl.ToJson(
+            "play",
+            onstreamfile(streams[0].url),
+            name,
+            streamquality: streamquality,
+            vast: vast,
+            httpContext: httpContext
+        );
     }
     #endregion
 
@@ -316,7 +324,12 @@ public struct KodikInvoke
                         streamlink += $"&{args.Remove(0, 1)}";
                 }
 
-                mtpl.Append(data.translation.title, url, "call", streamlink);
+                mtpl.Append(
+                    data.translation.title,
+                    url,
+                    "call",
+                    streamlink
+                );
             }
 
             return mtpl;
@@ -335,12 +348,15 @@ public struct KodikInvoke
                 foreach (var item in results.AsEnumerable().Reverse())
                 {
                     int season = item.last_season;
-                    string link = host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={season}";
 
                     if (!hash.Add(season))
                         continue;
 
-                    tpl.Append($"{season} сезон", link, season);
+                    tpl.Append(
+                        $"{season} сезон",
+                        host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={season}",
+                        season
+                    );
                 }
 
                 return tpl;
@@ -372,9 +388,11 @@ public struct KodikInvoke
                     if (string.IsNullOrEmpty(kid))
                         kid = id;
 
-                    string link = host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}";
-
-                    vtpl.Append(name, kid == id, link);
+                    vtpl.Append(
+                        name,
+                        kid == id,
+                        host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}"
+                    );
                 }
                 #endregion
 
@@ -402,7 +420,15 @@ public struct KodikInvoke
                             streamlink += $"&{args.Remove(0, 1)}";
                     }
 
-                    etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, url, "call", streamlink: streamlink);
+                    etpl.Append(
+                        $"{episode.Key} серия",
+                        title ?? original_title,
+                        sArhc,
+                        episode.Key,
+                        url,
+                        "call",
+                        streamlink: streamlink
+                    );
                 }
 
                 return etpl;
