@@ -40,6 +40,7 @@ public class ModInit : IModuleLoaded, IModuleOnline
     {
         conf = ModuleInvoke.Init("FanCDN", new OnlinesSettings("FanCDN", "https://fanserial.me", streamproxy: true)
         {
+            enable = false,
             displayindex = 520,
             rch_access = "apk",
             rhub_safety = false,
