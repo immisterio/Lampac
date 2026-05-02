@@ -55,6 +55,7 @@ public class ModInit : IModuleLoaded
 
     public static string clearArgs(IQueryCollection query)
     {
+        bool first = true;
         var args = StringBuilderPool.ThreadInstance;
 
         foreach (var q in query)
@@ -63,7 +64,13 @@ public class ModInit : IModuleLoaded
                 continue;
 
             if (!string.IsNullOrEmpty(q.Key) && !string.IsNullOrEmpty(q.Value))
-                args.Append(q.Key).Append("=").Append(q.Value).Append("&");
+            {
+                if (!first)
+                    args.Append("&");
+
+                args.Append(q.Key).Append("=").Append(q.Value);
+                first = false;
+            }
         }
 
         return args.ToString();
