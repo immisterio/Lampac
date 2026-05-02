@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Events;
 using Shared.PlaywrightCore;
 using System.Net.Http;
 
@@ -89,7 +90,7 @@ public class ListController : BaseController
                 if (parse?.initHeader != null)
                     headers = CSharpEval.Execute<List<HeadersModel>>(parse.initHeader, new CatalogInitHeader(url, headers));
 
-                reset:
+            reset:
                 string html = null;
 
                 if (!string.IsNullOrEmpty(data))
@@ -228,6 +229,18 @@ public class ListController : BaseController
                 results.Add(jo);
             }
             #endregion
+
+            if (EventListener.CatalogList != null)
+            {
+                var em = new EventCatalogList(this, HttpContext, results, query, plugin, cat, sort, page, total_pages, next_page);
+
+                foreach (Func<EventCatalogList, ActionResult> handler in EventListener.CatalogList.GetInvocationList())
+                {
+                    var eventResult = handler(em);
+                    if (eventResult != null)
+                        return eventResult;
+                }
+            }
 
             return ContentTo(JsonConvert.SerializeObject(new
             {
