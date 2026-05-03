@@ -32,7 +32,7 @@ public record EventSisiHistorys(BaseController controller, HttpContext httpConte
 
 public record EventCatalogChannels(BaseController controller, JObject channels, HttpContext httpContext);
 
-public record EventCatalogList(BaseController controller, HttpContext httpContext, JArray playlists, string query, string plugin, string cat, string sort, int page, int? total_pages, bool? next_page);
+public record EventCatalogList(BaseController controller, HttpContext httpContext, List<Catalog.PlaylistItem> playlists, string query, string plugin, string cat, string sort, int page, int? total_pages, bool? next_page);
 
 public record EventCatalogCard(BaseController controller, HttpContext httpContext, JObject card, string plugin, string uri, string type);
 

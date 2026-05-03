@@ -232,7 +232,7 @@ public class ListController : BaseController
 
             if (EventListener.CatalogList != null)
             {
-                var em = new EventCatalogList(this, HttpContext, results, query, plugin, cat, sort, page, total_pages, next_page);
+                var em = new EventCatalogList(this, HttpContext, cache.playlists, query, plugin, cat, sort, page, total_pages, next_page);
 
                 foreach (Func<EventCatalogList, ActionResult> handler in EventListener.CatalogList.GetInvocationList())
                 {
