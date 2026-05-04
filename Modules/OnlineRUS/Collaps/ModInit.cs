@@ -50,7 +50,6 @@ public class ModInit : IModuleLoaded, IModuleOnline, IModuleOnlineSpider
     {
         conf = ModuleInvoke.Init("Collaps", new ModuleConf("Collaps", "https://api.luxembd.ws", streamproxy: true)
         {
-            enable = false,
             displayindex = 555,
             rch_access = "apk",
             stream_access = "apk,cors,web",
