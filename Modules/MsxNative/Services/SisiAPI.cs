@@ -102,7 +102,7 @@ public static class SisiAPI
             items.Add(new MsxItem
             {
                 title = pl.Key == "auto" ? "смотреть" : pl.Key,
-                icon = "#ff9900:movie",
+                icon = "#e50914:play-circle-outline",
                 iconSize = "large",
                 action = "video:" + e.controller.HostStreamProxy(e.init, pl.Value, e.headers_stream)
             });
