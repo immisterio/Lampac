@@ -15,7 +15,7 @@
   {
     "PermitLimit": 100,
     "Window": 10,
-    "SegmentsPerWindow": 110,
+    "SegmentsPerWindow": 10,
     "QueueLimit": 0
   },
   {
