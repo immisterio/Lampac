@@ -122,6 +122,7 @@
     <Project Path="Modules/Proxy/Corseu/Corseu.csproj" />
     <Project Path="Modules/Proxy/CorsMedia/CorsMedia.csproj" />
     <Project Path="Modules/Proxy/CubProxy/CubProxy.csproj" />
+    <Project Path="Modules/Proxy/ProxyLimiter/ProxyLimiter.csproj" />
     <Project Path="Modules/Proxy/TmdbProxy/TmdbProxy.csproj" />
   </Folder>
   <Folder Name="/Modules/Sync/">
