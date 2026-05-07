@@ -386,8 +386,9 @@ public class CoreInit
             cache_rsize = true,
             cache_time = 60 * 24 // 24h
         },
+        cache_hls = 60 * 24,       // 24h
         maxlength_m3u = 10_000000, // 10mb
-        maxlength_ts = 70_000000  // 70mb
+        maxlength_ts = 70_000000   // 70mb
     };
 
     public OnlineConf online = new OnlineConf()
