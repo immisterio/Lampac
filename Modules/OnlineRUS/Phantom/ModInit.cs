@@ -7,7 +7,7 @@ using Shared.PlaywrightCore;
 using Shared.Services;
 using System.Collections.Generic;
 
-namespace Spectre;
+namespace Phantom;
 
 public class ModInit : IModuleLoaded, IModuleOnline
 {
@@ -30,7 +30,6 @@ public class ModInit : IModuleLoaded, IModuleOnline
         EventListener.UpdateInitFile += updateConf;
         EventListener.OnlineApiQuality += onlineApiQuality;
         EventListener.ProxyApiCreateHttpRequest += Service.ProxyApiCreateHttpRequest;
-        Service.Start();
     }
 
     public void Dispose()
@@ -38,15 +37,13 @@ public class ModInit : IModuleLoaded, IModuleOnline
         EventListener.UpdateInitFile -= updateConf;
         EventListener.OnlineApiQuality -= onlineApiQuality;
         EventListener.ProxyApiCreateHttpRequest -= Service.ProxyApiCreateHttpRequest;
-        Service.Stop();
     }
 
     void updateConf()
     {
-        conf = ModuleInvoke.Init("Spectre", new ModuleConf("Spectre", "https://api.apbugall.org", "https://aport-as.allarknow.online", "22c8122334d050de1bfc97bd08aa5e", "", true)
+        conf = ModuleInvoke.Init("Phantom", new ModuleConf("Phantom", "https://api.apbugall.org", "https://aport-as.allarknow.online", "22c8122334d050de1bfc97bd08aa5e", "", true)
         {
-            enable = false,
-            mux = true, // multi stream
+            enable = true,
             m4s = true, // 4k
             displayindex = 510,
             streamproxy = true,
@@ -59,6 +56,6 @@ public class ModInit : IModuleLoaded, IModuleOnline
 
     string onlineApiQuality(EventOnlineApiQuality e)
     {
-        return e.balanser == "spectre" ? " ~ 2160p" : null;
+        return e.balanser == "phantom" ? " ~ 2160p" : null;
     }
 }
