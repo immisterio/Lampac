@@ -53,22 +53,61 @@ public struct CollapsInvoke
                 if (1 > rx.Count)
                     return;
 
+                var movie = new Movie()
+                {
+                    hls = Rx.Match(rx[1].Span, "hls: +\"(https?://[^\"]+\\.m3u[^\"]+)\""),
+                    dash = Rx.Match(rx[1].Span, "dasha?: +\"(https?://[^\"]+\\.mp[^\"]+)\""),
+                    name = Rx.Match(rx[1].Span, "audio: +\\{\"names\":\\[\"([^\"]+)\"")
+                };
+
+                if (string.IsNullOrWhiteSpace(movie.name))
+                    movie.name = "По умолчанию";
+
+                movie.voicename = movie.name.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
+                movie.voicename = Regex.Replace(movie.voicename, "[, ]+$", "");
+
+                #region subtitle
+                try
+                {
+                    ReadOnlySpan<char> cc = Rx.Slice(rx[1].Span, "cc:", "\n");
+
+                    if (cc != ReadOnlySpan<char>.Empty && cc.Contains("[", StringComparison.Ordinal))
+                    {
+                        movie.cc = JsonSerializer.Deserialize<Cc[]>(cc, new JsonSerializerOptions
+                        {
+                            AllowTrailingCommas = true
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Error(ex, "{Class} {CatchId}", "Collaps", "id_d922pta7");
+                }
+                #endregion
+
                 embed = new EmbedModel()
                 {
-                    content = rx[1].ToString()
+                    movie = movie
                 };
             }
             else
             {
                 try
                 {
-                    var root = JsonSerializer.Deserialize<RootObject[]>(Rx.Match(content, "seasons:([^\n\r]+)"), new JsonSerializerOptions
+                    ReadOnlySpan<char> json = Rx.Slice(content, "seasons:", "\n");
+
+                    var root = JsonSerializer.Deserialize<SerialModel[]>(json, new JsonSerializerOptions
                     {
                         AllowTrailingCommas = true
                     });
 
                     if (root != null && root.Length > 0)
-                        embed = new EmbedModel() { serial = root };
+                    {
+                        embed = new EmbedModel()
+                        {
+                            serial = root.OrderBy(i => i.season).ToArray()
+                        };
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -87,66 +126,37 @@ public struct CollapsInvoke
         if (md == null)
             return default;
 
-        if (md.content != null)
+        if (md.movie != null)
         {
             #region Фильм
-            string stream = Regex.Match(md.content, "hls: +\"(https?://[^\"]+\\.m3u[^\"]+)\"").Groups[1].Value;
-
-            if (dash)
-            {
-                string _dash = Regex.Match(md.content, "dasha?: +\"(https?://[^\"]+\\.mp[^\"]+)\"").Groups[1].Value;
-                if (!string.IsNullOrEmpty(_dash))
-                    stream = _dash;
-            }
+            string stream = dash
+                ? md.movie.dash ?? md.movie.hls
+                : md.movie.hls;
 
             if (string.IsNullOrEmpty(stream))
                 return default;
 
             var mtpl = new MovieTpl(title, original_title, 1);
 
-            string name = Regex.Match(md.content, "audio: +\\{\"names\":\\[\"([^\"]+)\"").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(name))
-                name = "По умолчанию";
-
             #region subtitle
             SubtitleTpl subtitles = null;
 
-            try
+            if (md.movie.cc != null && md.movie.cc.Length > 0)
             {
-                string subplain = Regex.Match(md.content, "cc: +(\\[[^\n\r]+\\]),").Groups[1].Value;
-                if (!string.IsNullOrEmpty(subplain))
+                subtitles = new SubtitleTpl(md.movie.cc.Length);
+                foreach (var cc in md.movie.cc)
                 {
-                    var subs = JsonSerializer.Deserialize<List<Cc>>(subplain.Trim(), new JsonSerializerOptions
-                    {
-                        AllowTrailingCommas = true
-                    });
-
-                    if (subs != null)
-                    {
-                        subtitles = new SubtitleTpl(subs.Count);
-                        foreach (var cc in subs)
-                        {
-                            if (cc.url != null)
-                                subtitles.Append(cc.name, onstreamfile.Invoke(cc.url));
-                        }
-                    }
+                    if (cc.url != null && cc.name != null)
+                        subtitles.Append(cc.name, onstreamfile.Invoke(cc.url));
                 }
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Error(ex, "{Class} {CatchId}", "Collaps", "id_d922pta7");
             }
             #endregion
 
-            string voicename = Regex.Match(md.content, "audio: +\\{\"names\":\\[\"([^\\]]+)\\]").Groups[1].Value;
-            voicename = voicename.Replace("\"", "").Replace("delete", "").Replace(",", ", ");
-            voicename = Regex.Replace(voicename, "[, ]+$", "");
-
             mtpl.Append(
-                name,
+                md.movie.name,
                 onstreamfile.Invoke(stream.Replace("\u0026", "&")),
                 subtitles: subtitles,
-                voice_name: voicename,
+                voice_name: md.movie.voicename,
                 headers: headers,
                 vast: vast
             );
@@ -166,7 +176,7 @@ public struct CollapsInvoke
                 {
                     var tpl = new SeasonTpl(md.serial.Length);
 
-                    foreach (var season in md.serial.OrderBy(i => i.season))
+                    foreach (var season in md.serial)
                     {
                         tpl.Append(
                             $"{season.season} сезон",

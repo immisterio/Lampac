@@ -57,9 +57,18 @@ public class CollapsController : BaseOnlineController<ModuleConf>
         if (IsRhubFallback(cache))
             goto rhubFallback;
 
-        return ContentTpl(cache,
-            () => oninvk.Tpl(cache.Value, imdb_id, kinopoisk_id, orid, title, original_title, s, vast: init.vast, rjson: rjson, headers: httpHeaders(init.host, init.headers_stream))
-        );
+        return ContentTpl(cache, () => oninvk.Tpl(
+            cache.Value,
+            imdb_id,
+            kinopoisk_id,
+            orid,
+            title,
+            original_title,
+            s,
+            vast: init.vast,
+            rjson: rjson,
+            headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream)
+        ));
     }
 
 

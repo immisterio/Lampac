@@ -28,11 +28,11 @@ public static class Encoder
         if (string.IsNullOrEmpty(url) || url.Contains(marker))
             return url;
 
-        string uri = EncodeUri(new Uri(url));
-        if (uri == null)
+        string newUri = EncodeUri(new Uri(url));
+        if (newUri == null)
             return url;
 
-        return uri + (uri.Contains(".mpd") ? "#.mpd" : "#.m3u8");
+        return newUri + (url.Contains(".vtt") ? "#.vtt" : url.Contains(".mpd") ? "#.mpd" : "#.m3u8");
     }
 
     static string EncodeUri(Uri uri)
