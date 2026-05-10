@@ -38,37 +38,27 @@ public class PlayEmbedController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/tv/{id}/{s}/{e}?colour=e1216d&autoplay=true&autonextepisode=false&pausescreen=true";
 
-        var cache = await InvokeCacheResult<(string hls, List<HeadersModel> headers)>($"playembed:video:{embed}", 20, async result =>
-        {
-            var source = await BlackMagic(embed);
-            if (source.m3u8 == null)
-                return result.Fail("m3u8");
+        var result = await black_magic(embed);
+        if (result.m3u8 == null)
+            return OnError("m3u8", 502);
 
-            var headersStream = httpHeaders(init.host, init.headers_stream);
-            if (headersStream == null || headersStream.Count == 0)
-                headersStream = source.headers;
-
-            string hls = HostStreamProxy(source.m3u8, headers: headersStream);
-            return result.Success((hls, headersStream));
-        });
-
-        if (!cache.IsSuccess || cache.Value.hls == null)
-            return StatusCode(502);
+        string hls = HostStreamProxy(result.m3u8, headers: result.headers);
 
         if (play)
-            return RedirectToPlay(cache.Value.hls);
+            return RedirectToPlay(hls);
 
         return ContentTo(VideoTpl.ToJson(
             "play",
-            cache.Value.hls,
+            hls,
             "English",
             vast: init.vast,
-            headers: init.streamproxy ? null : cache.Value.headers,
+            headers: init.streamproxy ? null : result.headers,
             httpContext: HttpContext
         ));
     }
 
-    private async Task<(string m3u8, List<HeadersModel> headers)> BlackMagic(string uri)
+    
+    async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return default;

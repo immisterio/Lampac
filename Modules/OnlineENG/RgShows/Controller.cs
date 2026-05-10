@@ -32,18 +32,18 @@ public class RgShowsController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/main/tv/{id}/{s}/{e}";
 
-        var cache = await InvokeCacheResult<string>($"rgshows:{embed}", 20, async () => await Magic(embed));
-        if (!cache.IsSuccess || cache.Value == null)
-            return StatusCode(502);
+        string file = await black_magic(embed);
+        if (file == null)
+            return OnError("file", 502);
 
-        string file = HostStreamProxy(cache.Value);
+        string stream = HostStreamProxy(file);
 
         if (play)
-            return RedirectToPlay(file);
+            return RedirectToPlay(stream);
 
         return ContentTo(VideoTpl.ToJson(
             "play",
-            file,
+            stream,
             "English",
             vast: init.vast,
             headers: init.streamproxy ? null : httpHeaders(init.host, init.headers_stream),
@@ -52,7 +52,8 @@ public class RgShowsController : BaseENGController
         ));
     }
 
-    private async ValueTask<string> Magic(string uri)
+    
+    async ValueTask<string> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return uri;

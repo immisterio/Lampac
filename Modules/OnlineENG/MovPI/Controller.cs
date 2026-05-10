@@ -4,7 +4,6 @@ using Shared;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
-using Shared.Services.Utilities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -36,23 +35,11 @@ public class MovPIController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/tv/{id}-{s}-{e}?autoPlay=true&poster=false";
 
-        var cache = await InvokeCacheResult<(string m3u8, List<HeadersModel> headers)>($"movpi:video:{embed}", 1, async e =>
-        {
-            var result = await BlackMagic(embed);
-            if (result.m3u8 == null)
-                return e.Fail("m3u8");
+        var result = await black_magic(embed);
+        if (result.m3u8 == null)
+            return OnError("m3u8", 502);
 
-            return e.Success(result);
-        });
-
-        if (!cache.IsSuccess || cache.Value.m3u8 == null)
-            return StatusCode(502);
-
-        var headersStream = httpHeaders(init.host, init.headers_stream);
-        if (headersStream == null || headersStream.Count == 0)
-            headersStream = cache.Value.headers;
-
-        string hls = HostStreamProxy(cache.Value.m3u8, headers: headersStream);
+        string hls = HostStreamProxy(result.m3u8, headers: result.headers);
 
         if (play)
             return RedirectToPlay(hls);
@@ -62,12 +49,13 @@ public class MovPIController : BaseENGController
             hls,
             "English",
             vast: init.vast,
-            headers: init.streamproxy ? null : headersStream,
+            headers: init.streamproxy ? null : result.headers,
             httpContext: HttpContext
         ));
     }
 
-    private async Task<(string m3u8, List<HeadersModel> headers)> BlackMagic(string uri)
+    
+    async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return default;
@@ -87,49 +75,37 @@ public class MovPIController : BaseENGController
                     {
                         try
                         {
-                            if (route.Request.Url.Contains("api/chromium/iframe"))
+                            if (route.Request.Url.StartsWith("https://www.hydraflix.cc"))
                             {
-                                await route.ContinueAsync();
-                                return;
-                            }
-
-                            if (browser.IsCompleted)
-                            {
-                                PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                                return;
-                            }
-
-                            if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                return;
-
-                            if (route.Request.Url == uri)
-                            {
-                                await route.ContinueAsync(new RouteContinueOptions
+                                await route.FulfillAsync(new RouteFulfillOptions
                                 {
-                                    Headers = httpHeaders(init, HeadersModel.Init(("referer", CrypTo.DecodeBase64("aHR0cHM6Ly93d3cuaHlkcmFmbGl4LnZpcC8=")))).ToDictionary()
+                                    Body = PlaywrightBase.IframeHtml(uri)
                                 });
-                                return;
                             }
-
-                            if (route.Request.Url.Contains(".m3u8"))
+                            else
                             {
-                                cache.headers = new List<HeadersModel>();
-                                foreach (var item in route.Request.Headers)
-                                {
-                                    if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                                        continue;
+                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
+                                    return;
 
-                                    cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                if (route.Request.Url.Contains(".m3u8"))
+                                {
+                                    cache.headers = new List<HeadersModel>();
+                                    foreach (var item in route.Request.Headers)
+                                    {
+                                        if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
+                                            continue;
+
+                                        cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                                    }
+
+                                    PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {route.Request.Url}", cache.headers));
+                                    browser.SetPageResult(route.Request.Url);
+                                    await route.AbortAsync();
+                                    return;
                                 }
 
-                                PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {route.Request.Url}", cache.headers));
-                                browser.SetPageResult(route.Request.Url);
-                                await route.AbortAsync();
-                                return;
+                                await route.ContinueAsync();
                             }
-
-                            await route.ContinueAsync();
                         }
                         catch (System.Exception ex)
                         {
@@ -137,9 +113,9 @@ public class MovPIController : BaseENGController
                         }
                     });
 
-                    PlaywrightBase.GotoAsync(page, PlaywrightBase.IframeUrl(uri));
+                    PlaywrightBase.GotoAsync(page, "https://www.hydraflix.cc");
 
-                    cache.m3u8 = await browser.WaitPageResult(20);
+                    cache.m3u8 = await browser.WaitPageResult();
                 }
 
                 if (cache.m3u8 == null)

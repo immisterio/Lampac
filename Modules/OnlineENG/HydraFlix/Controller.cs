@@ -40,15 +40,11 @@ public class HydraFlixController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/tv/{id}/{s}/{e}?autoPlay=true&theme=e1216d";
 
-        var cache = await InvokeCacheResult(embed, 20, () => black_magic(embed));
-        if (cache.Value.m3u8 == null)
-            return StatusCode(502);
+        var result = await black_magic(embed);
+        if (result.m3u8 == null)
+            return OnError("m3u8", 502);
 
-        var headers_stream = httpHeaders(init.host, init.headers_stream);
-        if (headers_stream == null || headers_stream.Count == 0)
-            headers_stream = cache.Value.headers;
-
-        string file = HostStreamProxy(cache.Value.m3u8, headers: headers_stream);
+        string file = HostStreamProxy(result.m3u8, headers: result.headers);
 
         if (play)
             return RedirectToPlay(file);
@@ -58,7 +54,7 @@ public class HydraFlixController : BaseENGController
             file,
             "English",
             vast: init.vast,
-            headers: init.streamproxy ? null : headers_stream,
+            headers: init.streamproxy ? null : result.headers,
             httpContext: HttpContext
         ));
     }

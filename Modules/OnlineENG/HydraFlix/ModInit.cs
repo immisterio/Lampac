@@ -23,7 +23,7 @@ public class ModInit : IModuleLoaded, IModuleOnline
         {
             if (args.source != null && (args.source is "tmdb" or "cub") && long.TryParse(args.id, out long _id) && _id > 0)
             {
-                if (PlaywrightBrowser.Status != PlaywrightStatus.disabled)
+                if (Firefox.Status != PlaywrightStatus.disabled)
                     online.Add(new(conf, "hydraflix", "HydraFlix", " (ENG)"));
             }
         }
@@ -47,7 +47,7 @@ public class ModInit : IModuleLoaded, IModuleOnline
     void updateConf()
     {
         /// <summary>
-        /// https://www.hydraflix.vip
+        /// https://www.hydraflix.cc
         /// </summary>
         conf = ModuleInvoke.Init("Hydraflix", new OnlinesSettings("Hydraflix", "https://vidfast.pro")
         {

@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json.Linq;
+using Microsoft.Playwright;
 using Shared;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
-using Shared.Services;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -15,9 +13,6 @@ namespace VidSrc;
 
 public class VidSrcController : BaseENGController
 {
-    private static readonly Serilog.ILogger Log = Serilog.Log.ForContext<VidSrcController>();
-    private static List<HeadersModel> lastHeaders;
-
     public VidSrcController() : base(ModInit.conf)
     {
     }
@@ -44,85 +39,27 @@ public class VidSrcController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/v2/embed/tv/{id}/{s}/{e}?autoPlay=true&poster=false";
 
-        var cache = await InvokeCacheResult<(string file, List<HeadersModel> headers, SubtitleTpl subtitles)>(embed, 20, async result =>
-        {
-            if (memoryCache.TryGetValue($"vidsrc:lastvrf:{id}", out string vrf) && s > 0)
-            {
-                string uri = $"{init.host}/api/{id}/servers?id={id}&type=tv&season={s}&episode={e}&vrf={vrf}&imdbId={imdb_id}";
-                if (!hybridCache.TryGetValue(uri, out JToken data))
-                {
-                    try
-                    {
-                        var root = await Http.Get<JObject>(uri, timeoutSeconds: 8);
-                        if (root != null && root.ContainsKey("data"))
-                        {
-                            string hash = root["data"].First.Value<string>("hash");
-                            var source = await Http.Get<JObject>($"{init.host}/api/source/{hash}", timeoutSeconds: 8);
-                            if (source != null && source.ContainsKey("data"))
-                            {
-                                data = source["data"];
-                                hybridCache.Set(uri, data, cacheTime(20));
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "CatchId={CatchId}", "id_owu3uxfl");
-                    }
-                }
+        var result = await black_magic(id, embed);
+        if (result.m3u8 == null)
+            return OnError("m3u8", 502);
 
-                if (data != null)
-                {
-                    var subtitles = new SubtitleTpl();
-                    try
-                    {
-                        foreach (var sub in data["subtitles"])
-                            subtitles.Append(sub.Value<string>("label"), HostStreamProxy(sub.Value<string>("file")));
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "CatchId={CatchId}", "id_ejc3a36i");
-                    }
-
-                    var streamHeaders = httpHeaders(init.host, init.headers_stream);
-                    if (streamHeaders == null || streamHeaders.Count == 0)
-                        streamHeaders = lastHeaders;
-
-                    string file = HostStreamProxy(data.Value<string>("source"), headers: streamHeaders);
-                    return result.Success((file, streamHeaders, subtitles));
-                }
-            }
-
-            var extracted = await ExtractPlaylist(id, embed);
-            if (extracted.m3u8 == null)
-                return result.Fail("m3u8");
-
-            var headers = httpHeaders(init.host, init.headers_stream);
-            if (headers == null || headers.Count == 0)
-                headers = extracted.headers;
-
-            string hls = HostStreamProxy(extracted.m3u8, headers: headers);
-            return result.Success((hls, headers, null));
-        });
-
-        if (!cache.IsSuccess || string.IsNullOrEmpty(cache.Value.file))
-            return StatusCode(502);
+        string hls = HostStreamProxy(result.m3u8, headers: result.headers);
 
         if (play)
-            return RedirectToPlay(cache.Value.file);
+            return RedirectToPlay(hls);
 
         return ContentTo(VideoTpl.ToJson(
             "play",
-            cache.Value.file,
+            hls,
             "English",
-            subtitles: cache.Value.subtitles,
             vast: init.vast,
-            headers: init.streamproxy ? null : cache.Value.headers,
+            headers: init.streamproxy ? null : result.headers,
             httpContext: HttpContext
         ));
     }
 
-    private async Task<(string m3u8, List<HeadersModel> headers)> ExtractPlaylist(long id, string uri)
+
+    async Task<(string m3u8, List<HeadersModel> headers)> black_magic(long id, string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return default;
@@ -152,13 +89,6 @@ public class VidSrcController : BaseENGController
                             if (await PlaywrightBase.AbortOrCache(page, route, fullCacheJS: true))
                                 return;
 
-                            if (Regex.IsMatch(route.Request.Url, "/api/[0-9]+/servers"))
-                            {
-                                string vrf = Regex.Match(route.Request.Url, "&vrf=([^&]+)").Groups[1].Value;
-                                if (!string.IsNullOrEmpty(vrf) && route.Request.Url.Contains("&type=tv"))
-                                    memoryCache.Set($"vidsrc:lastvrf:{id}", vrf, DateTime.Now.AddDays(1));
-                            }
-
                             if (route.Request.Url.Contains(".m3u8"))
                             {
                                 cache.headers = new List<HeadersModel>();
@@ -170,7 +100,6 @@ public class VidSrcController : BaseENGController
                                     cache.headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
                                 }
 
-                                lastHeaders = cache.headers;
                                 PlaywrightBase.ConsoleLog(() => ($"Playwright: SET {route.Request.Url}", cache.headers));
                                 browser.SetPageResult(route.Request.Url);
                                 await route.AbortAsync();
@@ -181,41 +110,29 @@ public class VidSrcController : BaseENGController
                         }
                         catch (Exception ex)
                         {
-                            Log.Error(ex, "CatchId={CatchId}", "id_zp5in04r");
+                            Serilog.Log.Error(ex, "CatchId={CatchId}", "id_zp5in04r");
                         }
                     });
 
                     PlaywrightBase.GotoAsync(page, uri);
 
-                    for (int i = 0; i < 150; i++)
+                    var playBtn = page.Locator("button:has(svg)");
+
+                    await playBtn.ClickAsync(new LocatorClickOptions
                     {
-                        if (browser.IsCompleted)
-                            break;
+                        Timeout = 15000
+                    });
 
-                        try
-                        {
-                            var playBtn = await page.QuerySelectorAsync("#btn-play");
-                            if (playBtn != null)
-                                await playBtn.ClickAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "CatchId={CatchId}", "id_o2bkg9te");
-                        }
-
-                        await Task.Delay(100);
-                    }
-
-                    cache.m3u8 = await browser.completionSource.Task;
+                    cache.m3u8 = await browser.WaitPageResult();
                 }
 
                 if (cache.m3u8 == null)
                 {
-                    proxyManager.Refresh();
+                    proxyManager?.Refresh();
                     return default;
                 }
 
-                proxyManager.Success();
+                proxyManager?.Success();
                 hybridCache.Set(memKey, cache, cacheTime(20));
             }
 

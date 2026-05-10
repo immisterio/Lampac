@@ -35,23 +35,11 @@ public class AutoEmbedController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/embed/tv/{id}/{s}/{e}";
 
-        var cache = await InvokeCacheResult<(string file, List<HeadersModel> headers)>(embed, 20, async e =>
-        {
-            var result = await black_magic(embed);
-            if (result.file == null)
-                return e.Fail("embed");
+        var result = await black_magic(embed);
+        if (result.file == null)
+            return OnError("m3u8", 502);
 
-            return e.Success(result);
-        });
-
-        if (!cache.IsSuccess)
-            return StatusCode(502);
-
-        var headers_stream = httpHeaders(init.host, init.headers_stream);
-        if (headers_stream == null || headers_stream.Count == 0)
-            headers_stream = cache.Value.headers;
-
-        string file = HostStreamProxy(cache.Value.file, headers: headers_stream);
+        string file = HostStreamProxy(result.file, headers: result.headers);
 
         if (play)
             return RedirectToPlay(file);
@@ -61,12 +49,13 @@ public class AutoEmbedController : BaseENGController
             file,
             "English",
             vast: init.vast,
-            headers: init.streamproxy ? null : headers_stream,
+            headers: init.streamproxy ? null : result.headers,
             httpContext: HttpContext
         ));
     }
 
-    private async Task<(string file, List<HeadersModel> headers)> black_magic(string uri)
+    
+    async Task<(string file, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return default;

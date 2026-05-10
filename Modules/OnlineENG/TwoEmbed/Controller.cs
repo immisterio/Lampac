@@ -35,19 +35,11 @@ public class TwoEmbedController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/embed/tv/{id}/{s}/{e}";
 
-        var cache = await InvokeCacheResult<string>(embed, 20, async result =>
-        {
-            var hls = await BlackMagic(embed);
-            if (hls == null)
-                return result.Fail("embed");
+        string hls = await black_magic(embed);
+        if (hls == null)
+            return OnError("m3u8", 502);
 
-            return result.Success(hls);
-        });
-
-        if (!cache.IsSuccess)
-            return StatusCode(502);
-
-        string source = HostStreamProxy(cache.Value);
+        string source = HostStreamProxy(hls);
 
         if (play)
             return RedirectToPlay(source);
@@ -62,7 +54,8 @@ public class TwoEmbedController : BaseENGController
         ));
     }
 
-    private async Task<string> BlackMagic(string uri)
+
+    async Task<string> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return default;

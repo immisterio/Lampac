@@ -46,7 +46,9 @@ public class ModInit : IModuleLoaded, IModuleOnline
 
     private void UpdateConf()
     {
-        conf = ModuleInvoke.Init("MovPI", new OnlinesSettings("MovPI", "https://moviesapi.club")
+        /// https://moviesapi.club
+        /// https://moviesapi.to
+        conf = ModuleInvoke.Init("MovPI", new OnlinesSettings("MovPI", "https://moviesapi.to")
         {
             displayindex = 1025,
             streamproxy = true

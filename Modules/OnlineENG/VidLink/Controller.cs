@@ -35,46 +35,27 @@ public class VidLinkController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/tv/{id}/{s}/{e}";
 
-        var cache = await InvokeCacheResult<(string file, List<HeadersModel> headers)>($"{embed}:video", 20, async result =>
-        {
-            if (string.IsNullOrWhiteSpace(embed))
-                return result.Fail("embed");
+        var result = await black_magic(embed);
+        if (result.m3u8 == null)
+            return OnError("m3u8", 502);
 
-            var video = await ExtractPlaylist(embed);
-            if (string.IsNullOrWhiteSpace(video.m3u8))
-                return result.Fail("m3u8", refresh_proxy: true);
-
-            var headersStream = httpHeaders(init.host, init.headers_stream);
-            if (headersStream == null || headersStream.Count == 0)
-                headersStream = video.headers;
-
-            if (headersStream == null || headersStream.Count == 0)
-                return result.Fail("headers");
-
-            string file = HostStreamProxy(video.m3u8, headers: headersStream);
-            if (string.IsNullOrWhiteSpace(file))
-                return result.Fail("file");
-
-            return result.Success((file, headersStream));
-        });
-
-        if (!cache.IsSuccess)
-            return OnError(cache.ErrorMsg);
+        string hls = HostStreamProxy(result.m3u8, headers: result.headers);
 
         if (play)
-            return RedirectToPlay(cache.Value.file);
+            return RedirectToPlay(hls);
 
         return ContentTo(VideoTpl.ToJson(
             "play",
-            cache.Value.file,
+            hls,
             "English",
             vast: init.vast,
-            headers: init.streamproxy ? null : cache.Value.headers,
+            headers: init.streamproxy ? null : result.headers,
             httpContext: HttpContext
         ));
     }
 
-    private async Task<(string m3u8, List<HeadersModel> headers)> ExtractPlaylist(string uri)
+
+    async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return default;

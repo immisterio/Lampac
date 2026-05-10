@@ -46,7 +46,9 @@ public class ModInit : IModuleLoaded, IModuleOnline
 
     private void UpdateConf()
     {
-        conf = ModuleInvoke.Init("Smashystream", new OnlinesSettings("Smashystream", "https://player.smashystream.com")
+        // https://smashystream.xyz
+        // https://anyembed.xyz/
+        conf = ModuleInvoke.Init("Smashystream", new OnlinesSettings("Smashystream", "https://anyembed.xyz")
         {
             displayindex = 1030,
             streamproxy = true

@@ -31,6 +31,9 @@ public class PlaywrightBase
         try
         {
             var completionTask = completionSource.Task;
+            if (completionTask.IsCompleted || completionTask.IsCanceled)
+                return completionTask.Result;
+
             var timeoutTask = Task.Delay(TimeSpan.FromSeconds(seconds));
 
             var completedTask = await Task.WhenAny(completionTask, timeoutTask).ConfigureAwait(false);
@@ -280,7 +283,7 @@ public class PlaywrightBase
     {
         var options = new PageGotoOptions
         {
-            Timeout = 60_000, // 60 секунд
+            Timeout = 40_000, // 40 секунд
             WaitUntil = WaitUntilState.DOMContentLoaded
         };
 

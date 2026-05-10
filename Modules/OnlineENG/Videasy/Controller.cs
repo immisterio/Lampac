@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Playwright;
 using Shared;
 using Shared.Models.Base;
 using Shared.Models.Templates;
@@ -10,9 +11,9 @@ namespace Videasy;
 
 public class VideasyController : BaseENGController
 {
-    private static readonly Serilog.ILogger Log = Serilog.Log.ForContext<VideasyController>();
-
-    public VideasyController() : base(ModInit.conf) { }
+    public VideasyController() : base(ModInit.conf)
+    {
+    }
 
     [HttpGet]
     [Route("lite/videasy")]
@@ -36,40 +37,27 @@ public class VideasyController : BaseENGController
         if (s > 0)
             embed = $"{init.host}/tv/{id}/{s}/{e}";
 
-        var cache = await InvokeCacheResult<(string hls, List<HeadersModel> headers)>(ipkey($"videasy:video:{embed}"), 20, async e =>
-        {
-            var blackMagic = await black_magic(embed);
-            if (blackMagic.m3u8 == null)
-                return e.Fail("m3u8");
+        var result = await black_magic(embed);
+        if (result.m3u8 == null)
+            return OnError("m3u8", 502);
 
-            var headers_stream = httpHeaders(init.host, init.headers_stream);
-            if (headers_stream == null || headers_stream.Count == 0)
-                headers_stream = blackMagic.headers;
-
-            string hls = HostStreamProxy(blackMagic.m3u8, headers: headers_stream);
-            if (string.IsNullOrEmpty(hls))
-                return e.Fail("hls");
-
-            return e.Success((hls, init.streamproxy ? null : headers_stream));
-        });
-
-        if (!cache.IsSuccess)
-            return StatusCode(502);
+        string hls = HostStreamProxy(result.m3u8, headers: result.headers);
 
         if (play)
-            return RedirectToPlay(cache.Value.hls);
+            return RedirectToPlay(hls);
 
         return ContentTo(VideoTpl.ToJson(
             "play",
-            cache.Value.hls,
+            hls,
             "English",
             vast: init.vast,
-            headers: cache.Value.headers,
+            headers: init.streamproxy ? null : result.headers,
             httpContext: HttpContext
         ));
     }
 
-    private async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
+
+    async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return default;
@@ -120,35 +108,20 @@ public class VideasyController : BaseENGController
                         }
                         catch (System.Exception ex)
                         {
-                            Log.Error(ex, "CatchId={CatchId}", "id_dmgyxur2");
+                            Serilog.Log.Error(ex, "CatchId={CatchId}", "id_dmgyxur2");
                         }
                     });
 
                     PlaywrightBase.GotoAsync(page, uri);
 
-                    for (int i = 0; i < 10 * 5; i++)
+                    var playBtn = page.Locator("button:has(svg)");
+
+                    await playBtn.ClickAsync(new LocatorClickOptions
                     {
-                        if (browser.IsCompleted)
-                            break;
+                        Timeout = 15000
+                    });
 
-                        foreach (string playBtnSelector in new string[] { "div.flex.flex-col.items-center.gap-y-3.title-year > button" })
-                        {
-                            try
-                            {
-                                var playBtn = await page.QuerySelectorAsync(playBtnSelector);
-                                if (playBtn != null)
-                                    await playBtn.ClickAsync();
-                            }
-                            catch (System.Exception ex)
-                            {
-                                Log.Error(ex, "CatchId={CatchId}", "id_2wdspkzi");
-                            }
-                        }
-
-                        await Task.Delay(100);
-                    }
-
-                    cache.m3u8 = await browser.completionSource.Task;
+                    cache.m3u8 = await browser.WaitPageResult();
                 }
 
                 if (cache.m3u8 == null)
