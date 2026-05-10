@@ -1555,7 +1555,7 @@
     window.lampac_plugin = true;
     var manifst = {
       type: 'video',
-      version: '1.6.9',
+      version: '1.7.0',
       name: 'Lampac',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'lampac',
@@ -1743,7 +1743,63 @@
       }
     } catch (e) {}
     if (Lampa.Manifest.app_digital >= 177) {
-        var balansers_sync = ["filmix", 'filmixtv', "fxapi", "rezka", "rhsprem", "lumex", "videodb", "collaps", "collaps-dash", "hdvb", "zetflix", "kodik", "ashdi", "kinoukr", "kinotochka", "remux", "iframevideo", "cdnmovies", "anilibria", "animedia", "animego", "animevost", "animebesst", "redheadsound", "alloha", "animelib", "moonanime", "kinopub", "vibix", "vdbmovies", "fancdn", "cdnvideohub", "vokino", "rc/filmix", "rc/fxapi", "rc/rhs", "vcdn", "videocdn", "mirage", "hydraflix", "videasy", "vidsrc", "movpi", "vidlink", "twoembed", "autoembed", "smashystream", "autoembed", "rgshows", "pidtor", "videoseed", "iptvonline", "veoveo", "kinoflix"];
+        var balansers_sync = [
+            "filmix",
+            "filmixtv",
+            "fxapi",
+            "rezka",
+            "pizdatoehd",
+            "getstv",
+            "kinopub",
+            "zetflixdb",
+            "collaps",
+            "hdvb",
+            "kodik",
+            "bamboo",
+            "eneyida",
+            "kinoukr",
+            "uafilm",
+            "uakino",
+            "kinotochka",
+            "remux",
+            "anilibria",
+            "animedia",
+            "animego",
+            "animevost",
+            "animebesst",
+            "alloha",
+            "mirage",
+            "phantom",
+            "animelib",
+            "moonanime",
+            "vibix",
+            "fancdn",
+            "cdnvideohub",
+            "vokino",
+            "hydraflix",
+            "videasy",
+            "vidsrc",
+            "movpi",
+            "vidlink",
+            "smashystream",
+            "autoembed",
+            "pidtor",
+            "videoseed",
+            "iptvonline",
+            "veoveo",
+            "kinoflix",
+            "leproduction",
+            "vkmovie",
+            "videoseed",
+            "veoveo",
+            "kinogo",
+            "kinobase",
+            "fancdn",
+            "asiage",
+            "geosaitebi",
+            "mikai",
+            "dreamerscast"
+        ];
       balansers_sync.forEach(function(name) {
         Lampa.Storage.sync('online_choice_' + name, 'object_object');
       });
