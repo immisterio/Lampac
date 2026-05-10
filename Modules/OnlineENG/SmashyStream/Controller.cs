@@ -67,7 +67,7 @@ public class SmashyStreamController : BaseENGController
         ));
     }
 
-    
+
     async Task<(string stream, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
