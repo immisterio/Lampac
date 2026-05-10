@@ -198,7 +198,7 @@ public class CrypTo
     }
     #endregion
 
-    #region Base64
+    #region DecodeBase64
     public static string DecodeBase64(string base64Text)
     {
         if (string.IsNullOrEmpty(base64Text))
@@ -212,18 +212,29 @@ public class CrypTo
                     return Encoding.UTF8.GetString(nbuf.Span.Slice(0, bytesWritten));
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Serilog.Log.Error(ex, "{Class} {CatchId}", "CrypTo", "id_bhkp1fwo");
         }
 
         return string.Empty;
     }
+    #endregion
 
+    #region Base64
     public static string Base64(string text)
     {
-        if (text == null)
-            return string.Empty;
+        string result = string.Empty;
+
+        Base64(text, base64 => result = new string(base64));
+
+        return result;
+    }
+
+    public static void Base64(string text, Action<Span<char>> action)
+    {
+        if (string.IsNullOrEmpty(text))
+            return;
 
         int capacity = Encoding.UTF8.GetMaxByteCount(text.Length);
         byte[] _threadByte = (_threadByteBuffer ??= new byte[_threadByteSize]);
@@ -254,7 +265,7 @@ public class CrypTo
                     : _threadChar;
 
                 if (Convert.TryToBase64Chars(utf8.Slice(0, bytesWritten), base64, out int charsWritten))
-                    return new string(base64.Slice(0, charsWritten));
+                    action.Invoke(base64.Slice(0, charsWritten));
             }
             finally
             {
@@ -265,16 +276,6 @@ public class CrypTo
         {
             plainBuf?.Dispose();
         }
-
-        return string.Empty;
-    }
-
-    public static string Base64(byte[] text)
-    {
-        if (text == null)
-            return string.Empty;
-
-        return Convert.ToBase64String(text);
     }
     #endregion
 }

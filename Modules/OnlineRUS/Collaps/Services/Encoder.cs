@@ -1,7 +1,7 @@
 ﻿using Shared.Models.Events;
+using Shared.Services.Pools;
+using Shared.Services.Utilities;
 using System;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Collaps;
@@ -15,37 +15,108 @@ public static class Encoder
         if (e.plugin != null && e.plugin.Equals("collaps", StringComparison.OrdinalIgnoreCase))
         {
             if (!e.requestMessage.RequestUri.AbsolutePath.Contains(marker))
-                e.requestMessage.RequestUri = new Uri(Uri(e.requestMessage.RequestUri.ToString(), true));
+            {
+                string newUri = EncodeUri(e.requestMessage.RequestUri);
+                if (newUri != null)
+                    e.requestMessage.RequestUri = new Uri(newUri);
+            }
         }
     }
 
-    public static string Uri(string url, bool clearUri = false)
+    public static string Uri(string url)
     {
-        const string L = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-        const string E = "DlChEXitLONYRkFjAsnBbymWzSHMqKPgQZpvwerofJTVdIuUcxaG";
-
-        if (string.IsNullOrWhiteSpace(url) || url.Contains(marker))
+        if (string.IsNullOrEmpty(url) || url.Contains(marker))
             return url;
 
-        var uri = new Uri(url);
+        string uri = EncodeUri(new Uri(url));
+        if (uri == null)
+            return url;
 
+        return uri + (uri.Contains(".mpd") ? "#.mpd" : "#.m3u8");
+    }
+
+    static string EncodeUri(Uri uri)
+    {
         long n = (long)Math.Round(
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0 / 60 / 60
         );
 
-        string payload = $"{n}/{uri.AbsolutePath}{uri.Query}";
+        string newUri = null;
 
-        string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload));
-
-        string encoded = new string(base64.Select(c =>
+        CrypTo.Base64($"{n}/{uri.AbsolutePath}{uri.Query}", base64 =>
         {
-            int index = L.IndexOf(c);
-            return index >= 0 ? E[index] : c;
-        }).ToArray());
+            var sb = StringBuilderPool.ThreadInstance;
 
-        if (clearUri)
-            return $"{uri.Scheme}://{uri.Authority}{marker}{encoded}";
+            sb.Append(uri.Scheme)
+              .Append("://")
+              .Append(uri.Authority)
+              .Append(marker);
 
-        return $"{uri.Scheme}://{uri.Authority}{marker}{encoded}" + (url.Contains(".mpd") ? "#.mpd" : "#.m3u8");
+            for (int i = 0; i < base64.Length; i++)
+            {
+                char c = base64[i];
+
+                sb.Append(c switch
+                {
+                    'A' => 'D',
+                    'B' => 'l',
+                    'C' => 'C',
+                    'D' => 'h',
+                    'E' => 'E',
+                    'F' => 'X',
+                    'G' => 'i',
+                    'H' => 't',
+                    'I' => 'L',
+                    'J' => 'O',
+                    'K' => 'N',
+                    'L' => 'Y',
+                    'M' => 'R',
+                    'N' => 'k',
+                    'O' => 'F',
+                    'P' => 'j',
+                    'Q' => 'A',
+                    'R' => 's',
+                    'S' => 'n',
+                    'T' => 'B',
+                    'U' => 'b',
+                    'V' => 'y',
+                    'W' => 'm',
+                    'X' => 'W',
+                    'Y' => 'z',
+                    'Z' => 'S',
+                    'a' => 'H',
+                    'b' => 'M',
+                    'c' => 'q',
+                    'd' => 'K',
+                    'e' => 'P',
+                    'f' => 'g',
+                    'g' => 'Q',
+                    'h' => 'Z',
+                    'i' => 'p',
+                    'j' => 'v',
+                    'k' => 'w',
+                    'l' => 'e',
+                    'm' => 'r',
+                    'n' => 'o',
+                    'o' => 'f',
+                    'p' => 'J',
+                    'q' => 'T',
+                    'r' => 'V',
+                    's' => 'd',
+                    't' => 'I',
+                    'u' => 'u',
+                    'v' => 'U',
+                    'w' => 'c',
+                    'x' => 'x',
+                    'y' => 'a',
+                    'z' => 'G',
+                    _ => c
+                });
+            }
+
+            newUri = sb.ToString();
+        });
+
+        return newUri;
     }
 }

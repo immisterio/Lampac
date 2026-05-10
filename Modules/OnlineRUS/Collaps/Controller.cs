@@ -32,9 +32,7 @@ public class CollapsController : BaseOnlineController<ModuleConf>
                httpHydra,
                init.host,
                init.dash,
-               onstreamtofile => rch?.enable == true
-                 ? Encoder.Uri(onstreamtofile)
-                 : HostStreamProxy(Encoder.Uri(onstreamtofile))
+               onstreamtofile => HostStreamProxy(Encoder.Uri(onstreamtofile))
             );
         };
     }
