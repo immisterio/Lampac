@@ -12,6 +12,8 @@ public class AccsUser
 
     public int group { get; set; }
 
+    public bool bypass_accsdb { get; set; }
+
     public bool ban { get; set; }
 
     public string ban_msg { get; set; }

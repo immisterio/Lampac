@@ -9,7 +9,7 @@ public class EventListener
 
     public static Action<EventLoadKit> LoadKit;
 
-    public static Action<EventAccsdb> Accsdb;
+    public static Func<EventAccsdb, bool> Accsdb;
 
     public static Action UpdateInitFile;
 

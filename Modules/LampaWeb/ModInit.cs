@@ -53,7 +53,7 @@ public class ModInit : IModuleLoaded
         });
     }
 
-    void accsdbEvent(EventAccsdb e)
+    bool accsdbEvent(EventAccsdb e)
     {
         var accsdb = CoreInit.conf.accsdb;
 
@@ -63,6 +63,9 @@ public class ModInit : IModuleLoaded
             e.requestInfo.user_uid == accsdb.shared_passwd)
         {
             e.requestInfo.IsAnonymousRequest = true;
+            return true;
         }
+
+        return false;
     }
 }

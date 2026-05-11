@@ -94,25 +94,26 @@ public class Accsdb
         }
         #endregion
 
-        if (requestInfo.IsLocalRequest || requestInfo.IsAnonymousRequest)
-            return _next(httpContext);
-
-        if (httpContext.Request.Path.Value.StartsWith("/proxy", StringComparison.OrdinalIgnoreCase))
-            return _next(httpContext);
-
         if (CoreInit.conf.accsdb.enable)
         {
+            bool limitip = false;
+            var user = requestInfo.user;
             var accsdb = CoreInit.conf.accsdb;
+
+            if (user?.bypass_accsdb == true)
+                return _next(httpContext);
+
+            if (requestInfo.IsLocalRequest || requestInfo.IsAnonymousRequest)
+                return _next(httpContext);
+
+            if (httpContext.Request.Path.Value.StartsWith("/proxy", StringComparison.OrdinalIgnoreCase))
+                return _next(httpContext);
 
             if (!string.IsNullOrEmpty(accsdb.whitepattern) && Regex.IsMatch(httpContext.Request.Path.Value, accsdb.whitepattern, RegexOptions.IgnoreCase))
             {
                 requestInfo.IsAnonymousRequest = true;
                 return _next(httpContext);
             }
-
-            bool limitip = false;
-
-            var user = requestInfo.user;
 
             if (requestInfo.user_uid != null && accsdb.white_uids != null && accsdb.white_uids.Contains(requestInfo.user_uid))
                 return _next(httpContext);
@@ -135,8 +136,11 @@ public class Accsdb
                 {
                     var ev = new EventAccsdb(httpContext, requestInfo);
 
-                    foreach (Action<EventAccsdb> handler in EventListener.Accsdb.GetInvocationList())
-                        handler(ev);
+                    foreach (Func<EventAccsdb, bool> handler in EventListener.Accsdb.GetInvocationList())
+                    {
+                        if (handler(ev))
+                            return _next(httpContext);
+                    }
                 }
 
                 #region msg
@@ -176,9 +180,6 @@ public class Accsdb
                     }
                 }
                 #endregion
-
-                if (requestInfo.IsAnonymousRequest)
-                    return _next(httpContext);
 
                 return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, denymsg, user });
             }
@@ -239,13 +240,9 @@ public class Accsdb
 
     static bool IsLockIpHour(IMemoryCache memoryCache, string account_email, string userip, out bool islock, out ConcurrentDictionary<string, byte> ips)
     {
-        ips = memoryCache.GetOrCreate($"Accsdb:IsLockIpHour:{account_email}", entry =>
+        ips = memoryCache.GetOrCreate($"Accsdb:IsLockIpHour:{account_email}:{DateTime.Now.Hour}", entry =>
         {
-            var now = DateTimeOffset.Now;
-            entry.AbsoluteExpiration = new DateTimeOffset(
-                now.Year, now.Month, now.Day, now.Hour, 0, 0, TimeSpan.Zero
-            ).AddHours(1);
-
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
             return new ConcurrentDictionary<string, byte>();
         });
 
@@ -263,13 +260,9 @@ public class Accsdb
 
     static bool IsLockReqHour(IMemoryCache memoryCache, string account_email, string uri, out bool islock, out ConcurrentDictionary<string, byte> urls)
     {
-        urls = memoryCache.GetOrCreate($"Accsdb:IsLockReqHour:{account_email}", entry =>
+        urls = memoryCache.GetOrCreate($"Accsdb:IsLockReqHour:{account_email}:{DateTime.Now.Hour}", entry =>
         {
-            var now = DateTimeOffset.Now;
-            entry.AbsoluteExpiration = new DateTimeOffset(
-                now.Year, now.Month, now.Day, now.Hour, 0, 0, TimeSpan.Zero
-            ).AddHours(1);
-
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
             return new ConcurrentDictionary<string, byte>();
         });
 
@@ -310,13 +303,9 @@ public class Accsdb
     #region countlock_day
     static int countlock_day(IMemoryCache memoryCache, bool update, string account_email)
     {
-        var lockhour = memoryCache.GetOrCreate($"Accsdb:lock_day:{account_email}", entry =>
+        var lockhour = memoryCache.GetOrCreate($"Accsdb:lock_day:{account_email}:{DateTime.Now.Day}", entry =>
         {
-            var now = DateTimeOffset.Now;
-            entry.AbsoluteExpiration = new DateTimeOffset(
-                now.Year, now.Month, now.Day, 0, 0, 0, TimeSpan.Zero
-            ).AddDays(1);
-
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
             return new ConcurrentDictionary<int, byte>();
         });
 
