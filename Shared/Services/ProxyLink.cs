@@ -298,7 +298,7 @@ public class ProxyLink : IProxyLink
                             aeshash[i] = c;
                     }
 
-                    int capacity = Encoding.UTF8.GetMaxByteCount(aeshash.Length);
+                    int capacity = Encoding.UTF8.GetByteCount(aeshash);
 
                     BufferBytePool cipherBuf = null;
                     if (capacity > aesinst.ByteBuffer.Length)

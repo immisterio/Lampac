@@ -3,11 +3,12 @@ using Shared;
 using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
+using Shared.Services.HTML;
 using Shared.Services.RxEnumerate;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -21,116 +22,70 @@ public class LeProductionController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/leproduction")]
-    async public Task<ActionResult> Index(string title, string original_title, int clarification, int serial = 0, int s = -1, bool rjson = false, string href = null)
+    async public Task<ActionResult> Index(string title, string original_title, int clarification, bool similar = false, int serial = 0, string href = null)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
 
         #region search
         if (string.IsNullOrEmpty(href))
         {
-            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(original_title))
+            string searchTitle = clarification == 1 ? title : (original_title ?? title);
+            if (string.IsNullOrWhiteSpace(searchTitle))
                 return OnError();
 
-            var search = await InvokeCacheResult<(string href, SimilarTpl similar, List<LeProductionSearchItem> seasons)>($"leproduction:search:{serial}:{clarification}:{title}:{original_title}", TimeSpan.FromHours(4), async e =>
+            var search = await InvokeCacheResult<(string href, List<SimilarDto> similar)>($"leproduction:search:{searchTitle}", TimeSpan.FromHours(4), async e =>
             {
                 string newsHref = null;
-                var similar = new SimilarTpl();
-                var seasons = new List<LeProductionSearchItem>();
-                string contentType = serial == 1 ? "serial" : "film";
-                var seenHrefs = new HashSet<string>();
-                var searchTitles = new List<string>();
+                var similar = new List<SimilarDto>();
 
-                void addSearchTitle(string value)
+                await httpHydra.GetSpan($"{init.host}/index.php?do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(searchTitle)}",
+                    spanAction: html =>
                 {
-                    if (!string.IsNullOrWhiteSpace(value) && !searchTitles.Any(x => string.Equals(x, value, StringComparison.OrdinalIgnoreCase)))
-                        searchTitles.Add(value);
-                }
+                    string stitle = StringConvert.SearchName(title);
+                    string soriginal = StringConvert.SearchName(original_title);
 
-                if (clarification == 1)
-                {
-                    addSearchTitle(title);
-                    addSearchTitle(original_title);
-                }
-                else
-                {
-                    addSearchTitle(original_title);
-                    addSearchTitle(title);
-                }
-
-                if (searchTitles.Count == 0)
-                    return e.Fail("searchTitle");
-
-                foreach (var searchTitle in searchTitles)
-                {
-                    string queryFirstHref = null;
-                    int queryResultCount = 0;
-                    string searchUrl = $"{init.host}/index.php?do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(searchTitle)}";
-                    await httpHydra.GetSpan(searchUrl, spanAction: html =>
+                    foreach (ReadOnlySpan<char> row in HtmlSpan.Nodes(html, "div", "class", "short-item", HtmlSpanTargetType.Exact))
                     {
-                        string stitle = StringConvert.SearchName(title);
-                        string soriginal = StringConvert.SearchName(original_title);
+                        string link = Rx.Match(row, "href=\"https?://[^/]+/([^\"]+\\.html)\"");
+                        string name = Rx.Match(row, ">([^<]+)</a></h3>");
 
-                        var rx = Rx.Matches($"<a\\s+href=\"https?://[^/]+/({contentType}/[0-9]+-[^\"]+\\.html)\"[^>]*>([^<]+)</a>", html, options: RegexOptions.IgnoreCase);
+                        if (string.IsNullOrWhiteSpace(link) || string.IsNullOrWhiteSpace(name))
+                            continue;
 
-                        foreach (var row in rx.Rows())
+                        string img = Rx.Match(row, "src=\"/([^\"]+)\"");
+                        if (img != null)
+                            img = $"{init.host}/{img}";
+
+                        similar.Add(new SimilarDto(
+                            link,
+                            0,
+                            string.Empty,
+                            name,
+                            img
+                        ));
+
+                        string normalized = StringConvert.SearchName(name);
+                        if (normalized == null)
+                            continue;
+
+                        if (newsHref == null)
                         {
-                            var g = row.Groups();
-                            string itemHref = g[1].Value;
-                            string itemTitle = Regex.Replace(g[2].Value, "<[^>]*>", string.Empty).Trim();
-
-                            if (string.IsNullOrWhiteSpace(itemHref) || string.IsNullOrWhiteSpace(itemTitle))
-                                continue;
-
-                            queryResultCount++;
-                            queryFirstHref ??= itemHref;
-
-                            if (seenHrefs.Add(itemHref))
-                            {
-                                string encTitle = HttpUtility.UrlEncode(title);
-                                string encOriginalTitle = HttpUtility.UrlEncode(original_title);
-                                string encHref = HttpUtility.UrlEncode(itemHref);
-                                string link = $"{host}/lite/leproduction?title={encTitle}&original_title={encOriginalTitle}&clarification={clarification}&serial={serial}&href={encHref}";
-                                similar.Append(itemTitle, string.Empty, string.Empty, link, string.Empty);
-                            }
-
-                            string normalized = StringConvert.SearchName(itemTitle);
-                            if (newsHref == null && (normalized.Contains(stitle) || (!string.IsNullOrWhiteSpace(soriginal) && normalized.Contains(soriginal))))
-                                newsHref = itemHref;
-
-                            if (serial == 1 && normalized.Contains(stitle))
-                            {
-                                int season = 1;
-                                var seasonMatch = Regex.Match(itemTitle, "(?<season>\\d+)\\s*сезон", RegexOptions.IgnoreCase);
-                                if (seasonMatch.Success)
-                                    season = int.Parse(seasonMatch.Groups["season"].Value);
-
-                                if (!seasons.Any(i => i.season == season || i.href == itemHref))
-                                    seasons.Add(new LeProductionSearchItem { season = season, href = itemHref, title = itemTitle });
-                            }
+                            if ((stitle != null && normalized.Contains(stitle)) || (soriginal != null && normalized.Contains(soriginal)))
+                                newsHref = link;
                         }
-                    });
-
-                    if (newsHref == null
-                        && serial != 1
-                        && !string.IsNullOrWhiteSpace(original_title)
-                        && string.Equals(searchTitle, original_title, StringComparison.OrdinalIgnoreCase)
-                        && queryResultCount == 1
-                        && !string.IsNullOrWhiteSpace(queryFirstHref))
-                    {
-                        newsHref = queryFirstHref;
                     }
-                }
+                });
 
-                if (newsHref == null && similar.Length > 0)
-                    return e.Success((null, similar, seasons));
+                if (newsHref == null && similar.Count > 0)
+                    return e.Success((null, similar));
 
                 if (string.IsNullOrWhiteSpace(newsHref))
                     return e.Fail("search", refresh_proxy: true);
 
-                return e.Success((newsHref, similar, seasons));
+                return e.Success((newsHref, similar));
             });
 
             if (!search.IsSuccess)
@@ -141,256 +96,173 @@ public class LeProductionController : BaseOnlineController
                 return OnError(search.ErrorMsg);
             }
 
-            if (search.Value.href == null)
-                return ContentTpl(search.Value.similar);
-
-            if (serial == 1 && s == -1 && search.Value.seasons?.Count > 1)
+            if (search.Value.href == null || similar || serial == 1)
             {
-                var tpl = new SeasonTpl(search.Value.seasons.Count);
-                string encTitle = HttpUtility.UrlEncode(title);
-                string encOriginalTitle = HttpUtility.UrlEncode(original_title);
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-                foreach (var seasonItem in search.Value.seasons.OrderBy(i => i.season))
+                var stpl = new SimilarTpl(search.Value.similar.Count);
+
+                foreach (var sim in search.Value.similar)
                 {
-                    tpl.Append(
-                        $"{seasonItem.season} сезон",
-                        $"{host}/lite/leproduction?rjson={rjson}&serial=1&title={encTitle}&original_title={encOriginalTitle}&clarification={clarification}&href={HttpUtility.UrlEncode(seasonItem.href)}",
-                        seasonItem.season
+                    stpl.Append(
+                        sim.title,
+                        string.Empty,
+                        string.Empty,
+                        $"{host}/lite/leproduction?href={HttpUtility.UrlEncode(sim.url)}&title={enc_title}&original_title={enc_original_title}",
+                        PosterApi.Size(sim.img)
                     );
                 }
 
-                return ContentTpl(tpl);
+                return ContentTpl(stpl);
             }
 
             href = search.Value.href;
         }
         #endregion
 
-        var cache = await InvokeCacheResult<string>($"leproduction:view:{href}", 20, async e =>
+        #region iframe
+        var cache = await InvokeCacheResult<EmbedModel>($"leproduction:view:{href}", 20, async e =>
         {
             string iframe = null;
+
             await httpHydra.GetSpan($"{init.host}/{href}", spanAction: html =>
             {
-                iframe = Rx.Match(html, "<iframe[^>]+id=\"omfg[0-9]*\"[^>]+src=\"([^\"]+)\"", options: RegexOptions.IgnoreCase);
-                if (string.IsNullOrWhiteSpace(iframe))
-                    iframe = Rx.Match(html, "<iframe[^>]+src=\"(https?://[^\"]+)\"", options: RegexOptions.IgnoreCase);
-                if (string.IsNullOrWhiteSpace(iframe))
-                    iframe = Rx.Match(html, "<select[^>]+id=\"selectFilm[0-9]*\"[\\s\\S]*?<option[^>]+value=\"([^\"]+)\"", options: RegexOptions.IgnoreCase);
+                iframe = 
+                    Rx.Match(html, "<iframe[^>]+id=\"omfg\"[^>]+src=\"([^\"]+)\"") ??
+                    Rx.Match(html, "<iframe[^>]+src=\"(https?://[^/]+/playlist_iframe/[0-9]+/?[^\"]*)\"");
             });
 
-            if (string.IsNullOrWhiteSpace(iframe))
-                return e.Fail("iframe", refresh_proxy: true);
-
-            string fileBlock = null;
-
-            await httpHydra.GetSpan(iframe, addheaders: HeadersModel.Init("referer", $"{init.host}/{href}"), spanAction: html =>
+            if (iframe != null)
             {
-                fileBlock = Rx.Match(html, "file\\s*:\\s*\"([^\"]*\\[[0-9]+p\\][^\"]+)\"", options: RegexOptions.IgnoreCase);
-                if (string.IsNullOrWhiteSpace(fileBlock))
-                    fileBlock = Rx.Match(html, "file\\s*:\\s*(\\[[\\s\\S]*?\\])\\s*,\\s*(?:embed|url|default_quality)\\s*:", options: RegexOptions.IgnoreCase);
-            });
+                EmbedModel result = null;
 
-            if (string.IsNullOrWhiteSpace(fileBlock))
-                return e.Fail("fileBlock", refresh_proxy: true);
+                await httpHydra.GetSpan(iframe, addheaders: HeadersModel.Init("referer", $"{init.host}/{href}"), spanAction: html =>
+                {
+                    ReadOnlySpan<char> fileBlock = Rx.Slice(html, "file:", "embed:");
 
-            return e.Success(fileBlock);
+                    if (fileBlock.Contains("серия", StringComparison.Ordinal))
+                    {
+                        ReadOnlySpan<char> json = fileBlock.Trim()[..^1];
+
+                        var root = JsonSerializer.Deserialize<SerialModel[]>(json, new JsonSerializerOptions
+                        {
+                            AllowTrailingCommas = true
+                        });
+
+                        if (root != null && root.Length > 0)
+                        {
+                            result = new EmbedModel()
+                            {
+                                serial = root,
+                                season = Regex.Match(root[0].comment, " ([0-9]+) сезон").Groups[1].Value
+                            };
+                        }
+                    }
+                    else
+                    {
+                        var match = Regex.Match(fileBlock.ToString(), "\\[([0-9]+p)\\](https?://[^,\\[\"\t\n ]+)");
+
+                        if (match.Success)
+                        {
+                            var streams = new List<StreamQualityDto>();
+
+                            while (match.Success)
+                            {
+                                streams.Add(new StreamQualityDto(
+                                    match.Groups[2].Value,
+                                    match.Groups[1].Value
+                                ));
+
+                                match = match.NextMatch();
+                            }
+
+                            result = new EmbedModel()
+                            {
+                                movie = streams
+                            };
+                        }
+                    }
+                });
+
+                if (result != null)
+                    return e.Success(result);
+            }
+            
+            return e.Fail("view", refresh_proxy: true);
         });
 
         if (IsRhubFallback(cache))
             goto rhubFallback;
+        #endregion
 
         return ContentTpl(cache, () =>
         {
-            if (serial == 1)
+            if (cache.Value.movie != null)
             {
-                var episodes = ParseEpisodes(cache.Value);
-                if (episodes.Count == 0)
-                    return BuildMovie(title, original_title, cache.Value);
+                #region Фильм
+                var mtpl = new MovieTpl(title, original_title, 1);
 
-                if (s == -1)
-                {
-                    var seasons = episodes
-                        .Select(i => i.season <= 0 ? 1 : i.season)
-                        .Distinct()
-                        .OrderBy(i => i)
-                        .ToList();
+                var first = cache.Value.movie[0];
 
-                    if (seasons.Count == 1)
-                        return BuildEpisodeTpl(title, original_title, episodes, seasons[0]);
+                mtpl.Append(
+                    "LE-Production",
+                    HostStreamProxy(first.link),
+                    quality: first.quality,
+                    streamquality: new StreamQualityTpl(cache.Value.movie, linkPredicate: link => HostStreamProxy(link)),
+                    vast: init.vast
+                );
 
-                    var tpl = new SeasonTpl(seasons.Count);
-                    string encTitle = HttpUtility.UrlEncode(title);
-                    string encOriginalTitle = HttpUtility.UrlEncode(original_title);
-                    string encHref = HttpUtility.UrlEncode(href);
-
-                    foreach (int season in seasons)
-                    {
-                        tpl.Append(
-                            $"{season} сезон",
-                            $"{host}/lite/leproduction?rjson={rjson}&serial=1&title={encTitle}&original_title={encOriginalTitle}&clarification={clarification}&href={encHref}&s={season}",
-                            season
-                        );
-                    }
-
-                    return tpl;
-                }
-
-                return BuildEpisodeTpl(title, original_title, episodes, s);
-            }
-
-            return BuildMovie(title, original_title, cache.Value);
-        });
-    }
-
-    MovieTpl BuildMovie(string title, string original_title, string fileBlock)
-    {
-        var mtpl = new MovieTpl(title, original_title, 1);
-        var streamQuality = ParseStreamQuality(fileBlock);
-        if (!streamQuality.Any())
-            return null;
-
-        var first = streamQuality.Firts();
-        mtpl.Append(
-            "По умолчанию",
-            first.link,
-            quality: first.quality,
-            streamquality: streamQuality,
-            vast: init.vast
-        );
-        return mtpl;
-    }
-
-    EpisodeTpl BuildEpisodeTpl(string title, string original_title, List<LeProductionEpisode> episodes, int season)
-    {
-        var selected = episodes
-            .Where(i => (i.season <= 0 ? 1 : i.season) == season)
-            .OrderBy(i => i.episode)
-            .ThenBy(i => i.comment)
-            .ToList();
-
-        if (selected.Count == 0)
-            return null;
-
-        var etpl = new EpisodeTpl(selected.Count);
-        string seasonNum = season.ToString();
-
-        foreach (var item in selected)
-        {
-            var streamQuality = ParseStreamQuality(item.file);
-            if (!streamQuality.Any())
-                continue;
-
-            var first = streamQuality.Firts();
-            string episodeNum = (item.episode <= 0 ? etpl.Length + 1 : item.episode).ToString();
-            string episodeTitle = item.episode > 0 ? $"{item.episode} серия" : item.comment;
-            etpl.Append(
-                episodeTitle,
-                title ?? original_title,
-                seasonNum,
-                episodeNum,
-                first.link,
-                streamquality: streamQuality,
-                vast: init.vast
-            );
-        }
-
-        return etpl.IsEmpty ? null : etpl;
-    }
-
-    List<LeProductionEpisode> ParseEpisodes(string fileBlock)
-    {
-        var episodes = new List<LeProductionEpisode>();
-
-        foreach (Match m in Regex.Matches(fileBlock, "\"comment\"\\s*:\\s*\"(?<comment>[^\"]+)\"\\s*,\\s*\"file\"\\s*:\\s*\"(?<file>[^\"]+)\"", RegexOptions.IgnoreCase))
-        {
-            string comment = HttpUtility.HtmlDecode(m.Groups["comment"].Value)?.Trim();
-            string file = m.Groups["file"].Value?.Trim();
-
-            if (string.IsNullOrWhiteSpace(comment) || string.IsNullOrWhiteSpace(file))
-                continue;
-
-            int season = 1;
-            int episode = 0;
-
-            var match = Regex.Match(comment, "(?<season>\\d+)\\s*сезон\\s*(?<episode>\\d+)", RegexOptions.IgnoreCase);
-            if (match.Success)
-            {
-                season = int.Parse(match.Groups["season"].Value);
-                episode = int.Parse(match.Groups["episode"].Value);
+                return mtpl;
+                #endregion
             }
             else
             {
-                match = Regex.Match(comment, "(?<episode>\\d+)\\s*(?:серия|эпизод)", RegexOptions.IgnoreCase);
-                if (match.Success)
-                    episode = int.Parse(match.Groups["episode"].Value);
+                #region Сериал
+                var etpl = new EpisodeTpl();
+
+                foreach (var episode in cache.Value.serial)
+                {
+                    if (episode.streams == null)
+                    {
+                        string file = episode.file;
+                        if (string.IsNullOrEmpty(file))
+                            continue;
+
+                        episode.streams = new List<StreamQualityDto>(3);
+
+                        foreach (string q in new string[] { "1080", "720", "360" })
+                        {
+                            var g = new Regex($"{q}p?\\](?<file>https?://[^,\\[\"\t\n\r ]+)").Match(file).Groups;
+                            if (!string.IsNullOrEmpty(g["file"].Value))
+                            {
+                                episode.streams.Add(new StreamQualityDto(
+                                    g["file"].Value,
+                                    $"{q}p"
+                                ));
+                            }
+                        }
+                    }
+
+                    if (episode.streams.Count > 0)
+                    {
+                        string e = Regex.Match(episode.comment, " ([0-9]+) серия").Groups[1].Value;
+
+                        etpl.Append(
+                            $"{e} серия",
+                            title ?? original_title,
+                            cache.Value.season,
+                            e,
+                            HostStreamProxy(episode.streams[0].link),
+                            streamquality: new StreamQualityTpl(episode.streams, linkPredicate: link => HostStreamProxy(link)),
+                            vast: init.vast
+                        );
+                    }
+                }
+
+                return etpl;
+                #endregion
             }
-
-            episodes.Add(new LeProductionEpisode
-            {
-                season = season,
-                episode = episode,
-                comment = comment,
-                file = file
-            });
-        }
-
-        return episodes;
-    }
-
-    StreamQualityTpl ParseStreamQuality(string fileBlock)
-    {
-        var streamQuality = new StreamQualityTpl();
-        var parsed = new List<(string link, string quality)>(8);
-
-        foreach (Match m in Regex.Matches(fileBlock, "\\[([0-9]+p)\\](https?://[^,\\[\"\t\n ]+)", RegexOptions.IgnoreCase))
-        {
-            string link = HostStreamProxy(m.Groups[2].Value);
-            string quality = m.Groups[1].Value;
-
-            if (!string.IsNullOrWhiteSpace(link) && !string.IsNullOrWhiteSpace(quality))
-                parsed.Add((link, quality));
-        }
-
-        if (parsed.Count > 0)
-        {
-            foreach (var item in parsed
-                .GroupBy(i => i.quality, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .OrderBy(i => QualityPriority(i.quality))
-                .ThenByDescending(i => QualityNumeric(i.quality)))
-            {
-                streamQuality.Append(item.link, item.quality);
-            }
-        }
-
-        if (!streamQuality.Any())
-        {
-            string single = Regex.Match(fileBlock, "(https?://[^,\\[\"\t\n ]+)", RegexOptions.IgnoreCase).Value;
-            if (!string.IsNullOrWhiteSpace(single))
-                streamQuality.Append(HostStreamProxy(single), "1080p");
-        }
-
-        return streamQuality;
-    }
-
-    static int QualityPriority(string quality)
-    {
-        return quality?.ToLowerInvariant() switch
-        {
-            "1080p" => 0,
-            "2160p" => 1,
-            "1440p" => 2,
-            "720p" => 3,
-            "480p" => 4,
-            "360p" => 5,
-            "240p" => 6,
-            _ => 10
-        };
-    }
-
-    static int QualityNumeric(string quality)
-    {
-        var match = Regex.Match(quality ?? string.Empty, "(\\d+)");
-        return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+        });
     }
 }

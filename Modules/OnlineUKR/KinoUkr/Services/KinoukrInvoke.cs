@@ -1,15 +1,13 @@
 using Shared.Services;
 using Shared.Services.RxEnumerate;
 using Shared.Services.Utilities;
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace KinoUkr;
 
-public class KinoukrInvoke
+public struct KinoukrInvoke
 {
     #region KinoukrInvoke
     HttpHydra http;
@@ -23,16 +21,16 @@ public class KinoukrInvoke
     #region Search
     public EmbedModel Search(string title, string original_title, string imdb_id, long kinopoisk_id)
     {
-        var root = SearchDb(title, original_title, (kinopoisk_id > 0 ? kinopoisk_id.ToString() : null), imdb_id);
-        if (root == null || root.Count == 0)
+        string kp = (kinopoisk_id > 0 ? kinopoisk_id.ToString() : null);
+        if (string.IsNullOrEmpty(title ?? original_title ?? kp ?? imdb_id))
             return null;
 
         var result = new EmbedModel
         {
-            similars = new List<Similar>(root.Count)
+            similars = new List<Similar>()
         };
 
-        foreach (var item in root)
+        foreach (var item in SearchDb(title, original_title, kp, imdb_id))
         {
             result.similars.Add(new Similar()
             {
@@ -50,11 +48,8 @@ public class KinoukrInvoke
     #endregion
 
     #region SearchDb
-    static List<DbModel> SearchDb(string name, string eng_name, string kp, string imdb)
+    static IEnumerable<DbModel> SearchDb(string name, string eng_name, string kp, string imdb)
     {
-        if (string.IsNullOrEmpty(name ?? eng_name ?? kp ?? imdb))
-            return null;
-
         if (!string.IsNullOrEmpty(kp) || !string.IsNullOrEmpty(imdb))
         {
             var resultId = ModInit.database.Where(i =>
@@ -66,10 +61,10 @@ public class KinoukrInvoke
                     return true;
 
                 return false;
-            }).ToList();
+            });
 
-            if (resultId.Count != 0)
-                return resultId.Select(i => i.Value).ToList();
+            if (resultId.Any())
+                return resultId.Select(i => i.Value);
         }
 
         string sname = StringConvert.SearchName(name);
@@ -86,7 +81,7 @@ public class KinoukrInvoke
             return false;
         });
 
-        return result.Select(i => i.Value).ToList();
+        return result.Select(i => i.Value);
     }
     #endregion
 

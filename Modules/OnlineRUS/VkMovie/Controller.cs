@@ -42,14 +42,14 @@ public class VkMovieController : BaseOnlineController
         if (searchTitle == null)
             return OnError("searchTitle");
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<List<CatalogVideo>>(ipkey($"vkmovie:view:{searchTitle}:{year}"), 20, textJson: true, onget: async e =>
         {
-            string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={client_id}";
-            string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={access_token}";
-
             if (init.httpversion == 2)
                 httpHydra.RegisterHttp(http2Client);
+
+            string url = $"{init.host}/method/catalog.getVideoSearchWeb2?v=5.264&client_id={client_id}";
+            string data = $"screen_ref=search_video_service&input_method=keyboard_search_button&q={HttpUtility.UrlEncode($"{title} {year}")}&access_token={access_token}";
 
             var root = await httpHydra.Post<Root>(url, data, textJson: true);
 
@@ -57,7 +57,13 @@ public class VkMovieController : BaseOnlineController
             if (videos == null || videos.Count == 0)
                 return e.Fail("catalog_videos");
 
-            return e.Success(videos);
+            return e.Success(
+                videos
+                    .OrderByDescending(i => i.video?.files?.mp4_2160 != null)
+                    .ThenByDescending(i => i.video?.files?.mp4_1440 != null)
+                    .ThenByDescending(i => i.video?.files?.mp4_1080 != null)
+                    .ToList()
+            );
         });
 
         if (IsRhubFallback(cache))
@@ -67,10 +73,7 @@ public class VkMovieController : BaseOnlineController
         {
             var mtpl = new MovieTpl(title, original_title, cache.Value.Count);
 
-            foreach (var item in cache.Value
-                .OrderByDescending(i => i.video?.files?.mp4_2160 != null)
-                .ThenByDescending(i => i.video?.files?.mp4_1440 != null)
-                .ThenByDescending(i => i.video?.files?.mp4_1080 != null))
+            foreach (var item in cache.Value)
             {
                 var video = item.video;
                 if (video == null || video.files == null)
@@ -92,10 +95,10 @@ public class VkMovieController : BaseOnlineController
                     name.Contains("серия") || name.Contains("серий"))
                     continue;
 
-                if (string.IsNullOrEmpty(video.files.mp4_2160)
-                    && string.IsNullOrEmpty(video.files.mp4_1440)
-                    && string.IsNullOrEmpty(video.files.mp4_1080)
-                    && string.IsNullOrEmpty(video.files.mp4_720))
+                if (string.IsNullOrEmpty(video.files.mp4_2160) &&
+                    string.IsNullOrEmpty(video.files.mp4_1440) &&
+                    string.IsNullOrEmpty(video.files.mp4_1080) &&
+                    string.IsNullOrEmpty(video.files.mp4_720))
                     continue;
 
                 var streams = new StreamQualityTpl();
@@ -154,7 +157,7 @@ public class VkMovieController : BaseOnlineController
         });
     }
 
-    private async Task<bool> EnsureAnonymToken(BaseSettings init, WebProxy proxy)
+    async Task<bool> EnsureAnonymToken(BaseSettings init, WebProxy proxy)
     {
         if (!string.IsNullOrEmpty(access_token) && token_expires > DateTime.UtcNow)
             return true;
@@ -179,9 +182,7 @@ public class VkMovieController : BaseOnlineController
             {
                 root = await httpHydra.Post<JObject>(url, postData);
             }
-            catch
-            {
-            }
+            catch { }
 
             if (root == null || !root.ContainsKey("data"))
                 return false;

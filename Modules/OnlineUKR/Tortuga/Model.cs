@@ -6,7 +6,7 @@ public class EmbedModel
 {
     public bool IsEmpty { get; set; }
 
-    public string content { get; set; }
+    public string hls { get; set; }
 
     public List<Voice> serial { get; set; }
 }

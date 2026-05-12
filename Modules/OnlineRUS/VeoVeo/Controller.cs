@@ -48,9 +48,9 @@ public class VeoVeoController : BaseOnlineController
 
             movieid = movie.id;
         }
-    #endregion
+        #endregion
 
-    #region media
+        #region media
     rhubFallback:
 
         var cache = await InvokeCacheResult<List<CatalogItem>>($"{init.plugin}:view:{movieid}", 20, async e =>
@@ -130,12 +130,12 @@ public class VeoVeoController : BaseOnlineController
                 }
                 else
                 {
-                    var episodes = cache.Value.Where(i => (i.season?.order ?? 0) == s);
-
-                    var etpl = new EpisodeTpl(episodes.Count());
+                    var etpl = new EpisodeTpl();
                     string sArhc = s.ToString();
 
-                    foreach (var episode in episodes.OrderBy(i => i.order))
+                    foreach (var episode in cache.Value
+                        .Where(i => (i.season?.order ?? 0) == s)
+                        .OrderBy(i => i.order))
                     {
                         string name = episode.title;
 

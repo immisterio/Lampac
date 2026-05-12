@@ -60,8 +60,8 @@ public class CrypTo
         if (text.IsEmpty)
             return string.Empty;
 
-        int capacity = Encoding.UTF8.GetMaxByteCount(text.Length);
-        byte[] _threadByte = (_threadByteBuffer ??= new byte[_threadByteSize]);
+        int capacity = Encoding.UTF8.GetByteCount(text);
+        byte[] _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
         BufferBytePool byteBuf = null;
 
         if (capacity > _threadByte.Length)
@@ -206,7 +206,7 @@ public class CrypTo
 
         try
         {
-            using (var nbuf = new BufferBytePool(Encoding.UTF8.GetMaxByteCount(base64Text.Length)))
+            using (var nbuf = new BufferBytePool(Encoding.UTF8.GetByteCount(base64Text)))
             {
                 if (Convert.TryFromBase64String(base64Text, nbuf.Span, out int bytesWritten))
                     return Encoding.UTF8.GetString(nbuf.Span.Slice(0, bytesWritten));
@@ -218,6 +218,33 @@ public class CrypTo
         }
 
         return string.Empty;
+    }
+
+    public static void DecodeBase64(string base64Text, Action<ReadOnlySpan<char>> action)
+    {
+        if (string.IsNullOrEmpty(base64Text))
+            return;
+
+        try
+        {
+            using (var byteBuffer = new BufferBytePool(Encoding.UTF8.GetByteCount(base64Text)))
+            {
+                if (!Convert.TryFromBase64String(base64Text, byteBuffer.Span, out int bytesWritten))
+                    return;
+
+                ReadOnlySpan<byte> utf8Bytes = byteBuffer.Span.Slice(0, bytesWritten);
+
+                using (var charBuffer = new BufferCharPool(Encoding.UTF8.GetCharCount(utf8Bytes)))
+                {
+                    int written = Encoding.UTF8.GetChars(utf8Bytes, charBuffer.Span);
+                    action(charBuffer.Span.Slice(0, written));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "{Class} {CatchId}", "CrypTo", "id_brqubxp1");
+        }
     }
     #endregion
 
@@ -231,13 +258,13 @@ public class CrypTo
         return result;
     }
 
-    public static void Base64(string text, Action<Span<char>> action)
+    public static void Base64(string text, Action<ReadOnlySpan<char>> action)
     {
         if (string.IsNullOrEmpty(text))
             return;
 
-        int capacity = Encoding.UTF8.GetMaxByteCount(text.Length);
-        byte[] _threadByte = (_threadByteBuffer ??= new byte[_threadByteSize]);
+        int capacity = Encoding.UTF8.GetByteCount(text);
+        byte[] _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
         BufferBytePool plainBuf = null;
 
         if (capacity > _threadByte.Length)

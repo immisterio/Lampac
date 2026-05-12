@@ -1,12 +1,9 @@
 using Shared.Models.Templates;
-using Shared.Services.Pools;
 using Shared.Services.RxEnumerate;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -29,42 +26,49 @@ public struct VideoDBInvoke
         if (html.IsEmpty)
             return null;
 
-        string file = decodePlayer(html);
-        if (file == null)
+        RootNode root = null;
+
+        string base64 = Rx.Slice(html, "new Player(\"", "\");")
+            .Slice(73)
+            .ToString();
+
+        if (string.IsNullOrEmpty(base64))
             return null;
 
-        var pl = JsonNode.Parse(file)?["file"]?.Deserialize<RootObject[]>();
+        if (Regex.IsMatch(base64, "//[^=]+="))
+            base64 = Regex.Replace(base64, "//[^=]+=", "");
+
+        bool ismovie = false;
+        string quality = null;
+
+        CrypTo.DecodeBase64(base64, json =>
+        {
+            ismovie = !json.Contains("\"folder\":", StringComparison.Ordinal);
+
+            quality = json.Contains("2160p", StringComparison.Ordinal) 
+                ? "2160p"
+                : json.Contains("1080p", StringComparison.Ordinal)
+                    ? "1080p"
+                    : json.Contains("720p", StringComparison.Ordinal)
+                        ? "720p"
+                        : "480p";
+
+            root = JsonSerializer.Deserialize<RootNode>(json, new JsonSerializerOptions
+            {
+                AllowTrailingCommas = true
+            });
+        });
+
+        var pl = root?.file;
         if (pl == null || pl.Length == 0)
             return null;
 
-        string quality = file.Contains("2160p") ? "2160p" : file.Contains("1080p") ? "1080p" : file.Contains("720p") ? "720p" : "480p";
-        return new EmbedModel() { pl = pl, movie = !file.Contains("\"folder\":"), quality = quality };
-    }
-
-
-    static string decodePlayer(ReadOnlySpan<char> _html)
-    {
-        try
+        return new EmbedModel()
         {
-            string base64 = Rx.Match(_html, "new Player\\(\".{73}([^\n\r]+)\"\\);");
-            if (base64 == null)
-                return null;
-
-            if (Regex.IsMatch(base64, "//[^=]+="))
-                base64 = Regex.Replace(base64, "//[^=]+=", "");
-
-            using (var nbuf = new BufferBytePool(Encoding.UTF8.GetMaxByteCount(base64.Length)))
-            {
-                if (Convert.TryFromBase64String(base64, nbuf.Span, out int bytesWritten))
-                    return Encoding.UTF8.GetString(nbuf.Span.Slice(0, bytesWritten));
-
-                return null;
-            }
-        }
-        catch
-        {
-            return null;
-        }
+            pl = pl,
+            movie = ismovie,
+            quality = quality
+        };
     }
     #endregion
 
@@ -77,9 +81,6 @@ public struct VideoDBInvoke
         if (!string.IsNullOrEmpty(args))
             args = $"&{args.Remove(0, 1)}";
 
-        string enc_title = HttpUtility.UrlEncode(title);
-        string enc_original_title = HttpUtility.UrlEncode(original_title);
-
         if (root.movie)
         {
             #region Фильм
@@ -87,45 +88,49 @@ public struct VideoDBInvoke
 
             foreach (var pl in root.pl)
             {
-                string name = pl.title;
-                string file = pl.file;
-
-                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
+                if (string.IsNullOrWhiteSpace(pl.title))
                     continue;
 
-                #region streams
-                var streams = new List<(string link, string quality)>(7);
-
-                foreach (Match m in Regex.Matches(file, $"\\[(Авто|2160|1440|1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
+                if (pl.streams == null)
                 {
-                    string link = m.Groups[2].Value;
-                    if (string.IsNullOrEmpty(link))
+                    string file = pl.file;
+                    if (string.IsNullOrWhiteSpace(file))
                         continue;
 
-                    string quality = file.Contains("2160p") ? "2160" : file.Contains("1080p") ? "1080" : file.Contains("720p") ? "720" : "480";
-                    streams.Add((host + $"lite/videodb/manifest.m3u8?link={CrypTo.EncryptQuery(link)}{args}", quality));
+                    pl.streams = new List<StreamQualityDto>(5);
+
+                    foreach (Match m in Regex.Matches(file, $"\\[(Авто|2160|1440|1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
+                    {
+                        string link = m.Groups[2].Value;
+                        if (string.IsNullOrEmpty(link))
+                            continue;
+
+                        pl.streams.Add(new(
+                            host + $"lite/videodb/manifest.m3u8?link={CrypTo.EncryptQuery(link)}",
+                            file.Contains("2160p") ? "2160" : file.Contains("1080p") ? "1080" : file.Contains("720p") ? "720" : "480"
+                        ));
+                    }
+
+                    pl.streams.Reverse();
                 }
 
-                if (streams.Count == 0)
+                if (pl.streams.Count == 0)
                     continue;
-
-                streams.Reverse();
-                #endregion
 
                 if (rhub)
                 {
                     mtpl.Append(
-                        name,
-                        streams[0].link.Replace("/manifest.m3u8", "/manifest"),
+                        pl.title,
+                        pl.streams[0].link.Replace("/manifest.m3u8", "/manifest"),
                         "call"
                     );
                 }
                 else
                 {
                     mtpl.Append(
-                        name,
-                        streams[0].link,
-                        quality: streams[0].quality
+                        pl.title,
+                        pl.streams[0].link + args,
+                        quality: pl.streams[0].quality
                     );
                 }
             }
@@ -136,6 +141,9 @@ public struct VideoDBInvoke
         else
         {
             #region Сериал
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
+
             if (s == -1)
             {
                 var tpl = new SeasonTpl(root.quality, root.pl.Length);
@@ -185,9 +193,8 @@ public struct VideoDBInvoke
                             t = perevod;
 
                         #region Переводы
-                        if (!hashvoices.Contains(perevod))
+                        if (hashvoices.Add(perevod))
                         {
-                            hashvoices.Add(perevod);
                             vtpl.Append(
                                 perevod,
                                 t == perevod,
@@ -199,55 +206,61 @@ public struct VideoDBInvoke
                         if (perevod != t)
                             continue;
 
-                        string name = episode.title;
-                        string file = pl.file;
-
-                        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(file))
+                        if (string.IsNullOrWhiteSpace(episode.title))
                             continue;
 
-                        var streamquality = new StreamQualityTpl();
-
-                        foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
+                        if (pl.streams == null)
                         {
-                            string link = m.Groups[2].Value;
-                            if (string.IsNullOrEmpty(link))
+                            string file = pl.file;
+                            if (string.IsNullOrWhiteSpace(file))
                                 continue;
 
-                            streamquality.Insert(host + $"lite/videodb/manifest.m3u8?serial=true&link={CrypTo.EncryptQuery(link)}{args}", $"{m.Groups[1].Value}p");
+                            pl.streams = new List<StreamQualityDto>(5);
+
+                            foreach (Match m in Regex.Matches(file, $"\\[(1080|720|480|360)p?\\]([^\"\\,\\[ ]+)"))
+                            {
+                                string link = m.Groups[2].Value;
+                                if (string.IsNullOrEmpty(link))
+                                    continue;
+
+                                pl.streams.Add(new(
+                                    host + $"lite/videodb/manifest.m3u8?serial=true&link={CrypTo.EncryptQuery(link)}",
+                                    $"{m.Groups[1].Value}p"
+                                ));
+                            }
+
+                            pl.streams.Reverse();
                         }
 
-                        if (!streamquality.Any())
+                        if (pl.streams.Count == 0)
                             continue;
 
                         if (rhub)
                         {
-                            string streamlink = rhub ? streamquality.Firts().link : null;
+                            string streamlink = rhub ? pl.streams[0].link : null;
 
                             if (streamlink != null)
                             {
                                 etpl.Append(
-                                    name,
+                                    episode.title,
                                     title ?? original_title,
                                     sArhc,
-                                    Regex.Match(name,
-                                    "^([0-9]+)").Groups[1].Value,
-                                    streamquality.Firts().link.Replace("/manifest.m3u8",
-                                    "/manifest"),
+                                    Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
+                                    streamlink.Replace("/manifest.m3u8", "/manifest"),
                                     "call",
-                                    streamlink: streamlink
+                                    streamlink: streamlink + args
                                 );
                             }
                         }
                         else
                         {
                             etpl.Append(
-                                name,
+                                episode.title,
                                 title ?? original_title,
                                 sArhc,
-                                Regex.Match(name,
-                                "^([0-9]+)").Groups[1].Value,
-                                streamquality.Firts().link,
-                                streamquality: streamquality
+                                Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
+                                pl.streams[0].link + args,
+                                streamquality: new StreamQualityTpl(pl.streams, linkPredicate: link => link + args)
                             );
                         }
                     }

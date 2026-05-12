@@ -60,39 +60,44 @@ public class VibixController : BaseOnlineController
 
             foreach (var movie in cache.Value)
             {
-                var voices = new Dictionary<string, StreamQualityTpl>();
-
-                foreach (Match qualityMatch in Regex.Matches(movie.file, @"\[(?<q>480|720|1080)p\](?<items>.*?)(?=,\[(?:480|720|1080)p\]|$)", RegexOptions.Singleline))
+                if (movie.voices == null)
                 {
-                    string quality = qualityMatch.Groups["q"].Value + "p";
-                    string items = qualityMatch.Groups["items"].Value;
+                    movie.voices = new Dictionary<string, List<StreamQualityDto>>();
 
-                    foreach (Match voiceMatch in Regex.Matches(items, @"\{(?<voice>[^}]+)\}(?<file>https?://[^,\t\[\;{ ]+)", RegexOptions.Singleline))
+                    foreach (Match qualityMatch in Regex.Matches(movie.file, @"\[(?<q>480|720|1080)p\](?<items>.*?)(?=,\[(?:480|720|1080)p\]|$)", RegexOptions.Singleline))
                     {
-                        string voice = voiceMatch.Groups["voice"].Value;
-                        string file = voiceMatch.Groups["file"].Value;
+                        string items = qualityMatch.Groups["items"].Value;
 
-                        if (!voices.TryGetValue(voice, out var streams))
+                        foreach (Match voiceMatch in Regex.Matches(items, @"\{(?<voice>[^}]+)\}(?<file>https?://[^,\t\[\;{ ]+)", RegexOptions.Singleline))
                         {
-                            streams = new StreamQualityTpl();
-                            voices[voice] = streams;
-                        }
+                            string voice = voiceMatch.Groups["voice"].Value;
+                            string file = voiceMatch.Groups["file"].Value;
 
-                        streams.Insert(accsArgs($"{host}/lite/vibix/video.m3u8?id={EncryptQuery(file)}"), quality);
+                            if (!movie.voices.TryGetValue(voice, out var streams))
+                            {
+                                streams = new List<StreamQualityDto>();
+                                movie.voices[voice] = streams;
+                            }
+
+                            streams.Insert(0, new StreamQualityDto(
+                                $"{host}/lite/vibix/video.m3u8?id={EncryptQuery(file)}",
+                                qualityMatch.Groups["q"].Value + "p"
+                            ));
+                        }
                     }
                 }
 
-                foreach (var v in voices)
-                {
-                    var streams = v.Value;
-                    var first = streams.Firts();
+                if (movie.voices.Count == 0)
+                    continue;
 
-                    if (first != null)
+                foreach (var v in movie.voices)
+                {
+                    if (v.Value.Count > 0)
                     {
                         mtpl.Append(
                             v.Key ?? movie.title,
-                            first.link,
-                            streamquality: streams,
+                            accsArgs(v.Value[0].link),
+                            streamquality: new StreamQualityTpl(v.Value, linkPredicate: accsArgs),
                             vast: init.vast
                         );
                     }
@@ -114,8 +119,7 @@ public class VibixController : BaseOnlineController
 
                 foreach (var season in cache.Value)
                 {
-                    string name = season.title;
-                    if (int.TryParse(Regex.Match(name, "([0-9]+)$").Groups[1].Value, out int _s) && _s > 0)
+                    if (int.TryParse(Regex.Match(season.title, "([0-9]+)$").Groups[1].Value, out int _s) && _s > 0)
                     {
                         tpl.Append(
                             $"{_s} сезон",
@@ -132,8 +136,11 @@ public class VibixController : BaseOnlineController
                 var etpl = new EpisodeTpl();
                 string sArhc = s.ToString();
 
-                foreach (var season in cache.Value.Where(i => i.title.EndsWith($" {s}")))
+                foreach (var season in cache.Value)
                 {
+                    if (!season.title.EndsWith($" {s}"))
+                        continue;
+
                     foreach (var episode in season.folder)
                     {
                         string name = episode.title;
@@ -142,29 +149,32 @@ public class VibixController : BaseOnlineController
                         if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(file))
                             continue;
 
-                        var streams = new StreamQualityTpl();
-
-                        foreach (string q in new string[] { "1080", "720", "480" })
+                        if (episode.streams == null)
                         {
-                            var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+)").Match(file).Groups;
-                            if (!string.IsNullOrEmpty(g["file"].Value))
+                            episode.streams = new List<StreamQualityDto>(3);
+
+                            foreach (string q in new string[] { "1080", "720", "480" })
                             {
-                                string uri = accsArgs($"{host}/lite/vibix/video.m3u8?id={EncryptQuery(g["file"].Value)}");
-                                streams.Append(uri, $"{q}p");
+                                var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+)").Match(file).Groups;
+                                if (!string.IsNullOrEmpty(g["file"].Value))
+                                {
+                                    episode.streams.Add(new StreamQualityDto(
+                                        $"{host}/lite/vibix/video.m3u8?id={EncryptQuery(g["file"].Value)}",
+                                        $"{q}p"
+                                    ));
+                                }
                             }
                         }
 
-                        var first = streams.Firts();
-                        if (first != null)
+                        if (episode.streams.Count > 0)
                         {
                             etpl.Append(
                                 name,
                                 title ?? original_title,
                                 sArhc,
-                                Regex.Match(name,
-                                "([0-9]+)").Groups[1].Value,
-                                first.link,
-                                streamquality: streams,
+                                Regex.Match(name, "([0-9]+)").Groups[1].Value,
+                                accsArgs(episode.streams[0].link),
+                                streamquality: new StreamQualityTpl(episode.streams, linkPredicate: accsArgs),
                                 vast: init.vast
                             );
                         }

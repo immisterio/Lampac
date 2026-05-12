@@ -39,9 +39,7 @@ public struct KinobaseInvoke
 
         string content = await onget($"{apihost}/search?query={HttpUtility.UrlEncode(title)}");
         if (content == null)
-        {
             return null;
-        }
 
         string link = null;
 
@@ -77,9 +75,7 @@ public struct KinobaseInvoke
         if (string.IsNullOrEmpty(link))
         {
             if (!content.Contains(">По запросу") && similar.IsEmpty)
-            {
                 return null;
-            }
         }
 
         return new SearchModel()
@@ -98,9 +94,7 @@ public struct KinobaseInvoke
 
         string news = await onget($"{apihost}/{link}");
         if (string.IsNullOrEmpty(news))
-        {
             return null;
-        }
 
         if (playerjs)
         {
@@ -202,10 +196,8 @@ public struct KinobaseInvoke
                     foreach (string line in voices)
                     {
                         string voice = Regex.Match(line, "([^\\}]+)\\}").Groups[1].Value.Trim();
-                        if (!string.IsNullOrEmpty(voice) && !hash.Contains(voice))
+                        if (!string.IsNullOrEmpty(voice) && hash.Add(voice))
                         {
-                            hash.Add(voice);
-
                             var streamquality = new StreamQualityTpl();
 
                             foreach (string q in new string[] { "2160", "1440", "1080", "720", "480", "360" })
@@ -349,10 +341,8 @@ public struct KinobaseInvoke
                         while (m.Success)
                         {
                             string voice = m.Groups[1].Value.Trim();
-                            if (!hash_voices.Contains(voice))
+                            if (hash_voices.Add(voice))
                             {
-                                hash_voices.Add(voice);
-
                                 if (string.IsNullOrEmpty(t))
                                     t = voice;
 
@@ -423,8 +413,7 @@ public struct KinobaseInvoke
                                 episode.title,
                                 title,
                                 sArhc,
-                                Regex.Match(episode.title,
-                                "^([0-9]+)").Groups[1].Value,
+                                Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
                                 first.link,
                                 subtitles: subtitles,
                                 streamquality: streamquality
@@ -465,8 +454,7 @@ public struct KinobaseInvoke
                                 episode.title,
                                 title,
                                 sArhc,
-                                Regex.Match(episode.title,
-                                "^([0-9]+)").Groups[1].Value,
+                                Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
                                 first.link,
                                 streamquality: streamquality
                             );

@@ -144,6 +144,7 @@ public struct CollapsInvoke
             if (md.movie.cc != null && md.movie.cc.Length > 0)
             {
                 subtitles = new SubtitleTpl(md.movie.cc.Length);
+
                 foreach (var cc in md.movie.cc)
                 {
                     if (cc.url != null && cc.name != null)
@@ -209,7 +210,7 @@ public struct CollapsInvoke
                         string voicename = string.Empty;
 
                         if (episode.audio.names != null)
-                            voicename = Regex.Replace(string.Join(", ", episode.audio.names), "[, ]+$", "");
+                            voicename = string.Join(", ", episode.audio.names);
                         #endregion
 
                         #region subtitle

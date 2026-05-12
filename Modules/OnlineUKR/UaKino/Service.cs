@@ -4,6 +4,7 @@ using Shared.Services.HTML;
 using Shared.Services.RxEnumerate;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -78,7 +79,7 @@ public struct UaKinoInvoke
         if (string.IsNullOrEmpty(news))
             return null;
 
-        return Rx.Match(news, "<iframe[^>]+src=\"(https?://hdvbua\\.[a-z]+/embed/[^\"]+)\"");
+        return Regex.Match(news, "<iframe[^>]+src=\"(https?://hdvbua\\.[a-z]+/embed/[^\"]+)\"").Groups[1].Value;
     }
     #endregion
 }

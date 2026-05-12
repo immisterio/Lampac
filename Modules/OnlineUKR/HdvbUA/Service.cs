@@ -18,6 +18,7 @@ public struct HdvbUAInvoke
     string host;
     HttpHydra httpHydra;
     Func<string, string> onstreamfile;
+
     public HdvbUAInvoke(string host, HttpHydra httpHydra, Func<string, string> onstreamfile)
     {
         this.host = host != null ? $"{host}/" : null;
@@ -40,7 +41,9 @@ public struct HdvbUAInvoke
             {
                 try
                 {
-                    var root = JsonSerializer.Deserialize<List<Voice>>(Rx.Match(content, "file: ?'([^\n\r]+)',"), new JsonSerializerOptions
+                    ReadOnlySpan<char> json = Rx.Slice(content, "file: '", "',");
+
+                    var root = JsonSerializer.Deserialize<List<Voice>>(json, new JsonSerializerOptions
                     {
                         AllowTrailingCommas = true
                     });
@@ -48,18 +51,44 @@ public struct HdvbUAInvoke
                     if (root != null && root.Count > 0)
                         result.serial = root;
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Serilog.Log.Error(ex, "{Class} {CatchId}", "HdvbUA", "id_vq7wnuwy");
                 }
             }
             else
             {
-                result.content = content.ToString();
+                string hls = Rx.Match(content, "file: ?\"(https?://[^\"]+/index.m3u8)\"");
+                if (!string.IsNullOrWhiteSpace(hls))
+                {
+                    result.movie = new Movie()
+                    {
+                        hls = hls
+                    };
+
+                    string subtitle = Rx.Match(content, "subtitle: ?\"([^\"]+)\"");
+
+                    if (!string.IsNullOrEmpty(subtitle))
+                    {
+                        result.movie.subs = new List<Cc>();
+
+                        var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
+                        while (match.Success)
+                        {
+                            result.movie.subs.Add(new Cc()
+                            {
+                                name = match.Groups[1].Value,
+                                url = match.Groups[2].Value
+                            });
+
+                            match = match.NextMatch();
+                        }
+                    }
+                }
             }
         });
 
-        if (result.serial == null && string.IsNullOrEmpty(result.content))
+        if (result.serial == null && result.movie == null)
             return null;
 
         return result;
@@ -72,36 +101,24 @@ public struct HdvbUAInvoke
         if (result == null || result.IsEmpty)
             return default;
 
-        string enc_title = HttpUtility.UrlEncode(title);
-        string enc_original_title = HttpUtility.UrlEncode(original_title);
-
-        if (result.content != null)
+        if (result.movie != null)
         {
             #region Фильм
             var mtpl = new MovieTpl(title, original_title);
 
-            string hls = Regex.Match(result.content, "file: ?\"(https?://[^\"]+/index.m3u8)\"").Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(hls))
-                return default;
+            SubtitleTpl subtitles = null;
 
-            #region subtitle
-            SubtitleTpl subtitles = new SubtitleTpl();
-            string subtitle = new Regex("subtitle: ?\"([^\"]+)\"").Match(result.content).Groups[1].Value;
-
-            if (!string.IsNullOrEmpty(subtitle))
+            if (result.movie.subs != null)
             {
-                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
-                while (match.Success)
-                {
-                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(match.Groups[2].Value));
-                    match = match.NextMatch();
-                }
+                subtitles = new SubtitleTpl(result.movie.subs.Count);
+
+                foreach (var sub in result.movie.subs)
+                    subtitles.Append(sub.name, onstreamfile.Invoke(sub.url));
             }
-            #endregion
 
             mtpl.Append(
                 "По умолчанию",
-                onstreamfile.Invoke(hls),
+                onstreamfile.Invoke(result.movie.hls),
                 subtitles: subtitles,
                 vast: vast
             );
@@ -113,6 +130,8 @@ public struct HdvbUAInvoke
         {
             #region Сериал
             string enc_uri = HttpUtility.UrlEncode(uri);
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
 
             try
             {
@@ -139,7 +158,9 @@ public struct HdvbUAInvoke
                 }
                 else
                 {
-                    var season = result.serial.First(i => i.title.StartsWith($"{s} "));
+                    var season = result.serial.FirstOrDefault(i => i.title.StartsWith($"{s} "));
+                    if (season?.folder == null || season.folder.Length == 0)
+                        return default;
 
                     #region Перевод
                     var vtpl = new VoiceTpl();
@@ -184,14 +205,12 @@ public struct HdvbUAInvoke
                         }
                         #endregion
 
-                        string file = onstreamfile.Invoke(episode.file);
                         etpl.Append(
                             episode.title,
                             title ?? original_title,
                             sArch,
-                            Regex.Match(episode.title,
-                            "^([0-9]+)").Groups[1].Value,
-                            file,
+                            Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
+                            onstreamfile.Invoke(episode.file),
                             subtitles: subtitles,
                             vast: vast
                         );

@@ -86,7 +86,7 @@ public struct BamBooInvoke
         if (playNodes == null || playNodes.Count == 0)
             return null;
 
-        string title = Rx.Match(pageHtml, "<title>([^<]+)</title>");
+        string title = Regex.Match(pageHtml, "<title>([^<]+)</title>").Groups[1].Value;
         int.TryParse(Regex.Match(title, @"([0-9]{1,2})\s*Сезон", RegexOptions.IgnoreCase).Groups[1].Value, out int season);
 
         result.season = season > 0 ? season : 1;

@@ -6,9 +6,16 @@ public class EmbedModel
 {
     public bool IsEmpty { get; set; }
 
-    public string content { get; set; }
+    public Movie movie { get; set; }
 
     public List<Voice> serial { get; set; }
+}
+
+public class Movie
+{
+    public string hls { get; set; }
+
+    public List<Cc> subs { get; set; }
 }
 
 public class Season
@@ -32,4 +39,11 @@ public class Voice
     public string title { get; set; }
 
     public Season[] folder { get; set; }
+}
+
+public class Cc
+{
+    public string url { get; set; }
+
+    public string name { get; set; }
 }

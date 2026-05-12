@@ -18,6 +18,7 @@ public struct AshdiInvoke
     string host;
     HttpHydra httpHydra;
     Func<string, string> onstreamfile;
+
     public AshdiInvoke(string host, HttpHydra httpHydra, Func<string, string> onstreamfile)
     {
         this.host = host != null ? $"{host}/" : null;
@@ -36,24 +37,15 @@ public struct AshdiInvoke
             if (!content.Contains("new Playerjs", StringComparison.Ordinal))
                 return;
 
-            if (!Regex.IsMatch(content, "file:([\t ]+)?'\\[\\{"))
-            {
-                var rx = Rx.Split("new Playerjs", content);
-                if (1 > rx.Count)
-                    return;
-
-                result = new EmbedModel()
-                {
-                    content = rx[1].ToString()
-                };
-
-                return;
-            }
-            else
+            if (Regex.IsMatch(content, "file:([\t ]+)?'\\[\\{"))
             {
                 try
                 {
-                    var root = JsonSerializer.Deserialize<Voice[]>(Rx.Match(content, "file:([\t ]+)?'([^\n\r]+)',", 2), new JsonSerializerOptions
+                    ReadOnlySpan<char> json = Rx.Slice(content, "file:", "',")
+                        .TrimStart()
+                        .Slice(1);
+
+                    var root = JsonSerializer.Deserialize<Voice[]>(json, new JsonSerializerOptions
                     {
                         AllowTrailingCommas = true
                     });
@@ -61,9 +53,48 @@ public struct AshdiInvoke
                     if (root != null && root.Length > 0)
                         result = new EmbedModel() { serial = root };
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Serilog.Log.Error(ex, "{Class} {CatchId}", "Ashdi", "id_4egjgt5u");
+                }
+            }
+            else
+            {
+                string file = Rx.Slice(content, "file:", "\n").ToString();
+                string hls = Regex.Match(file, "(https?://[^\"'\n\r\t ]+/index.m3u8)").Groups[1].Value;
+
+                if (!string.IsNullOrEmpty(hls))
+                {
+                    List<Cc> subs = null;
+                    string subtitle = Rx.Match(content, "subtitle(\")?:\"([^\"]+)\"", 2);
+
+                    if (subtitle != null)
+                    {
+                        var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
+
+                        if (match.Success)
+                            subs = new List<Cc>(match.Length);
+
+                        while (match.Success)
+                        {
+                            subs.Add(new Cc()
+                            {
+                                name = match.Groups[1].Value,
+                                url = match.Groups[2].Value
+                            });
+
+                            match = match.NextMatch();
+                        }
+                    }
+
+                    result = new EmbedModel()
+                    {
+                        movie = new Movie()
+                        {
+                            hls = hls,
+                            subs = subs
+                        }
+                    };
                 }
             }
         });
@@ -75,44 +106,35 @@ public struct AshdiInvoke
     #region Tpl
     public ITplResult Tpl(EmbedModel md, string uri, string title, string original_title, int t, int s, VastConf vast = null, bool rjson = false)
     {
-        if (md == null || md.IsEmpty || (string.IsNullOrEmpty(md.content) && md.serial == null))
+        if (md == null || md.IsEmpty || (md.movie == null && md.serial == null))
             return default;
 
-        string enc_title = HttpUtility.UrlEncode(title);
-        string enc_original_title = HttpUtility.UrlEncode(original_title);
-        string enc_uri = HttpUtility.UrlEncode(uri);
+        string fixStream(string _l)
+        {
+            if (_l.Contains("0yql3tj"))
+                return _l.Replace("0yql3tj", "oyql3tj");
 
-        string fixStream(string _l) => _l.Replace("0yql3tj", "oyql3tj");
+            return _l;
+        }
 
-        if (md.content != null)
+        if (md.movie != null)
         {
             #region Фильм
             var mtpl = new MovieTpl(title, original_title, 1);
 
-            string hls = Regex.Match(md.content, "file:([\t ]+)?(\"|')([\t ]+)?(?<hls>https?://[^\"'\n\r\t ]+/index.m3u8)").Groups["hls"].Value;
-            if (string.IsNullOrEmpty(hls))
-                return default;
-
-            #region subtitle
             SubtitleTpl subtitles = null;
-            string subtitle = new Regex("subtitle(\")?:\"([^\"]+)\"").Match(md.content).Groups[2].Value;
 
-            if (!string.IsNullOrEmpty(subtitle))
+            if (md.movie.subs != null)
             {
-                var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(subtitle);
-                subtitles = new SubtitleTpl(match.Length);
+                subtitles = new SubtitleTpl(md.movie.subs.Count);
 
-                while (match.Success)
-                {
-                    subtitles.Append(match.Groups[1].Value, onstreamfile.Invoke(fixStream(match.Groups[2].Value)));
-                    match = match.NextMatch();
-                }
+                foreach (var sub in md.movie.subs)
+                    subtitles.Append(sub.name, onstreamfile.Invoke(fixStream(sub.url)));
             }
-            #endregion
 
             mtpl.Append(
                 "По умолчанию",
-                onstreamfile.Invoke(fixStream(hls)),
+                onstreamfile.Invoke(fixStream(md.movie.hls)),
                 subtitles: subtitles,
                 vast: vast
             );
@@ -125,6 +147,10 @@ public struct AshdiInvoke
             #region Сериал
             try
             {
+                string enc_title = HttpUtility.UrlEncode(title);
+                string enc_original_title = HttpUtility.UrlEncode(original_title);
+                string enc_uri = HttpUtility.UrlEncode(uri);
+
                 if (s == -1)
                 {
                     var tpl = new SeasonTpl();
@@ -134,12 +160,12 @@ public struct AshdiInvoke
                     {
                         foreach (var season in voice.folder)
                         {
-                            if (hashseason.Add(season.title))
-                            {
-                                string numberseason = Regex.Match(season.title, "([0-9]+)$").Groups[1].Value;
-                                if (string.IsNullOrEmpty(numberseason))
-                                    continue;
+                            string numberseason = Regex.Match(season.title, "([0-9]+)$").Groups[1].Value;
+                            if (string.IsNullOrEmpty(numberseason))
+                                continue;
 
+                            if (hashseason.Add(numberseason))
+                            {
                                 tpl.Append(
                                     season.title,
                                     host + $"lite/ashdi?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&uri={enc_uri}&s={numberseason}",
@@ -185,7 +211,9 @@ public struct AshdiInvoke
                         if (!string.IsNullOrEmpty(episode.subtitle))
                         {
                             var match = new Regex("\\[([^\\]]+)\\](https?://[^\\,]+)").Match(episode.subtitle);
-                            subtitles = new SubtitleTpl(match.Length);
+
+                            if (match.Success)
+                                subtitles = new SubtitleTpl(match.Length);
 
                             while (match.Success)
                             {
@@ -195,14 +223,12 @@ public struct AshdiInvoke
                         }
                         #endregion
 
-                        string file = onstreamfile.Invoke(fixStream(episode.file));
                         etpl.Append(
                             episode.title,
                             title ?? original_title,
                             sArch,
-                            Regex.Match(episode.title,
-                            "([0-9]+)$").Groups[1].Value,
-                            file,
+                            Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value,
+                            onstreamfile.Invoke(fixStream(episode.file)),
                             subtitles: subtitles,
                             vast: vast
                         );

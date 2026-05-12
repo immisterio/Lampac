@@ -15,7 +15,7 @@ public static class AesTo
         {
             var aesinst = AesPool.Instance;
 
-            int capacity = Encoding.UTF8.GetMaxByteCount(plainText.Length);
+            int capacity = Encoding.UTF8.GetByteCount(plainText);
 
             BufferBytePool cipherBuf = null;
             if (capacity > aesinst.ByteBuffer.Length)
@@ -103,7 +103,7 @@ public static class AesTo
         {
             var aesinst = AesPool.Instance;
 
-            int capacity = Encoding.UTF8.GetMaxByteCount(cipherText.Length);
+            int capacity = Encoding.UTF8.GetByteCount(cipherText);
 
             BufferBytePool cipherBuf = null;
             if (capacity > aesinst.ByteBuffer.Length)

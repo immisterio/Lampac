@@ -29,10 +29,11 @@ public class HDVBController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        reset:
+    reset:
 
         #region search
         List<Video> data = await search(kinopoisk_id);
+
         if (data == null || data.Count == 0)
         {
             if (init.rhub && init.rhub_fallback)
@@ -56,6 +57,7 @@ public class HDVBController : BaseOnlineController
             foreach (var m in data)
             {
                 string iframe = fixframe(init.host, m.iframe_url);
+
                 mtpl.Append(
                     m.translator,
                     $"{host}/lite/hdvb/video?kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&iframe={HttpUtility.UrlEncode(iframe)}",
@@ -73,7 +75,7 @@ public class HDVBController : BaseOnlineController
             if (s == -1)
             {
                 var tpl = new SeasonTpl();
-                var tmp_season = new HashSet<string>();
+                var tmp_season = new HashSet<int>();
 
                 foreach (var voice in data)
                 {
@@ -82,11 +84,10 @@ public class HDVBController : BaseOnlineController
                         if (!season.season_number.HasValue)
                             continue;
 
-                        string season_name = $"{season.season_number.Value} сезон";
-                        if (tmp_season.Add(season_name))
+                        if (tmp_season.Add(season.season_number.Value))
                         {
                             tpl.Append(
-                                season_name,
+                                $"{season.season_number.Value} сезон",
                                 $"{host}/lite/hdvb?rjson={rjson}&serial=1&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&s={season.season_number.Value}",
                                 season.season_number.Value
                             );
@@ -124,7 +125,6 @@ public class HDVBController : BaseOnlineController
                 foreach (int episode in data[t].serial_episodes.FirstOrDefault(i => i.season_number == s).episodes ?? new List<int>())
                 {
                     string link = $"{host}/lite/hdvb/serial?title={enc_title}&original_title={enc_original_title}&iframe={iframe}&t={translator}&s={s}&e={episode}";
-                    string streamlink = accsArgs($"{link.Replace("/serial", "/serial.m3u8")}&play=true");
 
                     etpl.Append(
                         $"{episode} серия",
@@ -133,7 +133,7 @@ public class HDVBController : BaseOnlineController
                         episode.ToString(),
                         link,
                         "call",
-                        streamlink: streamlink
+                        streamlink: accsArgs($"{link.Replace("/serial", "/serial.m3u8")}&play=true")
                     );
                 }
 
@@ -365,7 +365,7 @@ public class HDVBController : BaseOnlineController
             if (cache.playlist == null || cache.playlist.Count == 0)
                 return result.Fail("playlist:empty");
 
-            reset_episode:
+        reset_episode:
 
             string episode = cache.playlist
                 .FirstOrDefault(i => i.id == s)?.folder
@@ -429,7 +429,7 @@ public class HDVBController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<List<Video>>($"hdvb:search:{title}", TimeSpan.FromHours(4), async e =>
         {
             var newheaders = HeadersModel.Init(Http.defaultFullHeaders);

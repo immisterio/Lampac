@@ -1,16 +1,22 @@
-﻿namespace LeProduction;
+﻿using Shared.Models.Templates;
+using System.Collections.Generic;
 
-class LeProductionEpisode
+namespace LeProduction;
+
+public class EmbedModel
 {
-    public int season { get; set; }
-    public int episode { get; set; }
-    public string comment { get; set; }
-    public string file { get; set; }
+    public List<StreamQualityDto> movie { get; set; }
+
+    public string season { get; set; }
+
+    public SerialModel[] serial { get; set; }
 }
 
-class LeProductionSearchItem
+public class SerialModel
 {
-    public int season { get; set; }
-    public string href { get; set; }
-    public string title { get; set; }
+    public string comment { get; set; }
+
+    public string file { get; set; }
+
+    public List<StreamQualityDto> streams { get; set; }
 }

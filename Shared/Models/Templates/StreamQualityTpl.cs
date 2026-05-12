@@ -24,14 +24,20 @@ public class StreamQualityTpl
         }
     }
 
-    public StreamQualityTpl(IReadOnlyList<StreamQualityDto> streams)
+    public StreamQualityTpl(IReadOnlyList<StreamQualityDto> streams, Func<string, string> linkPredicate = null)
     {
-        data = new List<StreamQualityDto>(8);
+        data = new List<StreamQualityDto>(streams?.Count ?? 8);
 
         if (streams != null)
         {
             foreach (var item in streams)
-                Append(item.link, item.quality);
+            {
+                string link = linkPredicate != null
+                    ? linkPredicate(item.link)
+                    : item.link;
+
+                Append(link, item.quality);
+            }
         }
     }
 

@@ -59,14 +59,14 @@ public class PhantomController : BaseOnlineController<ModuleConf>
             {
                 var file = i.Value.First().Value;
 
-                string translation = file.Value<string>("translation");
                 string quality = file.Value<string>("quality");
                 long id = file.Value<long>("id");
                 bool uhd = init.m4s ? file.Value<bool>("uhd") : false;
 
                 string link = $"{host}/lite/phantom/video?id_file={id}&token_movie={data.Value<string>("token_movie")}";
+
                 mtpl.Append(
-                    translation,
+                    file.Value<string>("translation"),
                     link,
                     "call",
                     accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true"),

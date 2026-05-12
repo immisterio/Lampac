@@ -5,7 +5,6 @@ using Shared.Models.Templates;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -47,7 +46,7 @@ public class ApiController : BaseOnlineController
                 return OnError(search.ErrorMsg);
 
             var stpl = new SimilarTpl(search.Value.Count);
-            string sorigtitle = StringConvert.SearchName(original_title);
+            string sorigtitle = StringConvert.SearchName(original_title, string.Empty);
 
             foreach (var res in search.Value)
             {
@@ -61,6 +60,7 @@ public class ApiController : BaseOnlineController
                         break;
                     }
                 }
+
                 stpl.Append(
                     res.name,
                     res.year.ToString(),
@@ -73,9 +73,9 @@ public class ApiController : BaseOnlineController
             if (orid == 0)
                 return ContentTpl(stpl);
         }
-    #endregion
+        #endregion
 
-    #region cache
+        #region cache
     rhubFallback:
 
         var cache = await InvokeCacheResult<ItemRoot>($"uafilm:{orid}:{(s > 0 ? s : 1)}", TimeSpan.FromHours(1), async e =>
@@ -127,17 +127,19 @@ public class ApiController : BaseOnlineController
                 var etpl = new EpisodeTpl();
                 string sArhc = s.ToString();
 
-                foreach (var episode in episodes.Where(i => i.season_number == s && i.primary_video != null))
+                foreach (var episode in episodes)
                 {
+                    if (episode.season_number != s || episode.primary_video == null)
+                        continue;
+
                     string episodeNum = episode.episode_number.ToString();
-                    string link = $"{host}/lite/uafilm/video.m3u8?id={episode.primary_video.id}";
 
                     etpl.Append(
                         $"{episodeNum} серия",
                         episode.primary_video.name ?? title ?? original_title,
                         sArhc,
                         episodeNum,
-                        accsArgs(link)
+                        accsArgs($"{host}/lite/uafilm/video.m3u8?id={episode.primary_video.id}")
                     );
                 }
 

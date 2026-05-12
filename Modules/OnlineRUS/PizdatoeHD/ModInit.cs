@@ -82,7 +82,7 @@ public class ModInit : IModuleLoaded, IModuleOnline, IModuleOnlineSpider
         {
             kit = false,
             enable = true,
-            imitationHuman = true,
+            //imitationHuman = true,
             displayindex = 331,
             hls = true,
             streamproxy = true,

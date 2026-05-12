@@ -324,7 +324,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
                 while (!chars.IsEmpty)
                 {
-                    Span<byte> span = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(chars.Length));
+                    Span<byte> span = writer.GetSpan(Encoding.UTF8.GetByteCount(chars));
 
                     encoder.Convert(
                         chars,

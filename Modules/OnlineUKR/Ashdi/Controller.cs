@@ -83,7 +83,7 @@ public class AshdiController : BaseOnlineController
 
             await httpHydra.GetSpan(uri, spanAction: iframe =>
             {
-                hls = Rx.Match(iframe, "file:'(https?://[^\"']+\\.m3u8)'");
+                hls = Rx.Match(iframe, "file: ?.(https?://[^\"']+\\.m3u8)");
             });
 
             if (string.IsNullOrEmpty(hls))

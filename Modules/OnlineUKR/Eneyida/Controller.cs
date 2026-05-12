@@ -40,9 +40,8 @@ public class EneyidaController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return OnError();
 
-            searchFallback:
+        searchFallback:
 
-            string _y = year.ToString();
             string query = (similar || clarification == 1) ? title : original_title;
 
             var search = await InvokeCacheResult($"eneyida:search:{query}", 240,
@@ -55,7 +54,10 @@ public class EneyidaController : BaseOnlineController
             if (search.Value?.similars == null || search.Value.similars.Count == 0)
                 return OnError();
 
-            if (similar || search.Value.similars.FirstOrDefault(i => i.year == _y) == null)
+            string _y = year.ToString();
+            href = search.Value.similars.FirstOrDefault(i => i.year == _y).href;
+
+            if (similar || href == null)
             {
                 return ContentTpl(search, () =>
                 {
@@ -78,10 +80,8 @@ public class EneyidaController : BaseOnlineController
                     return stpl;
                 });
             }
-
-            href = search.Value.similars.FirstOrDefault(i => i.year == _y).href;
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 

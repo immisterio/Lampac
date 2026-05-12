@@ -34,7 +34,7 @@ public class CDNvideohubController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<RootObject>($"cdnvideohub:view:{kinopoisk_id}", TimeSpan.FromHours(4), async e =>
         {
             var root = await httpHydra.Get<RootObject>($"{init.host}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}");
@@ -93,19 +93,20 @@ public class CDNvideohubController : BaseOnlineController
                             continue;
 
                         string voice_studio = video.voiceStudio;
-                        if (string.IsNullOrEmpty(voice_studio) || tmpVoice.Contains(voice_studio))
+                        if (string.IsNullOrEmpty(voice_studio))
                             continue;
 
-                        tmpVoice.Add(voice_studio);
+                        if (tmpVoice.Add(voice_studio))
+                        {
+                            if (string.IsNullOrEmpty(t))
+                                t = voice_studio;
 
-                        if (string.IsNullOrEmpty(t))
-                            t = voice_studio;
-
-                        vtpl.Append(
-                            voice_studio,
-                            t == voice_studio,
-                            $"{host}/lite/cdnvideohub?s={s}&t={HttpUtility.UrlEncode(voice_studio)}{defaultargs}"
-                        );
+                            vtpl.Append(
+                                voice_studio,
+                                t == voice_studio,
+                                $"{host}/lite/cdnvideohub?s={s}&t={HttpUtility.UrlEncode(voice_studio)}{defaultargs}"
+                            );
+                        }
                     }
                     #endregion
 
@@ -123,23 +124,21 @@ public class CDNvideohubController : BaseOnlineController
 
                         int episode = video.episode;
 
-                        if (tmpEpisode.Contains(episode))
-                            continue;
+                        if (tmpEpisode.Add(episode))
+                        {
+                            string link = $"{host}/lite/cdnvideohub/video.m3u8?vkId={vkId}&title={HttpUtility.UrlEncode(title)}";
 
-                        tmpEpisode.Add(episode);
-
-                        string link = $"{host}/lite/cdnvideohub/video.m3u8?vkId={vkId}&title={HttpUtility.UrlEncode(title)}";
-
-                        etpl.Append(
-                            $"{episode} серия",
-                            title ?? original_title,
-                            s.ToString(),
-                            episode.ToString(),
-                            link,
-                            "call",
-                            streamlink: accsArgs($"{link}&play=true"),
-                            vast: init.vast
-                        );
+                            etpl.Append(
+                                $"{episode} серия",
+                                title ?? original_title,
+                                s.ToString(),
+                                episode.ToString(),
+                                link,
+                                "call",
+                                streamlink: accsArgs($"{link}&play=true"),
+                                vast: init.vast
+                            );
+                        }
                     }
 
                     return etpl;

@@ -80,7 +80,7 @@ public partial class ProxyAPI
 
                                 while (true)
                                 {
-                                    Span<byte> dest = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(chars.Length));
+                                    Span<byte> dest = writer.GetSpan(Encoding.UTF8.GetByteCount(chars));
 
                                     encoder.Convert(
                                         chars,

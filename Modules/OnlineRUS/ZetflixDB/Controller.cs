@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using System;
+using System.Buffers.Text;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -21,7 +22,11 @@ public class ZetflixDBController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        string uri = $"{init.apihost}/embed/AO/kinopoisk/{Encode(kinopoisk_id)}/";
+        string encodeKp = Encode(kinopoisk_id);
+        if (encodeKp == null)
+            return OnError("encodeKp");
+
+        string uri = $"{init.apihost}/embed/AO/kinopoisk/{encodeKp}/";
         string args = $"?uri={EncryptQuery(uri)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&rjson={rjson}";
 
         return LocalRedirect(accsArgs("/lite/videodb" + args));
@@ -29,17 +34,27 @@ public class ZetflixDBController : BaseOnlineController
 
     static string Encode(long kinopoisk_id)
     {
-        // 1. String -> Base64
-        byte[] bytes = Encoding.UTF8.GetBytes(kinopoisk_id.ToString());
-        string base64 = Convert.ToBase64String(bytes);
+        // long kinopoisk_id = 19 digits
+        Span<byte> numberBytes = stackalloc byte[20];
 
-        // 2. Remove '=' padding
-        string trimmed = base64.TrimEnd('=');
+        if (!Utf8Formatter.TryFormat(kinopoisk_id, numberBytes, out int numberLen))
+            return null;
 
-        // 3. Reverse string
-        char[] arr = trimmed.ToCharArray();
-        Array.Reverse(arr);
+        Span<byte> base64Bytes = stackalloc byte[32];
 
-        return new string(arr);
+        Base64.EncodeToUtf8(
+            numberBytes.Slice(0, numberLen),
+            base64Bytes,
+            out _,
+            out int base64Len);
+
+        // trim '='
+        while (base64Len > 0 && base64Bytes[base64Len - 1] == (byte)'=')
+            base64Len--;
+
+        // reverse inplace
+        base64Bytes.Slice(0, base64Len).Reverse();
+
+        return Encoding.UTF8.GetString(base64Bytes.Slice(0, base64Len));
     }
 }

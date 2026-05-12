@@ -33,7 +33,7 @@ public class KinogoController : BaseOnlineController
             if (string.IsNullOrEmpty(title))
                 return OnError("search params");
 
-            reset_search:
+        reset_search:
             var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", TimeSpan.FromHours(4), async e =>
             {
                 string search = rch?.enable == true
@@ -67,7 +67,7 @@ public class KinogoController : BaseOnlineController
             return OnError("href");
 
         #region embed
-        reset_embed:
+    reset_embed:
 
         var cache = await InvokeCacheResult<List<PlaylistItem>>(ipkey(href), 20, async e =>
         {
@@ -264,14 +264,12 @@ public class KinogoController : BaseOnlineController
                     }
                     #endregion
 
-                    string stream = HostStreamProxy(file);
                     etpl.Append(
                         name,
                         title ?? original_title,
                         s.ToString(),
-                        Regex.Match(name,
-                        " ([0-9]+)$").Groups[1].Value,
-                        stream,
+                        Regex.Match(name, " ([0-9]+)$").Groups[1].Value,
+                        HostStreamProxy(file),
                         subtitles: subtitles,
                         vast: init.vast
                     );
@@ -344,19 +342,12 @@ public class KinogoController : BaseOnlineController
                 if (page == null)
                     return null;
 
-                var html = $@"<!doctype html>
-                        <html lang=""ru"">
-                          <body>
-                            <script>
-                              {ModInit.playerjs}
-                              Cinemar({{""file"":""{fileEncode}""}})
-                            </script>
-                          </body>
-                        </html>";
+                await page.AddScriptTagAsync(new()
+                {
+                    Content = ModInit.playerjs
+                });
 
-                await page.SetContentAsync(html).ConfigureAwait(false);
-
-                return await page.EvaluateAsync<string>("() => JSON.stringify(window.playlist)");
+                return await page.EvaluateAsync<string>("(input) => decodePlayerjsFile(input)", fileEncode);
             }
         }
         catch { return null; }

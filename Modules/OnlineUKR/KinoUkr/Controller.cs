@@ -29,7 +29,7 @@ public class KinoUkrController : BaseOnlineController
         {
             if (source.Equals("kinoukr", StringComparison.OrdinalIgnoreCase))
             {
-            rhubFallback:
+                rhubFallback:
 
                 var cache = await InvokeCacheResult($"kinoukr:view:{id}", 240,
                     () => oninvk.Embed($"{init.host}/{id}")
@@ -55,8 +55,9 @@ public class KinoUkrController : BaseOnlineController
                 return OnError();
 
             string _y = year.ToString();
+            iframe = search.similars.FirstOrDefault(i => i.year == _y).href;
 
-            if (similar || search.similars.FirstOrDefault(i => i.year == _y) == null)
+            if (similar || iframe == null)
             {
                 var stpl = new SimilarTpl(search.similars.Count);
 
@@ -75,14 +76,11 @@ public class KinoUkrController : BaseOnlineController
 
                 return ContentTpl(stpl);
             }
-
-            iframe = search.similars.FirstOrDefault(i => i.year == _y).href;
         }
 
         string target = iframe.Contains("tortuga")
             ? "tortuga"
             : "ashdi";
-
 
         string args = $"?uri={EncryptQuery(iframe)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}";
 

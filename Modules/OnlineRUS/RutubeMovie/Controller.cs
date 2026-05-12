@@ -29,13 +29,13 @@ public class RutubeMovieController : BaseOnlineController
     public async Task<ActionResult> Index(string title, string original_title, int year, int serial)
     {
         string searchTitle = StringConvert.SearchName(title);
-        if (string.IsNullOrEmpty(searchTitle) || year == 0 || serial == 1)
+        if (searchTitle == null || year == 0 || serial == 1)
             return OnError();
 
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         string memKey = $"rutubemovie:view:{searchTitle}:{year}:{(rch?.enable == true ? requestInfo.Country : "")}";
 
         var cache = await InvokeCacheResult<List<Result>>(memKey, TimeSpan.FromHours(4), textJson: true, onget: async e =>
@@ -62,8 +62,7 @@ public class RutubeMovieController : BaseOnlineController
                 string name = StringConvert.SearchName(movie.title);
                 if (name != null && name.Contains(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                 {
-                    long duration = movie.duration;
-                    if (duration > 3000)
+                    if (movie.duration > 3000)
                     {
                         if (name.Contains("трейлер") || name.Contains("trailer") ||
                             name.Contains("премьера") || name.Contains("обзор") ||
@@ -101,7 +100,7 @@ public class RutubeMovieController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<string>($"rutubemovie:play:{linkid}", 20, async e =>
         {
             var root = await httpHydra.Get<RootPlayOptions>($"{init.host}/api/play/options/{linkid}/?no_404=true&referer=&pver=v2&client=wdp");

@@ -484,7 +484,7 @@ public class PizdaInvoke
                         _data = _data.Replace($"//_//{trash}", "");
                 }
 
-                using (var nbuf = new BufferBytePool(Encoding.UTF8.GetMaxByteCount(data.Length)))
+                using (var nbuf = new BufferBytePool(Encoding.UTF8.GetByteCount(data)))
                 {
                     Span<byte> buffer = nbuf.Span;
 

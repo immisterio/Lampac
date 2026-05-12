@@ -74,19 +74,20 @@ public class VideoseedController : BaseOnlineController
                 else
                 {
                     string sArhc = s.ToString();
-                    var videos = cache.Value.seasons.First(i => i.Key == sArhc).Value.videos;
+                    var videos = cache.Value.seasons.FirstOrDefault(i => i.Key == sArhc).Value?.videos;
+                    if (videos == null)
+                        return default;
 
                     var etpl = new EpisodeTpl(videos.Count);
 
                     foreach (var video in videos)
                     {
-                        string iframe = video.Value.iframe;
                         etpl.Append(
                             $"{video.Key} серия",
                             title ?? original_title,
                             sArhc,
                             video.Key,
-                            accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(iframe)}") + "#.m3u8",
+                            accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(video.Value.iframe)}") + "#.m3u8",
                             "call",
                             vast: init.vast
                         );
