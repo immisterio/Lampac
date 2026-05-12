@@ -34,7 +34,7 @@ public class CDNvideohubController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-    rhubFallback:
+        rhubFallback:
         var cache = await InvokeCacheResult<RootObject>($"cdnvideohub:view:{kinopoisk_id}", TimeSpan.FromHours(4), async e =>
         {
             var root = await httpHydra.Get<RootObject>($"{init.host}/api/v1/player/sv/playlist?pub=12&aggr=kp&id={kinopoisk_id}");

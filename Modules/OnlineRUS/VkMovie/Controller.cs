@@ -42,7 +42,7 @@ public class VkMovieController : BaseOnlineController
         if (searchTitle == null)
             return OnError("searchTitle");
 
-    rhubFallback:
+        rhubFallback:
         var cache = await InvokeCacheResult<List<CatalogVideo>>(ipkey($"vkmovie:view:{searchTitle}:{year}"), 20, textJson: true, onget: async e =>
         {
             if (init.httpversion == 2)

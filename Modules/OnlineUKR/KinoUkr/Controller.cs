@@ -29,7 +29,7 @@ public class KinoUkrController : BaseOnlineController
         {
             if (source.Equals("kinoukr", StringComparison.OrdinalIgnoreCase))
             {
-                rhubFallback:
+            rhubFallback:
 
                 var cache = await InvokeCacheResult($"kinoukr:view:{id}", 240,
                     () => oninvk.Embed($"{init.host}/{id}")

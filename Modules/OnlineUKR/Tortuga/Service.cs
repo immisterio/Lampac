@@ -39,8 +39,8 @@ public struct TortugaInvoke
                 return;
 
             string file = Rx.Match(content, "file: ?.([^'\"]+)==('|\")");
-            string decoded = null; 
-            
+            string decoded = null;
+
             CrypTo.DecodeBase64(file, base64 =>
             {
                 decoded = string.Create(base64.Length, base64, static (span, src) =>
