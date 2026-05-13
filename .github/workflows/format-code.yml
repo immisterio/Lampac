@@ -39,6 +39,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No formatting changes."
           else
-            git commit -m "style:format code"
+            git commit -m "style: format code"
             git push
           fi
