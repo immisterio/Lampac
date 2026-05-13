@@ -81,7 +81,7 @@ public static class StringBuilderPool
             sb.Clear();
             _poolSmall.Add(sb);
         }
-        else if (rentLarge >= sb.Capacity && largeMaxCount > _poolLarge.Count && CoreInit.conf.lowMemoryMode == false)
+        else if (rentLarge >= sb.Capacity && largeMaxCount > _poolLarge.Count)
         {
             sb.Clear();
             _poolLarge.Add(sb);

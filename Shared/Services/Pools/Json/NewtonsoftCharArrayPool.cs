@@ -17,7 +17,7 @@ public class NewtonsoftCharArrayPool : IArrayPool<char>
     private static char[] _threadSmall;
     public static readonly int sizeSmall = 32 * 1024;
 
-    public static readonly int sizeMedium = 128 * 1024; // 128 char = 256byte
+    public static readonly int sizeMedium = 128 * 1024; // 128 char ~ 256kb
     static readonly ConcurrentBag<char[]> _poolMedium = new();
 
     public static readonly int sizeLarge = 256 * 1024;

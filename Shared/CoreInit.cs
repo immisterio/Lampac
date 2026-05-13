@@ -263,8 +263,8 @@ public class CoreInit
         BufferWriterLargeMaxCount = 100,
         StringBuilderSmallMaxCount = 10,
         StringBuilderLargeMaxCount = 20,
-        NewtonsoftCharMediumMaxCount = 5,
-        NewtonsoftCharLargeMaxCount = 5
+        NewtonsoftCharMediumMaxCount = 15,
+        NewtonsoftCharLargeMaxCount = 10
     };
 
     public ApnConf apn { get; set; } = new ApnConf() { secure = "none" };

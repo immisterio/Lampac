@@ -7,9 +7,6 @@ namespace Shared.Services.Pools;
 public sealed class BufferBytePool : IDisposable
 {
     #region pool
-    public static readonly int sizeLowMemory = 512 * 1024; // 512Kb
-    static readonly ConcurrentBag<NativeBuffer<byte>> _poolLowMemory = new();
-
     public static readonly int sizeSmall = 2 * 1024 * 1024; // 2Mb
     static readonly ConcurrentBag<NativeBuffer<byte>> _poolSmall = new();
 
@@ -47,11 +44,11 @@ public sealed class BufferBytePool : IDisposable
 
         if (CoreInit.conf.lowMemoryMode)
         {
-            if (sizeLowMemory >= capacity && pool.BufferByteSmallMaxCount > _poolLowMemory.Count)
+            if (sizeSmall >= capacity && pool.BufferByteSmallMaxCount > _poolSmall.Count)
             {
-                _typepool = 5;
-                if (!_poolLowMemory.TryTake(out _nbuf))
-                    _nbuf = new NativeBuffer<byte>(sizeLowMemory);
+                _typepool = 1;
+                if (!_poolSmall.TryTake(out _nbuf))
+                    _nbuf = new NativeBuffer<byte>(sizeSmall);
             }
             else
             {
@@ -120,9 +117,6 @@ public sealed class BufferBytePool : IDisposable
                 break;
             case 3:
                 _poolLarge.Add(_nbuf);
-                break;
-            case 5:
-                _poolLowMemory.Add(_nbuf);
                 break;
             default:
                 int bufferSize = _nbuf.Memory.Length;
