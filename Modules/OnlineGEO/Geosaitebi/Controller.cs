@@ -32,7 +32,7 @@ public class GeosaitebiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(searchTitle))
                 return OnError();
 
-            rhubSearchFallback:
+        rhubSearchFallback:
 
             var cache = await InvokeCacheResult<EmbedModel>($"geosaitebi:search:{searchTitle}:{year}", TimeSpan.FromHours(4), async e =>
             {
@@ -73,7 +73,7 @@ public class GeosaitebiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(href))
                 return ContentTpl(cache.Value.similar);
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 

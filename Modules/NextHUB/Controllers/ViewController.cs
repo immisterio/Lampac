@@ -261,9 +261,9 @@ public class ViewController : BaseSisiController<NxtSettings>
                         Log.Error(ex, "CatchId={CatchId}", "id_r9ux5f8f");
                     }
                 });
-            #endregion
+                #endregion
 
-            #region GotoAsync
+                #region GotoAsync
             resetGotoAsync: string html = null;
                 var responce = await page.GotoAsync(init.view.viewsource ? $"view-source:{targetHost}" : targetHost, new PageGotoOptions()
                 {
@@ -498,7 +498,7 @@ public class ViewController : BaseSisiController<NxtSettings>
             if (entryCache.success)
                 return entryCache.value;
 
-            resetGotoAsync:
+        resetGotoAsync:
             string html = await httpHydra.Get(url);
 
             if (string.IsNullOrEmpty(html))

@@ -31,7 +31,7 @@ public class MoonAnimeController : BaseOnlineController
 
         if (animeid == 0)
         {
-        #region Поиск
+            #region Поиск
         rhubFallback:
             var cache = await InvokeCacheResult<List<(string title, string year, long id, string poster)>>($"moonanime:search:{imdb_id}:{title}:{original_title}", TimeSpan.FromHours(4), async e =>
             {
@@ -104,7 +104,7 @@ public class MoonAnimeController : BaseOnlineController
         }
         else
         {
-        #region Серии
+            #region Серии
         rhubFallback:
             var cache = await InvokeCacheResult<List<Dictionary<string, Dictionary<string, List<Episode>>>>>($"moonanime:playlist:{animeid}", 30, async e =>
             {
@@ -248,7 +248,7 @@ public class MoonAnimeController : BaseOnlineController
         if (string.IsNullOrEmpty(init.token))
             return OnError("token", statusCode: 401, gbcache: false);
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<(string file, string subtitle)>($"moonanime:vod:{vod}", 30, async e =>
         {
             (string file, string subtitle) data = (null, null);

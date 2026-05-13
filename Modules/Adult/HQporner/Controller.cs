@@ -23,7 +23,7 @@ public class HQpornerController : BaseSisiController
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"hqr:{search}:{sort}:{c}:{pg}", 10, jsonContext.ListPlaylistItem, async e =>
         {
             if (init.httpversion == 1)
@@ -57,7 +57,7 @@ public class HQpornerController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult(ipkey($"HQporner:view:{uri}"), 20, jsonContext.DictionaryStringString, async e =>
         {
             var stream_links = await HQpornerTo.StreamLinks(httpHydra, init.host, uri);

@@ -40,7 +40,7 @@ public class EneyidaController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return OnError();
 
-            searchFallback:
+        searchFallback:
 
             string query = (similar || clarification == 1) ? title : original_title;
 
@@ -81,7 +81,7 @@ public class EneyidaController : BaseOnlineController
                 });
             }
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 

@@ -23,7 +23,7 @@ public class BongaCamsController : BaseSisiController
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<(List<PlaylistItem> playlists, int total_pages)>($"BongaCams:list:{sort}:{pg}", 5, async e =>
         {
             string url = BongaCamsTo.Uri(init.host, sort, pg);

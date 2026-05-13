@@ -127,7 +127,7 @@ public class XhamsterController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"xhamster:view:{uri}", 20, jsonContext.StreamItem, async e =>
         {
             string url = XhamsterTo.StreamLinksUri(init.host, uri);

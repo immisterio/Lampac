@@ -33,7 +33,7 @@ public class TizamController : BaseSisiController
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"tizam:{pg}", 60, jsonContext.ListPlaylistItem, async e =>
         {
             List<PlaylistItem> playlists = null;
@@ -63,7 +63,7 @@ public class TizamController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"tizam:view:{uri}", 180, jsonContext.StreamItem, async e =>
         {
             var stream = await TizamTo.Stream(httpHydra, init.host, uri);

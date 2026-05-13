@@ -105,7 +105,7 @@ public class XvideosController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"xvideos:view:{uri}", 20, jsonContext.StreamItem, async e =>
         {
             string url = XvideosTo.StreamLinksUri($"{host}/xds/stars", init.host, uri);

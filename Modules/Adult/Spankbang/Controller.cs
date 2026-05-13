@@ -32,7 +32,7 @@ public class SpankbangController : BaseSisiController
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"sbg:{search}:{sort}:{pg}", 10, jsonContext.ListPlaylistItem, async e =>
         {
             string url = SpankbangTo.Uri(init.host, search, sort, pg);
@@ -77,7 +77,7 @@ public class SpankbangController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"spankbang:view:{uri}", 20, jsonContext.StreamItem, async e =>
         {
             string url = SpankbangTo.StreamLinksUri(init.host, uri);

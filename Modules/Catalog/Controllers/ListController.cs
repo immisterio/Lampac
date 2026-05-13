@@ -90,7 +90,7 @@ public class ListController : BaseController
                 if (parse?.initHeader != null)
                     headers = CSharpEval.Execute<List<HeadersModel>>(parse.initHeader, new CatalogInitHeader(url, headers));
 
-                reset:
+            reset:
                 string html = null;
 
                 if (!string.IsNullOrEmpty(data))

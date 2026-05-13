@@ -33,7 +33,7 @@ public class ChaturbateController : BaseSisiController
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"Chaturbate:list:{sort}:{pg}", 5, jsonContext.ListPlaylistItem, async e =>
         {
             List<PlaylistItem> playlists = null;
@@ -64,7 +64,7 @@ public class ChaturbateController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"chaturbate:stream:{baba}", 1, jsonContext.DictionaryStringString, async e =>
         {
             string url = ChaturbateTo.StreamLinksUri(init.host, baba);

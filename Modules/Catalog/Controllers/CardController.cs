@@ -41,7 +41,7 @@ public class CardController : BaseController
                 if (init.card_parse.initHeader != null)
                     headers = CSharpEval.Execute<List<HeadersModel>>(init.card_parse.initHeader, new CatalogInitHeader(url, headers));
 
-                reset:
+            reset:
 
                 string html = null;
 

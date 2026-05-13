@@ -31,7 +31,7 @@ public class XnxxController : BaseSisiController
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"xnx:list:{search}:{pg}", 10, jsonContext.ListPlaylistItem, async e =>
         {
             List<PlaylistItem> playlists = null;
@@ -66,7 +66,7 @@ public class XnxxController : BaseSisiController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult($"xnxx:view:{uri}", 20, jsonContext.StreamItem, async e =>
         {
             string url = XnxxTo.StreamLinksUri(init.host, uri);

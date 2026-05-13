@@ -229,7 +229,7 @@ public class GetsTVController : BaseOnlineController
         if (await IsRequestBlocked(rch: true, rch_check: !play))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
         var cache = await InvokeCacheResult<MediaStreamRoot>($"getstv:view:stream:{id}:{init.token}", 10, async e =>
         {
             var root = await httpHydra.Get<MediaStreamRoot>($"{init.host}/api/media/{id}?format=m3u8&protocol=https",
