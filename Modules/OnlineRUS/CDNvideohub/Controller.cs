@@ -153,7 +153,7 @@ public class CDNvideohubController : BaseOnlineController
                 foreach (var video in cache.Value.items)
                 {
                     mtpl.Append(
-                        video.voiceStudio ?? video.voiceType,
+                        string.IsNullOrEmpty(video.voiceStudio) ? video.voiceType : video.voiceStudio,
                         accsArgs($"{host}/lite/cdnvideohub/video.m3u8?vkId={video.vkId}&title={HttpUtility.UrlEncode(title)}"),
                         "call",
                         vast: init.vast
