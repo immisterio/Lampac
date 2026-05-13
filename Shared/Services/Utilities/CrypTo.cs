@@ -23,11 +23,13 @@ public class CrypTo
         if (text == null || text.Length == 0)
             return string.Empty;
 
-        char[] _threadBuffer = (_threadCharBuffer ??= new char[_threadCharSize]);
+        char[] _threadBuffer = null;
         BufferCharPool charBuf = null;
 
-        if (text.Length > _threadBuffer.Length)
+        if (text.Length > _threadCharSize)
             charBuf = new BufferCharPool(text.Length);
+        else
+            _threadBuffer = _threadCharBuffer ??= new char[_threadCharSize];
 
         try
         {
@@ -35,17 +37,9 @@ public class CrypTo
                 ? charBuf.Span
                 : _threadBuffer;
 
-            int offset = 0;
-            foreach (var chunk in text.GetChunks())
-            {
-                if (chunk.IsEmpty)
-                    continue;
+            text.CopyTo(0, buffer, text.Length);
 
-                chunk.Span.CopyTo(buffer.Slice(offset));
-                offset += chunk.Length;
-            }
-
-            return md5(buffer.Slice(0, offset));
+            return md5(buffer.Slice(0, text.Length));
         }
         finally
         {
@@ -60,12 +54,14 @@ public class CrypTo
         if (text.IsEmpty)
             return string.Empty;
 
-        int capacity = Encoding.UTF8.GetByteCount(text);
-        byte[] _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
+        byte[] _threadByte = null;
         BufferBytePool byteBuf = null;
+        int capacity = Encoding.UTF8.GetByteCount(text);
 
-        if (capacity > _threadByte.Length)
+        if (capacity > _threadByteSize)
             byteBuf = new BufferBytePool(capacity);
+        else
+            _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
 
         try
         {
@@ -86,6 +82,48 @@ public class CrypTo
                 return string.Empty;
 
             return new string(hex);
+        }
+        finally
+        {
+            byteBuf?.Dispose();
+        }
+    }
+    #endregion
+
+    #region md5Writer
+    public static void md5Writer(ReadOnlySpan<char> text, StringBuilder sb)
+    {
+        if (text.IsEmpty)
+            return;
+
+        byte[] _threadByte = null;
+        BufferBytePool byteBuf = null;
+        int capacity = Encoding.UTF8.GetByteCount(text);
+
+        if (capacity > _threadByteSize)
+            byteBuf = new BufferBytePool(capacity);
+        else
+            _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
+
+        try
+        {
+            Span<byte> utf8 = byteBuf != null
+                ? byteBuf.Span
+                : _threadByte;
+
+            int bytesWritten = Encoding.UTF8.GetBytes(text, utf8);
+            if (0 >= bytesWritten)
+                return;
+
+            Span<byte> hash = stackalloc byte[16];  // MD5 = 16 байт
+            if (!MD5.TryHashData(utf8.Slice(0, bytesWritten), hash, out _))
+                return;
+
+            Span<char> hex = stackalloc char[32];   // 16 байт -> 32 hex-символа
+            if (!Convert.TryToHexStringLower(hash, hex, out _))
+                return;
+
+            sb.Append(hex);
         }
         finally
         {
@@ -251,11 +289,31 @@ public class CrypTo
     #region Base64
     public static string Base64(string text)
     {
-        string result = string.Empty;
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
 
-        Base64(text, base64 => result = new string(base64));
+        byte[] _threadByte = null;
+        BufferBytePool plainBuf = null;
+        int capacity = Encoding.UTF8.GetByteCount(text);
 
-        return result;
+        if (capacity > _threadByteSize)
+            plainBuf = new BufferBytePool(capacity);
+        else
+            _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
+
+        try
+        {
+            Span<byte> utf8 = plainBuf is not null
+                ? plainBuf.Span
+                : _threadByte.AsSpan(0, capacity);
+
+            int bytesWritten = Encoding.UTF8.GetBytes(text, utf8);
+            return Convert.ToBase64String(utf8.Slice(0, bytesWritten));
+        }
+        finally
+        {
+            plainBuf?.Dispose();
+        }
     }
 
     public static void Base64(string text, Action<ReadOnlySpan<char>> action)
@@ -263,12 +321,14 @@ public class CrypTo
         if (string.IsNullOrEmpty(text))
             return;
 
-        int capacity = Encoding.UTF8.GetByteCount(text);
-        byte[] _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
+        byte[] _threadByte = null;
         BufferBytePool plainBuf = null;
+        int capacity = Encoding.UTF8.GetByteCount(text);
 
-        if (capacity > _threadByte.Length)
+        if (capacity > _threadByteSize)
             plainBuf = new BufferBytePool(capacity);
+        else
+            _threadByte = _threadByteBuffer ??= new byte[_threadByteSize];
 
         try
         {
@@ -277,13 +337,15 @@ public class CrypTo
                 : _threadByte;
 
             int bytesWritten = Encoding.UTF8.GetBytes(text, utf8);
-
             capacity = ((bytesWritten + 2) / 3) * 4;
-            char[] _threadChar = (_threadCharBuffer ??= new char[_threadCharSize]);
+
+            char[] _threadChar = null;
             BufferCharPool base64Buf = null;
 
-            if (capacity > _threadChar.Length)
+            if (capacity > _threadCharSize)
                 base64Buf = new BufferCharPool(capacity);
+            else
+                _threadChar = _threadCharBuffer ??= new char[_threadCharSize];
 
             try
             {

@@ -58,7 +58,11 @@ public class ProxyLink : IProxyLink
         }
         else
         {
-            hash.Append(CrypTo.md5(uri_clear + (verifyip && CoreInit.conf.serverproxy.verifyip ? reqip : string.Empty)));
+            CrypTo.md5Writer(
+                uri_clear + (verifyip && CoreInit.conf.serverproxy.verifyip ? reqip : string.Empty),
+                hash
+            );
+
             WriteExtension(hash, uri, IsProxyImg);
 
             string link = hash.ToString();
