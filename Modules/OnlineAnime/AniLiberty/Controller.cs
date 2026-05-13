@@ -60,11 +60,11 @@ public class AniLibertyController : BaseOnlineController
                 bool checkName = true;
                 var catalog = new List<(string title, string year, int releases, string cover)>(search.Count);
 
-            retry: 
+            retry:
                 foreach (var anime in search)
                 {
-                    if (!checkName || similar || 
-                        SearchNameTo.StartsWith(anime.name?.main, stitle) || 
+                    if (!checkName || similar ||
+                        SearchNameTo.StartsWith(anime.name?.main, stitle) ||
                         SearchNameTo.StartsWith(anime.name?.english, stitle))
                     {
                         string img = null;
