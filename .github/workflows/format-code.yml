@@ -1,0 +1,44 @@
+---
+name: Format code
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  format-code:
+    name: Format code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.LAMPAC_PAT || github.token }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5.2.0
+        with:
+          dotnet-version: ${{ vars.DOTNET_VERSION || '10.0.x' }}
+
+      - name: Restore
+        run: dotnet restore --verbosity minimal NextGen.slnx
+
+      - name: Format code
+        run: dotnet format NextGen.slnx
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No formatting changes."
+          else
+            git commit -m "style:format code"
+            git push
+          fi
