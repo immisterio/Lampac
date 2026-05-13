@@ -288,9 +288,9 @@ public partial class ProxyAPI
                                 if (contentType != null)
                                 {
                                     ism3u =
-                                        contentType.Equals("application/x-mpegurl", StringComparison.OrdinalIgnoreCase) ||
-                                        contentType.Equals("application/vnd.apple.mpegurl", StringComparison.OrdinalIgnoreCase) ||
-                                        contentType.Equals("text/plain", StringComparison.OrdinalIgnoreCase);
+                                        contentType.StartsWith("application/x-mpegurl", StringComparison.OrdinalIgnoreCase) ||
+                                        contentType.StartsWith("application/vnd.apple.mpegurl", StringComparison.OrdinalIgnoreCase) ||
+                                        contentType.StartsWith("text/plain", StringComparison.OrdinalIgnoreCase);
                                 }
                             }
 
@@ -298,7 +298,7 @@ public partial class ProxyAPI
                             {
                                 await ProxyM3u8(httpContext, init, decryptLink, response, contentType, ctsHttp);
                             }
-                            else if (servPath.Contains(".mpd", StringComparison.OrdinalIgnoreCase) || (contentType != null && contentType == "application/dash+xml"))
+                            else if (servPath.Contains(".mpd", StringComparison.OrdinalIgnoreCase) || contentType?.StartsWith("application/dash+xml") == true)
                             {
                                 await ProxyMpd(httpContext, init, decryptLink, response, contentType, ctsHttp);
                             }

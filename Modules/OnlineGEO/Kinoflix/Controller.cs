@@ -9,8 +9,7 @@ using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
 using Shared.Services.Utilities;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Services.RxEnumerate;
 
 namespace Kinoflix;
@@ -26,7 +25,7 @@ public class KinoflixController : BaseOnlineController
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
 
-        rhubFallback:
+    rhubFallback:
 
         #region search
         if (string.IsNullOrEmpty(href))
@@ -59,8 +58,8 @@ public class KinoflixController : BaseOnlineController
         }
         #endregion
 
-        #region cache
-        var cache = await InvokeCacheResult<CardModel>(ipkey($"kinoflix:iframe:{href}"), 20, textJson: true, onget: async e =>
+        #region news
+        var news = await InvokeCacheResult<string>($"kinoflix:{href}", TimeSpan.FromHours(4), async e =>
         {
             string iframeUri = null;
             await httpHydra.GetSpan($"{init.host}/{href}", spanAction: html =>
@@ -71,26 +70,48 @@ public class KinoflixController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(iframeUri))
                 return e.Fail("iframeUri", refresh_proxy: true);
 
-            var card = new CardModel();
+            return e.Success(iframeUri);
+        });
 
-            await httpHydra.GetSpan(iframeUri, spanAction: html =>
+        if (IsRhubFallback(news))
+            goto rhubFallback;
+
+        if (!news.IsSuccess)
+            return OnError(news.ErrorMsg);
+        #endregion
+
+        #region embed
+        var cache = await InvokeCacheResult<EmbedModel>(ipkey($"kinoflix:{news.Value}"), 20, textJson: true, onget: async e =>
+        {
+            string embedUri = null;
+            await httpHydra.GetSpan(news.Value, spanAction: iframeHtml =>
             {
-                if (html.Contains("\"folder\":", StringComparison.Ordinal))
-                {
-                    string json = Rx.Match(html, "new\\s+Playerjs\\s*\\(\\s*(\\{[\\s\\S]*?\\})\\s*\\)");
-                    if (json != null)
-                        card.seasons = JsonConvert.DeserializeObject<PlayerModel>(json)?.file;
-                }
-                else
-                {
-                    card.file = Rx.Match(html, "\"file\":\"([^\n\r]+)");
-                }
+                embedUri = Rx.Match(iframeHtml, "<iframe id=\"[a-z]+_embed\" src=\"([^\"]+)\"");
             });
 
-            if (string.IsNullOrWhiteSpace(card.file) && card.seasons == null)
-                return e.Fail("file", refresh_proxy: true);
+            if (embedUri != null)
+            {
+                string playlistUri = null;
+                await httpHydra.GetSpan(embedUri, spanAction: iframeHtml =>
+                {
+                    playlistUri = Rx.Match(iframeHtml, "file: ?\"([^\"]+)\"");
+                });
 
-            return e.Success(card);
+                if (playlistUri != null)
+                {
+                    var root = await httpHydra.Get<List<PlayerModel>>(playlistUri);
+                    if (root != null && root.Count > 0)
+                    {
+                        return e.Success(new EmbedModel()
+                        {
+                            referer = embedUri,
+                            items = root
+                        });
+                    }
+                }
+            }
+
+            return e.Fail("iframe", refresh_proxy: true);
         });
 
 
@@ -100,43 +121,14 @@ public class KinoflixController : BaseOnlineController
 
         return ContentTpl(cache, () =>
         {
-            if (cache.Value.file != null)
-            {
-                #region Фильм
-                var mtpl = new MovieTpl(title, original_title);
-                var headers_stream = httpHeaders(init.host, init.headers_stream);
+            var items = cache.Value.items;
 
-                foreach (var v in GetStreams(cache.Value.file))
-                {
-                    var streamQuality = new StreamQualityTpl();
+            var headers_stream = httpHeaders(init.host, init.headers_stream);
+            headers_stream = HeadersModel.Join(headers_stream, HeadersModel.Init("referer", cache.Value.referer));
 
-                    foreach (var l in v.Value)
-                        streamQuality.Append(HostStreamProxy(l.link), qnormalize(l.quality));
-
-                    var first = streamQuality.Firts();
-                    if (first != null)
-                    {
-                        mtpl.Append(
-                            v.Key,
-                            first.link,
-                            quality: first.quality,
-                            streamquality: streamQuality,
-                            headers: headers_stream,
-                            vast: init.vast
-                        );
-                    }
-                }
-
-                return mtpl;
-                #endregion
-            }
-            else
+            if (items[0].folder != null)
             {
                 #region Сериал
-                var seasons = cache.Value.seasons;
-                if (seasons == null || seasons.Count == 0)
-                    return null;
-
                 string enc_title = HttpUtility.UrlEncode(title);
                 string enc_original_title = HttpUtility.UrlEncode(original_title);
                 string enc_href = HttpUtility.UrlEncode(href);
@@ -145,7 +137,7 @@ public class KinoflixController : BaseOnlineController
                 {
                     var tpl = new SeasonTpl();
 
-                    foreach (var season in seasons)
+                    foreach (var season in items)
                     {
                         string seasonName = season.title;
                         string seasonNum = Regex.Match(seasonName, "([0-9]+)").Groups[1].Value;
@@ -161,74 +153,69 @@ public class KinoflixController : BaseOnlineController
                 }
                 else
                 {
-                    string _s = s.ToString();
-                    string defaultargs = $"&title={enc_title}&original_title={enc_original_title}&year={year}&href={enc_href}";
+                    string sArhc = s.ToString();
 
-                    var season = seasons.FirstOrDefault(x => x.title.EndsWith($" {_s}"));
-                    if (season == null || season.folder == null)
+                    var season = items.FirstOrDefault(x => x.title.EndsWith($" {sArhc}"));
+                    if (season?.folder == null)
                         return null;
 
-                    #region Озвучки
-                    var vtpl = new VoiceTpl();
-                    var voices = new HashSet<string>();
+                    var etpl = new EpisodeTpl();
 
                     foreach (var episode in season.folder)
                     {
-                        foreach (Match m in Regex.Matches(episode.file ?? string.Empty, "\\{([^}]+)\\}", RegexOptions.IgnoreCase))
+                        #region subtitle
+                        var subtitles = new SubtitleTpl();
+
+                        if (episode.subtitles != null)
                         {
-                            string voice = m.Groups[1].Value;
-                            if (!string.IsNullOrWhiteSpace(voice) && voices.Add(voice))
-                            {
-                                if (string.IsNullOrEmpty(t))
-                                    t = voice;
-
-                                string vlink = $"{host}/lite/kinoflix?s={s}&t={HttpUtility.UrlEncode(voice)}" + defaultargs;
-                                vtpl.Append(
-                                    voice,
-                                    t == voice,
-                                    vlink
-                                );
-                            }
+                            foreach (var sub in episode.subtitles)
+                                subtitles.Append(sub.label, HostStreamProxy(sub.file));
                         }
-                    }
-                    #endregion
+                        #endregion
 
-                    var etpl = new EpisodeTpl(vtpl);
-                    var headers_stream = httpHeaders(init.host, init.headers_stream);
-
-                    foreach (var episode in season.folder)
-                    {
-                        string epNum = Regex.Match(episode.title, "([0-9]+)").Groups[1].Value;
-
-                        foreach (var v in GetStreams(episode.file))
-                        {
-                            if (v.Key == t)
-                            {
-                                var streamQuality = new StreamQualityTpl();
-
-                                foreach (var l in v.Value)
-                                    streamQuality.Append(HostStreamProxy(l.link), qnormalize(l.quality));
-
-                                var first = streamQuality.Firts();
-                                if (first != null)
-                                {
-                                    etpl.Append(
-                                        episode.title,
-                                        title ?? original_title,
-                                        _s,
-                                        epNum,
-                                        first.link,
-                                        streamquality: streamQuality,
-                                        headers: headers_stream,
-                                        vast: init.vast
-                                    );
-                                }
-                            }
-                        }
+                        etpl.Append(
+                            episode.title,
+                            title ?? original_title,
+                            sArhc,
+                            Regex.Match(episode.title, "([0-9]+)").Groups[1].Value,
+                            HostStreamProxy(episode.file + "#.m3u8", headers: headers_stream),
+                            headers: headers_stream,
+                            subtitles: subtitles,
+                            vast: init.vast
+                        );
                     }
 
                     return etpl;
                 }
+                #endregion
+            }
+            else
+            {
+                #region Фильм
+                var mtpl = new MovieTpl(title, original_title);
+
+                foreach (var m in items)
+                {
+                    #region subtitle
+                    var subtitles = new SubtitleTpl();
+
+                    if (m.subtitles != null)
+                    {
+                        foreach (var sub in m.subtitles)
+                            subtitles.Append(sub.label, HostStreamProxy(sub.file));
+                    }
+                    #endregion
+
+                    mtpl.Append(
+                        title ?? original_title,
+                        HostStreamProxy(m.file + "#.m3u8", headers: headers_stream),
+                        headers: headers_stream,
+                        subtitles: subtitles,
+                        vast: init.vast
+                    );
+                }
+
+                return mtpl;
                 #endregion
             }
         });
@@ -248,6 +235,9 @@ public class KinoflixController : BaseOnlineController
             string stitle = StringConvert.SearchName(title);
             string soriginal_title = StringConvert.SearchName(original_title);
 
+            string enc_title = HttpUtility.UrlEncode(title);
+            string enc_original_title = HttpUtility.UrlEncode(original_title);
+
             foreach (ReadOnlySpan<char> row in HtmlSpan.Nodes(html, "div", "class", "filter_cols", HtmlSpanTargetType.Exact))
             {
                 ReadOnlySpan<char> card = HtmlSpan.Node(row, "div", "class", "popular-card__title", HtmlSpanTargetType.Exact);
@@ -255,11 +245,11 @@ public class KinoflixController : BaseOnlineController
                     continue;
 
                 string href = Rx.Match(card, " href=\"https?://[^/]+/([^\"#]+)");
-                if (string.IsNullOrEmpty(href))
+                if (href == null)
                     continue;
 
                 string name = Rx.Match(card, "<p>([^<]+)</p>");
-                if (string.IsNullOrEmpty(name))
+                if (name == null)
                     continue;
 
                 string orig_name = Rx.Match(card, "<span>([^<]+)</span>");
@@ -269,7 +259,7 @@ public class KinoflixController : BaseOnlineController
                 if (!string.IsNullOrEmpty(img))
                     img = Rx.Match(row, "<img src=\"([^\"]+)\"");
 
-                string _l = $"{host}/lite/kinoflix?title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&href={HttpUtility.UrlEncode(href)}";
+                string _l = $"{host}/lite/kinoflix?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(href)}";
                 similar.Append(orig_name != null ? $"{name} / {orig_name}" : name, _year, string.Empty, _l, PosterApi.Size(img));
 
                 bool match = StringConvert.SearchName(name).Contains(stitle)
@@ -292,51 +282,4 @@ public class KinoflixController : BaseOnlineController
         return smd;
     }
     #endregion
-
-    #region GetStreams
-    static Dictionary<string, List<(string quality, string link)>> GetStreams(string file)
-    {
-        var voices = new Dictionary<string, List<(string quality, string link)>>();
-
-        foreach (string quality in new string[] { "4K", "HD", "SD" })
-        {
-            foreach (Match m in Regex.Matches(file, $"\\[{quality}\\]([^\n\r\\[]+)", RegexOptions.IgnoreCase))
-            {
-                string line = m.Groups[1].Value;
-                if (string.IsNullOrEmpty(line))
-                    continue;
-
-                foreach (Match v in Regex.Matches(line, "\\{([^\\}]+)\\}(https?://[^;]+)", RegexOptions.IgnoreCase))
-                {
-                    string voice = v.Groups[1].Value.Trim();
-                    string link = v.Groups[2].Value;
-
-                    if (string.IsNullOrWhiteSpace(voice) || string.IsNullOrWhiteSpace(link))
-                        continue;
-
-                    if (quality == "4K" && (link.Contains("_HD.mp4") || link.Contains("_SD.mp4")))
-                        continue;
-
-                    if (!voices.TryGetValue(voice, out var current))
-                    {
-                        current = new List<(string quality, string link)>();
-                        voices[voice] = current;
-                    }
-
-                    current.Add((quality, link));
-                }
-            }
-        }
-
-        return voices;
-    }
-    #endregion
-
-    static string qnormalize(string quality) => quality switch
-    {
-        "4K" => "2160p",
-        "HD" => "1080p",
-        "SD" => "480p",
-        _ => quality
-    };
 }

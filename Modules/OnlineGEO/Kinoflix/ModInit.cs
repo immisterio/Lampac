@@ -16,9 +16,8 @@ public class ModInit : IModuleLoaded, IModuleOnline
     public List<ModuleOnlineItem> Invoke(HttpContext httpContext, RequestModel requestInfo, string host, OnlineEventsModel args)
     {
         var online = new List<ModuleOnlineItem>();
-        bool iscn = args.original_language is "ja" or "ko" or "zh" or "cn";
 
-        if (args.kinopoisk_id > 0 && !iscn)
+        if (args.kinopoisk_id > 0)
             online.Add(new(conf, arg_title: " (Грузинский)"));
 
         return online;
@@ -46,10 +45,13 @@ public class ModInit : IModuleLoaded, IModuleOnline
             stream_access = "apk",
             rchstreamproxy = "web,cors",
             headers_stream = HeadersModel.Init(Http.defaultFullHeaders,
-                ("referer", "https://kinoflix.tv"),
+                ("accept", "*/*"),
+                ("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"),
+                ("priority", "u=1, i"),
                 ("sec-fetch-dest", "empty"),
                 ("sec-fetch-mode", "cors"),
-                ("sec-fetch-site", "cross-site")
+                ("sec-fetch-site", "same-origin"),
+                ("sec-fetch-storage-access", "active")
             ).ToDictionary()
         });
     }

@@ -3,6 +3,13 @@ using Shared.Models.Templates;
 
 namespace Kinoflix;
 
+public class EmbedModel
+{
+    public string referer { get; set; }
+
+    public List<PlayerModel> items { get; set; }
+}
+
 public class SearchModel
 {
     public string link { get; set; }
@@ -10,18 +17,15 @@ public class SearchModel
     public SimilarTpl similar { get; set; }
 }
 
-public class CardModel
+public class PlayerModel
 {
     public string file { get; set; }
 
-    public List<Season> seasons { get; set; }
-}
-
-public class Season
-{
     public string title { get; set; }
 
     public List<Folder> folder { get; set; }
+
+    public List<Subtitle> subtitles { get; set; }
 }
 
 public class Folder
@@ -30,12 +34,13 @@ public class Folder
 
     public string file { get; set; }
 
-    public string id { get; set; }
-
-    public string subtitle { get; set; }
+    public List<Subtitle> subtitles { get; set; }
 }
 
-public class PlayerModel
+public class Subtitle
 {
-    public List<Season> file { get; set; }
+    public string label { get; set; }
+
+    public string file { get; set; }
 }
+

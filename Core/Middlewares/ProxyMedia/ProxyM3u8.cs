@@ -201,7 +201,7 @@ public partial class ProxyAPI
                     #region Headers
                     httpContext.Response.StatusCode = (int)response.StatusCode;
 
-                    httpContext.Response.ContentType = contentType != null && contentType.Equals("application/x-mpegurl", StringComparison.OrdinalIgnoreCase)
+                    httpContext.Response.ContentType = contentType != null && contentType.StartsWith("application/x-mpegurl", StringComparison.OrdinalIgnoreCase)
                         ? "application/x-mpegurl"
                         : "application/vnd.apple.mpegurl";
 
