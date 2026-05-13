@@ -883,7 +883,7 @@ public class OnlineApiController : BaseController
                             quality = " - " + Rx.Match(res, "<!--q:([^>]+)-->");
                             break;
                         }
-                        else if (res.Contains($"\"{q}p\"", StringComparison.Ordinal) 
+                        else if (res.Contains($"\"{q}p\"", StringComparison.Ordinal)
                             || res.Contains($">{q}p<", StringComparison.Ordinal)
                             || res.Contains($"<!--{q}p-->", StringComparison.Ordinal))
                         {
@@ -914,7 +914,7 @@ public class OnlineApiController : BaseController
                         if (balanser == "vokino")
                         {
                             quality = res.Contains("4K HDR", StringComparison.Ordinal)
-                                ? " - 4K HDR" 
+                                ? " - 4K HDR"
                                 : res.Contains("4K ", StringComparison.Ordinal)
                                     ? " - 4K"
                                     : quality;
