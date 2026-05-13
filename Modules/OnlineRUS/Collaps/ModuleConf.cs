@@ -18,6 +18,8 @@ public class ModuleConf : BaseSettings, ICloneable
 
     public bool dash { get; set; }
 
+    public bool encoder { get; set; }
+
 
     public ModuleConf Clone()
     {

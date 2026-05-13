@@ -12,7 +12,7 @@ public static class Encoder
 
     async public static Task ProxyApiCreateHttpRequest(EventProxyApiCreateHttpRequest e)
     {
-        if (e.plugin != null && e.plugin.Equals("collaps", StringComparison.OrdinalIgnoreCase))
+        if (ModInit.conf.encoder && e.plugin != null && e.plugin.Equals("collaps", StringComparison.OrdinalIgnoreCase))
         {
             if (!e.requestMessage.RequestUri.AbsolutePath.Contains(marker))
             {
@@ -25,7 +25,7 @@ public static class Encoder
 
     public static string Uri(string url)
     {
-        if (string.IsNullOrEmpty(url) || url.Contains(marker))
+        if (ModInit.conf.encoder == false || string.IsNullOrEmpty(url) || url.Contains(marker))
             return url;
 
         string newUri = EncodeUri(new Uri(url));
