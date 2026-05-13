@@ -8,3 +8,12 @@ public class EmbedModel
 
     public SimilarTpl similar { get; set; }
 }
+
+public class SerialModel
+{
+    public string title { get; set; }
+
+    public string download { get; set; }
+
+    public string file { get; set; }
+}

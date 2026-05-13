@@ -388,9 +388,8 @@ public class RezkaInvoke
                 {
                     #region Сезоны
                     string sname = $"{m.Groups["season"].Value} сезон";
-                    if (!string.IsNullOrEmpty(m.Groups["season"].Value) && !eshash.Contains(sname))
+                    if (!string.IsNullOrEmpty(m.Groups["season"].Value) && eshash.Add(sname))
                     {
-                        eshash.Add(sname);
                         tpl.Append(
                             sname,
                             host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&t={result.trs}&s={m.Groups["season"].Value}",
@@ -402,9 +401,8 @@ public class RezkaInvoke
                 else
                 {
                     #region Серии
-                    if (m.Groups["season"].Value == sArhc && !eshash.Contains(m.Groups["name"].Value))
+                    if (m.Groups["season"].Value == sArhc && eshash.Add(m.Groups["name"].Value))
                     {
-                        eshash.Add(m.Groups["name"].Value);
                         string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={result.trs}&s={s}&e={m.Groups["episode"].Value}";
 
                         string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
@@ -510,13 +508,10 @@ public class RezkaInvoke
                             continue;
                         }
 
-                        string name = match.Groups["name"].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups["imgname"].Value) ? "" : $" ({match.Groups["imgname"].Value})");
-                        string link = host + $"{route}/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={id}&t={match.Groups["translator"].Value}";
-
                         vtpl.Append(
-                            name,
+                            match.Groups["name"].Value.Trim() + (string.IsNullOrWhiteSpace(match.Groups["imgname"].Value) ? "" : $" ({match.Groups["imgname"].Value})"),
                             match.Groups["translator"].Value == t.ToString(),
-                            link
+                            host + $"{route}/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={id}&t={match.Groups["translator"].Value}"
                         );
 
                         match = match.NextMatch();
@@ -750,7 +745,7 @@ public class RezkaInvoke
                         _data = _data.Replace($"//_//{trash}", "");
                 }
 
-                using (var nbuf = new BufferBytePool(Encoding.UTF8.GetMaxByteCount(data.Length)))
+                using (var nbuf = new BufferBytePool(Encoding.UTF8.GetByteCount(data)))
                 {
                     Span<byte> buffer = nbuf.Span;
 

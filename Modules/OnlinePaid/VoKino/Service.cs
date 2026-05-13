@@ -130,6 +130,7 @@ public struct VoKinoInvoke
                 if (translation.playlist_url != null && translation.playlist_url.Contains("?"))
                 {
                     string _t = HttpUtility.UrlEncode(translation.playlist_url.Split("?")[1]);
+
                     vtpl.Append(
                         translation.title,
                         translation.selected,

@@ -1,14 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Shared;
 using Shared.Attributes;
 using Shared.Models.Base;
+using Shared.Models.Templates;
 using Shared.Services;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Shared;
 
 namespace iRemux;
 
@@ -70,7 +71,14 @@ public class iRemuxController : BaseOnlineController
         if (weblink == null)
             return OnError();
 
-        return ContentTo(oninvk.Movie(weblink, quality, title, original_title, HttpContext, vast: init.vast));
+        return ContentTo(VideoTpl.ToJson(
+            "play",
+            HostStreamProxy(weblink),
+            title ?? original_title,
+            quality: quality,
+            vast: init.vast,
+            httpContext: HttpContext
+        ));
     }
 
 

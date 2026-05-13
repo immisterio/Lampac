@@ -5,16 +5,18 @@ namespace Filmix;
 
 public class FilmixInvoke
 {
+    #region static
     static readonly Serilog.ILogger Log = Serilog.Log.ForContext<FilmixInvoke>();
 
     static ConcurrentDictionary<string, string> user_dev_ids = new ConcurrentDictionary<string, string>();
 
     static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } };
+    #endregion
 
     #region FilmixInvoke
     FilmixSettings init;
 
-    public bool disableSphinxSearch, reserve;
+    public bool disableSphinxSearch;
 
     public string token;
     string host, args, route;
@@ -27,7 +29,6 @@ public class FilmixInvoke
     {
         this.init = init;
         apihost = init.host;
-        reserve = init.reserve;
         this.token = token;
         this.route = route;
         this.host = host != null ? $"{host}/" : null;
@@ -266,10 +267,6 @@ public class FilmixInvoke
             if (player_links.movie.Length == 1 && player_links.movie[0].translation.ToLower().StartsWith("заблокировано "))
                 return default;
 
-            var cdns = reserve ? player_links.movie
-                    .Select(e => Regex.Match(e.link, "^(https?://[^/]+)").Groups[1].Value)
-                    .ToHashSet() : null;
-
             var mtpl = new MovieTpl(title, original_title, player_links.movie.Length);
 
             foreach (var v in player_links.movie)
@@ -297,18 +294,6 @@ public class FilmixInvoke
                         var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
                         if (m.Success)
                             l = $"{m.Groups[1].Value}/hls/{m.Groups[3].Value}/index.m3u8?hash={m.Groups[2].Value}";
-                    }
-
-                    if (reserve)
-                    {
-                        foreach (string cdn in cdns)
-                        {
-                            if (!l.Contains(cdn))
-                            {
-                                l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn);
-                                break;
-                            }
-                        }
                     }
 
                     streamquality.Append(onstreamfile.Invoke(l), $"{q}p");
@@ -411,10 +396,6 @@ public class FilmixInvoke
                     return default;
                 #endregion
 
-                var cdns = reserve ? episodes
-                    .Select(e => Regex.Match(e.Value.link, "^(https?://[^/]+)").Groups[1].Value)
-                    .ToHashSet() : null;
-
                 #region Серии
                 var etpl = new EpisodeTpl(vtpl, episodes.Count);
 
@@ -440,18 +421,6 @@ public class FilmixInvoke
                             var m = Regex.Match(l, "^(https?://[^/]+)/s/([^/]+)/(.*)");
                             if (m.Success)
                                 l = $"{m.Groups[1].Value}/hls/{m.Groups[3].Value}/index.m3u8?hash={m.Groups[2].Value}";
-                        }
-
-                        if (reserve)
-                        {
-                            foreach (string cdn in cdns)
-                            {
-                                if (!l.Contains(cdn))
-                                {
-                                    l += " or " + Regex.Replace(l, "^https?://[^/]+", cdn);
-                                    break;
-                                }
-                            }
                         }
 
                         streamquality.Append(onstreamfile.Invoke(l), $"{lq}p");

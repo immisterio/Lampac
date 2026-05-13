@@ -151,9 +151,11 @@ public class KinoPubInvoke
                     #endregion
 
                     var first = streamquality.Firts();
+
                     mtpl.Append(
                         voice,
                         first.link,
+                        quality: first.quality,
                         streamquality: streamquality,
                         subtitles: subtitles,
                         subtitles_call: subtitles_call,

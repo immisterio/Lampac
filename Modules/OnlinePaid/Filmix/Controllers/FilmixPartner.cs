@@ -140,12 +140,11 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
                     foreach (var season in translation.Value<JArray>("seasons"))
                     {
                         int sid = season.Value<int>("season");
-                        string sname = $"{sid} сезон";
 
                         if (temp_season.Add(sid))
                         {
                             tpl.Append(
-                                sname,
+                                $"{sid} сезон",
                                 $"{host}/lite/fxapi?rjson={rjson}&postid={postid}&title={enc_title}&original_title={enc_original_title}&s={sid}",
                                 sid
                             );

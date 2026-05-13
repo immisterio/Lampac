@@ -1,17 +1,17 @@
-using Shared.Models.Base;
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Templates;
 using Shared.Services;
 using Shared.Services.HTML;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
-using Shared.Attributes;
 using Shared.Services.RxEnumerate;
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace AsiaGe;
 
@@ -39,8 +39,7 @@ public class AsiaGeController : BaseOnlineController
             {
                 var tmdbName = await InvokeCacheResult<string>($"asiage:tmdb:{id}", 60 * 24, async e =>
                 {
-                    var header = HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd));
-                    var result = await Http.Get<JObject>($"http://api.themoviedb.org/3/tv/{id}?api_key={CoreInit.conf.cub.api_key}&language=en", timeoutSeconds: 5, headers: header);
+                    var result = await Http.Get<JObject>($"http://api.themoviedb.org/3/tv/{id}?api_key={CoreInit.conf.cub.api_key}&language=en", timeoutSeconds: 5);
                     if (result != null)
                         return e.Success(result.Value<string>("name"));
 
@@ -53,7 +52,7 @@ public class AsiaGeController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(searchTitle))
                 return OnError();
 
-            rhubSearchFallback:
+        rhubSearchFallback:
 
             var search = await InvokeCacheResult<EmbedModel>($"asiage:search:{searchTitle}:{year}", TimeSpan.FromHours(4), async e =>
             {
@@ -89,35 +88,45 @@ public class AsiaGeController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(href))
                 return ContentTpl(search.Value.similar);
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 
-        var cache = await InvokeCacheResult<List<(string title, string file)>>($"asiage:view:{href}", 40, async e =>
+        var cache = await InvokeCacheResult<List<(string title, string s, string ep, string file)>>($"asiage:view:{href}", 40, async e =>
         {
-            List<(string title, string file)> episodes = null;
+            List<(string title, string s, string ep, string file)> episodes = null;
 
             await httpHydra.GetSpan($"{init.host}/{href}", html =>
             {
-                string fileJson = Rx.Match(html, @"file\s*:\s*(\[[\s\S]*?\])\s*,\s*(?:""vast""|vast)\s*:");
-                if (fileJson == null)
-                    return;
+                ReadOnlySpan<char> json = Rx.Slice(html, "file:", "\"vast\"").Trim()[..^1];
 
-                fileJson = Regex.Replace(fileJson, ",\\s*([}\\]])", "$1");
-                var files = JArray.Parse(fileJson);
-
-                episodes = new List<(string title, string file)>();
-                foreach (var item in files)
+                var root = JsonSerializer.Deserialize<SerialModel[]>(json, new JsonSerializerOptions
                 {
-                    string epTitle = item.Value<string>("title");
-                    string epFile = item.Value<string>("file");
+                    AllowTrailingCommas = true
+                });
 
-                    if (!string.IsNullOrWhiteSpace(epTitle) && !string.IsNullOrWhiteSpace(epFile))
-                        episodes.Add((epTitle, epFile));
+                if (root != null && root.Length > 0)
+                {
+                    episodes = new();
+
+                    foreach (var item in root)
+                    {
+                        string epFile = item.download;
+                        if (string.IsNullOrEmpty(epFile))
+                            epFile = Regex.Match(item.file, "\\{[^}]+\\}([^;,]+)").Groups[1].Value;
+
+                        if (!string.IsNullOrEmpty(epFile))
+                        {
+                            string ep = Regex.Match(item.title, "([0-9]+)").Groups[1].Value;
+                            string s = Rx.Match(html, ">სეზონების რაოდენობა:</b>([^<]+)<")?.Trim() ?? "1";
+
+                            episodes.Add((item.title, s, ep, epFile));
+                        }
+                    }
                 }
             });
 
-            if (episodes == null || episodes.Count == 0)
+            if (episodes == null)
                 return e.Fail("episodes", refresh_proxy: true);
 
             return e.Success(episodes);
@@ -130,27 +139,16 @@ public class AsiaGeController : BaseOnlineController
         {
             var etpl = new EpisodeTpl();
 
-            int epIndex = 1;
             foreach (var episode in cache.Value)
             {
-                foreach (Match lm in Regex.Matches(episode.file, "\\{([^}]+)\\}([^;,]+)", RegexOptions.IgnoreCase))
-                {
-                    string link = HostStreamProxy(lm.Groups[2].Value.Trim());
-                    string epNum = Regex.Match(episode.title, "([0-9]+)").Groups[1].Value;
-                    if (string.IsNullOrWhiteSpace(epNum))
-                        epNum = epIndex.ToString();
-
-                    etpl.Append(
-                        episode.title,
-                        title,
-                        "1",
-                        epNum,
-                        link,
-                        vast: init.vast
-                    );
-                }
-
-                epIndex++;
+                etpl.Append(
+                    episode.title,
+                    title,
+                    episode.s,
+                    episode.ep,
+                    HostStreamProxy(episode.file),
+                    vast: init.vast
+                );
             }
 
             return etpl;

@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
+using Shared.Services.Pools;
 
 namespace Alloha;
 
@@ -62,7 +63,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
             return badInitMsg;
 
         #region search
-        rhubFallback:
+    rhubFallback:
 
         string memKey = string.IsNullOrEmpty(orid)
             ? $"alloha:search:{imdb_id}:{kinopoisk_id}"
@@ -191,7 +192,6 @@ public class AllohaController : BaseOnlineController<ModuleConf>
 
                     string episodeNum = episode.episode.ToString();
                     string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episodeNum}&token_movie={data.token}" + defaultargs;
-                    string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
                     etpl.Append(
                         $"{episodeNum} серия",
@@ -200,7 +200,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                         episodeNum,
                         link,
                         "call",
-                        streamlink: streamlink
+                        streamlink: accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true")
                     );
                 }
 
@@ -231,24 +231,25 @@ public class AllohaController : BaseOnlineController<ModuleConf>
             }
 
             #region url запроса
-            string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&token_movie={token_movie}";
+            var uri = StringBuilderPool.ThreadInstance;
 
-            uri += $"&ip={userIp}&translation={t}";
+            uri.Append($"{init.linkhost}/direct?secret_token={init.secret_token}&token_movie={token_movie}")
+               .Append($"&ip={userIp}&translation={t}");
 
             if (s > 0)
-                uri += $"&season={s}";
+                uri.Append($"&season={s}");
 
             if (e > 0)
-                uri += $"&episode={e}";
+                uri.Append($"&episode={e}");
 
             if (init.m4s)
-                uri += "&av1=true";
+                uri.Append("&av1=true");
 
             if (directors_cut)
-                uri += "&directors_cut";
+                uri.Append("&directors_cut");
             #endregion
 
-            var root = await httpHydra.Get<DirectRoot>(uri, safety: true);
+            var root = await httpHydra.Get<DirectRoot>(uri.ToString(), safety: true);
             if (root?.data == null)
                 return cacheEntry.Fail("data", refresh_proxy: true);
 

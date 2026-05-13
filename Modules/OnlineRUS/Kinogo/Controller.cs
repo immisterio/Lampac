@@ -33,7 +33,7 @@ public class KinogoController : BaseOnlineController
             if (string.IsNullOrEmpty(title))
                 return OnError("search params");
 
-            reset_search:
+        reset_search:
             var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", TimeSpan.FromHours(4), async e =>
             {
                 string search = rch?.enable == true
@@ -67,9 +67,9 @@ public class KinogoController : BaseOnlineController
             return OnError("href");
 
         #region embed
-        reset_embed:
+    reset_embed:
 
-        var cache = await InvokeCacheResult<List<PlaylistItem>>(ipkey(href), 20, async e =>
+        var embed = await InvokeCacheResult<string>($"kinogo:{href}", TimeSpan.FromHours(4), async e =>
         {
             string embedUrl = null;
             string targetHref = $"{init.host}/{href}";
@@ -90,11 +90,26 @@ public class KinogoController : BaseOnlineController
             if (string.IsNullOrEmpty(embedUrl))
                 return e.Fail("embedUrl", refresh_proxy: true);
 
-            var embedHeaders = httpHeaders(init, HeadersModel.Init("referer", targetHref));
+            return e.Success(embedUrl);
+        });
+
+        if (IsRhubFallback(embed))
+            goto reset_embed;
+
+        if (!embed.IsSuccess)
+            return OnError(embed.ErrorMsg);
+        #endregion
+
+        #region iframe
+    reset_iframe:
+
+        var cache = await InvokeCacheResult<List<PlaylistItem>>(ipkey($"kinogo:{embed.Value}"), 20, async e =>
+        {
+            var embedHeaders = httpHeaders(init, HeadersModel.Init("referer", $"{init.host}/{href}"));
 
             string embedHtml = rch?.enable == true
-                ? await rch.Get(init.cors(embedUrl), embedHeaders)
-                : await PlaywrightBrowser.Get(init, init.cors(embedUrl), headers: embedHeaders, proxy_data);
+                ? await rch.Get(init.cors(embed.Value), embedHeaders)
+                : await PlaywrightBrowser.Get(init, init.cors(embed.Value), headers: embedHeaders, proxy_data);
 
             if (embedHtml == null)
                 return e.Fail("embed");
@@ -122,7 +137,7 @@ public class KinogoController : BaseOnlineController
         });
 
         if (IsRhubFallback(cache))
-            goto reset_embed;
+            goto reset_iframe;
         #endregion
 
         return ContentTpl(cache,

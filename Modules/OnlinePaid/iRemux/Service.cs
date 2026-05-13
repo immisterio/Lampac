@@ -1,5 +1,4 @@
 using Shared.Services.RxEnumerate;
-using Microsoft.AspNetCore.Http;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
@@ -19,6 +18,7 @@ public struct iRemuxInvoke
     HttpHydra httpHydra;
     List<HeadersModel> authHeaders;
     Func<string, string> onstreamfile;
+
     public iRemuxInvoke(string host, string apihost, HttpHydra httpHydra, Func<string, string> onstreamfile, string cookie = null)
     {
         this.host = host != null ? $"{host}/" : null;
@@ -86,6 +86,7 @@ public struct iRemuxInvoke
             {
                 if (reqOk)
                     return new EmbedModel() { IsEmpty = true };
+
                 return null;
             }
 
@@ -125,66 +126,13 @@ public struct iRemuxInvoke
         });
 
         if (result.links.Count == 0)
-        {
             return null;
-        }
 
         result.links.Reverse();
 
         return result;
     }
     #endregion
-
-    #region Tpl
-    public ITplResult Tpl(EmbedModel result, string title, string original_title, int year)
-    {
-        if (result == null || result.IsEmpty)
-            return default;
-
-        string enc_title = HttpUtility.UrlEncode(title);
-        string enc_original_title = HttpUtility.UrlEncode(original_title);
-
-        #region similar
-        if (result.links.Count == 0)
-        {
-            if (result.similars != null && result.similars.Count > 0)
-            {
-                var stpl = new SimilarTpl(result.similars.Count);
-
-                foreach (var similar in result.similars)
-                {
-                    string link = host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}";
-
-                    stpl.Append(
-                        similar.title,
-                        similar.year,
-                        string.Empty,
-                        link
-                    );
-                }
-
-                return stpl;
-            }
-
-            return default;
-        }
-        #endregion
-
-        var mtpl = new MovieTpl(title, original_title, result.links.Count);
-
-        foreach (var link in result.links)
-        {
-            mtpl.Append(
-                link.quality,
-                host + $"lite/remux/movie?linkid={link.linkid}&quality={link.quality}&title={enc_title}&original_title={enc_original_title}",
-                "call"
-            );
-        }
-
-        return mtpl;
-    }
-    #endregion
-
 
     #region Weblink
     async public Task<string> Weblink(string linkid)
@@ -199,25 +147,59 @@ public struct iRemuxInvoke
         });
 
         if (string.IsNullOrEmpty(location))
-        {
             return null;
-        }
 
         return $"{location}/weblink/view/{linkid}";
     }
     #endregion
 
-    #region Movie
-    public string Movie(string weblink, string quality, string title, string original_title, HttpContext httpContext, VastConf vast = null)
+    #region Tpl
+    public ITplResult Tpl(EmbedModel result, string title, string original_title, int year)
     {
-        return VideoTpl.ToJson(
-            "play",
-            onstreamfile?.Invoke(weblink),
-            (title ?? original_title),
-            quality: quality,
-            vast: vast,
-            httpContext: httpContext
-        );
+        if (result == null || result.IsEmpty)
+            return default;
+
+        string enc_title = HttpUtility.UrlEncode(title);
+        string enc_original_title = HttpUtility.UrlEncode(original_title);
+
+        if (result.links.Count == 0)
+        {
+            #region similar
+            if (result.similars != null && result.similars.Count > 0)
+            {
+                var stpl = new SimilarTpl(result.similars.Count);
+
+                foreach (var similar in result.similars)
+                {
+                    stpl.Append(
+                        similar.title,
+                        similar.year,
+                        string.Empty,
+                        host + $"lite/remux?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(similar.href)}"
+                    );
+                }
+
+                return stpl;
+            }
+
+            return default;
+            #endregion
+        }
+        else
+        {
+            var mtpl = new MovieTpl(title, original_title, result.links.Count);
+
+            foreach (var link in result.links)
+            {
+                mtpl.Append(
+                    link.quality,
+                    host + $"lite/remux/movie?linkid={link.linkid}&quality={link.quality}&title={enc_title}&original_title={enc_original_title}",
+                    "call"
+                );
+            }
+
+            return mtpl;
+        }
     }
     #endregion
 }

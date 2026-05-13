@@ -4,7 +4,7 @@ using System.Web;
 using Shared;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Attributes;
 using Shared.Services.RxEnumerate;
 
@@ -32,7 +32,7 @@ public class GeosaitebiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(searchTitle))
                 return OnError();
 
-            rhubSearchFallback:
+        rhubSearchFallback:
 
             var cache = await InvokeCacheResult<EmbedModel>($"geosaitebi:search:{searchTitle}:{year}", TimeSpan.FromHours(4), async e =>
             {
@@ -49,8 +49,12 @@ public class GeosaitebiController : BaseOnlineController
                         if (string.IsNullOrEmpty(href) || string.IsNullOrEmpty(name))
                             continue;
 
-                        string details = Rx.Match(row, "<span class=\"w-v-d-2\">([0-9]+)</span>") ?? string.Empty;
-                        similar.Append(name, details, string.Empty, $"{host}/lite/geosaitebi?title={HttpUtility.UrlEncode(name ?? title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&serial={serial}&href={HttpUtility.UrlEncode(href)}");
+                        similar.Append(
+                            name,
+                            Rx.Match(row, "<span class=\"w-v-d-2\">([0-9]+)</span>") ?? string.Empty,
+                            string.Empty,
+                            $"{host}/lite/geosaitebi?title={HttpUtility.UrlEncode(name ?? title)}&original_title={HttpUtility.UrlEncode(original_title)}&year={year}&serial={serial}&href={HttpUtility.UrlEncode(href)}"
+                        );
                     }
                 });
 
@@ -69,7 +73,7 @@ public class GeosaitebiController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(href))
                 return ContentTpl(cache.Value.similar);
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 
@@ -95,10 +99,9 @@ public class GeosaitebiController : BaseOnlineController
         {
             var mtpl = new MovieTpl(title, original_title);
 
-            string hls = HostStreamProxy(movie.Value);
             mtpl.Append(
                 title ?? "ქართული",
-                hls,
+                HostStreamProxy(movie.Value),
                 voice_name: "ქართული",
                 headers: httpHeaders(init.host, init.headers_stream),
                 vast: init.vast
