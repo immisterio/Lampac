@@ -45,8 +45,8 @@ public struct iRemuxInvoke
             {
                 reqOk = search.Contains(">Поиск по сайту<", StringComparison.OrdinalIgnoreCase);
 
-                string stitle = StringConvert.SearchName(title);
-                string sorigtitle = StringConvert.SearchName(original_title);
+                string stitle = SearchNameTo.Convert(title);
+                string sorigtitle = SearchNameTo.Convert(original_title);
 
                 var rx = Rx.Split("item--announce", search, 1);
 
@@ -62,13 +62,10 @@ public struct iRemuxInvoke
                         continue;
 
                     bool find = false;
-                    string _sname = StringConvert.SearchName(name);
 
-                    if (!string.IsNullOrEmpty(stitle))
-                        find = _sname.Contains(stitle);
-
-                    if (!find && !string.IsNullOrEmpty(sorigtitle))
-                        find = _sname.Contains(sorigtitle);
+                    if (SearchNameTo.Contains(name, stitle) ||
+                        SearchNameTo.Contains(name, sorigtitle))
+                        find = true;
 
                     if (find && name.Contains($"({year}/"))
                     {

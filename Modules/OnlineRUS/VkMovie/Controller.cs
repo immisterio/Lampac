@@ -38,7 +38,7 @@ public class VkMovieController : BaseOnlineController
         if (!await EnsureAnonymToken(init, proxy))
             return ShowError("token");
 
-        string searchTitle = StringConvert.SearchName(title);
+        string searchTitle = SearchNameTo.Convert(title);
         if (searchTitle == null)
             return OnError("searchTitle");
 
@@ -79,7 +79,7 @@ public class VkMovieController : BaseOnlineController
                 if (video == null || video.files == null)
                     continue;
 
-                string name = StringConvert.SearchName(video.title);
+                string name = SearchNameTo.Convert(video.title);
                 if (name == null || !name.Contains(searchTitle))
                     continue;
 

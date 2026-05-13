@@ -61,8 +61,8 @@ public class FilmixInvoke
         string enc_title = HttpUtility.UrlEncode(title);
         string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-        string stitle = StringConvert.SearchName(title);
-        string sorigtitle = StringConvert.SearchName(original_title);
+        string stitle = SearchNameTo.Convert(title);
+        string sorigtitle = SearchNameTo.Convert(original_title);
 
         foreach (var item in root)
         {
@@ -79,8 +79,8 @@ public class FilmixInvoke
                 PosterApi.Size(item.poster)
             );
 
-            if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
-                (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
+            if (SearchNameTo.Equals(item.title, stitle) ||
+                SearchNameTo.Equals(item.original_title, sorigtitle))
             {
                 if (item.year == year)
                     ids.Add(item.id);
@@ -123,8 +123,8 @@ public class FilmixInvoke
         string enc_title = HttpUtility.UrlEncode(title);
         string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-        string stitle = StringConvert.SearchName(title);
-        string sorigtitle = StringConvert.SearchName(original_title);
+        string stitle = SearchNameTo.Convert(title);
+        string sorigtitle = SearchNameTo.Convert(original_title);
 
         foreach (var item in result)
         {
@@ -140,14 +140,13 @@ public class FilmixInvoke
                 host + $"{route}?postid={item.id}&title={enc_title}&original_title={enc_original_title}"
             );
 
-            if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
-                (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_name) == sorigtitle))
+            if (SearchNameTo.Equals(item.title, stitle) ||
+                SearchNameTo.Equals(item.original_title, sorigtitle))
             {
                 if (item.year == year)
                     ids.Add(item.id);
             }
         }
-
 
         if (ids.Count == 1)
             return new SearchResult() { id = ids[0] };

@@ -92,13 +92,13 @@ public class KinotochkaController : BaseOnlineController
                             var rx = Rx.Split("sres-wrap clearfix", search, 1);
                             links = new List<Season>(rx.Count);
 
-                            string stitle = StringConvert.SearchName(title);
+                            string stitle = SearchNameTo.Convert(title);
 
                             foreach (var row in rx.Rows())
                             {
                                 var gname = row.Groups("<h2>([^<]+) (([0-9]+) Сезон) \\([0-9]{4}\\)</h2>", RegexOptions.IgnoreCase);
 
-                                if (StringConvert.SearchName(gname[1].Value) == stitle)
+                                if (SearchNameTo.Equals(gname[1].Value, stitle))
                                 {
                                     string uri = row.Match("href=\"(https?://[^\"]+\\.html)\"");
                                     if (string.IsNullOrWhiteSpace(uri))

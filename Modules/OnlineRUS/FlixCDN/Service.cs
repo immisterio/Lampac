@@ -96,14 +96,17 @@ public struct FlixCDNInvoke
         string enc_title = HttpUtility.UrlEncode(title);
         string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-        string stitle = StringConvert.SearchName(title);
-        string sorig = StringConvert.SearchName(original_title);
+        string stitle = SearchNameTo.Convert(title);
+        string sorig = SearchNameTo.Convert(original_title);
 
         SearchItem exact = null;
 
         foreach (var item in root)
         {
             string name = item.title_rus ?? item.title_orig;
+            if (string.IsNullOrEmpty(name))
+                continue;
+
             string details = item.year > 0 ? item.year.ToString() : string.Empty;
 
             stpl.Append(
@@ -114,12 +117,10 @@ public struct FlixCDNInvoke
                 PosterApi.Size(item.poster)
             );
 
-            if (exact == null && !string.IsNullOrEmpty(name))
+            if (exact == null)
             {
-                string sname = StringConvert.SearchName(name);
-                if (!string.IsNullOrEmpty(stitle) && sname.Contains(stitle))
-                    exact = item;
-                else if (!string.IsNullOrEmpty(sorig) && sname.Contains(sorig))
+                if (SearchNameTo.Contains(name, stitle) ||
+                    SearchNameTo.Contains(name, sorig))
                     exact = item;
             }
         }

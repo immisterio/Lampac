@@ -311,8 +311,8 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
         string enc_title = HttpUtility.UrlEncode(title);
         string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-        string stitle = StringConvert.SearchName(title);
-        string sorigtitle = StringConvert.SearchName(original_title);
+        string stitle = SearchNameTo.Convert(title);
+        string sorigtitle = SearchNameTo.Convert(original_title);
 
         foreach (var item in root)
         {
@@ -329,8 +329,8 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
                 PosterApi.Size(item.poster)
             );
 
-            if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
-                (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
+            if (SearchNameTo.Equals(item.title, stitle) ||
+                SearchNameTo.Equals(item.original_title, sorigtitle))
             {
                 if (item.year == year)
                     ids.Add(item.id);
@@ -375,8 +375,8 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
         string enc_title = HttpUtility.UrlEncode(title);
         string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-        string stitle = StringConvert.SearchName(title);
-        string sorigtitle = StringConvert.SearchName(original_title);
+        string stitle = SearchNameTo.Convert(title);
+        string sorigtitle = SearchNameTo.Convert(original_title);
 
         foreach (var item in result)
         {
@@ -393,8 +393,8 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
                 PosterApi.Size(item.poster)
             );
 
-            if ((!string.IsNullOrEmpty(stitle) && StringConvert.SearchName(item.title) == stitle) ||
-                (!string.IsNullOrEmpty(sorigtitle) && StringConvert.SearchName(item.original_title) == sorigtitle))
+            if (SearchNameTo.Equals(item.title, stitle) ||
+                SearchNameTo.Equals(item.original_title, sorigtitle))
             {
                 if (item.year == year)
                     ids.Add(item.id);

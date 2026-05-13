@@ -51,7 +51,7 @@ public class KinoPubInvoke
             var ids = new List<int>(root.items.Length);
             var result = new SearchResult() { similars = new SimilarTpl(root.items.Length) };
 
-            string _q = StringConvert.SearchName(q);
+            string _q = SearchNameTo.Convert(q);
 
             foreach (var item in root.items)
             {
@@ -67,13 +67,9 @@ public class KinoPubInvoke
                 {
                     if (item.year == year || (item.year == year - 1) || (item.year == year + 1))
                     {
-                        string _t = StringConvert.SearchName(item.title);
-
-                        if (!string.IsNullOrEmpty(_t) && !string.IsNullOrEmpty(_q))
-                        {
-                            if (_t.StartsWith(_q) || _t.EndsWith(_q))
-                                ids.Add(item.id);
-                        }
+                        if (SearchNameTo.StartsWith(item.title, _q) ||
+                            SearchNameTo.EndsWith(item.title, _q))
+                            ids.Add(item.id);
                     }
                 }
             }

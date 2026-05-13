@@ -42,6 +42,7 @@ public class AnimeGoController : BaseOnlineController
 
                 var rx = Rx.Split("class=\"p-poster__stack\"", search, 1);
 
+                string stitle = SearchNameTo.Convert(title);
                 var catalog = new List<(string title, string year, string pid, string s, string img)>(rx.Count);
 
                 foreach (var row in rx.Rows())
@@ -53,10 +54,10 @@ public class AnimeGoController : BaseOnlineController
                     if (string.IsNullOrEmpty(img))
                         img = null;
 
-                    if (!string.IsNullOrWhiteSpace(player_id) && !string.IsNullOrWhiteSpace(name) && StringConvert.SearchName(name).Contains(StringConvert.SearchName(title)))
+                    if (!string.IsNullOrWhiteSpace(player_id) && SearchNameTo.Contains(name, stitle))
                     {
                         string season = "0";
-                        if (animeyear == year.ToString() && StringConvert.SearchName(name) == StringConvert.SearchName(title))
+                        if (animeyear == year.ToString() && SearchNameTo.Equals(name, stitle))
                             season = "1";
 
                         catalog.Add((name, row.Match(">([0-9]{4})</a>"), player_id, season, img));

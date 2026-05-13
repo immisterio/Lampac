@@ -42,6 +42,7 @@ public struct KinobaseInvoke
             return null;
 
         string link = null;
+        string stitle = SearchNameTo.Convert(title);
 
         var rx = Rx.Split("<li class=\"x1 item\">", content, 1);
 
@@ -65,11 +66,8 @@ public struct KinobaseInvoke
             string uri = host + $"lite/kinobase?href={HttpUtility.UrlEncode(rlnk)}";
             similar.Append(name, _year, string.Empty, uri, PosterApi.Size(img));
 
-            if (StringConvert.SearchName(name) == StringConvert.SearchName(title) && _year == year.ToString())
-            {
-                if (string.IsNullOrEmpty(link))
-                    link = rlnk;
-            }
+            if (string.IsNullOrEmpty(link) && SearchNameTo.Equals(name, stitle) && _year == year.ToString())
+                link = rlnk;
         }
 
         if (string.IsNullOrEmpty(link))
@@ -164,7 +162,7 @@ public struct KinobaseInvoke
             }
             else
             {
-                string video = StringConvert.FindLastText(news, "id=\"videoplayer\"", "</div>");
+                string video = Rx.Slice(news, "id=\"videoplayer\"", "</div>").ToString();
                 if (string.IsNullOrEmpty(video))
                     return null;
 

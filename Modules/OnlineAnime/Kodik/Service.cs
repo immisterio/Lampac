@@ -1,14 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Shared.Services.RxEnumerate;
-using System.Text;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
-using Shared.Services.Utilities;
+using Shared.Services.RxEnumerate;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -448,84 +447,7 @@ public struct KodikInvoke
     }
     #endregion
 
-
-    #region [Codex AI] - db.json
-    List<Result> FallbackByIds(string imdb_id, long kinopoisk_id, int season)
-    {
-        var data = fallbackDatabase;
-        if (data == null)
-            return null;
-
-        bool requireImdb = !string.IsNullOrEmpty(imdb_id);
-        bool requireKinopoisk = kinopoisk_id > 0;
-
-        var matches = data.Where(item =>
-        {
-            bool imdbMatch = !requireImdb || string.Equals(item.imdb_id, imdb_id, StringComparison.OrdinalIgnoreCase);
-            bool kinopoiskMatch = !requireKinopoisk || item.kinopoisk_id == kinopoisk_id.ToString();
-            return imdbMatch && kinopoiskMatch;
-        }).ToList();
-
-        if (matches.Count == 0)
-            return null;
-
-        return matches.Count == 0 ? null : matches;
-    }
-
-    List<Result> FallbackByTitle(string title, string originalTitle)
-    {
-        var data = fallbackDatabase;
-        if (data == null)
-            return null;
-
-        bool hasTitle = !string.IsNullOrWhiteSpace(title);
-        bool hasOriginal = !string.IsNullOrWhiteSpace(originalTitle);
-
-        var strictMatches = new List<Result>();
-        List<Result> fallbackMatches = (hasTitle || hasOriginal) ? new List<Result>() : null;
-
-        foreach (var item in data)
-        {
-            bool titleMatch = !hasTitle || TitleMatches(item.title, title) || TitleMatches(item.title_orig, title);
-            bool originalMatch = !hasOriginal || TitleMatches(item.title, originalTitle) || TitleMatches(item.title_orig, originalTitle);
-
-            if (titleMatch && originalMatch)
-            {
-                strictMatches.Add(item);
-                continue;
-            }
-
-            if (fallbackMatches == null)
-                continue;
-
-            if (TitleMatches(item.title, title) ||
-                TitleMatches(item.title_orig, title) ||
-                TitleMatches(item.title, originalTitle) ||
-                TitleMatches(item.title_orig, originalTitle))
-            {
-                fallbackMatches.Add(item);
-            }
-        }
-
-        var matches = strictMatches.Count > 0 ? strictMatches : fallbackMatches;
-
-        return matches == null || matches.Count == 0 ? null : matches;
-    }
-
-    static bool TitleMatches(string source, string target)
-    {
-        if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
-            return false;
-
-        string normalizedSource = StringConvert.SearchName(source);
-        string normalizedTarget = StringConvert.SearchName(target);
-
-        if (string.IsNullOrWhiteSpace(normalizedSource) || string.IsNullOrWhiteSpace(normalizedTarget))
-            return false;
-
-        return normalizedSource.Contains(normalizedTarget);
-    }
-
+    #region ResolveEpisodesAsync
     Dictionary<string, string> ResolveEpisodesAsync(Result selected, string seasonKey)
     {
         if (selected.seasons != null &&
@@ -536,111 +458,7 @@ public struct KodikInvoke
             return seasonInfo.episodes;
         }
 
-        //var seasonsFromHtml = await LoadSeasonsFromHtml(selected);
-        //if (seasonsFromHtml != null &&
-        //    seasonsFromHtml.TryGetValue(seasonKey, out seasonInfo) &&
-        //    seasonInfo.episodes != null &&
-        //    seasonInfo.episodes.Count > 0)
-        //{
-        //    return seasonInfo.episodes;
-        //}
-
         return null;
     }
-
-    //async Task<Dictionary<string, Season>> LoadSeasonsFromHtml(Result selected)
-    //{
-    //    if (string.IsNullOrWhiteSpace(selected.id) || string.IsNullOrWhiteSpace(selected.link) || httpHydra == null)
-    //        return null;
-
-    //    string cacheKey = $"kodik:series:{selected.id}";
-    //    if (hybridCache.TryGetValue(cacheKey, out Dictionary<string, Season> cached))
-    //        return cached;
-
-    //    try
-    //    {
-    //        string html = await httpHydra.Get($"https:{selected.link}");
-    //        if (string.IsNullOrWhiteSpace(html))
-    //        {
-    //            return null;
-    //        }
-
-    //        var doc = new HtmlDocument();
-    //        doc.LoadHtml(html);
-
-    //        var optionsRoot = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'series-options')]");
-    //        if (optionsRoot == null)
-    //            return null;
-
-    //        var seasons = new Dictionary<string, Season>();
-
-    //        var seasonNodes = optionsRoot.SelectNodes(".//div[contains(@class,'season-')]");
-    //        if (seasonNodes == null)
-    //            return null;
-
-    //        foreach (var seasonNode in seasonNodes)
-    //        {
-    //            string classes = seasonNode.GetAttributeValue("class", string.Empty);
-    //            var match = Regex.Match(classes, "season-([0-9]+)");
-    //            if (!match.Success)
-    //                continue;
-
-    //            string seasonKey = match.Groups[1].Value;
-    //            if (string.IsNullOrEmpty(seasonKey))
-    //                continue;
-
-    //            var options = seasonNode.SelectNodes(".//option");
-    //            if (options == null || options.Count == 0)
-    //                continue;
-
-    //            var episodes = new Dictionary<string, string>();
-
-    //            foreach (var option in options)
-    //            {
-    //                string episodeNumber = option.GetAttributeValue("value", null) ?? option.InnerText;
-    //                episodeNumber = episodeNumber?.Trim();
-    //                if (string.IsNullOrEmpty(episodeNumber))
-    //                    continue;
-
-    //                string episodeLink = BuildEpisodeLink(option);
-    //                if (string.IsNullOrEmpty(episodeLink))
-    //                    continue;
-
-    //                if (!episodes.ContainsKey(episodeNumber))
-    //                    episodes[episodeNumber] = episodeLink;
-    //            }
-
-    //            if (episodes.Count > 0)
-    //            {
-    //                seasons[seasonKey] = new Season
-    //                {
-    //                    link = selected.link,
-    //                    episodes = episodes
-    //                };
-    //            }
-    //        }
-
-    //        if (seasons.Count == 0)
-    //            return null;
-
-    //        hybridCache.Set(cacheKey, seasons, TimeSpan.FromMinutes(20));
-    //        return seasons;
-    //    }
-    //    catch
-    //    {
-    //        return null;
-    //    }
-    //}
-
-    //static string BuildEpisodeLink(HtmlNode option)
-    //{
-    //    string dataId = option.GetAttributeValue("data-id", null);
-    //    string dataHash = option.GetAttributeValue("data-hash", null);
-
-    //    if (string.IsNullOrWhiteSpace(dataId) || string.IsNullOrWhiteSpace(dataHash))
-    //        return null;
-
-    //    return $"//kodik.info/seria/{dataId}/{dataHash}/720p";
-    //}
     #endregion
 }

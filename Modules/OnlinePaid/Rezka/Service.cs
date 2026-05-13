@@ -102,8 +102,8 @@ public class RezkaInvoke
                 return;
             }
 
-            string stitle = StringConvert.SearchName(title);
-            string sorigtitle = StringConvert.SearchName(original_title);
+            string stitle = SearchNameTo.Convert(title);
+            string sorigtitle = SearchNameTo.Convert(original_title);
 
             var rx = Rx.Split("\"b-content__inline_item\"", search, 1);
             if (rx.Count == 0)
@@ -129,7 +129,7 @@ public class RezkaInvoke
                 string img = row.Match("<img src=\"([^\"]+)\"");
                 result.similar.Add(new SimilarModel(name, g[3].Value, g[1].Value, img));
 
-                string _sname = StringConvert.SearchName(name);
+                string _sname = SearchNameTo.Convert(name);
 
                 if ((stitle != null && (name.Contains(" / ") && _sname.Contains(stitle) || _sname == stitle)) ||
                     (sorigtitle != null && (name.Contains(" / ") && _sname.Contains(sorigtitle) || _sname == sorigtitle)))

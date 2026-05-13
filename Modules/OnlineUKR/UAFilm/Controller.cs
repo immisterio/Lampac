@@ -46,7 +46,7 @@ public class ApiController : BaseOnlineController
                 return OnError(search.ErrorMsg);
 
             var stpl = new SimilarTpl(search.Value.Count);
-            string sorigtitle = StringConvert.SearchName(original_title, string.Empty);
+            string sorigtitle = SearchNameTo.Convert(original_title, string.Empty);
 
             foreach (var res in search.Value)
             {
@@ -54,7 +54,7 @@ public class ApiController : BaseOnlineController
                 {
                     if (res.imdb_id == imdb_id ||
                         res.tmdb_id == id ||
-                        (StringConvert.SearchName(res.original_title) == sorigtitle && res.year == year))
+                        (SearchNameTo.Equals(res.original_title, sorigtitle) && res.year == year))
                     {
                         orid = res.id;
                         break;

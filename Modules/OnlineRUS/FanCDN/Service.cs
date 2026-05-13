@@ -62,8 +62,8 @@ public struct FanCDNInvoke
 
         string newsUrl = null;
 
-        string stitle = StringConvert.SearchName(title, string.Empty);
-        string soriginal = StringConvert.SearchName(original_title, string.Empty);
+        string stitle = SearchNameTo.Convert(title);
+        string soriginal = SearchNameTo.Convert(original_title);
 
         foreach (var item in root)
         {
@@ -73,8 +73,8 @@ public struct FanCDNInvoke
 
             if (year.ToString() == _year || (year - 1).ToString() == _year || (year + 1).ToString() == _year)
             {
-                if (stitle == StringConvert.SearchName(_title) ||
-                    soriginal == StringConvert.SearchName(_original_title))
+                if (SearchNameTo.Equals(_title, stitle) ||
+                    SearchNameTo.Equals(_original_title, soriginal))
                 {
                     newsUrl = item.Value<string>("url");
                     break;

@@ -28,7 +28,7 @@ public class RutubeMovieController : BaseOnlineController
     [Route("lite/rutubemovie")]
     public async Task<ActionResult> Index(string title, string original_title, int year, int serial)
     {
-        string searchTitle = StringConvert.SearchName(title);
+        string searchTitle = SearchNameTo.Convert(title);
         if (searchTitle == null || year == 0 || serial == 1)
             return OnError();
 
@@ -59,7 +59,7 @@ public class RutubeMovieController : BaseOnlineController
 
             foreach (var movie in cache.Value)
             {
-                string name = StringConvert.SearchName(movie.title);
+                string name = SearchNameTo.Convert(movie.title);
                 if (name != null && name.Contains(searchTitle) && (name.Contains(year.ToString()) || name.Contains((year + 1).ToString()) || name.Contains((year - 1).ToString())))
                 {
                     if (movie.duration > 3000)

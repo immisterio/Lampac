@@ -44,8 +44,8 @@ public class LeProductionController : BaseOnlineController
                 await httpHydra.GetSpan($"{init.host}/index.php?do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={HttpUtility.UrlEncode(searchTitle)}",
                     spanAction: html =>
                 {
-                    string stitle = StringConvert.SearchName(title);
-                    string soriginal = StringConvert.SearchName(original_title);
+                    string stitle = SearchNameTo.Convert(title);
+                    string soriginal = SearchNameTo.Convert(original_title);
 
                     foreach (ReadOnlySpan<char> row in HtmlSpan.Nodes(html, "div", "class", "short-item", HtmlSpanTargetType.Exact))
                     {
@@ -67,13 +67,10 @@ public class LeProductionController : BaseOnlineController
                             img
                         ));
 
-                        string normalized = StringConvert.SearchName(name);
-                        if (normalized == null)
-                            continue;
-
                         if (newsHref == null)
                         {
-                            if ((stitle != null && normalized.Contains(stitle)) || (soriginal != null && normalized.Contains(soriginal)))
+                            if (SearchNameTo.Contains(name, stitle) ||
+                                SearchNameTo.Contains(name, soriginal))
                                 newsHref = link;
                         }
                     }
@@ -128,7 +125,7 @@ public class LeProductionController : BaseOnlineController
 
             await httpHydra.GetSpan($"{init.host}/{href}", spanAction: html =>
             {
-                iframe =
+                iframe = 
                     Rx.Match(html, "<iframe[^>]+id=\"omfg\"[^>]+src=\"([^\"]+)\"") ??
                     Rx.Match(html, "<iframe[^>]+src=\"(https?://[^/]+/playlist_iframe/[0-9]+/?[^\"]*)\"");
             });
@@ -188,7 +185,7 @@ public class LeProductionController : BaseOnlineController
                 if (result != null)
                     return e.Success(result);
             }
-
+            
             return e.Fail("view", refresh_proxy: true);
         });
 

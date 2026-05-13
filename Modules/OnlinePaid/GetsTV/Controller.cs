@@ -352,8 +352,8 @@ public class GetsTVController : BaseOnlineController
         string enc_title = HttpUtility.UrlEncode(title);
         string enc_original_title = HttpUtility.UrlEncode(original_title);
 
-        string stitle = StringConvert.SearchName(title);
-        string soriginal_title = StringConvert.SearchName(original_title);
+        string stitle = SearchNameTo.Convert(title);
+        string soriginal_title = SearchNameTo.Convert(original_title);
 
         foreach (var j in root)
         {
@@ -374,8 +374,8 @@ public class GetsTVController : BaseOnlineController
                 PosterApi.Size($"https://img.getstv.com/poster/cover/345x518/{j.poster}.jpg")
             );
 
-            if ((titleRu != null && (StringConvert.SearchName(titleRu) == stitle || StringConvert.SearchName(titleRu) == soriginal_title)) ||
-                (titleEn != null && (StringConvert.SearchName(titleEn) == stitle || StringConvert.SearchName(titleEn) == soriginal_title)))
+            if (SearchNameTo.Equals(titleRu, stitle) || SearchNameTo.Equals(titleRu, soriginal_title) ||
+                SearchNameTo.Equals(titleEn, stitle) || SearchNameTo.Equals(titleEn, soriginal_title))
             {
                 if (j.released.Year == year)
                     ids.Add(j._id);

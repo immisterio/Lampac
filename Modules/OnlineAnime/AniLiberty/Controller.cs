@@ -45,8 +45,8 @@ public class AniLibertyController : BaseOnlineController
         if (string.IsNullOrEmpty(releases))
         {
             #region Поиск
-            string stitle = StringConvert.SearchName(title);
-            if (string.IsNullOrEmpty(stitle))
+            string stitle = SearchNameTo.Convert(title);
+            if (stitle == null)
                 return OnError();
 
         rhubFallback:
@@ -60,12 +60,12 @@ public class AniLibertyController : BaseOnlineController
                 bool checkName = true;
                 var catalog = new List<(string title, string year, int releases, string cover)>(search.Count);
 
-            retry: foreach (var anime in search)
+            retry: 
+                foreach (var anime in search)
                 {
-                    string name_main = StringConvert.SearchName(anime.name?.main);
-                    string name_english = StringConvert.SearchName(anime.name?.english);
-
-                    if (!checkName || similar || (name_main != null && name_main.StartsWith(stitle)) || (name_english != null && name_english.StartsWith(stitle)))
+                    if (!checkName || similar || 
+                        SearchNameTo.StartsWith(anime.name?.main, stitle) || 
+                        SearchNameTo.StartsWith(anime.name?.english, stitle))
                     {
                         string img = null;
                         var cover = anime.poster;

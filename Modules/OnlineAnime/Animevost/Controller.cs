@@ -45,6 +45,7 @@ public class AnimevostController : BaseOnlineController
                     if (rx.Count == 0)
                         return;
 
+                    string stitle = SearchNameTo.Convert(title);
                     smlr = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
                     catalog = new List<(string title, string year, string uri, string s, string img)>(rx.Count);
 
@@ -68,7 +69,7 @@ public class AnimevostController : BaseOnlineController
 
                             smlr.Add((g[2].Value, animeyear, g[1].Value, season, string.IsNullOrEmpty(img) ? null : img));
 
-                            if (animeyear == year.ToString() && StringConvert.SearchName(g[2].Value).Contains(StringConvert.SearchName(title)))
+                            if (animeyear == year.ToString() && SearchNameTo.Contains(g[2].Value, stitle))
                                 catalog.Add((g[2].Value, animeyear, g[1].Value, season, null));
                         }
                     }

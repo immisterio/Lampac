@@ -67,15 +67,13 @@ public struct KinoukrInvoke
                 return resultId.Select(i => i.Value);
         }
 
-        string sname = StringConvert.SearchName(name);
-        string seng_name = StringConvert.SearchName(eng_name);
+        string sname = SearchNameTo.Convert(name);
+        string seng_name = SearchNameTo.Convert(eng_name);
 
         var result = ModInit.database.Where(i =>
         {
-            if (sname != null && StringConvert.SearchName(i.Value.name) == sname)
-                return true;
-
-            if (seng_name != null && StringConvert.SearchName(i.Value.eng_name) == seng_name)
+            if (SearchNameTo.Equals(i.Value.name, sname) ||
+                SearchNameTo.Equals(i.Value.eng_name, seng_name))
                 return true;
 
             return false;

@@ -9,7 +9,7 @@ using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
 using Shared.Services.Utilities;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Services.RxEnumerate;
 
 namespace Kinoflix;
@@ -232,8 +232,8 @@ public class KinoflixController : BaseOnlineController
             string link = null;
             var similar = new SimilarTpl();
 
-            string stitle = StringConvert.SearchName(title);
-            string soriginal_title = StringConvert.SearchName(original_title);
+            string stitle = SearchNameTo.Convert(title);
+            string soriginal_title = SearchNameTo.Convert(original_title);
 
             string enc_title = HttpUtility.UrlEncode(title);
             string enc_original_title = HttpUtility.UrlEncode(original_title);
@@ -262,8 +262,8 @@ public class KinoflixController : BaseOnlineController
                 string _l = $"{host}/lite/kinoflix?title={enc_title}&original_title={enc_original_title}&year={year}&href={HttpUtility.UrlEncode(href)}";
                 similar.Append(orig_name != null ? $"{name} / {orig_name}" : name, _year, string.Empty, _l, PosterApi.Size(img));
 
-                bool match = StringConvert.SearchName(name).Contains(stitle)
-                    || (orig_name != null && StringConvert.SearchName(orig_name).Contains(soriginal_title));
+                bool match = SearchNameTo.Contains(name, stitle)
+                    || SearchNameTo.Contains(orig_name, soriginal_title);
 
                 if (match && _year == year.ToString())
                     link = href;

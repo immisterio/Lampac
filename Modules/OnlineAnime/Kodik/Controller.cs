@@ -37,7 +37,7 @@ public class KodikController : BaseOnlineController<ModuleConf>
             keyBytes.TryAdd(key, arraykey);
         }
 
-        using (var msgBuf = new BufferBytePool(Encoding.UTF8.GetMaxByteCount(message.Length)))
+        using (var msgBuf = new BufferBytePool(Encoding.UTF8.GetByteCount(message)))
         {
             Span<byte> hash = stackalloc byte[32];
             Span<char> hex = stackalloc char[64];

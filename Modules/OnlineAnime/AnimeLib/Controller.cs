@@ -71,7 +71,7 @@ public class AnimeLibController : BaseOnlineController
                 if (result == null || result.Length == 0)
                     return e.Fail(string.Empty, refresh_proxy: true);
 
-                string stitle = StringConvert.SearchName(title);
+                string stitle = SearchNameTo.Convert(title);
                 var catalog = new List<(string title, string year, string uri, bool coincidence, string cover)>(result.Length);
 
                 foreach (var anime in result)
@@ -81,7 +81,7 @@ public class AnimeLibController : BaseOnlineController
 
                     var model = ($"{anime.rus_name} / {anime.eng_name}", (anime.releaseDate != null ? anime.releaseDate.Split("-")[0] : "0"), anime.slug_url, false, anime.cover.@default);
 
-                    if (stitle == StringConvert.SearchName(anime.rus_name) || stitle == StringConvert.SearchName(anime.eng_name))
+                    if (SearchNameTo.Equals(anime.rus_name, stitle) || SearchNameTo.Equals(anime.eng_name, stitle))
                     {
                         if (!string.IsNullOrEmpty(anime.releaseDate) && anime.releaseDate.StartsWith(year.ToString()))
                             model.Item4 = true;

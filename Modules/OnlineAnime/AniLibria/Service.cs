@@ -34,14 +34,13 @@ public struct AniLibriaInvoke
         if (search == null)
             return null;
 
-        string stitle = StringConvert.SearchName(title);
+        string stitle = SearchNameTo.Convert(title);
         var result = new List<RootObject>(search.Count);
 
         foreach (var item in search)
         {
-            if (item.names.ru != null && StringConvert.SearchName(item.names.ru).StartsWith(stitle))
-                result.Add(item);
-            else if (item.names.en != null && StringConvert.SearchName(item.names.en).StartsWith(stitle))
+            if (SearchNameTo.StartsWith(item.names.ru, stitle) ||
+                SearchNameTo.StartsWith(item.names.en, stitle))
                 result.Add(item);
         }
 
@@ -58,9 +57,9 @@ public struct AniLibriaInvoke
         if (result == null || result.Count == 0)
             return default;
 
-        string stitle = StringConvert.SearchName(title);
+        string stitle = SearchNameTo.Convert(title);
 
-        if (!similar && (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (StringConvert.SearchName(result[0].names.ru) == stitle || StringConvert.SearchName(result[0].names.en) == stitle))))
+        if (!similar && (!string.IsNullOrEmpty(code) || (result.Count == 1 && result[0].season.year == year && (SearchNameTo.Equals(result[0].names.ru, stitle) || SearchNameTo.Equals(result[0].names.en, stitle)))))
         {
             var root = string.IsNullOrEmpty(code) ? result[0] : result.Find(i => i.code == code);
             var episodes = root.player.playlist.Select(i => i.Value);
@@ -79,7 +78,10 @@ public struct AniLibriaInvoke
                     streamquality.Append(onstreamfile($"https://{root.player.host}{f.url}"), f.quality);
                 }
 
-                string season = StringConvert.SearchName(root.names.ru) == stitle || StringConvert.SearchName(root.names.en) == stitle ? "1" : "0";
+                string season = SearchNameTo.Equals(root.names.ru, stitle) || SearchNameTo.Equals(root.names.en, stitle)
+                    ? "1"
+                    : "0";
+
                 if (season == "0")
                 {
                     season = Regex.Match(code ?? "", "-([0-9]+)(nd|th)").Groups[1].Value;

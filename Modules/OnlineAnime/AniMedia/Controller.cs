@@ -46,6 +46,7 @@ public class AniMediaController : BaseOnlineController
                     {
                         var rx = Rx.Split("grid-item d-flex fd-column", article[1].Span, 1);
 
+                        string stitle = SearchNameTo.Convert(title);
                         catalog = new List<(string title, string url, string img)>(rx.Count);
 
                         foreach (var row in rx.Rows())
@@ -58,7 +59,7 @@ public class AniMediaController : BaseOnlineController
                                 if (img != null)
                                     img = init.host + img;
 
-                                if (similar || StringConvert.SearchName(g[2].Value).Contains(StringConvert.SearchName(title)))
+                                if (similar || SearchNameTo.Contains(g[2].Value, stitle))
                                     catalog.Add((g[2].Value, g[1].Value, img));
                             }
                         }

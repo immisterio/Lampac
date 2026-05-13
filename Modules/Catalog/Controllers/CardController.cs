@@ -335,10 +335,8 @@ public class CardController : BaseController
                             string yearStr = date.Length >= 4 ? date.Substring(0, 4) : date;
                             if (int.TryParse(yearStr, out int itemYear) && itemYear == _year)
                             {
-                                string _s1 = StringConvert.SearchName(originalTitle);
-                                string _s2 = StringConvert.SearchName(item.Value<string>(type == "movie" ? "original_title" : "original_name"));
-
-                                if (!string.IsNullOrEmpty(_s1) && !string.IsNullOrEmpty(_s2) && _s1 == _s2)
+                                string stitle = SearchNameTo.Convert(originalTitle);
+                                if (SearchNameTo.Equals(item.Value<string>(type == "movie" ? "original_title" : "original_name"), stitle))
                                 {
                                     foundId = item.Value<long>("id");
                                     break;

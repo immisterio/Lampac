@@ -181,8 +181,8 @@ public class IptvOnlineController : BaseOnlineController
 
         if (!hybridCache.TryGetValue(memKey, out JToken data))
         {
-            string stitle = StringConvert.SearchName(title);
-            string sorigtitle = StringConvert.SearchName(original_title);
+            string stitle = SearchNameTo.Convert(title);
+            string sorigtitle = SearchNameTo.Convert(original_title);
 
             async Task<JToken> goSearch(string search)
             {
@@ -226,17 +226,9 @@ public class IptvOnlineController : BaseOnlineController
 
                 foreach (var item in video["data"])
                 {
-                    if (sorigtitle != null)
-                    {
-                        if (StringConvert.SearchName(item.Value<string>("orig_title")) == sorigtitle)
-                            return item;
-                    }
-
-                    if (stitle != null)
-                    {
-                        if (StringConvert.SearchName(item.Value<string>("ru_title")) == stitle)
-                            return item;
-                    }
+                    if (SearchNameTo.Equals(item.Value<string>("orig_title"), sorigtitle) ||
+                        SearchNameTo.Equals(item.Value<string>("ru_title"), stitle))
+                        return item;
                 }
 
                 return null;

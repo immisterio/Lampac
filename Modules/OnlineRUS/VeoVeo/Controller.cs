@@ -203,21 +203,19 @@ public class VeoVeoController : BaseOnlineController
     [Route("lite/veoveo-spider")]
     async public Task<ActionResult> Spider(string title)
     {
-        if (string.IsNullOrWhiteSpace(title))
+        string stitle = SearchNameTo.Convert(title);
+        if (stitle == null)
             return OnError();
 
         var stpl = new SimilarTpl(100);
-        string _t = StringConvert.SearchName(title);
-        if (string.IsNullOrEmpty(_t))
-            return OnError();
 
         foreach (var m in ModInit.database)
         {
             if (stpl.data.Count >= 100)
                 break;
 
-            if (StringConvert.SearchName(m.title, string.Empty).Contains(_t) ||
-                StringConvert.SearchName(m.originalTitle, string.Empty).Contains(_t))
+            if (SearchNameTo.Contains(m.title, stitle) ||
+                SearchNameTo.Contains(m.originalTitle, stitle))
             {
                 stpl.Append(
                     m.title ?? m.originalTitle,
@@ -244,8 +242,10 @@ public class VeoVeoController : BaseOnlineController
                 return result;
         }
 
-        string stitle = StringConvert.SearchName(title);
-        string sorigtitle = StringConvert.SearchName(original_title);
+        int maxtitle = 0;
+
+        string stitle = SearchNameTo.Convert(title);
+        string sorigtitle = SearchNameTo.Convert(original_title);
 
         Movie goSearch(bool searchToId)
         {
@@ -270,17 +270,15 @@ public class VeoVeoController : BaseOnlineController
                 }
                 else
                 {
-                    if (sorigtitle != null)
-                    {
-                        if (StringConvert.SearchName(item.originalTitle) == sorigtitle)
-                            return item;
-                    }
+                    if (item.originalTitle?.Length > maxtitle)
+                        maxtitle = item.originalTitle.Length;
 
-                    if (stitle != null)
-                    {
-                        if (StringConvert.SearchName(item.title) == stitle)
-                            return item;
-                    }
+                    if (item.title?.Length > maxtitle)
+                        maxtitle = item.title.Length;
+
+                    if (SearchNameTo.Equals(item.originalTitle, sorigtitle) ||
+                        SearchNameTo.Equals(item.title, stitle))
+                        return item;
                 }
             }
 

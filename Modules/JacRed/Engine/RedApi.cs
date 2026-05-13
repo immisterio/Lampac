@@ -65,8 +65,8 @@ namespace JacRed.Engine
                 #region Точный поиск
                 setcache = true;
 
-                string _n = StringConvert.SearchName(title);
-                string _o = StringConvert.SearchName(title_original);
+                string _n = SearchNameTo.Convert(title);
+                string _o = SearchNameTo.Convert(title_original);
 
                 // Быстрая выборка по совпадению ключа в имени
                 var mdb = FileDB.masterDb.Where(i => _n != null && i.Key.StartsWith($"{_n}:") || _o != null && i.Key.EndsWith($":{_o}"));
@@ -82,11 +82,8 @@ namespace JacRed.Engine
                             if (t.types == null || t.title.Contains(" КПК"))
                                 continue;
 
-                            string name = StringConvert.SearchName(t.name);
-                            string originalname = StringConvert.SearchName(t.originalname);
-
                             // Точная выборка по name или originalname
-                            if (_n != null && _n == name || _o != null && _o == originalname)
+                            if (SearchNameTo.Equals(t.name, _n) || SearchNameTo.Equals(t.originalname, _o))
                             {
                                 if (is_serial == 1)
                                 {
@@ -207,7 +204,7 @@ namespace JacRed.Engine
             else if (!string.IsNullOrWhiteSpace(query) && query.Length > 1)
             {
                 #region Обычный поиск
-                string _s = StringConvert.SearchName(query);
+                string _s = SearchNameTo.Convert(query);
 
                 #region torrentsSearch
                 void torrentsSearch(bool exact)
@@ -224,7 +221,7 @@ namespace JacRed.Engine
                             {
                                 if (exact)
                                 {
-                                    if (StringConvert.SearchName(t.name) != _s && StringConvert.SearchName(t.originalname) != _s)
+                                    if (!SearchNameTo.Equals(t.name, _s) && !SearchNameTo.Equals(t.originalname, _s))
                                         continue;
                                 }
 
@@ -458,8 +455,8 @@ namespace JacRed.Engine
             if (string.IsNullOrWhiteSpace(search) || search.Length == 1)
                 return new List<TorrentDetails>();
 
-            string _s = StringConvert.SearchName(search);
-            string _altsearch = StringConvert.SearchName(altname);
+            string _s = SearchNameTo.Convert(search);
+            string _altsearch = SearchNameTo.Convert(altname);
 
             if (exact)
             {
@@ -475,8 +472,8 @@ namespace JacRed.Engine
 
                             if (string.IsNullOrWhiteSpace(type) || t.types.Contains(type))
                             {
-                                string _n = StringConvert.SearchName(t.name);
-                                string _o = StringConvert.SearchName(t.originalname);
+                                string _n = SearchNameTo.Convert(t.name);
+                                string _o = SearchNameTo.Convert(t.originalname);
 
                                 if (_n == _s || _o == _s || _altsearch != null && (_n == _altsearch || _o == _altsearch))
                                     AddTorrents(t);

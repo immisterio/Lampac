@@ -306,11 +306,10 @@ public class KinogoController : BaseOnlineController
         if (rx.Count == 0)
             return null;
 
-        string stitle = StringConvert.SearchName(title);
+        string link = null;
+        string stitle = SearchNameTo.Convert(title);
 
         var similar = new SimilarTpl(rx.Count);
-
-        string link = null;
 
         foreach (var row in rx.Rows())
         {
@@ -331,7 +330,7 @@ public class KinogoController : BaseOnlineController
             string uri = $"{host}/lite/kinogo?href={HttpUtility.UrlEncode(href)}";
             similar.Append(name, blockYear, string.Empty, uri, PosterApi.Size(img));
 
-            if (StringConvert.SearchName(name).Contains(stitle) && blockYear == year.ToString())
+            if (SearchNameTo.Contains(name, stitle) && blockYear == year.ToString())
                 link = href;
         }
 
