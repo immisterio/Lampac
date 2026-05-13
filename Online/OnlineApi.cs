@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using Shared.Models.Base;
 using System.Collections.Generic;
 using Shared.Services.Utilities;
+using Shared.Services.Pools;
 
 namespace Online;
 
@@ -64,7 +65,7 @@ public class OnlineApiController : BaseController
             if (!init.version)
             {
                 cache.file = Regex.Replace(cache.file, "version: \\'[^\\']+\\'", "version: ''")
-                                  .Replace("manifst.name, \" v\"", "manifst.name, \" \"");
+                    .Replace("manifst.name, \" v\"", "manifst.name, \" \"");
             }
 
             if (init.description != "Плагин для просмотра онлайн сериалов и фильмов")
@@ -77,15 +78,17 @@ public class OnlineApiController : BaseController
 
             if (!init.spider)
             {
-                bulder = bulder.Replace("addSourceSearch('Spider', 'spider');", "")
-                               .Replace("addSourceSearch('Anime', 'spider/anime');", "");
+                bulder = bulder
+                    .Replace("addSourceSearch('Spider', 'spider');", "")
+                    .Replace("addSourceSearch('Anime', 'spider/anime');", "");
             }
 
             if (init.component != "lampac")
             {
-                bulder = bulder.Replace("component: 'lampac'", $"component: '{init.component}'")
-                               .Replace("'lampac', component", $"'{init.component}', component")
-                               .Replace("window.lampac_plugin", $"window.{init.component}_plugin");
+                bulder = bulder
+                    .Replace("component: 'lampac'", $"component: '{init.component}'")
+                    .Replace("'lampac', component", $"'{init.component}', component")
+                    .Replace("window.lampac_plugin", $"window.{init.component}_plugin");
             }
 
             if (init.name != "Lampac")
@@ -96,8 +99,9 @@ public class OnlineApiController : BaseController
 
             if (init.spiderName != "Spider")
             {
-                bulder = bulder.Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.spiderName}'")
-                               .Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
+                bulder = bulder
+                    .Replace("addSourceSearch('Spider'", $"addSourceSearch('{init.spiderName}'")
+                    .Replace("addSourceSearch('Anime'", $"addSourceSearch('{init.spiderName} - Anime'");
             }
 
             bulder = bulder
@@ -137,11 +141,9 @@ public class OnlineApiController : BaseController
     [Route("externalids")]
     async public Task<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
     {
-        #region cache
         string memKey = $"OnlineApi:externalids:{id}:{imdb_id}:{kinopoisk_id}:{serial}";
         if (memoryCache.TryGetValue(memKey, out string jsonResult))
             return Content(jsonResult, "application/json; charset=utf-8");
-        #endregion
 
         if (externalids == null)
             externalids = JsonConvert.DeserializeObject<ConcurrentDictionary<string, string>>(IO.File.ReadAllText("data/externalids.json"));
@@ -285,25 +287,24 @@ public class OnlineApiController : BaseController
                         memoryCache.Set(mkey, 0, DateTime.Now.AddHours(1));
 
                         string cat = serial == 1 ? "tv" : "movie";
-                        var header = HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd));
-                        string json = await Http.Get($"http://api.themoviedb.org/3/{cat}/{id}?api_key={CoreInit.conf.cub.api_key}&append_to_response=external_ids", timeoutSeconds: 5, headers: header);
-                        if (!string.IsNullOrWhiteSpace(json))
+                        await Http.GetSpan($"http://api.themoviedb.org/3/{cat}/{id}?api_key={CoreInit.conf.cub.api_key}&append_to_response=external_ids", timeoutSeconds: 5, spanAction: json =>
                         {
-                            imdb_id = Regex.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"").Groups[1].Value;
-                            if (!string.IsNullOrEmpty(imdb_id))
-                            {
-                                await using (var sqlDb = ExternalidsContext.Factory != null
-                                    ? ExternalidsContext.Factory.CreateDbContext()
-                                    : new ExternalidsContext())
-                                {
-                                    sqlDb.Add(new ExternalidsSqlModel()
-                                    {
-                                        Id = $"{id}_{serial}",
-                                        value = imdb_id
-                                    });
+                            imdb_id = Rx.Match(json, "\"imdb_id\":\"(tt[0-9]+)\"");
+                        });
 
-                                    await sqlDb.SaveChangesLocks();
-                                }
+                        if (!string.IsNullOrEmpty(imdb_id))
+                        {
+                            await using (var sqlDb = ExternalidsContext.Factory != null
+                                ? ExternalidsContext.Factory.CreateDbContext()
+                                : new ExternalidsContext())
+                            {
+                                sqlDb.Add(new ExternalidsSqlModel()
+                                {
+                                    Id = $"{id}_{serial}",
+                                    value = imdb_id
+                                });
+
+                                await sqlDb.SaveChangesLocks();
                             }
                         }
                     }
@@ -385,6 +386,7 @@ public class OnlineApiController : BaseController
 
         kpid = kpid != null ? kpid : kinopoisk_id.ToString();
 
+        #region EventListener
         if (EventListener.Externalids != null)
         {
             foreach (Func<EventExternalids, (string imdb_id, string kinopoisk_id)> handler in EventListener.Externalids.GetInvocationList())
@@ -398,6 +400,10 @@ public class OnlineApiController : BaseController
                     kpid = result.kinopoisk_id;
             }
         }
+        #endregion
+
+        if (CoreInit.conf.lowMemoryMode)
+            return Json(new { imdb_id, kinopoisk_id = kpid });
 
         jsonResult = $"{{\"imdb_id\":\"{imdb_id}\",\"kinopoisk_id\":\"{kpid}\"}}";
         memoryCache.Set(memKey, jsonResult, DateTime.Now.AddHours(1));
@@ -530,39 +536,94 @@ public class OnlineApiController : BaseController
     #endregion
 
 
-    #region events
+    #region lifeevents
     [HttpGet]
     [AllowAnonymous]
     [Route("lifeevents")]
     public ActionResult LifeEvents(string memkey, long id, string imdb_id, long kinopoisk_id, int serial)
     {
-        string json = null;
-        JsonResult error(string msg) => Json(new { accsdb = true, ready = true, online = new string[] { }, msg });
+        if (!memoryCache.TryGetValue(memkey, out List<EventLinkItem> links) || links == null)
+            return Content("{\"ready\":false,\"tasks\":0,\"online\":[]}", "application/json; charset=utf-8");
 
-        if (memoryCache.TryGetValue(memkey, out List<EventLinkItem> links) && links != null)
+        var onlineItems = new List<EventLinkItem>(links.Count);
+
+        foreach (var item in links)
         {
-            int readyCount = links.Count(i => i?.code != null);
-            if (readyCount > 0)
-            {
-                bool ready = links.Count == readyCount;
-                string online = string.Join(",", links.Where(i => i?.code != null).OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code));
-
-                if (ready && !online.Contains("\"show\":true"))
-                {
-                    if (string.IsNullOrEmpty(imdb_id) && 0 >= kinopoisk_id)
-                        return error($"Добавьте \"IMDB ID\" {(serial == 1 ? "сериала" : "фильма")} на https://themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids");
-
-                    return error($"Не удалось найти онлайн для {(serial == 1 ? "сериала" : "фильма")}");
-                }
-
-                json = $"{{\"ready\":{(ready ? "true" : "false")},\"tasks\":{links.Count},\"online\":[{online.Replace("{localhost}", host)}]}}";
-            }
+            if (item?.code != null)
+                onlineItems.Add(item);
         }
 
-        return ContentTo(json ?? "{\"ready\":false,\"tasks\":0,\"online\":[]}");
+        if (onlineItems.Count == 0)
+            return Content("{\"ready\":false,\"tasks\":0,\"online\":[]}", "application/json; charset=utf-8");
+
+        onlineItems.Sort(static (a, b) =>
+        {
+            int byWork = b.work.CompareTo(a.work); // OrderByDescending(i => i.work)
+            return byWork != 0 ? byWork : a.index.CompareTo(b.index);
+        });
+
+        var sb = StringBuilderPool.ThreadInstance;
+
+        bool show = false;
+        bool ready = onlineItems.Count == links.Count;
+
+        sb.Append("{\"ready\":").Append(onlineItems.Count == links.Count ? "true" : "false")
+          .Append(",\"tasks\":").Append(links.Count)
+          .Append(",\"online\":[");
+
+        #region render online
+        for (int i = 0; i < onlineItems.Count; i++)
+        {
+            if (i > 0)
+                sb.Append(',');
+
+            string code = onlineItems[i].code;
+
+            if (!show && code.Contains("\"show\":true", StringComparison.Ordinal))
+                show = true;
+
+            if (code.Contains("{localhost}", StringComparison.Ordinal))
+                sb.Append(code.Replace("{localhost}", host, StringComparison.Ordinal));
+            else
+                sb.Append(code);
+        }
+
+        sb.Append("]}");
+        #endregion
+
+        #region ошибка
+        if (ready && !show)
+        {
+            string kind = serial == 1 ? "сериала" : "фильма";
+
+            if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id <= 0)
+            {
+                return Json(new
+                {
+                    accsdb = true,
+                    ready = true,
+                    online = Array.Empty<string>(),
+                    msg = $"Добавьте \"IMDB ID\" {kind} на https://themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids"
+                });
+            }
+            else
+            {
+                return Json(new
+                {
+                    accsdb = true,
+                    ready = true,
+                    online = Array.Empty<string>(),
+                    msg = $"Не удалось найти онлайн для {kind}"
+                });
+            }
+        }
+        #endregion
+
+        return Content(sb.ToString(), "application/json; charset=utf-8");
     }
+    #endregion
 
-
+    #region events
     static readonly Regex chineseRegex = new Regex("[\u4E00-\u9FFF]"); // Диапазон для китайских иероглифов
     static readonly Regex japaneseRegex = new Regex("[\u3040-\u30FF\uFF66-\uFF9F]"); // Хирагана, катакана и специальные символы
     static readonly Regex koreanRegex = new Regex("[\uAC00-\uD7AF]"); // Диапазон для корейских хангыльских символов
@@ -586,8 +647,7 @@ public class OnlineApiController : BaseController
                     string memkey = $"themoviedb:fix_title:{serial}:{tmdbid}";
                     if (!memoryCache.TryGetValue(memkey, out string engName))
                     {
-                        var header = HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd));
-                        var result = await Http.Get<JObject>($"http://api.themoviedb.org/3/{(serial == 1 ? "tv" : "movie")}/{tmdbid}?api_key={CoreInit.conf.cub.api_key}&language=en", timeoutSeconds: 4, headers: header);
+                        var result = await Http.Get<JObject>($"http://api.themoviedb.org/3/{(serial == 1 ? "tv" : "movie")}/{tmdbid}?api_key={CoreInit.conf.cub.api_key}&language=en", timeoutSeconds: 4);
                         if (result != null)
                             engName = serial == 1 ? result.Value<string>("name") : result.Value<string>("title");
 
@@ -793,72 +853,84 @@ public class OnlineApiController : BaseController
         try
         {
             string srq = uri.Replace("{localhost}", $"http://{CoreInit.conf.listen.localhost}:{CoreInit.conf.listen.port}");
-            var header = uri.Contains("{localhost}") ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("lcrqpasswd", CoreInit.rootPasswd)) : null;
+
+            var header = uri.Contains("{localhost}")
+                ? HeadersModel.Init(("xhost", host), ("xscheme", HttpContext.Request.Scheme), ("lcrqpasswd", CoreInit.rootPasswd))
+                : null;
+
+            bool work = false, rch = false;
 
             string checkuri = $"{srq}{(srq.Contains("?") ? "&" : "?")}id={HttpUtility.UrlEncode(id)}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&tmdb_id={tmdb_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&original_language={original_language}&source={source}&year={year}&serial={serial}&rchtype={rchtype}&checksearch=true";
-            string res = await Http.Get(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header);
 
-            if (string.IsNullOrEmpty(res))
-                res = string.Empty;
-
-            bool rch = res.Contains("\"rch\":true");
-            bool work = rch || res.Contains("data-json=")
-                || res.Contains("\"type\":\"movie\"")
-                || res.Contains("\"type\":\"episode\"")
-                || res.Contains("\"type\":\"season\"");
-
-            string quality = string.Empty;
-            string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
-
-            #region определение качества
-            if (work && life)
+            await Http.GetSpan(AccsDbInvk.Args(checkuri, HttpContext), timeoutSeconds: 10, headers: header, spanAction: res =>
             {
-                foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
-                {
-                    if (res.Contains("<!--q:"))
-                    {
-                        quality = " - " + Regex.Match(res, "<!--q:([^>]+)-->").Groups[1].Value;
-                        break;
-                    }
-                    else if (res.Contains($"\"{q}p\"") || res.Contains($">{q}p<") || res.Contains($"<!--{q}p-->"))
-                    {
-                        quality = $" - {q}p";
-                        break;
-                    }
-                }
+                rch = res.Contains("\"rch\":true", StringComparison.Ordinal);
+                work = rch || res.Contains("data-json=", StringComparison.Ordinal)
+                    || res.Contains("\"type\":\"movie\"", StringComparison.Ordinal)
+                    || res.Contains("\"type\":\"episode\"", StringComparison.Ordinal)
+                    || res.Contains("\"type\":\"season\"", StringComparison.Ordinal);
 
-                if (quality == "2160")
-                    quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
+                string quality = string.Empty;
+                string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
 
-                if (quality == string.Empty)
+                #region определение качества
+                if (work && life)
                 {
-                    if (EventListener.OnlineApiQuality != null)
+                    foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
                     {
-                        var em = new EventOnlineApiQuality(balanser, kitconf);
-                        foreach (Func<EventOnlineApiQuality, string> handler in EventListener.OnlineApiQuality.GetInvocationList())
+                        if (res.Contains("<!--q:", StringComparison.Ordinal))
                         {
-                            string eventQuality = handler.Invoke(em);
-                            if (eventQuality != null)
-                            {
-                                quality = eventQuality;
-                                break;
-                            }
+                            quality = " - " + Rx.Match(res, "<!--q:([^>]+)-->");
+                            break;
+                        }
+                        else if (res.Contains($"\"{q}p\"", StringComparison.Ordinal) 
+                            || res.Contains($">{q}p<", StringComparison.Ordinal)
+                            || res.Contains($"<!--{q}p-->", StringComparison.Ordinal))
+                        {
+                            quality = $" - {q}p";
+                            break;
                         }
                     }
 
-                    if (balanser == "vokino")
-                        quality = res.Contains("4K HDR") ? " - 4K HDR" : res.Contains("4K ") ? " - 4K" : quality;
+                    if (quality == "2160")
+                        quality = res.Contains("HDR", StringComparison.Ordinal) ? " - 4K HDR" : " - 4K";
+
+                    if (quality == string.Empty)
+                    {
+                        if (EventListener.OnlineApiQuality != null)
+                        {
+                            var em = new EventOnlineApiQuality(balanser, kitconf);
+                            foreach (Func<EventOnlineApiQuality, string> handler in EventListener.OnlineApiQuality.GetInvocationList())
+                            {
+                                string eventQuality = handler.Invoke(em);
+                                if (eventQuality != null)
+                                {
+                                    quality = eventQuality;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (balanser == "vokino")
+                        {
+                            quality = res.Contains("4K HDR", StringComparison.Ordinal)
+                                ? " - 4K HDR" 
+                                : res.Contains("4K ", StringComparison.Ordinal)
+                                    ? " - 4K"
+                                    : quality;
+                        }
+                    }
                 }
-            }
-            #endregion
+                #endregion
 
-            if (!name.Contains(" - ") && ModInit.conf.showquality && !string.IsNullOrEmpty(quality))
-            {
-                name = Regex.Replace(name, " ~ .*$", "");
-                name += quality;
-            }
+                if (!name.Contains(" - ") && ModInit.conf.showquality && !string.IsNullOrEmpty(quality))
+                {
+                    name = Regex.Replace(name, " ~ .*$", "");
+                    name += quality;
+                }
+            });
 
-            links[indexList] = new("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{work.ToString().ToLower()},\"balanser\":\"{plugin}\",\"rch\":{rch.ToString().ToLower()}" + "}", index, work);
+            links[indexList] = new("{" + $"\"name\":\"{name}\",\"url\":\"{uri}\",\"index\":{index},\"show\":{(work ? "true" : "false")},\"balanser\":\"{plugin}\",\"rch\":{(rch ? "true" : "false")}" + "}", index, work);
         }
         catch (Exception ex)
         {

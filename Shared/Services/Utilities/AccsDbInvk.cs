@@ -110,10 +110,10 @@ public static class AccsDbInvk
         || (c >= '0' && c <= '9')
         || c == '@' || c == '.' || c == '-' || c == '_' || c == '=';
 
-    static readonly string encodedHex = "0123456789ABCDEF";
-
     static void AppendPercentEncodedBytes(StringBuilder sb, ReadOnlySpan<byte> bytes)
     {
+        const string encodedHex = "0123456789ABCDEF";
+
         foreach (byte b in bytes)
         {
             sb.Append('%');

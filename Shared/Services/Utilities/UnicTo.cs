@@ -2,10 +2,8 @@
 
 public static class UnicTo
 {
-    static readonly string ArrayList = "qwertyuioplkjhgfdsazxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM1234567890";
-
-    static readonly string ArrayListToNumber = "1234567890";
-
+    const string ArrayListToNumber = "1234567890";
+    const string ArrayList = "qwertyuioplkjhgfdsazxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM1234567890";
 
     public static string Code(int size = 8)
     {
