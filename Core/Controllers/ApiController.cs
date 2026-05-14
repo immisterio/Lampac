@@ -26,9 +26,9 @@ public class ApiController : BaseController
                 return Content(versionHash, "text/plain; charset=utf-8");
 
             if (type == "name")
-                return Content("Sexy", "text/plain; charset=utf-8");
+                return Content("Believe", "text/plain; charset=utf-8");
 
-            return Redirect("https://youtu.be/wyx6JDQCslE");
+            return Redirect("https://youtu.be/7f2wg1pqQDs");
         }
 
         return StatusCode(404);
