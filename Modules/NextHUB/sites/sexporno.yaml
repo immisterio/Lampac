@@ -1,0 +1,35 @@
+enable: true
+displayindex: 415
+displayname: SexPorno
+rch_access: apk,cors
+stream_access: apk,cors
+rchstreamproxy: web
+host: https://sexporno.pics
+priorityBrowser: http
+
+list:
+  firstpage: new/
+  uri: new/{page}/
+
+contentParse:
+  nodes: //div[contains(@class,'thumbs__item')]
+  name:
+    node: .//img
+    attribute: alt
+  href:
+    node: .//a[contains(@class,'thumbnail__container')]
+    attribute: href
+  img:
+    node: .//img[contains(@class,'thumbnail__thumb')]
+    attribute: src
+  duration:
+    node: .//div[contains(@class,'thumb-info__item')][2]
+
+view:
+  related: true
+  viewsource: true
+  iframe:
+    pattern: '<ifram[^>]+ src="([^"]+)"'
+  nodeFile:
+    node: //source[@type='video/mp4']
+    attribute: src
