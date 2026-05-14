@@ -26,7 +26,6 @@ contentParse:
     node: .//div[contains(@class,'thumb-info__item')][2]
 
 view:
-  related: true
   viewsource: true
   iframe:
     pattern: '<ifram[^>]+ src="([^"]+)"'

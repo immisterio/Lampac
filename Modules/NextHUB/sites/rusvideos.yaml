@@ -1,10 +1,10 @@
-enable: false
+enable: true
 displayindex: 300
 displayname: Rusvideos
 rch_access: apk,cors
 stream_access: apk,cors
 rchstreamproxy: web
-host: https://sex.rusvideos.art
+host: https://rusvideos.org
 priorityBrowser: http
 
 menu:
