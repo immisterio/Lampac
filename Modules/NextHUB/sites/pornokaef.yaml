@@ -1,0 +1,91 @@
+enable: true
+displayindex: 420
+displayname: Pornokaef
+rch_access: apk,cors
+stream_access: apk,cors
+rchstreamproxy: web
+host: https://pornokaef.com
+priorityBrowser: http
+
+menu:
+  sort:
+    Новинки: ""
+    Лучшее: "{page}/?po=top"
+  categories:
+    format: "{cat}/{page}"
+    Русские: russkie
+    Зрелые: zrelye
+    Анал: anal
+    Азиатки: aziatki
+    Блондинки: blondinki
+    Брюнетки: bryunetki
+    Рыжие: ryzhie
+    Большие сиськи: bolshie-siski
+    Большие члены: bolshie-chleny
+    Волосатые: volosatye
+    Бритая пизда: britaya-pizda
+    Крупным планом: krupnym-planom
+    Минет: minet
+    Оргазмы: orgazmy
+    Сперма: sperma
+    Чулки: chulki
+    Худые: xudye
+    Домашнее / частное: privatnoe-chastnoe
+    Секс втроем: seks-vtroem
+    Кунилингус: kunilingus
+    Толстые: tolstye
+    Групповое: orgii-vecherinki
+    Лесбиянки: lesbians
+    Классический секс: klassicheskij-seks
+    Инцест / семейное: incest-semejnoe
+    Межрассовый секс: mezhrassovyj-seks
+    Латинки: latinki
+    Порно массаж: porno-massazh
+    БДСМ: bdsm
+    Пьяные: pyanye
+    На улице: na-ulice
+    Пикап: pikap
+    Кастинг: kasting
+    Жесткое порно: zhestkoe-porno
+    Фетиш: fetish
+    Мастурбация: masturbaciya-drochka
+    Веб камеры: veb-kamery
+    Красивые: krasivye
+    Молодые: molodye
+    Бабушки: babushki
+    Старые с молодыми: starye-s-molodymi
+    Скрытая камера: skrytaya-kamera
+    Измена / Чужие жены: chuzhie-zheny-izmena
+    Кончил внутрь: konchil-vnutr
+    Двойное проникновение: dvojnoe-proniknovenie
+    Свингеры: svingery
+    Секс-игрушки: seks-igrushki
+
+list:
+  uri: "{page}"
+
+search:
+  uri: videos/{search}/{page}
+
+contentParse:
+  nodes: //div[@class='video-container itemized is-wide']
+  name:
+    node: .//div[@class='thumb-title']
+  href:
+    node: .//a[@class='thumb']
+    attribute: href
+  img:
+    node: .//img[contains(@class,'thumb-cover')]
+    attributes: ['data-original', 'src']
+  duration:
+    node: .//span[@class='ttime']
+  preview:
+    node: .//img[contains(@class,'thumb-cover')]
+    attribute: data-video
+
+view:
+  related: true
+  viewsource: true
+  nodeFile:
+    node: //meta[@property='ya:ovs:content_url']
+    attribute: content
