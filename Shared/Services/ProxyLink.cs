@@ -145,7 +145,7 @@ public class ProxyLink : IProxyLink
                 int requiredCipherLen = ((utf8.Length / blockSize) + 1) * blockSize;
 
                 BufferBytePool destBuf = null;
-                if (requiredCipherLen > aesinst.ByteBuffer.Length)
+                if (requiredCipherLen > aesinst.ByteSize)
                     destBuf = new BufferBytePool(requiredCipherLen);
 
                 try
@@ -166,7 +166,7 @@ public class ProxyLink : IProxyLink
                     int capacity = ((cipherLen + 2) / 3) * 4;
 
                     BufferCharPool base64Chars = null;
-                    if (capacity > aesinst.CharBuffer.Length)
+                    if (capacity > aesinst.CharSize)
                         base64Chars = new BufferCharPool(capacity);
 
                     try
@@ -281,7 +281,7 @@ public class ProxyLink : IProxyLink
                 var aesinst = AesPool.Instance;
 
                 BufferCharPool aesBuf = null;
-                if (base64hash.Length > aesinst.CharBuffer.Length)
+                if (base64hash.Length > aesinst.CharSize)
                     aesBuf = new BufferCharPool(base64hash.Length);
 
                 Span<char> aeshash = aesBuf != null
@@ -305,7 +305,7 @@ public class ProxyLink : IProxyLink
                     int capacity = Encoding.UTF8.GetByteCount(aeshash);
 
                     BufferBytePool cipherBuf = null;
-                    if (capacity > aesinst.ByteBuffer.Length)
+                    if (capacity > aesinst.ByteSize)
                         cipherBuf = new BufferBytePool(capacity);
 
                     try
@@ -318,7 +318,7 @@ public class ProxyLink : IProxyLink
                             return null;
 
                         BufferBytePool destBuf = null;
-                        if (cipherLen > aesinst.DestBuffer.Length)
+                        if (cipherLen > aesinst.ByteSize)
                             destBuf = new BufferBytePool(cipherLen);
 
                         try

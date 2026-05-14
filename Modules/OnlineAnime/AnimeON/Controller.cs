@@ -110,16 +110,16 @@ public class AnimeONController : BaseOnlineController
 
                 int playerId = node?.player?
                     .FirstOrDefault(p => string.Equals(p?.name, "Ashdi", StringComparison.OrdinalIgnoreCase))?.id ?? 0;
-                if (playerId == 0)
-                    continue;
 
-                string voiceTitle = node?.translation?.name ?? "Ashdi";
-                list.Add(new TranslationOption
+                if (playerId != 0)
                 {
-                    TranslationId = translationId,
-                    PlayerId = playerId,
-                    Title = voiceTitle
-                });
+                    list.Add(new TranslationOption
+                    {
+                        TranslationId = translationId,
+                        PlayerId = playerId,
+                        Title = node?.translation?.name ?? "Ashdi"
+                    });
+                }
             }
 
             if (list.Count == 0)
@@ -159,12 +159,11 @@ public class AnimeONController : BaseOnlineController
                     continue;
 
                 int episode = node?.episode ?? 0;
-                string epTitle = episode > 0 ? $"{episode} серия" : "Серия";
 
                 list.Add(new EpisodeOption
                 {
                     Episode = episode,
-                    Title = epTitle,
+                    Title = episode > 0 ? $"{episode} серия" : "Серия",
                     FileUrl = file
                 });
             }
@@ -184,9 +183,8 @@ public class AnimeONController : BaseOnlineController
         var vtpl = new VoiceTpl(translations.Value.Count);
         for (int i = 0; i < translations.Value.Count; i++)
         {
-            var voice = translations.Value[i];
             vtpl.Append(
-                voice.Title,
+                translations.Value[i].Title,
                 i == t,
                 $"{host}/lite/animeon?rjson={rjson}&imdb_id={HttpUtility.UrlEncode(imdb_id)}&title={enc_title}&original_title={enc_original_title}&year={year}&animeid={animeid}&s={s}&t={i}"
             );

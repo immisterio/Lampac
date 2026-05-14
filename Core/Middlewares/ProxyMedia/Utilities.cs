@@ -25,10 +25,10 @@ public partial class ProxyAPI
 {
     static readonly HttpClientHandler baseHandler = new HttpClientHandler()
     {
+        ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate,
         AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
         AllowAutoRedirect = false,
-        UseProxy = false,
-        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+        UseProxy = false
     };
 
     static async Task InvokeProxyApiCreateHttpRequestHandlers(EventProxyApiCreateHttpRequest eventArgs)

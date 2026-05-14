@@ -226,10 +226,9 @@ public class AnimevostController : BaseOnlineController
 
         return OnResult(cache, () =>
         {
-            string link = HostStreamProxy(cache.Value[0].l);
             return VideoTpl.ToJson(
                 "play",
-                link,
+                HostStreamProxy(cache.Value[0].l),
                 title,
                 vast: init.vast,
                 httpContext: HttpContext

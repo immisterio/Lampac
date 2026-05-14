@@ -242,50 +242,65 @@ public class VeoVeoController : BaseOnlineController
                 return result;
         }
 
-        int maxtitle = 0;
-
         string stitle = SearchNameTo.Convert(title);
         string sorigtitle = SearchNameTo.Convert(original_title);
 
-        Movie goSearch(bool searchToId)
+        if (ModInit.databaseById != null)
         {
-            if (searchToId && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
-                return null;
-
-            foreach (var item in ModInit.database)
+            foreach (var key in new[]
             {
-                if (searchToId)
-                {
-                    if (kinopoisk_id > 0)
-                    {
-                        if (item.kinopoiskId == kinopoisk_id)
-                            return item;
-                    }
-
-                    if (!string.IsNullOrEmpty(imdb_id))
-                    {
-                        if (item.imdbId == imdb_id)
-                            return item;
-                    }
-                }
-                else
-                {
-                    if (item.originalTitle?.Length > maxtitle)
-                        maxtitle = item.originalTitle.Length;
-
-                    if (item.title?.Length > maxtitle)
-                        maxtitle = item.title.Length;
-
-                    if (SearchNameTo.Equals(item.originalTitle, sorigtitle) ||
-                        SearchNameTo.Equals(item.title, stitle))
-                        return item;
-                }
+                kinopoisk_id > 0 ? kinopoisk_id.ToString() : null,
+                imdb_id,
+                sorigtitle,
+                stitle
+            })
+            {
+                if (!string.IsNullOrEmpty(key) && ModInit.databaseById.TryGetValue(key, out var item))
+                    return item;
             }
 
             return null;
         }
+        else
+        {
+            Movie goSearch(bool searchToId)
+            {
+                if (searchToId && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
+                    return null;
 
-        return goSearch(true) ?? goSearch(false);
+                // уже был поиск в api
+                if (searchToId && !string.IsNullOrEmpty(init.token))
+                    return null;
+
+                foreach (var item in ModInit.database)
+                {
+                    if (searchToId)
+                    {
+                        if (kinopoisk_id > 0)
+                        {
+                            if (item.kinopoiskId == kinopoisk_id)
+                                return item;
+                        }
+
+                        if (!string.IsNullOrEmpty(imdb_id))
+                        {
+                            if (item.imdbId == imdb_id)
+                                return item;
+                        }
+                    }
+                    else
+                    {
+                        if (SearchNameTo.Equals(item.originalTitle, sorigtitle) ||
+                            SearchNameTo.Equals(item.title, stitle))
+                            return item;
+                    }
+                }
+
+                return null;
+            }
+
+            return goSearch(true) ?? goSearch(false);
+        }
     }
     #endregion
 

@@ -69,9 +69,13 @@ public class AnimebesstController : BaseOnlineController
                                     season = "1";
                             }
 
-                            string img = row.Match("<img class=\"img-fit lozad\" data-src=\"([^\"]+)\"");
-
-                            catalog.Add((g[2].Value, row.Match("\">([0-9]{4})</a>"), g[1].Value, season, img));
+                            catalog.Add((
+                                g[2].Value,
+                                row.Match("\">([0-9]{4})</a>"),
+                                g[1].Value,
+                                season,
+                                row.Match("<img class=\"img-fit lozad\" data-src=\"([^\"]+)\"")
+                            ));
                         }
                     }
                 });

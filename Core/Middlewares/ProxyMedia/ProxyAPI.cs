@@ -76,15 +76,14 @@ public partial class ProxyAPI
 
         if (decryptLink.proxy != null)
         {
-            proxyHandler = new HttpClientHandler()
+            proxyHandler = new HttpClientHandler
             {
+                ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate,
                 AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                AllowAutoRedirect = false
+                AllowAutoRedirect = false,
+                UseProxy = true,
+                Proxy = decryptLink.proxy
             };
-
-            proxyHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-            proxyHandler.UseProxy = true;
-            proxyHandler.Proxy = decryptLink.proxy;
         }
         #endregion
 
@@ -199,7 +198,7 @@ public partial class ProxyAPI
                             AllowAutoRedirect = true
                         };
 
-                        hdlr.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                        hdlr.ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate;
 
                         if (decryptLink.proxy != null)
                         {

@@ -152,10 +152,9 @@ public class DreamerscastController : BaseOnlineController
                 foreach (var item in cache.Value)
                 {
                     string ep = string.IsNullOrWhiteSpace(item.episode) ? "1" : item.episode;
-                    string nm = string.IsNullOrWhiteSpace(item.name) ? $"{ep} серия" : item.name;
 
                     etpl.Append(
-                        nm,
+                        string.IsNullOrWhiteSpace(item.name) ? $"{ep} серия" : item.name,
                         title,
                         season,
                         ep,

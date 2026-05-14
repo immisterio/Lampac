@@ -19,7 +19,7 @@ public struct KinoukrInvoke
     #endregion
 
     #region Search
-    public EmbedModel Search(string title, string original_title, string imdb_id, long kinopoisk_id)
+    public EmbedModel Search(string title, string original_title, string imdb_id, long kinopoisk_id, bool similar)
     {
         string kp = (kinopoisk_id > 0 ? kinopoisk_id.ToString() : null);
         if (string.IsNullOrEmpty(title ?? original_title ?? kp ?? imdb_id))
@@ -30,7 +30,7 @@ public struct KinoukrInvoke
             similars = new List<Similar>()
         };
 
-        foreach (var item in SearchDb(title, original_title, kp, imdb_id))
+        foreach (var item in SearchDb(title, original_title, kp, imdb_id, similar))
         {
             result.similars.Add(new Similar()
             {
@@ -48,7 +48,7 @@ public struct KinoukrInvoke
     #endregion
 
     #region SearchDb
-    static IEnumerable<DbModel> SearchDb(string name, string eng_name, string kp, string imdb)
+    static IEnumerable<DbModel> SearchDb(string name, string eng_name, string kp, string imdb, bool similar)
     {
         if (!string.IsNullOrEmpty(kp) || !string.IsNullOrEmpty(imdb))
         {
@@ -72,9 +72,18 @@ public struct KinoukrInvoke
 
         var result = ModInit.database.Where(i =>
         {
-            if (SearchNameTo.Equals(i.Value.name, sname) ||
-                SearchNameTo.Equals(i.Value.eng_name, seng_name))
-                return true;
+            if (similar)
+            {
+                if (SearchNameTo.Contains(i.Value.name, sname) ||
+                    SearchNameTo.Contains(i.Value.eng_name, seng_name))
+                    return true;
+            }
+            else
+            {
+                if (SearchNameTo.Equals(i.Value.name, sname) ||
+                    SearchNameTo.Equals(i.Value.eng_name, seng_name))
+                    return true;
+            }
 
             return false;
         });

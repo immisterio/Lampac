@@ -8,6 +8,7 @@ using Shared.Services;
 using Shared.Services.Utilities;
 using System.Collections.Generic;
 using Shared;
+using System.Linq;
 
 namespace VeoVeo;
 
@@ -17,6 +18,7 @@ public class ModInit : IModuleLoaded, IModuleOnline, IModuleOnlineSpider
 
     #region database
     static List<Movie> databaseCache;
+    public static Dictionary<string, Movie> databaseById;
 
     public static IEnumerable<Movie> database
         => databaseCache ?? JsonHelper.IEnumerableReader<Movie>("data/veoveo.json");
@@ -47,7 +49,27 @@ public class ModInit : IModuleLoaded, IModuleOnline, IModuleOnlineSpider
         EventListener.OnlineApiQuality += onlineApiQuality;
 
         if (CoreInit.conf.lowMemoryMode == false)
+        {
             databaseCache = JsonHelper.ListReader<Movie>("data/veoveo.json", 130_000).Result;
+            databaseById = new Dictionary<string, Movie>();
+
+            foreach (var movie in databaseCache.OrderByDescending(i => i.id))
+            {
+                if (movie.kinopoiskId > 0)
+                    databaseById.TryAdd(movie.kinopoiskId.ToString(), movie);
+
+                if (movie.imdbId != null)
+                    databaseById.TryAdd(movie.imdbId, movie);
+
+                string stitle = SearchNameTo.Convert(movie.title);
+                if (stitle != null)
+                    databaseById.TryAdd(stitle, movie);
+
+                string sorig = SearchNameTo.Convert(movie.originalTitle);
+                if (sorig != null)
+                    databaseById.TryAdd(sorig, movie);
+            }
+        }
     }
 
     public void Dispose()

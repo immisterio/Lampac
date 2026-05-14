@@ -104,7 +104,7 @@ public class iRemuxController : BaseOnlineController
         try
         {
             using var clientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
-            clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+            clientHandler.ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate;
 
             using var client = new HttpClient(clientHandler) { Timeout = TimeSpan.FromSeconds(20) };
 

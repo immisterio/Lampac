@@ -2,6 +2,7 @@
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
+using Shared.Services.Pools;
 using Shared.Services.RxEnumerate;
 using System;
 using System.Collections.Concurrent;
@@ -19,20 +20,19 @@ public struct KodikInvoke
     #region KodikInvoke
     static readonly ConcurrentDictionary<string, string> psingles = new();
     //static readonly IMemoryCache memoryCache = HybridCache.GetMemory();
-    readonly IEnumerable<Result> fallbackDatabase;
 
     string host;
     string apihost, token, videopath;
     bool usehls, cdn_is_working;
     HttpHydra httpHydra;
     Func<string, string> onstreamfile;
-    public KodikInvoke(string host, ModuleConf init, string videopath, IEnumerable<Result> fallbackDatabase, HttpHydra httpHydra, Func<string, string> onstreamfile)
+
+    public KodikInvoke(string host, ModuleConf init, string videopath, HttpHydra httpHydra, Func<string, string> onstreamfile)
     {
         this.host = host != null ? $"{host}/" : null;
         this.apihost = init.apihost;
         this.token = init.token;
         this.videopath = videopath;
-        this.fallbackDatabase = fallbackDatabase;
         this.httpHydra = httpHydra;
         this.onstreamfile = onstreamfile;
         this.usehls = init.hls;
@@ -104,9 +104,6 @@ public struct KodikInvoke
                     results = root.results;
             }
 
-            //if (results == null)
-            //    results = FallbackByTitle(title, original_title);
-
             if (results == null)
                 return null;
 
@@ -121,26 +118,22 @@ public struct KodikInvoke
                 if (string.IsNullOrEmpty(pick))
                     continue;
 
-                if (hash.Contains(pick))
-                    continue;
+                if (hash.Add(pick))
+                {
+                    string details = similar.translation.title;
+                    if (similar.last_season > 0)
+                        details += $"{SimilarTpl.OnlineSplit} {similar.last_season}й сезон";
 
-                hash.Add(pick);
+                    var matd = similar.material_data;
 
-                string name = !string.IsNullOrEmpty(similar.title) && !string.IsNullOrEmpty(similar.title_orig) ? $"{similar.title} / {similar.title_orig}" : (similar.title ?? similar.title_orig);
-
-                string details = similar.translation.title;
-                if (similar.last_season > 0)
-                    details += $"{SimilarTpl.OnlineSplit} {similar.last_season}й сезон";
-
-                var matd = similar.material_data;
-                string img = PosterApi.Size(matd.anime_poster_url ?? matd.drama_poster_url ?? matd.poster_url);
-                stpl.Append(
-                    name,
-                    similar.year?.ToString(),
-                    details,
-                    host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}",
-                    img
-                );
+                    stpl.Append(
+                        !string.IsNullOrEmpty(similar.title) && !string.IsNullOrEmpty(similar.title_orig) ? $"{similar.title} / {similar.title_orig}" : (similar.title ?? similar.title_orig),
+                        similar.year?.ToString(),
+                        details,
+                        host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}",
+                        PosterApi.Size(matd.anime_poster_url ?? matd.drama_poster_url ?? matd.poster_url)
+                    );
+                }
             }
 
             return new EmbedModel()
@@ -256,7 +249,11 @@ public struct KodikInvoke
                     if (!_usehls && m3u.Contains(".m3u"))
                         m3u = m3u.Replace(":hls:manifest.m3u8", "");
 
-                    streams.Add(new StreamModel() { q = $"{g[1].Value}p", url = m3u });
+                    streams.Add(new StreamModel()
+                    {
+                        q = $"{g[1].Value}p",
+                        url = m3u
+                    });
                 }
             }
         });
@@ -297,7 +294,7 @@ public struct KodikInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool showstream, bool rjson)
+    public ITplResult Tpl(List<Result> results, string args, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s, bool rjson)
     {
         if (results == null || results.Count == 0)
             return default;
@@ -314,14 +311,9 @@ public struct KodikInvoke
             {
                 string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(data.link)}";
 
-                string streamlink = null;
-                if (showstream)
-                {
-                    streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
-
-                    if (!string.IsNullOrEmpty(args))
-                        streamlink += $"&{args.Remove(0, 1)}";
-                }
+                string streamlink = streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
+                if (!string.IsNullOrEmpty(args))
+                    streamlink += $"&{args.Remove(0, 1)}";
 
                 mtpl.Append(
                     data.translation.title,
@@ -362,6 +354,8 @@ public struct KodikInvoke
             }
             else
             {
+                string sArhc = s.ToString();
+
                 #region Перевод
                 var vtpl = new VoiceTpl();
                 HashSet<string> hash = new HashSet<string>();
@@ -372,26 +366,24 @@ public struct KodikInvoke
                     if (string.IsNullOrEmpty(id))
                         continue;
 
-                    string name = item.translation.title ?? "оригинал";
-                    if (hash.Contains(name))
-                        continue;
-
                     if (item.last_season != s)
                     {
-                        if (item.seasons == null || !item.seasons.ContainsKey(s.ToString()))
+                        if (item.seasons == null || !item.seasons.ContainsKey(sArhc))
                             continue;
                     }
 
-                    hash.Add(name);
+                    string name = item.translation.title ?? "оригинал";
+                    if (hash.Add(name))
+                    {
+                        if (string.IsNullOrEmpty(kid))
+                            kid = id;
 
-                    if (string.IsNullOrEmpty(kid))
-                        kid = id;
-
-                    vtpl.Append(
-                        name,
-                        kid == id,
-                        host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}"
-                    );
+                        vtpl.Append(
+                            name,
+                            kid == id,
+                            host + $"lite/kodik?rjson={rjson}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={enc_pick}&s={s}&kid={id}"
+                        );
+                    }
                 }
                 #endregion
 
@@ -399,7 +391,6 @@ public struct KodikInvoke
                 if (string.IsNullOrEmpty(selected?.id))
                     selected = results[0];
 
-                string sArhc = s.ToString();
                 var series = ResolveEpisodesAsync(selected, sArhc);
                 if (series == null || series.Count == 0)
                     return default;
@@ -410,14 +401,9 @@ public struct KodikInvoke
                 {
                     string url = host + $"lite/kodik/video?title={enc_title}&original_title={enc_original_title}&link={HttpUtility.UrlEncode(episode.Value)}&episode={episode.Key}";
 
-                    string streamlink = null;
-                    if (showstream)
-                    {
-                        streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
-
-                        if (!string.IsNullOrEmpty(args))
-                            streamlink += $"&{args.Remove(0, 1)}";
-                    }
+                    string streamlink = streamlink = usehls ? $"{url.Replace("/video", $"/{videopath}.m3u8")}&play=true" : $"{url.Replace("/video", $"/{videopath}")}&play=true";
+                    if (!string.IsNullOrEmpty(args))
+                        streamlink += $"&{args.Remove(0, 1)}";
 
                     etpl.Append(
                         $"{episode.Key} серия",
@@ -440,10 +426,37 @@ public struct KodikInvoke
     #region DecodeUrlBase64
     static string DecodeUrlBase64(string s)
     {
-        if (s == null)
-            return s;
+        if (s is null)
+            return null;
 
-        return Encoding.UTF8.GetString(Convert.FromBase64String(s.Replace('-', '+').Replace('_', '/').PadRight(4 * ((s.Length + 3) / 4), '=')));
+        int padding = (4 - s.Length % 4) % 4;
+        int base64Length = s.Length + padding;
+
+        using (var base64Buf = new BufferCharPool(base64Length))
+        {
+            Span<char> chars = base64Buf.Span.Slice(0, base64Length);
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                chars[i] = s[i] switch
+                {
+                    '-' => '+',
+                    '_' => '/',
+                    _ => s[i]
+                };
+            }
+
+            chars.Slice(s.Length, padding)
+                .Fill('=');
+
+            using (var plainBuf = new BufferBytePool(base64Length / 4 * 3))
+            {
+                if (!Convert.TryFromBase64Chars(chars, plainBuf.Span, out int bytesWritten))
+                    return null;
+
+                return Encoding.UTF8.GetString(plainBuf.Span.Slice(0, bytesWritten));
+            }
+        }
     }
     #endregion
 

@@ -193,13 +193,11 @@ public class AnimeLibController : BaseOnlineController
 
             foreach (var episode in episodes)
             {
-                string name = string.IsNullOrEmpty(episode.name) ? title : $"{title} / {episode.name}";
-
                 string link = $"{host}/lite/animelib/video?id={episode.id}&voice={HttpUtility.UrlEncode(activTranslate)}&title={HttpUtility.UrlEncode(title)}";
 
                 etpl.Append(
                     $"{episode.number} серия",
-                    name,
+                    string.IsNullOrEmpty(episode.name) ? title : $"{title} / {episode.name}",
                     episode.season,
                     episode.number,
                     link,

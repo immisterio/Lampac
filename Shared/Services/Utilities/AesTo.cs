@@ -18,7 +18,7 @@ public static class AesTo
             int capacity = Encoding.UTF8.GetByteCount(plainText);
 
             BufferBytePool cipherBuf = null;
-            if (capacity > aesinst.ByteBuffer.Length)
+            if (capacity > aesinst.ByteSize)
                 cipherBuf = new BufferBytePool(capacity);
 
             try
@@ -35,7 +35,7 @@ public static class AesTo
                 int paddedLen = ((writtenPlain / blockSize) + 1) * blockSize;
 
                 BufferBytePool destBuf = null;
-                if (paddedLen > aesinst.DestBuffer.Length)
+                if (paddedLen > aesinst.ByteSize)
                     destBuf = new BufferBytePool(paddedLen);
 
                 try
@@ -57,7 +57,7 @@ public static class AesTo
                     capacity = ((cipherLen + 2) / 3) * 4;
 
                     BufferCharPool base64Chars = null;
-                    if (capacity > aesinst.CharBuffer.Length)
+                    if (capacity > aesinst.CharSize)
                         base64Chars = new BufferCharPool(capacity);
 
                     try
@@ -106,7 +106,7 @@ public static class AesTo
             int capacity = Encoding.UTF8.GetByteCount(cipherText);
 
             BufferBytePool cipherBuf = null;
-            if (capacity > aesinst.ByteBuffer.Length)
+            if (capacity > aesinst.ByteSize)
                 cipherBuf = new BufferBytePool(capacity);
 
             try
@@ -119,7 +119,7 @@ public static class AesTo
                     return null;
 
                 BufferBytePool destBuf = null;
-                if (cipherLen > aesinst.DestBuffer.Length)
+                if (cipherLen > aesinst.ByteSize)
                     destBuf = new BufferBytePool(cipherLen);
 
                 try

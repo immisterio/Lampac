@@ -9,12 +9,12 @@ public class CrypTo
 {
     #region ThreadStatic
     [ThreadStatic]
-    private static byte[] _threadByteBuffer;
-    readonly static int _threadByteSize = 16 * 1024;
+    static byte[] _threadByteBuffer;
+    const int _threadByteSize = 16 * 1024;
 
     [ThreadStatic]
-    private static char[] _threadCharBuffer;
-    readonly static int _threadCharSize = 1024;
+    static char[] _threadCharBuffer;
+    const int _threadCharSize = 1024;
     #endregion
 
     #region md5 - StringBuilder

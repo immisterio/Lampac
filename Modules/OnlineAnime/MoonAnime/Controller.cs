@@ -4,6 +4,7 @@ using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
+using Shared.Services.Pools;
 using Shared.Services.RxEnumerate;
 using System;
 using System.Collections.Generic;
@@ -155,10 +156,11 @@ public class MoonAnimeController : BaseOnlineController
             }
             else
             {
+                string sArhc = s.ToString();
+
                 #region Перевод
                 var vtpl = new VoiceTpl();
                 string activTranslate = t;
-                bool hasTranslate = false;
 
                 foreach (var voices in root)
                 {
@@ -166,13 +168,12 @@ public class MoonAnimeController : BaseOnlineController
                     {
                         foreach (var season in voice.Value)
                         {
-                            if (season.Key != s.ToString())
+                            if (season.Key != sArhc)
                                 continue;
 
                             if (string.IsNullOrEmpty(activTranslate))
                                 activTranslate = voice.Key;
 
-                            hasTranslate = true;
                             vtpl.Append(
                                 voice.Key,
                                 activTranslate == voice.Key,
@@ -181,14 +182,9 @@ public class MoonAnimeController : BaseOnlineController
                         }
                     }
                 }
-
-                if (!hasTranslate)
-                    return OnError("translate");
                 #endregion
 
                 var etpl = new EpisodeTpl(vtpl);
-                string sArhc = s.ToString();
-                bool hasEpisode = false;
 
                 foreach (var voices in root)
                 {
@@ -210,9 +206,7 @@ public class MoonAnimeController : BaseOnlineController
                                     continue;
 
                                 string link = $"{host}/lite/moonanime/video?vod={HttpUtility.UrlEncode(vod)}&title={enc_title}&original_title={enc_original_title}";
-                                string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
 
-                                hasEpisode = true;
                                 etpl.Append(
                                     $"{episode} серия",
                                     title,
@@ -220,15 +214,12 @@ public class MoonAnimeController : BaseOnlineController
                                     episode.ToString(),
                                     link,
                                     "call",
-                                    streamlink: streamlink
+                                    streamlink: accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true")
                                 );
                             }
                         }
                     }
                 }
-
-                if (!hasEpisode)
-                    return OnError("episodes");
 
                 return ContentTpl(etpl);
             }
@@ -257,7 +248,7 @@ public class MoonAnimeController : BaseOnlineController
             if (string.IsNullOrEmpty(iframe))
                 return e.Fail("iframe", refresh_proxy: true);
 
-            string js = Decode(Rx.Slice(iframe, "=atob(\"", "\");").ToString());
+            string js = Decode(Rx.Slice(iframe, "=atob(\"", "\");"));
             if (js == null)
                 return e.Fail("js decode");
 
@@ -282,7 +273,6 @@ public class MoonAnimeController : BaseOnlineController
             ("accept", "*/*"),
             ("accept-language", "ru,en;q=0.9,en-GB;q=0.8,en-US;q=0.7"),
             ("dnt", "1"),
-            //("origin", CrypTo.DecodeBase64("aHR0cDovL2xhbXBhLm14")),
             ("priority", "u=1, i"),
             ("sec-ch-ua", "\"Chromium\";v=\"130\", \"Microsoft Edge\";v=\"130\", \"Not?A_Brand\";v=\"99\""),
             ("sec-ch-ua-mobile", "?0"),
@@ -307,45 +297,63 @@ public class MoonAnimeController : BaseOnlineController
     }
     #endregion
 
-
     #region Decode _0xd
-    public static string Decode(string base64Input)
+    public static string Decode(ReadOnlySpan<char> base64Input)
     {
         try
         {
-            byte[] data = Convert.FromBase64String(base64Input);
+            int capacity = Encoding.UTF8.GetByteCount(base64Input);
 
-            if (data.Length < 32)
-                return null;
+            using (var nbuf = new BufferBytePool(capacity))
+            {
+                if (!Convert.TryFromBase64Chars(base64Input, nbuf.Span, out int bytesWritten))
+                    return null;
 
-            byte[] key = new byte[32];
-            Array.Copy(data, 0, key, 0, 32);
+                const int KeySize = 32;
 
-            byte[] output = new byte[data.Length - 32];
+                if (bytesWritten < KeySize)
+                    return null;
 
-            for (int i = 0; i < output.Length; i++)
-                output[i] = (byte)(data[i + 32] ^ key[i % 32]);
+                Span<byte> data = nbuf.Span.Slice(0, bytesWritten);
+                ReadOnlySpan<byte> key = data.Slice(0, KeySize);
+                Span<byte> payload = data.Slice(KeySize, bytesWritten - KeySize);
 
-            return Encoding.UTF8.GetString(output);
+                for (int i = 0; i < payload.Length; i++)
+                    payload[i] = (byte)(payload[i] ^ key[i % KeySize]);
+
+                return Encoding.UTF8.GetString(payload);
+            }
         }
-        catch { return null; }
+        catch
+        {
+            return null;
+        }
     }
 
     public static string _0xd(string e)
     {
         try
         {
-            const string k = "mAnK";
+            ReadOnlySpan<byte> key = "mAnK"u8;
+            int capacity = Encoding.UTF8.GetByteCount(e);
 
-            byte[] bytes = Convert.FromBase64String(e);
-            byte[] result = new byte[bytes.Length];
+            using (var nbuf = new BufferBytePool(capacity))
+            {
+                if (!Convert.TryFromBase64Chars(e, nbuf.Span, out int bytesWritten))
+                    return null;
 
-            for (int i = 0; i < bytes.Length; i++)
-                result[i] = (byte)(bytes[i] ^ k[i % k.Length]);
+                Span<byte> data = nbuf.Span.Slice(0, bytesWritten);
 
-            return Encoding.UTF8.GetString(result);
+                for (int i = 0; i < data.Length; i++)
+                    data[i] = (byte)(data[i] ^ key[i % key.Length]);
+
+                return Encoding.UTF8.GetString(data);
+            }
         }
-        catch { return null; }
+        catch
+        {
+            return null;
+        }
     }
     #endregion
 }

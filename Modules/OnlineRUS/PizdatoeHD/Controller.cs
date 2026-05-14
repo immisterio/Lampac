@@ -67,7 +67,10 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
                 CacheResult<SearchModel> search;
 
                 string _kp = kinopoisk_id.ToString();
-                var matches = ModInit.database.Where(e => (imdb_id != null && e.Value.imdb == imdb_id) || e.Value.kp == _kp).ToList();
+                var matches = ModInit.database
+                    .Where(e => (imdb_id != null && e.Value.imdb == imdb_id) || (_kp != "0" && e.Value.kp == _kp))
+                    .ToList();
+
                 if (matches.Count != 0)
                 {
                     var model = new SearchModel()

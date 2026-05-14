@@ -29,7 +29,7 @@ public class KinoUkrController : BaseOnlineController
         {
             if (source.Equals("kinoukr", StringComparison.OrdinalIgnoreCase))
             {
-            rhubFallback:
+                rhubFallback:
 
                 var cache = await InvokeCacheResult($"kinoukr:view:{id}", 240,
                     () => oninvk.Embed($"{init.host}/{id}")
@@ -50,7 +50,7 @@ public class KinoUkrController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title ?? imdb_id) && kinopoisk_id == 0)
                 return OnError();
 
-            var search = oninvk.Search(title, original_title, imdb_id, kinopoisk_id);
+            var search = oninvk.Search(title, original_title, imdb_id, kinopoisk_id, similar);
             if (search?.similars == null || search.similars.Count == 0 || search.IsEmpty)
                 return OnError();
 

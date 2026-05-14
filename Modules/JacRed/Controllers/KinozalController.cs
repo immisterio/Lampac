@@ -215,10 +215,10 @@ namespace JacRed.Controllers
             {
                 using (var clientHandler = new System.Net.Http.HttpClientHandler()
                 {
-                    AllowAutoRedirect = false
+                    AllowAutoRedirect = false,
+                    ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate
                 })
                 {
-                    clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                     using (var client = new System.Net.Http.HttpClient(clientHandler))
                     {
                         client.Timeout = TimeSpan.FromSeconds(jackett.timeoutSeconds);

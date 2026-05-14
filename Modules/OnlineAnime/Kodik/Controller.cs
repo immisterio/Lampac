@@ -17,8 +17,6 @@ namespace Kodik;
 public class KodikController : BaseOnlineController<ModuleConf>
 {
     #region static
-    public static List<Result> database;
-
     static KodikController()
     {
         CoreInit.BaseModValidQueryValueWhiteList.Add("pick");
@@ -26,16 +24,12 @@ public class KodikController : BaseOnlineController<ModuleConf>
     #endregion
 
     #region HMAC
-    static readonly string hexChars = "0123456789abcdef";
+    const string hexChars = "0123456789abcdef";
     static readonly ConcurrentDictionary<string, byte[]> keyBytes = new ConcurrentDictionary<string, byte[]>();
 
     static string HMAC(string key, string message)
     {
-        if (!keyBytes.TryGetValue(key, out byte[] arraykey))
-        {
-            arraykey = Encoding.UTF8.GetBytes(key);
-            keyBytes.TryAdd(key, arraykey);
-        }
+        byte[] arraykey= keyBytes.GetOrAdd(key, _ => Encoding.UTF8.GetBytes(key));
 
         using (var msgBuf = new BufferBytePool(Encoding.UTF8.GetByteCount(message)))
         {
@@ -88,7 +82,6 @@ public class KodikController : BaseOnlineController<ModuleConf>
                 host,
                 init,
                 "video",
-                database,
                 httpHydra,
                 streamfile => HostStreamProxy(streamfile)
             );
@@ -150,7 +143,7 @@ public class KodikController : BaseOnlineController<ModuleConf>
                 return LocalRedirect(accsArgs($"/lite/kodik?rjson={rjson}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}"));
         }
 
-        return ContentTpl(oninvk.Tpl(content, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, true, rjson));
+        return ContentTpl(oninvk.Tpl(content, accsArgs(string.Empty), imdb_id, kinopoisk_id, title, original_title, clarification, pick, kid, s, rjson));
     }
 
     #region Video

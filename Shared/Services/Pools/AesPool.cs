@@ -48,7 +48,21 @@ public class AesInstance
     }
 
     public readonly Aes Aes;
-    public readonly char[] CharBuffer = new char[4096];
-    public readonly byte[] ByteBuffer = new byte[32 * 1024];
-    public readonly byte[] DestBuffer = new byte[32 * 1024];
+
+    public int CharSize => 4096;
+
+    public int ByteSize => 32 * 1024;
+
+    private char[] _charBuffer;
+    private byte[] _byteBuffer;
+    private byte[] _destBuffer;
+
+    public char[] CharBuffer
+        => _charBuffer ??= new char[CharSize];
+
+    public byte[] ByteBuffer
+        => _byteBuffer ??= new byte[ByteSize];
+
+    public byte[] DestBuffer
+        => _destBuffer ??= new byte[ByteSize];
 }

@@ -97,7 +97,7 @@ public static class TrackersCron
             {
                 using (var handler = new System.Net.Http.HttpClientHandler())
                 {
-                    handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+                    handler.ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate;
 
                     using (var client = new System.Net.Http.HttpClient(handler))
                     {

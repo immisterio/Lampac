@@ -536,7 +536,7 @@ public static class PornHubTo
         {
             string video = Rx.Match(html, $"\"videoUrl\":\"([^\"]+)\",\"quality\":\"{q}\"");
 
-            if (!string.IsNullOrEmpty(video))
+            if (!string.IsNullOrEmpty(video) || !video.Contains("validfrom"))
                 qualitys.TryAdd($"{q}p", video.Replace("\\", "").Replace("///", "//"));
         }
 

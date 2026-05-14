@@ -154,11 +154,10 @@ public class MikaiController : BaseOnlineController
         foreach (var item in episodes)
         {
             int episodeNum = item.number > 0 ? item.number : episodes.IndexOf(item) + 1;
-            string episodeTitle = $"{episodeNum} серия";
             string link = accsArgs($"{host}/lite/ashdi/vod.m3u8?uri={EncryptQuery(item.playLink)}");
 
             etpl.Append(
-                episodeTitle,
+                 $"{episodeNum} серия",
                 title ?? original_title,
                 season,
                 episodeNum.ToString(),
@@ -178,15 +177,13 @@ public class MikaiController : BaseOnlineController
         if (anime == null)
             return "1";
 
-        var seasonSource = new[]
+        foreach (var source in new[]
         {
             anime.slug,
             anime.details?.names?.name,
             anime.details?.names?.nameNative,
             anime.details?.names?.nameEnglish
-        };
-
-        foreach (var source in seasonSource)
+        })
         {
             if (string.IsNullOrWhiteSpace(source))
                 continue;

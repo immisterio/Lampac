@@ -5,6 +5,8 @@ using Shared.Services.Pools.Json;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -30,6 +32,9 @@ public static class Http
         AllowTrailingCommas = true,
         ReadCommentHandling = JsonCommentHandling.Skip
     };
+
+    public static bool AlwaysAllowCertificate(HttpRequestMessage request, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+            => true;
 
     static async Task InvokeHttpResponseHandlersAsync(EventHttpResponse eventHttpResponse)
     {
@@ -75,10 +80,9 @@ public static class Http
         var handler = new HttpClientHandler()
         {
             AllowAutoRedirect = true,
-            AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate
+            AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate
         };
-
-        handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
         if (proxy != null)
         {
@@ -128,7 +132,7 @@ public static class Http
                 }
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Log.Error(ex, "CatchId={CatchId}", "id_6g2snq8w");
         }
@@ -354,8 +358,10 @@ public static class Http
             DefaultRequestHeaders(url, req, null, null, headers);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
-            using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
-                return response;
+            {
+                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                    return response;
+            }
         }
         catch
         {
@@ -488,7 +494,7 @@ public static class Http
                 }
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             if (ex is not TaskCanceledException)
                 Serilog.Log.Error(ex, "CatchId={CatchId}, Url={Url}", "id_6cd10d26", url);
@@ -670,7 +676,7 @@ public static class Http
                 }
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             if (ex is not TaskCanceledException)
                 Serilog.Log.Error(ex, "CatchId={CatchId}, Url={Url}", "id_017bf8af", url);
@@ -770,7 +776,7 @@ public static class Http
                 }
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             if (ex is not TaskCanceledException)
                 Serilog.Log.Error(ex, "CatchId={CatchId}, Url={Url}", "id_dd21e44c", url);
@@ -922,7 +928,7 @@ public static class Http
                 }
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             if (ex is not TaskCanceledException)
                 Serilog.Log.Error(ex, "CatchId={CatchId}, Url={Url}", "id_35f7be5e", url);

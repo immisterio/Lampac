@@ -166,11 +166,10 @@ public class CubProxyController : BaseController
 
                 var handler = new HttpClientHandler()
                 {
+                    ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate,
                     AutomaticDecompression = DecompressionMethods.None,
                     AllowAutoRedirect = true
                 };
-
-                handler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
                 if (proxy != null)
                 {
