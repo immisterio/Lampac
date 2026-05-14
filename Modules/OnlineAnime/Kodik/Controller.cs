@@ -29,7 +29,7 @@ public class KodikController : BaseOnlineController<ModuleConf>
 
     static string HMAC(string key, string message)
     {
-        byte[] arraykey= keyBytes.GetOrAdd(key, _ => Encoding.UTF8.GetBytes(key));
+        byte[] arraykey = keyBytes.GetOrAdd(key, _ => Encoding.UTF8.GetBytes(key));
 
         using (var msgBuf = new BufferBytePool(Encoding.UTF8.GetByteCount(message)))
         {
