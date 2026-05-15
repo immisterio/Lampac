@@ -8,12 +8,10 @@ using Shared.Models.Online.Settings;
 using Shared.Services;
 using Shared.Services.Utilities;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
@@ -22,11 +20,11 @@ namespace KitMod.Controllers
 {
     public class SiteConf
     {
-        public OnlinesSettings Rezka { get; set; } = new OnlinesSettings("Rezka", "https://hdrezka.me");
         public OnlinesSettings Filmix { get; set; } = new OnlinesSettings("Filmix", "http://filmixapp.cyou");
         public OnlinesSettings VoKino { get; set; } = new OnlinesSettings("VoKino", "http://api.vokino.org");
         public OnlinesSettings KinoPub { get; set; } = new OnlinesSettings("KinoPub", "https://api.srvkp.com");
         public OnlinesSettings GetsTV { get; set; } = new OnlinesSettings("GetsTV", "https://getstv.com");
+        public OnlinesSettings SakhTV { get; set; } = new OnlinesSettings("SakhTV", "https://api.sakh.tv");
     }
 
     public class BindController : BaseOnlineController
@@ -288,59 +286,6 @@ namespace KitMod.Controllers
         }
         #endregion
 
-        #region Rezka
-        [HttpGet]
-        [AllowAnonymous]
-        [Route("/bind/rezka")]
-        async public Task<ActionResult> Rezka(string login, string pass)
-        {
-            var rezka = siteConf.Rezka;
-
-            (string aesGcmKey, string filePath) = userInfo();
-            if (string.IsNullOrEmpty(aesGcmKey))
-                return renderMessage("Ошибка", "Отсутствует параметр aesGcmKey. Откройте /kit и войдите снова.");
-
-            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
-            {
-                string body = $@"<div class='title'>Введите данные PREMUIM аккаунта <a href='{siteConf.Rezka.host}' target='_blank' class='link'>HDRezka</a></div>
-                    <form method='get' action='/bind/rezka'>
-                        <div class='form-group'>
-                            <input type='text' name='login' placeholder='Email' required>
-                        </div>
-                        <div class='form-group'>
-                            <input type='password' name='pass' placeholder='Пароль' required>
-                        </div>
-                        <button type='submit' class='btn btn-primary btn-block'>Привязать устройство</button>
-                    </form>";
-
-                return renderHtml("Привязка HDRezka", body);
-            }
-            else
-            {
-                string cookie = await getCookieRezka(login, pass);
-                if (string.IsNullOrEmpty(cookie))
-                    return renderMessage("HDRezka", "Ошибка авторизации, повторите попытку позже.");
-
-                bool premium = false;
-                string rezka_main = await Http.Get(siteConf.Rezka.host, cookie: cookie, timeoutSeconds: 10);
-                if (rezka_main != null && (rezka_main.Contains("b-premium_user__body") || rezka_main.Contains("b-hd_prem")))
-                    premium = true;
-
-                var bwaconf = loadconf(aesGcmKey, filePath);
-
-                bwaconf["Rezka"] = new JObject()
-                {
-                    ["enable"] = true,
-                    ["premium"] = premium,
-                    ["cookie"] = cookie
-                };
-
-                saveBind(aesGcmKey, bwaconf);
-                return LocalRedirect("/kit");
-            }
-        }
-        #endregion
-
         #region GetsTV
         [HttpGet]
         [AllowAnonymous]
@@ -394,6 +339,82 @@ namespace KitMod.Controllers
         }
         #endregion
 
+		#region SakhTV
+		[HttpGet]
+		[AllowAnonymous]
+		[Route("/bind/sakhtv")]
+		async public Task<ActionResult> SakhTV(string login, string pass)
+		{
+			var sakhtv = siteConf.SakhTV;
+
+			(string aesGcmKey, string filePath) = userInfo();
+			if (string.IsNullOrEmpty(aesGcmKey))
+				return Content("ошибка, отсутствует параметр aesGcmKey", "text/html; charset=utf-8");
+
+			if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
+			{
+				string body = $@"<div class='title'>Введите данные аккаунта <a href='https://sakh.tv' target='_blank'>sakh.tv</a></div>
+					<form method='get' action='/bind/sakhtv'>
+						<div class='form-group'>
+							<input type='text' name='login' placeholder='Email' required>
+						</div>
+						<div class='form-group'>
+							<input type='text' name='pass' placeholder='Пароль' required>
+						</div>
+						<button type='submit' class='button'>Добавить устройство</button>
+					</form>";
+
+				return renderHtml("Привязка SakhTV", body);
+			}
+			else
+			{
+				string app_id = "5";
+				string APP_VERSION = "1.2.0-tv";
+				string userAgent = "Xiaomi Mi BOX 4";
+				string release = "12";
+
+				if (CoreInit.CurrentConf.TryGetValue("SakhTV", out JToken jt))
+				{
+					app_id = jt.Value<string>("app_id");
+					APP_VERSION = jt.Value<string>("APP_VERSION");
+					userAgent = jt.Value<string>("userAgent");
+					release = jt.Value<string>("release");
+				}
+
+				var result = await Http.Post<JObject>(
+					$"{sakhtv.host}/v2/users/login",
+					new StringContent($"{{\"login\":\"{login}\",\"password\":\"{pass}\"}}", Encoding.UTF8, "application/json"),
+					httpversion: 2,
+					headers: HeadersModel.Init(
+						("x-force-code", "1"),
+						("x-app-id", app_id),
+						("user-agent", $"SakhTVAndroid/{APP_VERSION}/{userAgent}/Android {release}"),
+						("authorization", Guid.NewGuid().ToString())
+					),
+					useDefaultHeaders: false
+				);
+
+				if (result == null)
+					return ContentTo($"{sakhtv.host} недоступен, повторите попытку позже");
+
+				string token = result.Value<string>("token");
+				if (string.IsNullOrEmpty(token))
+					return ContentTo(result.ToString(Formatting.Indented));
+
+				var bwaconf = loadconf(aesGcmKey, filePath);
+
+				bwaconf["SakhTV"] = new JObject()
+				{
+					["enable"] = true,
+					["token"] = token
+				};
+
+				saveBind(aesGcmKey, bwaconf);
+				return LocalRedirect("/kit");
+			}
+		}
+		#endregion
+
         #region IptvOnline
         [HttpGet]
         [AllowAnonymous]
@@ -432,68 +453,6 @@ namespace KitMod.Controllers
                 saveBind(aesGcmKey, bwaconf);
                 return LocalRedirect("/kit");
             }
-        }
-        #endregion
-
-
-        #region getCookie
-        async Task<string> getCookieRezka(string login, string passwd)
-        {
-            if (string.IsNullOrEmpty(login) || string.IsNullOrEmpty(passwd))
-                return null;
-
-            try
-            {
-                var clientHandler = new System.Net.Http.HttpClientHandler()
-                {
-                    AllowAutoRedirect = false
-                };
-
-                clientHandler.ServerCertificateCustomValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-                using (var client = new System.Net.Http.HttpClient(clientHandler))
-                {
-                    client.Timeout = TimeSpan.FromSeconds(20);
-                    client.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-                    var postParams = new Dictionary<string, string>
-                    {
-                        { "login_name", login },
-                        { "login_password", passwd },
-                        { "login_not_save", "0" }
-                    };
-
-                    using (var postContent = new System.Net.Http.FormUrlEncodedContent(postParams))
-                    {
-                        using (var response = await client.PostAsync($"https://hdrezka.me/ajax/login/", postContent))
-                        {
-                            if (response.Headers.TryGetValues("Set-Cookie", out var cook))
-                            {
-                                string cookie = string.Empty;
-
-                                foreach (string line in cook)
-                                {
-                                    if (string.IsNullOrEmpty(line))
-                                        continue;
-
-                                    if (line.Contains("=deleted;"))
-                                        continue;
-
-                                    if (line.Contains("dle_user_id") || line.Contains("dle_password"))
-                                        cookie += $"{line.Split(";")[0]}; ";
-                                }
-
-                                if (cookie.Contains("dle_user_id") && cookie.Contains("dle_password"))
-                                    return Regex.Replace(cookie.Trim(), ";$", "");
-                            }
-                        }
-                    }
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Serilog.Log.Error(ex, "{Class} {CatchId}", "PremiumConf", "id_xwwb0e5e");
-            }
-
-            return null;
         }
         #endregion
     }
