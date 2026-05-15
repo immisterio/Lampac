@@ -339,21 +339,21 @@ namespace KitMod.Controllers
         }
         #endregion
 
-		#region SakhTV
-		[HttpGet]
-		[AllowAnonymous]
-		[Route("/bind/sakhtv")]
-		async public Task<ActionResult> SakhTV(string login, string pass)
-		{
-			var sakhtv = siteConf.SakhTV;
+        #region SakhTV
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("/bind/sakhtv")]
+        async public Task<ActionResult> SakhTV(string login, string pass)
+        {
+            var sakhtv = siteConf.SakhTV;
 
-			(string aesGcmKey, string filePath) = userInfo();
-			if (string.IsNullOrEmpty(aesGcmKey))
-				return Content("ошибка, отсутствует параметр aesGcmKey", "text/html; charset=utf-8");
+            (string aesGcmKey, string filePath) = userInfo();
+            if (string.IsNullOrEmpty(aesGcmKey))
+                return Content("ошибка, отсутствует параметр aesGcmKey", "text/html; charset=utf-8");
 
-			if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
-			{
-				string body = $@"<div class='title'>Введите данные аккаунта <a href='https://sakh.tv' target='_blank'>sakh.tv</a></div>
+            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
+            {
+                string body = $@"<div class='title'>Введите данные аккаунта <a href='https://sakh.tv' target='_blank'>sakh.tv</a></div>
 					<form method='get' action='/bind/sakhtv'>
 						<div class='form-group'>
 							<input type='text' name='login' placeholder='Email' required>
@@ -364,56 +364,56 @@ namespace KitMod.Controllers
 						<button type='submit' class='button'>Добавить устройство</button>
 					</form>";
 
-				return renderHtml("Привязка SakhTV", body);
-			}
-			else
-			{
-				string app_id = "5";
-				string APP_VERSION = "1.2.0-tv";
-				string userAgent = "Xiaomi Mi BOX 4";
-				string release = "12";
+                return renderHtml("Привязка SakhTV", body);
+            }
+            else
+            {
+                string app_id = "5";
+                string APP_VERSION = "1.2.0-tv";
+                string userAgent = "Xiaomi Mi BOX 4";
+                string release = "12";
 
-				if (CoreInit.CurrentConf.TryGetValue("SakhTV", out JToken jt))
-				{
-					app_id = jt.Value<string>("app_id");
-					APP_VERSION = jt.Value<string>("APP_VERSION");
-					userAgent = jt.Value<string>("userAgent");
-					release = jt.Value<string>("release");
-				}
+                if (CoreInit.CurrentConf.TryGetValue("SakhTV", out JToken jt))
+                {
+                    app_id = jt.Value<string>("app_id");
+                    APP_VERSION = jt.Value<string>("APP_VERSION");
+                    userAgent = jt.Value<string>("userAgent");
+                    release = jt.Value<string>("release");
+                }
 
-				var result = await Http.Post<JObject>(
-					$"{sakhtv.host}/v2/users/login",
-					new StringContent($"{{\"login\":\"{login}\",\"password\":\"{pass}\"}}", Encoding.UTF8, "application/json"),
-					httpversion: 2,
-					headers: HeadersModel.Init(
-						("x-force-code", "1"),
-						("x-app-id", app_id),
-						("user-agent", $"SakhTVAndroid/{APP_VERSION}/{userAgent}/Android {release}"),
-						("authorization", Guid.NewGuid().ToString())
-					),
-					useDefaultHeaders: false
-				);
+                var result = await Http.Post<JObject>(
+                    $"{sakhtv.host}/v2/users/login",
+                    new StringContent($"{{\"login\":\"{login}\",\"password\":\"{pass}\"}}", Encoding.UTF8, "application/json"),
+                    httpversion: 2,
+                    headers: HeadersModel.Init(
+                        ("x-force-code", "1"),
+                        ("x-app-id", app_id),
+                        ("user-agent", $"SakhTVAndroid/{APP_VERSION}/{userAgent}/Android {release}"),
+                        ("authorization", Guid.NewGuid().ToString())
+                    ),
+                    useDefaultHeaders: false
+                );
 
-				if (result == null)
-					return ContentTo($"{sakhtv.host} недоступен, повторите попытку позже");
+                if (result == null)
+                    return ContentTo($"{sakhtv.host} недоступен, повторите попытку позже");
 
-				string token = result.Value<string>("token");
-				if (string.IsNullOrEmpty(token))
-					return ContentTo(result.ToString(Formatting.Indented));
+                string token = result.Value<string>("token");
+                if (string.IsNullOrEmpty(token))
+                    return ContentTo(result.ToString(Formatting.Indented));
 
-				var bwaconf = loadconf(aesGcmKey, filePath);
+                var bwaconf = loadconf(aesGcmKey, filePath);
 
-				bwaconf["SakhTV"] = new JObject()
-				{
-					["enable"] = true,
-					["token"] = token
-				};
+                bwaconf["SakhTV"] = new JObject()
+                {
+                    ["enable"] = true,
+                    ["token"] = token
+                };
 
-				saveBind(aesGcmKey, bwaconf);
-				return LocalRedirect("/kit");
-			}
-		}
-		#endregion
+                saveBind(aesGcmKey, bwaconf);
+                return LocalRedirect("/kit");
+            }
+        }
+        #endregion
 
         #region IptvOnline
         [HttpGet]
