@@ -85,6 +85,7 @@
     <Project Path="Modules/OnlinePaid/KinoPub/KinoPub.csproj" />
     <Project Path="Modules/OnlinePaid/Rezka/Rezka.csproj" />
     <Project Path="Modules/OnlinePaid/VoKino/VoKino.csproj" />
+    <Project Path="Modules/OnlinePaid/SakhTV/SakhTV.csproj" />
   </Folder>
   <Folder Name="/Modules/OnlineRUS/">
     <Project Path="Modules/OnlineRUS/CDNvideohub/CDNvideohub.csproj" />
