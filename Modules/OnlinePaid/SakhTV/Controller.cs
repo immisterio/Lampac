@@ -376,7 +376,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                 if (imdb_id != null && item.imdb_url != null && item.imdb_url.EndsWith(imdb_id))
                     return (item.tvshow, null);
 
-                if (kinopoisk_id > 0 && item.kp_id  == kinopoisk_id)
+                if (kinopoisk_id > 0 && item.kp_id == kinopoisk_id)
                     return (item.tvshow, null);
             }
 
