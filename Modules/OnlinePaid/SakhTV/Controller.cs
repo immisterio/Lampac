@@ -149,7 +149,8 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
             var tvshow = await InvokeCacheResult<Season[]>($"sakhtv:tvshow:{orid}", cacheTime(90), async e =>
             {
                 var root = await httpHydra.Get<TvshowDetails>($"{init.host}/v1/serials/get?tvshow={orid}",
-                    addheaders: bearer,
+                    useDefaultHeaders: false,
+                    newheaders: bearer,
                     safety: true
                 );
 
@@ -283,7 +284,8 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
             var cache = await InvokeCacheResult<Source>($"sakhtv:movies:{orid}:{init.token}", cacheTime(20), async e =>
             {
                 var root = await httpHydra.Get<MovieDetails>($"{init.host}/v2/movie/{orid}",
-                    addheaders: bearer,
+                    useDefaultHeaders: false,
+                    newheaders: bearer,
                     safety: true
                 );
 
@@ -334,7 +336,8 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
         var cache = await InvokeCacheResult<Episode[]>($"sakhtv:video:{season_id}:{rg}:{init.token}", cacheTime(20), async e =>
         {
             var root = await httpHydra.Get<Episode[]>($"{init.host}/v1/serial/watch/get_playlist?season_id={season_id}&rg={rg}",
-                addheaders: bearer,
+                useDefaultHeaders: false,
+                newheaders: bearer,
                 safety: true
             );
 
