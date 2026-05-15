@@ -17,6 +17,7 @@ namespace ExternalBind
             "/lite/rhs/bind",
             "/lite/kinopubpro",
             "/lite/getstv/bind",
+            "/lite/sakhtv/bind",
             "/lite/vokinotk",
             "/lite/iptvonline/bind",
         };
