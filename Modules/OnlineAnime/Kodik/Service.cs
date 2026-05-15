@@ -131,7 +131,7 @@ public struct KodikInvoke
                         similar.year?.ToString(),
                         details,
                         host + $"lite/kodik?title={enc_title}&original_title={enc_original_title}&clarification={clarification}&pick={HttpUtility.UrlEncode(pick)}",
-                        matd != null ? PosterApi.Size(matd.anime_poster_url ?? matd.drama_poster_url ?? matd.poster_url) : null
+                        PosterApi.Size(matd?.anime_poster_url ?? matd?.drama_poster_url ?? matd?.poster_url)
                     );
                 }
             }
@@ -176,24 +176,20 @@ public struct KodikInvoke
         {
             player_single = Rx.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"");
 
-            var advertDebug = Rx.Split("advertDebug", iframe);
-            if (advertDebug.Count > 1)
-            {
-                var preview = Rx.Split("preview-icons", advertDebug[1].Span);
-                if (preview.Count > 0)
-                {
-                    string _frame = Regex.Replace(preview[0].ToString(), "[\n\r\t ]+", "");
-                    domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
-                    d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
-                    pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
-                    pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
-                    ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
-                    ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
-                    type = Regex.Match(_frame, "vInfo.type='([^']+)'").Groups[1].Value;
-                    hash = Regex.Match(_frame, "vInfo.hash='([^']+)'").Groups[1].Value;
-                    id = Regex.Match(_frame, "vInfo.id='([^']+)'").Groups[1].Value;
-                }
-            }
+            ReadOnlySpan<char> playerSettings = Rx.Slice(iframe, "advertDebug", "preview-icons");
+            if (!playerSettings.IsEmpty)
+                return;
+
+            string _frame = Regex.Replace(playerSettings.ToString(), "[\n\r\t ]+", "");
+            domain = Regex.Match(_frame, "domain=\"([^\"]+)\"").Groups[1].Value;
+            d_sign = Regex.Match(_frame, "d_sign=\"([^\"]+)\"").Groups[1].Value;
+            pd = Regex.Match(_frame, "pd=\"([^\"]+)\"").Groups[1].Value;
+            pd_sign = Regex.Match(_frame, "pd_sign=\"([^\"]+)\"").Groups[1].Value;
+            ref_domain = Regex.Match(_frame, "ref=\"([^\"]+)\"").Groups[1].Value;
+            ref_sign = Regex.Match(_frame, "ref_sign=\"([^\"]+)\"").Groups[1].Value;
+            type = Regex.Match(_frame, "vInfo.type='([^']+)'").Groups[1].Value;
+            hash = Regex.Match(_frame, "vInfo.hash='([^']+)'").Groups[1].Value;
+            id = Regex.Match(_frame, "vInfo.id='([^']+)'").Groups[1].Value;
         });
 
         if (string.IsNullOrEmpty(domain) || string.IsNullOrEmpty(player_single))
