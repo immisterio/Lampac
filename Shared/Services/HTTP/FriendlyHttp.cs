@@ -38,13 +38,13 @@ public static class FriendlyHttp
                                     .ConfigureAwait(false);
                             }
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
                             Log.Error(ex, "CatchId={CatchId}", "id_p6bez4hd");
                         }
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Log.Error(ex, "CatchId={CatchId}", "id_1bbm5ot5");
                 }
@@ -63,54 +63,57 @@ public static class FriendlyHttp
 
         if ((handler?.CookieContainer != null && handler.CookieContainer.Count > 0) || Http.httpClientFactory == null)
         {
-            var client = new HttpClient(handler);
-            client.MaxResponseContentBufferSize = maxBufferSize;
-            return client;
+            return new HttpClient(handler)
+            {
+                MaxResponseContentBufferSize = maxBufferSize
+            };
         }
 
-        var webProxy = handler?.Proxy != null
-            ? handler.Proxy as WebProxy
-            : null;
+        var webProxy = handler?.Proxy as WebProxy;
 
         if (webProxy == null)
         {
             if (httpClient != null)
                 return httpClient;
 
-            if (handler != null && handler.AllowAutoRedirect == false)
-            {
-                if (factoryClient is "base" or "http2")
-                    factoryClient += "NoRedirect";
-            }
+            string targetClient = handler?.AllowAutoRedirect == false
+                ? factoryClient switch
+                {
+                    "base" => "baseNoRedirect",
+                    "http2" => "http2NoRedirect",
+                    _ => factoryClient
+                }
+                : factoryClient;
 
-            var factory = Http.httpClientFactory.CreateClient(factoryClient);
+            var factory = Http.httpClientFactory.CreateClient(targetClient);
 
             if (maxBufferSize > factory.MaxResponseContentBufferSize)
                 factory.MaxResponseContentBufferSize = maxBufferSize;
 
             return factory;
         }
-
-        int port = 0;
-        string ip = null, username = null, password = null;
-
-        ip = webProxy.Address?.Host;
-        port = webProxy.Address?.Port ?? 0;
-
-        if (webProxy.Credentials is NetworkCredential credentials)
+        else
         {
-            username = credentials.UserName;
-            password = credentials.Password;
+            int port = 0;
+            string ip = null, username = null, password = null;
+
+            ip = webProxy.Address?.Host;
+            port = webProxy.Address?.Port ?? 0;
+
+            if (webProxy.Credentials is NetworkCredential credentials)
+            {
+                username = credentials.UserName;
+                password = credentials.Password;
+            }
+
+            return _clients.GetOrAdd(
+                $"{ip}:{port}:{username}:{password}:{maxBufferSize}:{handler?.AllowAutoRedirect}",
+                _ => new HttpClientModel(DateTime.UtcNow.AddMinutes(30), new HttpClient(handler)
+                {
+                    MaxResponseContentBufferSize = maxBufferSize
+                })
+            ).http;
         }
-
-        return _clients.GetOrAdd($"{ip}:{port}:{username}:{password}:{maxBufferSize}:{handler?.AllowAutoRedirect}", k =>
-        {
-            var client = new HttpClient(handler);
-            client.MaxResponseContentBufferSize = maxBufferSize;
-
-            return new HttpClientModel(DateTime.UtcNow.AddMinutes(30), client);
-
-        }).http;
     }
     #endregion
 
@@ -122,7 +125,7 @@ public static class FriendlyHttp
         {
             AllowAutoRedirect = true,
             AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            MaxConnectionsPerServer = 20,
+            MaxConnectionsPerServer = 128,
             PooledConnectionLifetime = TimeSpan.FromMinutes(10),
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             EnableMultipleHttp2Connections = true,
@@ -146,7 +149,7 @@ public static class FriendlyHttp
         {
             AllowAutoRedirect = true,
             AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            MaxConnectionsPerServer = 20,
+            MaxConnectionsPerServer = 128,
             PooledConnectionLifetime = TimeSpan.FromMinutes(10),
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
