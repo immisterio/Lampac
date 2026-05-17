@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using System.Collections.Generic;
@@ -61,6 +61,13 @@ public class ForkController : BaseController
                 },
                 new ForkPlaylistItem()
                 {
+                    title = "Дорамы",
+                    playlist_url = "submenu",
+                    submenu = DoramaMenu(host),
+                    logo_30x30 = Icon.Folder
+                },
+                new ForkPlaylistItem()
+                {
                     title = "Мультфильмы",
                     playlist_url = $"{host}/fxml/cub?cat=movie&genre=16",
                     logo_30x30 = Icon.Folder
@@ -82,14 +89,18 @@ public class ForkController : BaseController
                     title = "Каталог",
                     playlist_url = $"{host}/catalog",
                     logo_30x30 = Icon.CdnSearch
-                },
-                new ForkPlaylistItem()
+                }
+            };
+
+            if (CoreInit.modules?.Exists(i => i?.enable == true && i.name == "SISI") == true)
+            {
+                channels.Add(new ForkPlaylistItem()
                 {
                     title = "Клубничка 18+",
                     playlist_url = $"{host}/sisi",
                     logo_30x30 = Icon.Adult
-                }
-            };
+                });
+            }
 
             return Json(new
             {
@@ -100,4 +111,51 @@ public class ForkController : BaseController
             });
         }
     }
+
+    static List<ForkPlaylistItem> DoramaMenu(string host)
+        => new List<ForkPlaylistItem>()
+        {
+            new ForkPlaylistItem()
+            {
+                title = "Сейчас смотрят",
+                playlist_url = $"{host}/fxml/tmdb?cat=dorama&sort=now_playing",
+                logo_30x30 = Icon.Folder
+            },
+            new ForkPlaylistItem()
+            {
+                title = "Новые серии",
+                playlist_url = $"{host}/fxml/tmdb?cat=dorama&sort=update",
+                logo_30x30 = Icon.Folder
+            },
+            new ForkPlaylistItem()
+            {
+                title = "Онгоинги",
+                playlist_url = $"{host}/fxml/tmdb?cat=dorama&sort=ongoing",
+                logo_30x30 = Icon.Folder
+            },
+            new ForkPlaylistItem()
+            {
+                title = "Популярное",
+                playlist_url = $"{host}/fxml/tmdb?cat=dorama&sort=top",
+                logo_30x30 = Icon.Folder
+            },
+            new ForkPlaylistItem()
+            {
+                title = "Последнее добавление",
+                playlist_url = $"{host}/fxml/tmdb?cat=dorama&sort=latest",
+                logo_30x30 = Icon.Folder
+            },
+            new ForkPlaylistItem()
+            {
+                title = "Новинки этого года",
+                playlist_url = $"{host}/fxml/tmdb?cat=dorama&sort=now",
+                logo_30x30 = Icon.Folder
+            },
+            new ForkPlaylistItem()
+            {
+                title = "С высоким рейтингом",
+                playlist_url = $"{host}/fxml/tmdb?cat=dorama&sort=rated",
+                logo_30x30 = Icon.Folder
+            }
+        };
 }
