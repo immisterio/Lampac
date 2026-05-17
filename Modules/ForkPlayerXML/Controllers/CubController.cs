@@ -31,7 +31,7 @@ public class CubController : BaseController
         if (!memoryCache.TryGetValue(memkey, out CubListCache cache) || cache == null)
         {
             JObject root = await Http.Get<JObject>("http://tmdb.cub.red/" + $"?query={HttpUtility.UrlEncode(search)}&cat={cat}&sort={sort}&page={page}&results=60{additionalArgs}");
-            
+
             if (root == null || !root.ContainsKey("results"))
                 return BadRequest();
 
