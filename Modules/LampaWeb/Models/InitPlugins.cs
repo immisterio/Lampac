@@ -20,6 +20,8 @@ public class InitPlugins
 
     public bool catalog { get; set; }
 
+    public bool dorama { get; set; }
+
     public bool sisi { get; set; }
 
     public bool torrserver { get; set; }

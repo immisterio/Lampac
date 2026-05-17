@@ -428,6 +428,9 @@ public class ApiController : BaseController
         if (ModInit.conf.initPlugins.catalog)
             plugins.Add(new("{localhost}/catalog.js", 1, "Альтернативные источники каталога", "lampac"));
 
+        if (ModInit.conf.initPlugins.dorama)
+            plugins.Add(new("{localhost}/dorama.js", 1, "Дорамы", "lampac"));
+
         if (ModInit.conf.initPlugins.sisi)
         {
             plugins.Add(new("{localhost}/sisi.js", 1, "Клубничка", "lampac"));
@@ -577,6 +580,9 @@ public class ApiController : BaseController
         if (ModInit.conf.initPlugins.online)
             send("online", true);
 
+        if (ModInit.conf.initPlugins.dorama)
+            send("dorama", true);
+
         if (ModInit.conf.initPlugins.watch_together)
             send("watchtogether", false);
 
@@ -620,6 +626,23 @@ public class ApiController : BaseController
         plugin = plugin
             .Replace("{country}", requestInfo.Country ?? string.Empty)
             .Replace("{localhost}", host);
+
+        return Content(plugin, "application/javascript; charset=utf-8");
+    }
+    #endregion
+
+    #region dorama.js
+    [HttpGet]
+    [AllowAnonymous]
+    [Route("dorama.js")]
+    [Route("dorama/js/{token}")]
+    public ActionResult Dorama(string token)
+    {
+        SetHeadersNoCache();
+
+        string plugin = FileCache.ReadAllText($"{ModInit.modpath}/plugins/dorama.js", "dorama.js")
+            .Replace("{localhost}", host)
+            .Replace("{token}", HttpUtility.UrlEncode(token ?? string.Empty));
 
         return Content(plugin, "application/javascript; charset=utf-8");
     }
