@@ -55,6 +55,8 @@
       --surface-3: #222733;
       --surface-hover: #2a3142;
       --border: #2a3040;
+      --user-card-focus-border: #316673;
+      --simple-key-open-border: #326d7a;
       --border-subtle: rgba(255, 255, 255, 0.06);
       --text: #e2e6ef;
       --text-muted: #7c849a;
@@ -83,6 +85,8 @@
       --surface-3: #e8eaf0;
       --surface-hover: #e2e4ec;
       --border: #d4d8e3;
+      --user-card-focus-border: #8ec0c9;
+      --simple-key-open-border: #84bdc5;
       --border-subtle: rgba(0, 0, 0, 0.06);
       --text: #1a1e28;
       --text-muted: #6b7280;
@@ -704,6 +708,7 @@
       background: var(--ok-dim);
       color: var(--ok);
       border: 1px solid rgba(74, 222, 128, 0.2);
+      -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
     }
 
@@ -711,6 +716,7 @@
       background: var(--err-dim);
       color: var(--err);
       border: 1px solid rgba(248, 113, 113, 0.2);
+      -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
     }
 
@@ -718,6 +724,7 @@
       background: var(--warn-dim);
       color: var(--warn);
       border: 1px solid rgba(250, 204, 21, 0.2);
+      -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
     }
 
@@ -774,6 +781,7 @@
       align-items: center;
       gap: var(--sp-3);
       transition: background var(--dur) var(--ease);
+      -webkit-user-select: none;
       user-select: none;
     }
 
@@ -1124,7 +1132,7 @@
     }
 
     .user-card:focus-within {
-      border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+      border-color: var(--user-card-focus-border);
       box-shadow: 0 0 0 1px var(--accent-dim);
     }
 
@@ -1196,7 +1204,7 @@
     }
 
     details.simple-key-block[open] {
-      border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+      border-color: var(--simple-key-open-border);
       box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-md);
     }
 
@@ -1208,6 +1216,7 @@
       gap: var(--sp-2);
       padding: var(--sp-3) var(--sp-4);
       cursor: pointer;
+      -webkit-user-select: none;
       user-select: none;
       background: var(--surface);
       transition: background var(--dur) var(--ease);
@@ -1388,6 +1397,7 @@
       align-items: center;
       justify-content: center;
       animation: fadeIn 150ms var(--ease);
+      -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
     }
 
@@ -2192,6 +2202,9 @@
 
       let groupsMeta = [];
       let catalogGroupsMeta = [];
+      let sectionGroupOpenIds = null;
+      let catalogGroupOpenIds = null;
+      let simpleKeyOpenIds = null;
       let initObj = {};
       let currentObj = {};
       let initText = '{}';
@@ -2844,14 +2857,42 @@
       });
 
       /* ── Render Sections (JSON) ── */
+      function snapshotTopDetailsOpen(mount, childSelector) {
+        if (!mount || !mount.querySelector(childSelector)) return null;
+        const set = new Set();
+        Array.from(mount.children).forEach(el => {
+          if (el.matches(childSelector) && el.open && el.id) set.add(el.id);
+        });
+        return set;
+      }
+
+      function openStateApplyTop(det, idx, openIds) {
+        if (openIds === null) return idx === 0;
+        return openIds.has(det.id);
+      }
+
+      function snapshotSimpleKeyOpen(mount) {
+        if (!mount || !mount.querySelector('details.simple-key-block')) return null;
+        const set = new Set();
+        mount.querySelectorAll('details.section-group-simple').forEach(grp => {
+          grp.querySelectorAll('details.simple-key-block').forEach(det => {
+            if (det.open && det.dataset.key && grp.id)
+              set.add(grp.id + '\0' + det.dataset.key);
+          });
+        });
+        return set;
+      }
+
       function renderSections() {
         const mount = $('#sectionsMount');
+        const snap = snapshotTopDetailsOpen(mount, 'details.section-group:not(.section-group-simple)');
+        if (snap !== null) sectionGroupOpenIds = snap;
         mount.innerHTML = '';
         groupsMeta.forEach((g, idx) => {
           const det = document.createElement('details');
           det.className = 'section-group';
           det.id = 'grp-' + g.id;
-          det.open = idx === 0;
+          det.open = openStateApplyTop(det, idx, sectionGroupOpenIds);
           const sum = document.createElement('summary');
           const nk = (g.keys && g.keys.length) || 0;
           sum.innerHTML = chevronSvg + '<span class="group-title">' + esc(g.title) + '</span> <span class="badge badge-count">' + nk + '</span>';
@@ -2935,12 +2976,16 @@
       function renderSimpleSections() {
         const mount = $('#simpleMount');
         if (!mount) return;
+        const snapG = snapshotTopDetailsOpen(mount, 'details.section-group-simple');
+        if (snapG !== null) catalogGroupOpenIds = snapG;
+        const snapK = snapshotSimpleKeyOpen(mount);
+        if (snapK !== null) simpleKeyOpenIds = snapK;
         mount.innerHTML = '';
         catalogGroupsMeta.forEach((g, idx) => {
           const det = document.createElement('details');
           det.className = 'section-group section-group-simple';
           det.id = 'simple-grp-' + g.id;
-          det.open = idx === 0;
+          det.open = openStateApplyTop(det, idx, catalogGroupOpenIds);
           const sum = document.createElement('summary');
           const nk = (g.keys && g.keys.length) || 0;
           sum.innerHTML = chevronSvg + '<span class="group-title">' + esc(g.title) + '</span> <span class="badge badge-count">' + nk + '</span>';
@@ -2952,7 +2997,7 @@
             det.appendChild(hi);
           }
           (g.keys || []).forEach(key => {
-            det.appendChild(renderKeyBlockSimple(key));
+            det.appendChild(renderKeyBlockSimple(key, det.id));
           });
           mount.appendChild(det);
         });
@@ -3113,11 +3158,12 @@
         }
       }
 
-      function renderKeyBlockSimple(key) {
+      function renderKeyBlockSimple(key, groupDetailsId) {
         const details = document.createElement('details');
         details.className = 'key-block key-block-simple simple-key-block';
         details.dataset.key = key;
-        details.open = false;
+        const composite = groupDetailsId + '\0' + key;
+        details.open = simpleKeyOpenIds !== null && simpleKeyOpenIds.has(composite);
 
         const sum = document.createElement('summary');
         sum.className = 'simple-key-summary key-head';
