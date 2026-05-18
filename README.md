@@ -471,7 +471,9 @@ cd publish && dotnet Core.dll
 
 ## Модули
 
-По умолчанию в `SkipModules` ([`config/base.conf`](config/base.conf)): **Catalog, DLNA, Sync, SyncEvents, Storage, Tracks, Transcoding, WebLog, TelegramAuth, TelegramAuthBot**. WAF и accsdb тоже отключены по умолчанию.
+По умолчанию в `SkipModules` ([`config/base.conf`](config/base.conf)): **Catalog**, **DLNA**, **Tracks**, **Transcoding**, **WebLog**, **CacheMedia**, **ProxyLimiter**, **ForkPlayerXML**, **MsxNative**, **TelegramAuth**, **TelegramAuthBot**. WAF и accsdb тоже отключены по умолчанию.
+
+> Служебные модули **Sync**, **SyncEvents**, **Storage** и **TimeCode** в `SkipModules` **нет** — они загружаются вместе с ядром, пока их не добавите в `SkipModules` вручную.
 
 > [!WARNING]
 > Модули **DLNA**, **Tracks**, **Transcoding** и **Catalog** не выполняют экранирование входящих запросов. Не включайте их на публично доступном VPS без ограничения доступа через firewall или reverse proxy.
@@ -491,12 +493,16 @@ cd publish && dotnet Core.dll
 | **PidTor** | ✅ | Источник PidTor, маршрут `/lite/pidtor`. |
 | **Catalog** | ⛔ | Браузер каталогов из YAML (`sites/`). Маршрут `/catalog/`. Только в доверенной сети. |
 | **DLNA** | ⛔ | DLNA/UPnP медиасервер. Форматы: mp4, mkv, ts, webm, avi, flac и др. Только в доверенной сети. |
-| **Sync** | ⛔ | Синхронизация закладок и истории. Эндпоинты `/storage/`, `/bookmark/`. SQLite. |
-| **SyncEvents** | ⛔ | Трансляция событий синхронизации через WebSocket (NwsEvents). |
-| **Storage** | ⛔ | Хранилище данных для Sync, NWS (`onlyreg`). |
+| **Sync** | ✅ | Синхронизация закладок и истории. Эндпоинты `/storage/`, `/bookmark/`. SQLite. Отключение: добавьте `Sync` в `SkipModules`. |
+| **SyncEvents** | ✅ | Трансляция событий синхронизации через WebSocket (NwsEvents). Отключение: `SyncEvents` в `SkipModules`. |
+| **Storage** | ✅ | Хранилище данных для Sync, NWS (`onlyreg`). Отключение: `Storage` в `SkipModules`. |
 | **Tracks** | ⛔ | Субтитры и дорожки (`database/tracks/`), интеграция FFprobe (`/ffprobe`). Только в доверенной сети. |
 | **Transcoding** | ⛔ | HLS/DASH транскодинг FFmpeg. До 5 потоков, таймаут 5 мин. `cache/transcoding/`. Только в доверенной сети. |
 | **WebLog** | ⛔ | Страница `/weblog`: поток HTTP и Playwright-событий через WebSocket. Требует пароль root. Не включайте публично. |
+| **CacheMedia** | ⛔ | Кеширование потоков SISI (события `ProxyApiCacheStream` для отдельных платформ). |
+| **ProxyLimiter** | ⛔ | Лимиты параллельных запросов к медиапрокси для SISI. Конфиг `ProxyLimiter`. [README](Modules/Proxy/ProxyLimiter/README.md) |
+| **ForkPlayerXML** | ⛔ | ForkPlayer: плейлисты `/fxml`, редирект `/` для клиента ForkPlayer. [README](Modules/ForkPlayerXML/README.md) |
+| **MsxNative** | ⛔ | MSX/MS X: адаптация Sisi и доступ при `accsdb`. [README](Modules/MsxNative/README.md) |
 | **WatchTogether** | ⛔ | Синхронный просмотр (WebSocket-комнаты). |
 | **AdminPanel** | ⛔ (manifest) | Веб-админка и JSON API (`/adminpanel/`). `"enable": false` в [manifest.json](Modules/AdminPanel/manifest.json). |
 | **ExternalBind** | ⛔ (manifest) | Привязка Lite/Online для удалённых URL (FilmixPro, Rezka, KinoPub). [README](Modules/ExternalBind/README.md) |
@@ -548,10 +554,12 @@ cd publish && dotnet Core.dll
 | `KinoPub` | OnlinePaid | Требует токен |
 | `LeProduction` | OnlineRUS | |
 | `Mirage` | OnlineRUS | |
+| `Phantom` | OnlineRUS | |
 | `PiTor` | Online | Стриминг через торрент |
 | `PizdatoeHD` | OnlineRUS | |
 | `Rezka` / `RezkaPremium` | OnlinePaid | |
 | `RutubeMovie` | OnlineRUS | |
+| `SakhTV` | OnlinePaid | |
 | `Spectre` | OnlineRUS | |
 | `VeoVeo` | OnlineRUS | Офлайн БД `data/veoveo.json` |
 | `Vibix` | OnlineRUS | |
@@ -719,6 +727,7 @@ cd publish && dotnet Core.dll
 | `GET` | `/nexthub/vidosik` | NextHUB: просмотр элемента (`uri`, `related`) |
 | `GET` | `/ts/…` | TorrServer |
 | `GET` | `/weblog` | Отладка HTTP/Playwright в реальном времени |
+| `GET` | `/fxml` … | ForkPlayer: JSON/XML-плейлисты (**ForkPlayerXML**, см. модуль [`Modules/ForkPlayerXML/README.md`](Modules/ForkPlayerXML/README.md)) |
 
 </details>
 
@@ -851,7 +860,9 @@ lampac/
 │   ├── Catalog/                # Каталог сайтов (YAML)
 │   ├── Community/              # TelegramAuth, TelegramAuthBot
 │   ├── DLNA/                   # DLNA/UPnP медиасервер
+│   ├── ForkPlayerXML/          # ForkPlayer: /fxml
 │   ├── ExternalBind/           # Привязка URL (manifest: enable: false)
+│   ├── MsxNative/              # MSX-плеер, Sisi
 │   ├── JacRed/                 # Агрегатор торрент-индексаторов
 │   ├── Kit/                    # Криптография
 │   ├── LampaWeb/               # Хостинг Lampa UI
@@ -859,11 +870,11 @@ lampac/
 │   ├── OnlineAnime/            # 12 аниме-источников
 │   ├── OnlineENG/              # 10 англоязычных источников
 │   ├── OnlineGEO/              # 3 грузинских источника
-│   ├── OnlinePaid/             # 8 платных VOD-источников
-│   ├── OnlineRUS/              # 20 российских CDN
+│   ├── OnlinePaid/             # 9 платных VOD-источников
+│   ├── OnlineRUS/              # 21 российский CDN
 │   ├── OnlineUKR/              # 8 украинских источников
 │   ├── PidTor/                 # PidTor источник
-│   ├── Proxy/                  # CubProxy, TmdbProxy, CorsMedia, Corseu
+│   ├── Proxy/                  # CubProxy, TmdbProxy, CacheMedia, CorsMedia, Corseu, ProxyLimiter
 │   ├── Sync/                   # Sync, SyncEvents, Storage, TimeCode
 │   ├── TorrServer/             # Управление TorrServer
 │   ├── Tracks/                 # Субтитры и дорожки (FFprobe)
@@ -877,6 +888,7 @@ lampac/
 │   └── example.init.yaml       # Пример конфига (YAML)
 ├── docker-compose.yaml         # Production (порт 9118)
 ├── docker-compose.dev.yaml     # Dev (порт 29118)
+├── charts/lampac/              # Helm-чарт для Kubernetes
 ├── Dockerfile                  # Multi-arch образ (amd64, arm64)
 ├── build.sh                    # dotnet publish Core/Core.csproj → publish/
 ├── install.sh                  # Нативная установка Linux
@@ -902,6 +914,7 @@ lampac/
 | [Modules/Community/TelegramAuth/README.md](Modules/Community/TelegramAuth/README.md) | HTTP API `/tg/auth/…`, accsdb, хранилище |
 | [Modules/Community/TelegramAuthBot/README.md](Modules/Community/TelegramAuthBot/README.md) | Long polling-бот, команды, конфиг |
 | [Modules/ExternalBind/README.md](Modules/ExternalBind/README.md) | Привязка Lite/Online, флаг локального IP |
+| [charts/lampac/README.md](charts/lampac/README.md) | Helm-чарт для Kubernetes (`ghcr.io/lampac-nextgen/lampac`) |
 
 ---
 
