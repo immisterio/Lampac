@@ -54,7 +54,7 @@ public class AutoEmbedController : BaseENGController
         ));
     }
 
-    
+
     async Task<(string file, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))

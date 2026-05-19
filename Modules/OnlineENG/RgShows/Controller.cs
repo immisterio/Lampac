@@ -54,7 +54,7 @@ public class RgShowsController : BaseENGController
         ));
     }
 
-    
+
     async ValueTask<string> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
