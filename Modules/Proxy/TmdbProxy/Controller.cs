@@ -311,8 +311,8 @@ public class TmdbProxyController : BaseController
 
                                         ModInit.fileWatcher.EnsureDirectory(md5key);
 
-                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, 
-                                            bufferSize: PoolInvk.bufferSize, 
+                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
+                                            bufferSize: PoolInvk.bufferSize,
                                             options: FileOptions.Asynchronous))
                                         {
                                             while (true)
