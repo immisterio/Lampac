@@ -9,7 +9,7 @@ using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
 using Shared.Services.Utilities;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Services.RxEnumerate;
 
 namespace Kinoflix;
@@ -123,8 +123,13 @@ public class KinoflixController : BaseOnlineController
         {
             var items = cache.Value.items;
 
-            var headers_stream = httpHeaders(init.host, init.headers_stream);
-            headers_stream = HeadersModel.Join(headers_stream, HeadersModel.Init("referer", cache.Value.referer));
+            var headers_stream = httpHeaders(
+                init.host,
+                HeadersModel.Init(
+                    init.headers_stream,
+                    ("referer", cache.Value.referer)
+                )
+            );
 
             if (items[0].folder != null)
             {

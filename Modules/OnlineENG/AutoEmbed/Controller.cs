@@ -54,7 +54,7 @@ public class AutoEmbedController : BaseENGController
         ));
     }
 
-
+    
     async Task<(string file, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
@@ -67,7 +67,7 @@ public class AutoEmbedController : BaseENGController
             {
                 using (var browser = new PlaywrightBrowser(init.priorityBrowser))
                 {
-                    var page = await browser.NewPageAsync(init.plugin, httpHeaders(init).ToDictionary(), proxy_data);
+                    var page = await browser.NewPageAsync(init.plugin, httpHeaders(init)?.ToDictionary(), proxy_data);
                     if (page == null)
                         return default;
 
