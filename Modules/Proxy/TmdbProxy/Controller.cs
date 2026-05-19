@@ -32,6 +32,13 @@ public class TmdbProxyController : BaseController
     const string tmdbApiHost = "api.themoviedb.org";
     const string tmdbImgHost = "image.tmdb.org";
 
+    static readonly Version httpVersion = ModInit.conf.httpversion switch
+    {
+        2 => HttpVersion.Version20,
+        3 => HttpVersion.Version30,
+        _ => HttpVersion.Version11
+    };
+
     static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions
     {
         Indented = false,
@@ -94,7 +101,7 @@ public class TmdbProxyController : BaseController
             var bodyWriter = httpContext.Response.BodyWriter;
             httpContext.Response.ContentType = "application/json; charset=utf-8";
 
-            #region uri
+            #region request uri
             ReadOnlySpan<char> path = httpContext.Request.Path.Value.AsSpan();
 
             if (path.StartsWith("/tmdb/api/"))
@@ -142,7 +149,9 @@ public class TmdbProxyController : BaseController
                     httpversion: ModInit.conf.httpversion,
                     proxy: proxyManager?.Get(),
                     statusCodeOK: false,
-                    httpClient: http2ApiClient
+                    httpClient: ModInit.conf.httpversion == 2
+                        ? http2ApiClient
+                        : null
                 );
 
                 if (result.content == null)
@@ -180,7 +189,7 @@ public class TmdbProxyController : BaseController
         {
             ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
 
-            #region uri
+            #region request uri
             ReadOnlySpan<char> path = httpContext.Request.Path.Value.AsSpan();
 
             if (path.StartsWith("/tmdb/img/"))
@@ -226,14 +235,11 @@ public class TmdbProxyController : BaseController
 
             try
             {
-                if (semaphore != null)
+                bool _acquired = await semaphore.WaitAsync().ConfigureAwait(false);
+                if (!_acquired)
                 {
-                    bool _acquired = await semaphore.WaitAsync().ConfigureAwait(false);
-                    if (!_acquired)
-                    {
-                        httpContext.Response.Redirect(uri);
-                        return;
-                    }
+                    httpContext.Response.Redirect(uri);
+                    return;
                 }
 
                 if (ctsHttp.IsCancellationRequested)
@@ -247,7 +253,7 @@ public class TmdbProxyController : BaseController
                     if (ModInit.conf.responseContentLength && _fileCache.Length > 0)
                         httpContext.Response.ContentLength = _fileCache.Length;
 
-                    semaphore?.Release();
+                    semaphore.Release();
                     await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
                     return;
                 }
@@ -257,21 +263,19 @@ public class TmdbProxyController : BaseController
                     ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
                     : null;
 
+                #region http client
                 var client = FriendlyHttp.MessageClient(
                     "proxyimg",
                     Http.Handler(uri, proxyManager?.Get()),
                     out bool disposeHttpClient,
-                    httpClient: http2ImgClient
+                    httpClient: ModInit.conf.httpversion == 2
+                        ? http2ImgClient
+                        : null
                 );
 
                 var req = new HttpRequestMessage(HttpMethod.Get, uri)
                 {
-                    Version = ModInit.conf.httpversion switch
-                    {
-                        2 => HttpVersion.Version20,
-                        3 => HttpVersion.Version30,
-                        _ => HttpVersion.Version11
-                    }
+                    Version = httpVersion
                 };
 
                 foreach (var h in headersImg)
@@ -282,6 +286,7 @@ public class TmdbProxyController : BaseController
                             req.Content.Headers.TryAddWithoutValidation(h.name, h.val);
                     }
                 }
+                #endregion
 
                 try
                 {
@@ -301,7 +306,7 @@ public class TmdbProxyController : BaseController
 
                                 if (response.StatusCode == HttpStatusCode.OK)
                                 {
-                                    #region cache
+                                    #region cache img
                                     httpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
                                     try
@@ -388,7 +393,7 @@ public class TmdbProxyController : BaseController
             }
             finally
             {
-                semaphore?.Release();
+                semaphore.Release();
             }
         }
     }
