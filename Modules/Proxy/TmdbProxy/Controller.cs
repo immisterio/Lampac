@@ -10,12 +10,12 @@ using Shared.Services.Pools;
 using Shared.Services.Utilities;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -28,13 +28,22 @@ public class TmdbProxyController : BaseController
     #region static
     static readonly HttpClient http2ApiClient = FriendlyHttp.CreateHttp2Client();
     static readonly HttpClient http2ImgClient = FriendlyHttp.CreateHttp2Client();
-    static readonly Serilog.ILogger Log = Serilog.Log.ForContext<TmdbProxyController>();
+
+    const string tmdbApiHost = "api.themoviedb.org";
+    const string tmdbImgHost = "image.tmdb.org";
 
     static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions
     {
         Indented = false,
         SkipValidation = true
     };
+
+    static readonly IReadOnlyList<HeadersModel> headersImg = HeadersModel.Init(
+        // используем старый ua что-бы гарантировать image/jpeg вместо image/webp
+        ("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
+        ("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"),
+        ("Cache-Control", "max-age=0")
+    );
     #endregion
 
     [HttpGet]
@@ -56,25 +65,19 @@ public class TmdbProxyController : BaseController
     [Route("tmdb/{*suffix}")]
     public Task Tmdb()
     {
-        if (HttpContext.Request.Path.Value.StartsWith("/tmdb/api/", StringComparison.OrdinalIgnoreCase))
+        string path = HttpContext.Request.Path.Value;
+
+        if (path.StartsWith("/tmdb/api/", StringComparison.Ordinal))
             return API(HttpContext, hybridCache, requestInfo);
 
-        if (HttpContext.Request.Path.Value.StartsWith("/tmdb/img/", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWith("/tmdb/img/", StringComparison.Ordinal))
             return IMG(HttpContext, requestInfo);
 
-        string path = Regex.Replace(HttpContext.Request.Path.Value, "^/tmdb/https?://", "", RegexOptions.IgnoreCase).Replace("/tmdb/", "");
-        string uri = Regex.Match(path, "^[^/]+/(.*)", RegexOptions.IgnoreCase).Groups[1].Value + HttpContext.Request.QueryString.Value;
-
-        if (path.Contains("api.themoviedb.org", StringComparison.OrdinalIgnoreCase))
-        {
-            HttpContext.Request.Path = $"/tmdb/api/{uri}";
+        if (path.Contains(tmdbApiHost, StringComparison.Ordinal))
             return API(HttpContext, hybridCache, requestInfo);
-        }
-        else if (path.Contains("image.tmdb.org", StringComparison.OrdinalIgnoreCase))
-        {
-            HttpContext.Request.Path = $"/tmdb/img/{uri}";
+
+        if (path.Contains(tmdbImgHost, StringComparison.Ordinal))
             return IMG(HttpContext, requestInfo);
-        }
 
         HttpContext.Response.StatusCode = 403;
         return Task.CompletedTask;
@@ -82,30 +85,41 @@ public class TmdbProxyController : BaseController
 
 
     #region API
-    async static Task API(HttpContext httpContex, IHybridCache hybridCache, RequestModel requestInfo)
+    async static Task API(HttpContext httpContext, IHybridCache hybridCache, RequestModel requestInfo)
     {
-        using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContex.RequestAborted))
+        using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
         {
             ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
-            httpContex.Response.ContentType = "application/json; charset=utf-8";
 
-            string path = httpContex.Request.Path.Value.Replace("/tmdb/api", "", StringComparison.OrdinalIgnoreCase);
-            path = Regex.Replace(path, "^/https?://api.themoviedb.org", "", RegexOptions.IgnoreCase);
-            path = Regex.Replace(path, "/$", "", RegexOptions.IgnoreCase);
+            var bodyWriter = httpContext.Response.BodyWriter;
+            httpContext.Response.ContentType = "application/json; charset=utf-8";
 
-            string query = Regex.Replace(httpContex.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token|nws_id)=[^&]+", "");
-            string uri = "https://api.themoviedb.org" + path + query;
+            #region uri
+            ReadOnlySpan<char> path = httpContext.Request.Path.Value.AsSpan();
 
-            string mkey = $"tmdb/api:{path}:{query}";
-            var entryCache = await hybridCache.EntryAsync<CacheModel>(mkey, textJson: true);
+            if (path.StartsWith("/tmdb/api/"))
+                path = path.Slice(9);
 
-            var bodyWriter = httpContex.Response.BodyWriter;
+            else if (path.StartsWith("/tmdb/"))
+                path = path.Slice(5);
+
+            if (path.StartsWith("/https:"))
+                path = path.Slice(9).Slice(tmdbApiHost.Length);
+            else if (path.StartsWith("/http:"))
+                path = path.Slice(8).Slice(tmdbApiHost.Length);
+
+            if (path.EndsWith('/'))
+                path = path[..^1];
+
+            string uri = RequestUri(tmdbApiHost, path, httpContext.Request.Query);
+            #endregion
+
+            var entryCache = await hybridCache.EntryAsync<CacheModel>(uri, textJson: true);
 
             if (entryCache.success)
             {
-                httpContex.Response.Headers["X-Cache-Status"] = "HIT";
-                httpContex.Response.StatusCode = entryCache.value.statusCode;
-                httpContex.Response.ContentType = "application/json; charset=utf-8";
+                httpContext.Response.Headers["X-Cache-Status"] = "HIT";
+                httpContext.Response.StatusCode = entryCache.value.statusCode;
 
                 using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
                     JsonSerializer.Serialize(writer, entryCache.value.json);
@@ -115,45 +129,45 @@ public class TmdbProxyController : BaseController
             }
             else
             {
-                httpContex.Response.Headers["X-Cache-Status"] = "MISS";
+                httpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
-                var proxyManager = new ProxyManager("tmdb_api", ModInit.conf.proxyapi);
-                var proxy = proxyManager.Get();
+                var proxyManager = ModInit.conf.proxyapi?.useproxy == true
+                    ? new ProxyManager("tmdb_api", ModInit.conf.proxyapi)
+                    : null;
 
-                var result = await Http.BaseGetAsync<JsonObject>(uri, textJson: true, timeoutSeconds: 15, httpversion: ModInit.conf.httpversion, proxy: proxy, statusCodeOK: false, httpClient: http2ApiClient);
+                var result = await Http.BaseGetAsync<JsonObject>(
+                    uri,
+                    textJson: true,
+                    timeoutSeconds: 15,
+                    httpversion: ModInit.conf.httpversion,
+                    proxy: proxyManager?.Get(),
+                    statusCodeOK: false,
+                    httpClient: http2ApiClient
+                );
+
                 if (result.content == null)
                 {
-                    httpContex.Response.ContentType = "application/json; charset=utf-8";
-                    httpContex.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    httpContex.Response.BodyWriter.Write("{\"error\":true,\"msg\":\"json null\"}"u8);
-                    await httpContex.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
+                    proxyManager?.Refresh();
+                    httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    bodyWriter.Write("{\"error\":true,\"msg\":\"json null\"}"u8);
+                    await bodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                     return;
                 }
 
                 int statusCode = (int)result.response.StatusCode;
-                httpContex.Response.StatusCode = statusCode;
+                httpContext.Response.StatusCode = statusCode;
+
+                var cacheModel = new CacheModel(result.content, statusCode);
 
                 if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
-                {
-                    hybridCache.Set(mkey, new CacheModel(result.content, statusCode), DateTime.Now.AddMinutes(1), inmemory: true);
-
-                    using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
-                        JsonSerializer.Serialize(writer, result.content);
-
-                    await bodyWriter.FlushAsync().ConfigureAwait(false);
-                    return;
-                }
+                    hybridCache.Set(uri, cacheModel, DateTime.Now.AddMinutes(1), inmemory: true);
                 else
-                {
-                    hybridCache.Set(mkey, new CacheModel(result.content, statusCode), DateTime.Now.AddMinutes(ModInit.conf.cache_api), textJson: true);
+                    hybridCache.Set(uri, cacheModel, DateTime.Now.AddMinutes(ModInit.conf.cache_api), textJson: true);
 
-                    httpContex.Response.ContentType = "application/json; charset=utf-8";
+                using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
+                    JsonSerializer.Serialize(writer, result.content);
 
-                    using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
-                        JsonSerializer.Serialize(writer, result.content);
-
-                    await bodyWriter.FlushAsync().ConfigureAwait(false);
-                }
+                await bodyWriter.FlushAsync().ConfigureAwait(false);
             }
         }
     }
@@ -166,11 +180,25 @@ public class TmdbProxyController : BaseController
         {
             ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
 
-            string path = httpContext.Request.Path.Value.Replace("/tmdb/img", "", StringComparison.OrdinalIgnoreCase);
-            path = Regex.Replace(path, "^/https?://image.tmdb.org", "", RegexOptions.IgnoreCase);
+            #region uri
+            ReadOnlySpan<char> path = httpContext.Request.Path.Value.AsSpan();
 
-            string query = Regex.Replace(httpContext.Request.QueryString.Value, "(&|\\?)(account_email|email|uid|token|nws_id)=[^&]+", "");
-            string uri = "https://image.tmdb.org" + path + query;
+            if (path.StartsWith("/tmdb/img/"))
+                path = path.Slice(9);
+
+            else if (path.StartsWith("/tmdb/"))
+                path = path.Slice(5);
+
+            if (path.StartsWith("/https:"))
+                path = path.Slice(9).Slice(tmdbImgHost.Length);
+            else if (path.StartsWith("/http:"))
+                path = path.Slice(8).Slice(tmdbImgHost.Length);
+
+            if (path.EndsWith('/'))
+                path = path[..^1];
+
+            string uri = RequestUri(tmdbImgHost, path, httpContext.Request.Query);
+            #endregion
 
             string md5key = CrypTo.md5(uri);
             string outFile = ModInit.fileWatcher.OutFile(md5key);
@@ -188,26 +216,12 @@ public class TmdbProxyController : BaseController
                 if (ModInit.conf.responseContentLength && _fileCache.Length > 0)
                     httpContext.Response.ContentLength = _fileCache.Length;
 
-                try
-                {
-                    await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    ModInit.fileWatcher.Remove(md5key);
-                    Log.Error(ex, "CatchId={CatchId}", "id_aspi1mjf");
-                }
+                await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
+                return;
             }
             #endregion
 
-            var headers = HeadersModel.Init(
-                // используем старый ua что-бы гарантировать image/jpeg вместо image/webp
-                ("Accept", "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5"),
-                ("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"),
-                ("Cache-Control", "max-age=0")
-            );
-
+            ProxyManager proxyManager = null;
             var semaphore = new SemaphorManager(outFile, ctsHttp.Token);
 
             try
@@ -239,11 +253,13 @@ public class TmdbProxyController : BaseController
                 }
                 #endregion
 
-                var proxyManager = new ProxyManager("tmdb_img", ModInit.conf.proxyimg);
+                proxyManager = ModInit.conf.proxyimg?.useproxy == true
+                    ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
+                    : null;
 
                 var client = FriendlyHttp.MessageClient(
                     "proxyimg",
-                    Http.Handler(uri, proxyManager.Get()),
+                    Http.Handler(uri, proxyManager?.Get()),
                     out bool disposeHttpClient,
                     httpClient: http2ImgClient
                 );
@@ -258,7 +274,7 @@ public class TmdbProxyController : BaseController
                     }
                 };
 
-                foreach (var h in headers)
+                foreach (var h in headersImg)
                 {
                     if (!req.Headers.TryAddWithoutValidation(h.name, h.val))
                     {
@@ -295,7 +311,9 @@ public class TmdbProxyController : BaseController
 
                                         ModInit.fileWatcher.EnsureDirectory(md5key);
 
-                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, 
+                                            bufferSize: PoolInvk.bufferSize, 
+                                            options: FileOptions.Asynchronous))
                                         {
                                             while (true)
                                             {
@@ -321,13 +339,9 @@ public class TmdbProxyController : BaseController
                                             if (response.Content.Headers.ContentLength.HasValue)
                                             {
                                                 if (response.Content.Headers.ContentLength.Value == cacheLength)
-                                                {
                                                     ModInit.fileWatcher.Add(md5key, cacheLength);
-                                                }
                                                 else
-                                                {
                                                     IO.File.Delete(outFile);
-                                                }
                                             }
                                             else
                                             {
@@ -344,6 +358,8 @@ public class TmdbProxyController : BaseController
                                 else
                                 {
                                     #region проксируем ошибку
+                                    proxyManager?.Refresh();
+
                                     httpContext.Response.Headers["X-Cache-Status"] = "bypass";
 
                                     while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
@@ -367,6 +383,7 @@ public class TmdbProxyController : BaseController
             }
             catch
             {
+                proxyManager?.Refresh();
                 httpContext.Response.Redirect(uri);
             }
             finally
@@ -374,6 +391,38 @@ public class TmdbProxyController : BaseController
                 semaphore?.Release();
             }
         }
+    }
+    #endregion
+
+
+    #region Utilities
+    static string RequestUri(ReadOnlySpan<char> host, ReadOnlySpan<char> path, IQueryCollection query)
+    {
+        var uri = StringBuilderPool.ThreadInstance;
+
+        uri = uri
+            .Append("https://")
+            .Append(host)
+            .Append(path)
+            .Append('?');
+
+        bool firstArgs = true;
+        foreach (var q in query)
+        {
+            if (q.Key is "account_email" or "email" or "box_mac" or "uid" or "token" or "nws_id")
+                continue;
+
+            if (!string.IsNullOrEmpty(q.Value))
+            {
+                if (!firstArgs)
+                    uri.Append("&");
+
+                uri.Append(q.Key).Append("=").Append(q.Value);
+                firstArgs = false;
+            }
+        }
+
+        return uri.ToString();
     }
     #endregion
 }
