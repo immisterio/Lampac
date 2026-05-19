@@ -394,7 +394,7 @@ public class BaseController : Controller
             uri,
             ip,
             headers != null && headers.Count > 0
-                ? headers 
+                ? headers
                 : null,
             plugin: plugin,
             verifyip: false,

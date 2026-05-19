@@ -152,7 +152,7 @@ public class BaseSettings : Iproxy, Istreamproxy, Icors, Igroup, ICloneable
     }
 
     [JsonIgnore]
-    public IReadOnlyList<HeadersModel> headersList 
+    public IReadOnlyList<HeadersModel> headersList
     {
         get;
         private set;
