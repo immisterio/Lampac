@@ -40,25 +40,4 @@ public static class PoolInvk
             return size;
         }
     }
-
-    static readonly int[] sizesRent =
-    {
-        128 * 1024,
-        512 * 1024,
-        1024 * 1024,
-        5 * 1024 * 1024,
-        10 * 1024 * 1024,
-        20 * 1024 * 1024
-    };
-
-    public static int RentedLen(int length = 0)
-    {
-        for (int i = 0; i < sizesRent.Length; i++)
-        {
-            if (sizesRent[i] >= length)
-                return sizesRent[i];
-        }
-
-        throw new ArgumentException("large rent");
-    }
 }
