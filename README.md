@@ -1,9 +1,20 @@
 # Lampac Next Generation
 
 [![Build](https://github.com/lampac-nextgen/lampac/actions/workflows/build.yml/badge.svg)](https://github.com/lampac-nextgen/lampac/actions/workflows/build.yml)
+[![Test — build all projects](https://github.com/lampac-nextgen/lampac/actions/workflows/test-build.yml/badge.svg)](https://github.com/lampac-nextgen/lampac/actions/workflows/test-build.yml)
 [![Release](https://github.com/lampac-nextgen/lampac/actions/workflows/release.yml/badge.svg)](https://github.com/lampac-nextgen/lampac/actions/workflows/release.yml)
+[![Format code](https://github.com/lampac-nextgen/lampac/actions/workflows/format-code.yml/badge.svg)](https://github.com/lampac-nextgen/lampac/actions/workflows/format-code.yml)
+
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/lampac-nextgen/lampac?label=version)](https://github.com/lampac-nextgen/lampac/releases)
 [![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/lampac-nextgen/lampac?include_prereleases&label=pre-release)](https://github.com/lampac-nextgen/lampac/tags)
+[![License: MIT](https://img.shields.io/github/license/lampac-nextgen/lampac)](LICENSE)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Docker — GHCR image](https://img.shields.io/badge/ghcr.io-lampac--nextgen%2Flampac-2496ED?logo=github)](https://github.com/lampac-nextgen/lampac/pkgs/container/lampac)
+[![GitHub Repo stars](https://img.shields.io/github/stars/lampac-nextgen/lampac?style=flat&logo=github)](https://github.com/lampac-nextgen/lampac/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/lampac-nextgen/lampac?style=flat&logo=github)](https://github.com/lampac-nextgen/lampac/forks)
+[![GitHub last commit](https://img.shields.io/github/last-commit/lampac-nextgen/lampac)](https://github.com/lampac-nextgen/lampac/commits/main)
+[![GitHub Issues](https://img.shields.io/github/issues/lampac-nextgen/lampac)](https://github.com/lampac-nextgen/lampac/issues)
+
 [![Telegram](https://img.shields.io/badge/Telegram-Chat-2CA5E0?logo=telegram&logoColor=white)](https://t.me/LampacTalks/13998)
 [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lampac-nextgen/lampac)
 
