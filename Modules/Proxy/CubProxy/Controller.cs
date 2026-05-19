@@ -166,8 +166,8 @@ public class CubProxyController : BaseController
                     writer.Append(domain);
                     writer.Append(':');
                     writer.Append(uri);
-                }); 
-                
+                });
+
                 string outFile = ModInit.fileWatcher.OutFile(md5key);
 
                 if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
@@ -381,7 +381,7 @@ public class CubProxyController : BaseController
                                     timeoutSeconds: 5,
                                     headers: HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd))
                                 ).ConfigureAwait(false);
-                                
+
                                 if (!string.IsNullOrEmpty(json))
                                 {
                                     cache.statusCode = 200;
