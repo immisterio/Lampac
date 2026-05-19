@@ -25,8 +25,4 @@ public class PoolConf
 
     public int StringBuilderSmallMaxCount { get; set; }
     public int StringBuilderLargeMaxCount { get; set; }
-
-
-    public int NewtonsoftCharMediumMaxCount { get; set; }
-    public int NewtonsoftCharLargeMaxCount { get; set; }
 }

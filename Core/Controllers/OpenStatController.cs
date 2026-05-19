@@ -251,8 +251,7 @@ public class OpenStatController : BaseController
                 },
                 Json = new
                 {
-                    medium = NewtonsoftCharArrayPool.FreeMedium,
-                    large = NewtonsoftCharArrayPool.FreeLarge,
+                    current = NewtonsoftCharArrayPool.FreeCurrent,
                     dispose = NewtonsoftCharArrayPool.DisposeCount
                 }
             }
