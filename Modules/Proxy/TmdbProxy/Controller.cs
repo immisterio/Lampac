@@ -152,7 +152,7 @@ public class TmdbProxyController : BaseController
                     httpClient: ModInit.conf.httpversion == 2
                         ? http2ApiClient
                         : null
-                );
+                ).ConfigureAwait(false);
 
                 if (result.content == null)
                 {
@@ -341,6 +341,8 @@ public class TmdbProxyController : BaseController
 
                                         if (isFullyRead)
                                         {
+                                            proxyManager?.Success();
+
                                             if (response.Content.Headers.ContentLength.HasValue)
                                             {
                                                 if (response.Content.Headers.ContentLength.Value == cacheLength)

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Models.Base;
 using Shared.Services;
@@ -51,42 +50,39 @@ public class CubProxyController : BaseController
         {
             ctsHttp.CancelAfter(TimeSpan.FromSeconds(10));
 
+            var init = ModInit.conf;
+
             var requestInfo = HttpContext.Features.Get<RequestModel>();
             var hybridCache = HybridCache.Get();
 
-            var init = ModInit.conf;
-            string domain = init.domain;
             string path = HttpContext.Request.Path.Value.Replace("/cub/", "", StringComparison.OrdinalIgnoreCase);
             string query = HttpContext.Request.QueryString.Value;
             string uri = Regex.Match(path, "^[^/]+/(.*)", RegexOptions.IgnoreCase).Groups[1].Value + query;
 
-            if (domain == "ws")
-            {
-                HttpContext.Response.Redirect($"https://{path}/{query}");
-                return;
-            }
-
+            string domain = init.domain;
             if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
                 domain = $"{path.Split(".")[0]}.{domain}";
 
-            if (domain.StartsWith("geo", StringComparison.OrdinalIgnoreCase))
+            #region ws/geo
+            if (domain.StartsWith("ws", StringComparison.OrdinalIgnoreCase))
             {
-                // если geo клиента не определен, то скорее всего локальный ip
-                string country = requestInfo.Country;
-                if (country == null)
-                {
-                    // узнаем ip машины (которая скорее всего стоит локально)
-                    var ipify = await Http.Get<JObject>("https://api.ipify.org/?format=json");
-                    if (ipify != null || !string.IsNullOrEmpty(ipify.Value<string>("ip")))
-                        country = GeoIP2.Country(ipify.Value<string>("ip"));
-                }
-
-                await HttpContext.Response.WriteAsync(country ?? "", ctsHttp.Token);
+                HttpContext.Response.Redirect($"https://{domain}{query}");
                 return;
             }
+            else if (domain.StartsWith("geo", StringComparison.OrdinalIgnoreCase))
+            {
+                string country = requestInfo.Country;
+                if (country == null)
+                    country = await mylocalip();
+
+                await HttpContext.Response.WriteAsync(country ?? string.Empty, ctsHttp.Token);
+                return;
+            }
+            #endregion
 
             #region checker
-            if (path.StartsWith("api/checker", StringComparison.OrdinalIgnoreCase) || uri.StartsWith("api/checker", StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWith("api/checker", StringComparison.OrdinalIgnoreCase) ||
+                uri.StartsWith("api/checker", StringComparison.OrdinalIgnoreCase))
             {
                 if (HttpMethods.IsPost(HttpContext.Request.Method))
                 {
@@ -128,7 +124,8 @@ public class CubProxyController : BaseController
             #endregion
 
             #region ads/log/metric
-            if (uri.StartsWith("api/metric/", StringComparison.OrdinalIgnoreCase) || uri.StartsWith("api/ad/stat", StringComparison.OrdinalIgnoreCase))
+            if (uri.StartsWith("api/metric/", StringComparison.OrdinalIgnoreCase) ||
+                uri.StartsWith("api/ad/stat", StringComparison.OrdinalIgnoreCase))
             {
                 HttpContext.Response.ContentType = "application/json; charset=utf-8";
                 HttpContext.Response.StatusCode = StatusCodes.Status200OK;
@@ -151,8 +148,11 @@ public class CubProxyController : BaseController
             }
             #endregion
 
-            var proxyManager = new ProxyManager("cub_api", init);
-            var proxy = proxyManager.Get();
+            var proxyManager = init.useproxy
+                ? new ProxyManager("cub_api", init)
+                : null;
+
+            var proxy = proxyManager?.Get();
 
             bool isMedia = Regex.IsMatch(uri, "\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)", RegexOptions.IgnoreCase);
 
@@ -166,8 +166,8 @@ public class CubProxyController : BaseController
                     writer.Append(domain);
                     writer.Append(':');
                     writer.Append(uri);
-                });
-
+                }); 
+                
                 string outFile = ModInit.fileWatcher.OutFile(md5key);
 
                 if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
@@ -213,7 +213,7 @@ public class CubProxyController : BaseController
                     {
                         if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(HttpContext.Request.Method) && response.StatusCode == HttpStatusCode.OK)
                         {
-                            #region cache
+                            #region cache img
                             HttpContext.Response.ContentType = getContentType(uri);
                             HttpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
@@ -240,7 +240,9 @@ public class CubProxyController : BaseController
 
                                         ModInit.fileWatcher.EnsureDirectory(md5key);
 
-                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
+                                            bufferSize: PoolInvk.bufferSize,
+                                            options: FileOptions.Asynchronous))
                                         {
                                             await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                             {
@@ -261,13 +263,9 @@ public class CubProxyController : BaseController
                                         if (response.Content.Headers.ContentLength.HasValue)
                                         {
                                             if (response.Content.Headers.ContentLength.Value == cacheLength)
-                                            {
                                                 ModInit.fileWatcher.Add(md5key, cacheLength);
-                                            }
                                             else
-                                            {
                                                 System.IO.File.Delete(outFile);
-                                            }
                                         }
                                         else
                                         {
@@ -326,30 +324,44 @@ public class CubProxyController : BaseController
 
                         if (requestInfo.Country != null)
                         {
-                            headers.Add(new HeadersModel("X-Forwarded-For", requestInfo.IP));
-                            headers.Add(new HeadersModel("X-Real-IP", requestInfo.IP));
+                            headers.Add(new("X-Forwarded-For", requestInfo.IP));
+                            headers.Add(new("X-Real-IP", requestInfo.IP));
+                        }
+                        else
+                        {
+                            string myip = await mylocalip();
+                            headers.Add(new("X-Forwarded-For", myip));
+                            headers.Add(new("X-Real-IP", myip));
                         }
 
-                        if (path.Split(".")[0] == "tmdb")
+                        if (path.StartsWith("tmdb."))
                         {
                             if (init.viewru)
-                                headers.Add(new HeadersModel("cookie", "viewru=1"));
+                                headers.Add(new("cookie", "viewru=1"));
 
-                            headers.Add(new HeadersModel("user-agent", HttpContext.Request.Headers.UserAgent.ToString()));
+                            headers.Add(new("user-agent", HttpContext.Request.Headers.UserAgent.ToString()));
                         }
                         else
                         {
                             foreach (var header in HttpContext.Request.Headers)
                             {
                                 if (header.Key.ToLower() is "cookie" or "user-agent")
-                                    headers.Add(new HeadersModel(header.Key, header.Value.ToString()));
+                                    headers.Add(new(header.Key, header.Value.ToString()));
                             }
                         }
 
-                        var result = await Http.BaseGet($"{init.scheme}://{domain}/{uri}", timeoutSeconds: 10, proxy: proxy, headers: headers, statusCodeOK: false, useDefaultHeaders: false).ConfigureAwait(false);
+                        var result = await Http.BaseGet(
+                            $"{init.scheme}://{domain}/{uri}",
+                            timeoutSeconds: 10,
+                            proxy: proxy,
+                            headers: headers,
+                            statusCodeOK: false,
+                            useDefaultHeaders: false
+                        ).ConfigureAwait(false);
+
                         if (string.IsNullOrEmpty(result.content))
                         {
-                            proxyManager.Refresh();
+                            proxyManager?.Refresh();
                             HttpContext.Response.StatusCode = (int)result.response.StatusCode;
                             return;
                         }
@@ -358,12 +370,18 @@ public class CubProxyController : BaseController
                         cache.statusCode = (int)result.response.StatusCode;
                         cache.contentType = result.response.Content?.Headers?.ContentType?.ToString() ?? getContentType(uri);
 
-                        if (domain.StartsWith("tmdb") || domain.StartsWith("tmapi") || domain.StartsWith("apitmdb"))
+                        if (domain.StartsWith("tmdb", StringComparison.OrdinalIgnoreCase) ||
+                            domain.StartsWith("tmapi", StringComparison.OrdinalIgnoreCase) ||
+                            domain.StartsWith("apitmdb", StringComparison.OrdinalIgnoreCase))
                         {
                             if (result.content == "{\"blocked\":true}")
                             {
-                                var header = HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd));
-                                string json = await Http.Get($"http://{CoreInit.conf.listen.localhost}:{CoreInit.conf.listen.port}/tmdb/api/{uri}", timeoutSeconds: 5, headers: header).ConfigureAwait(false);
+                                string json = await Http.Get(
+                                    $"http://{CoreInit.conf.listen.localhost}:{CoreInit.conf.listen.port}/tmdb/api/{uri}",
+                                    timeoutSeconds: 5,
+                                    headers: HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd))
+                                ).ConfigureAwait(false);
+                                
                                 if (!string.IsNullOrEmpty(json))
                                 {
                                     cache.statusCode = 200;
@@ -377,8 +395,13 @@ public class CubProxyController : BaseController
 
                         if (cache.statusCode == 200)
                         {
-                            proxyManager.Success();
+                            proxyManager?.Success();
                             hybridCache.Set(memkey, cache, DateTime.Now.AddMinutes(init.cache_api), inmemory: false);
+                        }
+                        else
+                        {
+                            proxyManager?.Refresh();
+                            hybridCache.Set(memkey, cache, DateTime.Now.AddSeconds(5), inmemory: true);
                         }
                     }
                     else
