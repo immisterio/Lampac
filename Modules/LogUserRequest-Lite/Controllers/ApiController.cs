@@ -13,12 +13,12 @@ public class ApiController : ControllerBase
 {
     private static readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
     private readonly AppDbContext _dbContext;
-    
+
     public ApiController(AppDbContext? dbContext = null)
     {
         _dbContext = dbContext ?? new AppDbContext();
     }
-    
+
     private static string GetAttemptsKey(string ip) => $"LogUserRequest:auth:IP:{ip}";
 
     private bool IsAuthorized()
@@ -43,19 +43,19 @@ public class ApiController : ControllerBase
     public IActionResult Auth()
     {
         var sessionToken = Request.Cookies["loguser_session"];
-        
+
         if (!string.IsNullOrEmpty(sessionToken) && ModInit.ValidateSessionToken(sessionToken))
         {
             return Redirect("/lite/logrequest");
         }
-        
+
         var htmlPath = Path.Combine(ModInit.init.path, "auth.html");
         if (!System.IO.File.Exists(htmlPath)) return Content("Auth page missing", "text/plain");
-        
+
         Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
         Response.Headers["Pragma"] = "no-cache";
         Response.Headers["Expires"] = "0";
-        
+
         var html = System.IO.File.ReadAllText(htmlPath, Encoding.UTF8);
         return Content(html, "text/html; charset=utf-8");
     }
@@ -74,7 +74,7 @@ public class ApiController : ControllerBase
         {
             _cache.Remove(cacheKey);
             var sessionToken = ModInit.CreateSessionToken();
-            
+
             Response.Cookies.Append("loguser_session", sessionToken, new CookieOptions
             {
                 HttpOnly = true,
@@ -84,7 +84,7 @@ public class ApiController : ControllerBase
                 Path = "/lite/logrequest",
                 IsEssential = true
             });
-            
+
             var script = @"
                 <!DOCTYPE html>
                 <html><head><meta charset='utf-8'></head><body>
@@ -99,8 +99,8 @@ public class ApiController : ControllerBase
         }
 
         attempts++;
-        _cache.Set(cacheKey, attempts, new MemoryCacheEntryOptions 
-        { 
+        _cache.Set(cacheKey, attempts, new MemoryCacheEntryOptions
+        {
             AbsoluteExpiration = DateTime.Today.AddDays(1),
             SlidingExpiration = TimeSpan.FromHours(1)
         });
@@ -122,94 +122,102 @@ public class ApiController : ControllerBase
     {
         if (!IsAuthorized()) return Unauthorized();
         take = Math.Min(take, 500);
-        
+
         var query = _dbContext.jurnal.AsNoTracking();
         if (!string.IsNullOrEmpty(uid)) query = query.Where(j => j.uid == uid);
-        
+
         var jurnal = await query.OrderByDescending(x => x.Id).Skip(skip).Take(take).ToListAsync();
         if (jurnal.Count == 0) return Ok(ApiResponse<List<JournalItemDto>>.Fail("Empty"));
-        
+
         var unfoIds = jurnal.Select(j => j.unfo).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
         var unfoDict = await _dbContext.unfo.Where(u => unfoIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
-        
+
         var result = jurnal.Select(j =>
         {
             unfoDict.TryGetValue(j.unfo ?? "", out var unfo);
             return new JournalItemDto
             {
-                Id = j.Id, Time = j.time, Uri = j.uri, UserUid = j.uid,
-                Ip = unfo?.IP ?? "unknown", Country = unfo?.Country ?? "",
+                Id = j.Id,
+                Time = j.time,
+                Uri = j.uri,
+                UserUid = j.uid,
+                Ip = unfo?.IP ?? "unknown",
+                Country = unfo?.Country ?? "",
                 UserAgent = unfo?.UserAgent ?? "unknown",
-                DurationMs = j.duration_ms, Balancer = j.balancer
+                DurationMs = j.duration_ms,
+                Balancer = j.balancer
             };
         }).ToList();
-        
+
         return Ok(ApiResponse<List<JournalItemDto>>.Ok(result));
     }
 
-[HttpGet("premium-chart")]
-public async Task<IActionResult> PremiumChart(int days = 7)
-{
-    if (!IsAuthorized()) return Unauthorized();
-    
-    days = Math.Min(days, 3); 
-    
-    var startDate = DateTime.UtcNow.AddDays(-days);
-    var query = _dbContext.jurnal
-        .Where(j => j.time >= startDate)
-        .GroupBy(j => j.time.Date)
-        .Select(g => new { date = g.Key, count = g.Count() })
-        .OrderBy(x => x.date);
-    
-    var data = await query.ToListAsync();
-    
-    var result = new
+    [HttpGet("premium-chart")]
+    public async Task<IActionResult> PremiumChart(int days = 7)
     {
-        data = data,
-        message = "В Lite-версии доступно только 2 дня. Premium — до 90 дней.",
-        premiumAvailable = true
-    };
-    
-    return Ok(ApiResponse<object>.Ok(result));
-}
+        if (!IsAuthorized()) return Unauthorized();
+
+        days = Math.Min(days, 3);
+
+        var startDate = DateTime.UtcNow.AddDays(-days);
+        var query = _dbContext.jurnal
+            .Where(j => j.time >= startDate)
+            .GroupBy(j => j.time.Date)
+            .Select(g => new { date = g.Key, count = g.Count() })
+            .OrderBy(x => x.date);
+
+        var data = await query.ToListAsync();
+
+        var result = new
+        {
+            data = data,
+            message = "В Lite-версии доступно только 2 дня. Premium — до 90 дней.",
+            premiumAvailable = true
+        };
+
+        return Ok(ApiResponse<object>.Ok(result));
+    }
 
     [HttpGet("stats")]
     public async Task<IActionResult> Stats(string? uid)
     {
         if (!IsAuthorized()) return Unauthorized();
-        
+
         var query = _dbContext.jurnal.AsNoTracking();
         if (!string.IsNullOrEmpty(uid)) query = query.Where(j => j.uid == uid);
-        
+
         var userLogs = await query.OrderByDescending(j => j.time).Take(50000).ToListAsync();
         if (userLogs.Count == 0) return Ok(ApiResponse<StatsDto>.Fail("Empty"));
-        
+
         var unfoIds = userLogs.Select(j => j.unfo).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
         var unfoList = await _dbContext.unfo.Where(u => unfoIds.Contains(u.Id)).ToListAsync();
-        
+
         var uniqueIp = unfoList.Select(u => u.IP).Where(ip => !string.IsNullOrEmpty(ip)).Distinct().Count();
         var uniqueUserAgent = unfoList.Select(u => u.UserAgent).Where(ua => !string.IsNullOrEmpty(ua)).Distinct().Count();
-        
+
         var now = DateTime.UtcNow;
         var today = userLogs.Count(l => l.time.Day == now.Day && l.time.Month == now.Month && l.time.Year == now.Year);
         var month = userLogs.Count(l => l.time.Month == now.Month && l.time.Year == now.Year);
-        
+
         var topBalancers = userLogs
             .GroupBy(l => l.balancer)
             .Where(g => !string.IsNullOrEmpty(g.Key))
             .Select(g => new TopItemDto { Name = g.Key ?? "", Count = g.Count() })
             .OrderByDescending(x => x.Count).Take(50).ToArray();
-        
+
         var topUsers = userLogs
             .GroupBy(j => j.uid)
             .Select(g => new TopItemDto { Name = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count).Take(20).ToArray();
-        
+
         return Ok(ApiResponse<StatsDto>.Ok(new StatsDto
         {
-            Today = today, Month = month,
-            UniqueIp = uniqueIp, UniqueUserAgent = uniqueUserAgent,
-            TopUsers = topUsers, TopBalancers = topBalancers
+            Today = today,
+            Month = month,
+            UniqueIp = uniqueIp,
+            UniqueUserAgent = uniqueUserAgent,
+            TopUsers = topUsers,
+            TopBalancers = topBalancers
         }));
     }
 

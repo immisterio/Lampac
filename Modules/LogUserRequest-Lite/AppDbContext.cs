@@ -60,7 +60,7 @@ public class HeaderModelSql
 {
     [Key] public string Id { get; set; } = "";
     public string HeadersJson { get; set; } = "";
-    
+
     [NotMapped]
     public Dictionary<string, string> Headers
     {

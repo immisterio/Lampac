@@ -13,28 +13,28 @@ public class LogUserRequestMiddleware
     private static long _lastQueueOverflowLog = 0;
     private readonly RequestDelegate _next;
     private static readonly MemoryCache _rateLimitCache = new(new MemoryCacheOptions { SizeLimit = 100_000 });
-    
+
     // Только служебные пути, которые НЕ нужно логировать
     private static readonly HashSet<string> _blacklistPaths = new(StringComparer.OrdinalIgnoreCase)
     {
         "/.well-known", "/admin/health", "/admin/ping", "/testaccsdb", "/nws",
-        "/lifeevents", "/proxyimg", "/lite/logrequest", 
+        "/lifeevents", "/proxyimg", "/lite/logrequest",
         "/lite/events", "/nexthub?plugin", "/externalids",
         "/lampa-main", "/lite/withsearch", "/lite/mirage/trans/master.m3u8",
-        "/timecode", "/bookmark", "/storage", "/sisi/bookmarks?box_mac", "/cub" 
+        "/timecode", "/bookmark", "/storage", "/sisi/bookmarks?box_mac", "/cub"
     };
-    
+
     private static readonly HashSet<string> _blacklistParams = new(StringComparer.OrdinalIgnoreCase)
     {
         "box_mac"
     };
-    
-    private static readonly MemoryCache _skipPathCache = new(new MemoryCacheOptions 
-    { 
+
+    private static readonly MemoryCache _skipPathCache = new(new MemoryCacheOptions
+    {
         SizeLimit = 10000,
         ExpirationScanFrequency = TimeSpan.FromMinutes(5)
     });
-    
+
     public LogUserRequestMiddleware(RequestDelegate next) => _next = next;
 
     private static bool IsPrivateIP(string ip)
@@ -71,13 +71,13 @@ public class LogUserRequestMiddleware
         }
         return remoteIp;
     }
-    
+
     private static bool ShouldLog(string path, string query)
     {
         var cacheKey = $"skip:{path}";
         if (_skipPathCache.TryGetValue(cacheKey, out bool shouldSkip) && shouldSkip)
             return false;
-        
+
         foreach (var black in _blacklistPaths)
         {
             if (path.StartsWith(black, StringComparison.OrdinalIgnoreCase) ||
@@ -87,7 +87,7 @@ public class LogUserRequestMiddleware
                 return false;
             }
         }
-        
+
         foreach (var param in _blacklistParams)
         {
             if (query.Contains(param + "=", StringComparison.OrdinalIgnoreCase) ||
@@ -96,7 +96,7 @@ public class LogUserRequestMiddleware
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -104,26 +104,26 @@ public class LogUserRequestMiddleware
     {
 
         await _next(context);
-        
+
         try
         {
             var path = context.Request.Path.Value ?? "";
             var query = context.Request.QueryString.Value ?? "";
-            
+
             if (path == "/" || path == "/favicon.ico" ||
-                path.EndsWith(".js") || path.EndsWith(".css") || path.EndsWith(".svg") || 
-                path.EndsWith(".png") || path.EndsWith(".jpg") || path.EndsWith(".woff") || 
+                path.EndsWith(".js") || path.EndsWith(".css") || path.EndsWith(".svg") ||
+                path.EndsWith(".png") || path.EndsWith(".jpg") || path.EndsWith(".woff") ||
                 path.EndsWith(".woff2") || path.EndsWith(".ogg") ||
                 path.StartsWith("/proxy/"))
             {
                 return;
             }
-            
+
             if (!ShouldLog(path, query))
             {
                 return;
             }
-            
+
             var realIP = GetRealIP(context);
             var headers = context.Request.Headers;
 
@@ -131,7 +131,7 @@ public class LogUserRequestMiddleware
             {
                 return;
             }
-            
+
             _rateLimitCache.Set(realIP, DateTime.UtcNow, new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMilliseconds(33),
@@ -175,7 +175,7 @@ public class LogUserRequestMiddleware
 
             var fullUri = path + query;
             if (fullUri.Length > 2048) fullUri = fullUri[..2048];
-            
+
             string balancer = "";
             if (path.StartsWith("/lite/"))
                 balancer = path[6..].Split('/', '?')[0];
