@@ -101,25 +101,8 @@ public class TmdbProxyController : BaseController
             var bodyWriter = httpContext.Response.BodyWriter;
             httpContext.Response.ContentType = "application/json; charset=utf-8";
 
-            #region request uri
-            ReadOnlySpan<char> path = httpContext.Request.Path.Value.AsSpan();
-
-            if (path.StartsWith("/tmdb/api/"))
-                path = path.Slice(9);
-
-            else if (path.StartsWith("/tmdb/"))
-                path = path.Slice(5);
-
-            if (path.StartsWith("/https:"))
-                path = path.Slice(9).Slice(tmdbApiHost.Length);
-            else if (path.StartsWith("/http:"))
-                path = path.Slice(8).Slice(tmdbApiHost.Length);
-
-            if (path.EndsWith('/'))
-                path = path[..^1];
-
+            ReadOnlySpan<char> path = RequestPath(httpContext.Request.Path.Value, "/tmdb/api/", tmdbApiHost);
             string uri = RequestUri(tmdbApiHost, path, httpContext.Request.Query);
-            #endregion
 
             var entryCache = await hybridCache.EntryAsync<CacheModel>(uri, textJson: true);
 
@@ -131,7 +114,7 @@ public class TmdbProxyController : BaseController
                 using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
                     JsonSerializer.Serialize(writer, entryCache.value.json);
 
-                await bodyWriter.FlushAsync().ConfigureAwait(false);
+                await bodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                 return;
             }
             else
@@ -176,7 +159,7 @@ public class TmdbProxyController : BaseController
                 using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
                     JsonSerializer.Serialize(writer, result.content);
 
-                await bodyWriter.FlushAsync().ConfigureAwait(false);
+                await bodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
             }
         }
     }
@@ -189,25 +172,8 @@ public class TmdbProxyController : BaseController
         {
             ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
 
-            #region request uri
-            ReadOnlySpan<char> path = httpContext.Request.Path.Value.AsSpan();
-
-            if (path.StartsWith("/tmdb/img/"))
-                path = path.Slice(9);
-
-            else if (path.StartsWith("/tmdb/"))
-                path = path.Slice(5);
-
-            if (path.StartsWith("/https:"))
-                path = path.Slice(9).Slice(tmdbImgHost.Length);
-            else if (path.StartsWith("/http:"))
-                path = path.Slice(8).Slice(tmdbImgHost.Length);
-
-            if (path.EndsWith('/'))
-                path = path[..^1];
-
+            ReadOnlySpan<char> path = RequestPath(httpContext.Request.Path.Value, "/tmdb/img/", tmdbImgHost);
             string uri = RequestUri(tmdbImgHost, path, httpContext.Request.Query);
-            #endregion
 
             string md5key = CrypTo.md5(uri);
             string outFile = ModInit.fileWatcher.OutFile(md5key);
@@ -279,13 +245,7 @@ public class TmdbProxyController : BaseController
                 };
 
                 foreach (var h in headersImg)
-                {
-                    if (!req.Headers.TryAddWithoutValidation(h.name, h.val))
-                    {
-                        if (req.Content?.Headers != null)
-                            req.Content.Headers.TryAddWithoutValidation(h.name, h.val);
-                    }
-                }
+                    req.Headers.TryAddWithoutValidation(h.name, h.val);
                 #endregion
 
                 try
@@ -335,7 +295,7 @@ public class TmdbProxyController : BaseController
 
                                                 var wrm = memBuf.Slice(0, bytesRead);
                                                 await cacheStream.WriteAsync(wrm).ConfigureAwait(false);
-                                                await httpContext.Response.Body.WriteAsync(wrm).ConfigureAwait(false);
+                                                await httpContext.Response.Body.WriteAsync(wrm, ctsHttp.Token).ConfigureAwait(false);
                                             }
                                         }
 
@@ -374,7 +334,7 @@ public class TmdbProxyController : BaseController
                                         if (ctsHttp.IsCancellationRequested)
                                             break;
 
-                                        await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                        await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
                                     }
                                     #endregion
                                 }
@@ -403,29 +363,58 @@ public class TmdbProxyController : BaseController
 
 
     #region Utilities
+    static ReadOnlySpan<char> RequestPath(string pathString, string route, string tmdbHost)
+    {
+        ReadOnlySpan<char> path = pathString.AsSpan();
+
+        if (path.StartsWith(route))
+            path = path.Slice(9);
+
+        else if (path.StartsWith("/tmdb/"))
+            path = path.Slice(5);
+
+        if (path.StartsWith("/https:"))
+            path = path.Slice(9 + tmdbApiHost.Length);
+        else if (path.StartsWith("/http:"))
+            path = path.Slice(8 + tmdbApiHost.Length);
+
+        if (path.StartsWith("//"))
+            path = path.Slice(1);
+
+        if (path.EndsWith('/'))
+            path = path[..^1];
+
+        return path;
+    }
+
     static string RequestUri(ReadOnlySpan<char> host, ReadOnlySpan<char> path, IQueryCollection query)
     {
         var uri = StringBuilderPool.ThreadInstance;
 
-        uri = uri
-            .Append("https://")
-            .Append(host)
-            .Append(path)
-            .Append('?');
+        uri.Append("https://")
+           .Append(host)
+           .Append(path);
 
-        bool firstArgs = true;
+        var firstArg = true;
+
         foreach (var q in query)
         {
             if (q.Key is "account_email" or "email" or "box_mac" or "uid" or "token" or "nws_id")
                 continue;
 
-            if (!string.IsNullOrEmpty(q.Value))
-            {
-                if (!firstArgs)
-                    uri.Append("&");
+            var values = q.Value;
+            if (values.Count == 0)
+                continue;
 
-                uri.Append(q.Key).Append("=").Append(q.Value);
-                firstArgs = false;
+            for (int i = 0; i < values.Count; i++)
+            {
+                var value = values[i];
+                if (string.IsNullOrEmpty(value))
+                    continue;
+
+                uri.Append(firstArg ? '?' : '&');
+                uri.Append(q.Key).Append('=').Append(value);
+                firstArg = false;
             }
         }
 
