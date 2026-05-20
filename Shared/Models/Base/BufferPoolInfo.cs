@@ -40,10 +40,7 @@ public class BufferPoolInfo<T> where T : unmanaged
 
         Interlocked.Increment(ref _currentCount);
 
-        nbuf = new NativeBuffer<T>(sizePool);
-        pool.Add(nbuf);
-
-        return nbuf;
+        return new NativeBuffer<T>(sizePool);
     }
 
     public void Return(NativeBuffer<T> nbuf)

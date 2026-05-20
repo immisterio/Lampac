@@ -75,6 +75,11 @@ public sealed class BufferBytePool : IDisposable
         _index += count;
     }
 
+    public void Ensure(int sizeHint)
+    {
+        _nbuf.Ensure(sizeHint);
+    }
+
     public Span<byte> Span
         => _nbuf.Memory.Span;
 

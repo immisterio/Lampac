@@ -78,6 +78,11 @@ public sealed class BufferCharPool : IDisposable
         _index += count;
     }
 
+    public void Ensure(int sizeHint)
+    {
+        _nbuf.Ensure(sizeHint);
+    }
+
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
