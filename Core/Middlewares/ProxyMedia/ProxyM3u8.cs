@@ -73,12 +73,15 @@ public partial class ProxyAPI
                                 #region writePipe
                                 void writePipe(ReadOnlySpan<char> chars)
                                 {
-                                    // размер line обычно ниже 1000 char ~3кб
-                                    const int chunkLine = 4 * 1024;
+                                    /// UTF-16: 1 char -> 2 bytes
+                                    /// Кириллица: 1 char -> 2-4 bytes
+                                    int chunkSize = chars.Length > 1360 // возьмем середину 1 char -> 3 bytes
+                                        ? 16384
+                                        : 4096;
 
                                     while (!chars.IsEmpty)
                                     {
-                                        Span<byte> dest = writer.GetSpan(chunkLine);
+                                        Span<byte> dest = writer.GetSpan(chunkSize);
 
                                         encoder.Convert(
                                             chars,
