@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Models.Base;
 using Shared.Services;
-using Shared.Services.Hybrid;
 using Shared.Services.Pools;
 using Shared.Services.Utilities;
 using System;
@@ -24,11 +23,13 @@ namespace CubProxy;
 
 public class CubProxyController : BaseController
 {
+    static readonly string[] adEmpty = new string[] { };
+
     [HttpGet]
     [AllowAnonymous]
     [Route("cubproxy.js")]
     [Route("cubproxy/js/{token}")]
-    public ActionResult CubProxy(string token)
+    public ActionResult Plugin(string token)
     {
         SetHeadersNoCache();
 
@@ -44,7 +45,7 @@ public class CubProxyController : BaseController
     [HttpPost]
     [AllowAnonymous]
     [Route("cub/{*suffix}")]
-    async public Task Cub()
+    async public Task Proxy()
     {
         using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
         {
@@ -52,24 +53,24 @@ public class CubProxyController : BaseController
 
             var init = ModInit.conf;
 
-            var requestInfo = HttpContext.Features.Get<RequestModel>();
-            var hybridCache = HybridCache.Get();
+            string path = HttpContext.Request.Path.Value
+                .Substring(5)
+                .ToLowerInvariant();
 
-            string path = HttpContext.Request.Path.Value.Replace("/cub/", "", StringComparison.OrdinalIgnoreCase);
-            string query = HttpContext.Request.QueryString.Value;
-            string uri = Regex.Match(path, "^[^/]+/(.*)", RegexOptions.IgnoreCase).Groups[1].Value + query;
+            int dotIndex = path.IndexOf('.');
+            string subdomain = dotIndex >= 0 ? path[..dotIndex] : string.Empty;
+            string domain = GetDomain(subdomain, init.domain);
 
-            string domain = init.domain;
-            if (path.Split(".")[0] is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
-                domain = $"{path.Split(".")[0]}.{domain}";
+            int slashIndex = path.IndexOf('/');
+            string uri = (slashIndex >= 0 ? path.Substring(slashIndex+1) : path) + HttpContext.Request.QueryString.Value;
 
             #region ws/geo
-            if (domain.StartsWith("ws", StringComparison.OrdinalIgnoreCase))
+            if (subdomain.Equals("ws"))
             {
-                HttpContext.Response.Redirect($"https://{domain}{query}");
+                HttpContext.Response.Redirect($"https://{domain}{HttpContext.Request.QueryString.Value}");
                 return;
             }
-            else if (domain.StartsWith("geo", StringComparison.OrdinalIgnoreCase))
+            else if (subdomain.Equals("geo"))
             {
                 string country = requestInfo.Country;
                 if (country == null)
@@ -81,13 +82,12 @@ public class CubProxyController : BaseController
             #endregion
 
             #region checker
-            if (path.StartsWith("api/checker", StringComparison.OrdinalIgnoreCase) ||
-                uri.StartsWith("api/checker", StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWith("api/checker") || uri.StartsWith("api/checker"))
             {
                 if (HttpMethods.IsPost(HttpContext.Request.Method))
                 {
-                    if (HttpContext.Request.ContentType != null &&
-                        HttpContext.Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+                    var ct = HttpContext.Request.ContentType;
+                    if (ct != null && ct.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
                     {
                         using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, false, PoolInvk.bufferSize, leaveOpen: true))
                         {
@@ -113,7 +113,7 @@ public class CubProxyController : BaseController
             #endregion
 
             #region blacklist
-            if (uri.StartsWith("api/plugins/blacklist", StringComparison.OrdinalIgnoreCase))
+            if (uri.StartsWith("api/plugins/blacklist"))
             {
                 HttpContext.Response.ContentType = "application/json; charset=utf-8";
                 HttpContext.Response.StatusCode = StatusCodes.Status200OK;
@@ -124,8 +124,7 @@ public class CubProxyController : BaseController
             #endregion
 
             #region ads/log/metric
-            if (uri.StartsWith("api/metric/", StringComparison.OrdinalIgnoreCase) ||
-                uri.StartsWith("api/ad/stat", StringComparison.OrdinalIgnoreCase))
+            if (uri.StartsWith("api/metric/") || uri.StartsWith("api/ad/stat"))
             {
                 HttpContext.Response.ContentType = "application/json; charset=utf-8";
                 HttpContext.Response.StatusCode = StatusCodes.Status200OK;
@@ -134,12 +133,12 @@ public class CubProxyController : BaseController
                 return;
             }
 
-            if (uri.StartsWith("api/ad/vast", StringComparison.OrdinalIgnoreCase))
+            if (uri.StartsWith("api/ad/vast"))
             {
                 await HttpContext.Response.WriteAsJsonAsync(new
                 {
                     secuses = true,
-                    ad = new string[] { },
+                    ad = adEmpty,
                     day_of_month = DateTime.Now.Day,
                     days_in_month = 31,
                     month = DateTime.Now.Month
@@ -154,10 +153,10 @@ public class CubProxyController : BaseController
 
             var proxy = proxyManager?.Get();
 
-            bool isMedia = Regex.IsMatch(uri, "\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)", RegexOptions.IgnoreCase);
+            bool isMedia = Regex.IsMatch(path, "\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)", RegexOptions.IgnoreCase);
 
             if (0 >= init.cache_api || !HttpMethods.IsGet(HttpContext.Request.Method) || isMedia ||
-                (path.Split(".")[0] is "imagetmdb" or "cdn" or "ad") ||
+                (subdomain is "imagetmdb" or "cdn" or "ad") ||
                 HttpContext.Request.Headers.ContainsKey("token") || HttpContext.Request.Headers.ContainsKey("profile"))
             {
                 #region bypass or media cache
@@ -166,14 +165,14 @@ public class CubProxyController : BaseController
                     writer.Append(domain);
                     writer.Append(':');
                     writer.Append(uri);
-                });
-
+                }); 
+                
                 string outFile = ModInit.fileWatcher.OutFile(md5key);
 
                 if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
                 {
                     HttpContext.Response.Headers["X-Cache-Status"] = "HIT";
-                    HttpContext.Response.ContentType = getContentType(uri);
+                    HttpContext.Response.ContentType = getContentType(path);
 
                     if (_fileCache.Length > 0)
                         HttpContext.Response.ContentLength = _fileCache.Length;
@@ -181,127 +180,141 @@ public class CubProxyController : BaseController
                     await HttpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
                     return;
                 }
-
-                var handler = new HttpClientHandler()
-                {
-                    ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate,
-                    AutomaticDecompression = DecompressionMethods.None,
-                    AllowAutoRedirect = true
-                };
-
-                if (proxy != null)
-                {
-                    handler.UseProxy = true;
-                    handler.Proxy = proxy;
-                }
                 else
                 {
-                    handler.UseProxy = false;
-                }
-
-                var client = FriendlyHttp.MessageClient(
-                    "proxyRedirect",
-                    handler,
-                    out bool disposeHttpClient
-                );
-
-                try
-                {
-                    var request = CreateProxyHttpRequest(HttpContext, new Uri($"{init.scheme}://{domain}/{uri}"), requestInfo, init.viewru && path.Split(".")[0] == "tmdb");
-
-                    using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
+                    var handler = new HttpClientHandler()
                     {
-                        if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(HttpContext.Request.Method) && response.StatusCode == HttpStatusCode.OK)
+                        ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate,
+                        AutomaticDecompression = DecompressionMethods.None,
+                        AllowAutoRedirect = true
+                    };
+
+                    if (proxy != null)
+                    {
+                        handler.UseProxy = true;
+                        handler.Proxy = proxy;
+                    }
+                    else
+                    {
+                        handler.UseProxy = false;
+                    }
+
+                    var client = FriendlyHttp.MessageClient(
+                        "proxyRedirect",
+                        handler,
+                        out bool disposeHttpClient
+                    );
+
+                    try
+                    {
+                        var request = CreateProxyHttpRequest(
+                            HttpContext,
+                            new Uri($"{init.scheme}://{domain}/{uri}"),
+                            requestInfo,
+                            init.viewru && subdomain == "tmdb"
+                        );
+
+                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                         {
-                            #region cache img
-                            HttpContext.Response.ContentType = getContentType(uri);
-                            HttpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                            if (init.responseContentLength && response.Content?.Headers?.ContentLength > 0)
+                            if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(HttpContext.Request.Method) && response.StatusCode == HttpStatusCode.OK)
                             {
-                                if (!CoreInit.ContainsMimeTypes(HttpContext.Response.ContentType))
-                                    HttpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
-                            }
+                                #region cache img
+                                HttpContext.Response.ContentType = getContentType(path);
+                                HttpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
-                            var semaphore = new SemaphorManager(outFile, ctsHttp.Token);
-
-                            try
-                            {
-                                bool _acquired = await semaphore.WaitAsync().ConfigureAwait(false);
-                                if (!_acquired)
-                                    return;
-
-                                using (var nbuf = new BufferPool())
+                                if (init.responseContentLength && response.Content?.Headers?.ContentLength > 0)
                                 {
-                                    try
+                                    if (!CoreInit.ContainsMimeTypes(HttpContext.Response.ContentType))
+                                        HttpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+                                }
+
+                                var semaphore = new SemaphorManager(outFile, ctsHttp.Token);
+
+                                try
+                                {
+                                    bool _acquired = await semaphore.WaitAsync().ConfigureAwait(false);
+                                    if (!_acquired)
+                                        return;
+
+                                    using (var nbuf = new BufferPool())
                                     {
-                                        int cacheLength = 0;
-                                        var memBuf = nbuf.Memory;
-
-                                        ModInit.fileWatcher.EnsureDirectory(md5key);
-
-                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
-                                            bufferSize: PoolInvk.bufferSize,
-                                            options: FileOptions.Asynchronous))
+                                        try
                                         {
-                                            await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
+                                            int cacheLength = 0;
+                                            var memBuf = nbuf.Memory;
+
+                                            ModInit.fileWatcher.EnsureDirectory(md5key);
+
+                                            await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
+                                                bufferSize: PoolInvk.bufferSize,
+                                                options: FileOptions.Asynchronous))
                                             {
-                                                int bytesRead;
-
-                                                while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
+                                                await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                                 {
-                                                    if (ctsHttp.IsCancellationRequested)
-                                                        break;
+                                                    int bytesRead;
 
-                                                    cacheLength += bytesRead;
-                                                    await cacheStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                                                    await HttpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
+                                                    while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
+                                                    {
+                                                        if (ctsHttp.IsCancellationRequested)
+                                                            break;
+
+                                                        cacheLength += bytesRead;
+                                                        await cacheStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                                        await HttpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
+                                                    }
                                                 }
                                             }
-                                        }
 
-                                        if (response.Content.Headers.ContentLength.HasValue)
-                                        {
-                                            if (response.Content.Headers.ContentLength.Value == cacheLength)
-                                                ModInit.fileWatcher.Add(md5key, cacheLength);
+                                            if (response.Content.Headers.ContentLength.HasValue)
+                                            {
+                                                if (response.Content.Headers.ContentLength.Value == cacheLength)
+                                                    ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                else
+                                                    System.IO.File.Delete(outFile);
+                                            }
                                             else
-                                                System.IO.File.Delete(outFile);
+                                            {
+                                                ModInit.fileWatcher.Add(md5key, cacheLength);
+                                            }
                                         }
-                                        else
+                                        catch
                                         {
-                                            ModInit.fileWatcher.Add(md5key, cacheLength);
+                                            System.IO.File.Delete(outFile);
                                         }
-                                    }
-                                    catch
-                                    {
-                                        System.IO.File.Delete(outFile);
                                     }
                                 }
+                                finally
+                                {
+                                    semaphore.Release();
+                                }
+                                #endregion
                             }
-                            finally
+                            else
                             {
-                                semaphore.Release();
+                                HttpContext.Response.Headers["X-Cache-Status"] = "bypass";
+                                await CopyProxyHttpResponse(HttpContext, response, ctsHttp.Token).ConfigureAwait(false);
                             }
-                            #endregion
-                        }
-                        else
-                        {
-                            HttpContext.Response.Headers["X-Cache-Status"] = "bypass";
-                            await CopyProxyHttpResponse(HttpContext, response, ctsHttp.Token).ConfigureAwait(false);
                         }
                     }
-                }
-                finally
-                {
-                    if (disposeHttpClient)
-                        client.Dispose();
+                    finally
+                    {
+                        if (disposeHttpClient)
+                            client.Dispose();
+                    }
                 }
                 #endregion
             }
             else
             {
                 #region cache string
-                string memkey = $"cubproxy:key2:{domain}:{uri}";
+                string memkey = CrypTo.md5Builder(writer =>
+                {
+                    writer.Append("cubproxy:key2:");
+                    writer.Append(domain);
+                    writer.Append(':');
+                    writer.Append(uri);
+                });
+
                 (byte[] content, int statusCode, string contentType) cache = default;
 
                 var semaphore = new SemaphorManager(memkey, ctsHttp.Token);
@@ -334,7 +347,7 @@ public class CubProxyController : BaseController
                             headers.Add(new("X-Real-IP", myip));
                         }
 
-                        if (path.StartsWith("tmdb."))
+                        if (subdomain == "tmdb")
                         {
                             if (init.viewru)
                                 headers.Add(new("cookie", "viewru=1"));
@@ -345,7 +358,8 @@ public class CubProxyController : BaseController
                         {
                             foreach (var header in HttpContext.Request.Headers)
                             {
-                                if (header.Key.ToLower() is "cookie" or "user-agent")
+                                if (header.Key.Equals("cookie", StringComparison.OrdinalIgnoreCase) ||
+                                    header.Key.Equals("user-agent", StringComparison.OrdinalIgnoreCase))
                                     headers.Add(new(header.Key, header.Value.ToString()));
                             }
                         }
@@ -368,11 +382,9 @@ public class CubProxyController : BaseController
 
                         cache.content = Encoding.UTF8.GetBytes(result.content);
                         cache.statusCode = (int)result.response.StatusCode;
-                        cache.contentType = result.response.Content?.Headers?.ContentType?.ToString() ?? getContentType(uri);
+                        cache.contentType = result.response.Content?.Headers?.ContentType?.ToString() ?? getContentType(path);
 
-                        if (domain.StartsWith("tmdb", StringComparison.OrdinalIgnoreCase) ||
-                            domain.StartsWith("tmapi", StringComparison.OrdinalIgnoreCase) ||
-                            domain.StartsWith("apitmdb", StringComparison.OrdinalIgnoreCase))
+                        if (subdomain is "tmdb" or "tmapi" or "apitmdb")
                         {
                             if (result.content == "{\"blocked\":true}")
                             {
@@ -381,7 +393,7 @@ public class CubProxyController : BaseController
                                     timeoutSeconds: 5,
                                     headers: HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd))
                                 ).ConfigureAwait(false);
-
+                                
                                 if (!string.IsNullOrEmpty(json))
                                 {
                                     cache.statusCode = 200;
@@ -425,25 +437,6 @@ public class CubProxyController : BaseController
         }
     }
 
-
-    #region getContentType
-    static string getContentType(string uri)
-    {
-        return Path.GetExtension(uri).ToLowerInvariant() switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".ico" => "image/x-icon",
-            ".svg" => "image/svg+xml",
-            ".mp4" => "video/mp4",
-            ".js" => "application/javascript",
-            ".css" => "text/css",
-            _ => "application/octet-stream"
-        };
-    }
-    #endregion
 
     #region CreateProxyHttpRequest
     static readonly FrozenSet<string> excludedRequestHeaders = new[]
@@ -588,6 +581,42 @@ public class CubProxyController : BaseController
                 }
             }
         }
+    }
+    #endregion
+
+
+    #region Utilities
+    static string GetDomain(string subdomain, string domain)
+    {
+        if (subdomain is "geo" or "tmdb" or "tmapi" or "apitmdb" or "imagetmdb" or "cdn" or "ad" or "ws")
+        {
+            var uri = StringBuilderPool.ThreadInstance;
+
+            uri.Append(subdomain)
+               .Append('.')
+               .Append(domain);
+
+            return uri.ToString();
+        }
+
+        return domain;
+    }
+
+    static string getContentType(string path)
+    {
+        return Path.GetExtension(path) switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".ico" => "image/x-icon",
+            ".svg" => "image/svg+xml",
+            ".mp4" => "video/mp4",
+            ".js" => "application/javascript",
+            ".css" => "text/css",
+            _ => "application/octet-stream"
+        };
     }
     #endregion
 }
