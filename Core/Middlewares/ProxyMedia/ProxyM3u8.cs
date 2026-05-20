@@ -73,11 +73,12 @@ public partial class ProxyAPI
                                 #region writePipe
                                 void writePipe(ReadOnlySpan<char> chars)
                                 {
-                                    const int chunkSize = 4 * 1024;
+                                    // размер line обычно ниже 1000 char ~3кб
+                                    const int chunkLine = 4 * 1024;
 
                                     while (!chars.IsEmpty)
                                     {
-                                        Span<byte> dest = writer.GetSpan(chunkSize);
+                                        Span<byte> dest = writer.GetSpan(chunkLine);
 
                                         encoder.Convert(
                                             chars,
@@ -105,6 +106,9 @@ public partial class ProxyAPI
                                 void writeUri(ReadOnlySpan<char> prefix, ReadOnlySpan<char> uri)
                                 {
                                     int size = prefix.Length + uri.Length;
+                                    if (size > charBuffer.Span.Length)
+                                        charBuffer.Ensure(size);
+
                                     Span<char> joinUri = charBuffer.Span.Slice(0, size);
 
                                     prefix.CopyTo(joinUri);
@@ -196,7 +200,7 @@ public partial class ProxyAPI
                                     }
                                     else
                                     {
-                                        if (line.Contains("#", StringComparison.Ordinal) ||
+                                        if (line.StartsWith("#", StringComparison.Ordinal) ||
                                             line.Contains("\"", StringComparison.Ordinal))
                                         {
                                             writePipe(line);
