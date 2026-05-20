@@ -267,9 +267,13 @@ public class CoreInit
     {
         BufferValidityMinutes = 180,
         BufferMax = 500_000000, // 500mb
+        BufferByteTinyMaxCount = 100,
+        BufferByteExtraSmallMaxCount = 100,
         BufferByteSmallMaxCount = 100,
         BufferByteLargeMaxCount = 100,
         BufferByteMediumMaxCount = 100,
+        BufferCharTinyMaxCount = 100,
+        BufferCharExtraSmallMaxCount = 100,
         BufferCharSmallMaxCount = 100,
         BufferCharLargeMaxCount = 100,
         BufferCharMediumMaxCount = 100,

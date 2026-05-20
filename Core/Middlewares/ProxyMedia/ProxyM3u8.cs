@@ -68,7 +68,7 @@ public partial class ProxyAPI
                         #region Пишем данные в BodyWriter
                         OwnerTo.Span(msmHls, Encoding.UTF8, spanHls =>
                         {
-                            using (var charBuffer = new BufferCharPool(BufferCharPool.sizeExtraSmall))
+                            using (var charBuffer = new BufferCharPool(BufferCharPool.sizeTiny))
                             {
                                 #region writePipe
                                 void writePipe(ReadOnlySpan<char> chars)

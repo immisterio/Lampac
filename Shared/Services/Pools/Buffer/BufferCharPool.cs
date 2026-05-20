@@ -7,32 +7,37 @@ namespace Shared.Services.Pools;
 public sealed class BufferCharPool : IDisposable
 {
     #region pool
-    public const int sizeExtraSmall = 32 * 1024;   // 64kb
+    public const int sizeTiny = 32 * 1024;         // 64Kb
+    public const int sizeExtraSmall = 128 * 1024;  // 256Kb
     public const int sizeSmall = 1024 * 1024;      // 2Mb
     public const int sizeMedium = 4 * 1024 * 1024; // 8Mb
     public const int sizeLarge = 10 * 1024 * 1024; // 20Mb
 
     static readonly ConcurrentDictionary<byte, BufferPoolInfo<char>> pool = new ConcurrentDictionary<byte, BufferPoolInfo<char>>
     {
-        [1] = new BufferPoolInfo<char>(sizeExtraSmall, 100),
-        [2] = new BufferPoolInfo<char>(sizeSmall, CoreInit.conf.pool.BufferCharSmallMaxCount),
-        [3] = new BufferPoolInfo<char>(sizeMedium, CoreInit.conf.pool.BufferCharMediumMaxCount),
-        [4] = new BufferPoolInfo<char>(sizeLarge, CoreInit.conf.pool.BufferCharLargeMaxCount)
+        [1] = new BufferPoolInfo<char>(sizeTiny, CoreInit.conf.pool.BufferCharTinyMaxCount),             // хеш операции, aes, crypto, SearchName
+        [2] = new BufferPoolInfo<char>(sizeExtraSmall, CoreInit.conf.pool.BufferCharExtraSmallMaxCount), // base64, tpl
+        [3] = new BufferPoolInfo<char>(sizeSmall, CoreInit.conf.pool.BufferCharSmallMaxCount),
+        [4] = new BufferPoolInfo<char>(sizeMedium, CoreInit.conf.pool.BufferCharMediumMaxCount),
+        [5] = new BufferPoolInfo<char>(sizeLarge, CoreInit.conf.pool.BufferCharLargeMaxCount)
     };
     #endregion
 
     #region OpenStat
-    public static long FreeExtraSmall
+    public static long FreeTiny
         => pool[1].currentCount;
 
-    public static long FreeSmall
+    public static long FreeExtraSmall
         => pool[2].currentCount;
 
-    public static long FreeMedium
+    public static long FreeSmall
         => pool[3].currentCount;
 
-    public static long FreeLarge
+    public static long FreeMedium
         => pool[4].currentCount;
+
+    public static long FreeLarge
+        => pool[5].currentCount;
 
     public static long DisposeCount
         => pool.Sum(i => i.Value.disposeCount);
@@ -47,7 +52,7 @@ public sealed class BufferCharPool : IDisposable
     {
         foreach (var p in pool)
         {
-            if (CoreInit.conf.lowMemoryMode && p.Key == 4)
+            if (CoreInit.conf.lowMemoryMode && p.Value.sizePool == sizeLarge)
                 continue;
 
             if (p.Value.sizePool >= capacity)

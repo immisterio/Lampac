@@ -31,7 +31,7 @@ public static class PoolInvk
                 : 81920;
 
             if (CoreInit.conf.lowMemoryMode) // max 32Kb
-                size = Math.Min(size, 32000);
+                size = Math.Min(size, 32768);
 
             if (4096 > size)
                 size = 4096;
