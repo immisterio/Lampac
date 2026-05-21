@@ -177,7 +177,7 @@ public struct KodikInvoke
             player_single = Rx.Match(iframe, "src=\"/(assets/js/app\\.player_[^\"]+\\.js)\"");
 
             ReadOnlySpan<char> playerSettings = Rx.Slice(iframe, "advertDebug", "preview-icons");
-            if (!playerSettings.IsEmpty)
+            if (playerSettings.IsEmpty)
                 return;
 
             string _frame = Regex.Replace(playerSettings.ToString(), "[\n\r\t ]+", "");
