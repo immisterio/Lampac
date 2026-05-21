@@ -31,13 +31,17 @@ public static class RchApiEndpoints
             .AllowAnonymous();
     }
 
+
     static async Task<IResult> WriteResult(HttpContext context, [FromQuery] string id)
     {
         if (string.IsNullOrEmpty(id))
-            return Results.BadRequest(401);
+            return Results.BadRequest();
 
-        if (!RchClient.rchIds.TryGetValue(id, out var rchHub) || context.Request.ContentLength > maxRequestSize)
-            return Results.BadRequest(403);
+        if (context.Request.ContentLength > maxRequestSize)
+            return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+
+        if (!RchClient.rchIds.TryGetValue(id, out var rchHub))
+            return Results.StatusCode(StatusCodes.Status403Forbidden);
 
         try
         {
@@ -61,17 +65,20 @@ public static class RchApiEndpoints
             rchHub.tcs.TrySetResult(null);
         }
 
-        return Results.BadRequest(400);
+        return Results.BadRequest();
     }
 
 
     static async Task<IResult> WriteZipResult(HttpContext context, [FromQuery] string id)
     {
         if (string.IsNullOrEmpty(id))
-            return Results.BadRequest(401);
+            return Results.BadRequest();
 
-        if (!RchClient.rchIds.TryGetValue(id, out var rchHub) || context.Request.ContentLength > maxRequestSize)
-            return Results.BadRequest(403);
+        if (context.Request.ContentLength > maxRequestSize)
+            return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+
+        if (!RchClient.rchIds.TryGetValue(id, out var rchHub))
+            return Results.StatusCode(StatusCodes.Status403Forbidden);
 
         try
         {
@@ -98,20 +105,29 @@ public static class RchApiEndpoints
             rchHub.tcs.TrySetResult(null);
         }
 
-        return Results.BadRequest(400);
+        return Results.BadRequest();
     }
+
+
+    readonly record struct RchConnectedResponse(int apkVersion, string rchtype);
+    static readonly RchClientInfo emptyRchClientInfo = new RchClientInfo();
+    static readonly BaseSettings rchBaseSettings = new BaseSettings() { rhub = true };
 
     static IResult СheckСonnected(HttpContext context)
     {
         var requestInfo = context.Features.Get<RequestModel>();
         var host = CoreInit.Host(context);
 
-        var rch = new RchClient(context, host, new BaseSettings() { rhub = true }, requestInfo);
+        var rch = new RchClient(context, host, rchBaseSettings, requestInfo);
 
         if (rch.IsNotConnected())
             return Results.Content(rch.connectionMsg);
 
-        var info = rch.InfoConnected() ?? new RchClientInfo();
-        return Results.Json(new { info.apkVersion, info.rchtype });
+        var info = rch.InfoConnected();
+
+        return Results.Json(info is null
+            ? emptyRchClientInfo
+            : new RchConnectedResponse(info.apkVersion, info.rchtype)
+        );
     }
 }
