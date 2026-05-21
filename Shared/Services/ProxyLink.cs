@@ -442,7 +442,7 @@ public class ProxyLink : IProxyLink
 
         if (verifyip)
         {
-            if (reqip == null || userip != reqip)
+            if (reqip != null && userip != reqip)
                 return null;
 
             if (DateTime.UtcNow > e)
