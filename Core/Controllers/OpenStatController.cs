@@ -242,6 +242,7 @@ public class OpenStatController : BaseController
                 },
                 BufferWriterByte = new
                 {
+                    tiny = BufferWriterPool<byte>.FreeTiny,
                     small = BufferWriterPool<byte>.Free,
                     large = BufferWriterPool<byte>.FreeLarge,
                     dispose = BufferWriterPool<byte>.DisposeCount

@@ -86,4 +86,4 @@ public record EventNwsConnected(string connectionId, RequestModel requestInfo, N
 
 public record EventNwsDisconnected(string connectionId);
 
-public record EventNwsMessage(string connectionId, ReadOnlyMemory<byte> payload, string method, JsonElement args);
+public record EventNwsMessage(string connectionId, string method, JsonElement args);

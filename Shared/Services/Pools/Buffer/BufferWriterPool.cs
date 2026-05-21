@@ -5,25 +5,37 @@ using System.Threading;
 
 namespace Shared.Services.Pools;
 
+public enum BufferWriterPoolType
+{
+    Tiny = 1,
+    Small = 2,
+    Large = 3
+}
+
 public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T : unmanaged
 {
     #region pool
+    public const int sizeTiny = 128 * 1024;
     public const int sizePool = 1 * 1024 * 1024;
     public const int sizeLargePool = 10 * 1024 * 1024;
 
     static readonly ConcurrentDictionary<byte, BufferPoolInfo<T>> pool = new ConcurrentDictionary<byte, BufferPoolInfo<T>>
     {
-        [1] = new BufferPoolInfo<T>(sizePool, CoreInit.conf.pool.BufferWriterSmallMaxCount),
-        [2] = new BufferPoolInfo<T>(sizeLargePool, CoreInit.conf.pool.BufferWriterLargeMaxCount)
+        [1] = new BufferPoolInfo<T>(sizeTiny, 100),
+        [2] = new BufferPoolInfo<T>(sizePool, CoreInit.conf.pool.BufferWriterSmallMaxCount),
+        [3] = new BufferPoolInfo<T>(sizeLargePool, CoreInit.conf.pool.BufferWriterLargeMaxCount)
     };
     #endregion
 
     #region OpenStat
-    public static long Free
+    public static long FreeTiny
         => pool[1].currentCount;
 
-    public static long FreeLarge
+    public static long Free
         => pool[2].currentCount;
+
+    public static long FreeLarge
+        => pool[3].currentCount;
 
     public static long DisposeCount
         => pool.Sum(i => i.Value.disposeCount);
@@ -32,12 +44,13 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
     private NativeBuffer<T> _nbuf;
     private int _index;
     private int _disposed;
-    private bool _large;
+    private BufferWriterPoolType _type;
 
-    public BufferWriterPool(bool largePool = false)
+    public BufferWriterPool(BufferWriterPoolType type = BufferWriterPoolType.Small)
     {
-        if (CoreInit.conf.lowMemoryMode == false)
-            _large = largePool;
+        _type = type;
+        if (CoreInit.conf.lowMemoryMode == false && type == BufferWriterPoolType.Large)
+            _type = BufferWriterPoolType.Small;
     }
 
     public ReadOnlySpan<T> WrittenSpan
@@ -82,7 +95,7 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
             if (minSize > sizeHint)
                 sizeHint = minSize;
 
-            var p = pool[_large ? (byte)2 : (byte)1];
+            var p = pool[(byte)_type];
             _nbuf = p.Rent(sizeHint);
         }
 
@@ -98,7 +111,7 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
         if (_nbuf == null || Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
 
-        var p = pool[_large ? (byte)2 : (byte)1];
+        var p = pool[(byte)_type];
         p.Return(_nbuf);
     }
 }

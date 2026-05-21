@@ -28,7 +28,7 @@ public class StaticacheWriter
             return;
         }
 
-        using (var buff = new BufferWriterPool<byte>(largePool: true))
+        using (var buff = new BufferWriterPool<byte>(BufferWriterPoolType.Large))
         {
             httpContext.Features.Set(buff);
             httpContext.Response.Headers["X-StatiCache-Status"] = "MISS";

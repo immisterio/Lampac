@@ -109,13 +109,8 @@ public class Program
         }
         #endregion
 
-        #region RchClient
         if (mods.nws)
-        {
-            RchClient.hub += (e, req)
-                => _ = NativeWebSocket.SendRchRequestAsync(req.connectionId, req.rchId, req.url, req.data, req.headers, req.returnHeaders).ConfigureAwait(false);
-        }
-        #endregion
+            RchClient.Nws = new NativeWebSocket();
 
         #region Log
         Directory.CreateDirectory("logs");

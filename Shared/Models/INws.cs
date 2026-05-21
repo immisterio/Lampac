@@ -9,6 +9,12 @@ public interface INws
     ConcurrentDictionary<string, NwsConnection> AllConnections();
 
     Task SendAsync(string connectionId, string method, params object[] args);
+
+    Task SendAsync(string connectionId, string method, CancellationToken cancellationToken, params object[] args);
+
+    Task SendAsync(string connectionId, ReadOnlyMemory<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken);
+
+    Task SendConnectionAsync(NwsConnection connection, ReadOnlyMemory<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken);
 }
 
 public class NwsConnection : IDisposable
@@ -72,7 +78,10 @@ public class NwsConnection : IDisposable
     #endregion
 
 
-    public bool SendCancel = true;
+    public int SendCancelFlag = 1;
+    public bool SendCancel
+        => Volatile.Read(ref SendCancelFlag) == 1;
+
     CancellationTokenSource _cancellationSource;
 
     public void SetCancellationSource(CancellationTokenSource source)

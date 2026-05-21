@@ -142,7 +142,7 @@ public class SeasonTpl : ITplResult
 
         var json = StringBuilderPool.Rent();
 
-        using (var utf8Buf = new BufferWriterPool<byte>(largePool: true))
+        using (var utf8Buf = new BufferWriterPool<byte>(BufferWriterPoolType.Large))
         {
             UtilsTpl.WriteJson(json, utf8Buf, new SeasonResponseDto
             (

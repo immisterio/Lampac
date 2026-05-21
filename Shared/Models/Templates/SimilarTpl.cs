@@ -121,7 +121,7 @@ public class SimilarTpl : ITplResult
 
         var json = StringBuilderPool.Rent();
 
-        using (var utf8Buf = new BufferWriterPool<byte>(largePool: true))
+        using (var utf8Buf = new BufferWriterPool<byte>(BufferWriterPoolType.Large))
             UtilsTpl.WriteJson(json, utf8Buf, new SimilarResponseDto(data), SimilarJsonContext.Default.SimilarResponseDto);
 
         return json;
