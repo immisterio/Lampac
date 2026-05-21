@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
@@ -31,7 +32,8 @@ public static class Http
     static readonly JsonSerializerOptions jsonTextOptions = new JsonSerializerOptions
     {
         AllowTrailingCommas = true,
-        ReadCommentHandling = JsonCommentHandling.Skip
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        DefaultBufferSize = PoolInvk.bufferSize
     };
 
     static readonly JsonSerializerSettings newtonsoftIgnoreErrorsSettings = new()
@@ -86,12 +88,15 @@ public static class Http
     #endregion
 
     #region defaultHeaders / UserAgent
+    public const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
+    const string SecChUa = "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"146\"";
+
     public static readonly IReadOnlyDictionary<string, string> defaultUaHeaders = new Dictionary<string, string>()
     {
-        ["sec-ch-ua"] = "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"146\"",
+        ["sec-ch-ua"] = SecChUa,
         ["sec-ch-ua-mobile"] = "?0",
         ["sec-ch-ua-platform"] = "\"Windows\"",
-        ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+        ["user-agent"] = UserAgent
     };
 
     public static readonly IReadOnlyDictionary<string, string> defaultCommonHeaders = new Dictionary<string, string>()
@@ -106,15 +111,25 @@ public static class Http
     {
         ["pragma"] = "no-cache",
         ["cache-control"] = "no-cache",
-        ["sec-ch-ua"] = "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"146\"",
+        ["sec-ch-ua"] = SecChUa,
         ["sec-ch-ua-mobile"] = "?0",
         ["sec-ch-ua-platform"] = "\"Windows\"",
         ["dnt"] = "1",
-        ["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+        ["user-agent"] = UserAgent
     };
 
-    public static string UserAgent
-        => defaultUaHeaders["user-agent"];
+    static readonly IReadOnlyDictionary<string, string> defaultNormalizeHeaders = new Dictionary<string, string>()
+    {
+        ["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        ["Accept-Language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5",
+        ["Pragma"] = "no-cache",
+        ["Cache-Control"] = "no-cache",
+        ["sec-ch-ua"] = SecChUa,
+        ["sec-ch-ua-mobile"] = "?0",
+        ["sec-ch-ua-platform"] = "\"Windows\"",
+        ["DNT"] = "1",
+        ["User-Agent"] = UserAgent
+    };
     #endregion
 
     #region Handler
@@ -199,69 +214,97 @@ public static class Http
     {
         if (prefixCacheHeader != null && cacheDefaultRequestHeaders.TryGetValue(prefixCacheHeader, out IReadOnlyDictionary<string, string> _cacheHeaders))
         {
+            #region Cache Headers
             foreach (var h in _cacheHeaders)
             {
-                if (client.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
-                else if (client.Content?.Headers != null)
+                if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
                 {
-                    client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                }
-            }
-        }
-        else
-        {
-            var addHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            if (useDefaultHeaders)
-            {
-                addHeaders.TryAdd("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
-                addHeaders.TryAdd("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
-            }
-
-            if (cookie != null)
-                addHeaders.TryAdd("cookie", cookie);
-
-            if (referer != null)
-                addHeaders.TryAdd("referer", referer);
-
-            if (useDefaultHeaders)
-            {
-                if (HasUserAgent(headers))
-                {
-                    foreach (var h in defaultCommonHeaders)
-                        addHeaders.TryAdd(h.Key, h.Value);
+                    // Content-Type, Content-Length, Content-Encoding, Content-Disposition
+                    client.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
                 }
                 else
                 {
-                    foreach (var h in defaultFullHeaders)
-                        addHeaders.TryAdd(h.Key, h.Value);
+                    if (client.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
+                    else if (client.Content?.Headers != null)
+                    {
+                        client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                    }
                 }
             }
-
-            if (headers != null)
+            #endregion
+        }
+        else
+        {
+            if (useDefaultHeaders && (headers == null || headers.Count == 0) && cookie == null && referer == null)
             {
-                foreach (var h in headers)
-                    addHeaders[h.name] = h.val;
+                foreach (var h in defaultNormalizeHeaders)
+                    client.Headers.TryAddWithoutValidation(h.Key, h.Value);
             }
-
-            // TryAddWithoutValidation сам сериализует заголовки для http 2/3
-            var normalizeHeaders = client.Version == HttpVersion.Version11
-                ? NormalizeHeaders(addHeaders)
-                : addHeaders;
-
-            if (normalizeHeaders == null)
-                return;
-
-            if (prefixCacheHeader != null)
-                cacheDefaultRequestHeaders[prefixCacheHeader] = normalizeHeaders;
-
-            foreach (var h in normalizeHeaders)
+            else
             {
-                if (client.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
-                else if (client.Content?.Headers != null)
+                #region User Headers
+                var addHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                if (useDefaultHeaders)
                 {
-                    client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                    addHeaders.TryAdd("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+                    addHeaders.TryAdd("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
                 }
+
+                if (cookie != null)
+                    addHeaders.TryAdd("cookie", cookie);
+
+                if (referer != null)
+                    addHeaders.TryAdd("referer", referer);
+
+                if (useDefaultHeaders)
+                {
+                    if (HasUserAgent(headers))
+                    {
+                        foreach (var h in defaultCommonHeaders)
+                            addHeaders.TryAdd(h.Key, h.Value);
+                    }
+                    else
+                    {
+                        foreach (var h in defaultFullHeaders)
+                            addHeaders.TryAdd(h.Key, h.Value);
+                    }
+                }
+
+                if (headers != null)
+                {
+                    foreach (var h in headers)
+                        addHeaders[h.name] = h.val;
+                }
+
+                // TryAddWithoutValidation сам сериализует заголовки для http 2/3
+                var normalizeHeaders = client.Version == HttpVersion.Version11
+                    ? NormalizeHeaders(addHeaders)
+                    : addHeaders;
+
+                if (normalizeHeaders == null)
+                    return;
+
+                if (prefixCacheHeader != null)
+                    cacheDefaultRequestHeaders[prefixCacheHeader] = normalizeHeaders;
+
+                foreach (var h in normalizeHeaders)
+                {
+                    if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Content-Type, Content-Length, Content-Encoding, Content-Disposition
+                        client.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                    }
+                    else
+                    {
+                        if (client.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
+                        else if (client.Content?.Headers != null)
+                        {
+                            client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                        }
+                    }
+                }
+                #endregion
             }
 
             if (EventListener.HttpRequestHeaders != null)
@@ -470,23 +513,25 @@ public static class Http
             {
                 try
                 {
-                    msm = PoolInvk.msm.GetStream();
-
-                    using (var byteBuf = new BufferPool())
-                    {
-                        int bytesRead;
-                        var memBuf = byteBuf.Memory;
-
-                        while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
-                            msm.Write(memBuf.Span.Slice(0, bytesRead));
-                    }
-
-                    msm.Position = 0;
-
                     if (textJson)
-                        result = System.Text.Json.JsonSerializer.Deserialize<T>(msm, jsonTextOptions);
+                    {
+                        result = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(e.stream, jsonTextOptions);
+                    }
                     else
                     {
+                        msm = PoolInvk.msm.GetStream();
+
+                        using (var byteBuf = new BufferPool())
+                        {
+                            int bytesRead;
+                            var memBuf = byteBuf.Memory;
+
+                            while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
+                                msm.Write(memBuf.Span.Slice(0, bytesRead));
+                        }
+
+                        msm.Position = 0;
+
                         using (var streamReader = new JsonStreamReaderPool(msm, Encoding.UTF8, leaveOpen: true))
                         {
                             using (var jsonReader = new JsonTextReader(streamReader)
@@ -939,25 +984,27 @@ public static class Http
             {
                 try
                 {
-                    msm = PoolInvk.msm.GetStream();
-
-                    using (var byteBuf = new BufferPool())
-                    {
-                        int bytesRead;
-                        var memBuf = byteBuf.Memory;
-
-                        while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
-                            msm.Write(memBuf.Span.Slice(0, bytesRead));
-                    }
-
-                    msm.Position = 0;
-
                     var encdg = encoding != default ? encoding : Encoding.UTF8;
 
                     if (textJson && encdg == Encoding.UTF8)
-                        result = System.Text.Json.JsonSerializer.Deserialize<T>(msm, jsonTextOptions);
+                    {
+                        result = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(e.stream, jsonTextOptions);
+                    }
                     else
                     {
+                        msm = PoolInvk.msm.GetStream();
+
+                        using (var byteBuf = new BufferPool())
+                        {
+                            int bytesRead;
+                            var memBuf = byteBuf.Memory;
+
+                            while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
+                                msm.Write(memBuf.Span.Slice(0, bytesRead));
+                        }
+
+                        msm.Position = 0;
+
                         using (var streamReader = new JsonStreamReaderPool(msm, encdg, leaveOpen: true))
                         {
                             using (var jsonReader = new JsonTextReader(streamReader)
@@ -1237,7 +1284,8 @@ public static class Http
     #endregion
 
 
-    #region Utilities
+    #region Helpers
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool HasUserAgent(IReadOnlyList<HeadersModel> headers)
     {
         if (headers == null)
