@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Shared.Services;
@@ -22,11 +23,16 @@ public class HttpHydra
         this.baseHeaders = baseHeaders;
     }
 
+    public void RegisterHttp(HttpClient httpClient)
+    {
+        this.httpClient = httpClient;
+    }
+
 
     #region Get
     public Task<T> Get<T>(string url, IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool IgnoreDeserializeObject = false, bool safety = false, bool textJson = false, CookieContainer cookieContainer = null)
     {
-        var headers = JsonHeaders(addheaders, newheaders);
+        var headers = JoinHeaders(addheaders, newheaders);
 
         return IsRchEnable(safety)
             ? rch.Get<T>(init.cors(url, headers, requestInfo), headers, IgnoreDeserializeObject, useDefaultHeaders, textJson)
@@ -35,7 +41,7 @@ public class HttpHydra
 
     public Task<string> Get(string url, IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool safety = false, CookieContainer cookieContainer = null)
     {
-        var headers = JsonHeaders(addheaders, newheaders);
+        var headers = JoinHeaders(addheaders, newheaders);
 
         return IsRchEnable(safety)
             ? rch.Get(init.cors(url, headers, requestInfo), headers, useDefaultHeaders)
@@ -46,7 +52,7 @@ public class HttpHydra
     #region GetSpan
     public Task GetSpan(string url, Action<ReadOnlySpan<char>> spanAction, IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, bool safety = false, CookieContainer cookieContainer = null)
     {
-        var headers = JsonHeaders(addheaders, newheaders);
+        var headers = JoinHeaders(addheaders, newheaders);
 
         return IsRchEnable(safety)
             ? rch.GetSpan(init.cors(url, headers, requestInfo), spanAction, headers, useDefaultHeaders)
@@ -58,7 +64,7 @@ public class HttpHydra
     #region Post
     public Task<T> Post<T>(string url, string data, IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool IgnoreDeserializeObject = false, bool safety = false, bool textJson = false, CookieContainer cookieContainer = null)
     {
-        var headers = JsonHeaders(addheaders, newheaders);
+        var headers = JoinHeaders(addheaders, newheaders);
 
         return IsRchEnable(safety)
             ? rch.Post<T>(init.cors(url, headers, requestInfo), data, headers, IgnoreDeserializeObject, useDefaultHeaders, textJson)
@@ -67,7 +73,7 @@ public class HttpHydra
 
     public Task<string> Post(string url, string data, IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool safety = false, CookieContainer cookieContainer = null)
     {
-        var headers = JsonHeaders(addheaders, newheaders);
+        var headers = JoinHeaders(addheaders, newheaders);
 
         return IsRchEnable(safety)
             ? rch.Post(init.cors(url, headers, requestInfo), data, headers, useDefaultHeaders)
@@ -78,7 +84,7 @@ public class HttpHydra
     #region PostSpan
     public Task PostSpan(string url, string data, Action<ReadOnlySpan<char>> spanAction, IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null, bool useDefaultHeaders = true, bool statusCodeOK = true, Encoding encoding = default, bool safety = false, CookieContainer cookieContainer = null)
     {
-        var headers = JsonHeaders(addheaders, newheaders);
+        var headers = JoinHeaders(addheaders, newheaders);
 
         return IsRchEnable(safety)
             ? rch.PostSpan(init.cors(url, headers, requestInfo), spanAction, data, headers, useDefaultHeaders)
@@ -87,12 +93,8 @@ public class HttpHydra
     #endregion
 
 
-    #region Utilities
-    public void RegisterHttp(HttpClient httpClient)
-    {
-        this.httpClient = httpClient;
-    }
-
+    #region Helpers
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     bool IsRchEnable(bool safety)
     {
         bool rch_enable = rch != null && rch.enable;
@@ -105,41 +107,42 @@ public class HttpHydra
         return rch_enable;
     }
 
-    List<HeadersModel> JsonHeaders(IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null)
+    IReadOnlyList<HeadersModel> JoinHeaders(IReadOnlyList<HeadersModel> addheaders = null, IReadOnlyList<HeadersModel> newheaders = null)
     {
-        if ((addheaders == null || addheaders.Count == 0) &&
-            (newheaders == null || newheaders.Count == 0) &&
-            (baseHeaders == null || baseHeaders.Count == 0))
+        int baseCount = baseHeaders?.Count ?? 0;
+        int newCount = newheaders?.Count ?? 0;
+        int addCount = addheaders?.Count ?? 0;
+
+        int total = baseCount + newCount + addCount;
+        if (total == 0)
             return null;
 
-        int capacity = capacityHeaders(baseHeaders, addheaders, newheaders);
-        var headers = new List<HeadersModel>(capacity);
+        if (newCount == 0 && addCount == 0)
+            return baseHeaders;
 
-        if (baseHeaders != null && baseHeaders.Count > 0)
-            headers.AddRange(baseHeaders);
+        if (baseCount == 0 && addCount == 0)
+            return newheaders;
 
-        if (newheaders != null && newheaders.Count > 0)
-            headers.AddRange(newheaders);
+        if (baseCount == 0 && newCount == 0)
+            return addheaders;
 
-        if (addheaders != null && addheaders.Count > 0)
-            headers.AddRange(addheaders);
+        var headers = new List<HeadersModel>(total);
+
+        AddHeaders(headers, baseHeaders, baseCount);
+        AddHeaders(headers, newheaders, newCount);
+        AddHeaders(headers, addheaders, addCount);
 
         return headers;
     }
 
-    static int capacityHeaders(IReadOnlyList<HeadersModel> baseHeaders, IReadOnlyList<HeadersModel> addheaders, IReadOnlyList<HeadersModel> newheaders)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void AddHeaders(List<HeadersModel> target, IReadOnlyList<HeadersModel> source, int count)
     {
-        int capacity = 0;
-        if (baseHeaders != null && baseHeaders.Count > 0)
-            capacity += baseHeaders.Count;
+        if (count == 0 || source == null)
+            return;
 
-        if (newheaders != null && newheaders.Count > 0)
-            capacity += newheaders.Count;
-
-        if (addheaders != null && addheaders.Count > 0)
-            capacity += addheaders.Count;
-
-        return capacity;
+        for (int i = 0; i < count; i++)
+            target.Add(source[i]);
     }
     #endregion
 }
