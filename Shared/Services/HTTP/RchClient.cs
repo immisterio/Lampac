@@ -8,6 +8,7 @@ using Shared.Services.Pools.Json;
 using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -557,6 +558,7 @@ public class RchClient
 
 
     #region IsNotConnected
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsNotConnected()
     {
         if (!enableRhub)
@@ -633,7 +635,7 @@ public class RchClient
         }
 
         // указан webcorshost или включен corseu
-        if (!string.IsNullOrWhiteSpace(init.webcorshost) || init.corseu)
+        if (!string.IsNullOrEmpty(init.webcorshost) || init.corseu)
             return false;
 
         if (CoreInit.conf.rch.notSupportMsg != null)
@@ -675,6 +677,7 @@ public class RchClient
     #endregion
 
     #region IsCheckSearchRequest
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     bool IsCheckSearchRequest()
     {
         return httpContext != null
@@ -685,6 +688,7 @@ public class RchClient
     #endregion
 
     #region InfoConnected
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public RchClientInfo InfoConnected()
     {
         return SocketClient().data?.info;

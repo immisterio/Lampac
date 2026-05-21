@@ -12,14 +12,14 @@ public static class FriendlyHttp
     #region static
     static readonly Serilog.ILogger Log = Serilog.Log.ForContext("SourceContext", nameof(FriendlyHttp));
 
-    record HttpClientModel(DateTime lifetime, HttpClient http);
+    readonly record struct HttpClientModel(DateTime lifetime, HttpClient http);
+    readonly record struct ProxyClientKey(string Host, int Port, string UserName, string Password, long MaxBufferSize, bool AllowAutoRedirect);
 
-    static ConcurrentDictionary<string, HttpClientModel> _clients = new();
-
-    static bool AcceptAnyCertificateHandler(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        => true;
+    static ConcurrentDictionary<ProxyClientKey, HttpClientModel> _clients = new();
 
     static readonly RemoteCertificateValidationCallback AcceptAnyCertificate = AcceptAnyCertificateHandler;
+    static bool AcceptAnyCertificateHandler(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        => true;
 
     static FriendlyHttp()
     {
@@ -37,13 +37,8 @@ public static class FriendlyHttp
                     {
                         try
                         {
-                            if (DateTime.UtcNow > client.Value.lifetime &&
-                                _clients.TryRemove(client.Key, out var _c))
-                            {
-                                _ = Task.Delay(TimeSpan.FromSeconds(20))
-                                    .ContinueWith(e => _c.http.Dispose())
-                                    .ConfigureAwait(false);
-                            }
+                            if (now > client.Value.lifetime && _clients.TryRemove(client.Key, out var _c))
+                                _ = DisposeLaterAsync(_c.http);
                         }
                         catch (Exception ex)
                         {
@@ -57,6 +52,12 @@ public static class FriendlyHttp
                 }
             }
         });
+    }
+
+    static async Task DisposeLaterAsync(HttpClient http)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+        http.Dispose();
     }
     #endregion
 
@@ -115,12 +116,20 @@ public static class FriendlyHttp
                 password = credentials.Password;
             }
 
-            return _clients.GetOrAdd(
-                $"{ip}:{port}:{username}:{password}:{maxBufferSize}:{handler?.AllowAutoRedirect}",
-                _ => new HttpClientModel(DateTime.UtcNow.AddMinutes(30), new HttpClient(handler)
+            var key = new ProxyClientKey(
+                ip,
+                port,
+                username,
+                password,
+                maxBufferSize,
+                handler?.AllowAutoRedirect == true
+            );
+
+            return _clients.GetOrAdd(key, static (key, state)
+                => new HttpClientModel(DateTime.UtcNow.AddMinutes(30), new HttpClient(state.Handler)
                 {
-                    MaxResponseContentBufferSize = maxBufferSize
-                })
+                    MaxResponseContentBufferSize = key.MaxBufferSize
+                }), new { Handler = handler }
             ).http;
         }
     }

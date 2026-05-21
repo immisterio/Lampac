@@ -16,8 +16,10 @@ using Shared.Services;
 using Shared.Services.Kit;
 using System.Buffers.Text;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -31,6 +33,12 @@ public class BaseController : Controller
     protected ActionResult badInitMsg { get; set; }
 
     public bool StatiCacheDisabled { get; set; }
+
+    static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions
+    {
+        Indented = false,
+        SkipValidation = true
+    };
     #endregion
 
     #region hybridCache
@@ -296,95 +304,166 @@ public class BaseController : Controller
 
         if (conf.imgcorshost != null)
         {
-            string aes = CrypTo.Base64(System.Text.Json.JsonSerializer.Serialize(new
+            #region imgcorshost {payload}
+            using (var utf8Buf = new BufferWriterPool<byte>())
             {
-                u = uri,
-                p = conf.plugin,
-                h = httpHeaders(conf.host ?? conf.apihost, headers)?.ToDictionary(),
-                t = "img",
-                i = requestInfo.user_uid
-            }));
+                using (var writer = new Utf8JsonWriter(utf8Buf, jsonWriterOptions))
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("u"u8, uri);
 
-            if (uri.Contains(".png"))
-                aes += ".png";
-            else if (uri.Contains(".webp"))
-                aes += ".webp";
-            else
-                aes += ".jpg";
+                    if (conf.plugin != null)
+                        writer.WriteString("p"u8, conf.plugin);
 
-            return conf.imgcorshost.Replace("{payload}", aes);
-        }
+                    var heads = httpHeaders(conf.host ?? conf.apihost, headers);
+                    if (heads != null && heads.Count > 0)
+                    {
+                        writer.WritePropertyName("h"u8);
+                        writer.WriteStartObject();
 
-        if (conf.plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(conf.plugin))
-            return uri;
+                        foreach (var h in heads)
+                        {
+                            if (h.name != null && h.val != null)
+                                writer.WriteString(h.name, h.val);
+                        }
 
-        if (EventListener.HostImgProxy != null)
-        {
-            var em = new EventHostImgProxy(requestInfo, HttpContext, uri, height, headers, conf.plugin);
+                        writer.WriteEndObject();
+                    }
 
-            foreach (Func<EventHostImgProxy, string> handler in EventListener.HostImgProxy.GetInvocationList())
-            {
-                string eventUri = handler.Invoke(em);
-                if (eventUri != null)
-                    return eventUri;
+                    writer.WriteString("t"u8, "img"u8);
+
+                    if (requestInfo.user_uid != null)
+                        writer.WriteString("i"u8, requestInfo.user_uid);
+
+                    writer.WriteEndObject();
+                    writer.Flush();
+                }
+
+                ReadOnlySpan<byte> json = utf8Buf.WrittenSpan;
+                if (json.IsEmpty)
+                    return conf.imgcorshost;
+
+                int base64Len = ((json.Length + 2) / 3) * 4;
+
+                using (var bufChars = new BufferCharPool(base64Len))
+                {
+                    Span<char> base64Chars = bufChars.Span;
+
+                    if (!Base64Url.TryEncodeToChars(json, base64Chars, out int charsWritten))
+                        return conf.imgcorshost;
+
+                    ReadOnlySpan<char> encoded = base64Chars[..charsWritten];
+                    if (encoded.IsEmpty)
+                        return conf.imgcorshost;
+
+                    var payload = StringBuilderPool.ThreadInstance;
+
+                    payload.Append(encoded);
+
+                    ReadOnlySpan<char> uriSpan = uri.AsSpan();
+                    int end = uriSpan.IndexOfAny('?', '&', '#');
+                    if (end >= 0)
+                        uriSpan = uriSpan[..end];
+
+                    int dot = uriSpan.LastIndexOf('.');
+                    if (dot < 0)
+                        payload.Append(".jpg");
+                    else
+                    {
+                        payload.Append(uriSpan[dot..] switch
+                        {
+                            ".png" => ".png",
+                            ".webp" => ".webp",
+                            _ => ".jpg"
+                        });
+                    }
+
+                    return conf.imgcorshost.Replace("{payload}", payload.ToString());
+                }
             }
-        }
-
-        if ((width == 0 && height == 0) || (conf.plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(conf.plugin)))
-        {
-            if (!string.IsNullOrEmpty(init.bypass_host))
-            {
-                string bypass_host = init.bypass_host.Replace("{sheme}", uri.StartsWith("https:") ? "https" : "http");
-
-                if (bypass_host.Contains("{uri}"))
-                    bypass_host = bypass_host.Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
-
-                if (bypass_host.Contains("{encrypt_uri}"))
-                    bypass_host = bypass_host.Replace("{encrypt_uri}", ImgProxyToEncryptUri(HttpContext, uri, conf.plugin, requestInfo.IP, headers, null));
-
-                return bypass_host;
-            }
-            else
-            {
-                return ImgProxyToEncryptUri(
-                    HttpContext,
-                    uri,
-                    conf.plugin,
-                    requestInfo.IP,
-                    headers,
-                    [host, "/proxyimg/"]
-                );
-            }
-        }
-
-        if (!string.IsNullOrEmpty(init.rsize_host))
-        {
-            string rsize_host = init.rsize_host.Replace("{sheme}", uri.StartsWith("https:") ? "https" : "http");
-
-            if (rsize_host.Contains("{width}"))
-                rsize_host = rsize_host.Replace("{width}", width.ToString());
-
-            if (rsize_host.Contains("{height}"))
-                rsize_host = rsize_host.Replace("{height}", height.ToString());
-
-            if (rsize_host.Contains("{uri}"))
-                rsize_host = rsize_host.Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
-
-            if (rsize_host.Contains("{encrypt_uri}"))
-                rsize_host = rsize_host.Replace("{encrypt_uri}", ImgProxyToEncryptUri(HttpContext, uri, conf.plugin, requestInfo.IP, headers, null));
-
-            return rsize_host;
+            #endregion
         }
         else
         {
-            return ImgProxyToEncryptUri(
-                HttpContext,
-                uri,
-                conf.plugin,
-                requestInfo.IP,
-                headers,
-                [host, $"/proxyimg:{width}:{height}/"]
-            );
+            if (conf.plugin != null && init.proxyimg_disable != null && init.proxyimg_disable.Contains(conf.plugin))
+                return uri;
+
+            #region EventListener
+            if (EventListener.HostImgProxy != null)
+            {
+                var em = new EventHostImgProxy(requestInfo, HttpContext, uri, height, headers, conf.plugin);
+
+                foreach (Func<EventHostImgProxy, string> handler in EventListener.HostImgProxy.GetInvocationList())
+                {
+                    string eventUri = handler.Invoke(em);
+                    if (eventUri != null)
+                        return eventUri;
+                }
+            }
+            #endregion
+
+            if ((width == 0 && height == 0) || (conf.plugin != null && init.rsize_disable != null && init.rsize_disable.Contains(conf.plugin)))
+            {
+                #region bypass
+                if (!string.IsNullOrEmpty(init.bypass_host))
+                {
+                    string bypass_host = init.bypass_host.Replace("{sheme}", uri.StartsWith("https:") ? "https" : "http");
+
+                    if (bypass_host.Contains("{uri}"))
+                        bypass_host = bypass_host.Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+
+                    if (bypass_host.Contains("{encrypt_uri}"))
+                        bypass_host = bypass_host.Replace("{encrypt_uri}", ImgProxyToEncryptUri(HttpContext, uri, conf.plugin, requestInfo.IP, headers, null));
+
+                    return bypass_host;
+                }
+                else
+                {
+                    return ImgProxyToEncryptUri(
+                        HttpContext,
+                        uri,
+                        conf.plugin,
+                        requestInfo.IP,
+                        headers,
+                        [host, "/proxyimg/"]
+                    );
+                }
+                #endregion
+            }
+            else
+            {
+                #region rsize
+                if (!string.IsNullOrEmpty(init.rsize_host))
+                {
+                    string rsize_host = init.rsize_host.Replace("{sheme}", uri.StartsWith("https:") ? "https" : "http");
+
+                    if (rsize_host.Contains("{width}"))
+                        rsize_host = rsize_host.Replace("{width}", width.ToString());
+
+                    if (rsize_host.Contains("{height}"))
+                        rsize_host = rsize_host.Replace("{height}", height.ToString());
+
+                    if (rsize_host.Contains("{uri}"))
+                        rsize_host = rsize_host.Replace("{uri}", Regex.Replace(uri, "^https?://", ""));
+
+                    if (rsize_host.Contains("{encrypt_uri}"))
+                        rsize_host = rsize_host.Replace("{encrypt_uri}", ImgProxyToEncryptUri(HttpContext, uri, conf.plugin, requestInfo.IP, headers, null));
+
+                    return rsize_host;
+                }
+                else
+                {
+                    return ImgProxyToEncryptUri(
+                        HttpContext,
+                        uri,
+                        conf.plugin,
+                        requestInfo.IP,
+                        headers,
+                        [host, $"/proxyimg:{width}:{height}/"]
+                    );
+                }
+                #endregion
+            }
         }
     }
 
@@ -394,7 +473,7 @@ public class BaseController : Controller
             uri,
             ip,
             headers != null && headers.Count > 0
-                ? headers
+                ? headers 
                 : null,
             plugin: plugin,
             verifyip: false,
@@ -409,11 +488,7 @@ public class BaseController : Controller
     public string HostStreamProxy(BaseSettings conf, string uri, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, bool force_streamproxy = false, RchClient rch = null, bool forceMd5 = false, object userdata = null)
     {
         if (!CoreInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
-        {
-            return uri != null && uri.Contains(" ")
-                ? uri.Split(" ")[0].Trim()
-                : uri?.Trim();
-        }
+            return ClearStreamUri(uri);
 
         if (EventListener.HostStreamProxy != null)
         {
@@ -428,11 +503,7 @@ public class BaseController : Controller
         }
 
         if (conf.rhub && !conf.rhub_streamproxy)
-        {
-            return uri.Contains(" ")
-                ? uri.Split(" ")[0].Trim()
-                : uri.Trim();
-        }
+            return ClearStreamUri(uri);
 
         bool streamproxy = conf.streamproxy || conf.apnstream || conf.useproxystream || force_streamproxy;
 
@@ -512,9 +583,7 @@ public class BaseController : Controller
 
     string apnlink(BaseSettings conf, ApnConf apn, string uri, string ip, IReadOnlyList<HeadersModel> headers)
     {
-        string link = uri.Contains(" ") || uri.Contains("#")
-            ? uri.Split(" ")[0].Split("#")[0].Trim()
-            : uri.Trim();
+        string link = ClearStreamUri(uri);
 
         if (apn.secure == "nginx")
         {
@@ -545,34 +614,87 @@ public class BaseController : Controller
 
         if (apn.host.Contains("{payload}"))
         {
-            var sb = StringBuilderPool.RentSmall();
-
-            try
+            using (var utf8Buf = new BufferWriterPool<byte>())
             {
-                CrypTo.Base64(
-                    System.Text.Json.JsonSerializer.Serialize(new
+                using (var writer = new Utf8JsonWriter(utf8Buf, jsonWriterOptions))
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("u"u8, link);
+
+                    if (conf.plugin != null)
+                        writer.WriteString("p"u8, conf.plugin);
+
+                    var heads = httpHeaders(conf.host, headers);
+                    if (heads != null && heads.Count > 0)
                     {
-                        u = link,
-                        p = conf.plugin,
-                        h = httpHeaders(conf.host, headers)?.ToDictionary(),
-                        t = "media",
-                        i = requestInfo.user_uid,
-                    }),
-                    base64 => sb.Append(base64)
-                );
+                        writer.WritePropertyName("h"u8);
+                        writer.WriteStartObject();
 
-                if (uri.Contains(".m3u"))
-                    sb.Append(".m3u8");
+                        foreach (var h in heads)
+                        {
+                            if (h.name != null && h.val != null)
+                                writer.WriteString(h.name, h.val);
+                        }
 
-                return apn.host.Replace("{payload}", sb.ToString());
-            }
-            finally
-            {
-                StringBuilderPool.Return(sb);
+                        writer.WriteEndObject();
+                    }
+
+                    writer.WriteString("t"u8, "media"u8);
+
+                    if (requestInfo.user_uid != null)
+                        writer.WriteString("i"u8, requestInfo.user_uid);
+
+                    writer.WriteEndObject();
+                    writer.Flush();
+                }
+
+                ReadOnlySpan<byte> json = utf8Buf.WrittenSpan;
+                if (json.IsEmpty)
+                    return apn.host;
+
+                int base64Len = ((json.Length + 2) / 3) * 4;
+
+                using (var bufChars = new BufferCharPool(base64Len))
+                {
+                    Span<char> base64Chars = bufChars.Span;
+
+                    if (!Base64Url.TryEncodeToChars(json, base64Chars, out int charsWritten))
+                        return conf.host;
+
+                    ReadOnlySpan<char> encoded = base64Chars[..charsWritten];
+                    if (encoded.IsEmpty)
+                        return conf.host;
+
+                    var payload = StringBuilderPool.ThreadInstance;
+
+                    payload.Append(encoded);
+
+                    if (uri.Contains(".m3u"))
+                        payload.Append(".m3u8");
+
+                    return apn.host.Replace("{payload}", payload.ToString());
+                }
             }
         }
+        else
+        {
+            return $"{apn.host}/{link}";
+        }
+    }
 
-        return $"{apn.host}/{link}";
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static string ClearStreamUri(string uri)
+    {
+        if (string.IsNullOrEmpty(uri))
+            return uri;
+
+        ReadOnlySpan<char> span = uri.AsSpan();
+
+        int cut = span.IndexOfAny(' ', '#');
+        if (cut <= 0)
+            return uri;
+
+        return span[..cut].ToString();
     }
     #endregion
 
