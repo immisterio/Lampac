@@ -512,18 +512,12 @@ public class NativeWebSocket : INws
                 break;
 
             if (reader.TokenType != JsonTokenType.PropertyName)
-            {
-                method = NwsMessageMethod.error;
-                return default;
-            }
+                return (NwsMessageMethod.error, null, null, null);
 
             if (reader.ValueTextEquals("method"u8))
             {
                 if (!reader.Read() || reader.TokenType != JsonTokenType.String)
-                {
-                    method = NwsMessageMethod.error;
-                    return default;
-                }
+                    return (NwsMessageMethod.error, null, null, null);
 
                 if (reader.ValueTextEquals("RchRegistry"u8) || reader.ValueTextEquals("rchregistry"u8))
                     method = NwsMessageMethod.RchRegistry;
@@ -562,17 +556,11 @@ public class NativeWebSocket : INws
                 else if (method == NwsMessageMethod.RchResult)
                 {
                     if (!reader.Read())
-                    {
-                        method = NwsMessageMethod.error;
-                        return default;
-                    }
+                        return (NwsMessageMethod.error, null, null, null);
 
                     resultId = GetStringArg(ref reader);
                     if (string.IsNullOrEmpty(resultId))
-                    {
-                        method = NwsMessageMethod.error;
-                        return default;
-                    }
+                        return (NwsMessageMethod.error, null, null, null);
 
                     if (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
                         resultValue = GetStringArg(ref reader);
