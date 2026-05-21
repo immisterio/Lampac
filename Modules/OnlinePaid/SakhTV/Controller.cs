@@ -111,6 +111,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                 var root = await httpHydra.Get<SearchRoot>($"{init.host}/v2/common/search?query={HttpUtility.UrlEncode(original_title)}&amount=20",
                     useDefaultHeaders: false,
                     newheaders: bearer,
+                    textJson: true,
                     safety: true
                 );
 
@@ -151,6 +152,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                 var root = await httpHydra.Get<TvshowDetails>($"{init.host}/v1/serials/get?tvshow={orid}",
                     useDefaultHeaders: false,
                     newheaders: bearer,
+                    textJson: true,
                     safety: true
                 );
 
@@ -196,7 +198,9 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                 var episodes = await InvokeCacheResult<EpisodeDetails[]>($"sakhtv:episodes:{seasonId}", 90, async e =>
                 {
                     var root = await httpHydra.Get<EpisodeDetails[]>($"{init.host}/v1/serials/get_episodes?season_id={seasonId}",
-                        addheaders: bearer,
+                        useDefaultHeaders: false,
+                        newheaders: bearer,
+                        textJson: true,
                         safety: true
                     );
 
@@ -286,6 +290,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                 var root = await httpHydra.Get<MovieDetails>($"{init.host}/v2/movie/{orid}",
                     useDefaultHeaders: false,
                     newheaders: bearer,
+                    textJson: true,
                     safety: true
                 );
 
@@ -338,6 +343,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
             var root = await httpHydra.Get<Episode[]>($"{init.host}/v1/serial/watch/get_playlist?season_id={season_id}&rg={rg}",
                 useDefaultHeaders: false,
                 newheaders: bearer,
+                textJson: true,
                 safety: true
             );
 
