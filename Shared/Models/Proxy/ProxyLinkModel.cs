@@ -7,7 +7,7 @@ public class ProxyLinkModel
 {
     public ProxyLinkModel()
     {
-        ex = DateTime.Today.AddDays(2);
+        ex = DateTime.UtcNow.AddDays(1);
     }
 
     public ProxyLinkModel(string reqip, IReadOnlyList<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTime ex = default, object userdata = null)
@@ -22,7 +22,7 @@ public class ProxyLinkModel
         this.verifyip = verifyip;
 
         if (this.ex == default)
-            this.ex = DateTime.Today.AddDays(2);
+            this.ex = DateTime.UtcNow.AddDays(1);
     }
 
     [JsonIgnore]
