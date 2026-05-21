@@ -7,7 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace LogUserRequest;
 
-public class ModInit : IModuleLoaded
+public class ModInit : IModuleLoaded, IModuleConfigure
 {
     public static InitspaceModel init { get; set; } = null!;
     public static (int logDay, string adminPassword) conf = (90, "");
@@ -19,11 +19,20 @@ public class ModInit : IModuleLoaded
     private static readonly MemoryCache _sessionTokens = new(new MemoryCacheOptions { SizeLimit = 10000 });
     private static readonly TimeSpan _sessionLifetime = TimeSpan.FromDays(30);
 
-    // Динамические пути
     private static string _workPath = AppContext.BaseDirectory;
     private static string _dbDirectory = Path.Combine(AppContext.BaseDirectory, "database", "LogUserRequest");
     private static string _dbPath = Path.Combine(AppContext.BaseDirectory, "database", "LogUserRequest", "userlog.db");
     private static string _passwdPath = Path.Combine(AppContext.BaseDirectory, "database", "LogUserRequest", "passlogreg");
+
+    // === IModuleConfigure ===
+    public void Configure(ConfigureModel app)
+    {
+        app.services.AddDbContextFactory<AppDbContext>(options =>
+        {
+            options.UseSqlite($"Data Source={_dbPath};Cache=Shared");
+            options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+        });
+    }
 
     public static bool ValidateSessionToken(string token)
     {
@@ -56,12 +65,10 @@ public class ModInit : IModuleLoaded
 
     private static string GetOrCreateAdminPassword()
     {
-        // 1. Проверяем ENV
         var envPassword = Environment.GetEnvironmentVariable("LOGUSER_ADMIN_PASSWORD");
         if (!string.IsNullOrEmpty(envPassword))
             return envPassword;
 
-        // 2. Проверяем файл в папке модуля
         if (File.Exists(_passwdPath))
         {
             try
@@ -73,7 +80,6 @@ public class ModInit : IModuleLoaded
             catch { }
         }
 
-        // 3. Проверяем старый путь (для обратной совместимости)
         var oldPasswdPath = Path.Combine(_workPath, "passlogreg");
         if (File.Exists(oldPasswdPath))
         {
@@ -82,7 +88,6 @@ public class ModInit : IModuleLoaded
                 var filePassword = File.ReadAllText(oldPasswdPath).Trim();
                 if (!string.IsNullOrEmpty(filePassword))
                 {
-                    // Переносим в новую папку
                     Directory.CreateDirectory(Path.GetDirectoryName(_passwdPath)!);
                     File.Move(oldPasswdPath, _passwdPath);
                     return filePassword;
@@ -91,7 +96,6 @@ public class ModInit : IModuleLoaded
             catch { }
         }
 
-        // 4. Создаём новый пароль
         var newPassword = GenerateRandomPassword(36);
         try
         {
@@ -100,10 +104,7 @@ public class ModInit : IModuleLoaded
                 Directory.CreateDirectory(passwdDir);
 
             File.WriteAllText(_passwdPath, newPassword);
-            if (!OperatingSystem.IsWindows())
-            {
-                try { File.SetUnixFileMode(_passwdPath, UnixFileMode.UserRead | UnixFileMode.UserWrite); } catch { }
-            }
+            try { File.SetUnixFileMode(_passwdPath, UnixFileMode.UserRead | UnixFileMode.UserWrite); } catch { }
         }
         catch
         {
@@ -117,7 +118,6 @@ public class ModInit : IModuleLoaded
     {
         init = initspace;
 
-        // Инициализация путей
         _workPath = AppContext.BaseDirectory;
         _dbDirectory = Path.Combine(_workPath, "database", "LogUserRequest");
         _dbPath = Path.Combine(_dbDirectory, "userlog.db");
@@ -152,8 +152,7 @@ public class ModInit : IModuleLoaded
                 sqlDb.Database.ExecuteSqlRaw("PRAGMA cache_size = -64000;");
                 sqlDb.Database.ExecuteSqlRaw("PRAGMA temp_store = MEMORY;");
                 sqlDb.Database.ExecuteSqlRaw("PRAGMA mmap_size = 33554432;");
-            }
-            catch { }
+            } catch { }
         }
 
         var manifestPath = Path.Combine(init.path, "manifest.json");
@@ -170,27 +169,25 @@ public class ModInit : IModuleLoaded
         _statsTimer = new Timer(UpdateStatsCallback, null, TimeSpan.FromSeconds(10), TimeSpan.FromMinutes(5));
         _updateDbTimer = new Timer(UpdateDbCallback, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30));
 
-        var services = init.services;
-        services.AddDbContext<AppDbContext>(options =>
-        {
-            options.UseSqlite($"Data Source={_dbPath};Cache=Shared");
-            options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-        }, ServiceLifetime.Scoped);
-
-        var app = init.app;
-        app.UseMiddleware<LogUserRequestMiddleware>();
+        // === Подписка на EventListener вместо app.UseMiddleware ===
+        EventListener.Middleware -= LogUserRequestListener.InvokeAsync;
+        EventListener.Middleware += LogUserRequestListener.InvokeAsync;
 
         Console.WriteLine($"[LogUserRequest-Lite] Module loaded (logDay={conf.logDay})");
     }
 
     public void Dispose()
     {
+        // === Отписка ===
+        EventListener.Middleware -= LogUserRequestListener.InvokeAsync;
+
         _clearJurnalTimer?.Dispose();
         _statsTimer?.Dispose();
         _updateDbTimer?.Dispose();
         _sessionTokens.Dispose();
     }
 
+    // ... остальные методы (ClearJurnal, UpdateStats, UpdateDb) без изменений
     static void ClearJurnal(object? state)
     {
         try
@@ -286,15 +283,8 @@ public class ModInit : IModuleLoaded
             }
             else
             {
-                stats = new
-                {
-                    today = 0,
-                    month = 0,
-                    uniqueUserAgent = 0,
-                    uniqueIp = 0,
-                    topUsers = Array.Empty<object>(),
-                    topBalancers = Array.Empty<object>()
-                };
+                stats = new { today = 0, month = 0, uniqueUserAgent = 0, uniqueIp = 0,
+                    topUsers = Array.Empty<object>(), topBalancers = Array.Empty<object>() };
             }
         }
         catch (Exception ex)
@@ -317,10 +307,10 @@ public class ModInit : IModuleLoaded
             var batch = new List<(LogModelSql jurnal, UserInfoModelSql unfo, HeaderModelSql header)>();
 
             int batchSize = 1000;
-            while (LogUserRequestMiddleware.Queue.TryDequeue(out var item) && batch.Count < batchSize)
+            while (LogUserRequestListener.Queue.TryDequeue(out var item) && batch.Count < batchSize)
             {
                 batch.Add(item);
-                LogUserRequestMiddleware.DequeueItem();
+                LogUserRequestListener.DequeueItem();
             }
 
             if (batch.Count == 0) return;
