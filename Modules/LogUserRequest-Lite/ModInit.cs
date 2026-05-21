@@ -104,7 +104,10 @@ public class ModInit : IModuleLoaded, IModuleConfigure
                 Directory.CreateDirectory(passwdDir);
 
             File.WriteAllText(_passwdPath, newPassword);
-            try { File.SetUnixFileMode(_passwdPath, UnixFileMode.UserRead | UnixFileMode.UserWrite); } catch { }
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsFreeBSD())
+            {
+                try { File.SetUnixFileMode(_passwdPath, UnixFileMode.UserRead | UnixFileMode.UserWrite); } catch { }
+            }
         }
         catch
         {
