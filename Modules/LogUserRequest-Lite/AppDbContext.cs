@@ -77,8 +77,11 @@ public class HeaderModelSql
                 .Take(50)
                 .ToDictionary(
                     x => x.Key.Length > 100 ? x.Key[..100] : x.Key,
-                    x => (x.Value ?? "").Length > 500 ? x.Value[..500] : (x.Value ?? "")
-                );
+                    x =>
+                    {
+                        var v = x.Value ?? "";
+                        return v.Length > 500 ? v[..500] : v;
+                    });
             HeadersJson = JsonSerializer.Serialize(safe);
         }
     }
