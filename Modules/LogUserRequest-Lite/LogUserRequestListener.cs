@@ -32,7 +32,7 @@ public static class LogUserRequestListener
         "/bookmark",
         "/storage",
         "/cub",
-		"/cub/", 
+        "/cub/",
         "/sisi/bookmarks",
         "/proxy/"
     };

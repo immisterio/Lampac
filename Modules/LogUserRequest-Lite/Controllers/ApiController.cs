@@ -111,9 +111,9 @@ public class ApiController : ControllerBase
         var sessionToken = Request.Cookies["loguser_session"];
         if (!string.IsNullOrEmpty(sessionToken)) ModInit.RevokeSessionToken(sessionToken);
         Response.Cookies.Delete("loguser_session", new CookieOptions
-{
-    Path = "/lite/logrequest"
-});
+        {
+            Path = "/lite/logrequest"
+        });
         return Redirect("/lite/logrequest/auth");
     }
 
@@ -138,10 +138,15 @@ public class ApiController : ControllerBase
             unfoDict.TryGetValue(j.unfo ?? "", out var unfo);
             return new JournalItemDto
             {
-                Id = j.Id, Time = j.time, Uri = j.uri, UserUid = j.uid,
-                Ip = unfo?.IP ?? "unknown", Country = unfo?.Country ?? "",
+                Id = j.Id,
+                Time = j.time,
+                Uri = j.uri,
+                UserUid = j.uid,
+                Ip = unfo?.IP ?? "unknown",
+                Country = unfo?.Country ?? "",
                 UserAgent = unfo?.UserAgent ?? "unknown",
-                DurationMs = j.duration_ms, Balancer = j.balancer
+                DurationMs = j.duration_ms,
+                Balancer = j.balancer
             };
         }).ToList();
 
@@ -210,9 +215,12 @@ public class ApiController : ControllerBase
 
         return Ok(ApiResponse<StatsDto>.Ok(new StatsDto
         {
-            Today = today, Month = month,
-            UniqueIp = uniqueIp, UniqueUserAgent = uniqueUserAgent,
-            TopUsers = topUsers, TopBalancers = topBalancers
+            Today = today,
+            Month = month,
+            UniqueIp = uniqueIp,
+            UniqueUserAgent = uniqueUserAgent,
+            TopUsers = topUsers,
+            TopBalancers = topBalancers
         }));
     }
 

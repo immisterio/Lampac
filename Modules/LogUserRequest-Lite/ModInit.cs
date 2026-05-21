@@ -152,7 +152,8 @@ public class ModInit : IModuleLoaded, IModuleConfigure
                 sqlDb.Database.ExecuteSqlRaw("PRAGMA cache_size = -64000;");
                 sqlDb.Database.ExecuteSqlRaw("PRAGMA temp_store = MEMORY;");
                 sqlDb.Database.ExecuteSqlRaw("PRAGMA mmap_size = 33554432;");
-            } catch { }
+            }
+            catch { }
         }
 
         var manifestPath = Path.Combine(init.path, "manifest.json");
@@ -283,8 +284,15 @@ public class ModInit : IModuleLoaded, IModuleConfigure
             }
             else
             {
-                stats = new { today = 0, month = 0, uniqueUserAgent = 0, uniqueIp = 0,
-                    topUsers = Array.Empty<object>(), topBalancers = Array.Empty<object>() };
+                stats = new
+                {
+                    today = 0,
+                    month = 0,
+                    uniqueUserAgent = 0,
+                    uniqueIp = 0,
+                    topUsers = Array.Empty<object>(),
+                    topBalancers = Array.Empty<object>()
+                };
             }
         }
         catch (Exception ex)
