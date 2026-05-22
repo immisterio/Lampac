@@ -20,21 +20,24 @@ public static class SearchNameTo
     static readonly CultureInfo _cultureInfoSearchName = CultureInfo.GetCultureInfo("ru-RU");
     #endregion
 
-    public static bool Equals(ReadOnlySpan<char> name, ReadOnlySpan<char> search, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, search, comparisonType, MatchOp.Equals);
+    public static bool Equals(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
+        => Invoke(name, searchNormalized, comparisonType, MatchOp.Equals);
 
-    public static bool Contains(ReadOnlySpan<char> name, ReadOnlySpan<char> search, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, search, comparisonType, MatchOp.Contains);
+    public static bool Contains(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
+        => Invoke(name, searchNormalized, comparisonType, MatchOp.Contains);
 
-    public static bool StartsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> search, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, search, comparisonType, MatchOp.StartsWith);
+    public static bool StartsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
+        => Invoke(name, searchNormalized, comparisonType, MatchOp.StartsWith);
 
-    public static bool EndsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> search, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, search, comparisonType, MatchOp.EndsWith);
+    public static bool EndsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
+        => Invoke(name, searchNormalized, comparisonType, MatchOp.EndsWith);
 
     #region Convert
     public static string Convert(ReadOnlySpan<char> val, string empty = null)
     {
+        if (val.IsEmpty)
+            return empty;
+
         BufferCharPool _bufferChar = null;
         char[] _threadBuffer = null;
 
@@ -64,9 +67,9 @@ public static class SearchNameTo
     #endregion
 
     #region Invoke
-    static bool Invoke(ReadOnlySpan<char> name, ReadOnlySpan<char> search, StringComparison comparisonType, MatchOp op)
+    static bool Invoke(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType, MatchOp op)
     {
-        if (name.Length == 0 || search.Length == 0)
+        if (name.Length == 0 || searchNormalized.Length == 0)
             return false;
 
         BufferCharPool _bufferChar = null;
@@ -90,16 +93,17 @@ public static class SearchNameTo
             return op switch
             {
                 MatchOp.Equals =>
-                    normalized.Equals(search, comparisonType),
+                    normalized.Length == searchNormalized.Length &&
+                    normalized.Equals(searchNormalized, comparisonType),
 
                 MatchOp.Contains =>
-                    normalized.Contains(search, comparisonType),
+                    normalized.Contains(searchNormalized, comparisonType),
 
                 MatchOp.StartsWith =>
-                    normalized.StartsWith(search, comparisonType),
+                    normalized.StartsWith(searchNormalized, comparisonType),
 
                 MatchOp.EndsWith =>
-                    normalized.EndsWith(search, comparisonType),
+                    normalized.EndsWith(searchNormalized, comparisonType),
 
                 _ => false
             };
@@ -120,10 +124,6 @@ public static class SearchNameTo
         for (int i = 0; i < name.Length; i++)
         {
             char c = name[i];
-
-            // Быстро пропускаем whitespace и прочие явные разделители
-            if (char.IsWhiteSpace(c))
-                continue;
 
             // Оставляем только латиницу/кириллицу/цифры
             // (a-zA-Zа-яА-Я0-9Ёё)
