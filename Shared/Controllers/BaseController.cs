@@ -305,7 +305,7 @@ public class BaseController : Controller
         if (conf.imgcorshost != null)
         {
             #region imgcorshost {payload}
-            using (var utf8Buf = new BufferWriterPool<byte>())
+            using (var utf8Buf = new BufferWriterPool<byte>(BufferWriterPoolType.Tiny))
             {
                 using (var writer = new Utf8JsonWriter(utf8Buf, jsonWriterOptions))
                 {
@@ -318,6 +318,8 @@ public class BaseController : Controller
                     var heads = httpHeaders(conf.host ?? conf.apihost, headers);
                     if (heads != null && heads.Count > 0)
                     {
+                        writer.WriteNumber("hc"u8, heads.Count);
+
                         writer.WritePropertyName("h"u8);
                         writer.WriteStartObject();
 
@@ -614,7 +616,7 @@ public class BaseController : Controller
 
         if (apn.host.Contains("{payload}"))
         {
-            using (var utf8Buf = new BufferWriterPool<byte>())
+            using (var utf8Buf = new BufferWriterPool<byte>(BufferWriterPoolType.Tiny))
             {
                 using (var writer = new Utf8JsonWriter(utf8Buf, jsonWriterOptions))
                 {
@@ -627,6 +629,8 @@ public class BaseController : Controller
                     var heads = httpHeaders(conf.host, headers);
                     if (heads != null && heads.Count > 0)
                     {
+                        writer.WriteNumber("hc"u8, heads.Count);
+
                         writer.WritePropertyName("h"u8);
                         writer.WriteStartObject();
 
