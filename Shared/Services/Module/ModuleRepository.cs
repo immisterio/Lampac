@@ -703,7 +703,7 @@ public static class ModuleRepository
 
             return request;
         }
-        }
+    }
 
     private static JsonRequestResult GetJsonConditional(RepositoryEntry repository, string url, string ifNoneMatch)
     {
