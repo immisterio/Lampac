@@ -8,25 +8,29 @@ public class SemaphorManager
     #region static
     static readonly Serilog.ILogger Log = Serilog.Log.ForContext<SemaphorManager>();
 
-    public static int Stat_ContSemaphoreLocks => _semaphoreLocks.IsEmpty ? 0 : _semaphoreLocks.Count;
+    public static int Stat_ContSemaphoreLocks
+        => _semaphoreLocks.Count;
+
     private static readonly ConcurrentDictionary<string, SemaphoreEntry> _semaphoreLocks = new();
     #endregion
 
-    string key;
-    SemaphoreEntry semaphore;
-    CancellationToken cancellationToken;
-    TimeSpan timeSpan;
-    CancellationTokenSource ctspool;
-    bool lockAcquired;
+    private readonly string key;
+    private readonly SemaphoreEntry semaphore;
+    private readonly CancellationToken cancellationToken;
+    private readonly TimeSpan timeSpan;
+    private bool lockAcquired;
 
 
     public SemaphorManager(string key, TimeSpan timeSpan)
     {
         this.key = key;
         this.timeSpan = timeSpan;
-        ctspool = new CancellationTokenSource(timeSpan);
-        cancellationToken = ctspool.Token;
-        semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
+        cancellationToken = CancellationToken.None;
+
+        semaphore = _semaphoreLocks.GetOrAdd(
+            key,
+            static _ => new SemaphoreEntry(new SemaphoreSlim(1, 1))
+        );
     }
 
     public SemaphorManager(string key, CancellationToken cancellationToken)
@@ -34,7 +38,11 @@ public class SemaphorManager
         this.key = key;
         timeSpan = TimeSpan.FromSeconds(30);
         this.cancellationToken = cancellationToken;
-        semaphore = _semaphoreLocks.GetOrAdd(key, _ => new SemaphoreEntry(new SemaphoreSlim(1, 1)));
+
+        semaphore = _semaphoreLocks.GetOrAdd(
+            key,
+            static _ => new SemaphoreEntry(new SemaphoreSlim(1, 1))
+        );
     }
 
 
@@ -59,11 +67,8 @@ public class SemaphorManager
                 if (_semaphoreLocks.TryRemove(key, out var removed))
                     removed.Dispose();
             }
-
-            ctspool?.Dispose();
-            ctspool = null;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Log.Error(ex, "CatchId={CatchId}", "id_lnowtelx");
         }
