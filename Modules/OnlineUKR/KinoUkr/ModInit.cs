@@ -7,7 +7,6 @@ using Shared.Models.Module;
 using Shared.Models.Module.Interfaces;
 using Shared.Models.Online.Settings;
 using Shared.Services;
-using Shared.Services.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,12 +19,7 @@ public class ModInit : IModuleLoaded, IModuleOnline
     public static OnlinesSettings conf;
     static Timer kinoukrTimer;
 
-    #region database
-    public static Dictionary<string, DbModel> databaseCache;
-
-    public static IEnumerable<KeyValuePair<string, DbModel>> database
-        => databaseCache ?? JsonHelper.DictionaryReader<DbModel>("data/kinoukr.json");
-    #endregion
+    public static Dictionary<string, DbModel> database;
 
     public List<ModuleOnlineItem> Invoke(HttpContext httpContext, RequestModel requestInfo, string host, OnlineEventsModel args)
     {
@@ -45,11 +39,8 @@ public class ModInit : IModuleLoaded, IModuleOnline
         EventListener.UpdateInitFile += updateConf;
         EventListener.OnlineApiQuality += onlineApiQuality;
 
-        if (CoreInit.conf.lowMemoryMode == false)
-        {
-            databaseCache = JsonConvert.DeserializeObject<Dictionary<string, DbModel>>(File.ReadAllText("data/kinoukr.json"));
-            kinoukrTimer = new Timer(CronParse.Kinoukr, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(20));
-        }
+        database = JsonConvert.DeserializeObject<Dictionary<string, DbModel>>(File.ReadAllText("data/kinoukr.json"));
+        kinoukrTimer = new Timer(CronParse.Kinoukr, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(20));
     }
 
     public void Dispose()
@@ -57,8 +48,8 @@ public class ModInit : IModuleLoaded, IModuleOnline
         EventListener.UpdateInitFile -= updateConf;
         EventListener.OnlineApiQuality -= onlineApiQuality;
 
-        databaseCache?.Clear();
-        databaseCache = null;
+        database?.Clear();
+        database = null;
         kinoukrTimer?.Dispose();
     }
 

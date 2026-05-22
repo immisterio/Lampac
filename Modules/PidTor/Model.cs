@@ -32,7 +32,7 @@ public class Torrent
 
 public class FileStat
 {
-    public int id { get; set; }
+    public short id { get; set; }
 
     public string path { get; set; }
 }
@@ -43,7 +43,7 @@ public class Info
 
     public string sizeName { get; set; }
 
-    public int[] seasons { get; set; }
+    public short[] seasons { get; set; }
 }
 
 public class Result

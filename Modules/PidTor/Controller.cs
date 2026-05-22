@@ -25,7 +25,7 @@ public class PiTor : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/pidtor")]
-    async public Task<ActionResult> Index(string title, string original_title, int year, string original_language, int serial, int s = -1, bool rjson = false)
+    async public Task<ActionResult> Index(string title, string original_title, short year, string original_language, byte serial, short s = -1, bool rjson = false)
     {
         var init = ModInit.conf;
         if (!init.enable)
@@ -288,7 +288,7 @@ public class PiTor : BaseOnlineController
             {
                 if (s == -1)
                 {
-                    HashSet<int> seasons = new HashSet<int>();
+                    var seasons = new HashSet<short>();
 
                     var tpl = new SeasonTpl(quality: torrents.FirstOrDefault(i => Regex.IsMatch(i.name, "(4k|uhd)( |\\]|,|$)", RegexOptions.IgnoreCase) || i.name.Contains("2160p"))?.name != null ? "2160p" : torrents.FirstOrDefault(i => i.name.Contains("1080p"))?.name != null ? "1080p" : "720p");
 
@@ -454,7 +454,7 @@ public class PiTor : BaseOnlineController
                     Path.GetFileName(torrent.path),
                     title ?? original_title,
                     s,
-                    (short)torrent.id,
+                    torrent.id,
                     accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.id}")
                 );
             }
@@ -466,7 +466,7 @@ public class PiTor : BaseOnlineController
 
     [HttpGet]
     [Route("lite/pidtor/s{id}")]
-    async public Task<ActionResult> Stream(string id, int tsid = -1)
+    async public Task<ActionResult> Stream(string id, short tsid = -1)
     {
         var init = ModInit.conf;
         if (!init.enable)
@@ -475,7 +475,7 @@ public class PiTor : BaseOnlineController
         if (NoAccessGroup(init, out string error_msg))
             return Json(new { accsdb = true, error_msg });
 
-        int index = tsid != -1 ? tsid : 1;
+        short index = tsid != -1 ? tsid : (short)1;
         string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|nws_id|tsid)=[^&]+", "");
 
         #region auth_stream
