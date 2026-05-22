@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Shared.Services.Utilities;
@@ -15,20 +15,54 @@ public static class AccsDbInvk
         int initialLength = args.Length;
         char split = uri.Contains('?') ? '&' : '?';
 
-        if (httpContext.Request.Query.ContainsKey("account_email") && !uri.Contains("account_email=", StringComparison.OrdinalIgnoreCase))
-            AppendParam(ref split, args, "account_email", httpContext.Request.Query["account_email"]);
+        bool hasAccountEmail = false;
+        bool hasUid = false;
+        bool hasToken = false;
+        bool hasBoxMac = false;
+        bool hasNws = false;
 
-        if (httpContext.Request.Query.ContainsKey("uid") && !uri.Contains("uid=", StringComparison.OrdinalIgnoreCase))
-            AppendParam(ref split, args, "uid", httpContext.Request.Query["uid"]);
+        var query = httpContext.Request.Query;
+        query.TryGetValue("account_email", out StringValues account_email);
+        query.TryGetValue("uid", out StringValues uid);
+        query.TryGetValue("token", out StringValues token);
+        query.TryGetValue("box_mac", out StringValues box_mac);
+        query.TryGetValue("nws_id", out StringValues nws_id);
 
-        if (httpContext.Request.Query.ContainsKey("token") && !uri.Contains("token=", StringComparison.OrdinalIgnoreCase))
-            AppendParam(ref split, args, "token", httpContext.Request.Query["token"]);
+        int indexArgs = uri.IndexOf('?');
+        if (indexArgs > 0)
+        {
+            ReadOnlySpan<char> _u = uri.AsSpan(indexArgs);
 
-        if (httpContext.Request.Query.ContainsKey("box_mac") && !uri.Contains("box_mac=", StringComparison.OrdinalIgnoreCase))
-            AppendParam(ref split, args, "box_mac", httpContext.Request.Query["box_mac"]);
+            if (account_email.Count > 0)
+                hasAccountEmail = HasQueryParamWithNonEmptyValue(_u, "account_email=");
 
-        if (httpContext.Request.Query.ContainsKey("nws_id") && !uri.Contains("nws_id=", StringComparison.OrdinalIgnoreCase))
-            AppendParam(ref split, args, "nws_id", httpContext.Request.Query["nws_id"]);
+            if (uid.Count > 0)
+                hasUid = HasQueryParamWithNonEmptyValue(_u, "uid=");
+
+            if (token.Count > 0)
+                hasToken = HasQueryParamWithNonEmptyValue(_u, "token=");
+
+            if (box_mac.Count > 0)
+                hasBoxMac = HasQueryParamWithNonEmptyValue(_u, "box_mac=");
+
+            if (nws_id.Count > 0)
+                hasNws = HasQueryParamWithNonEmptyValue(_u, "nws_id=");
+        }
+
+        if (!hasAccountEmail)
+            AppendParam(ref split, args, "account_email", account_email);
+
+        if (!hasUid)
+            AppendParam(ref split, args, "uid", uid);
+
+        if (!hasToken)
+            AppendParam(ref split, args, "token", token);
+
+        if (!hasBoxMac)
+            AppendParam(ref split, args, "box_mac", box_mac);
+
+        if (!hasNws)
+            AppendParam(ref split, args, "nws_id", nws_id);
 
         if (args.Length == initialLength)
             return uri;
@@ -36,14 +70,65 @@ public static class AccsDbInvk
         return args.ToString();
     }
 
+    static bool HasQueryParamWithNonEmptyValue(ReadOnlySpan<char> uri, ReadOnlySpan<char> key)
+    {
+        if (uri.IsEmpty || key.IsEmpty)
+            return false;
+
+        int searchFrom = 0;
+
+        while (searchFrom < uri.Length)
+        {
+            int pos = uri[searchFrom..]
+                .IndexOf(key, StringComparison.OrdinalIgnoreCase);
+
+            if (pos < 0)
+                return false;
+
+            pos += searchFrom;
+
+            // key должен начинаться либо с 0, либо после '?' или '&'
+            if (pos != 0)
+            {
+                char prev = uri[pos - 1];
+                if (prev != '?' && prev != '&')
+                {
+                    searchFrom = pos + key.Length;
+                    continue;
+                }
+            }
+
+            int afterKey = pos + key.Length;
+
+            // после '=' должен быть хотя бы 1 символ
+            if (afterKey >= uri.Length)
+            {
+                searchFrom = afterKey;
+                continue;
+            }
+
+            char firstValueChar = uri[afterKey];
+
+            // значение не должно начинаться с разделителя или fragment
+            if (firstValueChar == '&' || firstValueChar == '#')
+            {
+                searchFrom = afterKey + 1;
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
 
     static void AppendParam(ref char split, StringBuilder sb, string key, in StringValues values)
     {
         if (values.Count == 0)
             return;
 
-        string s = values[0];
-        if (string.IsNullOrEmpty(s))
+        string value = values[0];
+        if (string.IsNullOrEmpty(value))
             return;
 
         sb.Append(split);
@@ -54,71 +139,25 @@ public static class AccsDbInvk
         sb.Append('=');
 
         if (CoreInit.conf.BaseModule.ValidateIdentity)
-            AppendUrlEncodedLowerInvariant(sb, s.AsSpan().Trim());
-        else
-            sb.Append(s);
-    }
-
-    static void AppendUrlEncodedLowerInvariant(StringBuilder sb, ReadOnlySpan<char> value)
-    {
-        Span<byte> utf8 = stackalloc byte[4]; // максимум 4 байта на один Rune (UTF-8)
-
-        for (int i = 0; i < value.Length; i++)
         {
-            char ch = char.ToLowerInvariant(value[i]);
-
-            if (!IsAllowedChar(ch))
-                continue;
-
-            if (IsUnreserved(ch))
+            for (int i = 0; i < value.Length; i++)
             {
-                sb.Append(ch);
-                continue;
+                char ch = char.ToLowerInvariant(value[i]);
+
+                if (IsAllowedChar(ch))
+                {
+                    sb.Append(ch);
+                    continue;
+                }
             }
-
-            if (ch == ' ')
-            {
-                sb.Append("%20");
-                continue;
-            }
-
-            // Корректно декодируем один Unicode scalar (1 или 2 char UTF-16)
-            ReadOnlySpan<char> tail = value.Slice(i);
-            OperationStatus status = Rune.DecodeFromUtf16(tail, out Rune rune, out int consumed);
-
-            if (status != OperationStatus.Done || consumed <= 0)
-            {
-                // fallback: кодируем текущий char как есть
-                rune = new Rune(value[i]);
-                consumed = 1;
-            }
-
-            int len = rune.EncodeToUtf8(utf8);
-            AppendPercentEncodedBytes(sb, utf8.Slice(0, len));
-
-            i += consumed - 1; // consumed = 1 или 2
         }
+        else
+            sb.Append(value);
     }
 
-    static bool IsUnreserved(char c)
-        => (c >= 'a' && c <= 'z')
-        || (c >= '0' && c <= '9')
-        || c == '-' || c == '_' || c == '.';
-
-    static bool IsAllowedChar(char c)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsAllowedChar(char c)
         => (c >= 'a' && c <= 'z')
         || (c >= '0' && c <= '9')
         || c == '@' || c == '.' || c == '-' || c == '_' || c == '=';
-
-    static void AppendPercentEncodedBytes(StringBuilder sb, ReadOnlySpan<byte> bytes)
-    {
-        const string encodedHex = "0123456789ABCDEF";
-
-        foreach (byte b in bytes)
-        {
-            sb.Append('%');
-            sb.Append(encodedHex[b >> 4]);
-            sb.Append(encodedHex[b & 0x0F]);
-        }
-    }
 }
