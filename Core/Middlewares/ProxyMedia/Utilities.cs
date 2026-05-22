@@ -34,6 +34,19 @@ public partial class ProxyAPI
         UseProxy = false
     };
 
+    static readonly IReadOnlyDictionary<string, string> defaultNormalizeHeaders = new Dictionary<string, string>()
+    {
+        ["Accept"] = "*/*",
+        ["Accept-Language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5",
+        ["Pragma"] = "no-cache",
+        ["Cache-Control"] = "no-cache",
+        ["sec-ch-ua"] = Http.SecChUa,
+        ["sec-ch-ua-mobile"] = "?0",
+        ["sec-ch-ua-platform"] = "\"Windows\"",
+        ["DNT"] = "1",
+        ["User-Agent"] = Http.UserAgent
+    };
+
     static readonly FrozenSet<string> responseHeaders = new[]
     {
         "accept-encoding",
@@ -72,49 +85,77 @@ public partial class ProxyAPI
         #region Headers
         request.Headers.TryGetValue("range", out StringValues range);
 
-        if (range.Count == 0 && plugin != null && cacheDefaultRequestHeaders.TryGetValue(plugin, out var _cacheHeaders))
+        if (range.Count == 0 && (headers == null || headers.Count == 0))
         {
-            foreach (var h in _cacheHeaders)
-            {
-                if (!requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value))
-                {
-                    if (requestMessage.Content?.Headers != null)
-                        requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                }
-            }
+            foreach (var h in defaultNormalizeHeaders)
+                requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value);
         }
         else
         {
-            var addHeaders = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+            if (range.Count == 0 && plugin != null && cacheDefaultRequestHeaders.TryGetValue(plugin, out var _cacheHeaders))
             {
-                ["accept"] = ["*/*"],
-                ["accept-language"] = ["ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"]
-            };
-
-            if (headers != null && headers.Count > 0)
-            {
-                foreach (var h in headers)
-                    addHeaders[h.name] = [h.val];
-            }
-
-            if (range.Count > 0)
-                addHeaders["range"] = range.ToArray();
-
-            foreach (var h in Http.defaultFullHeaders)
-                addHeaders[h.Key] = [h.Value];
-
-            var normalizeHeaders = Http.NormalizeHeaders(addHeaders);
-
-            if (range.Count == 0 && plugin != null)
-                cacheDefaultRequestHeaders[plugin] = normalizeHeaders;
-
-            foreach (var h in normalizeHeaders)
-            {
-                if (!requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                #region Cache Headers
+                foreach (var h in _cacheHeaders)
                 {
-                    if (requestMessage.Content?.Headers != null)
-                        requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                    if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Content-Type, Content-Length, Content-Encoding, Content-Disposition
+                        requestMessage.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                    }
+                    else
+                    {
+                        if (requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
+                        else if (requestMessage.Content?.Headers != null)
+                        {
+                            requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                        }
+                    }
                 }
+                #endregion
+            }
+            else
+            {
+                #region User Headers
+                var addHeaders = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["accept"] = ["*/*"],
+                    ["accept-language"] = ["ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"]
+                };
+
+                if (headers != null && headers.Count > 0)
+                {
+                    foreach (var h in headers)
+                        addHeaders[h.name] = [h.val];
+                }
+
+                if (range.Count > 0)
+                    addHeaders["range"] = range.ToArray();
+
+                foreach (var h in Http.defaultFullHeaders)
+                    addHeaders[h.Key] = [h.Value];
+
+                var normalizeHeaders = Http.NormalizeHeaders(addHeaders);
+
+                if (range.Count == 0 && plugin != null)
+                    cacheDefaultRequestHeaders[plugin] = normalizeHeaders;
+
+                foreach (var h in normalizeHeaders)
+                {
+                    if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Content-Type, Content-Length, Content-Encoding, Content-Disposition
+                        requestMessage.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                    }
+                    else
+                    {
+                        if (requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
+                        else if (requestMessage.Content?.Headers != null)
+                        {
+                            requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                        }
+                    }
+                }
+                #endregion
             }
         }
         #endregion
@@ -149,10 +190,9 @@ public partial class ProxyAPI
             {
                 string key = header.Key;
 
-                if (responseHeaders.Contains(key))
+                if (!string.IsNullOrEmpty(key) && responseHeaders.Contains(key))
                 {
                     var values = header.Value;
-
                     using (var e = values.GetEnumerator())
                     {
                         if (!e.MoveNext())

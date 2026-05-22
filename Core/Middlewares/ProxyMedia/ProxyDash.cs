@@ -105,7 +105,7 @@ public partial class ProxyAPI
     #region Dash
     async public Task ProxyDash(HttpContext httpContext, ServerproxyConf init, ProxyLinkModel decryptLink, string servUri, string servPath, HttpClientHandler proxyHandler, (string uriKey, string contentType) cacheStream)
     {
-        var uri = new Uri($"{servUri}{Regex.Replace(servPath, "^[^/]+/", "", RegexOptions.IgnoreCase)}{httpContext.Request.QueryString.Value}");
+        var uri = new Uri($"{servUri}{servPath}{httpContext.Request.QueryString.Value}");
 
         if (init.showOrigUri)
             httpContext.Response.Headers["PX-Orig"] = uri.ToString();

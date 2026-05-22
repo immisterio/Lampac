@@ -6,7 +6,6 @@ using Shared.Services;
 using Shared.Services.Utilities;
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -53,11 +52,11 @@ public partial class ProxyAPI
         bool Isdash = httpContext.Request.Path.Value.StartsWith("/proxy-dash/", StringComparison.OrdinalIgnoreCase);
 
         string servPath = Isdash
-            ? httpContext.Request.Path.Value.Replace("/proxy-dash/", "", StringComparison.OrdinalIgnoreCase)
-            : httpContext.Request.Path.Value.Replace("/proxy/", "", StringComparison.OrdinalIgnoreCase);
+            ? httpContext.Request.Path.Value.Substring(12) /// - /proxy-dash/
+            : httpContext.Request.Path.Value.Substring(7); /// - /proxy/
 
         var decryptLink = Isdash
-            ? ProxyLink.Decrypt(servPath.AsSpan(0, servPath.IndexOf('/')), requestInfo.IP)
+            ? ProxyLink.Decrypt(servPath.AsSpan(0, 32), requestInfo.IP)
             : ProxyLink.Decrypt(servPath.AsSpan(), requestInfo.IP);
 
         string servUri = decryptLink?.uri;
@@ -191,7 +190,7 @@ public partial class ProxyAPI
 
             if (Isdash)
             {
-                await ProxyDash(httpContext, init, decryptLink, servUri, servPath, proxyHandler, cacheStream);
+                await ProxyDash(httpContext, init, decryptLink, servUri, servPath.Substring(33), proxyHandler, cacheStream);
             }
             else
             {
@@ -313,7 +312,7 @@ public partial class ProxyAPI
                                 }
 
                                 string contentType = null;
-                                if (response.Content?.Headers != null && response.Content.Headers.TryGetValues("Content-Type", out IEnumerable<string> _contentType))
+                                if (response.Content?.Headers != null && response.Content.Headers.TryGetValues("Content-Type", out var _contentType))
                                     contentType = _contentType?.FirstOrDefault();
 
                                 bool ists =
