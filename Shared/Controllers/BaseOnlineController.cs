@@ -245,7 +245,11 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
         }
 
         if (gbcache == true && rch?.enable != true)
-            memoryCache.Set(ResponseCache.ErrorKey(HttpContext), msg ?? string.Empty, DateTime.Now.AddSeconds(15));
+        {
+            string ekey = ResponseCache.ErrorKey(HttpContext);
+            if (ekey != null)
+                memoryCache.Set(ekey, msg ?? string.Empty, DateTime.Now.AddSeconds(15));
+        }
 
         HttpContext.Response.StatusCode = statusCode;
         return ContentTo(msg ?? string.Empty);

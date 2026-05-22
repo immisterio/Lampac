@@ -1,23 +1,28 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.Collections.Frozen;
 
 namespace Shared.Services;
 
 public static class ResponseCache
 {
-    static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
+    static readonly FrozenSet<string> SensitiveKeys = new[]
     {
         "account_email", "cub_id", "box_mac", "uid", "token", "source", "rchtype", "nws_id"
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    static readonly string Prefix = "ResponseCache:errorMsg:";
+    const string Prefix = "ResponseCache:errorMsg:";
 
 
     public static string ErrorKey(HttpContext httpContext)
     {
+        if (string.IsNullOrEmpty(httpContext.Request.Path.Value) ||
+            string.IsNullOrEmpty(httpContext.Request.QueryString.Value))
+            return null;
+
         var sb = StringBuilderPool.ThreadInstance;
 
         sb.Append(Prefix);
-        sb.Append(httpContext.Request.Path.Value ?? string.Empty);
+        sb.Append(httpContext.Request.Path.Value);
 
         bool first = true;
         foreach (var kvp in httpContext.Request.Query)

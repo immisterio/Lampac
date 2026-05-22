@@ -935,7 +935,11 @@ public class BaseController : Controller
         if (rch?.enable == true)
             return false;
 
-        if (memoryCache.TryGetValue(ResponseCache.ErrorKey(HttpContext), out object errorCache))
+        string ekey = ResponseCache.ErrorKey(HttpContext);
+        if (ekey == null)
+            return false;
+
+        if (memoryCache.TryGetValue(ekey, out object errorCache))
         {
             HttpContext.Response.Headers.TryAdd("X-RCache", "true");
 

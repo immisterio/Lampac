@@ -245,7 +245,11 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
         var model = new OnErrorResult(msg);
 
         if (rcache && rch?.enable != true)
-            memoryCache.Set(ResponseCache.ErrorKey(HttpContext), model, DateTime.Now.AddSeconds(15));
+        {
+            string ekey = ResponseCache.ErrorKey(HttpContext);
+            if (ekey != null)
+                memoryCache.Set(ekey, model, DateTime.Now.AddSeconds(15));
+        }
 
         if (refresh_proxy && rch?.enable != true)
             proxyManager?.Refresh();
