@@ -30,14 +30,14 @@ public class Translation
 
 public class Episode
 {
-    public int episodeNum { get; set; }
+    public short episodeNum { get; set; }
 
     public List<Translation> trs { get; set; }
 }
 
 public class Season
 {
-    public int seasonNum { get; set; }
+    public short seasonNum { get; set; }
 
     public List<Episode> episodes { get; set; }
 }

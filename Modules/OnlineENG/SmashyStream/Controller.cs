@@ -17,7 +17,7 @@ public class SmashyStreamController : BaseENGController
 
     [HttpGet]
     [Route("lite/smashystream")]
-    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false)
     {
         return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
     }
@@ -25,7 +25,7 @@ public class SmashyStreamController : BaseENGController
     [HttpGet]
     [Route("lite/smashystream/video")]
     [Route("lite/smashystream/video.mp4")]
-    public async Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
+    public async Task<ActionResult> Video(long id, short s = -1, short e = -1, bool play = false)
     {
         if (id == 0)
             return OnError();
@@ -67,7 +67,7 @@ public class SmashyStreamController : BaseENGController
         ));
     }
 
-
+    
     async Task<(string stream, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))

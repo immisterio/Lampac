@@ -55,7 +55,7 @@ public class Filmix : BaseOnlineController<FilmixSettings>
 
     [HttpGet]
     [Route("lite/filmix")]
-    async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t, int? s = null, bool rjson = false, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, int postid, short t, short? s = null, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

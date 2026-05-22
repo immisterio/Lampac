@@ -21,7 +21,7 @@ public class DreamerscastController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/dreamerscast")]
-    async public Task<ActionResult> Index(string title, int year, string uri, int s = 1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(string title, short year, string uri, short s = 1, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -146,7 +146,6 @@ public class DreamerscastController : BaseOnlineController
 
             return ContentTpl(cache, () =>
             {
-                string season = s.ToString();
                 var etpl = new EpisodeTpl(cache.Value.Count);
 
                 foreach (var item in cache.Value)
@@ -156,7 +155,7 @@ public class DreamerscastController : BaseOnlineController
                     etpl.Append(
                         string.IsNullOrWhiteSpace(item.name) ? $"{ep} серия" : item.name,
                         title,
-                        season,
+                        s,
                         ep,
                         HostStreamProxy(item.hls)
                     );

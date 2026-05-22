@@ -22,7 +22,7 @@ public class KinogoController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/kinogo")]
-    async public Task<ActionResult> Index(string title, string original_title, int year, bool rjson, string href, bool similar, int s = -1, int t = -1)
+    async public Task<ActionResult> Index(string title, string original_title, short year, bool rjson, string href, bool similar, short s = -1, int t = -1)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -147,7 +147,7 @@ public class KinogoController : BaseOnlineController
 
 
     #region BuildResult
-    ITplResult BuildResult(List<PlaylistItem> playlist, string title, string original_title, int year, int s, int t, bool rjson, string href)
+    ITplResult BuildResult(List<PlaylistItem> playlist, string title, string original_title, short year, short s, int t, bool rjson, string href)
     {
         if (!string.IsNullOrEmpty(playlist.FirstOrDefault()?.file))
         {
@@ -282,7 +282,7 @@ public class KinogoController : BaseOnlineController
                     etpl.Append(
                         name,
                         title ?? original_title,
-                        s.ToString(),
+                        s,
                         Regex.Match(name, " ([0-9]+)$").Groups[1].Value,
                         HostStreamProxy(file),
                         subtitles: subtitles,

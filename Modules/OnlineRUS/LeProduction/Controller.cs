@@ -22,7 +22,7 @@ public class LeProductionController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/leproduction")]
-    async public Task<ActionResult> Index(string title, string original_title, int clarification, bool similar = false, int serial = 0, string href = null)
+    async public Task<ActionResult> Index(string title, string original_title, byte clarification, byte serial, bool similar = false, string href = null)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -125,7 +125,7 @@ public class LeProductionController : BaseOnlineController
 
             await httpHydra.GetSpan($"{init.host}/{href}", spanAction: html =>
             {
-                iframe =
+                iframe = 
                     Rx.Match(html, "<iframe[^>]+id=\"omfg\"[^>]+src=\"([^\"]+)\"") ??
                     Rx.Match(html, "<iframe[^>]+src=\"(https?://[^/]+/playlist_iframe/[0-9]+/?[^\"]*)\"");
             });
@@ -185,7 +185,7 @@ public class LeProductionController : BaseOnlineController
                 if (result != null)
                     return e.Success(result);
             }
-
+            
             return e.Fail("view", refresh_proxy: true);
         });
 

@@ -55,7 +55,7 @@ public class RezkaInvoke
     #endregion
 
     #region Search
-    async public Task<SearchModel> Search(string title, string original_title, int clarification, int year)
+    async public Task<SearchModel> Search(string title, string original_title, byte clarification, short year)
     {
         var result = new SearchModel();
         string reservedlink = null;
@@ -250,7 +250,7 @@ public class RezkaInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel result, string args, string title, string original_title, int s, string href, bool showstream, bool rjson = false)
+    public ITplResult Tpl(EmbedModel result, string args, string title, string original_title, short s, string href, bool showstream, bool rjson = false)
     {
         if (result == null || result.IsEmpty || result.content == null)
             return default;
@@ -386,8 +386,6 @@ public class RezkaInvoke
             var etpl = new EpisodeTpl(vtpl);
             HashSet<string> eshash = new HashSet<string>();
 
-            string sArhc = s.ToString();
-
             var m = Regex.Match(result.content, "data-cdn_url=\"(?<cdn>[^\"]+)\" [^>]+ data-season_id=\"(?<season>[0-9]+)\" data-episode_id=\"(?<episode>[0-9]+)\"([^>]+)?>(?<name>[^>]+)</[a-z]+>");
             while (m.Success)
             {
@@ -408,6 +406,8 @@ public class RezkaInvoke
                 else
                 {
                     #region Серии
+                    string sArhc = s.ToString();
+
                     if (m.Groups["season"].Value == sArhc && eshash.Add(m.Groups["name"].Value))
                     {
                         string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={result.trs}&s={s}&e={m.Groups["episode"].Value}";
@@ -426,7 +426,7 @@ public class RezkaInvoke
                         etpl.Append(
                             m.Groups["name"].Value,
                             title ?? original_title,
-                            sArhc,
+                            s,
                             m.Groups["episode"].Value,
                             link,
                             "call",
@@ -486,7 +486,7 @@ public class RezkaInvoke
         return root;
     }
 
-    public ITplResult Serial(Episodes root, EmbedModel result, string args, string title, string original_title, string href, long id, int t, int s, bool showstream, bool rjson = false)
+    public ITplResult Serial(Episodes root, EmbedModel result, string args, string title, string original_title, string href, long id, int t, short s, bool showstream, bool rjson = false)
     {
         if (root == null || result == null)
             return default;
@@ -572,7 +572,7 @@ public class RezkaInvoke
                     etpl.Append(
                         m.Groups["name"].Value,
                         title ?? original_title,
-                        s.ToString(),
+                        s,
                         m.Groups["episode"].Value,
                         link,
                         "call",
@@ -737,7 +737,6 @@ public class RezkaInvoke
             streamquality: streamquality,
             subtitles: subtitles,
             vast: vast,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
             httpContext: httpContext
         );
     }

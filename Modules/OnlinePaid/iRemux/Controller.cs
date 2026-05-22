@@ -37,7 +37,7 @@ public class iRemuxController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/remux")]
-    async public Task<ActionResult> Index(string title, string original_title, int year, string href, bool rjson = false)
+    async public Task<ActionResult> Index(string title, string original_title, short year, string href, bool rjson = false)
     {
         if (string.IsNullOrWhiteSpace(title ?? original_title) || year == 0)
             return OnError();

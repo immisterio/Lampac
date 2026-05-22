@@ -26,7 +26,7 @@ public class AnimeLibController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/animelib")]
-    async public Task<ActionResult> Index(string title, string original_title, int year, string uri, string t, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(string title, string original_title, short year, string uri, string t, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

@@ -22,7 +22,7 @@ public class VibixController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/vibix")]
-    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false)
+    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short s = -1, bool rjson = false)
     {
         if (await IsRequestBlocked(rch: false))
             return badInitMsg;
@@ -134,7 +134,6 @@ public class VibixController : BaseOnlineController
             else
             {
                 var etpl = new EpisodeTpl();
-                string sArhc = s.ToString();
 
                 foreach (var season in cache.Value)
                 {
@@ -171,7 +170,7 @@ public class VibixController : BaseOnlineController
                             etpl.Append(
                                 name,
                                 title ?? original_title,
-                                sArhc,
+                                s,
                                 Regex.Match(name, "([0-9]+)").Groups[1].Value,
                                 accsArgs(episode.streams[0].link),
                                 streamquality: new StreamQualityTpl(episode.streams, linkPredicate: accsArgs),

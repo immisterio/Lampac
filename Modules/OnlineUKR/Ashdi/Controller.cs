@@ -14,7 +14,7 @@ public class AshdiController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/ashdi")]
-    async public Task<ActionResult> Index(string uri, string title, string original_title, int t = -1, int s = -1, bool rjson = false)
+    async public Task<ActionResult> Index(string uri, string title, string original_title, short t = -1, short s = -1, bool rjson = false)
     {
         string href = DecryptQuery(uri);
 

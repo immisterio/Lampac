@@ -21,7 +21,7 @@ public class VideoseedController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/videoseed")]
-    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int s = -1, bool rjson = false, int serial = -1)
+    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, short s = -1, bool rjson = false, short serial = -1)
     {
         if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
             return OnError();
@@ -85,7 +85,7 @@ public class VideoseedController : BaseOnlineController
                         etpl.Append(
                             $"{video.Key} серия",
                             title ?? original_title,
-                            sArhc,
+                            s,
                             video.Key,
                             accsArgs($"{host}/lite/videoseed/video/{AesTo.Encrypt(video.Value.iframe)}") + "#.m3u8",
                             "call",
@@ -263,7 +263,7 @@ public class VideoseedController : BaseOnlineController
     #endregion
 
     #region goSearch
-    async Task<Data> goSearch(int serial, bool isOk, string arg)
+    async Task<Data> goSearch(short serial, bool isOk, string arg)
     {
         if (!isOk)
             return null;

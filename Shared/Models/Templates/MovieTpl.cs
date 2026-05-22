@@ -1,14 +1,18 @@
 ﻿using Shared.Services;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Shared.Models.Templates;
 
-public record MovieTplItem(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl streamquality, SubtitleTpl subtitles, string voice_name, string year, string details, string quality, VastConf vast, IReadOnlyList<HeadersModel> headers, int? hls_manifest_timeout, SegmentTpl segments, string subtitles_call);
+public record MovieTplItem(string voiceOrQuality, string link, string method, string stream, StreamQualityTpl streamquality, SubtitleTpl subtitles, string voice_name, int year, string details, string quality, VastConf vast, IReadOnlyList<HeadersModel> headers, int hls_manifest_timeout, SegmentTpl segments, string subtitles_call);
 
 public class MovieTpl : ITplResult
 {
-    string title, original_title;
+    private readonly int _capacity;
+    private static readonly int hlsTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
+
+    private string title, original_title;
 
     public VoiceTpl vtpl { get; set; }
 
@@ -28,14 +32,22 @@ public class MovieTpl : ITplResult
         this.vtpl = vtpl;
         this.title = title;
         this.original_title = original_title;
-        data = new List<MovieTplItem>(capacity);
+        _capacity = capacity;
     }
 
 
-    public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl segments = null, string subtitles_call = null)
+    public void Append(string voiceOrQuality, string link, string method = "play", string stream = null, StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string voice_name = null, string year = null, string details = null, string quality = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int hls_manifest_timeout = 0, SegmentTpl segments = null, string subtitles_call = null)
     {
         if (!string.IsNullOrEmpty(voiceOrQuality) && !string.IsNullOrEmpty(link))
-            data.Add(new MovieTplItem(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, year, details, quality, vast, headers, hls_manifest_timeout, segments, subtitles_call));
+        {
+            data ??= new List<MovieTplItem>(_capacity);
+            int.TryParse(year, out int _year);
+
+            if (hls_manifest_timeout == 0)
+                hls_manifest_timeout = hlsTimeout;
+
+            data.Add(new MovieTplItem(voiceOrQuality, link, method, stream, streamquality, subtitles, voice_name, _year, details, quality, vast, headers, hls_manifest_timeout, segments, subtitles_call));
+        }
     }
 
     public void Append(VoiceTpl vtpl)
@@ -49,6 +61,9 @@ public class MovieTpl : ITplResult
 
     public int Length
         => data?.Count ?? 0;
+
+    public string Type
+       => "movie";
 
     public object ToObject()
         => this;
@@ -92,52 +107,65 @@ public class MovieTpl : ITplResult
 
         using (var utf8Buf = new BufferWriterPool<byte>())
         {
-            foreach (var i in data)
+            using (var jsonWriter = new Utf8JsonWriter(utf8Buf, UtilsTpl.jsonWriterOptions))
             {
-                var vast = i.vast ?? CoreInit.conf.vast;
-
-                html.Append("<div class=\"videos__item videos__movie selector ");
-                if (firstjson)
-                    html.Append("focused");
-                html.Append("\" ");
-
-                html.Append("media=\"\" ");
-
-                html.Append("data-json='");
-                UtilsTpl.WriteJson(html, utf8Buf, new MovieDto
-                (
-                    i.method,
-                    i.link,
-                    i.stream,
-                    Http.NormalizeHeaders(i.headers),
-                    i.streamquality?.ToObject(emptyToNull: true),
-                    i.subtitles?.ToObject(emptyToNull: true),
-                    i.subtitles_call,
-                    i.voiceOrQuality,
-                    i.streamquality?.MaxQuality() ?? i.quality,
-                    i.voice_name,
-                    i.details,
-                    int.TryParse(i.year, out int _year) ? _year : 0,
-                    $"{title ?? original_title} ({i.voiceOrQuality})",
-                    i.hls_manifest_timeout,
-                    vast?.url != null ? vast : null,
-                    i.segments?.ToObject()
-                ), MovieJsonContext.Default.MovieDto);
-                html.Append("'>");
-
-                html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
-                UtilsTpl.HtmlEncode(i.voiceOrQuality, html);
-                html.Append("</div></div>");
-
-                if (!string.IsNullOrEmpty(i.quality))
+                foreach (var i in data)
                 {
-                    if (i.quality.EndsWith("p"))
-                        html.Append($"<!--{i.quality}-->");
-                    else
-                        html.Append($"<!--{i.quality}p-->");
-                }
+                    var vast = i.vast ?? CoreInit.conf.vast;
 
-                firstjson = false;
+                    html.Append("<div class=\"videos__item videos__movie selector ");
+                    if (firstjson)
+                        html.Append("focused");
+                    html.Append("\" ");
+
+                    html.Append("media=\"\" ");
+
+                    html.Append("data-json='");
+                    UtilsTpl.WriteJson(html, utf8Buf, jsonWriter, new MovieDto
+                    (
+                        i.method,
+                        i.link,
+                        i.stream,
+                        i.headers == null || i.headers.Count == 0
+                            ? null
+                            : Http.NormalizeHeaders(i.headers),
+                        i.streamquality?.ToObject(emptyToNull: true),
+                        i.subtitles?.ToObject(emptyToNull: true),
+                        i.subtitles_call,
+                        i.voiceOrQuality,
+                        i.streamquality?.MaxQuality() ?? i.quality,
+                        i.voice_name,
+                        i.details,
+                        i.year,
+                        $"{title ?? original_title} ({i.voiceOrQuality})",
+                        i.hls_manifest_timeout,
+                        vast?.url != null ? vast : null,
+                        i.segments?.ToObject()
+                    ), MovieJsonContext.Default.MovieDto);
+                    html.Append("'>");
+
+                    html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
+                    UtilsTpl.HtmlEncode(i.voiceOrQuality, html);
+                    html.Append("</div></div>");
+
+                    if (!string.IsNullOrEmpty(i.quality))
+                    {
+                        if (i.quality.EndsWith("p"))
+                        {
+                            html.Append("<!--");
+                            html.Append(i.quality);
+                            html.Append("-->");
+                        }
+                        else
+                        {
+                            html.Append("<!--");
+                            html.Append(i.quality);
+                            html.Append("p-->");
+                        }
+                    }
+
+                    firstjson = false;
+                }
             }
         }
 
@@ -149,7 +177,7 @@ public class MovieTpl : ITplResult
     public string ToJson()
     {
         if (IsEmpty)
-            return string.Empty;
+            return "{}";
 
         var sb = ToBuilderJson();
 
@@ -181,7 +209,9 @@ public class MovieTpl : ITplResult
                 i.method,
                 i.link,
                 i.stream,
-                Http.NormalizeHeaders(i.headers),
+                i.headers == null || i.headers.Count == 0
+                    ? null
+                    : Http.NormalizeHeaders(i.headers),
                 i.streamquality?.ToObject(emptyToNull: true),
                 i.subtitles?.ToObject(emptyToNull: true),
                 i.subtitles_call,
@@ -189,7 +219,7 @@ public class MovieTpl : ITplResult
                 i.streamquality?.MaxQuality() ?? i.quality,
                 (i.voice_name == null && i.details == null) ? null : (i.voice_name + i.details),
                 null,
-                int.TryParse(i.year, out int _year) ? _year : 0,
+                i.year,
                 $"{title ?? original_title} ({i.voiceOrQuality})",
                 i.hls_manifest_timeout,
                 vast?.url != null ? vast : null,
@@ -220,7 +250,7 @@ public partial class MovieJsonContext : JsonSerializerContext
 {
 }
 
-public record MovieDto
+public sealed class MovieDto
 {
     public string method { get; }
     public string url { get; }
@@ -235,7 +265,7 @@ public record MovieDto
     public string details { get; }
     public int year { get; }
     public string title { get; }
-    public int? hls_manifest_timeout { get; }
+    public int hls_manifest_timeout { get; }
     public VastConf vast { get; }
     public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
@@ -254,7 +284,7 @@ public record MovieDto
         string details,
         int year,
         string title,
-        int? hls_manifest_timeout,
+        int hls_manifest_timeout,
         VastConf vast,
     Dictionary<string, IReadOnlyList<SegmentDto>> segments)
     {
@@ -277,16 +307,15 @@ public record MovieDto
     }
 }
 
-public record MovieResponseDto
+public sealed class MovieResponseDto
 {
-    public string type { get; }
+    public string type => "movie";
     public IReadOnlyList<VoiceDto> voice { get; }
     public MovieDto[] data { get; }
 
     [JsonConstructor]
     public MovieResponseDto(IReadOnlyList<VoiceDto> voice, MovieDto[] data)
     {
-        type = "movie";
         this.voice = voice;
         this.data = data;
     }

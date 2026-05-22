@@ -32,7 +32,7 @@ public struct KinobaseInvoke
     #endregion
 
     #region Search
-    async public Task<SearchModel> Search(string title, int year)
+    async public Task<SearchModel> Search(string title, short year)
     {
         if (string.IsNullOrEmpty(title))
             return null;
@@ -174,7 +174,7 @@ public struct KinobaseInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel md, string title, string href, int s, string t, bool rjson = false)
+    public ITplResult Tpl(EmbedModel md, string title, string href, short s, string t, bool rjson = false)
     {
         if (md == null || md.IsEmpty)
             return default;
@@ -280,7 +280,6 @@ public struct KinobaseInvoke
         {
             #region Сериал
             string enc_title = HttpUtility.UrlEncode(title);
-            string sArhc = s.ToString();
 
             if (init.playerjs)
             {
@@ -410,7 +409,7 @@ public struct KinobaseInvoke
                             etpl.Append(
                                 episode.title,
                                 title,
-                                sArhc,
+                                s,
                                 Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
                                 first.link,
                                 subtitles: subtitles,
@@ -451,7 +450,7 @@ public struct KinobaseInvoke
                             etpl.Append(
                                 episode.title,
                                 title,
-                                sArhc,
+                                s,
                                 Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
                                 first.link,
                                 streamquality: streamquality

@@ -40,7 +40,7 @@ public class CollapsController : BaseOnlineController<ModuleConf>
     [HttpGet]
     [Staticache]
     [Route("lite/collaps")]
-    async public Task<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, short s = -1, bool rjson = false, bool similar = false)
     {
         if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
             return await RouteSearch(title);

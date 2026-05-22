@@ -46,7 +46,7 @@ public class FanCDNController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/fancdn")]
-    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial)
+    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, byte serial)
     {
         if (await IsRequestBlocked(rch: false))
             return badInitMsg;

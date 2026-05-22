@@ -43,7 +43,7 @@ public class FilmixInvoke
     #endregion
 
     #region Search
-    async public Task<SearchResult> Search(string title, string original_title, int clarification, int year, bool similar)
+    async public Task<SearchResult> Search(string title, string original_title, byte clarification, short year, bool similar)
     {
         if (string.IsNullOrWhiteSpace(title ?? original_title))
             return null;
@@ -96,7 +96,7 @@ public class FilmixInvoke
     #endregion
 
     #region Search2
-    async Task<SearchResult> Search2(string title, string original_title, int clarification, int year)
+    async Task<SearchResult> Search2(string title, string original_title, byte clarification, short year)
     {
         async Task<List<SearchModel>> gosearch(string story)
         {
@@ -251,7 +251,7 @@ public class FilmixInvoke
     #endregion
 
     #region Html
-    public ITplResult Tpl(RootObject root, bool pro, int postid, string title, string original_title, int t, int? s, VastConf vast = null)
+    public ITplResult Tpl(RootObject root, bool pro, int postid, string title, string original_title, short t, short? s, VastConf vast = null)
     {
         var player_links = root.player_links;
         if (player_links.movie == null && player_links.playlist == null)
@@ -425,7 +425,7 @@ public class FilmixInvoke
                         streamquality.Append(onstreamfile.Invoke(l), $"{lq}p");
                     }
 
-                    int fis = s == -1 ? 1 : (s ?? 1);
+                    short fis = s == -1 ? (short)1 : (s ?? 1);
 
                     var first = streamquality.Firts();
                     if (first != null)
@@ -433,7 +433,7 @@ public class FilmixInvoke
                         etpl.Append(
                             $"{episode.Key} серия",
                             title ?? original_title,
-                            fis.ToString(),
+                            fis,
                             episode.Key,
                             first.link,
                             streamquality: streamquality,

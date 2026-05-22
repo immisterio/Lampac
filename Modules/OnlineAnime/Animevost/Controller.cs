@@ -20,7 +20,7 @@ public class AnimevostController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/animevost")]
-    async public Task<ActionResult> Index(string title, int year, string uri, int s, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(string title, int year, string uri, short s, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -156,7 +156,7 @@ public class AnimevostController : BaseOnlineController
                     etpl.Append(
                         l.episode,
                         title,
-                        s.ToString(),
+                        s,
                         Regex.Match(l.episode,
                         "^([0-9]+)").Groups[1].Value,
                         link,

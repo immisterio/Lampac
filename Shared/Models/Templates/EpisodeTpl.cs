@@ -1,11 +1,15 @@
 ﻿using Shared.Services;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Shared.Models.Templates;
 
 public class EpisodeTpl : ITplResult
 {
+    private readonly int _capacity;
+    private static readonly int hlsTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
+
     public List<EpisodeDto> data { get; set; }
 
     public VoiceTpl vtpl { get; set; }
@@ -20,24 +24,63 @@ public class EpisodeTpl : ITplResult
     public EpisodeTpl(VoiceTpl vtpl, int capacity)
     {
         this.vtpl = vtpl;
-        data = new List<EpisodeDto>(capacity);
+        _capacity = capacity;
     }
 
 
-    public void Append(string name, string title, string s, string e, string link, string method = "play", StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl segments = null, string subtitles_call = null)
+    public void Append(string name, string title, string s, string e, string link, string method = "play", StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int hls_manifest_timeout = 0, SegmentTpl segments = null, string subtitles_call = null)
+    {
+        short _s = s switch
+        {
+            "1" => 1,
+            "2" => 2,
+            "3" => 3,
+            "4" => 4,
+            "5" => 5,
+            "6" => 6,
+            "7" => 7,
+            "8" => 8,
+            "9" => 9,
+            "10" => 10,
+            _ => -1
+        };
+
+        if (_s == -1)
+            short.TryParse(s, out _s);
+
+        short.TryParse(e, out short _e);
+
+        Append(name, title, _s, _e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers , hls_manifest_timeout, segments, subtitles_call);
+    }
+
+    public void Append(string name, string title, short s, string e, string link, string method = "play", StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int hls_manifest_timeout = 0, SegmentTpl segments = null, string subtitles_call = null)
+    {
+        short.TryParse(e, out short _e);
+
+        Append(name, title, s, _e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers, hls_manifest_timeout, segments, subtitles_call);
+    }
+
+    public void Append(string name, string title, short s, short e, string link, string method = "play", StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int hls_manifest_timeout = 0, SegmentTpl segments = null, string subtitles_call = null)
     {
         if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(link))
         {
+            data ??= new List<EpisodeDto>(_capacity);
+
+            if (hls_manifest_timeout == 0)
+                hls_manifest_timeout = hlsTimeout;
+
             data.Add(new EpisodeDto(
                 method,
                 link,
                 streamlink,
-                Http.NormalizeHeaders(headers),
+                headers == null || headers.Count == 0
+                    ? null
+                    : Http.NormalizeHeaders(headers),
                 streamquality?.ToObject(emptyToNull: true),
                 subtitles?.ToObject(emptyToNull: true),
                 subtitles_call,
-                short.TryParse(s, out short _s) ? _s : (short)0,
-                short.TryParse(e, out short _e) ? _e : (short)0,
+                s > 0 ? s : (short)0,
+                e > 0 ? e : (short)0,
                 voice_name,
                 name,
                 $"{title} ({e} серия)",
@@ -59,6 +102,9 @@ public class EpisodeTpl : ITplResult
 
     public int Length
         => data?.Count ?? 0;
+
+    public string Type
+       => "episode";
 
     public object ToObject()
         => this;
@@ -97,32 +143,35 @@ public class EpisodeTpl : ITplResult
 
         using (var utf8Buf = new BufferWriterPool<byte>())
         {
-            foreach (EpisodeDto i in data)
+            using (var jsonWriter = new Utf8JsonWriter(utf8Buf, UtilsTpl.jsonWriterOptions))
             {
-                var vast = i.vast ?? CoreInit.conf.vast;
-                if (vast?.url != null)
-                    i.vast = vast;
+                foreach (EpisodeDto i in data)
+                {
+                    var vast = i.vast ?? CoreInit.conf.vast;
+                    if (vast?.url != null)
+                        i.vast = vast;
 
-                html.Append("<div class=\"videos__item videos__movie selector ");
-                if (firstjson)
-                    html.Append("focused");
-                html.Append("\" ");
+                    html.Append("<div class=\"videos__item videos__movie selector ");
+                    if (firstjson)
+                        html.Append("focused");
+                    html.Append("\" ");
 
-                html.Append("media=\"\" s=\"");
-                html.Append(i.s);
-                html.Append("\" e=\"");
-                html.Append(i.e);
-                html.Append("\" ");
+                    html.Append("media=\"\" s=\"");
+                    html.Append(i.s);
+                    html.Append("\" e=\"");
+                    html.Append(i.e);
+                    html.Append("\" ");
 
-                html.Append("data-json='");
-                UtilsTpl.WriteJson(html, utf8Buf, i, EpisodeJsonContext.Default.EpisodeDto);
-                html.Append("'>");
+                    html.Append("data-json='");
+                    UtilsTpl.WriteJson(html, utf8Buf, jsonWriter, i, EpisodeJsonContext.Default.EpisodeDto);
+                    html.Append("'>");
 
-                html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
-                UtilsTpl.HtmlEncode(i.name, html);
-                html.Append("</div></div>");
+                    html.Append("<div class=\"videos__item-imgbox videos__movie-imgbox\"></div><div class=\"videos__item-title\">");
+                    UtilsTpl.HtmlEncode(i.name, html);
+                    html.Append("</div></div>");
 
-                firstjson = false;
+                    firstjson = false;
+                }
             }
         }
 
@@ -140,7 +189,7 @@ public class EpisodeTpl : ITplResult
     public string ToJson()
     {
         if (IsEmpty)
-            return string.Empty;
+            return "{}";
 
         var sb = ToBuilderJson();
 
@@ -183,7 +232,7 @@ public partial class EpisodeJsonContext : JsonSerializerContext
 {
 }
 
-public record EpisodeDto
+public sealed class EpisodeDto
 {
     public string method { get; }
     public string url { get; }
@@ -192,12 +241,12 @@ public record EpisodeDto
     public Dictionary<string, string> quality { get; }
     public IReadOnlyList<SubtitleDto> subtitles { get; }
     public string subtitles_call { get; }
-    public short? s { get; }
-    public short? e { get; }
+    public short s { get; }
+    public short e { get; }
     public string details { get; }
     public string name { get; }
     public string title { get; }
-    public int? hls_manifest_timeout { get; }
+    public int hls_manifest_timeout { get; }
     public VastConf vast { get; set; }
     public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
@@ -210,12 +259,12 @@ public record EpisodeDto
         Dictionary<string, string> quality,
         IReadOnlyList<SubtitleDto> subtitles,
         string subtitles_call,
-        short? s,
-        short? e,
+        short s,
+        short e,
         string details,
         string name,
         string title,
-        int? hls_manifest_timeout,
+        int hls_manifest_timeout,
         VastConf vast,
         Dictionary<string, IReadOnlyList<SegmentDto>> segments)
     {
@@ -237,16 +286,15 @@ public record EpisodeDto
     }
 }
 
-public record EpisodeResponseDto
+public sealed class EpisodeResponseDto
 {
-    public string type { get; }
+    public string type => "episode";
     public IReadOnlyList<VoiceDto> voice { get; }
     public IReadOnlyList<EpisodeDto> data { get; }
 
     [JsonConstructor]
     public EpisodeResponseDto(IReadOnlyList<VoiceDto> voice, IReadOnlyList<EpisodeDto> data)
     {
-        type = "episode";
         this.voice = voice;
         this.data = data;
     }

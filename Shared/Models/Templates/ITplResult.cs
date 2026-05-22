@@ -8,6 +8,8 @@ public interface ITplResult
 
     public int Length { get; }
 
+    public string Type { get; }
+
     public string ToHtml();
 
     public StringBuilder ToBuilderHtml();

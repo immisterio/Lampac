@@ -15,7 +15,7 @@ public class HydraFlixController : BaseENGController
 
     [HttpGet]
     [Route("lite/hydraflix")]
-    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false)
     {
         return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call", extension: "m3u8");
     }
@@ -25,7 +25,7 @@ public class HydraFlixController : BaseENGController
     [Route("lite/hydraflix/video")]
     [Route("lite/hydraflix/video.mpd")]
     [Route("lite/hydraflix/video.m3u8")]
-    async public Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
+    async public Task<ActionResult> Video(long id, short s = -1, short e = -1, bool play = false)
     {
         if (id == 0)
             return OnError();

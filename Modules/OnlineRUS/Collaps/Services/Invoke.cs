@@ -121,7 +121,7 @@ public struct CollapsInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel md, string imdb_id, long kinopoisk_id, long orid, string title, string original_title, int s, bool rjson = false, IReadOnlyList<HeadersModel> headers = null, VastConf vast = null)
+    public ITplResult Tpl(EmbedModel md, string imdb_id, long kinopoisk_id, long orid, string title, string original_title, short s, bool rjson = false, IReadOnlyList<HeadersModel> headers = null, VastConf vast = null)
     {
         if (md == null)
             return default;
@@ -195,7 +195,6 @@ public struct CollapsInvoke
                         return default;
 
                     var etpl = new EpisodeTpl(episodes.Length);
-                    string sArch = s.ToString();
 
                     foreach (var episode in episodes)
                     {
@@ -229,7 +228,7 @@ public struct CollapsInvoke
                         etpl.Append(
                             $"{episode.episode} серия",
                             title ?? original_title,
-                            sArch,
+                            s,
                             episode.episode,
                             onstreamfile.Invoke(stream.Replace("\u0026", "&")),
                             subtitles: subtitles,

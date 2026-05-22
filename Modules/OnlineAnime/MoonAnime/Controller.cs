@@ -22,7 +22,7 @@ public class MoonAnimeController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/moonanime")]
-    async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, int s = -1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, short s = -1, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -200,7 +200,6 @@ public class MoonAnimeController : BaseOnlineController
 
                             foreach (var folder in season.Value)
                             {
-                                int episode = folder.episode;
                                 string vod = folder.vod;
                                 if (string.IsNullOrEmpty(vod))
                                     continue;
@@ -208,10 +207,10 @@ public class MoonAnimeController : BaseOnlineController
                                 string link = $"{host}/lite/moonanime/video?vod={HttpUtility.UrlEncode(vod)}&title={enc_title}&original_title={enc_original_title}";
 
                                 etpl.Append(
-                                    $"{episode} серия",
+                                    $"{folder.episode} серия",
                                     title,
-                                    sArhc,
-                                    episode.ToString(),
+                                    s,
+                                    folder.episode,
                                     link,
                                     "call",
                                     streamlink: accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true")

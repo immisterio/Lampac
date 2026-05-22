@@ -29,7 +29,7 @@ public class Season
 {
     public int? season_number { get; set; }
 
-    public List<int> episodes { get; set; }
+    public List<short> episodes { get; set; }
 }
 
 public class Folder

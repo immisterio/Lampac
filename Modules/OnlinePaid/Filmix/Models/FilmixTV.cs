@@ -18,14 +18,14 @@ public class MovieTV
 
 public class Season
 {
-    public int season { get; set; }
+    public short season { get; set; }
 
     public Dictionary<string, Episode> episodes { get; set; }
 }
 
 public class Episode
 {
-    public int episode { get; set; }
+    public short episode { get; set; }
 
     public File[] files { get; set; }
 }

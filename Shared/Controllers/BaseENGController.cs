@@ -11,7 +11,9 @@ public class BaseENGController : BaseOnlineController
 {
     public BaseENGController(OnlinesSettings init) : base(init) { }
 
-    async public Task<ActionResult> ViewTmdb(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false, bool mp4 = false, string method = "play", int? hls_manifest_timeout = null, string extension = "m3u8")
+    static readonly int hlsTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
+
+    async public Task<ActionResult> ViewTmdb(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false, bool mp4 = false, string method = "play", int hls_manifest_timeout = 0, string extension = "m3u8")
     {
         if (checksearch)
             return Content("data-json=");
@@ -22,8 +24,8 @@ public class BaseENGController : BaseOnlineController
         if (tmdb_id > 0)
             id = tmdb_id;
 
-        if (hls_manifest_timeout == null)
-            hls_manifest_timeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
+        if (hls_manifest_timeout == 0)
+            hls_manifest_timeout = hlsTimeout;
 
         if (serial == 1)
         {
@@ -74,7 +76,7 @@ public class BaseENGController : BaseOnlineController
                     if (season.Value<int>("season_number") != s)
                         continue;
 
-                    for (int i = 1; i <= season.Value<int>("episode_count"); i++)
+                    for (short i = 1; i <= season.Value<short>("episode_count"); i++)
                     {
                         string path = (mp4 || method == "call") ? "video" : $"video.{extension}";
                         string uri = $"{host}/lite/{init.plugin.ToLower()}/{path}?id={id}&imdb_id={imdb_id}&s={s}&e={i}";
@@ -86,7 +88,8 @@ public class BaseENGController : BaseOnlineController
                         etpl.Append(
                             $"{i} серия",
                             title ?? original_title,
-                            s.ToString(), i.ToString(),
+                            s,
+                            i,
                             uri,
                             method,
                             streamlink: stream,

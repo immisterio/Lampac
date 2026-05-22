@@ -1,17 +1,20 @@
 ﻿using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Shared.Models.Templates;
 
 public class SimilarTpl : ITplResult
 {
+    private readonly int _capacity;
+
     public static string OnlineSplit => "<span class=\"online-prestige-split\">●</span>";
 
     public List<SimilarDto> data { get; set; }
 
     public SimilarTpl(int capacity = 20)
     {
-        data = new List<SimilarDto>(capacity);
+        _capacity = capacity;
     }
 
 
@@ -19,6 +22,8 @@ public class SimilarTpl : ITplResult
     {
         if (!string.IsNullOrEmpty(title))
         {
+            data ??= new List<SimilarDto>(_capacity);
+
             data.Add(new SimilarDto(
                 link,
                 year != null && short.TryParse(year, out short _year)
@@ -37,6 +42,9 @@ public class SimilarTpl : ITplResult
 
     public int Length
         => data?.Count ?? 0;
+
+    public string Type
+       => "similar";
 
     public object ToObject()
         => this;
@@ -72,22 +80,25 @@ public class SimilarTpl : ITplResult
 
         using (var utf8Buf = new BufferWriterPool<byte>())
         {
-            foreach (var i in data)
+            using (var jsonWriter = new Utf8JsonWriter(utf8Buf, UtilsTpl.jsonWriterOptions))
             {
-                html.Append("<div class=\"videos__item videos__season selector ");
-                if (firstjson)
-                    html.Append("focused");
-                html.Append("\" ");
+                foreach (var i in data)
+                {
+                    html.Append("<div class=\"videos__item videos__season selector ");
+                    if (firstjson)
+                        html.Append("focused");
+                    html.Append("\" ");
 
-                html.Append("data-json='");
-                UtilsTpl.WriteJson(html, utf8Buf, i, SimilarJsonContext.Default.SimilarDto);
-                html.Append("'>");
+                    html.Append("data-json='");
+                    UtilsTpl.WriteJson(html, utf8Buf, jsonWriter, i, SimilarJsonContext.Default.SimilarDto);
+                    html.Append("'>");
 
-                html.Append("<div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">");
-                UtilsTpl.HtmlEncode(i.title, html);
-                html.Append("</div></div></div>");
+                    html.Append("<div class=\"videos__season-layers\"></div><div class=\"videos__item-imgbox videos__season-imgbox\"><div class=\"videos__item-title videos__season-title\">");
+                    UtilsTpl.HtmlEncode(i.title, html);
+                    html.Append("</div></div></div>");
 
-                firstjson = false;
+                    firstjson = false;
+                }
             }
         }
 
@@ -100,7 +111,7 @@ public class SimilarTpl : ITplResult
     public string ToJson()
     {
         if (IsEmpty)
-            return string.Empty;
+            return "{}";
 
         var sb = ToBuilderJson();
 
@@ -138,9 +149,9 @@ public partial class SimilarJsonContext : JsonSerializerContext
 {
 }
 
-public record SimilarDto
+public sealed class SimilarDto
 {
-    public string method { get; }
+    public string method => "link";
     public string url { get; }
     public bool similar { get; }
     public short year { get; }
@@ -157,7 +168,6 @@ public record SimilarDto
         string img
     )
     {
-        method = "link";
         this.url = url;
         similar = true;
         this.year = year;
@@ -167,15 +177,14 @@ public record SimilarDto
     }
 }
 
-public record SimilarResponseDto
+public sealed class SimilarResponseDto
 {
-    public string type { get; }
+    public string type => "similar";
     public IReadOnlyList<SimilarDto> data { get; }
 
     [JsonConstructor]
     public SimilarResponseDto(IReadOnlyList<SimilarDto> data)
     {
-        type = "similar";
         this.data = data;
     }
 }

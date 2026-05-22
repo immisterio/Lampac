@@ -26,7 +26,7 @@ public class RutubeMovieController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/rutubemovie")]
-    public async Task<ActionResult> Index(string title, string original_title, int year, int serial)
+    public async Task<ActionResult> Index(string title, string original_title, short year, byte serial)
     {
         string searchTitle = SearchNameTo.Convert(title);
         if (searchTitle == null || year == 0 || serial == 1)

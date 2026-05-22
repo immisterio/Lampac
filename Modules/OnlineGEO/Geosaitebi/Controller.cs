@@ -4,7 +4,7 @@ using System.Web;
 using Shared;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Attributes;
 using Shared.Services.RxEnumerate;
 
@@ -17,7 +17,7 @@ public class GeosaitebiController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/geosaitebi")]
-    async public Task<ActionResult> Index(string title, string original_title, int year, int serial = 0, string href = null, bool similar = false)
+    async public Task<ActionResult> Index(string title, string original_title, short year, byte serial, string href = null, bool similar = false)
     {
         if (serial == 1)
             return OnError();

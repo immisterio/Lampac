@@ -16,7 +16,7 @@ public class KinobaseController : BaseOnlineController<ModuleConf>
 
     [HttpGet]
     [Route("lite/kinobase")]
-    async public Task<ActionResult> Index(string title, int year, int s = -1, int serial = -1, string href = null, string t = null, bool rjson = false, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(string title, short year, short s = -1, string href = null, string t = null, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
         if (PlaywrightBrowser.Status == PlaywrightStatus.disabled)
             return OnError();

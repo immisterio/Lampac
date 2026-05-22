@@ -31,7 +31,7 @@ public class VeoVeoController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/veoveo")]
-    async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int s = -1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, byte clarification, short s = -1, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true, rch_check: !similar))
             return badInitMsg;
@@ -131,7 +131,6 @@ public class VeoVeoController : BaseOnlineController
                 else
                 {
                     var etpl = new EpisodeTpl();
-                    string sArhc = s.ToString();
 
                     foreach (var episode in cache.Value
                         .Where(i => (i.season?.order ?? 0) == s)
@@ -154,8 +153,8 @@ public class VeoVeoController : BaseOnlineController
                             etpl.Append(
                                 name ?? $"{episode.order} серия",
                                 title ?? original_title,
-                                sArhc,
-                                episode.order.ToString(),
+                                s,
+                                episode.order,
                                 stream,
                                 vast: init.vast
                             );

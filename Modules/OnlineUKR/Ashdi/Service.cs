@@ -104,7 +104,7 @@ public struct AshdiInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel md, string uri, string title, string original_title, int t, int s, VastConf vast = null, bool rjson = false)
+    public ITplResult Tpl(EmbedModel md, string uri, string title, string original_title, short t, short s, VastConf vast = null, bool rjson = false)
     {
         if (md == null || md.IsEmpty || (md.movie == null && md.serial == null))
             return default;
@@ -182,7 +182,7 @@ public struct AshdiInvoke
                     #region Перевод
                     var vtpl = new VoiceTpl();
 
-                    for (int i = 0; i < md.serial.Length; i++)
+                    for (short i = 0; i < md.serial.Length; i++)
                     {
                         if (md.serial[i].folder?.FirstOrDefault(i => i.title.EndsWith($" {s}")) == null)
                             continue;
@@ -226,7 +226,7 @@ public struct AshdiInvoke
                         etpl.Append(
                             episode.title,
                             title ?? original_title,
-                            sArch,
+                            s,
                             Regex.Match(episode.title, "([0-9]+)$").Groups[1].Value,
                             onstreamfile.Invoke(fixStream(episode.file)),
                             subtitles: subtitles,

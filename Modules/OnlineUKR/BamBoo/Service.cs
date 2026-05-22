@@ -87,9 +87,9 @@ public struct BamBooInvoke
             return null;
 
         string title = Regex.Match(pageHtml, "<title>([^<]+)</title>").Groups[1].Value;
-        int.TryParse(Regex.Match(title, @"([0-9]{1,2})\s*Сезон", RegexOptions.IgnoreCase).Groups[1].Value, out int season);
+        short.TryParse(Regex.Match(title, @"([0-9]{1,2})\s*Сезон", RegexOptions.IgnoreCase).Groups[1].Value, out short season);
 
-        result.season = season > 0 ? season : 1;
+        result.season = season > 0 ? season : (short)1;
 
         var movie = new List<Video>();
         var serial = new Dictionary<string, List<Series>>(StringComparer.OrdinalIgnoreCase);
@@ -161,7 +161,7 @@ public struct BamBooInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel result, string title, string original_title, int year, int t, string href, VastConf vast = null, bool rjson = false)
+    public ITplResult Tpl(EmbedModel result, string title, string original_title, short year, short t, string href, VastConf vast = null, bool rjson = false)
     {
         if (result == null || result.IsEmpty)
             return default;
@@ -185,7 +185,7 @@ public struct BamBooInvoke
             {
                 var vtpl = new VoiceTpl();
 
-                for (int i = 0; i < result.serial.Count; i++)
+                for (short i = 0; i < result.serial.Count; i++)
                 {
                     if (t == -1)
                         t = i;
@@ -197,7 +197,6 @@ public struct BamBooInvoke
                     );
                 }
 
-                string sArch = result.season.ToString();
                 var episodes = result.serial[t].folder;
                 var etpl = new EpisodeTpl(vtpl, episodes.Count);
 
@@ -206,7 +205,7 @@ public struct BamBooInvoke
                     etpl.Append(
                         episode.title,
                         title ?? original_title,
-                        sArch,
+                        result.season,
                         Regex.Match(episode.title ?? string.Empty, "([0-9]+)").Groups[1].Value,
                         onstreamfile.Invoke(episode.file),
                         vast: vast

@@ -34,7 +34,7 @@ public class FlixCDNController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/flixcdn")]
-    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int t = -1, int s = -1, bool similar = false)
+    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, int t = -1, short s = -1, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -128,21 +128,20 @@ public class FlixCDNController : BaseOnlineController
                     #endregion
 
                     var etpl = new EpisodeTpl(vtpl);
-                    string sArhc = s.ToString();
 
                     var targetVoice = result.translations.FirstOrDefault(i => i.season == s && i.id == t);
                     if (targetVoice == null)
                         return default;
 
-                    for (int e = 1; e <= targetVoice.episode; e++)
+                    for (short e = 1; e <= targetVoice.episode; e++)
                     {
                         string link = $"{host}/lite/flixcdn/stream?iframe={EncryptQuery(result.iframe_url)}&t={t}&s={s}&e={e}";
 
                         etpl.Append(
                             $"Серия {e}",
                             title ?? original_title,
-                            sArhc,
-                            e.ToString(),
+                            s,
+                            e,
                             link,
                             "call",
                             streamlink: $"{link}&play=true",
@@ -160,7 +159,7 @@ public class FlixCDNController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/flixcdn/stream")]
-    async public Task<ActionResult> Stream(string iframe, int t, int s = 0, int e = 0, bool play = false)
+    async public Task<ActionResult> Stream(string iframe, int t, short s = 0, short e = 0, bool play = false)
     {
         iframe = DecryptQuery(iframe);
         if (string.IsNullOrEmpty(iframe))
@@ -259,7 +258,6 @@ public class FlixCDNController : BaseOnlineController
             "auto",
             streamquality: streamquality,
             vast: init.vast,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
             httpContext: HttpContext
         ));
     }

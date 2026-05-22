@@ -20,7 +20,7 @@ public class SearchItem
 
 public class Episode
 {
-    public int episode { get; set; }
+    public short episode { get; set; }
 
     public string vod { get; set; }
 }

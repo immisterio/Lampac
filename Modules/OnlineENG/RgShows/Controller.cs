@@ -3,7 +3,6 @@ using Newtonsoft.Json.Linq;
 using Shared;
 using Shared.Models.Templates;
 using Shared.Services;
-using System;
 using System.Threading.Tasks;
 
 namespace RgShows;
@@ -16,14 +15,14 @@ public class RgShowsController : BaseENGController
 
     [HttpGet]
     [Route("lite/rgshows")]
-    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false)
     {
-        return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call", hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds);
+        return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
     }
 
     [HttpGet]
     [Route("lite/rgshows/video")]
-    public async Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
+    public async Task<ActionResult> Video(long id, short s = -1, short e = -1, bool play = false)
     {
         if (await IsRequestBlocked(rch: false, rch_check: !play))
             return badInitMsg;
@@ -49,12 +48,11 @@ public class RgShowsController : BaseENGController
             headers: init.streamproxy
                 ? null
                 : httpHeaders(init.host, init.headers_stream),
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds,
             httpContext: HttpContext
         ));
     }
 
-
+    
     async ValueTask<string> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))

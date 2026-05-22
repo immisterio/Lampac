@@ -15,7 +15,7 @@ public class MovPIController : BaseENGController
 
     [HttpGet]
     [Route("lite/movpi")]
-    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, int serial, int s = -1, bool rjson = false)
+    public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false)
     {
         return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
     }
@@ -23,7 +23,7 @@ public class MovPIController : BaseENGController
     [HttpGet]
     [Route("lite/movpi/video")]
     [Route("lite/movpi/video.m3u8")]
-    public async Task<ActionResult> Video(long id, int s = -1, int e = -1, bool play = false)
+    public async Task<ActionResult> Video(long id, short s = -1, short e = -1, bool play = false)
     {
         if (id == 0)
             return OnError();
@@ -54,7 +54,7 @@ public class MovPIController : BaseENGController
         ));
     }
 
-
+    
     async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))

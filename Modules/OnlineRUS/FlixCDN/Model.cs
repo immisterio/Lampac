@@ -15,7 +15,7 @@ public class SearchItem
 
     public string title_orig { get; set; }
 
-    public int? year { get; set; }
+    public short? year { get; set; }
 
     public string poster { get; set; }
 
@@ -33,7 +33,7 @@ public class Voice
 
     public string title { get; set; }
 
-    public int season { get; set; }
+    public short season { get; set; }
 
-    public int episode { get; set; }
+    public short episode { get; set; }
 }

@@ -27,7 +27,7 @@ public class VkMovieController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/vkmovie")]
-    public async Task<ActionResult> Index(string title, string original_title, int year, int serial, bool rjson = false)
+    public async Task<ActionResult> Index(string title, string original_title, short year, byte serial, bool rjson = false)
     {
         if (serial == 1)
             return OnError();
@@ -118,7 +118,7 @@ public class VkMovieController : BaseOnlineController
                 append(video.files.mp4_240, "240p");
                 append(video.files.mp4_144, "144p");
 
-                if (!streams.Any())
+                if (streams.IsEmpty)
                     continue;
 
                 SubtitleTpl subtitles = null;

@@ -151,7 +151,7 @@ public struct iRemuxInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel result, string title, string original_title, int year)
+    public ITplResult Tpl(EmbedModel result, string title, string original_title, short year)
     {
         if (result == null || result.IsEmpty)
             return default;

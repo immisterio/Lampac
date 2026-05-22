@@ -5,22 +5,34 @@ namespace Shared.Models.Templates;
 
 public class SubtitleTpl
 {
+    private readonly int _capacity;
+
     public List<SubtitleDto> data { get; set; }
 
     public SubtitleTpl(int capacity = 10)
     {
-        data = new List<SubtitleDto>(capacity);
+        _capacity = capacity;
     }
-
-    public bool IsEmpty => data == null || data.Count == 0;
 
     public void Append(string label, string url)
     {
         if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url))
+        {
+            data ??= new List<SubtitleDto>(_capacity);
             data.Add(new SubtitleDto(url, label));
+        }
     }
 
-    public string ToJson() => JsonSerializer.Serialize(ToObject(), SubtitleJsonContext.Default.IReadOnlyListSubtitleDto);
+    public bool IsEmpty
+        => data == null || data.Count == 0;
+
+    public string ToJson()
+    {
+        if (IsEmpty)
+            return "[]";
+
+        return JsonSerializer.Serialize(data, SubtitleJsonContext.Default.ListSubtitleDto);
+    }
 
     public IReadOnlyList<SubtitleDto> ToObject(bool emptyToNull = false)
     {
@@ -36,21 +48,21 @@ public class SubtitleTpl
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
 )]
 [JsonSerializable(typeof(SubtitleDto))]
+[JsonSerializable(typeof(List<SubtitleDto>))]
 [JsonSerializable(typeof(IReadOnlyList<SubtitleDto>))]
 public partial class SubtitleJsonContext : JsonSerializerContext
 {
 }
 
-public record SubtitleDto
+public sealed class SubtitleDto
 {
-    public string method { get; }
+    public string method => "link";
     public string url { get; }
     public string label { get; }
 
     [JsonConstructor]
     public SubtitleDto(string url, string label)
     {
-        method = "link";
         this.url = url;
         this.label = label;
     }

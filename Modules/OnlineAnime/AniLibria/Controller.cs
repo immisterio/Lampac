@@ -13,7 +13,7 @@ public class AniLibriaController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/anilibria")]
-    public async Task<ActionResult> Index(string title, string code, int year, bool rjson = false, bool similar = false)
+    public async Task<ActionResult> Index(string title, string code, short year, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

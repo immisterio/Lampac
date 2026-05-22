@@ -51,7 +51,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
     [HttpGet]
     [Staticache]
     [Route("lite/alloha")]
-    async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, int t = -1, int s = -1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, byte serial, string original_language, short year, int t = -1, short s = -1, bool rjson = false, bool similar = false)
     {
         if (string.IsNullOrEmpty(orid))
         {
@@ -183,7 +183,6 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                 #endregion
 
                 var etpl = new EpisodeTpl(vtpl);
-                string sArhc = s.ToString();
 
                 foreach (var episode in selectedSeason.episodes)
                 {
@@ -196,7 +195,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
                     etpl.Append(
                         $"{episodeNum} серия",
                         title ?? original_title,
-                        sArhc,
+                        s,
                         episodeNum,
                         link,
                         "call",
@@ -215,7 +214,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
     [HttpGet]
     [Route("lite/alloha/video")]
     [Route("lite/alloha/video.m3u8")]
-    async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
+    async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, short e, bool play, bool directors_cut)
     {
         if (await IsRequestBlocked(rch: !string.IsNullOrEmpty(init.secret_token), rch_check: !play))
             return badInitMsg;
@@ -336,7 +335,6 @@ public class AllohaController : BaseOnlineController<ModuleConf>
             vast: init.vast,
             subtitles: subtitles,
             segments: segments,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
             httpContext: HttpContext
         ));
     }

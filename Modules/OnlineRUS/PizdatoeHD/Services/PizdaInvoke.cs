@@ -265,7 +265,6 @@ public class PizdaInvoke
             streamquality: streamquality,
             subtitles: subtitles,
             vast: vast,
-            hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds,
             httpContext: httpContext
         );
     }
@@ -273,7 +272,7 @@ public class PizdaInvoke
 
 
     #region Tpl
-    public ITplResult Tpl(RootObject result, string args, string title, string original_title, string href, string t, int s, bool rjson = false)
+    public ITplResult Tpl(RootObject result, string args, string title, string original_title, string href, string t, short s, bool rjson = false)
     {
         if (result == null || result.IsEmpty || result.content == null)
             return default;
@@ -443,7 +442,7 @@ public class PizdaInvoke
                         etpl.Append(
                             m.Groups["name"].Value,
                             title ?? original_title,
-                            sArhc,
+                            s,
                             m.Groups["episode"].Value,
                             link,
                             "call",

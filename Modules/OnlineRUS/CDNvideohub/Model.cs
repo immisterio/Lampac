@@ -9,9 +9,9 @@ public class RootObject
 
 public class Item
 {
-    public int season { get; set; }
+    public short season { get; set; }
 
-    public int episode { get; set; }
+    public short episode { get; set; }
 
     public string voiceStudio { get; set; }
 

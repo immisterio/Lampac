@@ -19,7 +19,7 @@ public class AnimebesstController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/animebesst")]
-    async public Task<ActionResult> Index(string title, string uri, int s, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(string title, string uri, short s, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -161,7 +161,7 @@ public class AnimebesstController : BaseOnlineController
                     etpl.Append(
                         name,
                         $"{title} / {name}",
-                        s.ToString(),
+                        s,
                         l.episode,
                         link,
                         "call",

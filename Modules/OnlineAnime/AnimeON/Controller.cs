@@ -19,7 +19,7 @@ public class AnimeONController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/animeon")]
-    async public Task<ActionResult> Index(string imdb_id, string title, string original_title, int year, int t = -1, int s = -1, int animeid = 0, bool rjson = false)
+    async public Task<ActionResult> Index(string imdb_id, string title, string original_title, short year, short t = -1, short s = -1, int animeid = 0, bool rjson = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -181,7 +181,7 @@ public class AnimeONController : BaseOnlineController
             return OnError(episodes.ErrorMsg);
 
         var vtpl = new VoiceTpl(translations.Value.Count);
-        for (int i = 0; i < translations.Value.Count; i++)
+        for (short i = 0; i < translations.Value.Count; i++)
         {
             vtpl.Append(
                 translations.Value[i].Title,
@@ -191,7 +191,6 @@ public class AnimeONController : BaseOnlineController
         }
 
         var etpl = new EpisodeTpl(vtpl, episodes.Value.Count);
-        string sArch = s.ToString();
 
         foreach (var item in episodes.Value)
         {
@@ -203,7 +202,7 @@ public class AnimeONController : BaseOnlineController
             etpl.Append(
                 item.Title,
                 title ?? original_title,
-                sArch,
+                s,
                 epNum,
                 stream,
                 vast: init.vast

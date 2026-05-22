@@ -14,7 +14,8 @@ public class SegmentTpl
         skips = new List<SegmentDto>(5);
     }
 
-    public bool IsEmpty => (ads == null || ads.Count == 0) && (skips == null || skips.Count == 0);
+    public bool IsEmpty
+        => (ads == null || ads.Count == 0) && (skips == null || skips.Count == 0);
 
     public void ad(int start, int end)
     {
@@ -41,7 +42,7 @@ public class SegmentTpl
     }
 }
 
-public record SegmentDto
+public sealed class SegmentDto
 {
     public int start { get; }
     public int end { get; }

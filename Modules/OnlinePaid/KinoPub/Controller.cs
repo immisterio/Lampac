@@ -80,7 +80,7 @@ public class KinoPubController : BaseOnlineController<ModuleConf>
 
     [HttpGet]
     [Route("lite/kinopub")]
-    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int year, int clarification, int postid, int s = -1, int t = -1, string codec = null, bool rjson = false, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, byte clarification, int postid, short s = -1, int t = -1, string codec = null, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

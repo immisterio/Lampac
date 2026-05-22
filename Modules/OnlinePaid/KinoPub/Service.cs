@@ -30,7 +30,7 @@ public class KinoPubInvoke
     #endregion
 
     #region Search
-    async public Task<SearchResult> Search(string title, string original_title, int year, int clarification, string imdb_id, long kinopoisk_id)
+    async public Task<SearchResult> Search(string title, string original_title, short year, short clarification, string imdb_id, long kinopoisk_id)
     {
         if (string.IsNullOrEmpty(title ?? original_title))
             return null;
@@ -100,7 +100,7 @@ public class KinoPubInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(RootObject root, string filetype, string title, string original_title, int postid, int s = -1, int t = -1, string codec = null, VastConf vast = null, bool rjson = false)
+    public ITplResult Tpl(RootObject root, string filetype, string title, string original_title, int postid, short s = -1, int t = -1, string codec = null, VastConf vast = null, bool rjson = false)
     {
         if (root == null)
             return default;
@@ -122,7 +122,7 @@ public class KinoPubInvoke
                             streamquality.Append(onstreamfile(f.url.hls.Replace("a1.m3u8", $"a{a.index}.m3u8"), null), f.quality);
                     }
 
-                    if (!streamquality.Any())
+                    if (streamquality.IsEmpty)
                         continue;
 
                     string voice = a.type?.title ?? a.lang ?? "оригинал";
@@ -280,8 +280,6 @@ public class KinoPubInvoke
             else
             {
                 #region Серии
-                string sArhc = s.ToString();
-
                 if (filetype == "hls")
                 {
                     #region Перевод
@@ -396,8 +394,8 @@ public class KinoPubInvoke
                             etpl.Append(
                                 $"{episode.number} серия",
                                 title ?? original_title,
-                                sArhc,
-                                episode.number.ToString(),
+                                s,
+                                episode.number,
                                 first.link,
                                 streamquality: streamquality,
                                 subtitles: subtitles,
@@ -442,8 +440,8 @@ public class KinoPubInvoke
                             etpl.Append(
                                 $"{episode.number} серия",
                                 title ?? original_title,
-                                sArhc,
-                                episode.number.ToString(),
+                                s,
+                                episode.number,
                                 onstreamfile(episode.files[0].url.hls4,
                                 null),
                                 voice_name: voicename,
@@ -488,8 +486,8 @@ public class KinoPubInvoke
                                 etpl.Append(
                                     $"{episode.number} серия",
                                     title ?? original_title,
-                                    sArhc,
-                                    episode.number.ToString(),
+                                    s,
+                                    episode.number,
                                     first.link,
                                     subtitles: subtitles,
                                     subtitles_call: subtitles_call,

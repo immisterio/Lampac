@@ -13,7 +13,7 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
 
     [HttpGet]
     [Route("lite/fxapi")]
-    async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(long kinopoisk_id, bool checksearch, string title, string original_title, int year, int postid, int t = -1, short s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
         if (await IsRequestBlocked(rch: false))
             return badInitMsg;
@@ -207,7 +207,7 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
                         streamquality.Append(l, $"{q}p");
                     }
 
-                    int e = episode.Value<int>("episode");
+                    short e = episode.Value<short>("episode");
 
                     var first = streamquality.Firts();
                     if (first != null)
@@ -215,8 +215,8 @@ public class FilmixPartner : BaseOnlineController<FilmixSettings>
                         etpl.Append(
                             $"{e} серия",
                             title ?? original_title,
-                            s.ToString(),
-                            e.ToString(),
+                            s,
+                            e,
                             first.link,
                             streamquality: streamquality,
                             vast: init.vast

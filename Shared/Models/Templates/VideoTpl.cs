@@ -8,15 +8,22 @@ namespace Shared.Models.Templates;
 
 public static class VideoTpl
 {
-    public static string ToJson(string method, string url, string title, StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string quality = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int? hls_manifest_timeout = null, SegmentTpl segments = null, string subtitles_call = null, HttpContext httpContext = null)
+    static readonly int hlsTimeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
+
+    public static string ToJson(string method, string url, string title, StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string quality = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int hls_manifest_timeout = 0, SegmentTpl segments = null, string subtitles_call = null, HttpContext httpContext = null)
     {
         var _vast = vast ?? CoreInit.conf.vast;
+
+        if (hls_manifest_timeout == 0)
+            hls_manifest_timeout = hlsTimeout;
 
         var md = new VideoDto(
             title,
             method,
             url,
-            Http.NormalizeHeaders(headers),
+            headers == null || headers.Count == 0
+                ? null
+                : Http.NormalizeHeaders(headers),
             streamquality?.ToObject(emptyToNull: true)
                 ?? new Dictionary<string, string>(
                     [new KeyValuePair<string, string>(quality ?? "auto", url)]
@@ -52,7 +59,7 @@ public partial class VideoJsonContext : JsonSerializerContext
 {
 }
 
-public record VideoDto
+public sealed class VideoDto
 {
     public string title { get; }
     public string method { get; }
@@ -61,7 +68,7 @@ public record VideoDto
     public Dictionary<string, string> quality { get; }
     public IReadOnlyList<SubtitleDto> subtitles { get; }
     public string subtitles_call { get; }
-    public int? hls_manifest_timeout { get; }
+    public int hls_manifest_timeout { get; }
     public VastConf vast { get; }
     public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
@@ -74,7 +81,7 @@ public record VideoDto
         Dictionary<string, string> quality,
         IReadOnlyList<SubtitleDto> subtitles,
         string subtitles_call,
-        int? hls_manifest_timeout,
+        int hls_manifest_timeout,
         VastConf vast,
         Dictionary<string, IReadOnlyList<SegmentDto>> segments)
     {

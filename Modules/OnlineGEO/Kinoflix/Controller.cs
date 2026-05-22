@@ -9,7 +9,7 @@ using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
 using Shared.Services.Utilities;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Services.RxEnumerate;
 
 namespace Kinoflix;
@@ -20,7 +20,7 @@ public class KinoflixController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/kinoflix")]
-    async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, string href, string t = null, int s = -1)
+    async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, string href, string t = null, short s = -1)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -158,9 +158,7 @@ public class KinoflixController : BaseOnlineController
                 }
                 else
                 {
-                    string sArhc = s.ToString();
-
-                    var season = items.FirstOrDefault(x => x.title.EndsWith($" {sArhc}"));
+                    var season = items.FirstOrDefault(x => x.title.EndsWith($" {s}"));
                     if (season?.folder == null)
                         return null;
 
@@ -181,7 +179,7 @@ public class KinoflixController : BaseOnlineController
                         etpl.Append(
                             episode.title,
                             title ?? original_title,
-                            sArhc,
+                            s,
                             Regex.Match(episode.title, "([0-9]+)").Groups[1].Value,
                             HostStreamProxy(episode.file + "#.m3u8", headers: headers_stream),
                             headers: headers_stream,

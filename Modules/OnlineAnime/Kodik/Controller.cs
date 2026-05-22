@@ -97,7 +97,7 @@ public class KodikController : BaseOnlineController<ModuleConf>
     [HttpGet]
     [Staticache]
     [Route("lite/kodik")]
-    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, string pick, string kid, int s = -1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, byte clarification, string pick, string kid, short s = -1, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

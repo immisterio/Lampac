@@ -96,7 +96,7 @@ public struct HdvbUAInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel result, string title, string original_title, int t, int s, string uri, VastConf vast = null, bool rjson = false)
+    public ITplResult Tpl(EmbedModel result, string title, string original_title, short t, short s, string uri, VastConf vast = null, bool rjson = false)
     {
         if (result == null || result.IsEmpty)
             return default;
@@ -166,7 +166,7 @@ public struct HdvbUAInvoke
                     var vtpl = new VoiceTpl();
                     var hash = new HashSet<string>();
 
-                    for (int i = 0; i < season.folder.Length; i++)
+                    for (short i = 0; i < season.folder.Length; i++)
                     {
                         if (hash.Add(season.folder[i].title))
                         {
@@ -182,7 +182,6 @@ public struct HdvbUAInvoke
                     }
                     #endregion
 
-                    string sArch = s.ToString();
                     var episodes = season.folder[t].folder;
 
                     var etpl = new EpisodeTpl(vtpl, episodes.Length);
@@ -208,7 +207,7 @@ public struct HdvbUAInvoke
                         etpl.Append(
                             episode.title,
                             title ?? original_title,
-                            sArch,
+                            s,
                             Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
                             onstreamfile.Invoke(episode.file),
                             subtitles: subtitles,

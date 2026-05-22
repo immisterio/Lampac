@@ -16,7 +16,7 @@ public class ApiController : BaseOnlineController
 
     [HttpGet]
     [Route("lite/uafilm")]
-    async public Task<ActionResult> Index(long id, int orid, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int s = -1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(long id, int orid, string imdb_id, long kinopoisk_id, string title, string original_title, short year, short s = -1, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -125,20 +125,17 @@ public class ApiController : BaseOnlineController
             else
             {
                 var etpl = new EpisodeTpl();
-                string sArhc = s.ToString();
 
                 foreach (var episode in episodes)
                 {
                     if (episode.season_number != s || episode.primary_video == null)
                         continue;
 
-                    string episodeNum = episode.episode_number.ToString();
-
                     etpl.Append(
-                        $"{episodeNum} серия",
+                        $"{episode.episode_number} серия",
                         episode.primary_video.name ?? title ?? original_title,
-                        sArhc,
-                        episodeNum,
+                        s,
+                        episode.episode_number,
                         accsArgs($"{host}/lite/uafilm/video.m3u8?id={episode.primary_video.id}")
                     );
                 }

@@ -16,7 +16,7 @@ public class UaKinoController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/uakino")]
-    async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, string href = null, bool rjson = false, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, string href = null, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

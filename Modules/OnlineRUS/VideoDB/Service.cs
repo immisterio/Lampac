@@ -45,7 +45,7 @@ public struct VideoDBInvoke
         {
             ismovie = !json.Contains("\"folder\":", StringComparison.Ordinal);
 
-            quality = json.Contains("2160p", StringComparison.Ordinal)
+            quality = json.Contains("2160p", StringComparison.Ordinal) 
                 ? "2160p"
                 : json.Contains("1080p", StringComparison.Ordinal)
                     ? "1080p"
@@ -73,7 +73,7 @@ public struct VideoDBInvoke
     #endregion
 
     #region Html
-    public ITplResult Tpl(EmbedModel root, string args, string uri, string title, string original_title, string t, int s, int sid, bool rjson, bool rhub = false)
+    public ITplResult Tpl(EmbedModel root, string args, string uri, string title, string original_title, string t, short s, short sid, bool rjson, bool rhub = false)
     {
         if (root?.pl == null || root.pl.Length == 0)
             return default;
@@ -178,8 +178,6 @@ public struct VideoDBInvoke
 
                 var hashvoices = new HashSet<string>(20);
 
-                string sArhc = s.ToString();
-
                 foreach (var episode in season)
                 {
                     var episodes = episode.folder;
@@ -244,7 +242,7 @@ public struct VideoDBInvoke
                                 etpl.Append(
                                     episode.title,
                                     title ?? original_title,
-                                    sArhc,
+                                    s,
                                     Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
                                     streamlink.Replace("/manifest.m3u8", "/manifest"),
                                     "call",
@@ -257,7 +255,7 @@ public struct VideoDBInvoke
                             etpl.Append(
                                 episode.title,
                                 title ?? original_title,
-                                sArhc,
+                                s,
                                 Regex.Match(episode.title, "^([0-9]+)").Groups[1].Value,
                                 pl.streams[0].link + args,
                                 streamquality: new StreamQualityTpl(pl.streams, linkPredicate: link => link + args)

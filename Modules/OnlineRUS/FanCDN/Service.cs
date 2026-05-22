@@ -29,7 +29,7 @@ public struct FanCDNInvoke
     #endregion
 
     #region Search
-    async public Task<(string kp, string key)> Search(string title, string original_title, int year)
+    async public Task<(string kp, string key)> Search(string title, string original_title, short year)
     {
         if (string.IsNullOrEmpty(title) || year == 0)
             return default;

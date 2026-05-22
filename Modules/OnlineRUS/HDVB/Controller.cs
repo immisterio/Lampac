@@ -21,7 +21,7 @@ public class HDVBController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/hdvb")]
-    async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int t = -1, int s = -1, bool rjson = false, bool similar = false)
+    async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, short t = -1, short s = -1, bool rjson = false, bool similar = false)
     {
         if (similar || kinopoisk_id == 0)
             return await RouteSpiderSearch(title, rjson);
@@ -102,7 +102,7 @@ public class HDVBController : BaseOnlineController
                 #region Перевод
                 var vtpl = new VoiceTpl();
 
-                for (int i = 0; i < data.Count; i++)
+                for (short i = 0; i < data.Count; i++)
                 {
                     if (data[i].serial_episodes?.FirstOrDefault(i => i.season_number == s) == null)
                         continue;
@@ -122,15 +122,15 @@ public class HDVBController : BaseOnlineController
                 string iframe = HttpUtility.UrlEncode(fixframe(init.host, data[t].iframe_url));
                 string translator = HttpUtility.UrlEncode(data[t].translator);
 
-                foreach (int episode in data[t].serial_episodes.FirstOrDefault(i => i.season_number == s).episodes ?? new List<int>())
+                foreach (short episode in data[t].serial_episodes.FirstOrDefault(i => i.season_number == s).episodes ?? new List<short>())
                 {
                     string link = $"{host}/lite/hdvb/serial?title={enc_title}&original_title={enc_original_title}&iframe={iframe}&t={translator}&s={s}&e={episode}";
 
                     etpl.Append(
                         $"{episode} серия",
                         title ?? original_title,
-                        s.ToString(),
-                        episode.ToString(),
+                        s,
+                        episode,
                         link,
                         "call",
                         streamlink: accsArgs($"{link.Replace("/serial", "/serial.m3u8")}&play=true")

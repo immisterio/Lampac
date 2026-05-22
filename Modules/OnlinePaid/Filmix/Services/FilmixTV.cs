@@ -268,7 +268,7 @@ public class FilmixTVInvoke
                         etpl.Append(
                             $"{episode.Key.TrimStart('e')} серия",
                             title ?? original_title,
-                            selectedSeason.Value.season.ToString(),
+                            selectedSeason.Value.season,
                             episode.Key.TrimStart('e'),
                             first.link,
                             streamquality: streamquality,

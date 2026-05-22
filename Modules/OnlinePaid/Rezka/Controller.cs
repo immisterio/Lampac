@@ -68,7 +68,7 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
 
     [HttpGet]
     [Route("lite/rezka")]
-    async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, short s = -1, string href = null, bool rjson = false, short serial = -1, bool similar = false, string source = null, string id = null)
     {
         if (await IsRequestBlocked(rch: true, rch_check: false))
             return badInitMsg;
@@ -183,7 +183,7 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
     #region Serial
     [HttpGet]
     [Route("lite/rezka/serial")]
-    async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, int s = -1, bool rjson = false)
+    async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, short s = -1, bool rjson = false)
     {
         if (string.IsNullOrEmpty(href))
             return OnError();

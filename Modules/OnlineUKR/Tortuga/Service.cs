@@ -39,8 +39,8 @@ public struct TortugaInvoke
                 return;
 
             string file = Rx.Match(content, "file: ?.([^'\"]+)==('|\")");
-            string decoded = null;
-
+            string decoded = null; 
+            
             CrypTo.DecodeBase64(file, base64 =>
             {
                 decoded = string.Create(base64.Length, base64, static (span, src) =>
@@ -84,7 +84,7 @@ public struct TortugaInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel result, string title, string original_title, string t, int s, string uri, VastConf vast = null, bool rjson = false)
+    public ITplResult Tpl(EmbedModel result, string title, string original_title, string t, short s, string uri, VastConf vast = null, bool rjson = false)
     {
         if (result == null || result.IsEmpty)
             return default;
@@ -182,7 +182,7 @@ public struct TortugaInvoke
                         etpl.Append(
                             episode.title,
                             title ?? original_title,
-                            sArhc,
+                            s,
                             episode.number,
                             onstreamfile.Invoke(video.file),
                             subtitles: subtitles,

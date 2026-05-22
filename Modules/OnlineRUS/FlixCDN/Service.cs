@@ -44,7 +44,7 @@ public struct FlixCDNInvoke
             streamquality.Insert(onstreamfile.Invoke(link), $"{q}p");
         }
 
-        if (streamquality.Any())
+        if (!streamquality.IsEmpty)
             return streamquality;
 
         foreach (Match m in Regex.Matches(file, "(https?://[^,\"\\[\\s]+\\.(m3u8|mp4)(:hls:manifest\\.m3u8)?)"))

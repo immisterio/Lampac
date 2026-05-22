@@ -87,7 +87,7 @@ public struct VoKinoInvoke
     #endregion
 
     #region Tpl
-    public ITplResult Tpl(EmbedModel result, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s, VastConf vast = null, bool rjson = false)
+    public ITplResult Tpl(EmbedModel result, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, short s, VastConf vast = null, bool rjson = false)
     {
         if (result == null || result.IsEmpty)
             return default;
@@ -173,7 +173,7 @@ public struct VoKinoInvoke
                     etpl.Append(
                         e.title,
                         title ?? original_title,
-                        s.ToString(),
+                        s,
                         Regex.Match(e.ident, "([0-9]+)$").Groups[1].Value,
                         onstreamfile(e.stream_url),
                         vast: vast

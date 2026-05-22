@@ -29,7 +29,7 @@ public class CDNvideohubController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/cdnvideohub")]
-    async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, int s = -1, bool rjson = false)
+    async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, short s = -1, bool rjson = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -111,7 +111,7 @@ public class CDNvideohubController : BaseOnlineController
                     #endregion
 
                     var etpl = new EpisodeTpl(vtpl);
-                    var tmpEpisode = new HashSet<int>();
+                    var tmpEpisode = new HashSet<short>();
 
                     foreach (var video in cache.Value.items.OrderBy(i => i.episode))
                     {
@@ -122,7 +122,7 @@ public class CDNvideohubController : BaseOnlineController
                         if (string.IsNullOrEmpty(vkId))
                             continue;
 
-                        int episode = video.episode;
+                        short episode = video.episode;
 
                         if (tmpEpisode.Add(episode))
                         {
@@ -131,8 +131,8 @@ public class CDNvideohubController : BaseOnlineController
                             etpl.Append(
                                 $"{episode} серия",
                                 title ?? original_title,
-                                s.ToString(),
-                                episode.ToString(),
+                                s,
+                                episode,
                                 link,
                                 "call",
                                 streamlink: accsArgs($"{link}&play=true"),

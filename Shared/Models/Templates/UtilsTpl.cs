@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -7,9 +8,10 @@ namespace Shared.Models.Templates;
 public static class UtilsTpl
 {
     #region HtmlEncode
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void HtmlEncode(ReadOnlySpan<char> value, StringBuilder sb)
     {
-        foreach (var c in value)
+        foreach (char c in value)
         {
             switch (c)
             {
@@ -25,7 +27,7 @@ public static class UtilsTpl
     #endregion
 
     #region WriteJson
-    static readonly JsonWriterOptions _jsonWriterOptions = new JsonWriterOptions
+    public static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions
     {
         Indented = false,
         SkipValidation = true
@@ -33,10 +35,17 @@ public static class UtilsTpl
 
     public static void WriteJson<T>(StringBuilder sb, BufferWriterPool<byte> utf8Buf, T value, JsonTypeInfo<T> options)
     {
-        utf8Buf.SetLength(0);
+        using (var writer = new Utf8JsonWriter(utf8Buf, jsonWriterOptions))
+            WriteJson(sb, utf8Buf, writer, value, options);
+    }
 
-        using (var writer = new Utf8JsonWriter(utf8Buf, _jsonWriterOptions))
-            JsonSerializer.Serialize(writer, value, options);
+    public static void WriteJson<T>(StringBuilder sb, BufferWriterPool<byte> utf8Buf, Utf8JsonWriter jsonWriter, T value, JsonTypeInfo<T> options)
+    {
+        utf8Buf.SetLength(0);
+        jsonWriter.Reset(utf8Buf);
+
+        JsonSerializer.Serialize(jsonWriter, value, options);
+        jsonWriter.Flush();
 
         ReadOnlySpan<byte> utf8 = utf8Buf.WrittenSpan;
         if (utf8.IsEmpty)

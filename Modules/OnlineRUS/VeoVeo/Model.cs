@@ -6,7 +6,7 @@ public class Movie
 {
     public long id { get; set; }
 
-    public int year { get; set; }
+    public short year { get; set; }
 
     public long? kinopoiskId { get; set; }
 
@@ -19,7 +19,7 @@ public class Movie
 
 public class CatalogItem
 {
-    public int order { get; set; }
+    public short order { get; set; }
 
     public string title { get; set; }
 

@@ -32,7 +32,7 @@ public class KinotochkaController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/kinotochka")]
-    async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, int serial, string newsuri, int s = -1)
+    async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, short serial, string newsuri, short s = -1)
     {
         if (string.IsNullOrWhiteSpace(title))
             return OnError();
@@ -188,7 +188,6 @@ public class KinotochkaController : BaseOnlineController
 
                 return ContentTpl(cache, () =>
                 {
-                    string sArch = s.ToString();
                     var etpl = new EpisodeTpl(cache.Value.Count);
 
                     foreach (var l in cache.Value)
@@ -196,7 +195,7 @@ public class KinotochkaController : BaseOnlineController
                         etpl.Append(
                             l.comment,
                             title,
-                            sArch,
+                            s,
                             Regex.Match(l.comment, "^([0-9]+)").Groups[1].Value,
                             HostStreamProxy(l.file),
                             vast: init.vast

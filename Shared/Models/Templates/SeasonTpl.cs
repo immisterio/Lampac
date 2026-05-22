@@ -5,6 +5,8 @@ namespace Shared.Models.Templates;
 
 public class SeasonTpl : ITplResult
 {
+    private readonly int _capacity;
+
     public List<SeasonDto> data { get; set; }
 
     public string quality { get; set; }
@@ -26,7 +28,7 @@ public class SeasonTpl : ITplResult
 
     public SeasonTpl(VoiceTpl vtpl, string quality, int capacity)
     {
-        data = new List<SeasonDto>(capacity);
+        _capacity = capacity;
         this.vtpl = vtpl;
         this.quality = quality;
     }
@@ -34,14 +36,41 @@ public class SeasonTpl : ITplResult
 
     public void Append(string name, string link, string id)
     {
-        int.TryParse(id, out int sid);
-        Append(name, link, sid);
+        int s = -1;
+
+        if (string.IsNullOrEmpty(id))
+            s = 0;
+        else
+        {
+            s = id switch
+            {
+                "1" => 1,
+                "2" => 2,
+                "3" => 3,
+                "4" => 4,
+                "5" => 5,
+                "6" => 6,
+                "7" => 7,
+                "8" => 8,
+                "9" => 9,
+                "10" => 10,
+                _ => -1
+            };
+
+            if (s == -1)
+                int.TryParse(id, out s);
+        }
+
+        Append(name, link, s);
     }
 
     public void Append(string name, string link, int id)
     {
         if (!string.IsNullOrEmpty(name))
+        {
+            data ??= new List<SeasonDto>(_capacity);
             data.Add(new SeasonDto(link, name, id));
+        }
     }
 
     public void Append(VoiceTpl vtpl)
@@ -55,6 +84,9 @@ public class SeasonTpl : ITplResult
 
     public int Length
         => data?.Count ?? 0;
+
+    public string Type
+       => "season";
 
     public object ToObject()
         => this;
@@ -92,7 +124,11 @@ public class SeasonTpl : ITplResult
         html.Append("<div class=\"videos__line\">");
 
         if (!string.IsNullOrEmpty(quality))
-            html.Append($"<!--q:{quality}-->");
+        {
+            html.Append("<!--q:");
+            html.Append(quality);
+            html.Append("-->");
+        }
 
         foreach (var i in data)
         {
@@ -121,7 +157,7 @@ public class SeasonTpl : ITplResult
     public string ToJson()
     {
         if (IsEmpty)
-            return string.Empty;
+            return "{}";
 
         var sb = ToBuilderJson();
 
@@ -166,26 +202,25 @@ public partial class SeasonJsonContext : JsonSerializerContext
 {
 }
 
-public record SeasonDto
+public sealed class SeasonDto
 {
-    public string method { get; }
-    public int? id { get; }
+    public string method => "link";
+    public int id { get; }
     public string url { get; }
     public string name { get; }
 
     [JsonConstructor]
-    public SeasonDto(string url, string name, int? id)
+    public SeasonDto(string url, string name, int id)
     {
-        method = "link";
         this.id = id;
         this.url = url;
         this.name = name;
     }
 }
 
-public record SeasonResponseDto
+public sealed class SeasonResponseDto
 {
-    public string type { get; }
+    public string type => "season";
     public string maxquality { get; }
     public IReadOnlyList<VoiceDto> voice { get; }
     public IReadOnlyList<SeasonDto> data { get; }
@@ -193,7 +228,6 @@ public record SeasonResponseDto
     [JsonConstructor]
     public SeasonResponseDto(string maxquality, IReadOnlyList<VoiceDto> voice, IReadOnlyList<SeasonDto> data)
     {
-        type = "season";
         this.maxquality = maxquality;
         this.voice = voice;
         this.data = data;

@@ -16,7 +16,7 @@ public class KinoUkrController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/kinoukr")]
-    async public Task<ActionResult> Index(string iframe, string imdb_id, long kinopoisk_id, string title, string original_title, int year, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(string iframe, string imdb_id, long kinopoisk_id, string title, string original_title, short year, bool similar = false, string source = null, string id = null)
     {
         iframe = DecryptQuery(iframe);
 
@@ -29,7 +29,7 @@ public class KinoUkrController : BaseOnlineController
         {
             if (source.Equals("kinoukr", StringComparison.OrdinalIgnoreCase))
             {
-            rhubFallback:
+                rhubFallback:
 
                 var cache = await InvokeCacheResult($"kinoukr:view:{id}", 240,
                     () => oninvk.Embed($"{init.host}/{id}")

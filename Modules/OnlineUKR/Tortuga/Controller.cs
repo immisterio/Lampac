@@ -12,7 +12,7 @@ public class TortugaController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/tortuga")]
-    async public Task<ActionResult> Index(string uri, string title, string original_title, string t, int s = -1, bool rjson = false)
+    async public Task<ActionResult> Index(string uri, string title, string original_title, string t, short s = -1, bool rjson = false)
     {
         string href = DecryptQuery(uri);
 

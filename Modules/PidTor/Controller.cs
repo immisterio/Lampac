@@ -366,7 +366,7 @@ public class PiTor : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/pidtor/serial/{id}")]
-    async public Task<ActionResult> Serial(string id, string title, string original_title, int s)
+    async public Task<ActionResult> Serial(string id, string title, string original_title, short s)
     {
         var init = ModInit.conf;
         if (!init.enable)
@@ -453,8 +453,8 @@ public class PiTor : BaseOnlineController
                 mtpl.Append(
                     Path.GetFileName(torrent.path),
                     title ?? original_title,
-                    s.ToString(),
-                    torrent.id.ToString(),
+                    s,
+                    (short)torrent.id,
                     accsArgs($"{host}/lite/pidtor/s{id}?{tr}&tsid={torrent.id}")
                 );
             }

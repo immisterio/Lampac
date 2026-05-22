@@ -72,7 +72,7 @@ public class VoKino : BaseOnlineController<ModuleConf>
 
     [HttpGet]
     [Route("lite/vokino")]
-    async public Task<ActionResult> Index(bool checksearch, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, int s = -1, bool rjson = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(bool checksearch, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, short s = -1, bool rjson = false, string source = null, string id = null)
     {
         if (string.IsNullOrEmpty(origid) && !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(id))
         {

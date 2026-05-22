@@ -6,17 +6,17 @@ namespace Shared.Models.Templates;
 
 public class StreamQualityTpl
 {
+    private readonly int _capacity;
+
     public List<StreamQualityDto> data { get; set; }
 
     public StreamQualityTpl(int capacity = 8)
     {
-        data = new List<StreamQualityDto>(capacity);
+        _capacity = capacity;
     }
 
     public StreamQualityTpl(IEnumerable<(string link, string quality)> streams)
     {
-        data = new List<StreamQualityDto>(8);
-
         if (streams != null)
         {
             foreach (var item in streams)
@@ -26,10 +26,10 @@ public class StreamQualityTpl
 
     public StreamQualityTpl(IReadOnlyList<StreamQualityDto> streams, Func<string, string> linkPredicate = null)
     {
-        data = new List<StreamQualityDto>(streams?.Count ?? 8);
-
         if (streams != null)
         {
+            _capacity = streams.Count;
+
             foreach (var item in streams)
             {
                 string link = linkPredicate != null
@@ -42,7 +42,11 @@ public class StreamQualityTpl
     }
 
 
-    public bool Any() => data.Any();
+    public bool Any()
+        => data?.Count > 0;
+
+    public bool IsEmpty
+        => data == null || data.Count == 0;
 
     public void Append(string link, string quality)
     {
@@ -53,7 +57,10 @@ public class StreamQualityTpl
             return;
 
         if (!string.IsNullOrEmpty(link))
+        {
+            data ??= new List<StreamQualityDto>(_capacity);
             data.Add(new StreamQualityDto(link, quality));
+        }
     }
 
     public void Insert(string link, string quality)
@@ -65,7 +72,10 @@ public class StreamQualityTpl
             return;
 
         if (!string.IsNullOrEmpty(link))
+        {
+            data ??= new List<StreamQualityDto>(_capacity);
             data.Insert(0, new StreamQualityDto(link, quality));
+        }
     }
 
     private static bool TryProcessStreamQualityEvent(ref string link, string quality, bool prepend)
@@ -89,11 +99,17 @@ public class StreamQualityTpl
         return true;
     }
 
-    public string ToJson() => JsonSerializer.Serialize(ToObject(), StreamQualityJsonContext.Default.DictionaryStringString);
+    public string ToJson()
+    {
+        if (IsEmpty)
+            return "{}";
+
+        return JsonSerializer.Serialize(ToObject(), StreamQualityJsonContext.Default.DictionaryStringString);
+    }
 
     public Dictionary<string, string> ToObject(bool emptyToNull = false)
     {
-        if (emptyToNull && data.Count == 0)
+        if (emptyToNull && IsEmpty)
             return null;
 
         var result = new Dictionary<string, string>(data.Count);
@@ -106,7 +122,7 @@ public class StreamQualityTpl
 
     public string MaxQuality()
     {
-        if (data.Count == 0)
+        if (IsEmpty)
             return string.Empty;
 
         return data[0].quality;
@@ -114,7 +130,7 @@ public class StreamQualityTpl
 
     public StreamQualityDto Firts()
     {
-        if (data.Count == 0)
+        if (IsEmpty)
             return default;
 
         if (EventListener.StreamQualityFirts != null)
@@ -141,7 +157,7 @@ public partial class StreamQualityJsonContext : JsonSerializerContext
 {
 }
 
-public record StreamQualityDto
+public sealed class StreamQualityDto
 {
     public string link { get; }
     public string quality { get; }

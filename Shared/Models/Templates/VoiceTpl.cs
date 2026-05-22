@@ -5,19 +5,25 @@ namespace Shared.Models.Templates;
 
 public class VoiceTpl
 {
+    private readonly int _capacity;
+
     public List<VoiceDto> data { get; set; }
 
     public VoiceTpl(int capacity = 20)
     {
-        data = new List<VoiceDto>(capacity);
+        _capacity = capacity;
     }
 
-    public bool IsEmpty => data == null || data.Count == 0;
+    public bool IsEmpty
+        => data == null || data.Count == 0;
 
     public void Append(string name, bool active, string link)
     {
         if (!string.IsNullOrEmpty(name))
+        {
+            data ??= new List<VoiceDto>(_capacity);
             data.Add(new VoiceDto(link, active, name));
+        }
     }
 
     public string ToHtml()
@@ -73,9 +79,9 @@ public class VoiceTpl
 }
 
 
-public record VoiceDto
+public sealed class VoiceDto
 {
-    public string method { get; }
+    public string method => "link";
     public string url { get; }
     public bool active { get; }
     public string name { get; }
@@ -83,7 +89,6 @@ public record VoiceDto
     [JsonConstructor]
     public VoiceDto(string url, bool active, string name)
     {
-        method = "link";
         this.url = url;
         this.active = active;
         this.name = name;

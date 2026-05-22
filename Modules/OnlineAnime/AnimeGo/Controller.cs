@@ -21,7 +21,7 @@ public class AnimeGoController : BaseOnlineController
     [HttpGet]
     [Staticache]
     [Route("lite/animego")]
-    async public Task<ActionResult> Index(string title, int year, int pid, int s, string t, bool similar = false)
+    async public Task<ActionResult> Index(string title, short year, int pid, short s, string t, bool similar = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             return OnError();
@@ -183,7 +183,7 @@ public class AnimeGoController : BaseOnlineController
                     etpl.Append(
                         $"{l.episode} серия",
                         title,
-                        s.ToString(),
+                        s,
                         l.episode,
                         hls,
                         "play",

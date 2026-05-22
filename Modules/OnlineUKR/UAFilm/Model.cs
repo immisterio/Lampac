@@ -40,7 +40,7 @@ public class TitleModel
 {
     public bool is_series { get; set; }
 
-    public int seasons_count { get; set; }
+    public short seasons_count { get; set; }
 
     public List<Video> videos { get; set; }
 }
@@ -61,9 +61,9 @@ public class Episode
 
 public class EpisodeData
 {
-    public int season_number { get; set; }
+    public short season_number { get; set; }
 
-    public int episode_number { get; set; }
+    public short episode_number { get; set; }
 
     public PrimaryVideo primary_video { get; set; }
 }

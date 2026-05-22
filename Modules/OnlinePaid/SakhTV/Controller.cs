@@ -88,7 +88,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
 
     [HttpGet]
     [Route("lite/sakhtv")]
-    public async Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int year, int serial, int s = -1, string t = null, bool rjson = false, bool similar = false)
+    public async Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, short year, byte serial, short s = -1, string t = null, bool rjson = false, bool similar = false)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;
@@ -241,7 +241,6 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                 #endregion
 
                 var etpl = new EpisodeTpl(vtpl);
-                string sArhc = s.ToString();
 
                 foreach (var episode in episodes.Value)
                 {
@@ -255,7 +254,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                             etpl.Append(
                                 $"{e} серия",
                                 string.IsNullOrEmpty(episode.name) ? (title ?? original_title) : episode.name,
-                                sArhc,
+                                s,
                                 e,
                                 accsArgs(link)
                             );

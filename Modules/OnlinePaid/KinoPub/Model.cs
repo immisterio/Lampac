@@ -27,7 +27,7 @@ public class Episode
 {
     public long id { get; set; }
 
-    public int number { get; set; }
+    public short number { get; set; }
 
     public string title { get; set; }
 
@@ -51,7 +51,7 @@ public class Item
 {
     public bool advert { get; set; }
 
-    public int quality { get; set; }
+    public short quality { get; set; }
 
     public string voice { get; set; }
 
@@ -81,7 +81,7 @@ public class SearchItem
 
     public long? imdb { get; set; }
 
-    public int year { get; set; }
+    public short year { get; set; }
 
     public Dictionary<string, string> posters { get; set; }
 }
@@ -100,7 +100,7 @@ public class SearchResult
 
 public class Season
 {
-    public int number { get; set; }
+    public short number { get; set; }
 
     public Episode[] episodes { get; set; }
 }

@@ -42,7 +42,7 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
 
     [HttpGet]
     [Route("lite/pizdatoehd")]
-    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int year, string href, string t, int s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
+    async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, byte clarification, short year, string href, string t, short s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
         if (await IsRequestBlocked(rch: false))
             return badInitMsg;
@@ -248,7 +248,7 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
     [HttpGet]
     [Route("lite/pizdatoehd/movie")]
     [Route("lite/pizdatoehd/movie.m3u8")]
-    async public Task<ActionResult> Movie(string title, string original_title, string href, string voice, int t, int s = -1, int e = -1, bool play = false)
+    async public Task<ActionResult> Movie(string title, string original_title, string href, string voice, int t, short s = -1, short e = -1, bool play = false)
     {
         if (await IsRequestBlocked(rch: false))
             return badInitMsg;

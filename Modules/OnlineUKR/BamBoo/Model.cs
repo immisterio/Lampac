@@ -8,7 +8,7 @@ public class EmbedModel
 
     public bool isSerial { get; set; }
 
-    public int season { get; set; } = 1;
+    public short season { get; set; } = 1;
 
     public List<Voice> serial { get; set; }
 
