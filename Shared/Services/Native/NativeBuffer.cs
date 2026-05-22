@@ -35,7 +35,15 @@ public sealed unsafe class NativeBuffer<T> : MemoryManager<T> where T : unmanage
         => _expires != default && DateTimeOffset.UtcNow > _expires;
 
     private bool IsDisposed
-        => Volatile.Read(ref _disposed) != 0 || _ptr == IntPtr.Zero;
+    {
+        get
+        {
+            if (Volatile.Read(ref _disposed) != 0)
+                return true;
+
+            return Interlocked.CompareExchange(ref _ptr, IntPtr.Zero, IntPtr.Zero) == IntPtr.Zero;
+        }
+    }
 
     public NativeBuffer(int len)
     {
@@ -89,7 +97,12 @@ public sealed unsafe class NativeBuffer<T> : MemoryManager<T> where T : unmanage
 
     public override void Unpin()
     {
-        Interlocked.Decrement(ref _pinCount);
+        int value = Interlocked.Decrement(ref _pinCount);
+        if (value < 0)
+        {
+            Interlocked.Increment(ref _pinCount);
+            throw new InvalidOperationException("Unbalanced Unpin.");
+        }
     }
 
     public void Ensure(int sizeHint)
@@ -97,11 +110,14 @@ public sealed unsafe class NativeBuffer<T> : MemoryManager<T> where T : unmanage
         if (IsDisposed)
             throw new ObjectDisposedException(nameof(NativeBuffer<T>));
 
-        if (Volatile.Read(ref _pinCount) != 0)
-            throw new InvalidOperationException("Buffer is pinned.");
+        if (sizeHint <= 0)
+            throw new ArgumentOutOfRangeException(nameof(sizeHint));
 
         if (sizeHint <= _len)
             return;
+
+        if (Volatile.Read(ref _pinCount) != 0)
+            throw new InvalidOperationException("Buffer is pinned.");
 
         nuint bytes;
         try
@@ -123,13 +139,21 @@ public sealed unsafe class NativeBuffer<T> : MemoryManager<T> where T : unmanage
 
     protected override void Dispose(bool disposing)
     {
-        if (Volatile.Read(ref _pinCount) != 0)
-            throw new InvalidOperationException("Buffer is pinned.");
-
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
 
-        NativeMemory.Free((void*)_ptr);
-        NativeBufferStats.IncrementDisposed();
+        if (Volatile.Read(ref _pinCount) != 0)
+        {
+            Volatile.Write(ref _disposed, 0);
+            throw new InvalidOperationException("Buffer is pinned.");
+        }
+
+        IntPtr ptr = Interlocked.Exchange(ref _ptr, IntPtr.Zero);
+
+        if (ptr != IntPtr.Zero)
+        {
+            NativeMemory.Free((void*)ptr);
+            NativeBufferStats.IncrementDisposed();
+        }
     }
 }

@@ -63,11 +63,35 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
 
     public void Advance(int count)
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count));
+
+        if (_nbuf == null)
+            throw new InvalidOperationException("Buffer is not rented.");
+
+        if ((uint)count > (uint)(_nbuf.Memory.Length - _index))
+            throw new ArgumentOutOfRangeException(nameof(count));
+
         _index += count;
     }
 
     public void SetLength(int index)
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+
+        if (_nbuf == null)
+        {
+            if (index != 0)
+                Ensure(index);
+            else
+                return;
+        }
+
+        if ((uint)index > (uint)_nbuf.Memory.Length)
+            throw new ArgumentOutOfRangeException(nameof(index));
+
         _index = index;
     }
 
@@ -85,6 +109,8 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
 
     private void Ensure(int sizeHint)
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+
         if (sizeHint <= 0)
             sizeHint = 1;
 
@@ -99,11 +125,15 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
             _nbuf = p.Rent(sizeHint);
         }
 
-        int newsize = _index + sizeHint;
+        int newsize = checked(_index + sizeHint);
         if (newsize <= _nbuf.Memory.Length)
             return;
 
-        _nbuf.Ensure(newsize * 2);
+        int required = checked(newsize * 2);
+        if (required <= sizeHint)
+            return;
+
+        _nbuf.Ensure(required);
     }
 
     public void Dispose()
