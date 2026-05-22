@@ -1,4 +1,5 @@
 using Shared.Models.Proxy;
+using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Net;
@@ -15,6 +16,9 @@ public class ProxyLink : IProxyLink
     #region static
     [ThreadStatic]
     private static StringBuilder _threadHashBuilder;
+
+    [ThreadStatic]
+    private static ArrayBufferWriter<byte> _threadBufferWriter;
 
     static readonly ConcurrentDictionary<string, ProxyLinkModel> links = new();
 
@@ -43,14 +47,8 @@ public class ProxyLink : IProxyLink
         if (uri.IsEmpty)
             return string.Empty;
 
-        StringBuilder hash = _threadHashBuilder ??= new StringBuilder(1024);
-        if (hash.Capacity > 1024)
-        {
-            _threadHashBuilder = new StringBuilder(1024);
-            hash = _threadHashBuilder;
-        }
-        else
-            hash.Clear();
+        StringBuilder hash = _threadHashBuilder ??= new StringBuilder(2048);
+        hash.Clear();
 
         if (prefix != null)
         {
@@ -72,14 +70,9 @@ public class ProxyLink : IProxyLink
         }
         else if (!forceMd5 && proxy == null && userdata == null && !uri_clear.Contains(" or ", StringComparison.Ordinal))
         {
-            if (verifyip && CoreInit.conf.serverproxy.verifyip)
-            {
-                return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.Date.AddDays(1), headers, sbWriter);
-            }
-            else
-            {
-                return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, sbWriter);
-            }
+            return verifyip && CoreInit.conf.serverproxy.verifyip
+                ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.Date.AddDays(1), headers, sbWriter)
+                : SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, sbWriter);
         }
         else
         {
@@ -89,13 +82,12 @@ public class ProxyLink : IProxyLink
                 : uclear
             );
 
-            var extension = new StringBuilder();
-            WriteExtension(extension, uri, IsProxyImg);
+            string ext = GetExtension(uri, IsProxyImg);
 
             hash.Append(md5key);
-            hash.Append(extension);
+            hash.Append(ext);
 
-            links[md5key + extension.ToString()] = new ProxyLinkModel(verifyip ? reqip : null, headers, proxy, uclear, plugin, verifyip, ex, userdata)
+            links[md5key + ext] = new ProxyLinkModel(verifyip ? reqip : null, headers, proxy, uclear, plugin, verifyip, ex, userdata)
             {
                 md5 = true
             };
@@ -111,128 +103,131 @@ public class ProxyLink : IProxyLink
     #region SerializePayload
     static string SerializePayload(StringBuilder sbhash, bool isProxyImg, ReadOnlySpan<char> uri_clear, ReadOnlySpan<char> uri, string plugin, string reqip, bool verifyip, DateTime e, IReadOnlyList<HeadersModel> headers, Action<StringBuilder> sbWriter)
     {
-        using (var utf8Buf = new BufferWriterPool<byte>())
+        _threadBufferWriter ??= new ArrayBufferWriter<byte>(4096);
+        _threadBufferWriter.ResetWrittenCount();
+
+        #region serialize
+        using (var writer = new Utf8JsonWriter(_threadBufferWriter, _jsonWriterOptions))
         {
-            #region serialize
-            using (var writer = new Utf8JsonWriter(utf8Buf, _jsonWriterOptions))
+            writer.WriteStartObject();
+            writer.WriteString("u"u8, uri_clear);
+
+            if (plugin != null)
+                writer.WriteString("p"u8, plugin);
+
+            if (reqip != null)
+                writer.WriteString("i"u8, reqip);
+
+            if (verifyip)
+                writer.WriteBoolean("v"u8, true);
+
+            if (e != default)
+                writer.WriteString("e"u8, e.ToUniversalTime());
+
+            if (headers != null && headers.Count > 0)
             {
+                // ставим выше h что бы в Decrypt успеть считать количество заголовков до их чтения
+                writer.WriteNumber("hc"u8, headers.Count);
+
+                writer.WritePropertyName("h"u8);
                 writer.WriteStartObject();
-                writer.WriteString("u"u8, uri_clear);
 
-                if (plugin != null)
-                    writer.WriteString("p"u8, plugin);
-
-                if (reqip != null)
-                    writer.WriteString("i"u8, reqip);
-
-                if (verifyip)
-                    writer.WriteBoolean("v"u8, true);
-
-                if (e != default)
-                    writer.WriteString("e"u8, e.ToUniversalTime());
-
-                if (headers != null && headers.Count > 0)
+                foreach (var h in headers)
                 {
-                    writer.WritePropertyName("h"u8);
-                    writer.WriteStartObject();
-
-                    foreach (var h in headers)
-                    {
-                        if (h.name != null && h.val != null)
-                            writer.WriteString(h.name, h.val);
-                    }
-
-                    writer.WriteEndObject();
+                    if (h.name != null && h.val != null)
+                        writer.WriteString(h.name, h.val);
                 }
 
                 writer.WriteEndObject();
-                writer.Flush();
             }
 
-            // JSON уже в UTF-8, перекодировать не нужно
-            ReadOnlySpan<byte> utf8 = utf8Buf.WrittenSpan;
-            if (utf8.IsEmpty)
-                return "Error Serialize Payload: jsonUtf8";
-            #endregion
+            writer.WriteEndObject();
+        }
 
-            #region AES Encrypt
+        // JSON уже в UTF-8, перекодировать не нужно
+        ReadOnlySpan<byte> json = _threadBufferWriter.WrittenSpan;
+
+        if (json.IsEmpty)
+            return "Error Serialize Payload: jsonUtf8";
+        #endregion
+
+        #region AES Encrypt
+        try
+        {
+            var aesinst = AesPool.Instance;
+
+            // EncryptCbc сам делает PKCS7 padding, paddedLen считать не нужно
+            // destination должен быть достаточно большой: json.Length + blockSize
+            int blockSize = aesinst.Aes.BlockSize / 8; // 16
+            int requiredCipherLen = ((json.Length / blockSize) + 1) * blockSize;
+
+            BufferBytePool destBuf = null;
+            if (requiredCipherLen > aesinst.ByteSize)
+                destBuf = new BufferBytePool(requiredCipherLen);
+
             try
             {
-                var aesinst = AesPool.Instance;
+                Span<byte> dest = destBuf != null
+                    ? destBuf.Span
+                    : aesinst.ByteBuffer;
 
-                // EncryptCbc сам делает PKCS7 padding, paddedLen считать не нужно
-                // destination должен быть достаточно большой: jsonUtf8.Length + blockSize
-                int blockSize = aesinst.Aes.BlockSize / 8; // 16
-                int requiredCipherLen = ((utf8.Length / blockSize) + 1) * blockSize;
+                int cipherLen = aesinst.Aes.EncryptCbc(
+                    json,
+                    aesinst.Aes.IV, // iv (16 байт)
+                    dest,
+                    PaddingMode.PKCS7);
 
-                BufferBytePool destBuf = null;
-                if (requiredCipherLen > aesinst.ByteSize)
-                    destBuf = new BufferBytePool(requiredCipherLen);
+                if (cipherLen <= 0)
+                    return "Error Serialize Payload: cipherLen";
+
+                int capacity = ((cipherLen + 2) / 3) * 4;
+
+                BufferCharPool base64Chars = null;
+                if (capacity > aesinst.CharSize)
+                    base64Chars = new BufferCharPool(capacity);
 
                 try
                 {
-                    Span<byte> dest = destBuf != null
-                        ? destBuf.Span
-                        : aesinst.ByteBuffer;
+                    Span<char> base64 = base64Chars != null
+                        ? base64Chars.Span
+                        : aesinst.CharBuffer;
 
-                    int cipherLen = aesinst.Aes.EncryptCbc(
-                        utf8,
-                        aesinst.Aes.IV, // iv (16 байт)
-                        dest,
-                        PaddingMode.PKCS7);
+                    if (!Base64Url.TryEncodeToChars(dest.Slice(0, cipherLen), base64, out int charsWritten) || charsWritten <= 0)
+                        return "Error Serialize Payload: base64Chars";
 
-                    if (cipherLen <= 0)
-                        return "Error Serialize Payload: cipherLen";
+                    base64 = base64.Slice(0, charsWritten);
 
-                    int capacity = ((cipherLen + 2) / 3) * 4;
+                    sbhash.Append(base64);
+                    sbhash.Append(GetExtension(uri, isProxyImg));
 
-                    BufferCharPool base64Chars = null;
-                    if (capacity > aesinst.CharSize)
-                        base64Chars = new BufferCharPool(capacity);
-
-                    try
+                    if (sbWriter != null)
                     {
-                        Span<char> base64 = base64Chars != null
-                            ? base64Chars.Span
-                            : aesinst.CharBuffer;
-
-                        if (!Base64Url.TryEncodeToChars(dest.Slice(0, cipherLen), base64, out int charsWritten) || charsWritten <= 0)
-                            return "Error Serialize Payload: base64Chars";
-
-                        base64 = base64.Slice(0, charsWritten);
-
-                        sbhash.Append(base64);
-                        WriteExtension(sbhash, uri, isProxyImg);
-
-                        if (sbWriter != null)
-                        {
-                            sbWriter.Invoke(sbhash);
-                            return null;
-                        }
-
-                        return sbhash.ToString();
+                        sbWriter.Invoke(sbhash);
+                        return null;
                     }
-                    finally
-                    {
-                        base64Chars?.Dispose();
-                    }
+
+                    return sbhash.ToString();
                 }
                 finally
                 {
-                    destBuf?.Dispose();
+                    base64Chars?.Dispose();
                 }
             }
-            catch
+            finally
             {
-                return "Error Serialize Payload: Exception";
+                destBuf?.Dispose();
             }
-            #endregion
         }
+        catch
+        {
+            return "Error Serialize Payload: Exception";
+        }
+        #endregion
     }
     #endregion
 
-    #region WriteExtension
-    static void WriteExtension(StringBuilder hash, ReadOnlySpan<char> uri, bool IsProxyImg)
+    #region GetExtension
+    static string GetExtension(ReadOnlySpan<char> uri, bool IsProxyImg)
     {
         ReadOnlySpan<char> ext = default;
         int end = uri.LastIndexOf('#');
@@ -252,9 +247,9 @@ public class ProxyLink : IProxyLink
             if (dot < 0)
             {
                 if (IsProxyImg)
-                    hash.Append(".jpg");
+                    return ".jpg"; // по умолчанию для картинок .jpg
 
-                return;
+                return string.Empty;
             }
 
             ext = uri[dot..];
@@ -262,16 +257,16 @@ public class ProxyLink : IProxyLink
 
         if (IsProxyImg)
         {
-            hash.Append(ext switch
+            return ext switch
             {
                 ".png" => ".png",
                 ".webp" => ".webp",
                 _ => ".jpg"
-            });
+            };
         }
         else
         {
-            hash.Append(ext switch
+            return ext switch
             {
                 ".m3u8" => ".m3u8",
                 ".m3u" => ".m3u",
@@ -289,7 +284,7 @@ public class ProxyLink : IProxyLink
                 ".png" => ".png",
                 ".webp" => ".webp",
                 _ => string.Empty
-            });
+            };
         }
     }
     #endregion
@@ -380,7 +375,8 @@ public class ProxyLink : IProxyLink
     {
         var reader = new Utf8JsonReader(json);
 
-        string uri_clear = null, plugin = null, userip = null;
+        short headersCount = 0;
+        string uri_clear = null, plugin = null, ip = null;
         bool verifyip = false;
         DateTime e = default;
         List<HeadersModel> headers = null;
@@ -403,7 +399,7 @@ public class ProxyLink : IProxyLink
             else if (reader.ValueTextEquals("i"u8))
             {
                 reader.Read();
-                userip = reader.GetString();
+                ip = reader.GetString();
             }
             else if (reader.ValueTextEquals("v"u8))
             {
@@ -415,11 +411,16 @@ public class ProxyLink : IProxyLink
                 reader.Read();
                 e = reader.GetDateTime();
             }
+            else if (reader.ValueTextEquals("hc"u8))
+            {
+                reader.Read();
+                headersCount = reader.GetInt16();
+            }
             else if (reader.ValueTextEquals("h"u8))
             {
                 reader.Read();
 
-                headers = new List<HeadersModel>();
+                headers = new List<HeadersModel>(headersCount);
 
                 while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
                 {
@@ -442,7 +443,7 @@ public class ProxyLink : IProxyLink
 
         if (verifyip)
         {
-            if (reqip != null && userip != reqip)
+            if (reqip != null && ip != reqip)
                 return null;
 
             if (DateTime.UtcNow > e)
