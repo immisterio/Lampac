@@ -69,7 +69,7 @@ public static class FriendlyHttp
         if (MaxResponseContentBufferSize > 0)
             maxBufferSize = MaxResponseContentBufferSize;
 
-        if ((handler?.CookieContainer != null && handler.CookieContainer.Count > 0) || Http.httpClientFactory == null)
+        if (handler?.CookieContainer?.Count > 0 || Http.httpClientFactory == null)
         {
             disposeHttpClient = true;
             return new HttpClient(handler)

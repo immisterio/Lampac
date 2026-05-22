@@ -397,7 +397,7 @@ public static class Http
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
             {
                 Version = httpversion switch
                 {
@@ -405,27 +405,28 @@ public static class Http
                     3 => HttpVersion.Version30,
                     _ => HttpVersion.Version11
                 }
-            };
-
-            DefaultRequestHeaders(url, req, null, referer, headers);
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+            })
             {
-                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                DefaultRequestHeaders(url, req, null, referer, headers);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
-                    string location = (int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307
-                        ? response.Headers.Location?.ToString()
-                        : response.RequestMessage.RequestUri?.ToString();
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                    {
+                        string location = (int)response.StatusCode == 301 || (int)response.StatusCode == 302 || (int)response.StatusCode == 307
+                            ? response.Headers.Location?.ToString()
+                            : response.RequestMessage.RequestUri?.ToString();
 
-                    if (string.IsNullOrEmpty(location))
-                        return null;
+                        if (string.IsNullOrEmpty(location))
+                            return null;
 
-                    location = System.Web.HttpUtility.UrlDecode(location);
+                        location = System.Web.HttpUtility.UrlDecode(location);
 
-                    if (Uri.TryCreate(location, UriKind.Absolute, out var uri))
-                        return uri.AbsoluteUri;
+                        if (Uri.TryCreate(location, UriKind.Absolute, out var uri))
+                            return uri.AbsoluteUri;
 
-                    return location;
+                        return location;
+                    }
                 }
             }
         }
@@ -460,7 +461,7 @@ public static class Http
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
             {
                 Version = httpversion switch
                 {
@@ -468,14 +469,15 @@ public static class Http
                     3 => HttpVersion.Version30,
                     _ => HttpVersion.Version11
                 }
-            };
-
-            DefaultRequestHeaders(url, req, null, null, headers);
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+            })
             {
-                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
-                    return response;
+                DefaultRequestHeaders(url, req, null, null, headers);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                {
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                        return response;
+                }
             }
         }
         catch
@@ -584,7 +586,7 @@ public static class Http
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
             {
                 Version = httpversion switch
                 {
@@ -593,16 +595,16 @@ public static class Http
                     _ => HttpVersion.Version11
                 },
                 Content = body
-            };
-
-            DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+            })
             {
-                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
-                    using (HttpContent content = response.Content)
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
+                        HttpContent content = response.Content;
+
                         if (EventListener.HttpResponse != null)
                         {
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -777,7 +779,7 @@ public static class Http
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
             {
                 Version = httpversion switch
                 {
@@ -786,16 +788,16 @@ public static class Http
                     _ => HttpVersion.Version11
                 },
                 Content = body
-            };
-
-            DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+            })
             {
-                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
-                    using (HttpContent content = response.Content)
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
+                        HttpContent content = response.Content;
+
                         if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                             return (null, response);
 
@@ -886,7 +888,7 @@ public static class Http
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Post, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Version = httpversion switch
                 {
@@ -895,19 +897,19 @@ public static class Http
                     _ => HttpVersion.Version11
                 },
                 Content = data
-            };
-
-            DefaultRequestHeaders(url, req, cookie, null, headers, useDefaultHeaders);
-
-            if (removeContentType)
-                req.Content.Headers.Remove("Content-Type");
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+            })
             {
-                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                DefaultRequestHeaders(url, req, cookie, null, headers, useDefaultHeaders);
+
+                if (removeContentType)
+                    req.Content.Headers.Remove("Content-Type");
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
-                    using (HttpContent content = response.Content)
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
+                        HttpContent content = response.Content;
+
                         if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
                             return (null, response);
 
@@ -1057,7 +1059,7 @@ public static class Http
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Post, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Version = httpversion switch
                 {
@@ -1066,16 +1068,16 @@ public static class Http
                     _ => HttpVersion.Version11
                 },
                 Content = data
-            };
-
-            DefaultRequestHeaders(url, req, cookie, null, headers, useDefaultHeaders);
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+            })
             {
-                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                DefaultRequestHeaders(url, req, cookie, null, headers, useDefaultHeaders);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
                 {
-                    using (HttpContent content = response.Content)
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
+                        HttpContent content = response.Content;
+
                         if (EventListener.HttpResponse != null)
                         {
                             if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
@@ -1150,22 +1152,22 @@ public static class Http
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
             {
                 Version = HttpVersion.Version11
-            };
-
-            DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(20, timeoutSeconds))))
+            })
             {
-                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
-                {
-                    if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
-                        return (null, response);
+                DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
 
-                    using (HttpContent content = response.Content)
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(20, timeoutSeconds))))
+                {
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
+                        if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            return (null, response);
+
+                        HttpContent content = response.Content;
+
                         byte[] res = await content.ReadAsByteArrayAsync(cts.Token).ConfigureAwait(false);
                         if (res == null || res.Length == 0)
                             return (null, response);

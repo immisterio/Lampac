@@ -23,7 +23,7 @@ namespace CubProxy;
 
 public class CubProxyController : BaseController
 {
-    static readonly string[] adEmpty = new string[] { };
+    static readonly string[] adEmpty = [];
 
     [HttpGet]
     [AllowAnonymous]
@@ -62,7 +62,7 @@ public class CubProxyController : BaseController
             string domain = GetDomain(subdomain, init.domain);
 
             int slashIndex = path.IndexOf('/');
-            string uri = (slashIndex >= 0 ? path.Substring(slashIndex + 1) : path) + HttpContext.Request.QueryString.Value;
+            string uri = (slashIndex >= 0 ? path.Substring(slashIndex+1) : path) + HttpContext.Request.QueryString.Value;
 
             #region ws/geo
             if (subdomain.Equals("ws"))
@@ -165,8 +165,8 @@ public class CubProxyController : BaseController
                     writer.Append(domain);
                     writer.Append(':');
                     writer.Append(uri);
-                });
-
+                }); 
+                
                 string outFile = ModInit.fileWatcher.OutFile(md5key);
 
                 if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
@@ -207,92 +207,93 @@ public class CubProxyController : BaseController
 
                     try
                     {
-                        var request = CreateProxyHttpRequest(
+                        using (var request = CreateProxyHttpRequest(
                             HttpContext,
                             new Uri($"{init.scheme}://{domain}/{uri}"),
                             requestInfo,
                             init.viewru && subdomain == "tmdb"
-                        );
-
-                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
+                        ))
                         {
-                            if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(HttpContext.Request.Method) && response.StatusCode == HttpStatusCode.OK)
+                            using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                             {
-                                #region cache img
-                                HttpContext.Response.ContentType = getContentType(path);
-                                HttpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                                if (init.responseContentLength && response.Content?.Headers?.ContentLength > 0)
+                                if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(HttpContext.Request.Method) && response.StatusCode == HttpStatusCode.OK)
                                 {
-                                    if (!CoreInit.ContainsMimeTypes(HttpContext.Response.ContentType))
-                                        HttpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
-                                }
+                                    #region cache img
+                                    HttpContext.Response.ContentType = getContentType(path);
+                                    HttpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
-                                var semaphore = new SemaphorManager(outFile, ctsHttp.Token);
-
-                                try
-                                {
-                                    bool _acquired = await semaphore.WaitAsync().ConfigureAwait(false);
-                                    if (!_acquired)
-                                        return;
-
-                                    using (var nbuf = new BufferPool())
+                                    if (init.responseContentLength && response.Content?.Headers?.ContentLength > 0)
                                     {
-                                        try
+                                        if (!CoreInit.ContainsMimeTypes(HttpContext.Response.ContentType))
+                                            HttpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+                                    }
+
+                                    var semaphore = new SemaphorManager(outFile, ctsHttp.Token);
+
+                                    try
+                                    {
+                                        bool _acquired = await semaphore.WaitAsync().ConfigureAwait(false);
+                                        if (!_acquired)
+                                            return;
+
+                                        using (var nbuf = new BufferPool())
                                         {
-                                            int cacheLength = 0;
-                                            var memBuf = nbuf.Memory;
-
-                                            ModInit.fileWatcher.EnsureDirectory(md5key);
-
-                                            await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
-                                                bufferSize: PoolInvk.bufferSize,
-                                                options: FileOptions.Asynchronous))
+                                            try
                                             {
-                                                await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
+                                                int cacheLength = 0;
+                                                var memBuf = nbuf.Memory;
+
+                                                ModInit.fileWatcher.EnsureDirectory(md5key);
+
+                                                await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
+                                                    bufferSize: PoolInvk.bufferSize,
+                                                    options: FileOptions.Asynchronous))
                                                 {
-                                                    int bytesRead;
-
-                                                    while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
+                                                    await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                                     {
-                                                        if (ctsHttp.IsCancellationRequested)
-                                                            break;
+                                                        int bytesRead;
 
-                                                        cacheLength += bytesRead;
-                                                        await cacheStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                                                        await HttpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
+                                                        while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
+                                                        {
+                                                            if (ctsHttp.IsCancellationRequested)
+                                                                break;
+
+                                                            cacheLength += bytesRead;
+                                                            await cacheStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                                            await HttpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
+                                                        }
                                                     }
                                                 }
-                                            }
 
-                                            if (response.Content.Headers.ContentLength.HasValue)
-                                            {
-                                                if (response.Content.Headers.ContentLength.Value == cacheLength)
-                                                    ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                if (response.Content.Headers.ContentLength.HasValue)
+                                                {
+                                                    if (response.Content.Headers.ContentLength.Value == cacheLength)
+                                                        ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                    else
+                                                        System.IO.File.Delete(outFile);
+                                                }
                                                 else
-                                                    System.IO.File.Delete(outFile);
+                                                {
+                                                    ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                }
                                             }
-                                            else
+                                            catch
                                             {
-                                                ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                System.IO.File.Delete(outFile);
                                             }
-                                        }
-                                        catch
-                                        {
-                                            System.IO.File.Delete(outFile);
                                         }
                                     }
+                                    finally
+                                    {
+                                        semaphore.Release();
+                                    }
+                                    #endregion
                                 }
-                                finally
+                                else
                                 {
-                                    semaphore.Release();
+                                    HttpContext.Response.Headers["X-Cache-Status"] = "bypass";
+                                    await CopyProxyHttpResponse(HttpContext, response, ctsHttp.Token).ConfigureAwait(false);
                                 }
-                                #endregion
-                            }
-                            else
-                            {
-                                HttpContext.Response.Headers["X-Cache-Status"] = "bypass";
-                                await CopyProxyHttpResponse(HttpContext, response, ctsHttp.Token).ConfigureAwait(false);
                             }
                         }
                     }
@@ -393,7 +394,7 @@ public class CubProxyController : BaseController
                                     timeoutSeconds: 5,
                                     headers: HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd))
                                 ).ConfigureAwait(false);
-
+                                
                                 if (!string.IsNullOrEmpty(json))
                                 {
                                     cache.statusCode = 200;

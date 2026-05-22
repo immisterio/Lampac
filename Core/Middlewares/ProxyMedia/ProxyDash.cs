@@ -20,84 +20,83 @@ public partial class ProxyAPI
     #region Mpd
     async public Task ProxyMpd(HttpContext httpContext, ServerproxyConf init, ProxyLinkModel decryptLink, HttpResponseMessage response, string contentType, CancellationTokenSource ctsHttp)
     {
-        using (HttpContent content = response.Content)
+        HttpContent content = response.Content;
+
+        if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.PartialContent or HttpStatusCode.RequestedRangeNotSatisfiable)
         {
-            if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.PartialContent or HttpStatusCode.RequestedRangeNotSatisfiable)
+            if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
             {
-                if (response.Content?.Headers?.ContentLength > init.maxlength_m3u)
-                {
-                    httpContext.Response.ContentType = "text/plain; charset=utf-8";
-                    httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                    httpContext.Response.BodyWriter.Write("bigfile"u8);
-                    await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
-                    return;
-                }
+                httpContext.Response.ContentType = "text/plain; charset=utf-8";
+                httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                httpContext.Response.BodyWriter.Write("bigfile"u8);
+                await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
+                return;
+            }
 
-                string mpd = await content.ReadAsStringAsync(ctsHttp.Token).ConfigureAwait(false);
-                if (mpd == null)
-                {
-                    httpContext.Response.ContentType = "text/plain; charset=utf-8";
-                    httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                    httpContext.Response.BodyWriter.Write("error array mpd"u8);
-                    await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
-                    return;
-                }
+            string mpd = await content.ReadAsStringAsync(ctsHttp.Token).ConfigureAwait(false);
+            if (mpd == null)
+            {
+                httpContext.Response.ContentType = "text/plain; charset=utf-8";
+                httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                httpContext.Response.BodyWriter.Write("error array mpd"u8);
+                await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
+                return;
+            }
 
-                if (!mpd.Contains("<BaseURL>"))
-                {
-                    var uri = new Uri(decryptLink.uri);
-                    var basePath = uri.GetLeftPart(UriPartial.Path);
-                    basePath = basePath.Substring(0, basePath.LastIndexOf('/') + 1);
+            if (!mpd.Contains("<BaseURL>"))
+            {
+                var uri = new Uri(decryptLink.uri);
+                var basePath = uri.GetLeftPart(UriPartial.Path);
+                basePath = basePath.Substring(0, basePath.LastIndexOf('/') + 1);
 
-                    string enc = ProxyLink.Encrypt(basePath, decryptLink, forceMd5: true);
-                    mpd = mpd.Replace("<Period>", $"<BaseURL>{CoreInit.Host(httpContext)}/proxy-dash/{enc}/</BaseURL>\n<Period>");
-                }
-                else
-                {
-                    mpd = Regex.Replace(mpd, "<BaseURL>([^<]+)</BaseURL>", m =>
-                    {
-                        string enc = ProxyLink.Encrypt(m.Groups[1].Value, decryptLink, forceMd5: true);
-                        return $"<BaseURL>{CoreInit.Host(httpContext)}/proxy-dash/{enc}/</BaseURL>";
-                    });
-                }
-
-                int contentLength = Encoding.UTF8.GetByteCount(mpd);
-
-                httpContext.Response.ContentType = contentType ?? "application/dash+xml";
-                httpContext.Response.StatusCode = (int)response.StatusCode;
-
-                if (response.Headers.AcceptRanges != null)
-                    httpContext.Response.Headers["accept-ranges"] = "bytes";
-
-                if (httpContext.Response.StatusCode is 206 or 416)
-                {
-                    var contentRange = response.Content.Headers.ContentRange;
-                    if (contentRange != null)
-                    {
-                        httpContext.Response.Headers["content-range"] = contentRange.ToString();
-                    }
-                    else
-                    {
-                        if (httpContext.Response.StatusCode == 206)
-                            httpContext.Response.Headers["content-range"] = $"bytes 0-{contentLength - 1}/{contentLength}";
-
-                        if (httpContext.Response.StatusCode == 416)
-                            httpContext.Response.Headers["content-range"] = $"bytes */{contentLength}";
-                    }
-                }
-                else
-                {
-                    if (init.responseContentLength && !CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
-                        httpContext.Response.ContentLength = contentLength;
-                }
-
-                await httpContext.Response.WriteAsync(mpd, ctsHttp.Token).ConfigureAwait(false);
+                string enc = ProxyLink.Encrypt(basePath, decryptLink, forceMd5: true);
+                mpd = mpd.Replace("<Period>", $"<BaseURL>{CoreInit.Host(httpContext)}/proxy-dash/{enc}/</BaseURL>\n<Period>");
             }
             else
             {
-                // проксируем ошибку
-                await CopyProxyHttpResponse(httpContext, response, null, ctsHttp.Token).ConfigureAwait(false);
+                mpd = Regex.Replace(mpd, "<BaseURL>([^<]+)</BaseURL>", m =>
+                {
+                    string enc = ProxyLink.Encrypt(m.Groups[1].Value, decryptLink, forceMd5: true);
+                    return $"<BaseURL>{CoreInit.Host(httpContext)}/proxy-dash/{enc}/</BaseURL>";
+                });
             }
+
+            int contentLength = Encoding.UTF8.GetByteCount(mpd);
+
+            httpContext.Response.ContentType = contentType ?? "application/dash+xml";
+            httpContext.Response.StatusCode = (int)response.StatusCode;
+
+            if (response.Headers.AcceptRanges != null)
+                httpContext.Response.Headers["accept-ranges"] = "bytes";
+
+            if (httpContext.Response.StatusCode is 206 or 416)
+            {
+                var contentRange = response.Content.Headers.ContentRange;
+                if (contentRange != null)
+                {
+                    httpContext.Response.Headers["content-range"] = contentRange.ToString();
+                }
+                else
+                {
+                    if (httpContext.Response.StatusCode == 206)
+                        httpContext.Response.Headers["content-range"] = $"bytes 0-{contentLength - 1}/{contentLength}";
+
+                    if (httpContext.Response.StatusCode == 416)
+                        httpContext.Response.Headers["content-range"] = $"bytes */{contentLength}";
+                }
+            }
+            else
+            {
+                if (init.responseContentLength && !CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
+                    httpContext.Response.ContentLength = contentLength;
+            }
+
+            await httpContext.Response.WriteAsync(mpd, ctsHttp.Token).ConfigureAwait(false);
+        }
+        else
+        {
+            // проксируем ошибку
+            await CopyProxyHttpResponse(httpContext, response, null, ctsHttp.Token).ConfigureAwait(false);
         }
     }
     #endregion

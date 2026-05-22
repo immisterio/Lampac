@@ -229,7 +229,6 @@ public class TmdbProxyController : BaseController
                     ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
                     : null;
 
-                #region http client
                 var client = FriendlyHttp.MessageClient(
                     "proxyimg",
                     Http.Handler(uri, proxyManager?.Get()),
@@ -239,113 +238,113 @@ public class TmdbProxyController : BaseController
                         : null
                 );
 
-                var req = new HttpRequestMessage(HttpMethod.Get, uri)
+                using (var req = new HttpRequestMessage(HttpMethod.Get, uri)
                 {
                     Version = httpVersion
-                };
-
-                foreach (var h in headersImg)
-                    req.Headers.TryAddWithoutValidation(h.name, h.val);
-                #endregion
-
-                try
+                })
                 {
-                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
+                    foreach (var h in headersImg)
+                        req.Headers.TryAddWithoutValidation(h.name, h.val);
+
+                    try
                     {
-                        httpContext.Response.StatusCode = (int)response.StatusCode;
-
-                        if (ModInit.conf.responseContentLength && response.Content?.Headers?.ContentLength > 0)
-                            httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
-
-                        await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
+                        using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                         {
-                            using (var nbuf = new BufferPool())
+                            httpContext.Response.StatusCode = (int)response.StatusCode;
+
+                            if (ModInit.conf.responseContentLength && response.Content?.Headers?.ContentLength > 0)
+                                httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+
+                            await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                             {
-                                int bytesRead;
-                                var memBuf = nbuf.Memory;
-
-                                if (response.StatusCode == HttpStatusCode.OK)
+                                using (var nbuf = new BufferPool())
                                 {
-                                    #region cache img
-                                    httpContext.Response.Headers["X-Cache-Status"] = "MISS";
+                                    int bytesRead;
+                                    var memBuf = nbuf.Memory;
 
-                                    try
+                                    if (response.StatusCode == HttpStatusCode.OK)
                                     {
-                                        int cacheLength = 0;
-                                        bool isFullyRead = false;
+                                        #region cache img
+                                        httpContext.Response.Headers["X-Cache-Status"] = "MISS";
 
-                                        ModInit.fileWatcher.EnsureDirectory(md5key);
-
-                                        await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
-                                            bufferSize: PoolInvk.bufferSize,
-                                            options: FileOptions.Asynchronous))
+                                        try
                                         {
-                                            while (true)
+                                            int cacheLength = 0;
+                                            bool isFullyRead = false;
+
+                                            ModInit.fileWatcher.EnsureDirectory(md5key);
+
+                                            await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
+                                                bufferSize: PoolInvk.bufferSize,
+                                                options: FileOptions.Asynchronous))
                                             {
-                                                bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false);
-                                                if (bytesRead <= 0)
+                                                while (true)
                                                 {
-                                                    isFullyRead = true;
-                                                    break;
+                                                    bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false);
+                                                    if (bytesRead <= 0)
+                                                    {
+                                                        isFullyRead = true;
+                                                        break;
+                                                    }
+
+                                                    cacheLength += bytesRead;
+                                                    if (ctsHttp.IsCancellationRequested)
+                                                        break;
+
+                                                    var wrm = memBuf.Slice(0, bytesRead);
+                                                    await cacheStream.WriteAsync(wrm).ConfigureAwait(false);
+                                                    await httpContext.Response.Body.WriteAsync(wrm, ctsHttp.Token).ConfigureAwait(false);
                                                 }
-
-                                                cacheLength += bytesRead;
-                                                if (ctsHttp.IsCancellationRequested)
-                                                    break;
-
-                                                var wrm = memBuf.Slice(0, bytesRead);
-                                                await cacheStream.WriteAsync(wrm).ConfigureAwait(false);
-                                                await httpContext.Response.Body.WriteAsync(wrm, ctsHttp.Token).ConfigureAwait(false);
                                             }
-                                        }
 
-                                        if (isFullyRead)
-                                        {
-                                            proxyManager?.Success();
-
-                                            if (response.Content.Headers.ContentLength.HasValue)
+                                            if (isFullyRead)
                                             {
-                                                if (response.Content.Headers.ContentLength.Value == cacheLength)
-                                                    ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                proxyManager?.Success();
+
+                                                if (response.Content.Headers.ContentLength.HasValue)
+                                                {
+                                                    if (response.Content.Headers.ContentLength.Value == cacheLength)
+                                                        ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                    else
+                                                        IO.File.Delete(outFile);
+                                                }
                                                 else
-                                                    IO.File.Delete(outFile);
-                                            }
-                                            else
-                                            {
-                                                ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                {
+                                                    ModInit.fileWatcher.Add(md5key, cacheLength);
+                                                }
                                             }
                                         }
+                                        catch
+                                        {
+                                            IO.File.Delete(outFile);
+                                        }
+                                        #endregion
                                     }
-                                    catch
+                                    else
                                     {
-                                        IO.File.Delete(outFile);
+                                        #region проксируем ошибку
+                                        proxyManager?.Refresh();
+
+                                        httpContext.Response.Headers["X-Cache-Status"] = "bypass";
+
+                                        while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
+                                        {
+                                            if (ctsHttp.IsCancellationRequested)
+                                                break;
+
+                                            await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
+                                        }
+                                        #endregion
                                     }
-                                    #endregion
-                                }
-                                else
-                                {
-                                    #region проксируем ошибку
-                                    proxyManager?.Refresh();
-
-                                    httpContext.Response.Headers["X-Cache-Status"] = "bypass";
-
-                                    while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
-                                    {
-                                        if (ctsHttp.IsCancellationRequested)
-                                            break;
-
-                                        await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
-                                    }
-                                    #endregion
                                 }
                             }
                         }
                     }
-                }
-                finally
-                {
-                    if (disposeHttpClient)
-                        client.Dispose();
+                    finally
+                    {
+                        if (disposeHttpClient)
+                            client.Dispose();
+                    }
                 }
             }
             catch

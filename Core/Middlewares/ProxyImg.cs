@@ -201,7 +201,7 @@ public class ProxyImg
                         await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
                         return;
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         fileWatcher.Remove(md5key);
                         Log.Error(ex, "CatchId={CatchId}", "id_7ong4hmg");
@@ -275,126 +275,128 @@ public class ProxyImg
                             out bool disposeHttpClient
                         );
 
-                        var req = new HttpRequestMessage(HttpMethod.Get, href)
+                        using (var req = new HttpRequestMessage(HttpMethod.Get, href)
                         {
                             Version = HttpVersion.Version11
-                        };
-
-                        bool useDefaultHeaders = ShouldUseDefaultHeaders(decryptLink?.headers);
-                        string prefixCacheHeader = decryptLink.plugin != null ? $"ProxyImg:{decryptLink.plugin}:{useDefaultHeaders}" : null;
-                        Http.DefaultRequestHeaders(href, req, null, null, decryptLink?.headers, useDefaultHeaders: useDefaultHeaders, prefixCacheHeader: prefixCacheHeader);
-
-                        try
+                        })
                         {
-                            using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
+
+                            bool useDefaultHeaders = ShouldUseDefaultHeaders(decryptLink?.headers);
+                            string prefixCacheHeader = decryptLink.plugin != null ? $"ProxyImg:{decryptLink.plugin}:{useDefaultHeaders}" : null;
+                            Http.DefaultRequestHeaders(href, req, null, null, decryptLink?.headers, useDefaultHeaders: useDefaultHeaders, prefixCacheHeader: prefixCacheHeader);
+
+                            try
                             {
-                                if (response.StatusCode != HttpStatusCode.OK)
+                                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                                 {
-                                    if (url_reserve != null)
+                                    if (response.StatusCode != HttpStatusCode.OK)
                                     {
-                                        href = url_reserve;
-                                        url_reserve = null;
-                                        goto bypass_reset;
-                                    }
-
-                                    if (cacheimg)
-                                        MarkDownloadError(href);
-
-                                    proxyManager?.Refresh();
-                                    httpContext.Response.Redirect(href);
-                                    return;
-                                }
-
-                                httpContext.Response.StatusCode = (int)response.StatusCode;
-
-                                if (response.Content.Headers.TryGetValues("Content-Type", out var contype))
-                                    httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
-                                else
-                                    httpContext.Response.ContentType = contentType;
-
-                                if (CoreInit.conf.serverproxy.responseContentLength && response.Content?.Headers?.ContentLength > 0)
-                                {
-                                    if (!CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
-                                        httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
-                                }
-
-                                await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
-                                {
-                                    using (var nbuf = new BufferPool())
-                                    {
-                                        int bytesRead;
-                                        var memBuf = nbuf.Memory;
+                                        if (url_reserve != null)
+                                        {
+                                            href = url_reserve;
+                                            url_reserve = null;
+                                            goto bypass_reset;
+                                        }
 
                                         if (cacheimg)
+                                            MarkDownloadError(href);
+
+                                        proxyManager?.Refresh();
+                                        httpContext.Response.Redirect(href);
+                                        return;
+                                    }
+
+                                    httpContext.Response.StatusCode = (int)response.StatusCode;
+
+                                    if (response.Content.Headers.TryGetValues("Content-Type", out var contype))
+                                        httpContext.Response.ContentType = contype?.FirstOrDefault() ?? contentType;
+                                    else
+                                        httpContext.Response.ContentType = contentType;
+
+                                    if (CoreInit.conf.serverproxy.responseContentLength && response.Content?.Headers?.ContentLength > 0)
+                                    {
+                                        if (!CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
+                                            httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+                                    }
+
+                                    await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
+                                    {
+                                        using (var nbuf = new BufferPool())
                                         {
-                                            try
+                                            int bytesRead;
+                                            var memBuf = nbuf.Memory;
+
+                                            if (cacheimg)
                                             {
-                                                int cacheLength = 0;
-                                                bool isFullyRead = false;
-                                                fileWatcher.EnsureDirectory(md5key);
-
-                                                await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                                                try
                                                 {
-                                                    while (true)
+                                                    int cacheLength = 0;
+                                                    bool isFullyRead = false;
+                                                    fileWatcher.EnsureDirectory(md5key);
+
+                                                    await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
                                                     {
-                                                        bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false);
-                                                        if (bytesRead <= 0)
+                                                        while (true)
                                                         {
-                                                            isFullyRead = true;
-                                                            break;
+                                                            bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false);
+                                                            if (bytesRead <= 0)
+                                                            {
+                                                                isFullyRead = true;
+                                                                break;
+                                                            }
+
+                                                            cacheLength += bytesRead;
+                                                            if (ctsHttp.IsCancellationRequested)
+                                                                break;
+
+                                                            await cacheStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                                            await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
                                                         }
-
-                                                        cacheLength += bytesRead;
-                                                        if (ctsHttp.IsCancellationRequested)
-                                                            break;
-
-                                                        await cacheStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                                                        await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
                                                     }
-                                                }
 
-                                                if (isFullyRead)
-                                                {
-                                                    if (response.Content.Headers.ContentLength.HasValue)
+                                                    if (isFullyRead)
                                                     {
-                                                        if (response.Content.Headers.ContentLength.Value == cacheLength)
+                                                        if (response.Content.Headers.ContentLength.HasValue)
                                                         {
-                                                            fileWatcher.Add(md5key, cacheLength);
+                                                            if (response.Content.Headers.ContentLength.Value == cacheLength)
+                                                            {
+                                                                fileWatcher.Add(md5key, cacheLength);
+                                                            }
+                                                            else
+                                                            {
+                                                                File.Delete(outFile);
+                                                            }
                                                         }
                                                         else
                                                         {
-                                                            File.Delete(outFile);
+                                                            fileWatcher.Add(md5key, cacheLength);
                                                         }
                                                     }
-                                                    else
-                                                    {
-                                                        fileWatcher.Add(md5key, cacheLength);
-                                                    }
+                                                }
+                                                catch
+                                                {
+                                                    fileWatcher.Remove(md5key);
                                                 }
                                             }
-                                            catch
+                                            else
                                             {
-                                                fileWatcher.Remove(md5key);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
-                                            {
-                                                if (ctsHttp.IsCancellationRequested)
-                                                    break;
+                                                while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
+                                                {
+                                                    if (ctsHttp.IsCancellationRequested)
+                                                        break;
 
-                                                await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                                    await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                        finally
-                        {
-                            if (disposeHttpClient)
-                                client.Dispose();
+                            finally
+                            {
+                                if (disposeHttpClient)
+                                    client.Dispose();
+                            }
                         }
                         #endregion
                     }
@@ -525,22 +527,22 @@ public class ProxyImg
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url)
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
             {
                 Version = HttpVersion.Version11
-            };
-
-            bool useDefaultHeaders = ShouldUseDefaultHeaders(headers);
-            string prefixCacheHeader = plugin != null ? $"ProxyImg:{plugin}:{useDefaultHeaders}" : null;
-            Http.DefaultRequestHeaders(url, req, null, null, headers, useDefaultHeaders: useDefaultHeaders, prefixCacheHeader: prefixCacheHeader);
-
-            using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
+            })
             {
-                if (response.StatusCode != HttpStatusCode.OK || cancellationToken.IsCancellationRequested)
-                    return default;
+                bool useDefaultHeaders = ShouldUseDefaultHeaders(headers);
+                string prefixCacheHeader = plugin != null ? $"ProxyImg:{plugin}:{useDefaultHeaders}" : null;
+                Http.DefaultRequestHeaders(url, req, null, null, headers, useDefaultHeaders: useDefaultHeaders, prefixCacheHeader: prefixCacheHeader);
 
-                using (HttpContent content = response.Content)
+                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
                 {
+                    if (response.StatusCode != HttpStatusCode.OK || cancellationToken.IsCancellationRequested)
+                        return default;
+
+                    HttpContent content = response.Content;
+
                     await using (var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
                     {
                         using (var byteBuf = new BufferPool())

@@ -687,22 +687,23 @@ public static class ModuleRepository
 
     private static HttpRequestMessage CreateRequest(HttpMethod method, string url, RepositoryEntry repository, string acceptOverride, bool includeConfiguredAccept, string ifNoneMatch = null)
     {
-        var request = new HttpRequestMessage(method, url);
+        using (var request = new HttpRequestMessage(method, url))
+        {
+            if (!string.IsNullOrWhiteSpace(repository?.Token))
+                request.Headers.TryAddWithoutValidation("Authorization", repository.Token);
 
-        if (!string.IsNullOrWhiteSpace(repository?.Token))
-            request.Headers.TryAddWithoutValidation("Authorization", repository.Token);
+            if (includeConfiguredAccept && !string.IsNullOrWhiteSpace(repository?.AcceptHeader))
+                request.Headers.TryAddWithoutValidation("Accept", repository.AcceptHeader);
 
-        if (includeConfiguredAccept && !string.IsNullOrWhiteSpace(repository?.AcceptHeader))
-            request.Headers.TryAddWithoutValidation("Accept", repository.AcceptHeader);
+            if (!string.IsNullOrWhiteSpace(acceptOverride))
+                request.Headers.TryAddWithoutValidation("Accept", acceptOverride);
 
-        if (!string.IsNullOrWhiteSpace(acceptOverride))
-            request.Headers.TryAddWithoutValidation("Accept", acceptOverride);
+            if (!string.IsNullOrWhiteSpace(ifNoneMatch))
+                request.Headers.TryAddWithoutValidation("If-None-Match", ifNoneMatch);
 
-        if (!string.IsNullOrWhiteSpace(ifNoneMatch))
-            request.Headers.TryAddWithoutValidation("If-None-Match", ifNoneMatch);
-
-        return request;
-    }
+            return request;
+        }
+        }
 
     private static JsonRequestResult GetJsonConditional(RepositoryEntry repository, string url, string ifNoneMatch)
     {
