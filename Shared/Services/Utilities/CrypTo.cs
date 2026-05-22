@@ -221,7 +221,7 @@ public class CrypTo
         if (value.IsEmpty)
             return string.Empty;
 
-        return HttpUtility.UrlEncode(AesTo.Encrypt(value.Trim()));
+        return AesTo.Encrypt(value.Trim());
     }
 
     public static string DecryptQuery(ReadOnlySpan<char> value)

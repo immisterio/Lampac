@@ -162,7 +162,7 @@ public class ProxyLink : IProxyLink
             int requiredCipherLen = ((json.Length / blockSize) + 1) * blockSize;
 
             BufferBytePool destBuf = null;
-            if (requiredCipherLen > aesinst.ByteSize)
+            if (requiredCipherLen > AesInstance.ByteSize)
                 destBuf = new BufferBytePool(requiredCipherLen);
 
             try
@@ -183,7 +183,7 @@ public class ProxyLink : IProxyLink
                 int capacity = ((cipherLen + 2) / 3) * 4;
 
                 BufferCharPool base64Chars = null;
-                if (capacity > aesinst.CharSize)
+                if (capacity > AesInstance.CharSize)
                     base64Chars = new BufferCharPool(capacity);
 
                 try
@@ -310,7 +310,7 @@ public class ProxyLink : IProxyLink
                 int capacity = ((base64hash.Length + 3) / 4) * 3;
 
                 BufferBytePool cipherBuf = null;
-                if (capacity > aesinst.ByteSize)
+                if (capacity > AesInstance.ByteSize)
                     cipherBuf = new BufferBytePool(capacity);
 
                 try
@@ -323,7 +323,7 @@ public class ProxyLink : IProxyLink
                         return null;
 
                     BufferBytePool destBuf = null;
-                    if (cipherLen > aesinst.ByteSize)
+                    if (cipherLen > AesInstance.ByteSize)
                         destBuf = new BufferBytePool(cipherLen);
 
                     try

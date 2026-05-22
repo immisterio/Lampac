@@ -49,9 +49,8 @@ public class AesInstance
 
     public readonly Aes Aes;
 
-    public int CharSize => 4096;
-
-    public int ByteSize => 16 * 1024;
+    public const int CharSize = 4096;
+    public const int ByteSize = 16 * 1024;
 
     private char[] _charBuffer;
     private byte[] _byteBuffer;

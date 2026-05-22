@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Buffers.Text;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Shared.Services.Utilities;
@@ -18,7 +19,7 @@ public static class AesTo
             int maxbytes = Encoding.UTF8.GetMaxByteCount(plainText.Length);
 
             BufferBytePool cipherBuf = null;
-            if (maxbytes > aesinst.ByteSize)
+            if (maxbytes > AesInstance.ByteSize)
                 cipherBuf = new BufferBytePool(maxbytes);
 
             try
@@ -34,7 +35,7 @@ public static class AesTo
                 int paddedLen = ((writtenPlain / blockSize) + 1) * blockSize;
 
                 BufferBytePool destBuf = null;
-                if (paddedLen > aesinst.ByteSize)
+                if (paddedLen > AesInstance.ByteSize)
                     destBuf = new BufferBytePool(paddedLen);
 
                 try
@@ -56,7 +57,7 @@ public static class AesTo
                     int maxchars = ((cipherLen + 2) / 3) * 4;
 
                     BufferCharPool base64Chars = null;
-                    if (maxchars > aesinst.CharSize)
+                    if (maxchars > AesInstance.CharSize)
                         base64Chars = new BufferCharPool(maxchars);
 
                     try
@@ -65,7 +66,7 @@ public static class AesTo
                             ? base64Chars.Span
                             : aesinst.CharBuffer;
 
-                        if (!Convert.TryToBase64Chars(dest.Slice(0, cipherLen), buffer, out int charsWritten))
+                        if (!Base64Url.TryEncodeToChars(dest.Slice(0, cipherLen), buffer, out int charsWritten))
                             return string.Empty;
 
                         return new string(buffer.Slice(0, charsWritten));
@@ -102,11 +103,11 @@ public static class AesTo
         {
             var aesinst = AesPool.Instance;
 
-            int capacity = Encoding.UTF8.GetMaxByteCount(cipherText.Length);
+            int maxBytes = cipherText.Length;
 
             BufferBytePool cipherBuf = null;
-            if (capacity > aesinst.ByteSize)
-                cipherBuf = new BufferBytePool(capacity);
+            if (maxBytes > AesInstance.ByteSize)
+                cipherBuf = new BufferBytePool(maxBytes);
 
             try
             {
@@ -114,11 +115,11 @@ public static class AesTo
                     ? cipherBuf.Span
                     : aesinst.ByteBuffer;
 
-                if (!Convert.TryFromBase64Chars(cipherText, cipher, out int cipherLen))
+                if (!Base64Url.TryDecodeFromChars(cipherText, cipher, out int cipherLen))
                     return null;
 
                 BufferBytePool destBuf = null;
-                if (cipherLen > aesinst.ByteSize)
+                if (cipherLen > AesInstance.ByteSize)
                     destBuf = new BufferBytePool(cipherLen);
 
                 try
