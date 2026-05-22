@@ -45,7 +45,7 @@ public struct VideoDBInvoke
         {
             ismovie = !json.Contains("\"folder\":", StringComparison.Ordinal);
 
-            quality = json.Contains("2160p", StringComparison.Ordinal) 
+            quality = json.Contains("2160p", StringComparison.Ordinal)
                 ? "2160p"
                 : json.Contains("1080p", StringComparison.Ordinal)
                     ? "1080p"

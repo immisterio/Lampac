@@ -4,7 +4,7 @@ using System.Web;
 using Shared;
 using Shared.Models.Templates;
 using Shared.Services.HTML;
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Shared.Attributes;
 using Shared.Services.RxEnumerate;
 
