@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using System;
 using System.Linq;
-using IO = System.IO;
 using Shared.Services.Utilities;
+using Shared.Services;
 
 namespace Core.Controllers;
 
@@ -115,15 +114,8 @@ public class ApiController : BaseController
     {
         SetHeadersNoCache();
 
-        string memKey = "ApiController:nws-client-es5.js";
-        if (!memoryCache.TryGetValue(memKey, out string source))
-        {
-            source = IO.File.ReadAllText("plugins/nws-client-es5.js");
-            memoryCache.Set(memKey, source);
-        }
-
-        if (source.Contains("{localhost}"))
-            source = source.Replace("{localhost}", host);
+        string source = FileCache.ReadAllText("plugins/nws-client-es5.js", "nws-client-es5.js")
+            .Replace("{localhost}", host);
 
         return Content(source, "application/javascript; charset=utf-8");
     }

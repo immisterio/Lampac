@@ -13,11 +13,11 @@ public static class FileCache
     public static string ReadAllText(string path, string mypath)
         => ReadAllText(path, mypath, true);
 
-    public static string ReadAllText(string path, string mypath, bool saveCache)
+    public static string ReadAllText(string path, string overridePath, bool saveCache)
     {
         try
         {
-            string key = mypath ?? path;
+            string key = overridePath ?? path;
             var now = DateTime.UtcNow;
 
             if (db.TryGetValue(key, out CacheEntry cache))
@@ -27,9 +27,9 @@ public static class FileCache
             }
 
             bool isOverride = false;
-            if (mypath != null)
+            if (overridePath != null)
             {
-                string testPath = $"plugins/override/{mypath}";
+                string testPath = $"plugins/override/{overridePath}";
                 if (File.Exists(testPath))
                 {
                     isOverride = true;
