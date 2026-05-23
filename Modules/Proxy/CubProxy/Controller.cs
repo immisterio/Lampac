@@ -63,7 +63,7 @@ public class CubProxyController : BaseController
             string domain = GetDomain(subdomain, init.domain);
 
             int slashIndex = path.IndexOf('/');
-            string uri = (slashIndex >= 0 ? path.Substring(slashIndex+1) : path) + HttpContext.Request.QueryString.Value;
+            string uri = (slashIndex >= 0 ? path.Substring(slashIndex + 1) : path) + HttpContext.Request.QueryString.Value;
 
             #region ws/geo
             if (subdomain.Equals("ws"))
@@ -166,8 +166,8 @@ public class CubProxyController : BaseController
                     writer.Append(domain);
                     writer.Append(':');
                     writer.Append(uri);
-                }); 
-                
+                });
+
                 string outFile = ModInit.fileWatcher.OutFile(md5key);
 
                 if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
@@ -395,7 +395,7 @@ public class CubProxyController : BaseController
                                     timeoutSeconds: 5,
                                     headers: HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd))
                                 ).ConfigureAwait(false);
-                                
+
                                 if (!string.IsNullOrEmpty(json))
                                 {
                                     cache.statusCode = 200;

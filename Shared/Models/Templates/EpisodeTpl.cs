@@ -50,7 +50,7 @@ public class EpisodeTpl : ITplResult
 
         short.TryParse(e, out short _e);
 
-        Append(name, title, _s, _e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers , hls_manifest_timeout, segments, subtitles_call);
+        Append(name, title, _s, _e, link, method, streamquality, subtitles, streamlink, voice_name, vast, headers, hls_manifest_timeout, segments, subtitles_call);
     }
 
     public void Append(string name, string title, short s, string e, string link, string method = "play", StreamQualityTpl streamquality = null, SubtitleTpl subtitles = null, string streamlink = null, string voice_name = null, VastConf vast = null, IReadOnlyList<HeadersModel> headers = null, int hls_manifest_timeout = 0, SegmentTpl segments = null, string subtitles_call = null)
