@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Shared.Models.Events;
 using Shared.Services.Pools.Json;
+using System.Runtime.CompilerServices;
 using System.Web;
 
 namespace SISI;
@@ -238,6 +239,7 @@ public class HistoryController : BaseController
         return CrypTo.md5(user_id);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     string getProfileid()
     {
         if (HttpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id) && profile_id != "0")

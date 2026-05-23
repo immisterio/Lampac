@@ -1,5 +1,6 @@
 using Microsoft.IO;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Shared.Services.Pools;
@@ -36,6 +37,7 @@ public static class OwnerTo
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int GetUtf8CharCount(RecyclableMemoryStream msm)
     {
         ReadOnlySequence<byte> seq = msm.GetReadOnlySequence();

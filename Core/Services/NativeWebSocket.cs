@@ -228,7 +228,7 @@ public class NativeWebSocket : INws
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static int GetClientVersion(HttpContext context)
+    private static int GetClientVersion(HttpContext context)
     {
         if (context?.Request?.Query.TryGetValue("ver", out StringValues wsVersion) == true && wsVersion.Count > 0)
         {
@@ -584,7 +584,7 @@ public class NativeWebSocket : INws
 
     #region GetStringArg
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static string GetStringArg(ref Utf8JsonReader reader)
+    private static string GetStringArg(ref Utf8JsonReader reader)
     {
         return reader.TokenType == JsonTokenType.String
             ? reader.GetString()
@@ -734,7 +734,7 @@ public class NativeWebSocket : INws
 
     #region Stats Last Minute
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void IncrementStats(bool isReceive)
+    private static void IncrementStats(bool isReceive)
     {
         long nowSecond = Volatile.Read(ref currentUnixSecond);
         int index = (int)(nowSecond % 60);

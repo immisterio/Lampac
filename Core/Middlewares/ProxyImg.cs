@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -280,7 +281,6 @@ public class ProxyImg
                             Version = HttpVersion.Version11
                         })
                         {
-
                             bool useDefaultHeaders = ShouldUseDefaultHeaders(decryptLink?.headers);
                             string prefixCacheHeader = decryptLink.plugin != null ? $"ProxyImg:{decryptLink.plugin}:{useDefaultHeaders}" : null;
                             Http.DefaultRequestHeaders(href, req, null, null, decryptLink?.headers, useDefaultHeaders: useDefaultHeaders, prefixCacheHeader: prefixCacheHeader);
@@ -730,6 +730,7 @@ public class ProxyImg
 
 
     #region Utilities
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool ShouldUseDefaultHeaders(IReadOnlyList<HeadersModel> headers)
     {
         if (headers == null || headers.Count == 0)
@@ -745,6 +746,7 @@ public class ProxyImg
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static ReadOnlySpan<char> ExtractEncryptedPath(ReadOnlySpan<char> path)
     {
         int separatorIndex = path.Slice(1).IndexOf('/');
@@ -754,11 +756,13 @@ public class ProxyImg
         return path.Slice(separatorIndex + 2);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static void MarkDownloadError(string href)
     {
         errorDownloads[href] = DateTime.UtcNow.AddMinutes(1);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static string ImageContentType(string contentType)
     {
         if (string.IsNullOrEmpty(contentType))

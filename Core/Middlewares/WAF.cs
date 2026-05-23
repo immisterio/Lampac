@@ -2,16 +2,17 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 using Shared;
-using Shared.Services.Pools;
-using Shared.Models.Base;
 using Shared.Models.AppConf;
+using Shared.Models.Base;
+using Shared.Services.Pools;
+using Shared.Services.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Shared.Services.Utilities;
 
 namespace Core.Middlewares;
 
@@ -239,6 +240,7 @@ public class WAF
     #endregion
 
     #region RateLimited
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool RateLimited(HttpContext httpContext, IMemoryCache cache, string userip, WafLimitMap map, string pattern)
     {
         var sb = StringBuilderPool.ThreadInstance;

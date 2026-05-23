@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -8,7 +7,6 @@ namespace Shared.Models.Templates;
 public static class UtilsTpl
 {
     #region HtmlEncode
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void HtmlEncode(ReadOnlySpan<char> value, StringBuilder sb)
     {
         foreach (char c in value)

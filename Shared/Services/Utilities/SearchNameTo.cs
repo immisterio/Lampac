@@ -1,9 +1,13 @@
-﻿using System.Globalization;
+﻿using System.Runtime.CompilerServices;
 
 namespace Shared.Services.Utilities;
 
 public static class SearchNameTo
 {
+    [ThreadStatic]
+    static char[] _threadCharBuffer;
+    const int _threadCharSize = 512; // 512 символов
+
     enum MatchOp
     {
         Equals,
@@ -12,25 +16,17 @@ public static class SearchNameTo
         EndsWith
     }
 
-    #region static
-    [ThreadStatic]
-    static char[] _threadCharBuffer;
-    const int _threadCharSize = 512; // 512 символов
+    public static bool Equals(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized)
+        => Invoke(name, searchNormalized, MatchOp.Equals);
 
-    static readonly CultureInfo _cultureInfoSearchName = CultureInfo.GetCultureInfo("ru-RU");
-    #endregion
+    public static bool Contains(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized)
+        => Invoke(name, searchNormalized, MatchOp.Contains);
 
-    public static bool Equals(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, searchNormalized, comparisonType, MatchOp.Equals);
+    public static bool StartsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized)
+        => Invoke(name, searchNormalized, MatchOp.StartsWith);
 
-    public static bool Contains(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, searchNormalized, comparisonType, MatchOp.Contains);
-
-    public static bool StartsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, searchNormalized, comparisonType, MatchOp.StartsWith);
-
-    public static bool EndsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType = StringComparison.Ordinal)
-        => Invoke(name, searchNormalized, comparisonType, MatchOp.EndsWith);
+    public static bool EndsWith(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized)
+        => Invoke(name, searchNormalized, MatchOp.EndsWith);
 
     #region Convert
     public static string Convert(ReadOnlySpan<char> val, string empty = null)
@@ -67,9 +63,13 @@ public static class SearchNameTo
     #endregion
 
     #region Invoke
-    static bool Invoke(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, StringComparison comparisonType, MatchOp op)
+    static bool Invoke(ReadOnlySpan<char> name, ReadOnlySpan<char> searchNormalized, MatchOp op)
     {
-        if (name.Length == 0 || searchNormalized.Length == 0)
+        if (name.IsEmpty || searchNormalized.IsEmpty)
+            return false;
+
+        // Если нормализованная строка для поиска длиннее, чем name, то совпадений быть не может
+        if (searchNormalized.Length > name.Length)
             return false;
 
         BufferCharPool _bufferChar = null;
@@ -94,16 +94,16 @@ public static class SearchNameTo
             {
                 MatchOp.Equals =>
                     normalized.Length == searchNormalized.Length &&
-                    normalized.Equals(searchNormalized, comparisonType),
+                    normalized.Equals(searchNormalized, StringComparison.Ordinal),
 
                 MatchOp.Contains =>
-                    normalized.Contains(searchNormalized, comparisonType),
+                    normalized.Contains(searchNormalized, StringComparison.Ordinal),
 
                 MatchOp.StartsWith =>
-                    normalized.StartsWith(searchNormalized, comparisonType),
+                    normalized.StartsWith(searchNormalized, StringComparison.Ordinal),
 
                 MatchOp.EndsWith =>
-                    normalized.EndsWith(searchNormalized, comparisonType),
+                    normalized.EndsWith(searchNormalized, StringComparison.Ordinal),
 
                 _ => false
             };
@@ -117,29 +117,25 @@ public static class SearchNameTo
     #endregion
 
     #region NormalizeTo
-    static ReadOnlySpan<char> NormalizeTo(Span<char> buffer, ReadOnlySpan<char> name)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ReadOnlySpan<char> NormalizeTo(Span<char> buffer, ReadOnlySpan<char> name)
     {
         int written = 0;
 
         for (int i = 0; i < name.Length; i++)
         {
-            char c = name[i];
+            char c = char.ToLowerInvariant(name[i]);
 
             // Оставляем только латиницу/кириллицу/цифры
-            // (a-zA-Zа-яА-Я0-9Ёё)
+            // (a-zа-я0-9Ёё)
             bool ok =
                 (c >= '0' && c <= '9') ||
-                (c >= 'A' && c <= 'Z') ||
                 (c >= 'a' && c <= 'z') ||
-                (c >= 'А' && c <= 'Я') ||
                 (c >= 'а' && c <= 'я') ||
                 c is 'Ё' or 'ё';
 
             if (!ok)
                 continue;
-
-            // lower
-            c = char.ToLower(c, _cultureInfoSearchName);
 
             // ё -> е
             // щ -> ш

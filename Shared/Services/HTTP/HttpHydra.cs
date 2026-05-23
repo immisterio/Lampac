@@ -95,9 +95,9 @@ public class HttpHydra
 
     #region Helpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    bool IsRchEnable(bool safety)
+    private bool IsRchEnable(bool safety)
     {
-        bool rch_enable = rch != null && rch.enable;
+        bool rch_enable = rch?.enable == true;
         if (rch_enable)
         {
             if (safety && init.rhub_safety)
@@ -128,21 +128,16 @@ public class HttpHydra
 
         var headers = new List<HeadersModel>(total);
 
-        AddHeaders(headers, baseHeaders, baseCount);
-        AddHeaders(headers, newheaders, newCount);
-        AddHeaders(headers, addheaders, addCount);
+        for (int i = 0; i < baseCount; i++)
+            headers.Add(baseHeaders[i]);
+
+        for (int i = 0; i < newCount; i++)
+            headers.Add(newheaders[i]);
+
+        for (int i = 0; i < addCount; i++)
+            headers.Add(addheaders[i]);
 
         return headers;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void AddHeaders(List<HeadersModel> target, IReadOnlyList<HeadersModel> source, int count)
-    {
-        if (count == 0 || source == null)
-            return;
-
-        for (int i = 0; i < count; i++)
-            target.Add(source[i]);
     }
     #endregion
 }

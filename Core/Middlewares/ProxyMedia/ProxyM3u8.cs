@@ -8,6 +8,7 @@ using System;
 using System.Buffers;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -359,6 +360,7 @@ public partial class ProxyAPI
     /// <summary>
     /// Regex.Match(decryptLink.uri, "(https?://[^/]+)/").Groups[1].Value
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static ReadOnlySpan<char> FindHlsHost(ReadOnlySpan<char> decrypturl)
     {
         // найдём "://"
@@ -380,6 +382,7 @@ public partial class ProxyAPI
     /// <summary>
     /// Regex.Match(decryptLink.uri, "(https?://[^\n\r]+/)([^/]+)$").Groups[1].Value
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static ReadOnlySpan<char> FindHlsPath(ReadOnlySpan<char> decrypturl)
     {
         int lastSlash = decrypturl.LastIndexOf('/');

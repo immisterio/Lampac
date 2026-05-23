@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Primitives;
 using Shared;
-using Shared.Models.AppConf;
 using Shared.Attributes;
+using Shared.Models.AppConf;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Services.Pools;
@@ -12,6 +12,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -229,7 +230,8 @@ public class Staticache
     }
 
 
-    static string getQueryKeys(HttpContext httpContext, string[] keys)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string getQueryKeys(HttpContext httpContext, string[] keys)
     {
         if (keys == null || keys.Length == 0)
             return string.Empty;
@@ -265,6 +267,7 @@ public class Staticache
         return CrypTo.md5(sb);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string getFilePath(string cachekey, DateTimeOffset ex, string contentType)
     {
         return $"cache/static/{cachekey}-{ex.ToUnixTimeMilliseconds()}.{(contentType?.Contains("text/html") == true ? "html" : "json")}";

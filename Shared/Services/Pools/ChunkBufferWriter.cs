@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace Shared.Services.Pools;
 
@@ -26,7 +27,8 @@ public class ChunkBufferWriter<T> : IBufferWriter<T> where T : struct
         return writer.GetSpan(ChunkSizeHint(sizeHint));
     }
 
-    static int ChunkSizeHint(int sizeHint) => sizeHint switch
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ChunkSizeHint(int sizeHint) => sizeHint switch
     {
         <= 4 * 1024 => 4 * 1024,
         <= 16 * 1024 => 16 * 1024,

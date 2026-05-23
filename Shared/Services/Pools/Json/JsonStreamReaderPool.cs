@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 
 namespace Shared.Services.Pools.Json;
@@ -103,7 +104,8 @@ public class JsonStreamReaderPool : TextReader, IDisposable
         return totalRead;
     }
 
-    bool EnsureCharData()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool EnsureCharData()
     {
         SkipUtf8BomIfNeeded();
 
@@ -142,6 +144,7 @@ public class JsonStreamReaderPool : TextReader, IDisposable
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SkipUtf8BomIfNeeded()
     {
         if (_checkedPreamble)

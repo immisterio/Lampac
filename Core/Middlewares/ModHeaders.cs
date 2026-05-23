@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Core.Middlewares;
@@ -40,6 +41,7 @@ public class ModHeaders
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static string GetOrigin(string url)
     {
         if (string.IsNullOrEmpty(url))

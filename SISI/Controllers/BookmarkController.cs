@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Shared.Models.Events;
 using Shared.Services.Pools.Json;
+using System.Runtime.CompilerServices;
 using System.Web;
 
 namespace SISI;
@@ -301,7 +302,8 @@ public class BookmarkController : BaseController
         return CrypTo.md5(user_id);
     }
 
-    string getProfileid()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private string getProfileid()
     {
         if (HttpContext.Request.Query.TryGetValue("profile_id", out var profile_id) && !string.IsNullOrEmpty(profile_id) && profile_id != "0")
             return profile_id;
@@ -309,7 +311,8 @@ public class BookmarkController : BaseController
         return string.Empty;
     }
 
-    string getvideLink(PlaylistItem pl)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private string getvideLink(PlaylistItem pl)
     {
         if (pl.bookmark.site is "phub" or "phubprem")
             return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";

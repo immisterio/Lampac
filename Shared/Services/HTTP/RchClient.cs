@@ -558,7 +558,6 @@ public class RchClient
 
 
     #region IsNotConnected
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsNotConnected()
     {
         if (!enableRhub)
@@ -678,7 +677,7 @@ public class RchClient
 
     #region IsCheckSearchRequest
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    bool IsCheckSearchRequest()
+    private bool IsCheckSearchRequest()
     {
         return httpContext != null
             && httpContext.Request.Query.TryGetValue("checksearch", out StringValues checksearch)
@@ -688,7 +687,6 @@ public class RchClient
     #endregion
 
     #region InfoConnected
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public RchClientInfo InfoConnected()
     {
         return SocketClient().data?.info;
