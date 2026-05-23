@@ -256,6 +256,9 @@ public class ProxyLink : IProxyLink
 
         if (IsProxyImg)
         {
+            if (ext.Length != 4 && ext.Length != 5)
+                return ".jpg";
+
             return ext switch
             {
                 ".png" => ".png",
@@ -265,6 +268,9 @@ public class ProxyLink : IProxyLink
         }
         else
         {
+            if (ext.Length < 3 || ext.Length > 5)
+                return string.Empty;
+
             return ext switch
             {
                 ".m3u8" => ".m3u8",
