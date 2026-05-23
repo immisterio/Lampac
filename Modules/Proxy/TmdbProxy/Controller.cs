@@ -231,8 +231,9 @@ public class TmdbProxyController : BaseController
 
                 var client = FriendlyHttp.MessageClient(
                     "proxyimg",
-                    Http.Handler(uri, proxyManager?.Get()),
+                    Http.HandlerOrNull(uri, proxyManager?.Get()),
                     out bool disposeHttpClient,
+                    findNoRedirectClient: false,
                     httpClient: ModInit.conf.httpversion == 2
                         ? http2ImgClient
                         : null

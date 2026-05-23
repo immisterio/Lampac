@@ -74,7 +74,7 @@ public class Startup
 
         serviceCollection = services;
 
-        #region IHttpClientFactory
+        #region IHttpClientFactory - proxy
         services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
@@ -94,7 +94,9 @@ public class Startup
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             UseCookies = false
         });
+        #endregion
 
+        #region IHttpClientFactory - proxyimg
         services.AddHttpClient("proxyimg").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
             AllowAutoRedirect = true,
@@ -105,6 +107,24 @@ public class Startup
             UseCookies = false
         });
 
+        services.AddHttpClient("http2proxyimg", client =>
+        {
+            client.DefaultRequestVersion = HttpVersion.Version20;
+            client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            AllowAutoRedirect = true,
+            AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            EnableMultipleHttp2Connections = true,
+            UseCookies = false
+        });
+        #endregion
+
+        #region IHttpClientFactory - base
         services.AddHttpClient("base").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
             AllowAutoRedirect = true,
@@ -124,24 +144,10 @@ public class Startup
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             UseCookies = false
         });
+        #endregion
 
+        #region IHttpClientFactory - http2
         services.AddHttpClient("http2", client =>
-        {
-            client.DefaultRequestVersion = HttpVersion.Version20;
-            client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
-        })
-        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-        {
-            AllowAutoRedirect = true,
-            AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
-            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-            EnableMultipleHttp2Connections = true,
-            UseCookies = false
-        });
-
-        services.AddHttpClient("http2proxyimg", client =>
         {
             client.DefaultRequestVersion = HttpVersion.Version20;
             client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
@@ -172,7 +178,9 @@ public class Startup
             EnableMultipleHttp2Connections = true,
             UseCookies = false
         });
+        #endregion
 
+        #region IHttpClientFactory - http3
         services.AddHttpClient("http3", client =>
         {
             client.DefaultRequestVersion = HttpVersion.Version30;
@@ -189,8 +197,24 @@ public class Startup
             UseCookies = false
         });
 
-        services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
+        services.AddHttpClient("http3NoRedirect", client =>
+        {
+            client.DefaultRequestVersion = HttpVersion.Version30;
+            client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            EnableMultipleHttp2Connections = true,
+            UseCookies = false
+        });
         #endregion
+
+        services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
 
         services.Configure<CookiePolicyOptions>(options =>
         {

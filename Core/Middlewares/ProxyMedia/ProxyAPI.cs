@@ -202,26 +202,11 @@ public partial class ProxyAPI
 
                     try
                     {
-                        var hdlr = new HttpClientHandler
-                        {
-                            AllowAutoRedirect = true,
-                            ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate
-                        };
-
-                        if (decryptLink.proxy != null)
-                        {
-                            hdlr.UseProxy = true;
-                            hdlr.Proxy = decryptLink.proxy;
-                        }
-                        else
-                        {
-                            hdlr.UseProxy = false;
-                        }
-
                         var clientor = FriendlyHttp.MessageClient(
                             "base",
-                            hdlr,
-                            out bool disposeHttpClientor
+                            Http.HandlerOrNull(servUri, decryptLink.proxy),
+                            out bool disposeHttpClientor,
+                            findNoRedirectClient: false
                         );
 
                         try
@@ -267,8 +252,9 @@ public partial class ProxyAPI
 
                 var client = FriendlyHttp.MessageClient(
                     "proxy",
-                    proxyHandler ?? baseHandler,
-                    out bool disposeHttpClient
+                    proxyHandler,
+                    out bool disposeHttpClient,
+                    findNoRedirectClient: false
                 );
 
                 try

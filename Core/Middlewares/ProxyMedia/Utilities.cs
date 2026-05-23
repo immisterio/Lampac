@@ -26,14 +26,6 @@ public partial class ProxyAPI
     #region static
     static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string[]>> cacheDefaultRequestHeaders = new();
 
-    static readonly HttpClientHandler baseHandler = new HttpClientHandler()
-    {
-        ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate,
-        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-        AllowAutoRedirect = false,
-        UseProxy = false
-    };
-
     static readonly IReadOnlyDictionary<string, string> defaultNormalizeHeaders = new Dictionary<string, string>()
     {
         ["Accept"] = "*/*",

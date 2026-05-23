@@ -174,9 +174,6 @@ public class CorseuController : BaseController
 
         try
         {
-            var handler = Http.Handler(url, proxyManager.Get());
-            handler.AllowAutoRedirect = autoRedirect;
-
             var client = FriendlyHttp.MessageClient(
                 httpVersion switch
                 {
@@ -184,8 +181,9 @@ public class CorseuController : BaseController
                     3 => "http3",
                     _ => "base"
                 },
-                handler,
-                out bool disposeHttpClient
+                Http.HandlerOrNull(url, proxyManager.Get()),
+                out bool disposeHttpClient,
+                allowAutoRedirect: autoRedirect
             );
 
             try

@@ -272,8 +272,9 @@ public class ProxyImg
 
                         var client = FriendlyHttp.MessageClient(
                             "proxyimg",
-                            Http.Handler(href, proxy),
-                            out bool disposeHttpClient
+                            Http.HandlerOrNull(href, proxy),
+                            out bool disposeHttpClient,
+                            findNoRedirectClient: false
                         );
 
                         using (var req = new HttpRequestMessage(HttpMethod.Get, href)
@@ -521,8 +522,9 @@ public class ProxyImg
     {
         var client = FriendlyHttp.MessageClient(
             "base",
-            Http.Handler(url, proxy),
-            out bool disposeHttpClient
+            Http.HandlerOrNull(url, proxy),
+            out bool disposeHttpClient,
+            findNoRedirectClient: false
         );
 
         try

@@ -203,7 +203,8 @@ public class CubProxyController : BaseController
                     var client = FriendlyHttp.MessageClient(
                         "proxyRedirect",
                         handler,
-                        out bool disposeHttpClient
+                        out bool disposeHttpClient,
+                        findNoRedirectClient: false
                     );
 
                     try

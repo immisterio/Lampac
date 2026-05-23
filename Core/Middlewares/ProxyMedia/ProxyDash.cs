@@ -111,8 +111,9 @@ public partial class ProxyAPI
 
         var client = FriendlyHttp.MessageClient(
             "proxy",
-            proxyHandler ?? baseHandler,
-            out bool disposeHttpClient
+            proxyHandler,
+            out bool disposeHttpClient,
+            findNoRedirectClient: false
         );
 
         try

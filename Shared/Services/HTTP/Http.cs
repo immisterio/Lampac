@@ -135,28 +135,33 @@ public static class Http
     #region Handler
     public static HttpClientHandler Handler(string url, WebProxy proxy, CookieContainer cookieContainer = null)
     {
-        var handler = new HttpClientHandler()
+        var handler = HandlerOrNull(url, proxy, cookieContainer);
+        if (handler != null)
+            return handler;
+
+        handler = new HttpClientHandler()
         {
             AllowAutoRedirect = true,
             AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
             ServerCertificateCustomValidationCallback = AlwaysAllowCertificate
         };
 
-        if (proxy != null)
+        if (EventListener.HttpHandler != null)
         {
-            handler.UseProxy = true;
-            handler.Proxy = proxy;
-        }
-        else
-        {
-            handler.UseProxy = false;
+            var em = new EventHttpHandler(url, handler, proxy, cookieContainer);
+
+            foreach (Action<EventHttpHandler> eventHandler in EventListener.HttpHandler.GetInvocationList())
+                eventHandler.Invoke(em);
         }
 
-        if (cookieContainer != null)
-        {
-            handler.CookieContainer = cookieContainer;
-            handler.UseCookies = true; //<-- Enable the use of cookies.
-        }
+        return handler;
+    }
+    #endregion
+
+    #region HandlerOrNull
+    public static HttpClientHandler HandlerOrNull(string url, WebProxy proxy, CookieContainer cookieContainer = null)
+    {
+        bool createHandler = proxy != null || cookieContainer != null || EventListener.HttpHandler != null;
 
         try
         {
@@ -182,9 +187,8 @@ public static class Http
                         else if (p.useAuth)
                             credentials = new NetworkCredential(p.username, p.password);
 
-                        handler.UseProxy = true;
-                        handler.Proxy = new WebProxy(proxyip, p.BypassOnLocal, null, credentials);
-
+                        createHandler = true;
+                        proxy = new WebProxy(proxyip, p.BypassOnLocal, null, credentials);
                         break;
                     }
                 }
@@ -196,15 +200,45 @@ public static class Http
                 Log.Error(ex, "CatchId={CatchId}", "id_6g2snq8w");
         }
 
-        if (EventListener.HttpHandler != null)
+        if (createHandler)
         {
-            var em = new EventHttpHandler(url, handler, proxy, cookieContainer);
+            var handler = new HttpClientHandler()
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                ServerCertificateCustomValidationCallback = AlwaysAllowCertificate
+            };
 
-            foreach (Action<EventHttpHandler> eventHandler in EventListener.HttpHandler.GetInvocationList())
-                eventHandler.Invoke(em);
+            if (proxy != null)
+            {
+                handler.UseProxy = true;
+                handler.Proxy = proxy;
+            }
+            else
+            {
+                handler.UseProxy = false;
+            }
+
+            if (cookieContainer != null)
+            {
+                handler.CookieContainer = cookieContainer;
+                handler.UseCookies = true; //<-- Enable the use of cookies.
+            }
+
+            if (EventListener.HttpHandler != null)
+            {
+                var em = new EventHttpHandler(url, handler, proxy, cookieContainer);
+
+                foreach (Action<EventHttpHandler> eventHandler in EventListener.HttpHandler.GetInvocationList())
+                    eventHandler.Invoke(em);
+            }
+
+            return handler;
         }
-
-        return handler;
+        else
+        {
+            return null;
+        }
     }
     #endregion
 
@@ -381,9 +415,6 @@ public static class Http
     #region GetLocation
     async public static Task<string> GetLocation(string url, string referer = null, int timeoutSeconds = 8, IReadOnlyList<HeadersModel> headers = null, int httpversion = 1, bool allowAutoRedirect = false, WebProxy proxy = null)
     {
-        var handler = Handler(url, proxy);
-        handler.AllowAutoRedirect = allowAutoRedirect;
-
         var client = FriendlyHttp.MessageClient(
             httpversion switch
             {
@@ -391,8 +422,9 @@ public static class Http
                 3 => "http3",
                 _ => "base"
             },
-            handler,
-            out bool disposeHttpClient
+            HandlerOrNull(url, proxy),
+            out bool disposeHttpClient,
+            allowAutoRedirect: allowAutoRedirect
         );
 
         try
@@ -445,9 +477,6 @@ public static class Http
     #region ResponseHeaders
     async public static Task<HttpResponseMessage> ResponseHeaders(string url, int timeoutSeconds = 8, IReadOnlyList<HeadersModel> headers = null, int httpversion = 1, bool allowAutoRedirect = false, WebProxy proxy = null)
     {
-        var handler = Handler(url, proxy);
-        handler.AllowAutoRedirect = allowAutoRedirect;
-
         var client = FriendlyHttp.MessageClient(
             httpversion switch
             {
@@ -455,8 +484,9 @@ public static class Http
                 3 => "http3",
                 _ => "base"
             },
-            handler,
-            out bool disposeHttpClient
+            HandlerOrNull(url, proxy),
+            out bool disposeHttpClient,
+            allowAutoRedirect: allowAutoRedirect
         );
 
         try
@@ -578,7 +608,7 @@ public static class Http
                 3 => "http3",
                 _ => "base"
             },
-            Handler(url, proxy, cookieContainer),
+            HandlerOrNull(url, proxy, cookieContainer),
             out bool disposeHttpClient,
             MaxResponseContentBufferSize,
             httpClient
@@ -774,7 +804,7 @@ public static class Http
                 3 => "http3",
                 _ => "base"
             },
-            Handler(url, proxy, cookieContainer),
+            HandlerOrNull(url, proxy, cookieContainer),
             out bool disposeHttpClient,
             MaxResponseContentBufferSize,
             httpClient
@@ -886,7 +916,7 @@ public static class Http
                 3 => "http3",
                 _ => "base"
             },
-            Handler(url, proxy, cookieContainer),
+            HandlerOrNull(url, proxy, cookieContainer),
             out bool disposeHttpClient,
             MaxResponseContentBufferSize,
             httpClient
@@ -1060,7 +1090,7 @@ public static class Http
                 3 => "http3",
                 _ => "base"
             },
-            Handler(url, proxy, cookieContainer),
+            HandlerOrNull(url, proxy, cookieContainer),
             out bool disposeHttpClient,
             MaxResponseContentBufferSize,
             httpClient
@@ -1154,7 +1184,7 @@ public static class Http
     {
         var client = FriendlyHttp.MessageClient(
             "base",
-            Handler(url, proxy),
+            HandlerOrNull(url, proxy),
             out bool disposeHttpClient,
             MaxResponseContentBufferSize
         );
