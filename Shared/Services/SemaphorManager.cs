@@ -48,8 +48,16 @@ public class SemaphorManager
 
     public async Task<bool> WaitAsync()
     {
-        lockAcquired = await semaphore.WaitAsync(timeSpan, cancellationToken).ConfigureAwait(false);
-        return lockAcquired;
+        if (cancellationToken == CancellationToken.None)
+        {
+            lockAcquired = await semaphore.WaitAsync(timeSpan).ConfigureAwait(false);
+            return lockAcquired;
+        }
+        else
+        {
+            lockAcquired = await semaphore.WaitAsync(timeSpan, cancellationToken).ConfigureAwait(false);
+            return lockAcquired;
+        }
     }
 
     public void Release()

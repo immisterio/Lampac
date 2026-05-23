@@ -31,8 +31,7 @@ public static class AesTo
                 if (!Encoding.UTF8.TryGetBytes(plainText, cipher, out int writtenPlain) || writtenPlain == 0)
                     return string.Empty;
 
-                int blockSize = aesinst.Aes.BlockSize / 8; // 16
-                int paddedLen = ((writtenPlain / blockSize) + 1) * blockSize;
+                int paddedLen = ((writtenPlain / AesInstance.BlockSize) + 1) * AesInstance.BlockSize;
 
                 BufferBytePool destBuf = null;
                 if (paddedLen > AesInstance.ByteSize)
@@ -54,7 +53,7 @@ public static class AesTo
                     if (cipherLen <= 0)
                         return string.Empty;
 
-                    int maxchars = ((cipherLen + 2) / 3) * 4;
+                    int maxchars = Base64Url.GetEncodedLength(cipherLen);
 
                     BufferCharPool base64Chars = null;
                     if (maxchars > AesInstance.CharSize)
@@ -103,7 +102,7 @@ public static class AesTo
         {
             var aesinst = AesPool.Instance;
 
-            int maxBytes = cipherText.Length;
+            int maxBytes = Base64Url.GetMaxDecodedLength(cipherText.Length);
 
             BufferBytePool cipherBuf = null;
             if (maxBytes > AesInstance.ByteSize)

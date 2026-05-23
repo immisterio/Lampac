@@ -104,32 +104,27 @@ public static class FriendlyHttp
         }
         else
         {
-            int port = 0;
-            string ip = null, username = null, password = null;
-
-            ip = webProxy.Address?.Host;
-            port = webProxy.Address?.Port ?? 0;
-
-            if (webProxy.Credentials is NetworkCredential credentials)
-            {
-                username = credentials.UserName;
-                password = credentials.Password;
-            }
+            var address = webProxy.Address;
+            var credentials = webProxy.Credentials as NetworkCredential;
 
             var key = new ProxyClientKey(
-                ip,
-                port,
-                username,
-                password,
+                address?.Host,
+                address?.Port ?? 0,
+                credentials?.UserName,
+                credentials?.Password,
                 maxBufferSize,
                 handler?.AllowAutoRedirect == true
             );
 
-            return _clients.GetOrAdd(key, static (key, state)
-                => new HttpClientModel(DateTime.UtcNow.AddMinutes(30), new HttpClient(state.Handler)
-                {
-                    MaxResponseContentBufferSize = key.MaxBufferSize
-                }), new { Handler = handler }
+            return _clients.GetOrAdd(
+                key,
+                static (key, handler) => new HttpClientModel(
+                    DateTime.UtcNow.AddMinutes(30),
+                    new HttpClient(handler)
+                    {
+                        MaxResponseContentBufferSize = key.MaxBufferSize
+                    }),
+                handler
             ).http;
         }
     }

@@ -51,6 +51,7 @@ public class AesInstance
 
     public const int CharSize = 4096;
     public const int ByteSize = 16 * 1024;
+    public const int BlockSize = 16;
 
     private char[] _charBuffer;
     private byte[] _byteBuffer;

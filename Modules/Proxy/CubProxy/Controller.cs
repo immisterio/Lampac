@@ -24,6 +24,7 @@ namespace CubProxy;
 public class CubProxyController : BaseController
 {
     static readonly string[] adEmpty = [];
+    static readonly Regex regexMedia = new Regex("\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     [HttpGet]
     [AllowAnonymous]
@@ -62,7 +63,7 @@ public class CubProxyController : BaseController
             string domain = GetDomain(subdomain, init.domain);
 
             int slashIndex = path.IndexOf('/');
-            string uri = (slashIndex >= 0 ? path.Substring(slashIndex + 1) : path) + HttpContext.Request.QueryString.Value;
+            string uri = (slashIndex >= 0 ? path.Substring(slashIndex+1) : path) + HttpContext.Request.QueryString.Value;
 
             #region ws/geo
             if (subdomain.Equals("ws"))
@@ -89,7 +90,7 @@ public class CubProxyController : BaseController
                     var ct = HttpContext.Request.ContentType;
                     if (ct != null && ct.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
                     {
-                        using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, false, PoolInvk.bufferSize, leaveOpen: true))
+                        using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, false, leaveOpen: true))
                         {
                             string form = await reader.ReadToEndAsync();
 
@@ -153,7 +154,7 @@ public class CubProxyController : BaseController
 
             var proxy = proxyManager?.Get();
 
-            bool isMedia = Regex.IsMatch(path, "\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)", RegexOptions.IgnoreCase);
+            bool isMedia = regexMedia.IsMatch(path);
 
             if (0 >= init.cache_api || !HttpMethods.IsGet(HttpContext.Request.Method) || isMedia ||
                 (subdomain is "imagetmdb" or "cdn" or "ad") ||
@@ -165,8 +166,8 @@ public class CubProxyController : BaseController
                     writer.Append(domain);
                     writer.Append(':');
                     writer.Append(uri);
-                });
-
+                }); 
+                
                 string outFile = ModInit.fileWatcher.OutFile(md5key);
 
                 if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
@@ -394,7 +395,7 @@ public class CubProxyController : BaseController
                                     timeoutSeconds: 5,
                                     headers: HeadersModel.Init(("lcrqpasswd", CoreInit.rootPasswd))
                                 ).ConfigureAwait(false);
-
+                                
                                 if (!string.IsNullOrEmpty(json))
                                 {
                                     cache.statusCode = 200;

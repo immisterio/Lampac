@@ -78,7 +78,7 @@ public class SimilarTpl : ITplResult
 
         html.Append("<div class=\"videos__line\">");
 
-        using (var utf8Buf = new BufferWriterPool<byte>())
+        using (var utf8Buf = new BufferWriterPool<byte>(BufferWriterPoolType.Small))
         {
             using (var jsonWriter = new Utf8JsonWriter(utf8Buf, UtilsTpl.jsonWriterOptions))
             {

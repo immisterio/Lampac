@@ -373,9 +373,9 @@ public class TmdbProxyController : BaseController
             path = path.Slice(5);
 
         if (path.StartsWith("/https:"))
-            path = path.Slice(9 + tmdbApiHost.Length);
+            path = path.Slice(9 + tmdbHost.Length);
         else if (path.StartsWith("/http:"))
-            path = path.Slice(8 + tmdbApiHost.Length);
+            path = path.Slice(8 + tmdbHost.Length);
 
         if (path.StartsWith("//"))
             path = path.Slice(1);

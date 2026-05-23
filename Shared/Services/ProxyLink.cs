@@ -71,7 +71,7 @@ public class ProxyLink : IProxyLink
         else if (!forceMd5 && proxy == null && userdata == null && !uri_clear.Contains(" or ", StringComparison.Ordinal))
         {
             return verifyip && CoreInit.conf.serverproxy.verifyip
-                ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.Date.AddDays(1), headers, sbWriter)
+                ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.AddDays(1), headers, sbWriter)
                 : SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, sbWriter);
         }
         else
@@ -158,8 +158,7 @@ public class ProxyLink : IProxyLink
 
             // EncryptCbc сам делает PKCS7 padding, paddedLen считать не нужно
             // destination должен быть достаточно большой: json.Length + blockSize
-            int blockSize = aesinst.Aes.BlockSize / 8; // 16
-            int requiredCipherLen = ((json.Length / blockSize) + 1) * blockSize;
+            int requiredCipherLen = ((json.Length / AesInstance.BlockSize) + 1) * AesInstance.BlockSize;
 
             BufferBytePool destBuf = null;
             if (requiredCipherLen > AesInstance.ByteSize)
@@ -180,11 +179,11 @@ public class ProxyLink : IProxyLink
                 if (cipherLen <= 0)
                     return "Error Serialize Payload: cipherLen";
 
-                int capacity = ((cipherLen + 2) / 3) * 4;
+                int maxchars = Base64Url.GetEncodedLength(cipherLen);
 
                 BufferCharPool base64Chars = null;
-                if (capacity > AesInstance.CharSize)
-                    base64Chars = new BufferCharPool(capacity);
+                if (maxchars > AesInstance.CharSize)
+                    base64Chars = new BufferCharPool(maxchars);
 
                 try
                 {
@@ -239,7 +238,7 @@ public class ProxyLink : IProxyLink
         }
         else
         {
-            end = uri.IndexOfAny('?', '&');
+            end = uri.IndexOf('?');
             if (end >= 0)
                 uri = uri[..end];
 
@@ -307,11 +306,11 @@ public class ProxyLink : IProxyLink
 
                 var aesinst = AesPool.Instance;
 
-                int capacity = ((base64hash.Length + 3) / 4) * 3;
+                int maxBytes = Base64Url.GetMaxDecodedLength(base64hash.Length);
 
                 BufferBytePool cipherBuf = null;
-                if (capacity > AesInstance.ByteSize)
-                    cipherBuf = new BufferBytePool(capacity);
+                if (maxBytes > AesInstance.ByteSize)
+                    cipherBuf = new BufferBytePool(maxBytes);
 
                 try
                 {
@@ -371,7 +370,7 @@ public class ProxyLink : IProxyLink
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static ProxyLinkModel ReadAesPayload(ReadOnlySpan<byte> json, string reqip)
+    private static ProxyLinkModel ReadAesPayload(ReadOnlySpan<byte> json, string reqip)
     {
         var reader = new Utf8JsonReader(json);
 
@@ -456,7 +455,7 @@ public class ProxyLink : IProxyLink
 
     #region IsAes
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool IsAes(ReadOnlySpan<char> hash)
+    private static bool IsAes(ReadOnlySpan<char> hash)
     {
         if (hash.IsEmpty)
             return false;
