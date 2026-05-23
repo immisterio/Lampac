@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
@@ -18,7 +19,7 @@ public class VideoDBController : BaseOnlineController
 
     public VideoDBController() : base(ModInit.conf) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/videodb")]
     async public Task<ActionResult> Index(string uri, string title, string original_title, string t, short s = -1, short sid = -1, bool rjson = false)
     {
@@ -76,7 +77,7 @@ public class VideoDBController : BaseOnlineController
 
 
     #region Manifest
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/videodb/manifest")]
     [Route("lite/videodb/manifest.m3u8")]
     async public Task<ActionResult> Manifest(string link, bool serial)

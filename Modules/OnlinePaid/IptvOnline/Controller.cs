@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
@@ -40,7 +41,7 @@ public class IptvOnlineController : BaseOnlineController
     }
     #endregion
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/iptvonline")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short serial = -1, short s = -1, bool rjson = false)
     {

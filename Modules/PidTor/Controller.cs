@@ -22,8 +22,7 @@ namespace PidTor;
 
 public class PiTor : BaseOnlineController
 {
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/pidtor")]
     async public Task<ActionResult> Index(string title, string original_title, short year, string original_language, byte serial, short s = -1, bool rjson = false)
     {
@@ -363,8 +362,7 @@ public class PiTor : BaseOnlineController
     }
 
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/pidtor/serial/{id}")]
     async public Task<ActionResult> Serial(string id, string title, string original_title, short s)
     {

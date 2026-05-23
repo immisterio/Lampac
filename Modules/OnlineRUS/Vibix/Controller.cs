@@ -3,6 +3,7 @@ using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
@@ -20,7 +21,7 @@ public class VibixController : BaseOnlineController
 {
     public VibixController() : base(ModInit.conf) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/vibix")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short s = -1, bool rjson = false)
     {
@@ -188,7 +189,7 @@ public class VibixController : BaseOnlineController
 
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/vibix/video.m3u8")]
     async public Task<ActionResult> Video(string id)
     {

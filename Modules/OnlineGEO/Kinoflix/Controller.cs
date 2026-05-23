@@ -1,16 +1,17 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared;
+using Shared.Attributes;
+using Shared.Models.Base;
+using Shared.Models.Templates;
+using Shared.Services.HTML;
+using Shared.Services.RxEnumerate;
+using Shared.Services.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Shared;
-using Shared.Models.Base;
-using Shared.Models.Templates;
-using Shared.Services.HTML;
-using Shared.Services.Utilities;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Services.RxEnumerate;
 
 namespace Kinoflix;
 
@@ -18,7 +19,7 @@ public class KinoflixController : BaseOnlineController
 {
     public KinoflixController() : base(ModInit.conf) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kinoflix")]
     async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, string href, string t = null, short s = -1)
     {

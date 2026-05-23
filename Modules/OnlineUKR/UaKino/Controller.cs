@@ -13,8 +13,7 @@ public class UaKinoController : BaseOnlineController
 {
     public UaKinoController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/uakino")]
     async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, string href = null, bool rjson = false, bool similar = false, string source = null, string id = null)
     {

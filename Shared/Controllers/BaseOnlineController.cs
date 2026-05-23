@@ -270,7 +270,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
     #endregion
 
     #region ContentTpl
-    public ActionResult ContentTpl<Tresut>(CacheResult<Tresut> cache, Func<ITplResult> tpl)
+    public ActionResult ContentTpl<Tresut>(CacheResult<Tresut> cache, Func<ITplResult> tpl, bool forceJson = false)
     {
         if (!cache.IsSuccess)
             return OnError(cache.ErrorMsg);
@@ -278,12 +278,12 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
         if (cache.Value != null && IsOrigsourceRequest())
             return Json(cache.Value);
 
-        return ContentTpl(tpl());
+        return ContentTpl(tpl(), forceJson);
     }
 
-    public ActionResult ContentTpl(ITplResult tpl)
+    public ActionResult ContentTpl(ITplResult tpl, bool forceJson = false)
     {
-        bool rjson = IsRjsonRequest();
+        bool rjson = forceJson || IsRjsonRequest();
 
         if (tpl == null || tpl.IsEmpty)
             return OnError(rjson ? "{}" : string.Empty);
@@ -311,12 +311,12 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             ? tpl.ToBuilderJson()
             : tpl.ToBuilderHtml();
 
-        var utf8Writer = StatiCacheDisabled
+        IBufferWriter<byte> bodyWriter = StatiCacheDisabled
             ? null
             : HttpContext.Features.Get<BufferWriterPool<byte>>();
 
-        const int chunkSize = 16 * 1024;
-        IBufferWriter<byte> writer = utf8Writer ?? (IBufferWriter<byte>)Response.BodyWriter;
+        if (bodyWriter == null)
+            bodyWriter = new ChunkBufferWriter<byte>(Response.BodyWriter);
 
         try
         {
@@ -326,7 +326,8 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
                 while (!chars.IsEmpty)
                 {
-                    Span<byte> span = writer.GetSpan(chunkSize);
+                    int maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
+                    Span<byte> span = bodyWriter.GetSpan(maxBytes);
 
                     encoder.Convert(
                         chars,
@@ -338,7 +339,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
                     if (bytesUsed > 0)
                     {
-                        writer.Advance(bytesUsed);
+                        bodyWriter.Advance(bytesUsed);
                         chars = chars.Slice(charsUsed);
                     }
 
@@ -352,8 +353,8 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             StringBuilderPool.Return(sb);
         }
 
-        #region границы чанков/суррогаты
-        Span<byte> tail = writer.GetSpan(256);
+        /// границы чанков/суррогаты
+        Span<byte> tail = bodyWriter.GetSpan(128);
 
         encoder.Convert(
             ReadOnlySpan<char>.Empty,
@@ -363,28 +364,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             out int _bytesUsed,
             out bool _);
 
-        writer.Advance(_bytesUsed);
-        #endregion
-
-        #region Дублируем Staticache в Response.BodyWriter
-        if (utf8Writer != null)
-        {
-            var source = utf8Writer.WrittenSpan;
-
-            while (!source.IsEmpty)
-            {
-                int bytesToWrite = Math.Min(source.Length, chunkSize);
-
-                ReadOnlySpan<byte> chunk = source.Slice(0, bytesToWrite);
-                Span<byte> destination = Response.BodyWriter.GetSpan(chunkSize);
-
-                chunk.CopyTo(destination);
-                Response.BodyWriter.Advance(bytesToWrite);
-
-                source = source.Slice(bytesToWrite);
-            }
-        }
-        #endregion
+        bodyWriter.Advance(_bytesUsed);
 
         return _emptyResult;
     }

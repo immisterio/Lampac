@@ -562,7 +562,6 @@ public class Startup
                 context.Response.ContentType = "application/json; charset=utf-8";
                 context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                 context.Response.BodyWriter.Write("{\"error\":\"Internal server error\"}"u8);
-                await context.Response.BodyWriter.FlushAsync(context.RequestAborted).ConfigureAwait(false);
             });
         });
         #endregion

@@ -18,8 +18,7 @@ public class AnimeGoController : BaseOnlineController
 {
     public AnimeGoController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animego")]
     async public Task<ActionResult> Index(string title, short year, int pid, short s, string t, bool similar = false)
     {

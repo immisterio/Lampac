@@ -12,8 +12,7 @@ public class BongaCamsController : BaseSisiController
 {
     public BongaCamsController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("bgs")]
     async public Task<ActionResult> Index(string search, string sort, int pg = 1)
     {

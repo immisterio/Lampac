@@ -38,24 +38,21 @@ public class StaticacheWriter
             if (buff.WrittenCount > 0)
             {
                 string cachekey = stc.cachekey;
-                var sm = new SemaphorManager($"Staticache:{cachekey}", TimeSpan.FromSeconds(10));
+                var sm = new SemaphorManager(cachekey, TimeSpan.FromSeconds(5));
 
                 try
                 {
-                    bool _acquired = await sm.WaitAsync();
-                    if (!_acquired)
-                        return;
-
-                    string contentType = httpContext.Response.ContentType.StartsWith("application/json")
-                        ? "application/json; charset=utf-8"
-                        : "text/html; charset=utf-8";
-
                     var ex = httpContext.Features.Get<StatiCacheEntry>()?.ex
                         ?? DateTimeOffset.Now.AddMinutes(stc.route.cacheMinutes);
 
                     if (DateTimeOffset.Now > ex)
                         return;
 
+                    bool _acquired = await sm.WaitAsync();
+                    if (!_acquired)
+                        return;
+
+                    string contentType = httpContext.Response.ContentType;
                     string cachefile = Staticache.getFilePath(cachekey, ex, contentType);
 
                     await using (var fileStream = new FileStream(cachefile, FileMode.Create, FileAccess.Write, FileShare.None,
@@ -74,6 +71,27 @@ public class StaticacheWriter
                 finally
                 {
                     sm.Release();
+
+                    const int chunkSize = 32 * 1024;
+
+                    var source = buff.WrittenSpan;
+                    var bodyWriter = httpContext.Response.BodyWriter;
+
+                    do
+                    {
+                        int bytesToWrite = Math.Min(source.Length, chunkSize);
+
+                        ReadOnlySpan<byte> chunk = source.Slice(0, bytesToWrite);
+                        Span<byte> destination = bodyWriter.GetSpan(chunkSize);
+
+                        chunk.CopyTo(destination);
+                        bodyWriter.Advance(bytesToWrite);
+
+                        source = source.Slice(bytesToWrite);
+                    }
+                    while (!source.IsEmpty);
+
+                    //await bodyWriter.FlushAsync();
                 }
             }
         }

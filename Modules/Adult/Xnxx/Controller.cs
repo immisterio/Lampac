@@ -23,8 +23,7 @@ public class XnxxController : BaseSisiController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("xnx")]
     async public Task<ActionResult> Index(string search, int pg = 1)
     {
@@ -58,10 +57,9 @@ public class XnxxController : BaseSisiController
         );
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("xnx/vidosik")]
-    async public Task<ActionResult> Index(string uri, bool related)
+    async public Task<ActionResult> Vidosik(string uri, bool related)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

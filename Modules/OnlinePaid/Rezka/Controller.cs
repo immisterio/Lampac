@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
@@ -66,7 +67,7 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
     }
 
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/rezka")]
     async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, short s = -1, string href = null, bool rjson = false, short serial = -1, bool similar = false, string source = null, string id = null)
     {
@@ -181,7 +182,7 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
 
 
     #region Serial
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/rezka/serial")]
     async public Task<ActionResult> Serial(string title, string original_title, string href, long id, int t, short s = -1, bool rjson = false)
     {
@@ -215,7 +216,7 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
     #endregion
 
     #region Movie
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/rezka/movie")]
     [Route("lite/rezka/movie.m3u8")]
     async public Task<ActionResult> Movie(string title, string original_title, string voice, long id, int t, int director = 0, int s = -1, int e = -1, string favs = null, bool play = false)

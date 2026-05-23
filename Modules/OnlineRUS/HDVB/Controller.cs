@@ -18,8 +18,7 @@ public class HDVBController : BaseOnlineController
 {
     public HDVBController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/hdvb")]
     async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, short t = -1, short s = -1, bool rjson = false, bool similar = false)
     {
@@ -145,7 +144,7 @@ public class HDVBController : BaseOnlineController
 
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/hdvb/video")]
     [Route("lite/hdvb/video.m3u8")]
     async public Task<ActionResult> Video(string iframe, string title, string original_title, bool play)
@@ -262,7 +261,7 @@ public class HDVBController : BaseOnlineController
     #endregion
 
     #region Serial
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/hdvb/serial")]
     [Route("lite/hdvb/serial.m3u8")]
     async public Task<ActionResult> Serial(string iframe, string t, string s, string e, string title, string original_title, bool play)
@@ -423,7 +422,7 @@ public class HDVBController : BaseOnlineController
     #endregion
 
     #region SpiderSearch
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/hdvb-search")]
     async public Task<ActionResult> RouteSpiderSearch(string title, bool rjson = false)
     {

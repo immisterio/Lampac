@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Shared;
+using Shared.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -44,7 +45,7 @@ public class FanCDNController : BaseOnlineController
         };
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/fancdn")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, byte serial)
     {

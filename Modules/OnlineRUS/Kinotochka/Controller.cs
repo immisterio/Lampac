@@ -29,8 +29,7 @@ public class KinotochkaController : BaseOnlineController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kinotochka")]
     async public Task<ActionResult> Index(long kinopoisk_id, string title, string original_title, short serial, string newsuri, short s = -1)
     {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Attributes;
 using Shared.Models.Events;
 
 namespace Catalog;
@@ -24,7 +25,7 @@ public class ApiController : BaseController
     }
     #endregion
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("catalog")]
     public ActionResult Index()
     {

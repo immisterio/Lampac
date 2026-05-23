@@ -13,8 +13,7 @@ public class XvideosREDController : BaseSisiController
 {
     public XvideosREDController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("xdsred")]
     async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
     {
@@ -75,8 +74,7 @@ public class XvideosREDController : BaseSisiController
         );
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("xdsred/vidosik")]
     async public Task<ActionResult> Index(string uri, bool related)
     {

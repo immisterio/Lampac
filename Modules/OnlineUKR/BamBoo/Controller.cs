@@ -12,8 +12,7 @@ public class BamBooController : BaseOnlineController
 {
     public BamBooController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/bamboo")]
     async public Task<ActionResult> Index(string title, string original_title, byte clarification, short year, short t = -1, string href = null, bool rjson = false, bool similar = false)
     {

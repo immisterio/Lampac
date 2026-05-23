@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
@@ -13,7 +14,7 @@ public class HydraFlixController : BaseENGController
 {
     public HydraFlixController() : base(ModInit.conf) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/hydraflix")]
     public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false)
     {
@@ -21,7 +22,7 @@ public class HydraFlixController : BaseENGController
     }
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/hydraflix/video")]
     [Route("lite/hydraflix/video.mpd")]
     [Route("lite/hydraflix/video.m3u8")]

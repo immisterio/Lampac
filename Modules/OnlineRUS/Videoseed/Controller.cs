@@ -18,8 +18,7 @@ public class VideoseedController : BaseOnlineController
 {
     public VideoseedController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/videoseed")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, short s = -1, bool rjson = false, short serial = -1)
     {

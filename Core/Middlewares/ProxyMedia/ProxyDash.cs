@@ -29,7 +29,6 @@ public partial class ProxyAPI
                 httpContext.Response.ContentType = "text/plain; charset=utf-8";
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 httpContext.Response.BodyWriter.Write("bigfile"u8);
-                await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                 return;
             }
 
@@ -39,7 +38,6 @@ public partial class ProxyAPI
                 httpContext.Response.ContentType = "text/plain; charset=utf-8";
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 httpContext.Response.BodyWriter.Write("error array mpd"u8);
-                await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                 return;
             }
 

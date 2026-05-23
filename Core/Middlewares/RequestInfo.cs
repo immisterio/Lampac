@@ -112,8 +112,11 @@ public class RequestInfo
             UserAgent = httpContext.Request.Headers.UserAgent
         };
 
-        if (httpContext.Request.Headers.TryGetValue("X-Kit-AesGcm", out StringValues aesGcmKey) && aesGcmKey.Count > 0)
-            req.AesGcmKey = aesGcmKey;
+        if (CoreInit.conf.kit.enable)
+        {
+            if (httpContext.Request.Headers.TryGetValue("X-Kit-AesGcm", out StringValues aesGcmKey) && aesGcmKey.Count > 0)
+                req.AesGcmKey = aesGcmKey;
+        }
 
         if (!string.IsNullOrEmpty(CoreInit.conf.accsdb.domainId_pattern))
         {

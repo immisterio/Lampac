@@ -94,8 +94,7 @@ public class KodikController : BaseOnlineController<ModuleConf>
     }
     #endregion
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kodik")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, byte clarification, string pick, string kid, short s = -1, bool rjson = false, bool similar = false)
     {
@@ -152,7 +151,7 @@ public class KodikController : BaseOnlineController<ModuleConf>
     }
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kodik/video")]
     [Route("lite/kodik/video.m3u8")]
     async public Task<ActionResult> VideoAPI(string title, string original_title, string link, int episode, bool play)

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
@@ -24,7 +25,7 @@ public class AnimeLibController : BaseOnlineController
     public AnimeLibController() : base(ModInit.conf) { }
 
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animelib")]
     async public Task<ActionResult> Index(string title, string original_title, short year, string uri, string t, bool rjson = false, bool similar = false)
     {
@@ -212,7 +213,7 @@ public class AnimeLibController : BaseOnlineController
     }
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animelib/video")]
     async public Task<ActionResult> Video(string title, long id, string voice, bool play)
     {

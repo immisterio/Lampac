@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
 using Shared;
+using Shared.Attributes;
 using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Templates;
@@ -40,7 +41,7 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
         };
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/pizdatoehd")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, byte clarification, short year, string href, string t, short s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
@@ -245,7 +246,7 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
     }
 
     #region Movie
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/pizdatoehd/movie")]
     [Route("lite/pizdatoehd/movie.m3u8")]
     async public Task<ActionResult> Movie(string title, string original_title, string href, string voice, int t, short s = -1, short e = -1, bool play = false)

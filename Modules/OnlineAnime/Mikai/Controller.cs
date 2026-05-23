@@ -16,8 +16,7 @@ public class MikaiController : BaseOnlineController
 {
     public MikaiController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/mikai")]
     async public Task<ActionResult> Index(string title, string original_title, short year, int animeid = 0, short t = -1, bool rjson = false)
     {

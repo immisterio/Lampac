@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
@@ -20,7 +21,7 @@ public class KinogoController : BaseOnlineController
 {
     public KinogoController() : base(ModInit.conf) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kinogo")]
     async public Task<ActionResult> Index(string title, string original_title, short year, bool rjson, string href, bool similar, short s = -1, int t = -1)
     {

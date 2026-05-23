@@ -15,8 +15,7 @@ public class HQpornerController : BaseSisiController
 
     public HQpornerController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("hqr")]
     async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
     {
@@ -50,9 +49,9 @@ public class HQpornerController : BaseSisiController
         );
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("hqr/vidosik")]
-    async public Task<ActionResult> Index(string uri)
+    async public Task<ActionResult> Vidosik(string uri)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

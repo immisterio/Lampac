@@ -16,8 +16,7 @@ public class AnimebesstController : BaseOnlineController
 {
     public AnimebesstController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animebesst")]
     async public Task<ActionResult> Index(string title, string uri, short s, bool rjson = false, bool similar = false)
     {
@@ -177,7 +176,7 @@ public class AnimebesstController : BaseOnlineController
     }
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animebesst/video.m3u8")]
     async public Task<ActionResult> Video(string uri, string title, bool play)
     {

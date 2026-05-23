@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
@@ -25,7 +26,7 @@ public class VkMovieController : BaseOnlineController
 
     public VkMovieController() : base(ModInit.conf) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/vkmovie")]
     public async Task<ActionResult> Index(string title, string original_title, short year, byte serial, bool rjson = false)
     {

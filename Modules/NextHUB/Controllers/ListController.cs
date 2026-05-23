@@ -15,8 +15,7 @@ public class ListController : BaseSisiController<NxtSettings>
 {
     public ListController() : base(default) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("nexthub")]
     async public Task<ActionResult> Index(string plugin, string search, string sort, string cat, string model, int pg = 1)
     {

@@ -28,9 +28,7 @@ public class XhamsterController : BaseSisiController
 
     [HttpGet]
     [Staticache(11)]
-    [Route("xmr")]
-    [Route("xmrgay")]
-    [Route("xmrsml")]
+    [Route("xmr"), Route("xmrgay"), Route("xmrsml")]
     async public Task<ActionResult> Index(string search, string c, string q, string sort = "newest", int pg = 1)
     {
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
@@ -119,10 +117,9 @@ public class XhamsterController : BaseSisiController
         );
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("xmr/vidosik")]
-    async public Task<ActionResult> Index(string uri, bool related)
+    async public Task<ActionResult> Vidosik(string uri, bool related)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

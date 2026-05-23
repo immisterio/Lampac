@@ -31,8 +31,7 @@ public class FlixCDNController : BaseOnlineController
     }
 
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/flixcdn")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, int t = -1, short s = -1, bool similar = false)
     {
@@ -157,7 +156,7 @@ public class FlixCDNController : BaseOnlineController
     }
 
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/flixcdn/stream")]
     async public Task<ActionResult> Stream(string iframe, int t, short s = 0, short e = 0, bool play = false)
     {

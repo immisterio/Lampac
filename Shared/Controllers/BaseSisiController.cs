@@ -308,16 +308,18 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
             }
         }
 
-        var utf8Writer = StatiCacheDisabled
+        IBufferWriter<byte> utf8Writer = StatiCacheDisabled
             ? null
             : HttpContext.Features.Get<BufferWriterPool<byte>>();
+
+        if (utf8Writer == null)
+            utf8Writer = new ChunkBufferWriter<byte>(Response.BodyWriter);
 
         Response.ContentType = "application/json; charset=utf-8";
         Response.Headers.CacheControl = "no-cache";
 
-        #region Json Writer
         using (var writer = new Utf8JsonWriter(
-            utf8Writer ?? (IBufferWriter<byte>)new ChunkBufferWriter<byte>(Response.BodyWriter),
+            utf8Writer,
             jsonWriterOptions
         ))
         {
@@ -467,28 +469,6 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
 
             writer.WriteEndObject();
         }
-        #endregion
-
-        #region Дублируем Staticache в Response.BodyWriter
-        if (utf8Writer != null)
-        {
-            const int chunkSize = 32 * 1024;
-            var source = utf8Writer.WrittenSpan;
-
-            while (!source.IsEmpty)
-            {
-                int bytesToWrite = Math.Min(source.Length, chunkSize);
-
-                ReadOnlySpan<byte> chunk = source.Slice(0, bytesToWrite);
-                Span<byte> destination = Response.BodyWriter.GetSpan(chunkSize);
-
-                chunk.CopyTo(destination);
-                Response.BodyWriter.Advance(bytesToWrite);
-
-                source = source.Slice(bytesToWrite);
-            }
-        }
-        #endregion
 
         return _emptyResult;
     }
@@ -537,13 +517,15 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
         Response.ContentType = "application/json; charset=utf-8";
         Response.Headers.CacheControl = "no-cache";
 
-        var utf8Writer = StatiCacheDisabled
+        IBufferWriter<byte> utf8Writer = StatiCacheDisabled
             ? null
             : HttpContext.Features.Get<BufferWriterPool<byte>>();
 
-        #region Json Writer
+        if (utf8Writer == null)
+            utf8Writer = new ChunkBufferWriter<byte>(Response.BodyWriter);
+
         using (var writer = new Utf8JsonWriter(
-             utf8Writer ?? (IBufferWriter<byte>)new ChunkBufferWriter<byte>(Response.BodyWriter),
+             utf8Writer,
              jsonWriterOptions
          ))
         {
@@ -619,28 +601,6 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
 
             writer.WriteEndObject();
         }
-        #endregion
-
-        #region Дублируем Staticache в Response.BodyWriter
-        if (utf8Writer != null)
-        {
-            const int chunkSize = 32 * 1024;
-            var source = utf8Writer.WrittenSpan;
-
-            while (!source.IsEmpty)
-            {
-                int bytesToWrite = Math.Min(source.Length, chunkSize);
-
-                ReadOnlySpan<byte> chunk = source.Slice(0, bytesToWrite);
-                Span<byte> destination = Response.BodyWriter.GetSpan(chunkSize);
-
-                chunk.CopyTo(destination);
-                Response.BodyWriter.Advance(bytesToWrite);
-
-                source = source.Slice(bytesToWrite);
-            }
-        }
-        #endregion
 
         return _emptyResult;
     }

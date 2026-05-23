@@ -16,8 +16,7 @@ public class AnimeONController : BaseOnlineController
 {
     public AnimeONController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animeon")]
     async public Task<ActionResult> Index(string imdb_id, string title, string original_title, short year, short t = -1, short s = -1, int animeid = 0, bool rjson = false)
     {

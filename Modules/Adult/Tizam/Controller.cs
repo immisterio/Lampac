@@ -22,8 +22,7 @@ public class TizamController : BaseSisiController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("tizam")]
     async public Task<ActionResult> Index(string search, int pg = 1)
     {
@@ -55,10 +54,9 @@ public class TizamController : BaseSisiController
         return PlaylistResult(cache);
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("tizam/vidosik")]
-    async public Task<ActionResult> Index(string uri)
+    async public Task<ActionResult> Vidosik(string uri)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

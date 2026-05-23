@@ -11,8 +11,7 @@ public class AshdiController : BaseOnlineController
 {
     public AshdiController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/ashdi")]
     async public Task<ActionResult> Index(string uri, string title, string original_title, short t = -1, short s = -1, bool rjson = false)
     {
@@ -46,7 +45,7 @@ public class AshdiController : BaseOnlineController
         );
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/ashdi/vod.m3u8")]
     async public Task<ActionResult> Vod(string uri, string title, bool play)
     {

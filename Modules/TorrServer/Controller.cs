@@ -161,7 +161,6 @@ public class TorrServerController : BaseController
                         HttpContext.Response.ContentType = "text/plain; charset=utf-8";
                         HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         HttpContext.Response.BodyWriter.Write("NoAccessGroup"u8);
-                        await HttpContext.Response.BodyWriter.FlushAsync(HttpContext.RequestAborted).ConfigureAwait(false);
                         return;
                     }
 
@@ -175,7 +174,6 @@ public class TorrServerController : BaseController
                 HttpContext.Response.ContentType = "text/plain; charset=utf-8";
                 HttpContext.Response.StatusCode = StatusCodes.Status200OK;
                 HttpContext.Response.BodyWriter.Write("MatriX.API"u8);
-                await HttpContext.Response.BodyWriter.FlushAsync(HttpContext.RequestAborted).ConfigureAwait(false);
                 return;
             }
 
@@ -207,7 +205,6 @@ public class TorrServerController : BaseController
                     HttpContext.Response.ContentType = "text/plain; charset=utf-8";
                     HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
                     HttpContext.Response.BodyWriter.Write("403 Forbidden"u8);
-                    await HttpContext.Response.BodyWriter.FlushAsync(HttpContext.RequestAborted).ConfigureAwait(false);
                     return;
                 }
 

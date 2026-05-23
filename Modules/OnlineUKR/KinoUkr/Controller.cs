@@ -13,8 +13,7 @@ public class KinoUkrController : BaseOnlineController
 {
     public KinoUkrController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kinoukr")]
     async public Task<ActionResult> Index(string iframe, string imdb_id, long kinopoisk_id, string title, string original_title, short year, bool similar = false, string source = null, string id = null)
     {
@@ -29,7 +28,7 @@ public class KinoUkrController : BaseOnlineController
         {
             if (source.Equals("kinoukr", StringComparison.OrdinalIgnoreCase))
             {
-            rhubFallback:
+                rhubFallback:
 
                 var cache = await InvokeCacheResult($"kinoukr:view:{id}", 240,
                     () => oninvk.Embed($"{init.host}/{id}")

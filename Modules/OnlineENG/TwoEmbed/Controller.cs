@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
 using System.Text.RegularExpressions;
@@ -13,14 +14,14 @@ public class TwoEmbedController : BaseENGController
     {
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/twoembed")]
     public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false)
     {
         return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, method: "call");
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/twoembed/video")]
     [Route("lite/twoembed/video.m3u8")]
     public async Task<ActionResult> Video(long id, short s = -1, short e = -1, bool play = false)

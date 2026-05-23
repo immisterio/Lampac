@@ -12,8 +12,7 @@ public class RunetkiController : BaseSisiController
 {
     public RunetkiController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("runetki")]
     async public Task<ActionResult> Index(string search, string sort, int pg = 1)
     {

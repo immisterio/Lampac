@@ -44,7 +44,6 @@ public partial class ProxyAPI
             httpContext.Response.ContentType = "text/plain; charset=utf-8";
             httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
             httpContext.Response.BodyWriter.Write("decryptLink"u8);
-            await httpContext.Response.BodyWriter.FlushAsync(httpContext.RequestAborted).ConfigureAwait(false);
             return;
         }
 
@@ -66,7 +65,6 @@ public partial class ProxyAPI
             httpContext.Response.ContentType = "text/plain; charset=utf-8";
             httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
             httpContext.Response.BodyWriter.Write("servUri empty"u8);
-            await httpContext.Response.BodyWriter.FlushAsync(httpContext.RequestAborted).ConfigureAwait(false);
             return;
         }
         #endregion

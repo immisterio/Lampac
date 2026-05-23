@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Templates;
 using Shared.Services;
 using Shared.Services.Utilities;
@@ -24,7 +25,7 @@ public class RutubeMovieController : BaseOnlineController
         };
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/rutubemovie")]
     public async Task<ActionResult> Index(string title, string original_title, short year, byte serial)
     {
@@ -90,7 +91,7 @@ public class RutubeMovieController : BaseOnlineController
         });
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/rutubemovie/play")]
     public async Task<ActionResult> Movie(string linkid)
     {

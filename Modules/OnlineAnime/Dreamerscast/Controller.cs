@@ -18,8 +18,7 @@ public class DreamerscastController : BaseOnlineController
 {
     public DreamerscastController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/dreamerscast")]
     async public Task<ActionResult> Index(string title, short year, string uri, short s = 1, bool rjson = false, bool similar = false)
     {

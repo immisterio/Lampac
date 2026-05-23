@@ -69,8 +69,7 @@ public class GetsTVController : BaseOnlineController
     }
     #endregion
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/getstv")]
     async public Task<ActionResult> Index(string orid, string title, string original_title, short year, int t = -1, short s = -1, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
@@ -221,7 +220,7 @@ public class GetsTVController : BaseOnlineController
     }
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/getstv/video.m3u8")]
     async public Task<ActionResult> Video(string id, bool play)
     {
@@ -295,7 +294,7 @@ public class GetsTVController : BaseOnlineController
     #endregion
 
     #region SpiderSearch
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/getstv-search")]
     async public Task<ActionResult> SpiderSearch(string title, bool rjson = false)
     {

@@ -28,8 +28,7 @@ public class VeoVeoController : BaseOnlineController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/veoveo")]
     async public Task<ActionResult> Index(long movieid, string imdb_id, long kinopoisk_id, string title, string original_title, byte clarification, short s = -1, bool rjson = false, bool similar = false)
     {
@@ -198,7 +197,7 @@ public class VeoVeoController : BaseOnlineController
     #endregion
 
     #region Spider
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/veoveo-spider")]
     async public Task<ActionResult> Spider(string title)
     {

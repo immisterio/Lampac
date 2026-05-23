@@ -9,8 +9,7 @@ public class HdvbUAController : BaseOnlineController
 {
     public HdvbUAController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/hdvbua")]
     async public Task<ActionResult> Index(string uri, string title, string original_title, short t = -1, short s = -1, bool rjson = false)
     {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Templates;
 using Shared.Services;
 using System;
@@ -78,7 +79,7 @@ public class KinoPubController : BaseOnlineController<ModuleConf>
     }
     #endregion
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kinopub")]
     async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, short year, byte clarification, int postid, short s = -1, int t = -1, string codec = null, bool rjson = false, bool similar = false, string source = null, string id = null)
     {
@@ -142,7 +143,7 @@ public class KinoPubController : BaseOnlineController<ModuleConf>
     }
 
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/kinopub/subtitles.json")]
     async public Task<ActionResult> Subtitles(int mid)
     {

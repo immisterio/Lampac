@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
+using Shared.Attributes;
 using Shared.Models.CSharpGlobals;
 using Shared.Models.SISI.NextHUB;
 using Shared.PlaywrightCore;
@@ -15,7 +16,7 @@ public class ViewController : BaseSisiController<NxtSettings>
 
     public ViewController() : base(default) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("nexthub/vidosik")]
     async public Task<ActionResult> Index(string uri, bool related)
     {

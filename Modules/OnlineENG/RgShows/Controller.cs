@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Templates;
 using Shared.Services;
 using System.Threading.Tasks;
@@ -13,14 +14,14 @@ public class RgShowsController : BaseENGController
     {
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/rgshows")]
     public Task<ActionResult> Index(bool checksearch, long id, long tmdb_id, string imdb_id, string title, string original_title, byte serial, short s = -1, bool rjson = false)
     {
         return ViewTmdb(checksearch, id, tmdb_id, imdb_id, title, original_title, serial, s, rjson, mp4: true, method: "call");
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/rgshows/video")]
     public async Task<ActionResult> Video(long id, short s = -1, short e = -1, bool play = false)
     {
@@ -52,7 +53,7 @@ public class RgShowsController : BaseENGController
         ));
     }
 
-
+    
     async ValueTask<string> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))

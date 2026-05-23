@@ -26,8 +26,7 @@ public class CDNvideohubController : BaseOnlineController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/cdnvideohub")]
     async public Task<ActionResult> Index(string title, string original_title, long kinopoisk_id, string t, short s = -1, bool rjson = false)
     {
@@ -168,7 +167,7 @@ public class CDNvideohubController : BaseOnlineController
 
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/cdnvideohub/video.m3u8")]
     async public Task<ActionResult> Video(string vkId, string title, bool play)
     {

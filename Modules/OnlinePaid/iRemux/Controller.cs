@@ -34,8 +34,7 @@ public class iRemuxController : BaseOnlineController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/remux")]
     async public Task<ActionResult> Index(string title, string original_title, short year, string href, bool rjson = false)
     {
@@ -59,8 +58,7 @@ public class iRemuxController : BaseOnlineController
     }
 
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/remux/movie")]
     async public Task<ActionResult> Movie(string linkid, string quality, string title, string original_title)
     {

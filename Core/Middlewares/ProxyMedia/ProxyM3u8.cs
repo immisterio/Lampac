@@ -28,7 +28,6 @@ public partial class ProxyAPI
                 httpContext.Response.ContentType = "text/plain; charset=utf-8";
                 httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
                 httpContext.Response.BodyWriter.Write("bigfile"u8);
-                await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                 return;
             }
 
@@ -252,7 +251,6 @@ public partial class ProxyAPI
                     httpContext.Response.ContentType = "text/plain; charset=utf-8";
                     httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     httpContext.Response.BodyWriter.Write("m3u8 length empty"u8);
-                    await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                     return;
                 }
                 #endregion
@@ -295,7 +293,7 @@ public partial class ProxyAPI
                 writer.Advance(bytesUsed);
                 #endregion
 
-                await writer.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
+                //await writer.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
             }
         }
         else

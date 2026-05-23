@@ -17,8 +17,7 @@ public class AnimevostController : BaseOnlineController
 {
     public AnimevostController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animevost")]
     async public Task<ActionResult> Index(string title, int year, string uri, short s, bool rjson = false, bool similar = false)
     {
@@ -172,7 +171,7 @@ public class AnimevostController : BaseOnlineController
     }
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animevost/video")]
     async public Task<ActionResult> Video(int id, string title, bool play)
     {
@@ -224,16 +223,13 @@ public class AnimevostController : BaseOnlineController
         if (cache.IsSuccess && play)
             return Redirect(HostStreamProxy(cache.Value[0].l));
 
-        return OnResult(cache, () =>
-        {
-            return VideoTpl.ToJson(
-                "play",
-                HostStreamProxy(cache.Value[0].l),
-                title,
-                vast: init.vast,
-                httpContext: HttpContext
-            );
-        });
+        return OnResult(cache, () => VideoTpl.ToJson(
+            "play",
+            HostStreamProxy(cache.Value[0].l),
+            title,
+            vast: init.vast,
+            httpContext: HttpContext
+        ));
     }
     #endregion
 }

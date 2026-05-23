@@ -1,6 +1,7 @@
 ﻿using Filmix.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Shared.Attributes;
 using System.Net.Http;
 using System.Text;
 using F = System.IO.File;
@@ -30,7 +31,7 @@ public class FilmixTV : BaseOnlineController<FilmixSettings>
         };
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/filmixtv")]
     async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int postid, int t = -1, int? s = null, bool rjson = false, bool similar = false, string source = null, string id = null)
     {

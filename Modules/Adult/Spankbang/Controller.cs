@@ -24,8 +24,7 @@ public class SpankbangController : BaseSisiController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("sbg")]
     async public Task<ActionResult> Index(string search, string sort, int pg = 1)
     {
@@ -74,10 +73,9 @@ public class SpankbangController : BaseSisiController
         );
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("sbg/vidosik")]
-    async public Task<ActionResult> Index(string uri, bool related)
+    async public Task<ActionResult> Vidosik(string uri, bool related)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Services;
 using System;
@@ -70,7 +71,7 @@ public class VoKino : BaseOnlineController<ModuleConf>
     }
     #endregion
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/vokino")]
     async public Task<ActionResult> Index(bool checksearch, string origid, long kinopoisk_id, string title, string original_title, string balancer, string t, short s = -1, bool rjson = false, string source = null, string id = null)
     {

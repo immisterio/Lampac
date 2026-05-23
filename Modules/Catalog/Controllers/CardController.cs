@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Attributes;
 using Shared.Models.Events;
 using Shared.PlaywrightCore;
 using Shared.Services.Pools.Json;
@@ -8,7 +9,7 @@ namespace Catalog;
 
 public class CardController : BaseController
 {
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("catalog/card")]
     public async Task<ActionResult> Index(string plugin, string uri, string type)
     {

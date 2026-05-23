@@ -18,8 +18,7 @@ public class EbalovoController : BaseSisiController
 {
     public EbalovoController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("elo")]
     async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
     {
@@ -60,9 +59,9 @@ public class EbalovoController : BaseSisiController
     }
 
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("elo/vidosik")]
-    async public Task<ActionResult> Index(string uri, bool related)
+    async public Task<ActionResult> Vidosik(string uri, bool related)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

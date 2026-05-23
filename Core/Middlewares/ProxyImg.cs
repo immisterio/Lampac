@@ -135,7 +135,6 @@ public class ProxyImg
                         httpContext.Response.ContentType = "text/plain; charset=utf-8";
                         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
                         httpContext.Response.BodyWriter.Write("rsize method error"u8);
-                        await httpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                         return;
                     }
                 }

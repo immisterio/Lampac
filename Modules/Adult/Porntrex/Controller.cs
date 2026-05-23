@@ -18,8 +18,7 @@ public class PorntrexController : BaseSisiController
 
     public PorntrexController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("ptx")]
     async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
     {
@@ -56,9 +55,9 @@ public class PorntrexController : BaseSisiController
         );
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("ptx/vidosik")]
-    async public Task<ActionResult> vidosik(string uri)
+    async public Task<ActionResult> Vidosik(string uri)
     {
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
             return badInitMsg;
@@ -120,7 +119,7 @@ public class PorntrexController : BaseSisiController
 
     [HttpGet]
     [Route("ptx/strem")]
-    async public Task<ActionResult> strem(string link)
+    async public Task<ActionResult> Strem(string link)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

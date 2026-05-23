@@ -48,8 +48,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/alloha")]
     async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, byte serial, string original_language, short year, int t = -1, short s = -1, bool rjson = false, bool similar = false)
     {
@@ -341,7 +340,7 @@ public class AllohaController : BaseOnlineController<ModuleConf>
     #endregion
 
     #region RouteToSpiderSearch
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/alloha-search")]
     async public Task<ActionResult> RouteToSpiderSearch(string title)
     {

@@ -22,8 +22,7 @@ public class ChaturbateController : BaseSisiController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache]
     [Route("chu")]
     async public Task<ActionResult> Index(string search, string sort, int pg = 1)
     {
@@ -56,10 +55,9 @@ public class ChaturbateController : BaseSisiController
     }
 
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("chu/potok")]
-    async public Task<ActionResult> Index(string baba)
+    async public Task<ActionResult> Vidosik(string baba)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

@@ -108,7 +108,6 @@ public class CubProxyController : BaseController
                 HttpContext.Response.ContentType = "text/plain; charset=utf-8";
                 HttpContext.Response.StatusCode = StatusCodes.Status200OK;
                 HttpContext.Response.BodyWriter.Write("ok"u8);
-                await HttpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                 return;
             }
             #endregion
@@ -119,7 +118,6 @@ public class CubProxyController : BaseController
                 HttpContext.Response.ContentType = "application/json; charset=utf-8";
                 HttpContext.Response.StatusCode = StatusCodes.Status200OK;
                 HttpContext.Response.BodyWriter.Write("[]"u8);
-                await HttpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                 return;
             }
             #endregion
@@ -130,7 +128,6 @@ public class CubProxyController : BaseController
                 HttpContext.Response.ContentType = "application/json; charset=utf-8";
                 HttpContext.Response.StatusCode = StatusCodes.Status200OK;
                 HttpContext.Response.BodyWriter.Write("{\"secuses\":true}"u8);
-                await HttpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                 return;
             }
 
@@ -330,7 +327,6 @@ public class CubProxyController : BaseController
                         HttpContext.Response.ContentType = "text/plain; charset=utf-8";
                         HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
                         HttpContext.Response.BodyWriter.Write("502 Bad Gateway"u8);
-                        await HttpContext.Response.BodyWriter.FlushAsync(ctsHttp.Token).ConfigureAwait(false);
                         return;
                     }
 

@@ -73,12 +73,15 @@ public static class Fnv1a
         }
     }
 
-    public static string Base64Url(in Fnv1aHash key)
+    public static string Base64Url(string value)
+        => Base64Url(Hash(value));
+
+    public static string Base64Url(in Fnv1aHash hash)
     {
         Span<byte> bytes = stackalloc byte[16];
 
-        BinaryPrimitives.WriteUInt64BigEndian(bytes[..8], key.H1);
-        BinaryPrimitives.WriteUInt64BigEndian(bytes[8..], key.H2);
+        BinaryPrimitives.WriteUInt64BigEndian(bytes[..8], hash.H1);
+        BinaryPrimitives.WriteUInt64BigEndian(bytes[8..], hash.H2);
 
         return System.Buffers.Text.Base64Url.EncodeToString(bytes);
     }

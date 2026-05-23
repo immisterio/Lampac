@@ -37,8 +37,7 @@ public class CollapsController : BaseOnlineController<ModuleConf>
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/collaps")]
     async public Task<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, short s = -1, bool rjson = false, bool similar = false)
     {
@@ -72,7 +71,7 @@ public class CollapsController : BaseOnlineController<ModuleConf>
     }
 
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/collaps-search")]
     async public Task<ActionResult> RouteSearch(string title)
     {

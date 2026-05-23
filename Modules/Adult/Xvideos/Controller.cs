@@ -24,11 +24,8 @@ public class XvideosController : BaseSisiController
         };
     }
 
-    [HttpGet]
-    [Staticache]
-    [Route("xds")]
-    [Route("xdsgay")]
-    [Route("xdssml")]
+    [HttpGet, Staticache]
+    [Route("xds"), Route("xdsgay"), Route("xdssml")]
     async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
     {
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
@@ -63,11 +60,8 @@ public class XvideosController : BaseSisiController
         );
     }
 
-    [HttpGet]
-    [Staticache]
-    [Route("xds/stars")]
-    [Route("xdsgay/stars")]
-    [Route("xdssml/stars")]
+    [HttpGet, Staticache]
+    [Route("xds/stars"), Route("xdsgay/stars"), Route("xdssml/stars")]
     async public Task<ActionResult> Pornstars(string uri, string sort, int pg = 0)
     {
         if (await IsRequestBlocked(rch: true, rch_keepalive: -1))
@@ -97,10 +91,9 @@ public class XvideosController : BaseSisiController
         return PlaylistResult(cache);
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("xds/vidosik")]
-    async public Task<ActionResult> Index(string uri, bool related)
+    async public Task<ActionResult> Vidosik(string uri, bool related)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

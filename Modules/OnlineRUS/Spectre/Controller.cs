@@ -3,6 +3,7 @@ using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
@@ -28,7 +29,7 @@ public class SpectreController : BaseOnlineController<ModuleConf>
         };
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/spectre")]
     async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, byte serial, string original_language, short year, int t = -1, short s = -1, bool origsource = false, bool rjson = false, bool similar = false)
     {
@@ -361,7 +362,7 @@ public class SpectreController : BaseOnlineController<ModuleConf>
 
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/spectre/video")]
     [Route("lite/spectre/video.m3u8")]
     async public Task<ActionResult> Video(long id_file, string token_movie, bool play)
@@ -402,7 +403,7 @@ public class SpectreController : BaseOnlineController<ModuleConf>
     #endregion
 
     #region SpiderSearch
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/spectre-search")]
     async public Task<ActionResult> RouteSpiderSearch(string title, bool origsource = false, bool rjson = false)
     {

@@ -18,8 +18,7 @@ public class AniMediaController : BaseOnlineController
 {
     public AniMediaController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/animedia")]
     async public Task<ActionResult> Index(string title, string news, bool rjson = false, bool similar = false)
     {

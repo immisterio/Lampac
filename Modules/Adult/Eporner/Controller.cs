@@ -24,8 +24,7 @@ public class EpornerController : BaseSisiController
         };
     }
 
-    [HttpGet]
-    [Staticache(11)]
+    [HttpGet, Staticache(11)]
     [Route("epr")]
     async public Task<ActionResult> Index(string search, string sort, string c, int pg = 1)
     {
@@ -116,9 +115,9 @@ public class EpornerController : BaseSisiController
         );
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("epr/vidosik")]
-    async public Task<ActionResult> Index(string uri, bool related)
+    async public Task<ActionResult> Vidosik(string uri, bool related)
     {
         if (await IsRequestBlocked(rch: true))
             return badInitMsg;

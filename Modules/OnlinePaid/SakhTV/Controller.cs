@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services;
@@ -86,7 +87,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
     }
     #endregion
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/sakhtv")]
     public async Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, short year, byte serial, short s = -1, string t = null, bool rjson = false, bool similar = false)
     {

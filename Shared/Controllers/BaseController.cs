@@ -14,6 +14,7 @@ using Shared.Models.SISI.OnResult;
 using Shared.Models.Templates;
 using Shared.Services;
 using Shared.Services.Kit;
+using System.Buffers;
 using System.Buffers.Text;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -1046,6 +1047,10 @@ public class BaseController : Controller
     #region accsArgs
     public string accsArgs(string uri)
     {
+        if (!CoreInit.conf.accsdb.enable)
+            return uri;
+
+        StatiCacheDisabled = true;
         return AccsDbInvk.Args(uri, HttpContext);
     }
     #endregion
@@ -1192,12 +1197,36 @@ public class BaseController : Controller
     #endregion
 
     #region ContentTo
-    public ActionResult ContentTo(string html)
+    public ActionResult ContentTo(string html, string contentType = null)
     {
         if (string.IsNullOrEmpty(html))
             return StatusCode(503);
 
-        return Content(html, html.StartsWith("{") || html.StartsWith("[") ? "application/json; charset=utf-8" : "text/html; charset=utf-8");
+        if (contentType == null)
+        {
+            contentType = html.StartsWith("{") || html.StartsWith("[")
+                ? "application/json; charset=utf-8"
+                : "text/html; charset=utf-8";
+        }
+
+        var writerStaticache = HttpContext.Features.Get<BufferWriterPool<byte>>();
+        if (writerStaticache != null)
+        {
+            var response = HttpContext.Response;
+            response.ContentType = contentType;
+
+            int maxBytes = Encoding.UTF8.GetMaxByteCount(html.Length);
+            using (var byteBuff = new BufferBytePool(maxBytes))
+            {
+                var buffer = byteBuff.Span;
+                int written = Encoding.UTF8.GetBytes(html, buffer);
+                writerStaticache.Write(buffer[..written]);
+            }
+
+            writerStaticache.Write(Encoding.UTF8.GetBytes(html));
+        }
+
+        return Content(html, contentType);
     }
     #endregion
 

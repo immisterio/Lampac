@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Events;
 using Shared.Services;
 using System;
@@ -19,16 +20,14 @@ namespace LampaWeb;
 
 public class ApiController : BaseController
 {
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
     [Route("/personal.lampa")]
     [Route("/lampa-main/personal.lampa")]
     [Route("/{myfolder}/personal.lampa")]
     public ActionResult PersonalLampa(string myfolder) => StatusCode(200);
 
 
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
     [Route("/reqinfo")]
     public ActionResult Reqinfo() => ContentTo(JsonConvert.SerializeObject(requestInfo, new JsonSerializerSettings()
     {
@@ -38,8 +37,7 @@ public class ApiController : BaseController
 
 
     #region Index
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
     [Route("/")]
     public ActionResult Index()
     {
@@ -64,8 +62,7 @@ public class ApiController : BaseController
     #endregion
 
     #region Extensions
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
     [Route("/extensions")]
     public ActionResult Extensions()
     {
@@ -81,8 +78,7 @@ public class ApiController : BaseController
     #endregion
 
     #region testaccsdb
-    [HttpGet]
-    [HttpPost]
+    [HttpGet, HttpPost]
     [Route("/testaccsdb")]
     public ActionResult TestAccsdb(string account_email, string uid)
     {
@@ -137,11 +133,10 @@ public class ApiController : BaseController
 
 
     #region app.min.js
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous, Staticache(manually: true)]
     [Route("/app.min.js")]
     [Route("{type}/app.min.js")]
-    public ContentResult LampaApp(string type)
+    public ActionResult LampaApp(string type)
     {
         SetHeadersNoCache();
 
@@ -228,16 +223,15 @@ public class ApiController : BaseController
             memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(5));
         }
 
-        return Content(file, "application/javascript; charset=utf-8");
+        return ContentTo(file, "application/javascript; charset=utf-8");
     }
     #endregion
 
     #region app.css
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous, Staticache(manually: true)]
     [Route("/css/app.css")]
     [Route("{type}/css/app.css")]
-    public ContentResult LampaAppCss(string type)
+    public ActionResult LampaAppCss(string type)
     {
         SetHeadersNoCache();
 
@@ -288,14 +282,13 @@ public class ApiController : BaseController
             memoryCache.Set(memKey, css, DateTime.Now.AddMinutes(5));
         }
 
-        return Content(css, "text/css; charset=utf-8");
+        return ContentTo(css, "text/css; charset=utf-8");
     }
     #endregion
 
 
     #region MSX
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous, Staticache(manually: true)]
     [Route("msx/start.json")]
     public ActionResult MSX()
     {
@@ -309,8 +302,7 @@ public class ApiController : BaseController
     #endregion
 
     #region Widgets
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
     [Route("samsung.wgt")]
     public ActionResult SamsWgt(string overwritehost)
     {
@@ -392,8 +384,7 @@ public class ApiController : BaseController
     #endregion
 
     #region lampainit.js
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous, Staticache(manually: true)]
     [Route("lampainit.js")]
     public ActionResult LamInit()
     {
@@ -439,7 +430,6 @@ public class ApiController : BaseController
 
         if (ModInit.conf.initPlugins.sync)
             plugins.Add(new("{localhost}/sync.js", 1, "Синхронизация", "lampac"));
-
         if (ModInit.conf.initPlugins.timecode)
             plugins.Add(new("{localhost}/timecode.js", 1, "Синхронизация тайм-кодов", "lampac"));
 
@@ -526,16 +516,18 @@ public class ApiController : BaseController
             string token = Regex.Match(HttpContext.Request.Host.Host, CoreInit.conf.accsdb.domainId_pattern).Groups[1].Value;
             sb = sb.Replace("{token}", token);
         }
-        else { sb = sb.Replace("{token}", string.Empty); }
+        else
+        {
+            sb = sb.Replace("{token}", string.Empty);
+        }
         #endregion
 
-        return Content(sb.ToString(), "application/javascript; charset=utf-8");
+        return ContentTo(sb.ToString(), "application/javascript; charset=utf-8");
     }
     #endregion
 
     #region on.js
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous, Staticache(manually: true)]
     [Route("on.js")]
     [Route("on/js/{token}")]
     [Route("on/h/{token}")]
@@ -627,13 +619,12 @@ public class ApiController : BaseController
             .Replace("{country}", requestInfo.Country ?? string.Empty)
             .Replace("{localhost}", host);
 
-        return Content(plugin, "application/javascript; charset=utf-8");
+        return ContentTo(plugin, "application/javascript; charset=utf-8");
     }
     #endregion
 
     #region dorama.js
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous, Staticache(manually: true)]
     [Route("dorama.js")]
     [Route("dorama/js/{token}")]
     public ActionResult Dorama(string token)
@@ -644,7 +635,7 @@ public class ApiController : BaseController
             .Replace("{localhost}", host)
             .Replace("{token}", HttpUtility.UrlEncode(token ?? string.Empty));
 
-        return Content(plugin, "application/javascript; charset=utf-8");
+        return ContentTo(plugin, "application/javascript; charset=utf-8");
     }
     #endregion
 
@@ -673,7 +664,7 @@ public class ApiController : BaseController
     #endregion
 
     #region telegram_auth_gate.js
-    [HttpGet]
+    [HttpGet, AllowAnonymous, Staticache(manually: true)]
     [Route("telegram_auth_gate.js")]
     public ActionResult TelegramAuthGate()
     {
@@ -683,7 +674,7 @@ public class ApiController : BaseController
             .Replace("{country}", requestInfo.Country)
             .Replace("{localhost}", host);
 
-        return Content(gate, "application/javascript; charset=utf-8");
+        return ContentTo(gate, "application/javascript; charset=utf-8");
     }
     #endregion
 }

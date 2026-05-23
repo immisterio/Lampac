@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.Services.Utilities;
@@ -14,7 +15,7 @@ public class ApiController : BaseOnlineController
 {
     public ApiController() : base(ModInit.conf) { }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/uafilm")]
     async public Task<ActionResult> Index(long id, int orid, string imdb_id, long kinopoisk_id, string title, string original_title, short year, short s = -1, bool rjson = false, bool similar = false)
     {

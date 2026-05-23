@@ -27,5 +27,7 @@ public class StaticacheRoute
 
     public int cacheMinutes { get; set; }
 
+    public bool skipUids { get; set; }
+
     public string[] queryKeys { get; set; }
 }

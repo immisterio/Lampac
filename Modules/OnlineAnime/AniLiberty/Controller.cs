@@ -28,8 +28,7 @@ public class AniLibertyController : BaseOnlineController
         };
     }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/aniliberty")]
     async public Task<ActionResult> Index(string title, short year, string releases, bool rjson = false, bool similar = false, string source = null, string id = null)
     {

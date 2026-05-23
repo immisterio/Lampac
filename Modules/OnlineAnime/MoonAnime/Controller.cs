@@ -19,8 +19,7 @@ public class MoonAnimeController : BaseOnlineController
 {
     public MoonAnimeController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/moonanime")]
     async public Task<ActionResult> Index(string imdb_id, string title, string original_title, long animeid, string t, short s = -1, bool rjson = false, bool similar = false)
     {
@@ -227,7 +226,7 @@ public class MoonAnimeController : BaseOnlineController
     }
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/moonanime/video")]
     [Route("lite/moonanime/video.m3u8")]
     async public Task<ActionResult> Video(string vod, bool play, string title, string original_title)
@@ -297,7 +296,7 @@ public class MoonAnimeController : BaseOnlineController
     #endregion
 
     #region Decode _0xd
-    public static string Decode(ReadOnlySpan<char> base64Input)
+    static string Decode(ReadOnlySpan<char> base64Input)
     {
         try
         {

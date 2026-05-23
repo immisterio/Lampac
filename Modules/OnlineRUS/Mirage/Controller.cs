@@ -4,6 +4,7 @@ using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.AppConf;
 using Shared.Models.Base;
 using Shared.Models.Templates;
@@ -61,7 +62,7 @@ public class MirageController : BaseOnlineController<ModuleConf>
         };
     }
 
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/mirage")]
     async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, byte serial, string original_language, short year, int t = -1, short s = -1, bool origsource = false, bool rjson = false, bool similar = false)
     {
@@ -374,7 +375,7 @@ public class MirageController : BaseOnlineController<ModuleConf>
 
 
     #region Video
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/mirage/video")]
     [Route("lite/mirage/video.m3u8")]
     async public Task<ActionResult> Video(long id_file, string token_movie, bool play)
@@ -710,7 +711,7 @@ public class MirageController : BaseOnlineController<ModuleConf>
 
 
     #region SpiderSearch
-    [HttpGet]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/mirage-search")]
     async public Task<ActionResult> RouteSpiderSearch(string title, bool origsource = false, bool rjson = false)
     {

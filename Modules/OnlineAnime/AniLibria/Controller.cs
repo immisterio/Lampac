@@ -10,8 +10,7 @@ public class AniLibriaController : BaseOnlineController
 {
     public AniLibriaController() : base(ModInit.conf) { }
 
-    [HttpGet]
-    [Staticache]
+    [HttpGet, Staticache(manually: true)]
     [Route("lite/anilibria")]
     public async Task<ActionResult> Index(string title, string code, short year, bool rjson = false, bool similar = false)
     {
