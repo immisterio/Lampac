@@ -55,7 +55,7 @@ public class MovPIController : BaseENGController
         ));
     }
 
-    
+
     async Task<(string m3u8, List<HeadersModel> headers)> black_magic(string uri)
     {
         if (string.IsNullOrEmpty(uri))
