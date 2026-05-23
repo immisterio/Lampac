@@ -31,6 +31,8 @@ namespace Shared;
 public class BaseController : Controller
 {
     #region static
+    protected static readonly EmptyResult _emptyResult = new();
+
     protected ActionResult badInitMsg { get; set; }
 
     public bool StatiCacheDisabled { get; set; }
@@ -1223,7 +1225,7 @@ public class BaseController : Controller
                 writerStaticache.Write(buffer[..written]);
             }
 
-            writerStaticache.Write(Encoding.UTF8.GetBytes(html));
+            return _emptyResult;
         }
 
         return Content(html, contentType);

@@ -27,8 +27,6 @@ public class BaseOnlineController : BaseOnlineController<OnlinesSettings>
 
 public class BaseOnlineController<T> : BaseController where T : BaseSettings, ICloneable
 {
-    static readonly EmptyResult _emptyResult = new();
-
     #region RchClient
     RchClient _rch = null;
 
