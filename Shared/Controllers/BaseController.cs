@@ -687,7 +687,7 @@ public class BaseController : Controller
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static string ClearStreamUri(string uri)
+    private static string ClearStreamUri(string uri)
     {
         if (string.IsNullOrEmpty(uri))
             return uri;
@@ -1241,10 +1241,10 @@ public class BaseController : Controller
 
     #region Encrypt/Decrypt Query
     public string EncryptQuery(ReadOnlySpan<char> value)
-        => CrypTo.EncryptQuery(value);
+        => AesTo.Encrypt(value.Trim());
 
     public string DecryptQuery(ReadOnlySpan<char> value)
-        => CrypTo.DecryptQuery(value);
+        => AesTo.Decrypt(value);
     #endregion
 
     #region JSRuntime

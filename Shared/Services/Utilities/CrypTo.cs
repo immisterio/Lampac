@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Unicode;
-using System.Web;
 
 namespace Shared.Services.Utilities;
 
@@ -18,6 +17,7 @@ public class CrypTo
     static char[] _threadCharBuffer;
     const int _threadCharSize = 1024;
     #endregion
+
 
     #region md5 - StringBuilder
     public static string md5(StringBuilder text)
@@ -215,20 +215,6 @@ public class CrypTo
     }
     #endregion
 
-    #region Encrypt/Decrypt Query
-    public static string EncryptQuery(ReadOnlySpan<char> value)
-    {
-        if (value.IsEmpty)
-            return string.Empty;
-
-        return AesTo.Encrypt(value.Trim());
-    }
-
-    public static string DecryptQuery(ReadOnlySpan<char> value)
-    {
-        return AesTo.Decrypt(value);
-    }
-    #endregion
 
     #region DecodeBase64
     public static string DecodeBase64(string base64Text)

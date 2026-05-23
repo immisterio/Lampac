@@ -45,7 +45,7 @@ public struct VideoDBInvoke
         {
             ismovie = !json.Contains("\"folder\":", StringComparison.Ordinal);
 
-            quality = json.Contains("2160p", StringComparison.Ordinal)
+            quality = json.Contains("2160p", StringComparison.Ordinal) 
                 ? "2160p"
                 : json.Contains("1080p", StringComparison.Ordinal)
                     ? "1080p"
@@ -106,7 +106,7 @@ public struct VideoDBInvoke
                             continue;
 
                         pl.streams.Add(new(
-                            host + $"lite/videodb/manifest.m3u8?link={CrypTo.EncryptQuery(link)}",
+                            host + $"lite/videodb/manifest.m3u8?link={AesTo.Encrypt(link)}",
                             file.Contains("2160p") ? "2160" : file.Contains("1080p") ? "1080" : file.Contains("720p") ? "720" : "480"
                         ));
                     }
@@ -222,7 +222,7 @@ public struct VideoDBInvoke
                                     continue;
 
                                 pl.streams.Add(new(
-                                    host + $"lite/videodb/manifest.m3u8?serial=true&link={CrypTo.EncryptQuery(link)}",
+                                    host + $"lite/videodb/manifest.m3u8?serial=true&link={AesTo.Encrypt(link)}",
                                     $"{m.Groups[1].Value}p"
                                 ));
                             }

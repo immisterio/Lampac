@@ -33,7 +33,7 @@ public class SisiApi : IModuleSisi
                         continue;
                 }
 
-                channels.Add(new SisiModuleItem(init.displayname, init, $"nexthub?plugin={CrypTo.EncryptQuery(plugin)}"));
+                channels.Add(new SisiModuleItem(init.displayname, init, $"nexthub?plugin={AesTo.Encrypt(plugin)}"));
             }
             catch (Exception ex)
             {
