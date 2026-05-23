@@ -1231,37 +1231,37 @@ public static class Http
     #region DownloadFile
     async public static Task<bool> DownloadFile(string url, string path, int timeoutSeconds = 20, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null)
     {
+        var client = FriendlyHttp.MessageClient(
+            "base",
+            HandlerOrNull(url, proxy),
+            out bool disposeHttpClient
+        );
+
         try
         {
-            using (var handler = Handler(url, proxy))
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
             {
-                using (var client = new HttpClient(handler))
+                Version = HttpVersion.Version11
+            })
+            {
+                DefaultRequestHeaders(url, req, null, null, headers, true);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(20, timeoutSeconds))))
                 {
-                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-
-                    bool setDefaultUseragent = true;
-
-                    if (headers != null)
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
-                        foreach (var item in headers)
+                        if (response.StatusCode != HttpStatusCode.OK)
+                            return false;
+
+                        HttpContent content = response.Content;
+
+                        await using (var stream = await content.ReadAsStreamAsync())
                         {
-                            if (item.name.Equals("user-agent", StringComparison.OrdinalIgnoreCase))
-                                setDefaultUseragent = false;
-
-                            if (!client.DefaultRequestHeaders.Contains(item.name))
-                                client.DefaultRequestHeaders.Add(item.name, item.val);
-                        }
-                    }
-
-                    if (setDefaultUseragent)
-                        client.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-
-                    await using (var stream = await client.GetStreamAsync(url))
-                    {
-                        await using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize, options: FileOptions.Asynchronous))
-                        {
-                            await stream.CopyToAsync(fileStream);
-                            return true;
+                            await using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                            {
+                                await stream.CopyToAsync(fileStream);
+                                return true;
+                            }
                         }
                     }
                 }
@@ -1270,6 +1270,11 @@ public static class Http
         catch
         {
             return false;
+        }
+        finally
+        {
+            if (disposeHttpClient)
+                client.Dispose();
         }
     }
     #endregion

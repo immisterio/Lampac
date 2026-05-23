@@ -15,7 +15,7 @@ public static class FriendlyHttp
     readonly record struct HttpClientModel(DateTime lifetime, HttpClient http);
     readonly record struct ProxyClientKey(string Host, int Port, string UserName, string Password, long MaxBufferSize, bool AllowAutoRedirect);
 
-    static ConcurrentDictionary<ProxyClientKey, HttpClientModel> _clients = new();
+    static readonly ConcurrentDictionary<ProxyClientKey, HttpClientModel> _clients = new();
 
     static readonly RemoteCertificateValidationCallback AcceptAnyCertificate = AcceptAnyCertificateHandler;
     static bool AcceptAnyCertificateHandler(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
