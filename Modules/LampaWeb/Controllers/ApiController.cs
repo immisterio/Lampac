@@ -274,7 +274,7 @@ public class ApiController : BaseController
 
     #region MSX
     [HttpGet, AllowAnonymous]
-	[Staticache(20)]
+    [Staticache(20)]
     [Route("msx/start.json")]
     public ActionResult MSX()
     {
