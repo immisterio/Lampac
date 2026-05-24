@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Shared;
 using Shared.Attributes;
 using Shared.Models.AppConf;
@@ -225,7 +226,10 @@ public class Staticache
             httpContext.Response.Headers["X-StatiCache-Status"] = "HIT";
 
             if (_r.contentLength > 0)
+            {
                 httpContext.Response.ContentLength = _r.contentLength;
+                httpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
+            }
 
             httpContext.Response.ContentType = _r.ext switch
             {

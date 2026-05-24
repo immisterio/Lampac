@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
 using Shared;
 using Shared.Attributes;
 using Shared.Models.Base;
@@ -129,14 +128,13 @@ public class TmdbProxyController : BaseController
         ReadOnlySpan<char> path = RequestPath(HttpContext.Request.Path.Value, "/tmdb/img/");
         string uri = RequestUri(tmdbImgHost, path, HttpContext.Request.Query);
 
-        HttpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
         HttpContext.Response.ContentType = path.Contains(".png", StringComparison.OrdinalIgnoreCase)
             ? "image/png"
             : path.Contains(".svg", StringComparison.OrdinalIgnoreCase) ? "image/svg+xml" : "image/jpeg";
 
         var proxyManager = ModInit.conf.proxyimg?.useproxy == true
-                ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
-                : null;
+            ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
+            : null;
 
         var client = FriendlyHttp.MessageClient(
             "proxyimg",
