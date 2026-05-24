@@ -24,7 +24,6 @@ public class BaseSisiController : BaseSisiController<SisiSettings>
 public class BaseSisiController<T> : BaseController where T : BaseSettings, ICloneable
 {
     #region static
-    static readonly EmptyResult _emptyResult = new();
     static readonly IReadOnlyList<MenuItem> emptyMenu = new List<MenuItem>();
     public static readonly SisiJsonContext jsonContext = SisiJsonContext.Default;
 
