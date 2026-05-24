@@ -3,23 +3,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Services;
-using Shared.Services.Hybrid;
 using Shared.Services.Pools;
-using Shared.Services.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using IO = System.IO;
 
 namespace TmdbProxy;
 
@@ -53,6 +49,7 @@ public class TmdbProxyController : BaseController
     );
     #endregion
 
+    #region tmdbproxy.js
     [HttpGet]
     [AllowAnonymous]
     [Route("tmdbproxy.js")]
@@ -67,289 +64,134 @@ public class TmdbProxyController : BaseController
 
         return Content(plugin, "application/javascript; charset=utf-8");
     }
-
-    [HttpGet]
-    [Route("tmdb/{*suffix}")]
-    public Task Tmdb()
-    {
-        string path = HttpContext.Request.Path.Value;
-
-        if (path.StartsWith("/tmdb/api/", StringComparison.Ordinal))
-            return API(HttpContext, hybridCache, requestInfo);
-
-        if (path.StartsWith("/tmdb/img/", StringComparison.Ordinal))
-            return IMG(HttpContext, requestInfo);
-
-        if (path.Contains(tmdbApiHost, StringComparison.Ordinal))
-            return API(HttpContext, hybridCache, requestInfo);
-
-        if (path.Contains(tmdbImgHost, StringComparison.Ordinal))
-            return IMG(HttpContext, requestInfo);
-
-        HttpContext.Response.StatusCode = 403;
-        return Task.CompletedTask;
-    }
-
+    #endregion
 
     #region API
-    async static Task API(HttpContext httpContext, IHybridCache hybridCache, RequestModel requestInfo)
+    [HttpGet]
+    [Staticache(
+        always: true,
+        setHeadersNoCache: true,
+        skipUids: true,
+        queryKeys = [".*"]
+    )]
+    [Route("tmdb/api/{*suffix}")]
+    async public Task TmdbAPI()
     {
-        using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
+        IBufferWriter<byte> bodyWriter = StaticacheOrBodyWriter();
+        HttpContext.Response.ContentType = "application/json; charset=utf-8";
+
+        var proxyManager = ModInit.conf.proxyapi?.useproxy == true
+            ? new ProxyManager("tmdb_api", ModInit.conf.proxyapi)
+            : null;
+
+        ReadOnlySpan<char> path = RequestPath(HttpContext.Request.Path.Value, "/tmdb/api/");
+
+        var result = await Http.BaseGetAsync<JsonObject>(
+            RequestUri(tmdbApiHost, path, HttpContext.Request.Query),
+            textJson: true,
+            timeoutSeconds: 15,
+            httpversion: ModInit.conf.httpversion,
+            proxy: proxyManager?.Get(),
+            statusCodeOK: false,
+            httpClient: ModInit.conf.httpversion == 2
+                ? http2ApiClient
+                : null
+        ).ConfigureAwait(false);
+
+        if (result.content == null)
         {
-            ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
-
-            var bodyWriter = httpContext.Response.BodyWriter;
-            httpContext.Response.ContentType = "application/json; charset=utf-8";
-
-            ReadOnlySpan<char> path = RequestPath(httpContext.Request.Path.Value, "/tmdb/api/", tmdbApiHost);
-            string uri = RequestUri(tmdbApiHost, path, httpContext.Request.Query);
-
-            var entryCache = await hybridCache.EntryAsync<CacheModel>(uri, textJson: true);
-
-            if (entryCache.success)
-            {
-                httpContext.Response.Headers["X-Cache-Status"] = "HIT";
-                httpContext.Response.StatusCode = entryCache.value.statusCode;
-
-                using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
-                    JsonSerializer.Serialize(writer, entryCache.value.json);
-            }
-            else
-            {
-                httpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                var proxyManager = ModInit.conf.proxyapi?.useproxy == true
-                    ? new ProxyManager("tmdb_api", ModInit.conf.proxyapi)
-                    : null;
-
-                var result = await Http.BaseGetAsync<JsonObject>(
-                    uri,
-                    textJson: true,
-                    timeoutSeconds: 15,
-                    httpversion: ModInit.conf.httpversion,
-                    proxy: proxyManager?.Get(),
-                    statusCodeOK: false,
-                    httpClient: ModInit.conf.httpversion == 2
-                        ? http2ApiClient
-                        : null
-                ).ConfigureAwait(false);
-
-                if (result.content == null)
-                {
-                    proxyManager?.Refresh();
-                    httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    bodyWriter.Write("{\"error\":true,\"msg\":\"json null\"}"u8);
-                    return;
-                }
-
-                int statusCode = (int)result.response.StatusCode;
-                httpContext.Response.StatusCode = statusCode;
-
-                var cacheModel = new CacheModel(result.content, statusCode);
-
-                if (result.content.ContainsKey("status_message") || result.response.StatusCode != HttpStatusCode.OK)
-                    hybridCache.Set(uri, cacheModel, DateTime.Now.AddMinutes(1), inmemory: true);
-                else
-                    hybridCache.Set(uri, cacheModel, DateTime.Now.AddMinutes(ModInit.conf.cache_api), textJson: true);
-
-                using (var writer = new Utf8JsonWriter(new ChunkBufferWriter<byte>(bodyWriter), jsonWriterOptions))
-                    JsonSerializer.Serialize(writer, result.content);
-            }
+            proxyManager?.Refresh();
+            HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            bodyWriter.Write("{\"error\":true,\"msg\":\"json null\"}"u8);
+            return;
         }
+
+        HttpContext.Response.StatusCode = result.content.ContainsKey("status_message")
+            ? StatusCodes.Status400BadRequest
+            : (int)result.response.StatusCode;
+
+        if (HttpContext.Response.StatusCode == 200 && ModInit.conf.cache_api > 0)
+            HttpContext.Features.Set(new StatiCacheEntry(DateTimeOffset.Now.AddMinutes(ModInit.conf.cache_api)));
+
+        using (var writer = new Utf8JsonWriter(bodyWriter, jsonWriterOptions))
+            JsonSerializer.Serialize(writer, result.content);
     }
     #endregion
 
     #region IMG
-    async static Task IMG(HttpContext httpContext, RequestModel requestInfo)
+    [HttpGet]
+    [Staticache(always: true)]
+    [Route("tmdb/img/{*suffix}")]
+    async public Task TmdbIMG()
     {
-        using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
+        IBufferWriter<byte> bodyWriter = StaticacheOrBodyWriter();
+
+        ReadOnlySpan<char> path = RequestPath(HttpContext.Request.Path.Value, "/tmdb/img/");
+        string uri = RequestUri(tmdbImgHost, path, HttpContext.Request.Query);
+
+        HttpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
+        HttpContext.Response.ContentType = path.Contains(".png", StringComparison.OrdinalIgnoreCase)
+            ? "image/png"
+            : path.Contains(".svg", StringComparison.OrdinalIgnoreCase) ? "image/svg+xml" : "image/jpeg";
+
+        var proxyManager = ModInit.conf.proxyimg?.useproxy == true
+                ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
+                : null;
+
+        var client = FriendlyHttp.MessageClient(
+            "proxyimg",
+            Http.HandlerOrNull(uri, proxyManager?.Get()),
+            out bool disposeHttpClient,
+            findNoRedirectClient: false,
+            httpClient: ModInit.conf.httpversion == 2
+                ? http2ImgClient
+                : null
+        );
+
+        using (var req = new HttpRequestMessage(HttpMethod.Get, uri)
         {
-            ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
-
-            ReadOnlySpan<char> path = RequestPath(httpContext.Request.Path.Value, "/tmdb/img/", tmdbImgHost);
-            string uri = RequestUri(tmdbImgHost, path, httpContext.Request.Query);
-
-            string md5key = CrypTo.md5(uri);
-            string outFile = ModInit.fileWatcher.OutFile(md5key);
-
-            httpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
-            httpContext.Response.ContentType = path.Contains(".png", StringComparison.OrdinalIgnoreCase)
-                ? "image/png"
-                : path.Contains(".svg", StringComparison.OrdinalIgnoreCase) ? "image/svg+xml" : "image/jpeg";
-
-            #region cacheFiles
-            if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
-            {
-                httpContext.Response.Headers["X-Cache-Status"] = "HIT";
-
-                if (ModInit.conf.responseContentLength && _fileCache.Length > 0)
-                    httpContext.Response.ContentLength = _fileCache.Length;
-
-                await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
-                return;
-            }
-            #endregion
-
-            ProxyManager proxyManager = null;
-            var semaphore = new SemaphorManager(outFile, ctsHttp.Token);
+            Version = httpVersion
+        })
+        {
+            foreach (var h in headersImg)
+                req.Headers.TryAddWithoutValidation(h.name, h.val);
 
             try
             {
-                bool _acquired = await semaphore.WaitAsync().ConfigureAwait(false);
-                if (!_acquired)
+                using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
                 {
-                    httpContext.Response.Redirect(uri);
-                    return;
-                }
+                    HttpContext.Response.StatusCode = (int)response.StatusCode;
 
-                if (ctsHttp.IsCancellationRequested)
-                    return;
-
-                #region cacheFiles
-                if (ModInit.fileWatcher.TryGetValue(md5key, out _fileCache))
-                {
-                    httpContext.Response.Headers["X-Cache-Status"] = "HIT";
-
-                    if (ModInit.conf.responseContentLength && _fileCache.Length > 0)
-                        httpContext.Response.ContentLength = _fileCache.Length;
-
-                    semaphore.Release();
-                    await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
-                    return;
-                }
-                #endregion
-
-                proxyManager = ModInit.conf.proxyimg?.useproxy == true
-                    ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
-                    : null;
-
-                var client = FriendlyHttp.MessageClient(
-                    "proxyimg",
-                    Http.HandlerOrNull(uri, proxyManager?.Get()),
-                    out bool disposeHttpClient,
-                    findNoRedirectClient: false,
-                    httpClient: ModInit.conf.httpversion == 2
-                        ? http2ImgClient
-                        : null
-                );
-
-                using (var req = new HttpRequestMessage(HttpMethod.Get, uri)
-                {
-                    Version = httpVersion
-                })
-                {
-                    foreach (var h in headersImg)
-                        req.Headers.TryAddWithoutValidation(h.name, h.val);
-
-                    try
+                    if (response.StatusCode == HttpStatusCode.OK)
                     {
-                        using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
+                        proxyManager?.Success();
+
+                        if (ModInit.conf.cache_img > 0)
+                            HttpContext.Features.Set(new StatiCacheEntry(DateTimeOffset.Now.AddMinutes(ModInit.conf.cache_img)));
+                    }
+                    else
+                        proxyManager?.Refresh();
+
+                    if (response.Content.Headers.ContentLength.HasValue)
+                        HttpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+
+                    await using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    {
+                        using (var nbuf = new BufferPool())
                         {
-                            httpContext.Response.StatusCode = (int)response.StatusCode;
+                            int bytesRead;
+                            var memBuf = nbuf.Memory;
 
-                            if (ModInit.conf.responseContentLength && response.Content?.Headers?.ContentLength > 0)
-                                httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
-
-                            await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
-                            {
-                                using (var nbuf = new BufferPool())
-                                {
-                                    int bytesRead;
-                                    var memBuf = nbuf.Memory;
-
-                                    if (response.StatusCode == HttpStatusCode.OK)
-                                    {
-                                        #region cache img
-                                        httpContext.Response.Headers["X-Cache-Status"] = "MISS";
-
-                                        try
-                                        {
-                                            int cacheLength = 0;
-                                            bool isFullyRead = false;
-
-                                            ModInit.fileWatcher.EnsureDirectory(md5key);
-
-                                            await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
-                                                bufferSize: PoolInvk.bufferSize,
-                                                options: FileOptions.Asynchronous))
-                                            {
-                                                while (true)
-                                                {
-                                                    bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false);
-                                                    if (bytesRead <= 0)
-                                                    {
-                                                        isFullyRead = true;
-                                                        break;
-                                                    }
-
-                                                    cacheLength += bytesRead;
-                                                    if (ctsHttp.IsCancellationRequested)
-                                                        break;
-
-                                                    var wrm = memBuf.Slice(0, bytesRead);
-                                                    await cacheStream.WriteAsync(wrm).ConfigureAwait(false);
-                                                    await httpContext.Response.Body.WriteAsync(wrm, ctsHttp.Token).ConfigureAwait(false);
-                                                }
-                                            }
-
-                                            if (isFullyRead)
-                                            {
-                                                proxyManager?.Success();
-
-                                                if (response.Content.Headers.ContentLength.HasValue)
-                                                {
-                                                    if (response.Content.Headers.ContentLength.Value == cacheLength)
-                                                        ModInit.fileWatcher.Add(md5key, cacheLength);
-                                                    else
-                                                        IO.File.Delete(outFile);
-                                                }
-                                                else
-                                                {
-                                                    ModInit.fileWatcher.Add(md5key, cacheLength);
-                                                }
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            IO.File.Delete(outFile);
-                                        }
-                                        #endregion
-                                    }
-                                    else
-                                    {
-                                        #region проксируем ошибку
-                                        proxyManager?.Refresh();
-
-                                        httpContext.Response.Headers["X-Cache-Status"] = "bypass";
-
-                                        while ((bytesRead = await responseStream.ReadAsync(memBuf, ctsHttp.Token).ConfigureAwait(false)) > 0)
-                                        {
-                                            if (ctsHttp.IsCancellationRequested)
-                                                break;
-
-                                            await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
-                                        }
-                                        #endregion
-                                    }
-                                }
-                            }
+                            while ((bytesRead = await responseStream.ReadAsync(memBuf).ConfigureAwait(false)) > 0)
+                                bodyWriter.Write(memBuf.Span.Slice(0, bytesRead));
                         }
                     }
-                    finally
-                    {
-                        if (disposeHttpClient)
-                            client.Dispose();
-                    }
                 }
-            }
-            catch
-            {
-                proxyManager?.Refresh();
-                httpContext.Response.Redirect(uri);
             }
             finally
             {
-                semaphore.Release();
+                if (disposeHttpClient)
+                    client.Dispose();
             }
         }
     }
@@ -357,20 +199,12 @@ public class TmdbProxyController : BaseController
 
 
     #region Helpers
-    static ReadOnlySpan<char> RequestPath(string pathString, string route, string tmdbHost)
+    static ReadOnlySpan<char> RequestPath(string pathString, string route)
     {
         ReadOnlySpan<char> path = pathString.AsSpan();
 
         if (path.StartsWith(route))
             path = path.Slice(9);
-
-        else if (path.StartsWith("/tmdb/"))
-            path = path.Slice(5);
-
-        if (path.StartsWith("/https:"))
-            path = path.Slice(9 + tmdbHost.Length);
-        else if (path.StartsWith("/http:"))
-            path = path.Slice(8 + tmdbHost.Length);
 
         if (path.StartsWith("//"))
             path = path.Slice(1);
@@ -393,7 +227,7 @@ public class TmdbProxyController : BaseController
 
         foreach (var q in query)
         {
-            if (q.Key is "account_email" or "email" or "box_mac" or "uid" or "token" or "nws_id")
+            if (CoreInit.SkipQueryKeys.Contains(q.Key))
                 continue;
 
             var values = q.Value;
