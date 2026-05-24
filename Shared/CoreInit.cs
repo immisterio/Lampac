@@ -50,7 +50,7 @@ public class CoreInit
 
     public static readonly FrozenSet<string> SkipQueryKeys = new[]
     {
-        "account_email", "cub_id", "box_mac", "uid", "token", "source", "rchtype", "nws_id"
+        "account_email", "email", "cub_id", "box_mac", "uid", "token", "rchtype", "nws_id"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     static CoreInit()

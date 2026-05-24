@@ -315,7 +315,10 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
         {
             var staticWriter = HttpContext.Features.Get<BufferWriterPool<byte>>();
             if (staticWriter != null)
+            {
                 staticWriter.ChangePool(Encoding.UTF8.GetMaxByteCount(sb.Length));
+                bodyWriter = staticWriter;
+            }
         }
 
         if (bodyWriter == null)

@@ -19,6 +19,9 @@ public static class ResponseCache
 
         foreach (var kvp in httpContext.Request.Query)
         {
+            if (kvp.Key == "source")
+                continue;
+
             if (CoreInit.SkipQueryKeys.Contains(kvp.Key))
                 continue;
 

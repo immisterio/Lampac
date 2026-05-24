@@ -70,6 +70,13 @@ public class StaticacheWriter
                     var ex = httpContext.Features.Get<StatiCacheEntry>()?.ex
                         ?? DateTimeOffset.Now.AddMinutes(stc.cacheMinutes);
 
+                    if (httpContext.Response.StatusCode != 200)
+                        ex = DateTimeOffset.Now.AddMinutes(1);
+
+                    int contentLength = (int)(httpContext.Response?.ContentLength ?? 0);
+                    if (contentLength > 0 && contentLength != buff.WrittenCount)
+                        ex = DateTimeOffset.Now.AddMinutes(1);
+
                     if (DateTimeOffset.Now > ex)
                         return;
 
@@ -78,6 +85,7 @@ public class StaticacheWriter
                         return;
 
                     string ext = "bin";
+                    bool isMedia = false;
                     string contentType = httpContext.Response.ContentType;
 
                     if (contentType != null)
@@ -90,9 +98,33 @@ public class StaticacheWriter
                             ext = "js";
                         else if (contentType.StartsWith("text/css"))
                             ext = "css";
+                        else if (contentType.StartsWith("image/svg+xml"))
+                            ext = "svg";
+                        else if (contentType.StartsWith("image/png"))
+                        {
+                            ext = "png";
+                            isMedia = true;
+                        }
+                        else if (contentType.StartsWith("image/jpeg"))
+                        {
+                            ext = "jpg";
+                            isMedia = true;
+                        }
+                        else if (contentType.StartsWith("image/webp"))
+                        {
+                            ext = "webp";
+                            isMedia = true;
+                        }
                     }
 
-                    string cachefile = Staticache.GetFilePath(cachekey, ex, ext);
+                    if (isMedia && contentLength == 0)
+                    {
+                        contentLength = buff.WrittenCount;
+                        httpContext.Response.ContentLength = contentLength;
+                    }
+
+                    long exTicks = ex.ToUnixTimeMilliseconds();
+                    string cachefile = Staticache.GetFilePath(cachekey, exTicks, contentLength, ext);
 
                     await using (var fileStream = new FileStream(cachefile, FileMode.Create, FileAccess.Write, FileShare.None,
                         bufferSize: PoolInvk.bufferSize,
@@ -101,7 +133,7 @@ public class StaticacheWriter
                         await fileStream.WriteAsync(buff.WrittenMemory);
                     }
 
-                    Staticache.cacheFiles.TryAdd(cachekey, new(ex, ext));
+                    Staticache.cacheFiles[cachekey] = new CacheModel(exTicks, ext, (short)httpContext.Response.StatusCode, contentLength);
                 }
                 catch (Exception ex)
                 {

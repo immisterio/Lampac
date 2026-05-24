@@ -14,6 +14,7 @@ using Shared.Models.SISI.OnResult;
 using Shared.Models.Templates;
 using Shared.Services;
 using Shared.Services.Kit;
+using System.Buffers;
 using System.Buffers.Text;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -1266,6 +1267,17 @@ public class BaseController : Controller
         }
 
         return Content(html, contentType);
+    }
+    #endregion
+
+    #region StaticacheOrBodyWriter
+    public IBufferWriter<byte> StaticacheOrBodyWriter()
+    {
+        var staticWriter = HttpContext.Features.Get<BufferWriterPool<byte>>();
+        if (staticWriter != null)
+            return staticWriter;
+
+        return new ChunkBufferWriter<byte>(HttpContext.Response.BodyWriter);
     }
     #endregion
 

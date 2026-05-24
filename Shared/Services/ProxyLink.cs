@@ -263,6 +263,7 @@ public class ProxyLink : IProxyLink
             {
                 ".png" => ".png",
                 ".webp" => ".webp",
+                ".svg" => ".svg",
                 _ => ".jpg"
             };
         }
@@ -288,6 +289,7 @@ public class ProxyLink : IProxyLink
                 ".jpg" or ".jpeg" => ".jpg",
                 ".png" => ".png",
                 ".webp" => ".webp",
+                ".svg" => ".svg",
                 _ => string.Empty
             };
         }

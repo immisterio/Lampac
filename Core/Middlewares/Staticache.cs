@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace Core.Middlewares;
 
-public readonly record struct CacheModel(DateTimeOffset ex, string ext);
+public readonly record struct CacheModel(long ex, string ext, short statusCode = 200, int contentLength = 0);
 
 public class Staticache
 {
@@ -33,65 +33,49 @@ public class Staticache
 
     public static void Initialization()
     {
-        var now = DateTimeOffset.Now;
-        BucketFolders.Create("cache/static");
+        long now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
-        foreach (string inFile in Directory.EnumerateFiles("cache/static", "*", SearchOption.AllDirectories))
+        string cacheDir = Path.Combine("cache", "static");
+        BucketFolders.Create(cacheDir);
+
+        foreach (string inFile in Directory.EnumerateFiles(cacheDir, "*", SearchOption.AllDirectories))
         {
             try
             {
-                // cacheKey-<time>.<type>
+                /// cache\static\62\-DDVxczeTgFWOm32NktG6A-1779890234674_26362.jpg
                 ReadOnlySpan<char> fileName = inFile.AsSpan();
-                int lastSlash = fileName.LastIndexOfAny('\\', '/');
-                if (lastSlash >= 0)
-                    fileName = fileName.Slice(lastSlash + 1);
 
-                int dash = fileName.IndexOf('-');
-                if (dash <= 0)
+                /// cacheKey-<time>_<length>.<type>
+                fileName = fileName.Slice(fileName.LastIndexOfAny('\\', '/') + 1);
+
+                int dotIndex = fileName.LastIndexOf('.');
+
+                /// jpg
+                string ext = fileName.Slice(dotIndex + 1).ToString();
+
+                /// cacheKey-<time>_<length>
+                fileName = fileName.Slice(0, dotIndex);
+
+                int dashIndex = fileName.LastIndexOf('-');
+
+                // DDVxczeTgFWOm32NktG6A
+                string cachekey = new string(fileName.Slice(0, dashIndex));
+
+                int underIndex = fileName.LastIndexOf('_');
+
+                /// 26362
+                int contentLength = int.Parse(fileName.Slice(underIndex + 1));
+
+                /// 1779890234674
+                long unixTime = long.Parse(fileName.Slice(0, underIndex).Slice(dashIndex + 1));
+
+                if (now > unixTime || string.IsNullOrEmpty(cachekey) || string.IsNullOrEmpty(ext))
                 {
                     deleteFile(inFile);
                     continue;
                 }
 
-                // '.' после дефиса
-                int dot = fileName.Slice(dash + 1).IndexOf('.');
-                if (dot < 0)
-                {
-                    deleteFile(inFile);
-                    continue;
-                }
-
-                int firstDot = dash + 1 + dot;
-
-                #region ex
-                ReadOnlySpan<char> fileTimeSpan = fileName.Slice(dash + 1, firstDot - dash - 1);
-                if (!long.TryParse(fileTimeSpan, out long fileTime) || fileTime == 0)
-                {
-                    deleteFile(inFile);
-                    continue;
-                }
-
-                var ex = DateTimeOffset.FromUnixTimeMilliseconds(fileTime);
-                if (now > ex)
-                {
-                    deleteFile(inFile);
-                    continue;
-                }
-                #endregion
-
-                // <type> = первое расширение после точки (игнорируем ".gz" и любые суффиксы)
-                int typeEndRel = fileName.Slice(firstDot + 1).IndexOf('.');
-                int typeEnd = typeEndRel < 0 ? fileName.Length : firstDot + 1 + typeEndRel;
-
-                ReadOnlySpan<char> ext = fileName.Slice(firstDot + 1, typeEnd - (firstDot + 1));
-                if (ext.Length == 0)
-                {
-                    deleteFile(inFile);
-                    continue;
-                }
-
-                string cachekey = new string(fileName.Slice(0, dash));
-                cacheFiles.TryAdd(cachekey, new(ex, ext.ToString()));
+                cacheFiles.TryAdd(cachekey, new CacheModel(unixTime, ext, 200, contentLength));
             }
             catch
             {
@@ -104,7 +88,7 @@ public class Staticache
     {
         try
         {
-            var cutoff = DateTimeOffset.Now;
+            var cutoff = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
             foreach (var _c in cacheFiles)
             {
@@ -113,7 +97,7 @@ public class Staticache
 
                 if (cacheFiles.TryRemove(_c.Key, out _))
                 {
-                    string cachefile = GetFilePath(_c.Key, _c.Value.ex, _c.Value.ext);
+                    string cachefile = GetFilePath(_c.Key, _c.Value.ex, _c.Value.contentLength, _c.Value.ext);
                     deleteFile(cachefile);
                 }
             }
@@ -223,15 +207,25 @@ public class Staticache
         if (0 >= route.cacheMinutes)
             route.cacheMinutes = 1;
 
+        if (route.queryKeys == null)
+            route.queryKeys = staticache.queryKeys;
+
+        if (route.ignoreQueryKeys == null)
+            route.ignoreQueryKeys = staticache.ignoreQueryKeys;
+
         var parameters = endpoint.Metadata
             .GetMetadata<ControllerActionDescriptor>()?
             .Parameters;
 
-        string cachekey = getQueryKeys(httpContext, route.skipUids, parameters, route.queryKeys, route.ignoreQueryKeys);
+        string cachekey = getQueryKeys(httpContext, route.skipUids || staticache.skipUids, parameters, route.queryKeys, route.ignoreQueryKeys);
 
         if (cacheFiles.TryGetValue(cachekey, out CacheModel _r))
         {
+            httpContext.Response.StatusCode = _r.statusCode;
             httpContext.Response.Headers["X-StatiCache-Status"] = "HIT";
+
+            if (_r.contentLength > 0)
+                httpContext.Response.ContentLength = _r.contentLength;
 
             httpContext.Response.ContentType = _r.ext switch
             {
@@ -239,10 +233,14 @@ public class Staticache
                 "json" => "application/json; charset=utf-8",
                 "js" => "application/javascript; charset=utf-8",
                 "css" => "text/css; charset=utf-8",
+                "png" => "image/png",
+                "jpg" => "image/jpeg",
+                "svg" => "image/svg+xml",
+                "webp" => "image/webp",
                 _ => "application/octet-stream"
             };
 
-            string file = GetFilePath(cachekey, _r.ex, _r.ext);
+            string file = GetFilePath(cachekey, _r.ex, _r.contentLength, _r.ext);
             return httpContext.Response.SendFileAsync(file);
         }
 
@@ -319,6 +317,6 @@ public class Staticache
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string GetFilePath(string cachekey, DateTimeOffset ex, string ext)
-        => $"cache/static/{BucketFolders.Name(cachekey[0])}/{cachekey}-{ex.ToUnixTimeMilliseconds()}.{ext ?? "html"}";
+    public static string GetFilePath(string cachekey, long ex, int length, string ext)
+        => Path.Combine("cache", "static", BucketFolders.Name(cachekey[0]), $"{cachekey}-{ex}_{length}.{ext ?? "html"}");
 }
