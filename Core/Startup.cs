@@ -604,8 +604,7 @@ public class Startup
         if (init.listen.compression)
             app.UseResponseCompression();
 
-        if (init.Staticache.enable)
-            app.UseStaticache();
+        app.UseStaticache();
 
         if (midd.anonymousRequest)
             app.UseAnonymousRequest();
@@ -682,8 +681,7 @@ public class Startup
         if (init.openstat.enable)
             app.UseResponseAvgStatistics();
 
-        if (init.Staticache.enable)
-            app.UseStaticacheWriter();
+        app.UseStaticacheWriter();
 
         app.UseEndpoints(endpoints =>
         {

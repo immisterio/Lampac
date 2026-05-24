@@ -1,18 +1,19 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.ResponseCompression;
 using Newtonsoft.Json;
-using Shared.Services;
+using Newtonsoft.Json.Linq;
 using Shared.Models.AppConf;
 using Shared.Models.Browser;
+using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.ServerProxy;
 using Shared.Models.SISI.Base;
+using Shared.Services;
+using Shared.Services.Pools.Json;
+using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 using System.Threading;
 using YamlDotNet.Serialization;
-using Shared.Models.Events;
-using Shared.Services.Pools.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Shared;
 
@@ -46,6 +47,11 @@ public class CoreInit
     public readonly string guid = Guid.NewGuid().ToString();
 
     public static List<RootModule> modules = new List<RootModule>();
+
+    public static readonly FrozenSet<string> SkipQueryKeys = new[]
+    {
+        "account_email", "cub_id", "box_mac", "uid", "token", "source", "rchtype", "nws_id"
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     static CoreInit()
     {

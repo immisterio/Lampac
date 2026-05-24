@@ -309,9 +309,14 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             ? tpl.ToBuilderJson()
             : tpl.ToBuilderHtml();
 
-        IBufferWriter<byte> bodyWriter = StatiCacheDisabled
-            ? null
-            : HttpContext.Features.Get<BufferWriterPool<byte>>();
+        IBufferWriter<byte> bodyWriter = null;
+
+        if (StatiCacheDisabled == false)
+        {
+            var staticWriter = HttpContext.Features.Get<BufferWriterPool<byte>>();
+            if (staticWriter != null)
+                staticWriter.ChangePool(Encoding.UTF8.GetMaxByteCount(sb.Length));
+        }
 
         if (bodyWriter == null)
             bodyWriter = new ChunkBufferWriter<byte>(Response.BodyWriter);
@@ -343,6 +348,9 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
                     if (completed)
                         break;
+
+                    if (charsUsed == 0 && bytesUsed == 0)
+                        throw new InvalidOperationException("UTF8 encoder made no progress.");
                 }
             }
         }
@@ -362,7 +370,8 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             out int _bytesUsed,
             out bool _);
 
-        bodyWriter.Advance(_bytesUsed);
+        if (_bytesUsed > 0)
+            bodyWriter.Advance(_bytesUsed);
 
         return _emptyResult;
     }

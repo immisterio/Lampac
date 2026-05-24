@@ -133,13 +133,12 @@ public class ApiController : BaseController
 
 
     #region app.min.js
-    [HttpGet, AllowAnonymous, Staticache(manually: true)]
+    [HttpGet, AllowAnonymous]
+    [Staticache(20, always: true)]
     [Route("/app.min.js")]
     [Route("{type}/app.min.js")]
     public ActionResult LampaApp(string type)
     {
-        SetHeadersNoCache();
-
         if (string.IsNullOrEmpty(type))
         {
             if (ModInit.conf.path != null)
@@ -159,68 +158,62 @@ public class ApiController : BaseController
             type = Regex.Replace(type, "[^a-z0-9\\-]", "");
         }
 
-        string memKey = $"ApiController:{type}:{host}:app.min.js";
-        if (!memoryCache.TryGetValue(memKey, out string file))
+        string file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
+
+        #region appReplace
+        if (ModInit.conf.appReplace != null)
         {
-            file = IO.File.ReadAllText($"wwwroot/{type}/app.min.js");
-
-            #region appReplace
-            if (ModInit.conf.appReplace != null)
+            foreach (var r in ModInit.conf.appReplace)
             {
-                foreach (var r in ModInit.conf.appReplace)
-                {
-                    string val = r.Value;
-                    if (val.StartsWith("file:"))
-                        val = IO.File.ReadAllText(val.Substring(5));
+                string val = r.Value;
+                if (val.StartsWith("file:"))
+                    val = IO.File.ReadAllText(val.Substring(5));
 
-                    val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
-                    file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
-                }
+                val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                file = Regex.Replace(file, r.Key, val, RegexOptions.IgnoreCase);
             }
-            #endregion
+        }
+        #endregion
 
-            var bulder = new StringBuilder(file);
+        var bulder = new StringBuilder(file);
 
-            if (ModInit.conf.initPlugins.cubProxy)
-            {
-                bulder = bulder.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
+        if (ModInit.conf.initPlugins.cubProxy)
+        {
+            bulder = bulder.Replace("protocol + mirror + '/api/checker'", $"'{host}/cub/api/checker'");
 
-                string utlprotocol = file.Contains("Utils$1.protocol()") ?
-                    "Utils$1.protocol()" :
-                    "Utils$2.protocol()";
+            string utlprotocol = file.Contains("Utils$1.protocol()") ?
+                "Utils$1.protocol()" :
+                "Utils$2.protocol()";
 
-                bulder = bulder.Replace($"{utlprotocol} + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
-                bulder = bulder.Replace($"{utlprotocol} + object$2.cub_domain", $"'{host}/cub/red'");
-                bulder = bulder.Replace("object$2.cub_domain", $"'{CoreInit.conf.cub.mirror}'");
-            }
+            bulder = bulder.Replace($"{utlprotocol} + 'tmdb.' + object$2.cub_domain + '/' + u,", $"'{host}/cub/tmdb./' + u,");
+            bulder = bulder.Replace($"{utlprotocol} + object$2.cub_domain", $"'{host}/cub/red'");
+            bulder = bulder.Replace("object$2.cub_domain", $"'{CoreInit.conf.cub.mirror}'");
+        }
 
-            bulder = bulder.Replace("http://lite.lampa.mx", $"{host}/{type}");
-            bulder = bulder.Replace("https://yumata.github.io/lampa-lite", $"{host}/{type}");
+        bulder = bulder.Replace("http://lite.lampa.mx", $"{host}/{type}");
+        bulder = bulder.Replace("https://yumata.github.io/lampa-lite", $"{host}/{type}");
 
-            bulder = bulder.Replace("http://lampa.mx", $"{host}/{type}");
-            bulder = bulder.Replace("https://yumata.github.io/lampa", $"{host}/{type}");
+        bulder = bulder.Replace("http://lampa.mx", $"{host}/{type}");
+        bulder = bulder.Replace("https://yumata.github.io/lampa", $"{host}/{type}");
 
-            bulder = bulder.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
-            bulder = bulder.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
+        bulder = bulder.Replace("window.lampa_settings.dcma = dcma;", "window.lampa_settings.fixdcma = true;");
+        bulder = bulder.Replace("Storage.get('vpn_checked_ready', 'false')", "true");
 
-            bulder = bulder.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa
-            bulder = bulder.Replace("return status$1;", "return true;"); // отключение рекламы
-            bulder = bulder.Replace("if (!Storage.get('metric_uid', ''))", "return;"); // metric
-            bulder = bulder.Replace("function log(data) {", "function log(data) { return;");
-            bulder = bulder.Replace("function stat$1(method, name) {", "function stat$1(method, name) { return;");
-            bulder = bulder.Replace("if (domain) {", "if (false) {");
+        bulder = bulder.Replace("status$1 = false;", "status$1 = true;"); // local apk to personal.lampa
+        bulder = bulder.Replace("return status$1;", "return true;"); // отключение рекламы
+        bulder = bulder.Replace("if (!Storage.get('metric_uid', ''))", "return;"); // metric
+        bulder = bulder.Replace("function log(data) {", "function log(data) { return;");
+        bulder = bulder.Replace("function stat$1(method, name) {", "function stat$1(method, name) { return;");
+        bulder = bulder.Replace("if (domain) {", "if (false) {");
 
-            bulder = bulder.Replace("{localhost}", host);
+        bulder = bulder.Replace("{localhost}", host);
 
-            file = bulder.ToString();
+        file = bulder.ToString();
 
-            if (EventListener.AppReplace != null)
-            {
-                foreach (Func<string, EventAppReplace, string> handler in EventListener.AppReplace.GetInvocationList())
-                    file = handler.Invoke("appjs", new EventAppReplace(file, null, type, host, requestInfo, HttpContext.Request));
-            }
-
-            memoryCache.Set(memKey, file, DateTime.Now.AddMinutes(5));
+        if (EventListener.AppReplace != null)
+        {
+            foreach (Func<string, EventAppReplace, string> handler in EventListener.AppReplace.GetInvocationList())
+                file = handler.Invoke("appjs", new EventAppReplace(file, null, type, host, requestInfo, HttpContext.Request));
         }
 
         return ContentTo(file, "application/javascript; charset=utf-8");
@@ -228,13 +221,12 @@ public class ApiController : BaseController
     #endregion
 
     #region app.css
-    [HttpGet, AllowAnonymous, Staticache(manually: true)]
+    [HttpGet, AllowAnonymous]
+    [Staticache(20, always: true)]
     [Route("/css/app.css")]
     [Route("{type}/css/app.css")]
     public ActionResult LampaAppCss(string type)
     {
-        SetHeadersNoCache();
-
         if (string.IsNullOrEmpty(type))
         {
             if (ModInit.conf.path != null)
@@ -254,32 +246,25 @@ public class ApiController : BaseController
             type = Regex.Replace(type, "[^a-z0-9\\-]", "");
         }
 
+        string css = IO.File.ReadAllText($"wwwroot/{type}/css/app.css");
 
-        string memKey = $"ApiController:css/app.css:{type}:{host}";
-        if (!memoryCache.TryGetValue(memKey, out string css))
+        if (ModInit.conf.cssReplace != null)
         {
-            css = IO.File.ReadAllText($"wwwroot/{type}/css/app.css");
-
-            if (ModInit.conf.cssReplace != null)
+            foreach (var r in ModInit.conf.cssReplace)
             {
-                foreach (var r in ModInit.conf.cssReplace)
-                {
-                    string val = r.Value;
-                    if (val.StartsWith("file:"))
-                        val = IO.File.ReadAllText(val.Substring(5));
+                string val = r.Value;
+                if (val.StartsWith("file:"))
+                    val = IO.File.ReadAllText(val.Substring(5));
 
-                    val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
-                    css = Regex.Replace(css, r.Key, val, RegexOptions.IgnoreCase);
-                }
+                val = val.Replace("{localhost}", host).Replace("{host}", Regex.Replace(host, "^https?://", ""));
+                css = Regex.Replace(css, r.Key, val, RegexOptions.IgnoreCase);
             }
+        }
 
-            if (EventListener.AppReplace != null)
-            {
-                foreach (Func<string, EventAppReplace, string> handler in EventListener.AppReplace.GetInvocationList())
-                    css = handler.Invoke("appcss", new EventAppReplace(css, null, type, host, requestInfo, HttpContext.Request));
-            }
-
-            memoryCache.Set(memKey, css, DateTime.Now.AddMinutes(5));
+        if (EventListener.AppReplace != null)
+        {
+            foreach (Func<string, EventAppReplace, string> handler in EventListener.AppReplace.GetInvocationList())
+                css = handler.Invoke("appcss", new EventAppReplace(css, null, type, host, requestInfo, HttpContext.Request));
         }
 
         return ContentTo(css, "text/css; charset=utf-8");
@@ -288,7 +273,8 @@ public class ApiController : BaseController
 
 
     #region MSX
-    [HttpGet, AllowAnonymous, Staticache(manually: true)]
+    [HttpGet, AllowAnonymous]
+	[Staticache(20)]
     [Route("msx/start.json")]
     public ActionResult MSX()
     {
@@ -384,7 +370,8 @@ public class ApiController : BaseController
     #endregion
 
     #region lampainit.js
-    [HttpGet, AllowAnonymous, Staticache(manually: true)]
+    [HttpGet, AllowAnonymous]
+    [Staticache(20, manually: true)] // {country}
     [Route("lampainit.js")]
     public ActionResult LamInit()
     {
@@ -527,7 +514,8 @@ public class ApiController : BaseController
     #endregion
 
     #region on.js
-    [HttpGet, AllowAnonymous, Staticache(manually: true)]
+    [HttpGet, AllowAnonymous]
+    [Staticache(20, manually: true)] // {country}
     [Route("on.js")]
     [Route("on/js/{token}")]
     [Route("on/h/{token}")]

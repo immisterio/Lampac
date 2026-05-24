@@ -1,17 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Collections.Frozen;
 
 namespace Shared.Services;
 
 public static class ResponseCache
 {
-    static readonly FrozenSet<string> SensitiveKeys = new[]
-    {
-        "account_email", "cub_id", "box_mac", "uid", "token", "source", "rchtype", "nws_id"
-    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
     const string Prefix = "ResponseCache:errorMsg:";
-
 
     public static string ErrorKey(HttpContext httpContext)
     {
@@ -19,28 +12,23 @@ public static class ResponseCache
             string.IsNullOrEmpty(httpContext.Request.QueryString.Value))
             return null;
 
-        var sb = StringBuilderPool.ThreadInstance;
+        var hash = Fnv1a.Empty;
 
-        sb.Append(Prefix);
-        sb.Append(httpContext.Request.Path.Value);
+        Fnv1a.Append(ref hash, Prefix);
+        Fnv1a.Append(ref hash, httpContext.Request.Path.Value);
 
-        bool first = true;
         foreach (var kvp in httpContext.Request.Query)
         {
-            if (SensitiveKeys.Contains(kvp.Key))
+            if (CoreInit.SkipQueryKeys.Contains(kvp.Key))
                 continue;
 
             foreach (var value in kvp.Value)
             {
-                sb.Append(first ? '?' : '&');
-                first = false;
-
-                sb.Append(kvp.Key);
-                sb.Append('=');
-                sb.Append(value);
+                Fnv1a.Append(ref hash, kvp.Key);
+                Fnv1a.Append(ref hash, value);
             }
         }
 
-        return sb.ToString();
+        return Fnv1a.Base64Url(hash);
     }
 }

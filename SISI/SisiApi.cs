@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
+using Shared.Attributes;
 using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Module.Entrys;
@@ -14,75 +14,70 @@ namespace SISI;
 public class SisiApiController : BaseController
 {
     #region sisi.js
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
+    [Staticache(20, always: true, setHeadersNoCache: true)]
     [Route("sisi.js")]
     [Route("sisi/js/{token}")]
-    public ContentResult Sisi(string token)
+    public ActionResult Sisi(string token)
     {
-        SetHeadersNoCache();
-
         var init = ModInit.conf;
         var apr = init.appReplace;
 
-        string memKey = $"sisi.js:{apr?.Count ?? 0}:{init.component}:{init.iconame}:{host}:{init.push_all}:{init.forced_checkRchtype}";
-        if (!memoryCache.TryGetValue(memKey, out (string file, string filecleaer) cache))
+        (string file, string filecleaer) cache;
+
+        cache.file = FileCache.ReadAllText($"{ModInit.modpath}/plugins/sisi.js", "sisi.js", false)
+            .Replace("{rch_websoket}", FileCache.ReadAllText("plugins/rch_nws.js", "rch_nws.js", false));
+
+        #region appReplace
+        if (apr != null)
         {
-            cache.file = FileCache.ReadAllText($"{ModInit.modpath}/plugins/sisi.js", "sisi.js", false)
-                .Replace("{rch_websoket}", FileCache.ReadAllText("plugins/rch_nws.js", "rch_nws.js", false));
-
-            #region appReplace
-            if (apr != null)
+            foreach (var r in apr)
             {
-                foreach (var r in apr)
-                {
-                    string val = r.Value;
-                    if (val.StartsWith("file:"))
-                        val = IO.File.ReadAllText(val.Substring(5));
+                string val = r.Value;
+                if (val.StartsWith("file:"))
+                    val = IO.File.ReadAllText(val.Substring(5));
 
-                    cache.file = Regex.Replace(cache.file, r.Key, val, RegexOptions.IgnoreCase);
-                }
+                cache.file = Regex.Replace(cache.file, r.Key, val, RegexOptions.IgnoreCase);
             }
-            #endregion
-
-            var bulder = new StringBuilder(cache.file);
-
-            if (!init.spider)
-                bulder = bulder.Replace("Lampa.Search.addSource(Search);", "");
-
-            if (init.component != "sisi")
-            {
-                bulder = bulder.Replace("use_api: 'lampac'", $"use_api: '{init.component}'");
-                bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
-            }
-
-            if (CoreInit.conf.kit.aesgcmkeyName != null)
-                bulder = bulder.Replace("aesgcmkey", CoreInit.conf.kit.aesgcmkeyName);
-
-            if (!string.IsNullOrEmpty(init.vipcontent))
-                bulder = bulder.Replace("var content = [^\n\r]+", init.vipcontent);
-
-            if (!string.IsNullOrEmpty(init.iconame))
-            {
-                bulder = bulder.Replace("Defined.use_api == 'pwa'", "true")
-                               .Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
-            }
-
-            bulder = bulder
-                .Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", "invc-rch.js", false))
-                .Replace("{invc-rch_nws}", FileCache.ReadAllText("plugins/invc-rch_nws.js", "invc-rch_nws.js", false))
-                .Replace("{push_all}", init.push_all.ToString().ToLower())
-                .Replace("{localhost}", host)
-                .Replace("{historySave}", ModInit.conf.history.enable.ToString().ToLower());
-
-            if (init.forced_checkRchtype)
-                bulder = bulder.Replace("window.rchtype", "Defined.rchtype");
-
-            cache.file = bulder.ToString();
-            cache.filecleaer = cache.file.Replace("{token}", string.Empty);
-
-            memoryCache.Set(memKey, cache, DateTime.Now.AddMinutes(10));
         }
+        #endregion
+
+        var bulder = new StringBuilder(cache.file);
+
+        if (!init.spider)
+            bulder = bulder.Replace("Lampa.Search.addSource(Search);", "");
+
+        if (init.component != "sisi")
+        {
+            bulder = bulder.Replace("use_api: 'lampac'", $"use_api: '{init.component}'");
+            bulder = bulder.Replace("'plugin_sisi_'", $"'plugin_{init.component}_'");
+        }
+
+        if (CoreInit.conf.kit.aesgcmkeyName != null)
+            bulder = bulder.Replace("aesgcmkey", CoreInit.conf.kit.aesgcmkeyName);
+
+        if (!string.IsNullOrEmpty(init.vipcontent))
+            bulder = bulder.Replace("var content = [^\n\r]+", init.vipcontent);
+
+        if (!string.IsNullOrEmpty(init.iconame))
+        {
+            bulder = bulder
+                .Replace("Defined.use_api == 'pwa'", "true")
+                .Replace("'<div>p</div>'", $"'<div>{init.iconame}</div>'");
+        }
+
+        bulder = bulder
+            .Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", "invc-rch.js", false))
+            .Replace("{invc-rch_nws}", FileCache.ReadAllText("plugins/invc-rch_nws.js", "invc-rch_nws.js", false))
+            .Replace("{push_all}", init.push_all.ToString().ToLower())
+            .Replace("{localhost}", host)
+            .Replace("{historySave}", ModInit.conf.history.enable.ToString().ToLower());
+
+        if (init.forced_checkRchtype)
+            bulder = bulder.Replace("window.rchtype", "Defined.rchtype");
+
+        cache.file = bulder.ToString();
+        cache.filecleaer = cache.file.Replace("{token}", string.Empty);
 
         if (EventListener.AppReplace != null)
         {
@@ -91,10 +86,15 @@ public class SisiApiController : BaseController
             foreach (Func<string, EventAppReplace, string> handler in EventListener.AppReplace.GetInvocationList())
                 source = handler.Invoke("sisi", new EventAppReplace(source, token, null, host, requestInfo, HttpContext.Request));
 
-            return Content(source.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
+            return ContentTo(source.Replace("{token}", HttpUtility.UrlEncode(token)), "application/javascript; charset=utf-8");
         }
 
-        return Content(token != null ? cache.file.Replace("{token}", HttpUtility.UrlEncode(token)) : cache.filecleaer, "application/javascript; charset=utf-8");
+        return ContentTo(
+            token != null
+                ? cache.file.Replace("{token}", HttpUtility.UrlEncode(token))
+                : cache.filecleaer,
+            "application/javascript; charset=utf-8"
+        );
     }
     #endregion
 
@@ -127,11 +127,11 @@ public class SisiApiController : BaseController
 
         var channels = new List<ChannelItem>(50)
         {
-            new ChannelItem("Закладки", $"{host}/sisi/bookmarks", 0)
+            new("Закладки", $"{host}/sisi/bookmarks", 0)
         };
 
         if (ModInit.conf.history.enable)
-            channels.Add(new ChannelItem("История", $"{host}/sisi/historys", 1));
+            channels.Add(new("История", $"{host}/sisi/historys", 1));
 
         #region send
         void send(string name, BaseSettings _init, string plugin = null, int displayindex = -1, BaseSettings myinit = null)

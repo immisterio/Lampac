@@ -49,8 +49,23 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
     public BufferWriterPool(BufferWriterPoolType type = BufferWriterPoolType.Small)
     {
         _type = type;
-        if (CoreInit.conf.lowMemoryMode == false && type == BufferWriterPoolType.Large)
+        if (CoreInit.conf.lowMemoryMode && type == BufferWriterPoolType.Large)
             _type = BufferWriterPoolType.Small;
+    }
+
+    public void ChangePool(int capacity)
+    {
+        foreach (var p in pool)
+        {
+            if (CoreInit.conf.lowMemoryMode && p.Value.sizePool == sizeLargePool)
+                continue;
+
+            if (p.Value.sizePool >= capacity)
+            {
+                _type = (BufferWriterPoolType)p.Key;
+                break;
+            }
+        }
     }
 
     public ReadOnlySpan<T> WrittenSpan
@@ -59,7 +74,8 @@ public sealed class BufferWriterPool<T> : IBufferWriter<T>, IDisposable where T 
     public ReadOnlyMemory<T> WrittenMemory
         => _nbuf.Memory.Slice(0, _index);
 
-    public int WrittenCount => _index;
+    public int WrittenCount
+        => _index;
 
     public void Advance(int count)
     {

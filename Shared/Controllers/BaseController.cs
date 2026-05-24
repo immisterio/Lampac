@@ -14,7 +14,6 @@ using Shared.Models.SISI.OnResult;
 using Shared.Models.Templates;
 using Shared.Services;
 using Shared.Services.Kit;
-using System.Buffers;
 using System.Buffers.Text;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -1211,19 +1210,57 @@ public class BaseController : Controller
                 : "text/html; charset=utf-8";
         }
 
-        var writerStaticache = HttpContext.Features.Get<BufferWriterPool<byte>>();
-        if (writerStaticache != null)
+        var staticWriter = HttpContext.Features.Get<BufferWriterPool<byte>>();
+        if (staticWriter != null)
         {
             var response = HttpContext.Response;
             response.ContentType = contentType;
 
             int maxBytes = Encoding.UTF8.GetMaxByteCount(html.Length);
-            using (var byteBuff = new BufferBytePool(maxBytes))
+            staticWriter.ChangePool(maxBytes);
+
+            const int chunkSize = 128 * 1024;
+            var encoder = Encoding.UTF8.GetEncoder();
+
+            ReadOnlySpan<char> chars = html.AsSpan();
+
+            while (!chars.IsEmpty)
             {
-                var buffer = byteBuff.Span;
-                int written = Encoding.UTF8.GetBytes(html, buffer);
-                writerStaticache.Write(buffer[..written]);
+                Span<byte> span = staticWriter.GetSpan(chunkSize);
+
+                encoder.Convert(
+                    chars,
+                    span,
+                    flush: false,
+                    out int charsUsed,
+                    out int bytesUsed,
+                    out bool completed);
+
+                if (bytesUsed > 0)
+                {
+                    staticWriter.Advance(bytesUsed);
+                    chars = chars.Slice(charsUsed);
+                }
+
+                if (completed)
+                    break;
+
+                if (charsUsed == 0 && bytesUsed == 0)
+                    throw new InvalidOperationException("UTF8 encoder made no progress.");
             }
+
+            Span<byte> tail = staticWriter.GetSpan(128);
+
+            encoder.Convert(
+                ReadOnlySpan<char>.Empty,
+                tail,
+                flush: true,
+                out int _,
+                out int _bytesUsed,
+                out bool _);
+
+            if (_bytesUsed > 0)
+                staticWriter.Advance(_bytesUsed);
 
             return _emptyResult;
         }

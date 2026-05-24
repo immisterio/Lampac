@@ -4,24 +4,23 @@ public class StaticacheConf
 {
     public bool enable { get; set; }
 
+    /// <summary>
+    /// только то что явно указано в routes
+    /// </summary>
+    public bool manually { get; set; }
+
     public int minimalCacheMinutes { get; set; }
 
-    public List<StaticacheRoute> routes { get; set; } = new List<StaticacheRoute>();
+    public List<StaticacheRoute> routes { get; set; } = new();
 
     public string[] disabledPaths { get; set; }
 }
 
+public record StaticacheFeature(int cacheMinutes, string cachekey);
 
-public class StaticacheRoute
+public struct StaticacheRoute
 {
-    public StaticacheRoute() { }
-
-    public StaticacheRoute(string pathRex, int cacheMinutes, string[] queryKeys)
-    {
-        this.pathRex = pathRex;
-        this.cacheMinutes = cacheMinutes;
-        this.queryKeys = queryKeys;
-    }
+    public string path { get; set; }
 
     public string pathRex { get; set; }
 
@@ -30,4 +29,6 @@ public class StaticacheRoute
     public bool skipUids { get; set; }
 
     public string[] queryKeys { get; set; }
+
+    public string[] ignoreQueryKeys { get; set; }
 }
