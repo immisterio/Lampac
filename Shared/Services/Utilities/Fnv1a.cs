@@ -1,6 +1,7 @@
-﻿using System.Buffers.Binary;
-using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.Buffers;
+using System.Buffers.Binary;
+using System.Security.Cryptography;
+using System.Text.Unicode;
 
 namespace Shared.Services.Utilities;
 
@@ -18,15 +19,9 @@ public struct Fnv1aHash
 
 public static class Fnv1a
 {
-    #region static
-    [ThreadStatic]
-    private static byte[] _byteBuffer;
-    private const int _bufferSize = 4096;
-
     private const ulong _prime = 1099511628211UL;
     private const ulong _offsetH1 = 14695981039346656037UL;
     private const ulong _offsetH2 = 1099511628211UL ^ 0x9E3779B97F4A7C15UL;
-    #endregion
 
     #region Empty / IsEmpty
     public static Fnv1aHash Empty
@@ -40,12 +35,79 @@ public static class Fnv1a
     public static Fnv1aHash RandomHash()
     {
         Span<byte> bytes = stackalloc byte[16];
-        Guid.NewGuid().TryWriteBytes(bytes);
+        RandomNumberGenerator.Fill(bytes);
 
-        ulong h1 = _offsetH1;
-        ulong h2 = _offsetH2;
+        var hash = Empty;
+        Append(ref hash, bytes);
+        return hash;
+    }
+    #endregion
 
-        foreach (byte b in bytes)
+    #region Hash
+    public static Fnv1aHash Hash(ReadOnlySpan<char> value)
+    {
+        var hash = Empty;
+        Append(ref hash, value);
+        return hash;
+    }
+    #endregion
+
+    #region Append
+    public static void Append(ref Fnv1aHash hash, ReadOnlySpan<char> value)
+    {
+        Span<byte> buffer = stackalloc byte[512];
+
+        while (!value.IsEmpty)
+        {
+            var status = Utf8.FromUtf16(
+                value,
+                buffer,
+                out int charsRead,
+                out int bytesWritten,
+                replaceInvalidSequences: true,
+                isFinalBlock: true);
+
+            if (bytesWritten > 0)
+                Append(ref hash, buffer[..bytesWritten]);
+
+            value = value[charsRead..];
+
+            if (status == OperationStatus.Done)
+                return;
+
+            if (status == OperationStatus.DestinationTooSmall)
+                continue;
+
+            // UTF-8 conversion failed, хз как мы сюда попали, но просто не хэшируем эту часть строки
+            return;
+        }
+    }
+
+    public static void Append(ref Fnv1aHash hash, char value)
+    {
+        Span<char> chars = stackalloc char[1];
+        Span<byte> buffer = stackalloc byte[4];
+
+        chars[0] = value;
+
+        var status = Utf8.FromUtf16(
+            chars,
+            buffer,
+            out _,
+            out int bytesWritten,
+            replaceInvalidSequences: true,
+            isFinalBlock: true);
+
+        if (status == OperationStatus.Done)
+            Append(ref hash, buffer[..bytesWritten]);
+    }
+
+    public static void Append(ref Fnv1aHash hash, ReadOnlySpan<byte> value)
+    {
+        ulong h1 = hash.H1;
+        ulong h2 = hash.H2;
+
+        foreach (byte b in value)
         {
             h1 ^= b;
             h1 *= _prime;
@@ -54,106 +116,13 @@ public static class Fnv1a
             h2 *= _prime;
         }
 
-        return new(h1, h2);
-    }
-    #endregion
-
-    #region Hash
-    public static Fnv1aHash Hash(ReadOnlySpan<char> value)
-    {
-        int maxBytes = Encoding.UTF8.GetMaxByteCount(value.Length);
-
-        BufferBytePool cipherBuf = null;
-
-        if (maxBytes > _bufferSize)
-            cipherBuf = new BufferBytePool(maxBytes);
-        else
-            _byteBuffer ??= new byte[_bufferSize];
-
-        try
-        {
-            Span<byte> cipher = cipherBuf != null
-                ? cipherBuf.Span
-                : _byteBuffer;
-
-            int written = Encoding.UTF8.GetBytes(value, cipher);
-
-            ulong h1 = _offsetH1;
-            ulong h2 = _offsetH2;
-
-            foreach (byte b in cipher[..written])
-            {
-                h1 ^= b;
-                h1 *= _prime;
-
-                h2 ^= b;
-                h2 *= _prime;
-            }
-
-            return new(h1, h2);
-        }
-        finally
-        {
-            cipherBuf?.Dispose();
-        }
-    }
-    #endregion
-
-    #region Append
-    public static void Append(ref Fnv1aHash hash, ReadOnlySpan<char> value)
-    {
-        int maxBytes = Encoding.UTF8.GetMaxByteCount(value.Length);
-
-        BufferBytePool cipherBuf = null;
-
-        if (maxBytes > _bufferSize)
-            cipherBuf = new BufferBytePool(maxBytes);
-        else
-            _byteBuffer ??= new byte[_bufferSize];
-
-        try
-        {
-            Span<byte> cipher = cipherBuf != null
-                ? cipherBuf.Span
-                : _byteBuffer;
-
-            int written = Encoding.UTF8.GetBytes(value, cipher);
-
-            Append(ref hash, cipher[..written]);
-        }
-        finally
-        {
-            cipherBuf?.Dispose();
-        }
-    }
-
-    public static void Append(ref Fnv1aHash hash, char value)
-    {
-        Span<byte> buffer = stackalloc byte[4];
-
-        int written = Encoding.UTF8.GetBytes(
-            MemoryMarshal.CreateReadOnlySpan(ref value, 1),
-            buffer
-        );
-
-        Append(ref hash, buffer[..written]);
-    }
-
-    public static void Append(ref Fnv1aHash hash, ReadOnlySpan<byte> value)
-    {
-        foreach (byte b in value)
-        {
-            hash.H1 ^= b;
-            hash.H1 *= _prime;
-
-            hash.H2 ^= b;
-            hash.H2 *= _prime;
-        }
+        hash.H1 = h1;
+        hash.H2 = h2;
     }
     #endregion
 
     #region Base64Url
-    public static string Base64Url(string value)
+    public static string Base64Url(ReadOnlySpan<char> value)
         => Base64Url(Hash(value));
 
     public static string Base64Url(in Fnv1aHash hash)
