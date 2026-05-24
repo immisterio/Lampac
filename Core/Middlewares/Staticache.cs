@@ -264,12 +264,31 @@ public class Staticache
         if (httpContext.Request.Query.TryGetValue("rjson", out StringValues rjson) && rjson.Count > 0)
             Fnv1a.Append(ref hash, rjson[0]);
 
-        if (queryKeys != null && queryKeys.Length == 0)
+        if (queryKeys != null && queryKeys.Length > 0)
         {
-            foreach (string key in queryKeys)
-                QueryAppend(ref hash, key, httpContext, skipUids, ignoreQueryKeys);
+            if (queryKeys.Length == 1 && queryKeys[0] == ".*")
+            {
+                foreach (var q in httpContext.Request.Query)
+                {
+                    string key = q.Key;
+
+                    if (skipUids && CoreInit.SkipQueryKeys.Contains(key))
+                        continue;
+
+                    if (ignoreQueryKeys != null && ignoreQueryKeys.Contains(key))
+                        continue;
+
+                    Fnv1a.Append(ref hash, key);
+                    Fnv1a.Append(ref hash, q.Value);
+                }
+            }
+            else
+            {
+                foreach (string key in queryKeys)
+                    QueryAppend(ref hash, key, httpContext, skipUids, ignoreQueryKeys);
+            }
         }
-        else if (parameters == null || parameters.Count == 0)
+        else if (parameters != null && parameters.Count > 0)
         {
             foreach (var param in parameters)
                 QueryAppend(ref hash, param.Name, httpContext, skipUids, ignoreQueryKeys);
