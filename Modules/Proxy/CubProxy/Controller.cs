@@ -26,8 +26,7 @@ public class CubProxyController : BaseController
     static readonly string[] adEmpty = [];
     static readonly Regex regexMedia = new Regex("\\.(jpe?g|png|gif|webp|ico|svg|mp4|js|css)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
     [Route("cubproxy.js")]
     [Route("cubproxy/js/{token}")]
     public ActionResult Plugin(string token)
@@ -42,9 +41,7 @@ public class CubProxyController : BaseController
     }
 
 
-    [HttpGet]
-    [HttpPost]
-    [AllowAnonymous]
+    [HttpGet, HttpPost, AllowAnonymous]
     [Route("cub/{*suffix}")]
     async public Task Proxy()
     {
@@ -104,11 +101,13 @@ public class CubProxyController : BaseController
                         }
                     }
                 }
-
-                HttpContext.Response.ContentType = "text/plain; charset=utf-8";
-                HttpContext.Response.StatusCode = StatusCodes.Status200OK;
-                HttpContext.Response.BodyWriter.Write("ok"u8);
-                return;
+                else
+                {
+                    HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+                    HttpContext.Response.StatusCode = StatusCodes.Status200OK;
+                    HttpContext.Response.BodyWriter.Write("ok"u8);
+                    return;
+                }
             }
             #endregion
 
@@ -180,26 +179,11 @@ public class CubProxyController : BaseController
                 }
                 else
                 {
-                    var handler = new HttpClientHandler()
-                    {
-                        ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate,
-                        AutomaticDecompression = DecompressionMethods.None,
-                        AllowAutoRedirect = true
-                    };
-
-                    if (proxy != null)
-                    {
-                        handler.UseProxy = true;
-                        handler.Proxy = proxy;
-                    }
-                    else
-                    {
-                        handler.UseProxy = false;
-                    }
+                    string requri = $"{init.scheme}://{domain}/{uri}";
 
                     var client = FriendlyHttp.MessageClient(
                         "proxyRedirect",
-                        handler,
+                        Http.HandlerOrNull(requri, proxy),
                         out bool disposeHttpClient,
                         findNoRedirectClient: false
                     );
@@ -208,14 +192,14 @@ public class CubProxyController : BaseController
                     {
                         using (var request = CreateProxyHttpRequest(
                             HttpContext,
-                            new Uri($"{init.scheme}://{domain}/{uri}"),
+                            new Uri(requri),
                             requestInfo,
                             init.viewru && subdomain == "tmdb"
                         ))
                         {
                             using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ctsHttp.Token).ConfigureAwait(false))
                             {
-                                if (init.cache_img > 0 && isMedia && HttpMethods.IsGet(HttpContext.Request.Method) && response.StatusCode == HttpStatusCode.OK)
+                                if (isMedia && HttpMethods.IsGet(HttpContext.Request.Method) && response.StatusCode == HttpStatusCode.OK)
                                 {
                                     #region cache img
                                     HttpContext.Response.ContentType = getContentType(path);

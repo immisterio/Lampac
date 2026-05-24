@@ -132,6 +132,9 @@ public class Staticache
 
     public Task Invoke(HttpContext httpContext)
     {
+        if (!HttpMethods.IsGet(httpContext.Request.Method))
+            return _next(httpContext);
+
         var requestInfo = httpContext.Features.Get<RequestModel>();
         if (requestInfo.AesGcmKey != null || requestInfo.IsWsRequest || requestInfo.IsProxyRequest || requestInfo.IsProxyImg)
             return _next(httpContext);
