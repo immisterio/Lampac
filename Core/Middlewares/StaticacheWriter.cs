@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
 using Shared.Attributes;
 using Shared.Models.AppConf;
@@ -30,14 +31,14 @@ public class StaticacheWriter
             return;
         }
 
-        using (var buff = new BufferWriterPool<byte>(BufferWriterPoolType.Small))
+        using (RecyclableMemoryStream msm = PoolInvk.msm.GetStream())
         {
-            httpContext.Features.Set(buff);
+            httpContext.Features.Set(msm);
             httpContext.Response.Headers["X-StatiCache-Status"] = "MISS";
 
             await _next(httpContext);
 
-            if (buff.WrittenCount > 0)
+            if (msm.Length > 0 && httpContext.Response.StatusCode != StatusCodes.Status302Found)
             {
                 #region Дожимаем httpContext
                 var ex = httpContext.Features.Get<StatiCacheEntry>()?.ex
@@ -47,7 +48,7 @@ public class StaticacheWriter
                     ex = DateTimeOffset.Now.AddMinutes(1);
 
                 int contentLength = (int)(httpContext.Response?.ContentLength ?? 0);
-                if (contentLength > 0 && contentLength != buff.WrittenCount)
+                if (contentLength > 0 && contentLength != msm.Length)
                     ex = DateTimeOffset.Now.AddMinutes(1);
 
                 string ext = "bin";
@@ -85,7 +86,7 @@ public class StaticacheWriter
 
                 if (isMedia && contentLength == 0)
                 {
-                    contentLength = buff.WrittenCount;
+                    contentLength = (int)msm.Length;
                     httpContext.Response.ContentLength = contentLength;
                 }
 
@@ -94,24 +95,21 @@ public class StaticacheWriter
                 #endregion
 
                 #region Сбрасываем поток клиенту
-                const int chunkSize = 32 * 1024;
-
-                var source = buff.WrittenSpan;
+                msm.Position = 0;
+                int chunkSize = PoolInvk.bufferSize;
                 var bodyWriter = httpContext.Response.BodyWriter;
 
                 do
                 {
-                    int bytesToWrite = Math.Min(source.Length, chunkSize);
-
-                    ReadOnlySpan<byte> chunk = source.Slice(0, bytesToWrite);
                     Span<byte> destination = bodyWriter.GetSpan(chunkSize);
 
-                    chunk.CopyTo(destination);
-                    bodyWriter.Advance(bytesToWrite);
+                    int bytesRead = msm.Read(destination);
+                    if (bytesRead == 0)
+                        break;
 
-                    source = source.Slice(bytesToWrite);
+                    bodyWriter.Advance(bytesRead);
                 }
-                while (!source.IsEmpty);
+                while (msm.Position < msm.Length);
 
                 await httpContext.Response.CompleteAsync();
                 #endregion
@@ -136,7 +134,8 @@ public class StaticacheWriter
                         bufferSize: PoolInvk.bufferSize,
                         options: FileOptions.Asynchronous))
                     {
-                        await fileStream.WriteAsync(buff.WrittenMemory);
+                        msm.Position = 0;
+                        await msm.CopyToAsync(fileStream);
                     }
 
                     Staticache.cacheFiles[cachekey] = new StaticacheCacheModel(exTicks, ext, (short)httpContext.Response.StatusCode, contentLength);

@@ -309,20 +309,9 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             ? tpl.ToBuilderJson()
             : tpl.ToBuilderHtml();
 
-        IBufferWriter<byte> bodyWriter = null;
-
-        if (StatiCacheDisabled == false)
-        {
-            var staticWriter = HttpContext.Features.Get<BufferWriterPool<byte>>();
-            if (staticWriter != null)
-            {
-                staticWriter.ChangePool(Encoding.UTF8.GetMaxByteCount(sb.Length));
-                bodyWriter = staticWriter;
-            }
-        }
-
-        if (bodyWriter == null)
-            bodyWriter = new ChunkBufferWriter<byte>(Response.BodyWriter);
+        IBufferWriter<byte> bodyWriter = StatiCacheDisabled
+            ? new ChunkBufferWriter<byte>(Response.BodyWriter)
+            : StaticacheOrBodyWriter();
 
         try
         {

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Attributes;
@@ -1211,23 +1212,20 @@ public class BaseController : Controller
                 : "text/html; charset=utf-8";
         }
 
-        var staticWriter = HttpContext.Features.Get<BufferWriterPool<byte>>();
-        if (staticWriter != null)
+        var stcWriter = HttpContext.Features.Get<RecyclableMemoryStream>();
+        if (stcWriter != null)
         {
             var response = HttpContext.Response;
             response.ContentType = contentType;
 
-            int maxBytes = Encoding.UTF8.GetMaxByteCount(html.Length);
-            staticWriter.ChangePool(maxBytes);
-
-            const int chunkSize = 128 * 1024;
             var encoder = Encoding.UTF8.GetEncoder();
-
             ReadOnlySpan<char> chars = html.AsSpan();
+
+            int chunkSize = PoolInvk.msmBlockSize;
 
             while (!chars.IsEmpty)
             {
-                Span<byte> span = staticWriter.GetSpan(chunkSize);
+                Span<byte> span = stcWriter.GetSpan(chunkSize);
 
                 encoder.Convert(
                     chars,
@@ -1239,7 +1237,7 @@ public class BaseController : Controller
 
                 if (bytesUsed > 0)
                 {
-                    staticWriter.Advance(bytesUsed);
+                    stcWriter.Advance(bytesUsed);
                     chars = chars.Slice(charsUsed);
                 }
 
@@ -1250,7 +1248,7 @@ public class BaseController : Controller
                     throw new InvalidOperationException("UTF8 encoder made no progress.");
             }
 
-            Span<byte> tail = staticWriter.GetSpan(128);
+            Span<byte> tail = stcWriter.GetSpan(128);
 
             encoder.Convert(
                 ReadOnlySpan<char>.Empty,
@@ -1261,7 +1259,7 @@ public class BaseController : Controller
                 out bool _);
 
             if (_bytesUsed > 0)
-                staticWriter.Advance(_bytesUsed);
+                stcWriter.Advance(_bytesUsed);
 
             return _emptyResult;
         }
@@ -1273,7 +1271,7 @@ public class BaseController : Controller
     #region StaticacheOrBodyWriter
     public IBufferWriter<byte> StaticacheOrBodyWriter()
     {
-        var staticWriter = HttpContext.Features.Get<BufferWriterPool<byte>>();
+        var staticWriter = HttpContext.Features.Get<RecyclableMemoryStream>();
         if (staticWriter != null)
             return staticWriter;
 
