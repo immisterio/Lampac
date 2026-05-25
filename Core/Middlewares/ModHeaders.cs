@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ public class ModHeaders
 
     public Task Invoke(HttpContext httpContext)
     {
-        if (httpContext.Request.Path.Value.StartsWith("/cors/check", StringComparison.OrdinalIgnoreCase))
+        if (httpContext.Request.Path.Value == "/cors/check")
             return Task.CompletedTask;
 
         httpContext.Response.Headers["Access-Control-Allow-Credentials"] = "true";
@@ -27,10 +28,10 @@ public class ModHeaders
         else
             httpContext.Response.Headers["Access-Control-Allow-Headers"] = "*";
 
-        if (httpContext.Request.Headers.TryGetValue("origin", out var origin))
-            httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(origin);
-        else if (httpContext.Request.Headers.TryGetValue("referer", out var referer))
-            httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(referer);
+        if (httpContext.Request.Headers.TryGetValue("origin", out StringValues origin) && origin.Count > 0)
+            httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(origin[0]);
+        else if (httpContext.Request.Headers.TryGetValue("referer", out StringValues referer) && referer.Count > 0)
+            httpContext.Response.Headers["Access-Control-Allow-Origin"] = GetOrigin(referer[0]);
         else
             httpContext.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
@@ -51,11 +52,14 @@ public class ModHeaders
         if (scheme <= 0)
             return url;
 
+        ReadOnlySpan<char> urlSpan = url.AsSpan();
+
         int start = scheme + 3;
-        int slash = url.IndexOf('/', start);
+        int slash = urlSpan.Slice(start).IndexOfAny('/', '?', '#');
+
         if (slash < 0)
             return url; // уже origin
 
-        return url.Substring(0, slash);
+        return url.Substring(0, start + slash);
     }
 }

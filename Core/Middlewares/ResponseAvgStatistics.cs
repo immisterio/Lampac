@@ -19,7 +19,7 @@ public class ResponseAvgStatistics
 
     public async Task InvokeAsync(HttpContext context)
     {
-        Stopwatch stopwatch = ResponseStatisticsTracker.StartRequest();
+        long startTimestamp = ResponseStatisticsTracker.StartRequest();
 
         try
         {
@@ -27,7 +27,7 @@ public class ResponseAvgStatistics
         }
         finally
         {
-            ResponseStatisticsTracker.CompleteRequest(stopwatch, context.Request.Path.Value);
+            ResponseStatisticsTracker.CompleteRequest(startTimestamp, context);
         }
     }
 }
@@ -46,24 +46,28 @@ public static class ResponseStatisticsTracker
 
     static readonly ConcurrentQueue<ResponseModel> ResponseTimes = new();
     static readonly Timer CleanupTimer = new Timer(CleanupResponseTimes, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+    static readonly TimeSpan SlowRequestThreshold = TimeSpan.FromSeconds(1);
 
-    internal static Stopwatch StartRequest()
+    internal static long StartRequest()
     {
         Interlocked.Increment(ref activeHttpRequests);
-        return Stopwatch.StartNew();
+        return Stopwatch.GetTimestamp();
     }
 
-    internal static void CompleteRequest(Stopwatch stopwatch, string path)
+    internal static void CompleteRequest(long startTimestamp, HttpContext context)
     {
         Interlocked.Decrement(ref activeHttpRequests);
 
-        if (stopwatch == null)
+        TimeSpan elapsed = Stopwatch.GetElapsedTime(startTimestamp);
+
+        if (elapsed < SlowRequestThreshold)
             return;
 
-        stopwatch.Stop();
-
-        if (stopwatch.Elapsed.TotalSeconds >= 1)
-            ResponseTimes.Enqueue(new(DateTime.UtcNow, stopwatch.Elapsed.TotalMilliseconds, path));
+        ResponseTimes.Enqueue(new ResponseModel(
+            DateTime.UtcNow,
+            elapsed.TotalMilliseconds,
+            context.Request.Path.Value
+        ));
     }
 
     public static ResponseTimeStatistics GetResponseTimeStatsLastMinute()
