@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -49,19 +48,20 @@ public class TmdbProxyController : BaseController
     #endregion
 
     #region tmdbproxy.js
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
+    [Staticache(
+        always: true,
+        setHeadersNoCache: true
+    )]
     [Route("tmdbproxy.js")]
     [Route("tmdbproxy/js/{token}")]
     public ActionResult TmdbProxy(string token)
     {
-        SetHeadersNoCache();
-
-        string plugin = FileCache.ReadAllText($"{ModInit.modpath}/plugin.js", "tmdbproxy.js")
+        string plugin = FileCache.ReadAllText($"{ModInit.modpath}/plugin.js", "tmdbproxy.js", saveCache: false)
             .Replace("{localhost}", host)
             .Replace("{token}", HttpUtility.UrlEncode(token));
 
-        return Content(plugin, "application/javascript; charset=utf-8");
+        return ContentTo(plugin, "application/javascript; charset=utf-8");
     }
     #endregion
 
@@ -85,9 +85,19 @@ public class TmdbProxyController : BaseController
 
         ReadOnlySpan<char> path = RequestPath(HttpContext.Request.Path.Value, "/tmdb/api/");
 
-        var result = await Http.BaseGetAsync<JsonObject>(
-            RequestUri(tmdbApiHost, path, HttpContext.Request.Query),
-            textJson: true,
+        var result = await Http.BaseGetReaderAsync(
+            async e =>
+            {
+                using (var byteBuf = new BufferPool())
+                {
+                    int bytesRead;
+                    var memBuf = byteBuf.Memory;
+
+                    while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
+                        bodyWriter.Write(memBuf.Span.Slice(0, bytesRead));
+                }
+            },
+            url: RequestUri(tmdbApiHost, path, HttpContext.Request.Query),
             timeoutSeconds: 15,
             httpversion: ModInit.conf.httpversion,
             proxy: proxyManager?.Get(),
@@ -97,7 +107,7 @@ public class TmdbProxyController : BaseController
                 : null
         ).ConfigureAwait(false);
 
-        if (result.content == null)
+        if (!result.success)
         {
             proxyManager?.Refresh();
             HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -105,15 +115,11 @@ public class TmdbProxyController : BaseController
             return;
         }
 
-        HttpContext.Response.StatusCode = result.content.ContainsKey("status_message")
-            ? StatusCodes.Status400BadRequest
-            : (int)result.response.StatusCode;
+        int statusCode = (int)result.response.StatusCode;
+        HttpContext.Response.StatusCode = statusCode;
 
-        if (HttpContext.Response.StatusCode == 200 && ModInit.conf.cache_api > 0)
+        if (statusCode == 200 && ModInit.conf.cache_api > 0)
             HttpContext.Features.Set(new StatiCacheEntry(DateTimeOffset.Now.AddMinutes(ModInit.conf.cache_api)));
-
-        using (var writer = new Utf8JsonWriter(bodyWriter, jsonWriterOptions))
-            JsonSerializer.Serialize(writer, result.content);
     }
     #endregion
 
@@ -194,7 +200,6 @@ public class TmdbProxyController : BaseController
         }
     }
     #endregion
-
 
     #region Helpers
     static ReadOnlySpan<char> RequestPath(string pathString, string route)
