@@ -6,6 +6,7 @@ using Shared.Models.Base;
 using Shared.Models.CSharpGlobals;
 using Shared.Services;
 using Shared.Services.Hybrid;
+using Shared.Services.Utilities;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -62,13 +63,17 @@ public class OverrideResponse
                             if (IsTextFile(over.val))
                             {
                                 string host = CoreInit.Host(httpContext);
-                                string memKey = $"OverrideResponse:{over.val}:{host}";
 
-                                if (!memoryCache.TryGetValue(memKey, out string file))
+                                var hash = Fnv1a.Empty;
+                                Fnv1a.Append(ref hash, over.val);
+                                Fnv1a.Append(ref hash, host);
+
+                                if (!memoryCache.TryGetValue(hash, out string file))
                                 {
-                                    file = FileCache.ReadAllText(over.val);
-                                    file = file.Replace("{localhost}", CoreInit.Host(httpContext));
-                                    memoryCache.Set(memKey, file, TimeSpan.FromHours(1));
+                                    file = File.ReadAllText(over.val)
+                                        .Replace("{localhost}", host);
+
+                                    memoryCache.Set(hash, file, TimeSpan.FromHours(1));
                                 }
 
                                 return httpContext.Response.WriteAsync(file, httpContext.RequestAborted);

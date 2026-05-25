@@ -432,9 +432,9 @@ public class Startup
         #endregion
 
         #region clear cache module
-        foreach (string path in Directory.GetFiles(Path.Combine("cache", "module"), "*.dll"))
+        foreach (string path in Directory.GetFiles(Path.Combine("cache", "module"), ".*"))
         {
-            string name = Path.GetFileNameWithoutExtension(path);
+            string name = Path.GetFileName(path);
             if (!cacheModuePaths.Contains(name))
                 File.Delete(path);
         }

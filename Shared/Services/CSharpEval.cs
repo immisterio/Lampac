@@ -231,7 +231,7 @@ public static class CSharpEval
                 #endregion
 
                 #region cache dll
-                string cachePath = Path.Combine("cache", "module", $"{Fnv1a.Base64Url(sumhash)}.dll");
+                string cachePath = Path.Combine("cache", "module", Fnv1a.Base64Url(sumhash));
 
                 if (File.Exists(cachePath))
                 {

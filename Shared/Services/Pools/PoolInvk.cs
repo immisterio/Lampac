@@ -4,9 +4,11 @@ namespace Shared.Services.Pools;
 
 public static class PoolInvk
 {
+    public const int msmBlockSize = 81920;
+
     public static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager(new RecyclableMemoryStreamManager.Options
     (
-        blockSize: 81920,                              // small blocks (80 КБ)
+        blockSize: msmBlockSize,                       // small blocks (80 КБ)
         largeBufferMultiple: 1024 * 1024,              // ступень роста 1 MB
         maximumBufferSize: 10 * 1024 * 1024,           // не кешируем >10 MB
         maximumSmallPoolFreeBytes: 128L * 1024 * 1024, // максимальный размер пула small blocks (128 MB)
