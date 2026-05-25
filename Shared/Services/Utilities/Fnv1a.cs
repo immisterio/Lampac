@@ -119,6 +119,24 @@ public static class Fnv1a
         hash.H1 = h1;
         hash.H2 = h2;
     }
+
+    public static void Append(ref Fnv1aHash hash, IReadOnlyList<byte> value)
+    {
+        ulong h1 = hash.H1;
+        ulong h2 = hash.H2;
+
+        foreach (byte b in value)
+        {
+            h1 ^= b;
+            h1 *= _prime;
+
+            h2 ^= b;
+            h2 *= _prime;
+        }
+
+        hash.H1 = h1;
+        hash.H2 = h2;
+    }
     #endregion
 
     #region Base64Url

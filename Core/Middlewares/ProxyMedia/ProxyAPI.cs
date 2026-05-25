@@ -113,9 +113,6 @@ public partial class ProxyAPI
             {
                 using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                 {
-                    if (ctsHttp.IsCancellationRequested)
-                        return;
-
                     ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
 
                     httpContext.Response.Headers["PX-Cache"] = "HIT";
@@ -267,11 +264,11 @@ public partial class ProxyAPI
                             await InvokeProxyApiCreateHttpRequestHandlers(em).ConfigureAwait(false);
                         }
 
+                        if (httpContext.RequestAborted.IsCancellationRequested)
+                            return;
+
                         using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
                         {
-                            if (ctsHttp.IsCancellationRequested)
-                                return;
-
                             ctsHttp.CancelAfter(TimeSpan.FromSeconds(30));
 
                             if (init.showOrigUri)
@@ -299,11 +296,16 @@ public partial class ProxyAPI
                                 if (response.Content?.Headers != null && response.Content.Headers.TryGetValues("Content-Type", out var _contentType))
                                     contentType = _contentType?.FirstOrDefault();
 
-                                bool ists =
-                                    servPath.EndsWith(".ts", StringComparison.OrdinalIgnoreCase) ||
-                                    servPath.EndsWith(".m4s", StringComparison.OrdinalIgnoreCase);
+                                ReadOnlySpan<char> ext = servPath.AsSpan();
+                                int extIndex = ext.LastIndexOf('.');
+                                if (extIndex > 0)
+                                    ext = ext.Slice(extIndex);
 
-                                bool ism3u = servPath.Contains(".m3u", StringComparison.OrdinalIgnoreCase);
+                                bool ists =
+                                    ext.StartsWith(".ts", StringComparison.OrdinalIgnoreCase) ||
+                                    ext.StartsWith(".m4s", StringComparison.OrdinalIgnoreCase);
+
+                                bool ism3u = ext.StartsWith(".m3u", StringComparison.OrdinalIgnoreCase);
 
                                 if (!ism3u)
                                 {
@@ -320,7 +322,7 @@ public partial class ProxyAPI
                                 {
                                     await ProxyM3u8(httpContext, init, decryptLink, response, contentType, ctsHttp);
                                 }
-                                else if (servPath.Contains(".mpd", StringComparison.OrdinalIgnoreCase) || contentType?.StartsWith("application/dash+xml") == true)
+                                else if (ext.StartsWith(".mpd", StringComparison.OrdinalIgnoreCase) || contentType?.StartsWith("application/dash+xml") == true)
                                 {
                                     await ProxyMpd(httpContext, init, decryptLink, response, contentType, ctsHttp);
                                 }

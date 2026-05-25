@@ -18,7 +18,7 @@ namespace Shared.Services;
 
 public static class CSharpEval
 {
-    static ConcurrentDictionary<string, dynamic> scripts = new();
+    static ConcurrentDictionary<Fnv1aHash, dynamic> scripts = new();
 
     #region Execute<T>
     public static T Execute<T>(string cs, object model, ScriptOptions options = null)
@@ -28,7 +28,7 @@ public static class CSharpEval
 
     public static Task<T> ExecuteAsync<T>(string cs, object model, ScriptOptions options = null)
     {
-        var entry = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+        var entry = scripts.GetOrAdd(Fnv1a.Hash(cs), _ =>
         {
             if (options == null)
                 options = ScriptOptions.Default;
@@ -60,7 +60,7 @@ public static class CSharpEval
 
     public static Task<T> BaseExecuteAsync<T>(string cs, object model, ScriptOptions options = null, InteractiveAssemblyLoader loader = null)
     {
-        var entry = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+        var entry = scripts.GetOrAdd(Fnv1a.Hash(cs), _ =>
         {
             return CSharpScript.Create<T>(
                 cs,
@@ -82,7 +82,7 @@ public static class CSharpEval
 
     public static Task ExecuteAsync(string cs, object model, ScriptOptions options = null)
     {
-        var entry = scripts.GetOrAdd(CrypTo.md5(cs), _ =>
+        var entry = scripts.GetOrAdd(Fnv1a.Hash(cs), _ =>
         {
             if (options == null)
                 options = ScriptOptions.Default;
@@ -113,7 +113,7 @@ public static class CSharpEval
     static readonly object lockCompilationObj = new();
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static (Assembly assembly, AssemblyLoadContext alc, string path) Compilation(RootModule mod)
+    public static (Fnv1aHash sumhash, Assembly assembly, AssemblyLoadContext alc, string path) Compilation(RootModule mod)
     {
         lock (lockCompilationObj)
         {
@@ -121,7 +121,8 @@ public static class CSharpEval
 
             if (Directory.Exists(path))
             {
-                var sumhash = new StringBuilder(vshared);
+                var sumhash = Fnv1a.Empty;
+                Fnv1a.Append(ref sumhash, vshared);
 
                 #region syntaxTree
                 var syntaxTree = new List<SyntaxTree>();
@@ -178,7 +179,7 @@ public static class CSharpEval
                         syntaxTree.Add(CSharpSyntaxTree.ParseText(sourceText, parseOptions, csfile));
 
                         var checksum = sourceText.GetChecksum();
-                        sumhash.Append(Convert.ToHexString(checksum.ToArray()));
+                        Fnv1a.Append(ref sumhash, checksum);
                     }
                 }
                 #endregion
@@ -230,7 +231,7 @@ public static class CSharpEval
                 #endregion
 
                 #region cache dll
-                string cachePath = Path.Combine("cache", "module", $"{CrypTo.md5(sumhash)}.dll");
+                string cachePath = Path.Combine("cache", "module", $"{Fnv1a.Base64Url(sumhash)}.dll");
 
                 if (File.Exists(cachePath))
                 {
@@ -238,7 +239,7 @@ public static class CSharpEval
                     {
                         var alc = new AssemblyLoadContext(mod.name, isCollectible: true);
                         var assembly = alc.LoadFromStream(fs);
-                        return (assembly, alc, path);
+                        return (sumhash, assembly, alc, path);
                     }
                 }
                 #endregion
@@ -261,7 +262,7 @@ public static class CSharpEval
                         var alc = new AssemblyLoadContext(mod.name, isCollectible: true);
                         var assembly = alc.LoadFromStream(ms);
 
-                        return (assembly, alc, path);
+                        return (sumhash, assembly, alc, path);
                     }
                     else
                     {
@@ -274,7 +275,6 @@ public static class CSharpEval
                         Console.WriteLine("\n");
                     }
                 }
-
             }
 
             return default;

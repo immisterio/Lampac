@@ -9,6 +9,7 @@ using Shared.Services.Pools;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -115,6 +116,8 @@ public class TmdbProxyController : BaseController
             return;
         }
 
+        proxyManager?.Success();
+
         int statusCode = (int)result.response.StatusCode;
         HttpContext.Response.StatusCode = statusCode;
 
@@ -133,10 +136,6 @@ public class TmdbProxyController : BaseController
 
         ReadOnlySpan<char> path = RequestPath(HttpContext.Request.Path.Value, "/tmdb/img/");
         string uri = RequestUri(tmdbImgHost, path, HttpContext.Request.Query);
-
-        HttpContext.Response.ContentType = path.Contains(".png", StringComparison.OrdinalIgnoreCase)
-            ? "image/png"
-            : path.Contains(".svg", StringComparison.OrdinalIgnoreCase) ? "image/svg+xml" : "image/jpeg";
 
         var proxyManager = ModInit.conf.proxyimg?.useproxy == true
             ? new ProxyManager("tmdb_img", ModInit.conf.proxyimg)
@@ -178,6 +177,9 @@ public class TmdbProxyController : BaseController
 
                     if (response.Content.Headers.ContentLength.HasValue)
                         HttpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+
+                    if (response.Content.Headers.TryGetValues("Content-Type", out var _contentType))
+                        HttpContext.Response.ContentType = _contentType?.FirstOrDefault();
 
                     await using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                     {

@@ -100,6 +100,9 @@ public partial class ProxyAPI
                                     if (completed)
                                         break;
 
+                                    if (charsUsed == 0 && bytesUsed == 0)
+                                        break;
+
                                     chars = chars.Slice(charsUsed);
                                 }
                             }
