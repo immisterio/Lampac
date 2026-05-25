@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Caching.Memory;
@@ -26,6 +27,7 @@ using Shared.PlaywrightCore;
 using Shared.Services;
 using Shared.Services.Hybrid;
 using Shared.Services.Pools;
+using Shared.Services.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -230,6 +232,26 @@ public class Startup
             });
         }
 
+        if (init.listen.LimitHttpRequests > 0)
+        {
+            services.AddRateLimiter(options =>
+            {
+                options.AddConcurrencyLimiter("http-concurrency", limiter =>
+                {
+                    limiter.PermitLimit = CoreInit.conf.listen.LimitHttpRequests;
+                    limiter.QueueLimit = 0;
+                });
+
+                options.OnRejected = (context, token) =>
+                {
+                    context.HttpContext.Response.Headers.RetryAfter = "1";
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    context.HttpContext.Response.BodyWriter.Write("Too many concurrent requests"u8);
+                    return ValueTask.CompletedTask;
+                };
+            });
+        }
+
         services.AddMemoryCache(o =>
         {
             o.TrackStatistics = CoreInit.conf.openstat.enable;
@@ -251,6 +273,7 @@ public class Startup
         #region load modules
         ModuleRepository.UpdateModules();
 
+        List<string> cacheModuePaths = new(100);
         Directory.CreateDirectory(Path.Combine("cache", "module"));
 
         var skipCompilationFolders = new HashSet<string>(mods.SkipModules ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
@@ -391,6 +414,7 @@ public class Startup
                         throw new Exception();
                     }
 
+                    cacheModuePaths.Add(Fnv1a.Base64Url(build.sumhash));
                     Console.WriteLine($"compilation {mod.name}");
 
                     mod.assembly = build.assembly;
@@ -405,6 +429,15 @@ public class Startup
         }
 
         Console.WriteLine();
+        #endregion
+
+        #region clear cache module
+        foreach (string path in Directory.GetFiles(Path.Combine("cache", "module"), "*.dll"))
+        {
+            string name = Path.GetFileNameWithoutExtension(path);
+            if (!cacheModuePaths.Contains(name))
+                File.Delete(path);
+        }
         #endregion
 
         #region modules configure
@@ -429,7 +462,7 @@ public class Startup
                     Console.WriteLine($"configure module: {mod.name}");
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Configure module {mod.name}: {ex.Message}\n\n");
                 throw new Exception();
@@ -483,11 +516,13 @@ public class Startup
         }
         #endregion
 
+        #region EventListener
         if (EventListener.UpdateCurrentConf != null)
         {
             foreach (Action handler in EventListener.UpdateCurrentConf.GetInvocationList())
                 handler();
         }
+        #endregion
 
         GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
@@ -676,7 +711,7 @@ public class Startup
         #endregion
 
         if (init.listen.LimitHttpRequests > 0)
-            app.UseLimitHttpRequests();
+            app.UseRateLimiter();
 
         if (init.openstat.enable)
             app.UseResponseAvgStatistics();

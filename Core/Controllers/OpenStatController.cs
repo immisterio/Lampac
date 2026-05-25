@@ -121,10 +121,6 @@ public class OpenStatController : BaseController
         var responseStats = ResponseStatisticsTracker.GetResponseTimeStatsLastMinute();
         var nwsCounter = NativeWebSocket.GetStatsLastMinute();
 
-        int http_active = LimitHttpRequests.ActiveHttpRequests;
-        if (ResponseStatisticsTracker.ActiveHttpRequests > http_active)
-            http_active = ResponseStatisticsTracker.ActiveHttpRequests;
-
         return Json(new
         {
             req_min,
@@ -158,7 +154,7 @@ public class OpenStatController : BaseController
                 req_hour = bot_req_hour
             },
             tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length,
-            http_active,
+            http_active = ResponseStatisticsTracker.ActiveHttpRequests,
             low_response = new
             {
                 avg_ms = (int)responseStats.average,

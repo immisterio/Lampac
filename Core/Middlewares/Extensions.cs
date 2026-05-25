@@ -24,11 +24,6 @@ public static class Extensions
         return builder.UseMiddleware<ResponseAvgStatistics>();
     }
 
-    public static IApplicationBuilder UseLimitHttpRequests(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<LimitHttpRequests>();
-    }
-
     public static IApplicationBuilder UseOverrideResponse(this IApplicationBuilder builder, bool first)
     {
         return builder.UseMiddleware<OverrideResponse>(first);
