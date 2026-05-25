@@ -139,7 +139,7 @@ public class StaticacheWriter
                         await fileStream.WriteAsync(buff.WrittenMemory);
                     }
 
-                    Staticache.cacheFiles[cachekey] = new CacheModel(exTicks, ext, (short)httpContext.Response.StatusCode, contentLength);
+                    Staticache.cacheFiles[cachekey] = new StaticacheCacheModel(exTicks, ext, (short)httpContext.Response.StatusCode, contentLength);
                 }
                 catch (Exception exception)
                 {

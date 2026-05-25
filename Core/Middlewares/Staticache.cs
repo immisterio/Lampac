@@ -21,19 +21,20 @@ using System.Threading.Tasks;
 
 namespace Core.Middlewares;
 
-public readonly record struct CacheModel(long ex, string ext, short statusCode = 200, int contentLength = 0);
-
 public class Staticache
 {
     #region static
     static readonly Serilog.ILogger Log = Serilog.Log.ForContext<Staticache>();
 
-    public readonly static ConcurrentDictionary<string, CacheModel> cacheFiles = new();
+    public readonly static ConcurrentDictionary<string, StaticacheCacheModel> cacheFiles = new();
 
     static readonly Timer cleanupTimer = new Timer(cleanup, null, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
 
+    static StaticachePreparedRoute[] preparedRoutes = Array.Empty<StaticachePreparedRoute>();
+
     public static void Initialization()
     {
+        #region load cache files
         long now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
         string cacheDir = Path.Combine("cache", "static");
@@ -76,13 +77,33 @@ public class Staticache
                     continue;
                 }
 
-                cacheFiles.TryAdd(cachekey, new CacheModel(unixTime, ext, 200, contentLength));
+                cacheFiles.TryAdd(cachekey, new StaticacheCacheModel(unixTime, ext, 200, contentLength));
             }
             catch
             {
                 deleteFile(inFile);
             }
         }
+        #endregion
+
+        EventListener.UpdateInitFile += () =>
+        {
+            var routes = CoreInit.conf.Staticache.routes;
+            if (routes == null || routes.Count == 0)
+                preparedRoutes = Array.Empty<StaticachePreparedRoute>();
+
+            preparedRoutes = routes.Select(r => new StaticachePreparedRoute
+            {
+                Route = r,
+                PathRegex = new Regex(
+                    r.pathRex,
+                    RegexOptions.IgnoreCase |
+                    RegexOptions.CultureInvariant |
+                    RegexOptions.Compiled,
+                    TimeSpan.FromMilliseconds(100)
+                )
+            }).ToArray();
+        };
     }
 
     static void cleanup(object state)
@@ -113,8 +134,7 @@ public class Staticache
     {
         try
         {
-            if (File.Exists(file))
-                File.Delete(file);
+            File.Delete(file);
         }
         catch (Exception ex)
         {
@@ -136,7 +156,7 @@ public class Staticache
             return _next(httpContext);
 
         var requestInfo = httpContext.Features.Get<RequestModel>();
-        if (requestInfo.AesGcmKey != null || requestInfo.IsWsRequest || requestInfo.IsProxyRequest || requestInfo.IsProxyImg)
+        if (requestInfo.AesGcmKey != null || requestInfo.IsProxyRequest || requestInfo.IsProxyImg)
             return _next(httpContext);
 
         var endpoint = httpContext.GetEndpoint();
@@ -162,16 +182,17 @@ public class Staticache
 
         bool customRoute = false;
         StaticacheRoute route = default;
+        string path = httpContext.Request.Path.Value;
 
         #region init routes
-        if (init.routes?.Count > 0 && init.enable)
+        if (init.enable)
         {
-            foreach (var r in init.routes)
+            foreach (var p in preparedRoutes)
             {
-                string path = httpContext.Request.Path.Value;
+                var r = p.Route;
 
                 if ((r.path != null && path.Equals(r.path))
-                    || (r.pathRex != null && Regex.IsMatch(path, r.pathRex, RegexOptions.IgnoreCase)))
+                    || (r.pathRex != null && p.PathRegex.IsMatch(path)))
                 {
                     customRoute = true;
                     route = r;
@@ -192,10 +213,10 @@ public class Staticache
                 return _next(httpContext);
         }
 
-        if (init.minimalCacheMinutes > staticache.cacheMinutes)
+        if (init.minimalCacheMinutes > staticache.cacheMinutes && !staticache.always)
             return _next(httpContext);
 
-        if (init.disabledPaths != null && init.disabledPaths.Contains(httpContext.Request.Path.Value))
+        if (init.disabledPaths != null && init.disabledPaths.Contains(path))
             return _next(httpContext);
 
         if (staticache.setHeadersNoCache)
@@ -223,7 +244,7 @@ public class Staticache
 
         string cachekey = getQueryKeys(httpContext, route.skipUids || staticache.skipUids, parameters, route.queryKeys, route.ignoreQueryKeys);
 
-        if (cacheFiles.TryGetValue(cachekey, out CacheModel _r))
+        if (cacheFiles.TryGetValue(cachekey, out StaticacheCacheModel _r))
         {
             httpContext.Response.StatusCode = _r.statusCode;
             httpContext.Response.Headers["X-StatiCache-Status"] = "HIT";
@@ -250,10 +271,11 @@ public class Staticache
             string file = GetFilePath(cachekey, _r.ex, _r.contentLength, _r.ext);
             return httpContext.Response.SendFileAsync(file);
         }
-
-        httpContext.Features.Set(new StaticacheFeature(route.cacheMinutes, cachekey));
-
-        return _next(httpContext);
+        else
+        {
+            httpContext.Features.Set(new StaticacheFeature(route.cacheMinutes, cachekey));
+            return _next(httpContext);
+        }
     }
 
 
@@ -325,5 +347,5 @@ public class Staticache
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetFilePath(string cachekey, long ex, int length, string ext)
-        => Path.Combine("cache", "static", BucketFolders.Name(cachekey[0]), $"{cachekey}-{ex}_{length}.{ext ?? "html"}");
+        => Path.Combine("cache", "static", BucketFolders.Name(cachekey[0]), $"{cachekey}-{ex}_{length}.{ext}");
 }

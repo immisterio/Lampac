@@ -1,4 +1,6 @@
-﻿namespace Shared.Models.AppConf;
+﻿using System.Text.RegularExpressions;
+
+namespace Shared.Models.AppConf;
 
 public class StaticacheConf
 {
@@ -16,8 +18,6 @@ public class StaticacheConf
     public string[] disabledPaths { get; set; }
 }
 
-public record StaticacheFeature(int cacheMinutes, string cachekey);
-
 public struct StaticacheRoute
 {
     public string path { get; set; }
@@ -32,3 +32,14 @@ public struct StaticacheRoute
 
     public string[] ignoreQueryKeys { get; set; }
 }
+
+public class StaticachePreparedRoute
+{
+    public StaticacheRoute Route { get; init; }
+
+    public Regex PathRegex { get; init; }
+}
+
+public readonly record struct StaticacheCacheModel(long ex, string ext, short statusCode = 200, int contentLength = 0);
+
+public record StaticacheFeature(int cacheMinutes, string cachekey);
