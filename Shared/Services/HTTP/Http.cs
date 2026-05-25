@@ -888,11 +888,11 @@ public static class Http
 
 
     #region Post
-    public static Task<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, Encoding encoding = default, bool statusCodeOK = true, HttpClient httpClient = null)
+    async public static Task<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, Encoding encoding = default, bool statusCodeOK = true, HttpClient httpClient = null)
     {
         using (var dataContent = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"))
         {
-            return Post(url, dataContent,
+            return await Post(url, dataContent,
                 encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK, httpClient
             );
         }
@@ -1003,11 +1003,11 @@ public static class Http
 
 
     #region Post<T>
-    public static Task<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true, HttpClient httpClient = null, bool textJson = false)
+    async public static Task<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true, HttpClient httpClient = null, bool textJson = false)
     {
         using (var dataContent = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"))
         {
-            return Post<T>(url, dataContent,
+            return await Post<T>(url, dataContent,
                 cookie, timeoutSeconds, headers, encoding, proxy, IgnoreDeserializeObject, cookieContainer, useDefaultHeaders, httpversion, MaxResponseContentBufferSize, statusCodeOK, httpClient, textJson
             );
         }
