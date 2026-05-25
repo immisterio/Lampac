@@ -56,13 +56,13 @@ public class TmdbProxyController : BaseController
     }
     #endregion
 
-    #region TmdbLegacy
+    #region LegacyRoutes
     [HttpGet]
     [Route("tmdb/http:/{*suffix}")]
     [Route("tmdb/https:/{*suffix}")]
     [Route("tmdb/api.themoviedb.org/{*suffix}")]
     [Route("tmdb/image.tmdb.org/{*suffix}")]
-    public RedirectResult TmdbLegacy()
+    public RedirectResult LegacyRoutes()
     {
         ReadOnlySpan<char> path = HttpContext.Request.Path.Value
             .AsSpan()
@@ -83,7 +83,7 @@ public class TmdbProxyController : BaseController
         else
             path = path.Slice(tmdbApiHost.Length + 1);
 
-        if (path.StartsWith("//"))
+        if (path.StartsWith("/"))
             path = path.Slice(1);
 
         if (path.EndsWith('/'))
