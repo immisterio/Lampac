@@ -188,17 +188,17 @@ public class ProxyImg
                     contentType = href.Contains(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
 
                 #region cacheFiles
-                if (cacheimg && fileWatcher.TryGetValue(md5key, out var _fileCache))
+                if (cacheimg && fileWatcher.TryGetValue(md5key, out int _fileLength))
                 {
                     httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContext.Response.ContentType = contentType;
 
-                    if (_fileCache.Length > 0)
-                        httpContext.Response.ContentLength = _fileCache.Length;
+                    if (_fileLength > 0)
+                        httpContext.Response.ContentLength = _fileLength;
 
                     try
                     {
-                        await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
+                        await httpContext.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
                         return;
                     }
                     catch (Exception ex)
@@ -236,16 +236,16 @@ public class ProxyImg
                         return;
 
                     #region cacheFiles
-                    if (cacheimg && fileWatcher.TryGetValue(md5key, out _fileCache))
+                    if (cacheimg && fileWatcher.TryGetValue(md5key, out _fileLength))
                     {
                         httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                         httpContext.Response.ContentType = contentType;
 
-                        if (_fileCache.Length > 0)
-                            httpContext.Response.ContentLength = _fileCache.Length;
+                        if (_fileLength > 0)
+                            httpContext.Response.ContentLength = _fileLength;
 
                         semaphore?.Release();
-                        await httpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
+                        await httpContext.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
                         return;
                     }
                     #endregion
@@ -329,7 +329,6 @@ public class ProxyImg
                                                 {
                                                     int cacheLength = 0;
                                                     bool isFullyRead = false;
-                                                    fileWatcher.EnsureDirectory(md5key);
 
                                                     await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 0, options: FileOptions.Asynchronous))
                                                     {

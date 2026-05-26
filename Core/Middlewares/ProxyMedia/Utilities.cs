@@ -288,9 +288,9 @@ public partial class ProxyAPI
                         CoreInit.conf.serverproxy.maxlength_ts >= responseMessage.Content.Headers.ContentLength)
                     {
                         #region cache
-                        string md5key = CrypTo.md5(uriKeyFileCache);
-                        string targetFile = fileWatcher.OutFile(md5key);
-                        fileWatcher.EnsureDirectory(md5key);
+                        var hash = Fnv1a.Hash(uriKeyFileCache);
+                        string fileName = Fnv1a.Base64Url(hash);
+                        string targetFile = fileWatcher.OutFile(fileName);
 
                         var semaphore = new SemaphorManager(targetFile, ct);
 
@@ -323,7 +323,7 @@ public partial class ProxyAPI
 
                             if (responseMessage.Content.Headers.ContentLength.Value == cacheLength)
                             {
-                                fileWatcher.Add(md5key, cacheLength);
+                                fileWatcher.Add(targetFile, cacheLength);
                             }
                             else
                             {

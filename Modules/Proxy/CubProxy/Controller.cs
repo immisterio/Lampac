@@ -166,15 +166,15 @@ public class CubProxyController : BaseController
 
                 string outFile = ModInit.fileWatcher.OutFile(md5key);
 
-                if (ModInit.fileWatcher.TryGetValue(md5key, out var _fileCache))
+                if (ModInit.fileWatcher.TryGetValue(md5key, out int _fileLength))
                 {
                     HttpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     HttpContext.Response.ContentType = getContentType(path);
 
-                    if (_fileCache.Length > 0)
-                        HttpContext.Response.ContentLength = _fileCache.Length;
+                    if (_fileLength > 0)
+                        HttpContext.Response.ContentLength = _fileLength;
 
-                    await HttpContext.Response.SendFileAsync(_fileCache.FullPath, ctsHttp.Token).ConfigureAwait(false);
+                    await HttpContext.Response.SendFileAsync(ModInit.fileWatcher.OutFile(md5key), ctsHttp.Token).ConfigureAwait(false);
                     return;
                 }
                 else
@@ -225,8 +225,6 @@ public class CubProxyController : BaseController
                                             {
                                                 int cacheLength = 0;
                                                 var memBuf = nbuf.Memory;
-
-                                                ModInit.fileWatcher.EnsureDirectory(md5key);
 
                                                 await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
                                                     bufferSize: 0,

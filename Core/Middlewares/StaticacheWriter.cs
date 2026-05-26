@@ -137,7 +137,7 @@ public class StaticacheWriter
                 #endregion
 
                 #region Сохраняем на диск
-                if (!cacheEntry.saveCache || DateTimeOffset.Now > ex)
+                if ((cacheEntry != null && cacheEntry.saveCache == false) || DateTimeOffset.Now > ex)
                     return;
 
                 string cachekey = stc.cachekey;
