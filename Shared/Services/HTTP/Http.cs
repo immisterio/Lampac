@@ -1257,11 +1257,11 @@ public static class Http
 
                         HttpContent content = response.Content;
 
-                        await using (var stream = await content.ReadAsStreamAsync())
+                        await using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
                         {
                             await using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize, options: FileOptions.Asynchronous))
                             {
-                                await stream.CopyToAsync(fileStream);
+                                await stream.CopyToAsync(fileStream, cts.Token).ConfigureAwait(false);
                                 return true;
                             }
                         }

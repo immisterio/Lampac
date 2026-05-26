@@ -36,8 +36,6 @@ public class BaseController : Controller
 
     protected ActionResult badInitMsg { get; set; }
 
-    public bool StatiCacheDisabled { get; set; }
-
     static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions
     {
         Indented = false,
@@ -878,6 +876,7 @@ public class BaseController : Controller
     #endregion
 
     #region UpdateStatiCacheFeatures
+    public bool StatiCacheDisabled { get; set; }
     StatiCacheEntry _statiCacheEntry;
 
     void UpdateStatiCacheFeatures(DateTimeOffset ex)
@@ -887,7 +886,7 @@ public class BaseController : Controller
 
         if (_statiCacheEntry == null || _statiCacheEntry.ex > ex)
         {
-            _statiCacheEntry = new StatiCacheEntry(ex);
+            _statiCacheEntry = new StatiCacheEntry(ex, StatiCacheDisabled ? false : true);
             HttpContext.Features.Set(_statiCacheEntry);
         }
     }
@@ -1212,7 +1211,10 @@ public class BaseController : Controller
                 : "text/html; charset=utf-8";
         }
 
-        var stcWriter = HttpContext.Features.Get<RecyclableMemoryStream>();
+        var stcWriter = StatiCacheDisabled
+            ? null
+            : HttpContext.Features.Get<RecyclableMemoryStream>();
+
         if (stcWriter != null)
         {
             var response = HttpContext.Response;
@@ -1221,7 +1223,7 @@ public class BaseController : Controller
             var encoder = Encoding.UTF8.GetEncoder();
             ReadOnlySpan<char> chars = html.AsSpan();
 
-            int chunkSize = PoolInvk.msmBlockSize;
+            int chunkSize = PoolInvk.ChunkSizeBodyWriter(Encoding.UTF8.GetMaxByteCount(chars.Length));
 
             while (!chars.IsEmpty)
             {
@@ -1245,7 +1247,7 @@ public class BaseController : Controller
                     break;
 
                 if (charsUsed == 0 && bytesUsed == 0)
-                    throw new InvalidOperationException("UTF8 encoder made no progress.");
+                    break;
             }
 
             Span<byte> tail = stcWriter.GetSpan(128);
@@ -1271,7 +1273,11 @@ public class BaseController : Controller
     #region StaticacheOrBodyWriter
     public IBufferWriter<byte> StaticacheOrBodyWriter()
     {
-        var staticWriter = HttpContext.Features.Get<RecyclableMemoryStream>();
+        IBufferWriter<byte> staticWriter = default;
+
+        if (!StatiCacheDisabled)
+            staticWriter = HttpContext.Features.Get<RecyclableMemoryStream>();
+
         if (staticWriter != null)
             return staticWriter;
 

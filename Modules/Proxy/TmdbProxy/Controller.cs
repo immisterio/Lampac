@@ -127,19 +127,22 @@ public class TmdbProxyController : BaseController
 
         if (result.success)
         {
-            proxyManager?.Success();
-
             int statusCode = (int)result.response.StatusCode;
             HttpContext.Response.StatusCode = statusCode;
 
-            if (statusCode == 200 && ModInit.conf.cache_api > 0)
-                HttpContext.Features.Set(new StatiCacheEntry(DateTimeOffset.Now.AddMinutes(ModInit.conf.cache_api)));
+            if (statusCode == 200)
+            {
+                proxyManager?.Success();
+
+                if (ModInit.conf.cache_api > 0)
+                    HttpContext.Features.Set(new StatiCacheEntry(DateTimeOffset.Now.AddMinutes(ModInit.conf.cache_api)));
+            }
         }
         else
         {
             proxyManager?.Refresh();
             HttpContext.Response.StatusCode = StatusCodes.Status408RequestTimeout;
-            bodyWriter.Write("{\"status_code\":1,\"status_message\":\"BaseGetReaderAsync\",\"success\":false}"u8);
+            bodyWriter.Write("{\"status_code\":1,\"status_message\":\"408 Request Timeout\",\"success\":false}"u8);
         }
     }
     #endregion
@@ -264,7 +267,7 @@ public class TmdbProxyController : BaseController
             int bytesRead;
             var memBuf = byteBuf.Memory;
 
-            while ((bytesRead = await stream.ReadAsync(memBuf, ct).ConfigureAwait(false)) > 0)
+            while ((bytesRead = await stream.ReadAsync(memBuf, ct)) > 0)
                 bodyWriter.Write(memBuf.Span.Slice(0, bytesRead));
         }
     }

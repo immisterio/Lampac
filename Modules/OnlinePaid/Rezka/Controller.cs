@@ -81,7 +81,7 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
         if (rch != null)
         {
             if (rch.IsNotConnected() || rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
+                return Content(rch.connectionMsg, "application/json; charset=utf-8");
 
             if (rch.enable)
             {
@@ -231,11 +231,11 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
                 if (init.rhub_fallback && play)
                     rch.Disabled();
                 else
-                    return ContentTo(rch.connectionMsg);
+                    return Content(rch.connectionMsg, "application/json; charset=utf-8");
             }
 
             if (!play && rch.IsRequiredConnected())
-                return ContentTo(rch.connectionMsg);
+                return Content(rch.connectionMsg, "application/json; charset=utf-8");
         }
 
         MovieModel md = null;

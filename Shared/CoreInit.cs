@@ -27,15 +27,41 @@ public class CoreInit
 
     public static bool ContainsMimeTypes(string contentType)
     {
-        if (string.IsNullOrEmpty(contentType))
+        if (!conf.listen.compression || string.IsNullOrEmpty(contentType))
             return false;
 
         int semicolonIndex = contentType.IndexOf(';');
 
-        if (semicolonIndex >= 0)
-            contentType = contentType[..semicolonIndex];
+        if (semicolonIndex == -1)
+            return CompressionMimeTypes.Contains(contentType);
 
-        return CompressionMimeTypes.Contains(contentType.Trim());
+        string ctype = null;
+
+        if (contentType.StartsWith("application/dash+xml"))
+            ctype = "application/dash+xml";
+        else if (contentType.StartsWith("application/x-mpegurl"))
+            ctype = "application/x-mpegurl";
+        else if (contentType.StartsWith("application/vnd.apple.mpegurl"))
+            ctype = "application/vnd.apple.mpegurl";
+        else if (contentType.StartsWith("text/plain"))
+            ctype = "text/plain";
+        else if (contentType.StartsWith("text/html"))
+            ctype = "text/html";
+        else if (contentType.StartsWith("application/json"))
+            ctype = "application/json";
+        else if (contentType.StartsWith("application/javascript"))
+            ctype = "application/javascript";
+        else if (contentType.StartsWith("text/css"))
+            ctype = "text/css";
+        else if (contentType.StartsWith("image/png"))
+            ctype = "image/png";
+        else if (contentType.StartsWith("image/jpeg"))
+            ctype = "image/jpeg";
+
+        if (ctype != null)
+            return CompressionMimeTypes.Contains(ctype);
+
+        return CompressionMimeTypes.Contains(contentType[..semicolonIndex]);
     }
 
     public static bool Win32NT => Environment.OSVersion.Platform == PlatformID.Win32NT;
@@ -394,7 +420,6 @@ public class CoreInit
     {
         enable = true,
         verifyip = true,
-        responseContentLength = true,
         buffering = new ServerproxyBufferingConf()
         {
             enable = true,

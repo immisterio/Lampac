@@ -132,9 +132,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                         {
                             if (tdb.Value.textJson)
                             {
-                                await using (var fs = new FileStream(pathFile, FileMode.Create, FileAccess.Write, FileShare.Read,
-                                    bufferSize: PoolInvk.bufferSize,
-                                    options: FileOptions.Asynchronous))
+                                await using (var fs = new FileStream(pathFile, FileMode.Create, FileAccess.Write, FileShare.Read, bufferSize: 0))
                                 {
                                     await using (var gzip = new GZipStream(fs, CompressionLevel.Fastest, leaveOpen: true))
                                         await System.Text.Json.JsonSerializer.SerializeAsync(gzip, tdb.Value.value, _jsonSerializerOptions);
@@ -146,7 +144,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                                 {
                                     await using (var gzip = new GZipStream(msm, CompressionLevel.Fastest, leaveOpen: true))
                                     {
-                                        using (var sw = new StreamWriter(gzip, _utf8NoBom, PoolInvk.bufferSize, leaveOpen: true))
+                                        using (var sw = new StreamWriter(gzip, _utf8NoBom, leaveOpen: true))
                                         {
                                             using (var jw = new JsonTextWriter(sw)
                                             {
@@ -161,20 +159,8 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                                     }
 
                                     msm.Position = 0;
-                                    await using (var fs = new FileStream(pathFile, FileMode.Create, FileAccess.Write, FileShare.Read,
-                                        bufferSize: PoolInvk.bufferSize,
-                                        options: FileOptions.Asynchronous))
-                                    {
-                                        using (var nbuf = new BufferPool())
-                                        {
-                                            int bytesRead;
-                                            var memBuf = nbuf.Memory;
-
-                                            msm.Position = 0;
-                                            while ((bytesRead = msm.Read(memBuf.Span)) > 0)
-                                                await fs.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                                        }
-                                    }
+                                    await using (var fs = new FileStream(pathFile, FileMode.Create, FileAccess.Write, FileShare.Read, bufferSize: 0))
+                                        await msm.CopyToAsync(fs).ConfigureAwait(false);
                                 }
                             }
                         }
@@ -186,7 +172,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                         cacheFiles[tdb.Key] = new cacheEntry(path, tdb.Value.ex, capacity);
                         tempDb.TryRemove(tdb.Key, out _);
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         Log.Error(ex, "CatchId={CatchId}", "id_r3s53fcl");
                     }
@@ -363,7 +349,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                             FileMode.Open,
                             FileAccess.Read,
                             FileShare.Read,
-                            PoolInvk.bufferSize,
+                            bufferSize: 0,
                             options: FileOptions.Asynchronous | FileOptions.SequentialScan))
                         {
                             await using (var gzip = new GZipStream(fs, CompressionMode.Decompress, leaveOpen: true))
@@ -385,7 +371,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                                 FileMode.Open,
                                 FileAccess.Read,
                                 FileShare.Read,
-                                PoolInvk.bufferSize,
+                                bufferSize: 0,
                                 options: FileOptions.Asynchronous | FileOptions.SequentialScan))
                             {
                                 await using (var gzip = new GZipStream(fs, CompressionMode.Decompress, leaveOpen: true))

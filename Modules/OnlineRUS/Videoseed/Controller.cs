@@ -249,7 +249,7 @@ public class VideoseedController : BaseOnlineController
             return OnError("location");
 
         string referer = Regex.Match(iframe, "(^https?://[^/]+)").Groups[1].Value;
-        var headers_stream = httpHeaders(init.host, HeadersModel.Join(HeadersModel.Init("referer", referer), init.headers_stream));
+        var headers_stream = httpHeaders(init.host, HeadersModel.JoinReadOnly(HeadersModel.Init("referer", referer), init.headers_stream));
 
         return ContentTo(VideoTpl.ToJson(
             "play",

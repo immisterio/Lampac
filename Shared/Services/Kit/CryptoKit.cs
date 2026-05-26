@@ -92,7 +92,7 @@ public static class CryptoKit
                     using (var aes = new AesGcm(key.Slice(0, keyLen), 16))
                         aes.Encrypt(nonce, plain.WrittenSpan, ct, tag);
 
-                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize))
+                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         fs.Write(nonce);
                         fs.Write(tag);
@@ -114,9 +114,7 @@ public static class CryptoKit
     {
         try
         {
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
-                bufferSize: PoolInvk.bufferSize,
-                options: FileOptions.SequentialScan))
+            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 long len64 = fs.Length;
 

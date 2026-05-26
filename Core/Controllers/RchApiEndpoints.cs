@@ -13,7 +13,11 @@ namespace Core.Endpoints;
 
 public static class RchApiEndpoints
 {
+    readonly record struct RchConnectedResponse(int apkVersion, string rchtype);
+
     const long maxRequestSize = 10 * 1024 * 1024;
+    static readonly RchClientInfo emptyRchClientInfo = new RchClientInfo();
+    static readonly BaseSettings rchBaseSettings = new BaseSettings() { rhub = true };
 
     public static void MapRchApi(this IEndpointRouteBuilder endpoints)
     {
@@ -30,7 +34,6 @@ public static class RchApiEndpoints
         rchGroup.MapGet("check/connected", СheckСonnected)
             .AllowAnonymous();
     }
-
 
     static async Task<IResult> WriteResult(HttpContext context, [FromQuery] string id)
     {
@@ -67,7 +70,6 @@ public static class RchApiEndpoints
 
         return Results.BadRequest();
     }
-
 
     static async Task<IResult> WriteZipResult(HttpContext context, [FromQuery] string id)
     {
@@ -108,11 +110,6 @@ public static class RchApiEndpoints
         return Results.BadRequest();
     }
 
-
-    readonly record struct RchConnectedResponse(int apkVersion, string rchtype);
-    static readonly RchClientInfo emptyRchClientInfo = new RchClientInfo();
-    static readonly BaseSettings rchBaseSettings = new BaseSettings() { rhub = true };
-
     static IResult СheckСonnected(HttpContext context)
     {
         var requestInfo = context.Features.Get<RequestModel>();
@@ -121,7 +118,7 @@ public static class RchApiEndpoints
         var rch = new RchClient(context, host, rchBaseSettings, requestInfo);
 
         if (rch.IsNotConnected())
-            return Results.Content(rch.connectionMsg);
+            return Results.Content(rch.connectionMsg, "application/json; charset=utf-8");
 
         var info = rch.InfoConnected();
 

@@ -189,7 +189,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
                 {
                     if (this.rch.IsNotConnected())
                     {
-                        badInitMsg = ContentTo(this.rch.connectionMsg);
+                        badInitMsg = Content(this.rch.connectionMsg, "application/json; charset=utf-8");
                         return true;
                     }
 
@@ -212,7 +212,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
         if (rch_check && this.rch != null && this.rch.IsRequiredConnected())
         {
-            badInitMsg = ContentTo(this.rch.connectionMsg);
+            badInitMsg = Content(this.rch.connectionMsg, "application/json; charset=utf-8");
             return true;
         }
 
@@ -239,7 +239,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
         if (!string.IsNullOrEmpty(msg))
         {
             if (msg.StartsWith("{\"rch\""))
-                return Content(msg);
+                return Content(msg, "application/json; charset=utf-8");
         }
 
         if (gbcache == true && rch?.enable != true)
@@ -250,7 +250,14 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
         }
 
         HttpContext.Response.StatusCode = statusCode;
-        return ContentTo(msg ?? string.Empty);
+
+        msg = msg ?? string.Empty;
+
+        string contentType = msg.StartsWith("{") || msg.StartsWith("[")
+            ? "application/json; charset=utf-8"
+            : "text/html; charset=utf-8";
+
+        return Content(msg, contentType);
     }
     #endregion
 
@@ -309,9 +316,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             ? tpl.ToBuilderJson()
             : tpl.ToBuilderHtml();
 
-        IBufferWriter<byte> bodyWriter = StatiCacheDisabled
-            ? new ChunkBufferWriter<byte>(Response.BodyWriter)
-            : StaticacheOrBodyWriter();
+        IBufferWriter<byte> bodyWriter = StaticacheOrBodyWriter();
 
         try
         {

@@ -304,7 +304,7 @@ public partial class ProxyAPI
 
                             using (var nbuf = new BufferPool())
                             {
-                                await using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None, PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                                await using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 0, options: FileOptions.Asynchronous))
                                 {
                                     int bytesRead;
                                     var memBuf = nbuf.Memory;

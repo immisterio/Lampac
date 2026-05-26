@@ -5,17 +5,55 @@ namespace Shared.Services.Buckets;
 
 public static class BucketHeaders
 {
-    static readonly ConcurrentDictionary<ulong, IReadOnlyList<HeadersModel>> bk = new();
+    #region static
+    sealed class BucketHeadersModel
+    {
+        public IReadOnlyList<HeadersModel> Headers { get; }
+
+        private long _ticks;
+
+        public long Ticks
+            => Volatile.Read(ref _ticks);
+
+        public BucketHeadersModel(IReadOnlyList<HeadersModel> headers)
+        {
+            Headers = headers;
+            Touch();
+        }
+
+        public void Touch()
+        {
+            Volatile.Write(ref _ticks, DateTime.UtcNow.Ticks);
+        }
+    }
+
+    static readonly ConcurrentDictionary<ulong, BucketHeadersModel> bk = new();
 
     static readonly Timer _timer = new(_ =>
     {
-        bk.Clear();
-    }, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+        var expired = DateTime.UtcNow.AddHours(-3).Ticks;
 
+        foreach (var item in bk)
+        {
+            if (expired > item.Value.Ticks)
+                bk.TryRemove(item.Key, out BucketHeadersModel _);
+        }
+    }, null, TimeSpan.Zero, TimeSpan.FromMinutes(10));
+
+    public static int Stat_ContTempDb => bk.Count;
+    #endregion
 
     public static bool TryGetValue(ulong H1, out IReadOnlyList<HeadersModel> headers)
     {
-        return bk.TryGetValue(H1, out headers);
+        if (bk.TryGetValue(H1, out var model))
+        {
+            model.Touch();
+            headers = model.Headers;
+            return true;
+        }
+
+        headers = null;
+        return false;
     }
 
     public static ulong Hash(string prefix, IReadOnlyList<HeadersModel> headers)
@@ -49,6 +87,6 @@ public static class BucketHeaders
 
     public static void AddOrUpdate(ulong H1, IReadOnlyList<HeadersModel> headers)
     {
-        bk[H1] = headers;
+        bk[H1] = new BucketHeadersModel(headers);
     }
 }

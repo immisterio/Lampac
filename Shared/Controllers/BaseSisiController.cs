@@ -193,7 +193,7 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
             {
                 if (init.rhub && !CoreInit.conf.rch.enable)
                 {
-                    badInitMsg = OnError(RchClient.ErrorMsg);
+                    badInitMsg = OnError(RchClient.ErrorMsg, rcache: false);
                     return true;
                 }
 
@@ -201,13 +201,13 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
                 {
                     if (this.rch.IsNotConnected())
                     {
-                        badInitMsg = ContentTo(this.rch.connectionMsg);
+                        badInitMsg = Content(this.rch.connectionMsg, "application/json; charset=utf-8");
                         return true;
                     }
 
                     if (this.rch.IsNotSupport(out string rch_error))
                     {
-                        badInitMsg = OnError(rch_error);
+                        badInitMsg = OnError(rch_error, rcache: false);
                         return true;
                     }
                 }
@@ -216,7 +216,7 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
             {
                 if (init.rhub)
                 {
-                    badInitMsg = OnError(RchClient.ErrorMsg);
+                    badInitMsg = OnError(RchClient.ErrorMsg, rcache: false);
                     return true;
                 }
             }
@@ -224,7 +224,7 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
 
         if (rch_check && this.rch != null && this.rch.IsRequiredConnected())
         {
-            badInitMsg = ContentTo(this.rch.connectionMsg);
+            badInitMsg = Content(this.rch.connectionMsg, "application/json; charset=utf-8");
             return true;
         }
 
@@ -307,9 +307,7 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
             }
         }
 
-        IBufferWriter<byte> utf8Writer = StatiCacheDisabled
-            ? new ChunkBufferWriter<byte>(Response.BodyWriter)
-            : StaticacheOrBodyWriter();
+        IBufferWriter<byte> utf8Writer = StaticacheOrBodyWriter();
 
         Response.ContentType = "application/json; charset=utf-8";
         Response.Headers.CacheControl = "no-cache";
@@ -513,9 +511,7 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
         Response.ContentType = "application/json; charset=utf-8";
         Response.Headers.CacheControl = "no-cache";
 
-        IBufferWriter<byte> utf8Writer = StatiCacheDisabled
-            ? new ChunkBufferWriter<byte>(Response.BodyWriter)
-            : StaticacheOrBodyWriter();
+        IBufferWriter<byte> utf8Writer = StaticacheOrBodyWriter();
 
         using (var writer = new Utf8JsonWriter(
              utf8Writer,

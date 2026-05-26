@@ -6,11 +6,6 @@ namespace Shared.Services.Pools;
 public class ChunkBufferWriter<T> : IBufferWriter<T> where T : struct
 {
     readonly IBufferWriter<T> writer;
-    const int _chunk4 = 4 * 1024;
-    const int _chunk8 = 8 * 1024;
-    const int _chunk16 = 16 * 1024;
-    const int _chunk32 = 32 * 1024;
-    const int _msmBlockSize = 81920;
 
     public ChunkBufferWriter(IBufferWriter<T> writer)
     {
@@ -35,11 +30,11 @@ public class ChunkBufferWriter<T> : IBufferWriter<T> where T : struct
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int ChunkSizeHint(int sizeHint) => sizeHint switch
     {
-        <= _chunk4 => _chunk4,
-        <= _chunk8 => _chunk8,
-        <= _chunk16 => _chunk16,
-        <= _chunk32 => _chunk32,
-        <= _msmBlockSize => _msmBlockSize,
+        <= PoolInvk._chunk4 => PoolInvk._chunk4,
+        <= PoolInvk._chunk8 => PoolInvk._chunk8,
+        <= PoolInvk._chunk16 => PoolInvk._chunk16,
+        <= PoolInvk._chunk32 => PoolInvk._chunk32,
+        <= PoolInvk.msmBlockSize => PoolInvk.msmBlockSize,
         _ => sizeHint
     };
 }

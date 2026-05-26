@@ -121,19 +121,12 @@ public class StorageController : BaseController
                     return ContentTo("{\"success\": false, \"msg\": \"semaphore\"}");
                 }
 
+                msm.Position = 0;
                 await using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
-                    bufferSize: PoolInvk.bufferSize,
+                    bufferSize: 0,
                     options: FileOptions.Asynchronous))
                 {
-                    using (var nbuf = new BufferPool())
-                    {
-                        int bytesRead;
-                        var memBuf = nbuf.Memory;
-
-                        msm.Position = 0;
-                        while ((bytesRead = msm.Read(memBuf.Span)) > 0)
-                            await fileStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                    }
+                    await msm.CopyToAsync(fileStream).ConfigureAwait(false);
                 }
             }
             catch
@@ -254,19 +247,12 @@ public class StorageController : BaseController
                     return ContentTo("{\"success\": false, \"msg\": \"semaphore\"}");
                 }
 
+                msm.Position = 0;
                 await using (var fileStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
                     bufferSize: PoolInvk.bufferSize,
                     options: FileOptions.Asynchronous))
                 {
-                    using (var nbuf = new BufferPool())
-                    {
-                        int bytesRead;
-                        var memBuf = nbuf.Memory;
-
-                        msm.Position = 0;
-                        while ((bytesRead = msm.Read(memBuf.Span)) > 0)
-                            await fileStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                    }
+                    await msm.CopyToAsync(fileStream).ConfigureAwait(false);
                 }
             }
             catch

@@ -429,11 +429,11 @@ public class OnlineApiController : BaseController
     async public Task<ActionResult> Spider(string title)
     {
         if (!ModInit.conf.spider)
-            return ContentTo("{}");
+            return Content("{}", "application/json; charset=utf-8");
 
         var rch = new RchClient(HttpContext, host, new BaseSettings() { rhub = true }, requestInfo);
         if (rch.IsNotConnected() || rch.IsRequiredConnected())
-            return ContentTo(rch.connectionMsg);
+            return Content(rch.connectionMsg, "application/json; charset=utf-8");
 
         var user = requestInfo.user;
         var piders = new List<(string name, string uri, int index)>();

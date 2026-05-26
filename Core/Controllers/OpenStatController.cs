@@ -7,6 +7,7 @@ using Shared.Attributes;
 using Shared.Models.AppConf;
 using Shared.PlaywrightCore;
 using Shared.Services;
+using Shared.Services.Buckets;
 using Shared.Services.Hybrid;
 using Shared.Services.Native;
 using Shared.Services.Pools;
@@ -188,6 +189,7 @@ public class OpenStatController : BaseController
             HybridFileCache = HybridFileCache.Stat_ContTempDb,
             SemaphorManager = SemaphorManager.Stat_ContSemaphoreLocks,
             Staticache = Staticache.cacheFiles.Count,
+            BucketHeaders = BucketHeaders.Stat_ContTempDb,
             ProxyLink = ProxyLink.Stat_ContLinks,
             ProxyAPI = ProxyAPI.Stat_ContCacheFiles,
             ProxyImg = ProxyImg.Stat_ContCacheFiles,

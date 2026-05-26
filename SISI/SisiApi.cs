@@ -99,14 +99,12 @@ public class SisiApiController : BaseController
     #endregion
 
     #region startpage.js
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
+    [Staticache(10, always: true, setHeadersNoCache: true)]
     [Route("startpage.js")]
     public ActionResult StartPage()
     {
-        SetHeadersNoCache();
-
-        string startpage = FileCache.ReadAllText($"{ModInit.modpath}/plugins/startpage.js", "startpage.js")
+        string startpage = FileCache.ReadAllText($"{ModInit.modpath}/plugins/startpage.js", "startpage.js", saveCache: false)
             .Replace("{localhost}", host);
 
         return Content(startpage, "application/javascript; charset=utf-8");

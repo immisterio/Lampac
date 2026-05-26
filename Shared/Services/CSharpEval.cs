@@ -173,7 +173,7 @@ public static class CSharpEval
 
                 foreach (string csfile in syntaxPaths)
                 {
-                    using (var fileStream = new FileStream(csfile, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: PoolInvk.bufferSize))
+                    using (var fileStream = new FileStream(csfile, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         var sourceText = SourceText.From(fileStream, Encoding.UTF8);
                         syntaxTree.Add(CSharpSyntaxTree.ParseText(sourceText, parseOptions, csfile));

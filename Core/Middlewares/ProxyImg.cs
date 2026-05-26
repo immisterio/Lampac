@@ -193,7 +193,7 @@ public class ProxyImg
                     httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                     httpContext.Response.ContentType = contentType;
 
-                    if (CoreInit.conf.serverproxy.responseContentLength && _fileCache.Length > 0)
+                    if (_fileCache.Length > 0)
                         httpContext.Response.ContentLength = _fileCache.Length;
 
                     try
@@ -241,7 +241,7 @@ public class ProxyImg
                         httpContext.Response.Headers["X-Cache-Status"] = "HIT";
                         httpContext.Response.ContentType = contentType;
 
-                        if (CoreInit.conf.serverproxy.responseContentLength && _fileCache.Length > 0)
+                        if (_fileCache.Length > 0)
                             httpContext.Response.ContentLength = _fileCache.Length;
 
                         semaphore?.Release();
@@ -313,11 +313,8 @@ public class ProxyImg
                                     else
                                         httpContext.Response.ContentType = contentType;
 
-                                    if (CoreInit.conf.serverproxy.responseContentLength && response.Content?.Headers?.ContentLength > 0)
-                                    {
-                                        if (!CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
-                                            httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
-                                    }
+                                    if (response.Content.Headers.ContentLength.HasValue)
+                                        httpContext.Response.ContentLength = response.Content.Headers.ContentLength.Value;
 
                                     await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))
                                     {
@@ -334,7 +331,7 @@ public class ProxyImg
                                                     bool isFullyRead = false;
                                                     fileWatcher.EnsureDirectory(md5key);
 
-                                                    await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                                                    await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 0, options: FileOptions.Asynchronous))
                                                     {
                                                         while (true)
                                                         {
@@ -350,7 +347,7 @@ public class ProxyImg
                                                                 break;
 
                                                             await cacheStream.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                                                            await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                                            await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
                                                         }
                                                     }
 
@@ -385,7 +382,7 @@ public class ProxyImg
                                                     if (ctsHttp.IsCancellationRequested)
                                                         break;
 
-                                                    await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
+                                                    await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead), ctsHttp.Token).ConfigureAwait(false);
                                                 }
                                             }
                                         }
@@ -471,20 +468,12 @@ public class ProxyImg
                                     proxyManager?.Success();
 
                                 var resultArray = successConvert ? outArray : inArray;
-
-                                if (CoreInit.conf.serverproxy.responseContentLength)
-                                    httpContext.Response.ContentLength = resultArray.Length;
+                                httpContext.Response.ContentLength = resultArray.Length;
 
                                 try
                                 {
-                                    using (var byteBuf = new BufferBytePool((int)resultArray.Length))
-                                    {
-                                        resultArray.Position = 0;
-                                        var memBuf = byteBuf.Memory;
-                                        int bytesRead = resultArray.Read(memBuf.Span);
-
-                                        await httpContext.Response.Body.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                                    }
+                                    resultArray.Position = 0;
+                                    await resultArray.CopyToAsync(httpContext.Response.Body, ctsHttp.Token).ConfigureAwait(false);
                                 }
                                 catch (Exception ex)
                                 {
@@ -654,18 +643,10 @@ public class ProxyImg
 
         try
         {
-            await using (var streamFile = new FileStream(inputFilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
-            {
-                using (var nbuf = new BufferPool())
-                {
-                    int bytesRead;
-                    var memBuf = nbuf.Memory;
+            inArray.Position = 0;
 
-                    inArray.Position = 0;
-                    while ((bytesRead = inArray.Read(memBuf.Span)) > 0)
-                        await streamFile.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                }
-            }
+            await using (var streamFile = new FileStream(inputFilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 0, options: FileOptions.Asynchronous))
+                await inArray.CopyToAsync(streamFile).ConfigureAwait(false);
 
             string argsize = width > 0 && height > 0 ? $"{width}x{height}" : width > 0 ? $"{width}x" : $"x{height}";
 

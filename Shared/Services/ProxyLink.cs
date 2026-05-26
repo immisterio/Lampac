@@ -88,7 +88,28 @@ public class ProxyLink : IProxyLink
             hash.Append(md5key);
             hash.Append(ext);
 
-            links[md5key + ext] = new ProxyLinkModel(verifyip ? reqip : null, headers, proxy, uclear, plugin, verifyip, ex, userdata)
+            ulong? H1 = null;
+
+            if (headers != null && headers.Count > 0)
+            {
+                var hasHeaders = Fnv1a.Empty;
+                Fnv1a.Append(ref hasHeaders, "ProxyLinkMd5");
+                Fnv1a.Append(ref hasHeaders, ext);
+
+                if (plugin != null)
+                    Fnv1a.Append(ref hasHeaders, plugin);
+
+                foreach (var h in headers)
+                {
+                    Fnv1a.Append(ref hasHeaders, h.name);
+                    Fnv1a.Append(ref hasHeaders, h.val);
+                }
+
+                H1 = hasHeaders.H1;
+                BucketHeaders.AddOrUpdate(hasHeaders.H1, headers);
+            }
+
+            links[md5key + ext] = new ProxyLinkModel(verifyip ? reqip : null, null, proxy, uclear, plugin, verifyip, ex, userdata, H1)
             {
                 md5 = true
             };
@@ -127,20 +148,20 @@ public class ProxyLink : IProxyLink
 
             if (headers != null && headers.Count > 0)
             {
-                // ставим выше h что бы в Decrypt успеть считать количество заголовков до их чтения
                 writer.WriteNumber("hb"u8, BucketHeaders.AddOrUpdate("ProxyLink", headers));
-                writer.WriteNumber("hc"u8, headers.Count);
 
-                writer.WritePropertyName("h"u8);
-                writer.WriteStartObject();
+                //writer.WriteNumber("hc"u8, headers.Count);
 
-                foreach (var h in headers)
-                {
-                    if (h.name != null && h.val != null)
-                        writer.WriteString(h.name, h.val);
-                }
+                //writer.WritePropertyName("h"u8);
+                //writer.WriteStartObject();
 
-                writer.WriteEndObject();
+                //foreach (var h in headers)
+                //{
+                //    if (h.name != null && h.val != null)
+                //        writer.WriteString(h.name, h.val);
+                //}
+
+                //writer.WriteEndObject();
             }
 
             writer.WriteEndObject();
@@ -367,7 +388,15 @@ public class ProxyLink : IProxyLink
                 if (links.TryGetValue(hash.ToString(), out ProxyLinkModel val))
                 {
                     if (val.verifyip == false || CoreInit.conf.serverproxy.verifyip == false || val.reqip == string.Empty || reqip == null || reqip == val.reqip)
+                    {
+                        if (val.bucketHeaders.HasValue)
+                        {
+                            BucketHeaders.TryGetValue(val.bucketHeaders.Value, out var bucketHeaders);
+                            val.headers = bucketHeaders;
+                        }
+
                         return val;
+                    }
                 }
 
                 return null;
@@ -384,7 +413,7 @@ public class ProxyLink : IProxyLink
     {
         var reader = new Utf8JsonReader(json);
 
-        short headersCount = 0;
+        //short headersCount = 0;
         string uri_clear = null, plugin = null, ip = null;
         bool verifyip = false;
         DateTime e = default;
@@ -427,40 +456,40 @@ public class ProxyLink : IProxyLink
                 ulong H1 = reader.GetUInt64();
                 BucketHeaders.TryGetValue(H1, out headers);
             }
-            else if (reader.ValueTextEquals("hc"u8))
-            {
-                if (headers != null && headers.Count > 0)
-                    reader.Skip();
-                else
-                {
-                    reader.Read();
-                    headersCount = reader.GetInt16();
-                }
-            }
-            else if (reader.ValueTextEquals("h"u8))
-            {
-                if (headers != null && headers.Count > 0)
-                    reader.Skip();
-                else
-                {
-                    reader.Read();
+            //else if (reader.ValueTextEquals("hc"u8))
+            //{
+            //    if (headers != null && headers.Count > 0)
+            //        reader.Skip();
+            //    else
+            //    {
+            //        reader.Read();
+            //        headersCount = reader.GetInt16();
+            //    }
+            //}
+            //else if (reader.ValueTextEquals("h"u8))
+            //{
+            //    if (headers != null && headers.Count > 0)
+            //        reader.Skip();
+            //    else
+            //    {
+            //        reader.Read();
 
-                    var newheaders = new List<HeadersModel>(headersCount);
+            //        var newheaders = new List<HeadersModel>(headersCount);
 
-                    while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-                    {
-                        string name = reader.GetString();
-                        reader.Read();
-                        string val = reader.GetString();
+            //        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+            //        {
+            //            string name = reader.GetString();
+            //            reader.Read();
+            //            string val = reader.GetString();
 
-                        if (name != null && val != null)
-                            newheaders.Add(new(name, val));
-                    }
+            //            if (name != null && val != null)
+            //                newheaders.Add(new(name, val));
+            //        }
 
-                    headers = newheaders;
-                    BucketHeaders.AddOrUpdate("ProxyLink", newheaders);
-                }
-            }
+            //        headers = newheaders;
+            //        BucketHeaders.AddOrUpdate("ProxyLink", newheaders);
+            //    }
+            //}
             else
             {
                 reader.Skip();

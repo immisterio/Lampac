@@ -333,7 +333,7 @@ public class SakhTVController : BaseOnlineController<ModuleConf>
                 if (init.rhub_fallback)
                     rch.Disabled();
                 else
-                    return ContentTo(rch.connectionMsg);
+                    return Content(rch.connectionMsg, "application/json; charset=utf-8");
             }
         }
 

@@ -149,18 +149,14 @@ public partial class ProxyAPI
 
                             httpContext.Response.StatusCode = StatusCodes.Status206PartialContent;
                             httpContext.Response.Headers["content-range"] = $"bytes {start}-{end}/{cacheLength}";
-
-                            if (init.responseContentLength)
-                                httpContext.Response.ContentLength = length;
+                            httpContext.Response.ContentLength = length;
 
                             await httpContext.Response.SendFileAsync(cachePath, start, length, ctsHttp.Token).ConfigureAwait(false);
                             return;
                         }
                     }
 
-                    if (init.responseContentLength)
-                        httpContext.Response.ContentLength = cacheLength;
-
+                    httpContext.Response.ContentLength = cacheLength;
                     await httpContext.Response.SendFileAsync(cachePath, ctsHttp.Token).ConfigureAwait(false);
                     return;
                 }

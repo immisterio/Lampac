@@ -221,11 +221,7 @@ public class Staticache
             return _next(httpContext);
 
         if (staticache.setHeadersNoCache)
-        {
-            httpContext.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate"; // HTTP 1.1.
-            httpContext.Response.Headers["Pragma"] = "no-cache"; // HTTP 1.0.
-            httpContext.Response.Headers["Expires"] = "0"; // Proxies.
-        }
+            WriteNoCache(httpContext);
 
         if (customRoute == false)
             route = new();
@@ -250,13 +246,7 @@ public class Staticache
             httpContext.Response.StatusCode = _r.statusCode;
             httpContext.Response.Headers["X-StatiCache-Status"] = "HIT";
 
-            if (_r.contentLength > 0)
-            {
-                httpContext.Response.ContentLength = _r.contentLength;
-                httpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
-            }
-
-            httpContext.Response.ContentType = _r.ext switch
+            string ext = _r.ext switch
             {
                 "html" => "text/html; charset=utf-8",
                 "json" => "application/json; charset=utf-8",
@@ -268,6 +258,16 @@ public class Staticache
                 "webp" => "image/webp",
                 _ => "application/octet-stream"
             };
+
+            if (_r.contentLength > 0)
+            {
+                httpContext.Response.ContentLength = _r.contentLength;
+                httpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
+            }
+            else if (ext is "json" or "html")
+                WriteNoCache(httpContext);
+
+            httpContext.Response.ContentType = ext;
 
             string file = GetFilePath(cachekey, _r.ex, _r.contentLength, _r.ext);
             return httpContext.Response.SendFileAsync(file);
@@ -349,4 +349,13 @@ public class Staticache
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetFilePath(string cachekey, long ex, int length, string ext)
         => Path.Combine("cache", "static", BucketFolders.Name(cachekey[0]), $"{cachekey}-{ex}_{length}.{ext}");
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WriteNoCache(HttpContext httpContext)
+    {
+        httpContext.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate"; // HTTP 1.1.
+        httpContext.Response.Headers["Pragma"] = "no-cache"; // HTTP 1.0.
+        httpContext.Response.Headers["Expires"] = "0"; // Proxies.
+    }
 }

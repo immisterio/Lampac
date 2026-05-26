@@ -76,8 +76,8 @@ public partial class ProxyAPI
                                 /// UTF-16: 1 char -> 2 bytes
                                 /// Кириллица: 1 char -> 2-4 bytes
                                 int chunkSize = chars.Length > 1360 // возьмем середину 1 char -> 3 bytes
-                                    ? 16384
-                                    : 4096;
+                                    ? PoolInvk._chunk16
+                                    : PoolInvk._chunk4;
 
                                 while (!chars.IsEmpty)
                                 {
@@ -277,7 +277,7 @@ public partial class ProxyAPI
                 }
                 else
                 {
-                    if (init.responseContentLength && !CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
+                    if (!CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
                         httpContext.Response.ContentLength = m3u8Length;
                 }
                 #endregion

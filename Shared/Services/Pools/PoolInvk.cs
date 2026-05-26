@@ -5,6 +5,10 @@ namespace Shared.Services.Pools;
 public static class PoolInvk
 {
     public const int msmBlockSize = 81920;
+    public const int _chunk4 = 4 * 1024;
+    public const int _chunk8 = 8 * 1024;
+    public const int _chunk16 = 16 * 1024;
+    public const int _chunk32 = 32 * 1024;
 
     public static readonly RecyclableMemoryStreamManager msm = new RecyclableMemoryStreamManager(new RecyclableMemoryStreamManager.Options
     (
@@ -42,4 +46,13 @@ public static class PoolInvk
             return size;
         }
     }
+
+    public static int ChunkSizeBodyWriter(int sizeHint) => sizeHint switch
+    {
+        <= _chunk4 => _chunk4,
+        <= _chunk8 => _chunk8,
+        <= _chunk16 => _chunk16,
+        <= _chunk32 => _chunk32,
+        _ => msmBlockSize
+    };
 }

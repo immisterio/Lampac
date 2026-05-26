@@ -229,7 +229,7 @@ public class CubProxyController : BaseController
                                                 ModInit.fileWatcher.EnsureDirectory(md5key);
 
                                                 await using (var cacheStream = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None,
-                                                    bufferSize: PoolInvk.bufferSize,
+                                                    bufferSize: 0,
                                                     options: FileOptions.Asynchronous))
                                                 {
                                                     await using (var responseStream = await response.Content.ReadAsStreamAsync(ctsHttp.Token).ConfigureAwait(false))

@@ -1,6 +1,6 @@
 ﻿namespace Shared.Attributes;
 
-public record StatiCacheEntry(DateTimeOffset ex);
+public record StatiCacheEntry(DateTimeOffset ex, bool saveCache = true);
 
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]

@@ -360,7 +360,7 @@ public sealed class TranscodingController : Controller
             try
             {
                 fs = file.Contains(".vtt")
-                    ? new FileStream(resolved, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous)
+                    ? new FileStream(resolved, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
                     : System.IO.File.OpenRead(resolved);
                 break;
             }

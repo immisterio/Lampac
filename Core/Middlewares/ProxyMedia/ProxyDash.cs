@@ -85,7 +85,7 @@ public partial class ProxyAPI
             }
             else
             {
-                if (init.responseContentLength && !CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
+                if (!CoreInit.ContainsMimeTypes(httpContext.Response.ContentType))
                     httpContext.Response.ContentLength = contentLength;
             }
 

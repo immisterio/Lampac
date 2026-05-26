@@ -109,7 +109,7 @@ public class CacheFileWatcher
 
     #region TrySave
     /// <param name="path">img, tmdb, cub</param>
-    async public Task<bool> TrySave(string md5key, Stream fs)
+    async public Task<bool> TrySave(string md5key, Stream msm)
     {
         if (string.IsNullOrEmpty(md5key) || 2 > md5key.Length)
             return false;
@@ -121,23 +121,15 @@ public class CacheFileWatcher
         {
             EnsureDirectory(md5key);
 
-            await using (var streamFile = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
-            {
-                using (var nbuf = new BufferPool())
-                {
-                    int bytesRead;
-                    var memBuf = nbuf.Memory;
+            msm.Position = 0;
 
-                    fs.Position = 0;
-                    while ((bytesRead = fs.Read(memBuf.Span)) > 0)
-                        await streamFile.WriteAsync(memBuf.Slice(0, bytesRead)).ConfigureAwait(false);
-                }
-            }
+            await using (var streamFile = new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 0, options: FileOptions.Asynchronous))
+                await msm.CopyToAsync(streamFile).ConfigureAwait(false);
 
             var md = new CacheFileModel()
             {
                 FullPath = outFile,
-                Length = (int)fs.Length,
+                Length = (int)msm.Length,
                 LastWriteTimeUtc = File.GetLastWriteTimeUtc(outFile)
             };
 

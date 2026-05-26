@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
+using Microsoft.Win32.SafeHandles;
 using Shared.Attributes;
 using Shared.Models.AppConf;
 using Shared.Services;
 using Shared.Services.Pools;
 using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -27,7 +30,7 @@ public class StaticacheWriter
         var stc = httpContext.Features.Get<StaticacheFeature>();
         if (stc == null)
         {
-            await _next(httpContext);
+            await _next(httpContext).ConfigureAwait(false);
             return;
         }
 
@@ -38,11 +41,17 @@ public class StaticacheWriter
 
             await _next(httpContext);
 
-            if (msm.Length > 0 && httpContext.Response.StatusCode != StatusCodes.Status302Found)
+            bool isRedirect = httpContext.Response.StatusCode == StatusCodes.Status301MovedPermanently ||
+                httpContext.Response.StatusCode == StatusCodes.Status302Found ||
+                httpContext.Response.StatusCode == StatusCodes.Status307TemporaryRedirect ||
+                httpContext.Response.StatusCode == StatusCodes.Status308PermanentRedirect;
+
+            if (msm.Length > 0 && !isRedirect)
             {
+                var cacheEntry = httpContext.Features.Get<StatiCacheEntry>();
+
                 #region Дожимаем httpContext
-                var ex = httpContext.Features.Get<StatiCacheEntry>()?.ex
-                    ?? DateTimeOffset.Now.AddMinutes(stc.cacheMinutes);
+                var ex = cacheEntry?.ex ?? DateTimeOffset.Now.AddMinutes(stc.cacheMinutes);
 
                 if (httpContext.Response.StatusCode != 200)
                     ex = DateTimeOffset.Now.AddMinutes(1);
@@ -96,33 +105,46 @@ public class StaticacheWriter
 
                 #region Сбрасываем поток клиенту
                 msm.Position = 0;
-                int chunkSize = PoolInvk.bufferSize;
-                var bodyWriter = httpContext.Response.BodyWriter;
 
-                do
+                if (contentLength > 0)
                 {
-                    Span<byte> destination = bodyWriter.GetSpan(chunkSize);
-
-                    int bytesRead = msm.Read(destination);
-                    if (bytesRead == 0)
-                        break;
-
-                    bodyWriter.Advance(bytesRead);
+                    /// один overhead "write && flush" при наличии content-length
+                    await msm.CopyToAsync(httpContext.Response.Body);
                 }
-                while (msm.Position < msm.Length);
+                else
+                {
+                    /// При отсутствии content-length данные уйдут в два overhead "write > flush"
+                    /// Такая хуйня нас не устраивает, поэтому дрочим BodyWriter сами
 
-                await httpContext.Response.CompleteAsync();
+                    int chunkSize = PoolInvk.ChunkSizeBodyWriter((int)msm.Length);
+                    var bodyWriter = httpContext.Response.BodyWriter;
+
+                    do
+                    {
+                        Span<byte> destination = bodyWriter.GetSpan(chunkSize);
+
+                        int bytesRead = msm.Read(destination);
+                        if (bytesRead == 0)
+                            break;
+
+                        bodyWriter.Advance(bytesRead);
+                    }
+                    while (msm.Position < msm.Length);
+
+                    /// write && flush в один overhead
+                    await httpContext.Response.CompleteAsync();
+                }
                 #endregion
 
                 #region Сохраняем на диск
+                if (!cacheEntry.saveCache || DateTimeOffset.Now > ex)
+                    return;
+
                 string cachekey = stc.cachekey;
                 var sm = new SemaphorManager(cachekey, TimeSpan.FromSeconds(5));
 
                 try
                 {
-                    if (DateTimeOffset.Now > ex)
-                        return;
-
                     bool _acquired = await sm.WaitAsync();
                     if (!_acquired)
                         return;
@@ -130,12 +152,30 @@ public class StaticacheWriter
                     long exTicks = ex.ToUnixTimeMilliseconds();
                     string cachefile = Staticache.GetFilePath(cachekey, exTicks, contentLength, ext);
 
-                    await using (var fileStream = new FileStream(cachefile, FileMode.Create, FileAccess.Write, FileShare.None,
-                        bufferSize: PoolInvk.bufferSize,
-                        options: FileOptions.Asynchronous))
+                    using (SafeFileHandle handle = File.OpenHandle(cachefile,
+                        FileMode.Create, FileAccess.Write, FileShare.None,
+                        FileOptions.Asynchronous | FileOptions.SequentialScan,
+                        preallocationSize: msm.Length
+                    ))
                     {
-                        msm.Position = 0;
-                        await msm.CopyToAsync(fileStream);
+                        ReadOnlySequence<byte> sequence = msm.GetReadOnlySequence();
+
+                        if (sequence.IsSingleSegment)
+                        {
+                            await RandomAccess.WriteAsync(handle, sequence.First, fileOffset: 0);
+                        }
+                        else
+                        {
+                            List<ReadOnlyMemory<byte>> buffers = new();
+
+                            foreach (ReadOnlyMemory<byte> segment in sequence)
+                            {
+                                if (!segment.IsEmpty)
+                                    buffers.Add(segment);
+                            }
+
+                            await RandomAccess.WriteAsync(handle, buffers, fileOffset: 0);
+                        }
                     }
 
                     Staticache.cacheFiles[cachekey] = new StaticacheCacheModel(exTicks, ext, (short)httpContext.Response.StatusCode, contentLength);
