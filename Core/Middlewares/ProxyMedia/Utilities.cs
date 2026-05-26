@@ -288,8 +288,7 @@ public partial class ProxyAPI
                         CoreInit.conf.serverproxy.maxlength_ts >= responseMessage.Content.Headers.ContentLength)
                     {
                         #region cache
-                        var hash = Fnv1a.Hash(uriKeyFileCache);
-                        string fileName = Fnv1a.Base64Url(hash);
+                        string fileName = Fnv1a.HashName(uriKeyFileCache);
                         string targetFile = fileWatcher.OutFile(fileName);
 
                         var semaphore = new SemaphorManager(targetFile, ct);

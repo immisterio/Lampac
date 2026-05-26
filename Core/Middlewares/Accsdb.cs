@@ -33,6 +33,10 @@ public class Accsdb
         Directory.CreateDirectory("logs/accsdb");
     }
 
+    static readonly Regex rexAuthorize = AccsdbRegex.Authorize();
+    static readonly Regex rexStaticAssets = AccsdbRegex.StaticAssets();
+    static readonly Regex rexLockBypass = AccsdbRegex.LockBypass();
+
     private readonly RequestDelegate _next;
     IMemoryCache memoryCache;
 
@@ -48,7 +52,7 @@ public class Accsdb
         var requestInfo = httpContext.Features.Get<RequestModel>();
 
         #region Authorization
-        bool IsAuthorize = AccsdbRegex.Authorize().IsMatch(httpContext.Request.Path.Value);
+        bool IsAuthorize = rexAuthorize.IsMatch(httpContext.Request.Path.Value);
         if (IsAuthorize == false && endpoint != null)
         {
             IsAuthorize =
@@ -133,7 +137,7 @@ public class Accsdb
                 || user.ban
                 || DateTime.Now > user.expires)
             {
-                if (AccsdbRegex.StaticAssets().IsMatch(httpContext.Request.Path.Value))
+                if (rexStaticAssets.IsMatch(httpContext.Request.Path.Value))
                 {
                     httpContext.Response.StatusCode = 404;
                     httpContext.Response.ContentType = "application/octet-stream";
@@ -212,7 +216,7 @@ public class Accsdb
             return islock;
         }
 
-        if (AccsdbRegex.LockBypass().IsMatch(uri))
+        if (rexLockBypass.IsMatch(uri))
         {
             islock = false;
             return islock;

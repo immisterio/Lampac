@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Text.Json.Serialization;
 
 namespace Shared.Models.Proxy;
 
@@ -10,7 +9,7 @@ public class ProxyLinkModel
         ex = DateTime.UtcNow.AddDays(1);
     }
 
-    public ProxyLinkModel(string reqip, IReadOnlyList<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTime ex = default, object userdata = null)
+    public ProxyLinkModel(string reqip, IReadOnlyList<HeadersModel> headers, WebProxy proxy, string uri, string plugin = null, bool verifyip = true, DateTime ex = default, object userdata = null, ulong? bucketHeaders = null)
     {
         this.ex = ex;
         this.reqip = reqip;
@@ -20,23 +19,23 @@ public class ProxyLinkModel
         this.uri = uri;
         this.plugin = plugin;
         this.verifyip = verifyip;
+        this.bucketHeaders = bucketHeaders;
 
         if (this.ex == default)
             this.ex = DateTime.UtcNow.AddDays(1);
     }
 
-    [JsonIgnore]
     public DateTime ex { get; set; }
 
     public string reqip { get; set; }
 
     public IReadOnlyList<HeadersModel> headers { get; set; }
 
-    [JsonIgnore]
     public WebProxy proxy { get; set; }
 
-    [JsonIgnore]
     public object userdata { get; set; }
+
+    public ulong? bucketHeaders { get; set; }
 
     public string uri { get; set; }
 

@@ -14,6 +14,8 @@ partial class AnonymousRequestRegex
 
 public class AnonymousRequest
 {
+    static readonly Regex rexAnonymous = AnonymousRequestRegex.Js();
+
     private readonly RequestDelegate _next;
 
     public AnonymousRequest(RequestDelegate next)
@@ -31,7 +33,7 @@ public class AnonymousRequest
         {
             requestInfo.IsAnonymousRequest = true;
         }
-        else if (AnonymousRequestRegex.Js().IsMatch(httpContext.Request.Path.Value))
+        else if (rexAnonymous.IsMatch(httpContext.Request.Path.Value))
         {
             requestInfo.IsAnonymousRequest = true;
         }

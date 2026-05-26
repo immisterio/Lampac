@@ -1,4 +1,7 @@
-﻿using Shared.Services.Buckets;
+﻿using Microsoft.IO;
+using Microsoft.Win32.SafeHandles;
+using Shared.Services.Buckets;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading;
 
@@ -19,7 +22,7 @@ public class CacheFileWatcher
     static readonly Serilog.ILogger Log = Serilog.Log.ForContext("SourceContext", nameof(CacheFileWatcher));
 
     /// <summary>
-    /// <path, <md5key, CacheFileModel>
+    /// <path, <fileName, CacheFileModel>
     /// </summary>
     static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, CacheFileModel>> cacheFiles = new();
     #endregion
@@ -110,14 +113,73 @@ public class CacheFileWatcher
     }
 
     #region TrySave
-    /// <param name="path">img, tmdb, cub</param>
-    async public Task<bool> TrySave(string md5key, Stream msm)
+    async public Task<bool> TrySave(string fileName, RecyclableMemoryStream msm)
     {
-        if (string.IsNullOrEmpty(md5key) || 2 > md5key.Length)
+        if (string.IsNullOrEmpty(fileName))
             return false;
 
         var cache = cacheFiles[keyPath];
-        string outFile = OutFile(md5key);
+        string outFile = OutFile(fileName);
+
+        try
+        {
+            using (SafeFileHandle handle = File.OpenHandle(outFile,
+                FileMode.Create, FileAccess.Write, FileShare.None,
+                FileOptions.Asynchronous | FileOptions.SequentialScan,
+                preallocationSize: msm.Length
+            ))
+            {
+                ReadOnlySequence<byte> sequence = msm.GetReadOnlySequence();
+
+                if (sequence.IsSingleSegment)
+                {
+                    await RandomAccess.WriteAsync(handle, sequence.First, fileOffset: 0);
+                }
+                else
+                {
+                    List<ReadOnlyMemory<byte>> buffers = new();
+
+                    foreach (ReadOnlyMemory<byte> segment in sequence)
+                    {
+                        if (!segment.IsEmpty)
+                            buffers.Add(segment);
+                    }
+
+                    await RandomAccess.WriteAsync(handle, buffers, fileOffset: 0);
+                }
+            }
+
+            var md = new CacheFileModel()
+            {
+                Length = (int)msm.Length,
+                Ticks = File.GetLastWriteTimeUtc(outFile).Ticks
+            };
+
+            cache.AddOrUpdate(fileName, md, (k, v) => md);
+
+            return true;
+        }
+        catch
+        {
+            cache.TryRemove(fileName, out _);
+
+            try
+            {
+                File.Delete(outFile);
+            }
+            catch { }
+
+            return false;
+        }
+    }
+
+    async public Task<bool> TrySave(string fileName, Stream msm)
+    {
+        if (string.IsNullOrEmpty(fileName))
+            return false;
+
+        var cache = cacheFiles[keyPath];
+        string outFile = OutFile(fileName);
 
         try
         {
@@ -132,13 +194,13 @@ public class CacheFileWatcher
                 Ticks = File.GetLastWriteTimeUtc(outFile).Ticks
             };
 
-            cache.AddOrUpdate(md5key, md, (k, v) => md);
+            cache.AddOrUpdate(fileName, md, (k, v) => md);
 
             return true;
         }
         catch
         {
-            cache.TryRemove(md5key, out _);
+            cache.TryRemove(fileName, out _);
 
             try
             {
@@ -152,14 +214,13 @@ public class CacheFileWatcher
     #endregion
 
     #region Add
-    /// <param name="path">img, tmdb, cub</param>
-    public bool Add(string md5key, int length)
+    public bool Add(string fileName, int length)
     {
-        if (string.IsNullOrEmpty(md5key) || 2 > md5key.Length)
+        if (string.IsNullOrEmpty(fileName))
             return false;
 
         var cache = cacheFiles[keyPath];
-        string outFile = OutFile(md5key);
+        string outFile = OutFile(fileName);
 
         try
         {
@@ -169,13 +230,13 @@ public class CacheFileWatcher
                 Ticks = File.GetLastWriteTimeUtc(outFile).Ticks
             };
 
-            cache.AddOrUpdate(md5key, md, (k, v) => md);
+            cache.AddOrUpdate(fileName, md, (k, v) => md);
 
             return true;
         }
         catch
         {
-            cache.TryRemove(md5key, out _);
+            cache.TryRemove(fileName, out _);
 
             try
             {
@@ -189,21 +250,21 @@ public class CacheFileWatcher
     #endregion
 
     #region Remove
-    public void Remove(string md5key)
+    public void Remove(string fileName)
     {
         try
         {
-            if (cacheFiles[keyPath].TryRemove(md5key, out var _f))
-                File.Delete(OutFile(md5key));
+            if (cacheFiles[keyPath].TryRemove(fileName, out var _f))
+                File.Delete(OutFile(fileName));
         }
         catch { }
     }
     #endregion
 
     #region TryGetValue
-    public bool TryGetValue(string key, out int length)
+    public bool TryGetValue(string fileName, out int length)
     {
-        if (cacheFiles[keyPath].TryGetValue(key, out var cache))
+        if (cacheFiles[keyPath].TryGetValue(fileName, out var cache))
         {
             length = cache.Length;
             return true;
@@ -214,11 +275,11 @@ public class CacheFileWatcher
     }
     #endregion
 
-    public string OutFile(string md5key)
-        => OutFile(keyPath, md5key);
+    public string OutFile(string fileName)
+        => OutFile(keyPath, fileName);
 
-    public static string OutFile(string keyPath, string md5key)
-        => Path.Combine("cache", keyPath, BucketFolders.Name(md5key[0]), md5key);
+    public static string OutFile(string keyPath, string fileName)
+        => Path.Combine("cache", keyPath, BucketFolders.Name(fileName[0]), fileName);
 
     public int FilesCount
         => cacheFiles[keyPath].Count;
