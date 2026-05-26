@@ -43,7 +43,7 @@ public class ProxyLink : IProxyLink
     public static string Encrypt(ReadOnlySpan<char> uri, ProxyLinkModel p, bool forceMd5 = false, string[] prefix = null, Action<StringBuilder> sbWriter = null)
         => Encrypt(uri, p.reqip, p.headers, p.proxy, p.plugin, p.verifyip, default, p.md5 || forceMd5, false, prefix, p.userdata, sbWriter);
 
-    public static string Encrypt(ReadOnlySpan<char> uri, string reqip, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false, bool IsProxyImg = false, string[] prefix = null, object userdata = null, Action<StringBuilder> sbWriter = null)
+    public static string Encrypt(ReadOnlySpan<char> uri, string reqip, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, string plugin = null, bool verifyip = true, DateTime ex = default, bool forceMd5 = false, bool IsProxyImg = false, string[] prefix = null, object userdata = null, Action<StringBuilder> sbWriter = null, bool writeHeaders = false)
     {
         if (uri.IsEmpty)
             return string.Empty;
@@ -67,13 +67,13 @@ public class ProxyLink : IProxyLink
 
         if (plugin == "posterapi")
         {
-            return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, null, sbWriter);
+            return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, null, sbWriter, writeHeaders);
         }
         else if (!forceMd5 && proxy == null && userdata == null && !uri_clear.Contains(" or ", StringComparison.Ordinal))
         {
             return verifyip && CoreInit.conf.serverproxy.verifyip
-                ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.AddDays(1), headers, sbWriter)
-                : SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, sbWriter);
+                ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.AddDays(1), headers, sbWriter, writeHeaders)
+                : SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, sbWriter, writeHeaders);
         }
         else
         {
@@ -123,7 +123,7 @@ public class ProxyLink : IProxyLink
     #endregion
 
     #region SerializePayload
-    static string SerializePayload(StringBuilder sbhash, bool isProxyImg, ReadOnlySpan<char> uri_clear, ReadOnlySpan<char> uri, string plugin, string reqip, bool verifyip, DateTime e, IReadOnlyList<HeadersModel> headers, Action<StringBuilder> sbWriter)
+    static string SerializePayload(StringBuilder sbhash, bool isProxyImg, ReadOnlySpan<char> uri_clear, ReadOnlySpan<char> uri, string plugin, string reqip, bool verifyip, DateTime e, IReadOnlyList<HeadersModel> headers, Action<StringBuilder> sbWriter, bool writeHeaders = false)
     {
         _threadBufferWriter ??= new ArrayBufferWriter<byte>(4096);
         _threadBufferWriter.ResetWrittenCount();
@@ -150,18 +150,21 @@ public class ProxyLink : IProxyLink
             {
                 writer.WriteNumber("hb"u8, BucketHeaders.AddOrUpdate("ProxyLink", headers));
 
-                //writer.WriteNumber("hc"u8, headers.Count);
+                if (writeHeaders)
+                {
+                    writer.WriteNumber("hc"u8, headers.Count);
 
-                //writer.WritePropertyName("h"u8);
-                //writer.WriteStartObject();
+                    writer.WritePropertyName("h"u8);
+                    writer.WriteStartObject();
 
-                //foreach (var h in headers)
-                //{
-                //    if (h.name != null && h.val != null)
-                //        writer.WriteString(h.name, h.val);
-                //}
+                    foreach (var h in headers)
+                    {
+                        if (h.name != null && h.val != null)
+                            writer.WriteString(h.name, h.val);
+                    }
 
-                //writer.WriteEndObject();
+                    writer.WriteEndObject();
+                }
             }
 
             writer.WriteEndObject();
@@ -413,7 +416,7 @@ public class ProxyLink : IProxyLink
     {
         var reader = new Utf8JsonReader(json);
 
-        //short headersCount = 0;
+        short headersCount = 0;
         string uri_clear = null, plugin = null, ip = null;
         bool verifyip = false;
         DateTime e = default;
@@ -456,40 +459,40 @@ public class ProxyLink : IProxyLink
                 ulong H1 = reader.GetUInt64();
                 BucketHeaders.TryGetValue(H1, out headers);
             }
-            //else if (reader.ValueTextEquals("hc"u8))
-            //{
-            //    if (headers != null && headers.Count > 0)
-            //        reader.Skip();
-            //    else
-            //    {
-            //        reader.Read();
-            //        headersCount = reader.GetInt16();
-            //    }
-            //}
-            //else if (reader.ValueTextEquals("h"u8))
-            //{
-            //    if (headers != null && headers.Count > 0)
-            //        reader.Skip();
-            //    else
-            //    {
-            //        reader.Read();
+            else if (reader.ValueTextEquals("hc"u8))
+            {
+                if (headers != null && headers.Count > 0)
+                    reader.Skip();
+                else
+                {
+                    reader.Read();
+                    headersCount = reader.GetInt16();
+                }
+            }
+            else if (reader.ValueTextEquals("h"u8))
+            {
+                if (headers != null && headers.Count > 0)
+                    reader.Skip();
+                else
+                {
+                    reader.Read();
 
-            //        var newheaders = new List<HeadersModel>(headersCount);
+                    var newheaders = new List<HeadersModel>(headersCount);
 
-            //        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-            //        {
-            //            string name = reader.GetString();
-            //            reader.Read();
-            //            string val = reader.GetString();
+                    while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                    {
+                        string name = reader.GetString();
+                        reader.Read();
+                        string val = reader.GetString();
 
-            //            if (name != null && val != null)
-            //                newheaders.Add(new(name, val));
-            //        }
+                        if (name != null && val != null)
+                            newheaders.Add(new(name, val));
+                    }
 
-            //        headers = newheaders;
-            //        BucketHeaders.AddOrUpdate("ProxyLink", newheaders);
-            //    }
-            //}
+                    headers = newheaders;
+                    BucketHeaders.AddOrUpdate("ProxyLink", newheaders);
+                }
+            }
             else
             {
                 reader.Skip();

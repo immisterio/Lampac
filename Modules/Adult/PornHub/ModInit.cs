@@ -4,6 +4,7 @@ using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Module.Interfaces;
 using Shared.Services;
+using System;
 using System.Collections.Generic;
 
 namespace PornHub;
@@ -33,15 +34,42 @@ public class ModInit : IModuleLoaded, IModuleSisi
     {
         updateConf();
         EventListener.UpdateInitFile += updateConf;
+        EventListener.ProxyImgMd5key += proxyImgMd5key;
     }
 
     public void Dispose()
     {
         EventListener.UpdateInitFile -= updateConf;
+        EventListener.ProxyImgMd5key -= proxyImgMd5key;
     }
 
     void updateConf()
     {
         conf = ModuleInvoke.DeserializeInit(new ModuleConf());
+    }
+
+    string proxyImgMd5key(EventProxyImgMd5key e)
+    {
+        switch (e.decryptLink.plugin ?? "")
+        {
+            case "PornHub":
+                {
+                    ReadOnlySpan<char> original = e.href
+                        .AsSpan()
+                        .Slice(8); // https?://
+
+                    int q = original.IndexOf('?');
+                    if (q >= 0)
+                        original = original.Slice(0, q);
+
+                    int slash = original.IndexOf('/');
+                    if (q >= 0)
+                        original = original.Slice(slash);
+
+                    return string.Concat(e.decryptLink.plugin, ":", original);
+                }
+            default:
+                return default;
+        }
     }
 }

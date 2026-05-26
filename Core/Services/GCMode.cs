@@ -3,6 +3,7 @@ using Shared.Models.Events;
 using System;
 using System.Runtime;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Core.Services;
 
@@ -13,12 +14,13 @@ public static class GCMode
     private static long _lastRequestTicks;
     private static Timer _timer;
     private static long _workTimer;
+    private static long _keepAliveTimeout = TimeSpan.FromSeconds(90).Ticks;
 
     public static void Initialization()
     {
         if (CoreInit.conf.lowMemoryMode)
         {
-            EventListener.Middleware += async (first, e) =>
+            EventListener.Middleware += (first, e) =>
             {
                 if (first)
                 {
@@ -26,7 +28,7 @@ public static class GCMode
                     Interlocked.Exchange(ref collect, 1);
                 }
 
-                return true;
+                return Task.FromResult(true);
             };
 
             _timer = new Timer(_ =>
@@ -43,8 +45,7 @@ public static class GCMode
                     var lastGcTicks = Interlocked.Read(ref _lastGcTicks);
                     var lastRequestTicks = Interlocked.Read(ref _lastRequestTicks);
 
-                    if (lastGcTicks < nowTicks - TimeSpan.FromMinutes(60).Ticks ||
-                        lastRequestTicks < nowTicks - TimeSpan.FromSeconds(90).Ticks) // Kestrel KeepAliveTimeout
+                    if (lastRequestTicks < (nowTicks - _keepAliveTimeout)) // Kestrel KeepAliveTimeout
                     {
                         Interlocked.Exchange(ref _lastGcTicks, nowTicks);
                         Interlocked.Exchange(ref collect, 0);

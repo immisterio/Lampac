@@ -4,9 +4,7 @@ namespace Shared.Services.Utilities;
 
 public static class SearchNameTo
 {
-    [ThreadStatic]
-    static char[] _threadCharBuffer;
-    const int _threadCharSize = 512; // 512 символов
+    const int _stackCharSize = 256;
 
     enum MatchOp
     {
@@ -34,17 +32,17 @@ public static class SearchNameTo
         if (val.IsEmpty)
             return empty;
 
-        BufferCharPool _bufferChar = null;
-        char[] _threadBuffer = null;
+        Span<char> _stbf = val.Length > _stackCharSize
+            ? Span<char>.Empty
+            : stackalloc char[val.Length];
 
-        if (val.Length > _threadCharSize)
+        BufferCharPool _bufferChar = null;
+        if (_stbf == Span<char>.Empty)
             _bufferChar = new BufferCharPool(val.Length);
-        else
-            _threadBuffer = _threadCharBuffer ??= new char[_threadCharSize];
 
         Span<char> buffer = _bufferChar != null
             ? _bufferChar.Span
-            : _threadBuffer;
+            : _stbf;
 
         try
         {
@@ -72,17 +70,17 @@ public static class SearchNameTo
         if (searchNormalized.Length > name.Length)
             return false;
 
-        BufferCharPool _bufferChar = null;
-        char[] _threadBuffer = null;
+        Span<char> _stbf = name.Length > _stackCharSize
+            ? Span<char>.Empty
+            : stackalloc char[name.Length];
 
-        if (name.Length > _threadCharSize)
+        BufferCharPool _bufferChar = null;
+        if (_stbf == Span<char>.Empty)
             _bufferChar = new BufferCharPool(name.Length);
-        else
-            _threadBuffer = _threadCharBuffer ??= new char[_threadCharSize];
 
         Span<char> buffer = _bufferChar != null
             ? _bufferChar.Span
-            : _threadBuffer;
+            : _stbf;
 
         try
         {

@@ -135,7 +135,13 @@ public class ProxyImg
                             string newKey = handler(em);
                             if (newKey != null)
                             {
-                                fileName = Fnv1a.HashName(newKey);
+                                if (CoreInit.conf.serverproxy.showOrigUri)
+                                    httpContext.Response.Headers["PX-Md5key"] = newKey;
+
+                                var fnvhash = Fnv1a.Hash(newKey);
+                                Fnv1a.Append(ref fnvhash, width);
+                                Fnv1a.Append(ref fnvhash, height);
+                                fileName = Fnv1a.Base64Url(fnvhash);
                                 break;
                             }
                         }

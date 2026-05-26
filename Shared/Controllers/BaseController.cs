@@ -14,6 +14,7 @@ using Shared.Models.Events;
 using Shared.Models.SISI.OnResult;
 using Shared.Models.Templates;
 using Shared.Services;
+using Shared.Services.Buckets;
 using Shared.Services.Kit;
 using System.Buffers;
 using System.Buffers.Text;
@@ -320,6 +321,7 @@ public class BaseController : Controller
                     var heads = httpHeaders(conf.host ?? conf.apihost, headers);
                     if (heads != null && heads.Count > 0)
                     {
+                        writer.WriteNumber("hb"u8, BucketHeaders.Hash("payload", headers));
                         writer.WriteNumber("hc"u8, heads.Count);
 
                         writer.WritePropertyName("h"u8);
@@ -609,7 +611,8 @@ public class BaseController : Controller
                 ip,
                 httpHeaders(conf.host, headers),
                 plugin: conf?.plugin,
-                prefix: [apn.host, "/proxy/"]
+                prefix: [apn.host, "/proxy/"],
+                writeHeaders: true
             );
         }
 
@@ -631,6 +634,7 @@ public class BaseController : Controller
                     var heads = httpHeaders(conf.host, headers);
                     if (heads != null && heads.Count > 0)
                     {
+                        writer.WriteNumber("hb"u8, BucketHeaders.Hash("payload", headers));
                         writer.WriteNumber("hc"u8, heads.Count);
 
                         writer.WritePropertyName("h"u8);
