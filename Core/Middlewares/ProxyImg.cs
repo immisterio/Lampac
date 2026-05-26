@@ -126,6 +126,8 @@ public class ProxyImg
 
                 if (cacheimg)
                 {
+                    var fnvhash = Fnv1a.Hash(href);
+
                     if (EventListener.ProxyImgMd5key != null)
                     {
                         var em = new EventProxyImgMd5key(httpContext, requestInfo, decryptLink, href, width, height);
@@ -138,23 +140,15 @@ public class ProxyImg
                                 if (CoreInit.conf.serverproxy.showOrigUri)
                                     httpContext.Response.Headers["PX-Md5key"] = newKey;
 
-                                var fnvhash = Fnv1a.Hash(newKey);
-                                Fnv1a.Append(ref fnvhash, width);
-                                Fnv1a.Append(ref fnvhash, height);
-                                fileName = Fnv1a.Base64Url(fnvhash);
+                                fnvhash = Fnv1a.Hash(newKey);
                                 break;
                             }
                         }
                     }
 
-                    if (fileName == null)
-                    {
-                        var fnvhash = Fnv1a.Empty;
-                        Fnv1a.Append(ref fnvhash, href);
-                        Fnv1a.Append(ref fnvhash, width);
-                        Fnv1a.Append(ref fnvhash, height);
-                        fileName = Fnv1a.Base64Url(fnvhash);
-                    }
+                    Fnv1a.Append(ref fnvhash, width);
+                    Fnv1a.Append(ref fnvhash, height);
+                    fileName = Fnv1a.Base64Url(fnvhash);
 
                     outFile = fileWatcher.OutFile(fileName);
                 }
