@@ -1,4 +1,4 @@
-﻿namespace Shared.Services.Utilities;
+﻿namespace Shared.Services.Buckets;
 
 public static class BucketFolders
 {

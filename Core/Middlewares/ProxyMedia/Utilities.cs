@@ -4,14 +4,13 @@ using Shared;
 using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Services;
+using Shared.Services.Buckets;
 using Shared.Services.Pools;
 using Shared.Services.Utilities;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
@@ -24,8 +23,6 @@ namespace Core.Middlewares;
 public partial class ProxyAPI
 {
     #region static
-    static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string[]>> cacheDefaultRequestHeaders = new();
-
     static readonly IReadOnlyDictionary<string, string> defaultNormalizeHeaders = new Dictionary<string, string>()
     {
         ["Accept"] = "*/*",
@@ -77,77 +74,62 @@ public partial class ProxyAPI
         #region Headers
         request.Headers.TryGetValue("range", out StringValues range);
 
-        if (range.Count == 0 && (headers == null || headers.Count == 0))
+        if (headers == null || headers.Count == 0)
         {
             foreach (var h in defaultNormalizeHeaders)
                 requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value);
+
+            if (range.Count > 0)
+                requestMessage.Headers.TryAddWithoutValidation("range", range.ToArray());
         }
         else
         {
-            if (range.Count == 0 && plugin != null && cacheDefaultRequestHeaders.TryGetValue(plugin, out var _cacheHeaders))
+            ulong H1 = BucketHeaders.Hash("ProxyAPI", headers);
+
+            if (BucketHeaders.TryGetValue(H1, out var _bucketHeaders))
             {
-                #region Cache Headers
-                foreach (var h in _cacheHeaders)
+                foreach (var h in _bucketHeaders)
                 {
-                    if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    if (requestMessage.Headers.TryAddWithoutValidation(h.name, h.val)) { }
+                    else if (requestMessage.Content?.Headers != null)
                     {
                         // Content-Type, Content-Length, Content-Encoding, Content-Disposition
-                        requestMessage.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                        requestMessage.Content.Headers.TryAddWithoutValidation(h.name, h.val);
                     }
-                    else
-                    {
-                        if (requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
-                        else if (requestMessage.Content?.Headers != null)
-                        {
-                            requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                        }
-                    }
-                }
-                #endregion
-            }
-            else
-            {
-                #region User Headers
-                var addHeaders = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["accept"] = ["*/*"],
-                    ["accept-language"] = ["ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"]
-                };
-
-                if (headers != null && headers.Count > 0)
-                {
-                    foreach (var h in headers)
-                        addHeaders[h.name] = [h.val];
                 }
 
                 if (range.Count > 0)
-                    addHeaders["range"] = range.ToArray();
+                    requestMessage.Headers.TryAddWithoutValidation("range", range.ToArray());
+            }
+            else
+            {
+                var addHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["accept"] = "*/*",
+                    ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
+                };
+
+                foreach (var h in headers)
+                    addHeaders[h.name] = h.val;
 
                 foreach (var h in Http.defaultFullHeaders)
-                    addHeaders[h.Key] = [h.Value];
+                    addHeaders[h.Key] = h.Value;
 
                 var normalizeHeaders = Http.NormalizeHeaders(addHeaders);
-
-                if (range.Count == 0 && plugin != null)
-                    cacheDefaultRequestHeaders[plugin] = normalizeHeaders;
+                BucketHeaders.AddOrUpdate(H1, HeadersModel.Init(normalizeHeaders));
 
                 foreach (var h in normalizeHeaders)
                 {
-                    if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    if (requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
+                    else if (requestMessage.Content?.Headers != null)
                     {
                         // Content-Type, Content-Length, Content-Encoding, Content-Disposition
-                        requestMessage.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                    }
-                    else
-                    {
-                        if (requestMessage.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
-                        else if (requestMessage.Content?.Headers != null)
-                        {
-                            requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                        }
+                        requestMessage.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
                     }
                 }
-                #endregion
+
+                if (range.Count > 0)
+                    requestMessage.Headers.TryAddWithoutValidation("range", range.ToArray());
             }
         }
         #endregion

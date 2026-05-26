@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Models;
 using Shared.Models.Events;
+using Shared.Services.Buckets;
 using Shared.Services.Pools.Json;
 using System.Collections.Concurrent;
 using System.Collections.Frozen;
@@ -413,41 +414,58 @@ public class RchClient
             rchIds[rchId] = rchHub;
 
             #region send_headers
-            Dictionary<string, string> send_headers = null;
+            var headerHash = Fnv1a.Empty;
 
-            if (useDefaultHeaders && clientInfo.data?.info?.rchtype == "apk")
-            {
-                send_headers = new Dictionary<string, string>(Http.defaultUaHeaders, StringComparer.OrdinalIgnoreCase)
-                {
-                    { "accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5" }
-                };
-            }
+            Fnv1a.Append(ref headerHash, "RchClient");
+            Fnv1a.Append(ref headerHash, clientInfo.data?.info?.rchtype ?? "web");
+            Fnv1a.Append(ref headerHash, useDefaultHeaders ? "true" : "false");
 
             if (headers != null)
             {
-                if (send_headers == null)
-                    send_headers = new Dictionary<string, string>(headers.Count, StringComparer.OrdinalIgnoreCase);
-
                 foreach (var h in headers)
-                    send_headers[h.name] = h.val;
+                {
+                    Fnv1a.Append(ref headerHash, h.name);
+                    Fnv1a.Append(ref headerHash, h.val);
+                }
             }
 
-            if (send_headers != null && send_headers.Count > 0 && clientInfo.data?.info?.rchtype != "apk")
+            if (!BucketHeaders.TryGetValue(headerHash.H1, out IReadOnlyList<HeadersModel> bucketHeaders))
             {
-                var new_headers = new Dictionary<string, string>(send_headers.Count);
+                var send_headers = useDefaultHeaders
+                    ? new Dictionary<string, string>(Http.defaultUaHeaders, StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
+                        }
+                    : new();
 
-                foreach (var h in send_headers)
+                if (headers != null)
                 {
-                    string key = h.Key;
-
-                    if (key.StartsWith("sec-", StringComparison.OrdinalIgnoreCase) ||
-                        excludedSendHeaders.Contains(key))
-                        continue;
-
-                    new_headers[key] = h.Value;
+                    foreach (var h in headers)
+                        send_headers[h.name] = h.val;
                 }
 
-                send_headers = new_headers;
+                if (clientInfo.data?.info?.rchtype != "apk")
+                {
+                    var new_headers = new Dictionary<string, string>(send_headers.Count);
+
+                    foreach (var h in send_headers)
+                    {
+                        string key = h.Key;
+
+                        if (key.StartsWith("sec-", StringComparison.OrdinalIgnoreCase) ||
+                            excludedSendHeaders.Contains(key))
+                            continue;
+
+                        new_headers[key] = h.Value;
+                    }
+
+                    send_headers = new_headers;
+                }
+
+                bucketHeaders = HeadersModel.InitOrNull(send_headers);
+
+                if (bucketHeaders != null && bucketHeaders.Count > 0)
+                    BucketHeaders.AddOrUpdate(headerHash.H1, bucketHeaders);
             }
             #endregion
 
@@ -466,7 +484,7 @@ public class RchClient
                     ujw.WriteStringValue(url);
                     ujw.WriteStringValue(data);
 
-                    if (headers is null)
+                    if (bucketHeaders == null || bucketHeaders.Count == 0)
                     {
                         ujw.WriteNullValue();
                     }
@@ -474,11 +492,8 @@ public class RchClient
                     {
                         ujw.WriteStartObject();
 
-                        foreach (var header in headers)
+                        foreach (var header in bucketHeaders)
                         {
-                            if (header.name is null)
-                                continue;
-
                             if (header.val is null)
                                 ujw.WriteNull(header.name);
                             else

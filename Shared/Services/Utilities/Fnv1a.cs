@@ -75,11 +75,8 @@ public static class Fnv1a
             if (status == OperationStatus.Done)
                 return;
 
-            if (status == OperationStatus.DestinationTooSmall)
-                continue;
-
-            // UTF-8 conversion failed, хз как мы сюда попали, но просто не хэшируем эту часть строки
-            return;
+            if (charsRead == 0 && bytesWritten == 0)
+                return;
         }
     }
 

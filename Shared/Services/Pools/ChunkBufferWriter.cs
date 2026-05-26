@@ -7,11 +7,10 @@ public class ChunkBufferWriter<T> : IBufferWriter<T> where T : struct
 {
     readonly IBufferWriter<T> writer;
     const int _chunk4 = 4 * 1024;
+    const int _chunk8 = 8 * 1024;
     const int _chunk16 = 16 * 1024;
     const int _chunk32 = 32 * 1024;
-    const int _chunk64 = 64 * 1024;
     const int _msmBlockSize = 81920;
-    const int _chunk128 = 128 * 1024;
 
     public ChunkBufferWriter(IBufferWriter<T> writer)
     {
@@ -37,10 +36,10 @@ public class ChunkBufferWriter<T> : IBufferWriter<T> where T : struct
     private static int ChunkSizeHint(int sizeHint) => sizeHint switch
     {
         <= _chunk4 => _chunk4,
+        <= _chunk8 => _chunk8,
         <= _chunk16 => _chunk16,
         <= _chunk32 => _chunk32,
-        <= _chunk64 => _chunk64,
         <= _msmBlockSize => _msmBlockSize,
-        _ => _chunk128
+        _ => sizeHint
     };
 }

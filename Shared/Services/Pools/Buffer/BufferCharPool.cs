@@ -70,6 +70,9 @@ public sealed class BufferCharPool : IDisposable
     public Span<char> Span
         => _nbuf.Memory.Span;
 
+    public Memory<char> Memory
+        => _nbuf.Memory;
+
     public ReadOnlySpan<char> WrittenSpan
         => Span.Slice(0, _index);
 

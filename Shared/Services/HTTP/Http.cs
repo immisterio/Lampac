@@ -1,8 +1,8 @@
 using Microsoft.IO;
 using Newtonsoft.Json;
 using Shared.Models.Events;
+using Shared.Services.Buckets;
 using Shared.Services.Pools.Json;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
@@ -18,16 +18,10 @@ namespace Shared.Services;
 public static class Http
 {
     #region static
-    static Http()
-    {
-        EventListener.UpdateInitFile += cacheDefaultRequestHeaders.Clear;
-    }
-
     static bool logEnable => CoreInit.conf.serilog;
     static readonly Serilog.ILogger Log = Serilog.Log.ForContext("SourceContext", nameof(Http));
 
     public static IHttpClientFactory httpClientFactory;
-    static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string>> cacheDefaultRequestHeaders = new();
 
     static readonly JsonSerializerOptions jsonTextOptions = new JsonSerializerOptions
     {
@@ -246,33 +240,49 @@ public static class Http
     #region DefaultRequestHeaders
     public static void DefaultRequestHeaders(string url, HttpRequestMessage client, string cookie, string referer, IReadOnlyList<HeadersModel> headers, bool useDefaultHeaders = true, string prefixCacheHeader = null)
     {
-        if (useDefaultHeaders && (headers == null || headers.Count == 0) && cookie == null && referer == null)
+        if ((headers == null || headers.Count == 0) && cookie == null && referer == null)
         {
-            foreach (var h in defaultNormalizeHeaders)
-                client.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            if (useDefaultHeaders)
+            {
+                foreach (var h in defaultNormalizeHeaders)
+                    client.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            }
         }
         else
         {
-            if (prefixCacheHeader != null && cacheDefaultRequestHeaders.TryGetValue(prefixCacheHeader, out IReadOnlyDictionary<string, string> _cacheHeaders))
+            #region headers hash
+            var headerHash = Fnv1a.Empty;
+            Fnv1a.Append(ref headerHash, prefixCacheHeader ?? "HTTP");
+            Fnv1a.Append(ref headerHash, useDefaultHeaders ? "true" : "false");
+            Fnv1a.Append(ref headerHash, client.Version == HttpVersion.Version11 ? "http1" : "http2");
+
+            if (headers != null)
             {
-                #region Cache Headers
-                foreach (var h in _cacheHeaders)
+                foreach (var h in headers)
                 {
-                    if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    Fnv1a.Append(ref headerHash, h.name);
+                    Fnv1a.Append(ref headerHash, h.val);
+                }
+            }
+
+            if (cookie != null)
+                Fnv1a.Append(ref headerHash, cookie);
+
+            if (referer != null)
+                Fnv1a.Append(ref headerHash, referer);
+            #endregion
+
+            if (BucketHeaders.TryGetValue(headerHash.H1, out var _bucketHeaders))
+            {
+                foreach (var h in _bucketHeaders)
+                {
+                    if (client.Headers.TryAddWithoutValidation(h.name, h.val)) { }
+                    else if (client.Content?.Headers != null)
                     {
                         // Content-Type, Content-Length, Content-Encoding, Content-Disposition
-                        client.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                    }
-                    else
-                    {
-                        if (client.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
-                        else if (client.Content?.Headers != null)
-                        {
-                            client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                        }
+                        client.Content.Headers.TryAddWithoutValidation(h.name, h.val);
                     }
                 }
-                #endregion
             }
             else
             {
@@ -281,15 +291,15 @@ public static class Http
 
                 if (useDefaultHeaders)
                 {
-                    addHeaders.TryAdd("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
-                    addHeaders.TryAdd("accept-language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
+                    addHeaders["accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7";
+                    addHeaders["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5";
                 }
 
                 if (cookie != null)
-                    addHeaders.TryAdd("cookie", cookie);
+                    addHeaders["cookie"] = cookie;
 
                 if (referer != null)
-                    addHeaders.TryAdd("referer", referer);
+                    addHeaders["referer"] = referer;
 
                 if (useDefaultHeaders)
                 {
@@ -319,23 +329,15 @@ public static class Http
                 if (normalizeHeaders == null)
                     return;
 
-                if (prefixCacheHeader != null)
-                    cacheDefaultRequestHeaders[prefixCacheHeader] = normalizeHeaders;
+                BucketHeaders.AddOrUpdate(headerHash.H1, HeadersModel.Init(normalizeHeaders));
 
                 foreach (var h in normalizeHeaders)
                 {
-                    if (h.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    if (client.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
+                    else if (client.Content?.Headers != null)
                     {
                         // Content-Type, Content-Length, Content-Encoding, Content-Disposition
-                        client.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                    }
-                    else
-                    {
-                        if (client.Headers.TryAddWithoutValidation(h.Key, h.Value)) { }
-                        else if (client.Content?.Headers != null)
-                        {
-                            client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
-                        }
+                        client.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
                     }
                 }
                 #endregion

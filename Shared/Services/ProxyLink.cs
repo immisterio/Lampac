@@ -1,4 +1,5 @@
 using Shared.Models.Proxy;
+using Shared.Services.Buckets;
 using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Concurrent;
@@ -127,6 +128,7 @@ public class ProxyLink : IProxyLink
             if (headers != null && headers.Count > 0)
             {
                 // ставим выше h что бы в Decrypt успеть считать количество заголовков до их чтения
+                writer.WriteNumber("hb"u8, BucketHeaders.AddOrUpdate("ProxyLink", headers));
                 writer.WriteNumber("hc"u8, headers.Count);
 
                 writer.WritePropertyName("h"u8);
@@ -386,7 +388,7 @@ public class ProxyLink : IProxyLink
         string uri_clear = null, plugin = null, ip = null;
         bool verifyip = false;
         DateTime e = default;
-        List<HeadersModel> headers = null;
+        IReadOnlyList<HeadersModel> headers = null;
 
         while (reader.Read())
         {
@@ -418,25 +420,45 @@ public class ProxyLink : IProxyLink
                 reader.Read();
                 e = reader.GetDateTime();
             }
-            else if (reader.ValueTextEquals("hc"u8))
+            else if (reader.ValueTextEquals("hb"u8))
             {
                 reader.Read();
-                headersCount = reader.GetInt16();
+
+                ulong H1 = reader.GetUInt64();
+                BucketHeaders.TryGetValue(H1, out headers);
+            }
+            else if (reader.ValueTextEquals("hc"u8))
+            {
+                if (headers != null && headers.Count > 0)
+                    reader.Skip();
+                else
+                {
+                    reader.Read();
+                    headersCount = reader.GetInt16();
+                }
             }
             else if (reader.ValueTextEquals("h"u8))
             {
-                reader.Read();
-
-                headers = new List<HeadersModel>(headersCount);
-
-                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                if (headers != null && headers.Count > 0)
+                    reader.Skip();
+                else
                 {
-                    string name = reader.GetString();
                     reader.Read();
-                    string val = reader.GetString();
 
-                    if (name != null && val != null)
-                        headers.Add(new(name, val));
+                    var newheaders = new List<HeadersModel>(headersCount);
+
+                    while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                    {
+                        string name = reader.GetString();
+                        reader.Read();
+                        string val = reader.GetString();
+
+                        if (name != null && val != null)
+                            newheaders.Add(new(name, val));
+                    }
+
+                    headers = newheaders;
+                    BucketHeaders.AddOrUpdate("ProxyLink", newheaders);
                 }
             }
             else

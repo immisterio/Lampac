@@ -27,7 +27,6 @@ public partial class ProxyAPI
     {
         CacheFileWatcher.Configure("hls", CoreInit.conf.serverproxy.cache_hls);
         fileWatcher = new CacheFileWatcher("hls");
-        EventListener.UpdateInitFile += cacheDefaultRequestHeaders.Clear;
     }
     #endregion
 

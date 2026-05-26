@@ -399,7 +399,7 @@ public class PiTor : BaseOnlineController
                     string login = ts.login.Replace("{user_uid}", requestInfo.user_uid);
                     var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{ts.passwd}")}");
 
-                    return (httpHeaders(ts.host, HeadersModel.Join(auth, ts.headers)), ts.host);
+                    return (httpHeaders(ts.host, HeadersModel.JoinReadOnly(auth, ts.headers)), ts.host);
                 }
                 else
                 {
@@ -409,7 +409,7 @@ public class PiTor : BaseOnlineController
                         string login = init.base_auth.login.Replace("{user_uid}", requestInfo.user_uid);
                         var auth = HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"{login}:{init.base_auth.passwd}")}");
 
-                        return (httpHeaders(tshost, HeadersModel.Join(auth, init.base_auth.headers)), tshost);
+                        return (httpHeaders(tshost, HeadersModel.JoinReadOnly(auth, init.base_auth.headers)), tshost);
                     }
 
                     return (null, init.torrs.First());
