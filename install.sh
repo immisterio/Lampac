@@ -314,14 +314,8 @@ is_ubuntu() {
 # ─── Install steps ───────────────────────────────────────────────────────────
 
 ensure_chromium_repo_ubuntu() {
-  if ! command -v add-apt-repository >/dev/null 2>&1; then
-    log_info "Installing software-properties-common..."
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      software-properties-common -qq 2>/dev/null || true
-  fi
-  log_info "Adding xtradeb/apps PPA for Chromium..."
-  DEBIAN_FRONTEND=noninteractive add-apt-repository -y ppa:xtradeb/apps -qq 2>/dev/null || true
-  log_ok "PPA added"
+  run_quiet "Adding xtradeb/apps PPA (Chromium .deb)" \
+    env DEBIAN_FRONTEND=noninteractive add-apt-repository -y ppa:xtradeb/apps
 }
 
 install_os_packages() {
@@ -329,6 +323,9 @@ install_os_packages() {
     apt-get update
 
   if is_ubuntu; then
+    run_quiet "Installing prerequisites for Chromium PPA (ca-certificates, software-properties-common)" \
+      env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates software-properties-common
     ensure_chromium_repo_ubuntu
     run_quiet "Updating package lists (after PPA)" \
       apt-get update
