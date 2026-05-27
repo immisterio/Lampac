@@ -87,7 +87,7 @@ public class RchClient
             }
         }
 
-        clients.AddOrUpdate(connectionId, new clientEntry(ip, host, info, connection), (i, j) => new clientEntry(ip, host, info, connection));
+        clients[connectionId] = new clientEntry(ip, host, info, connection);
 
         if (EventListener.RchRegistry != null)
         {
@@ -179,7 +179,7 @@ public class RchClient
     #region Eval
     public void EvalRun(string data)
     {
-        _ = SendHub("evalrun", data).ConfigureAwait(false);
+        _ = SendHub("evalrun", data, waiting: false).ConfigureAwait(false);
     }
 
     public Task<string> Eval(string data)
@@ -393,7 +393,7 @@ public class RchClient
         if (string.IsNullOrEmpty(connectionId))
             return null;
 
-        string rchId = Guid.NewGuid().ToString("N");
+        string rchId = Fnv1a.Base64Url(Fnv1a.RandomHash());
 
         var ms = PoolInvk.msm.GetStream();
         CancellationTokenSource cts = null;
@@ -410,7 +410,12 @@ public class RchClient
 
         try
         {
-            var rchHub = new rchIdEntry(ms, new TaskCompletionSource<string>(), cts.Token);
+            var rchHub = new rchIdEntry(
+                ms,
+                new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously),
+                cts.Token
+            );
+
             rchIds[rchId] = rchHub;
 
             #region send_headers
@@ -433,9 +438,9 @@ public class RchClient
             {
                 var send_headers = useDefaultHeaders
                     ? new Dictionary<string, string>(Http.defaultUaHeaders, StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
-                    }
+                        {
+                            ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
+                        }
                     : new();
 
                 if (headers != null)
@@ -510,18 +515,18 @@ public class RchClient
                     ujw.WriteEndObject();
                 }
 
-                await Nws.SendConnectionAsync(clientInfo.data.connection, utf8Buf.WrittenMemory, WebSocketMessageType.Text, true, cts.Token).ConfigureAwait(false);
+                await Nws.SendConnectionAsync(clientInfo.data.connection, utf8Buf.WrittenMemory, WebSocketMessageType.Text, true, cts.Token);
             }
             #endregion
 
             if (!waiting)
                 return null;
 
-            string stringValue = await rchHub.tcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+            string stringValue = await rchHub.tcs.Task.WaitAsync(cts.Token);
 
             if (stringValue != null)
             {
-                if (string.IsNullOrWhiteSpace(stringValue))
+                if (string.IsNullOrEmpty(stringValue))
                     return null;
 
                 spanAction?.Invoke(stringValue);
