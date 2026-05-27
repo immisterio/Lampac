@@ -19,7 +19,7 @@ public static class CronParse
         {
             bool savedb = false;
 
-            string mainHtml = await Http.Get($"{ModInit.conf.host}/main/");
+            string mainHtml = await Http.Get($"{ModInit.conf.host}/home/");
             if (mainHtml == null)
                 return;
 
@@ -27,7 +27,7 @@ public static class CronParse
             while (m.Success)
             {
                 string link = m.Groups[1].Value;
-                string news = await Http.Get($"{ModInit.conf.host}/main/{link}");
+                string news = await Http.Get($"{ModInit.conf.host}/home/{link}");
                 if (news != null)
                 {
                     string name = Regex.Match(news, "itemprop=\"name\">([^<]+)</h1>").Groups[1].Value.Trim();
