@@ -67102,5 +67102,194 @@
     "imdb_id": null,
     "ashdi": "vod/257842",
     "tortuga": "vod/126412"
+  },
+  "8933-super-mario-galaktyka-v-kino.html": {
+    "name": "Супер Маріо Галактика в кіно",
+    "eng_name": "The Super Mario Galaxy Movie",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/259587",
+    "tortuga": "vod/126679"
+  },
+  "8931-udachi-veselysya-ne-vmyray.html": {
+    "name": "Удачі, веселися, не вмирай",
+    "eng_name": "Good Luck, Have Fun, Don't Die",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/242744",
+    "tortuga": "vod/123873"
+  },
+  "8930-svyst.html": {
+    "name": "Свист",
+    "eng_name": "Whistle",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/242336",
+    "tortuga": "vod/123817"
+  },
+  "8929-pisnya-lyubovi.html": {
+    "name": "Пісня любові",
+    "eng_name": "Song Sung Blue",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/241760",
+    "tortuga": "vod/124031"
+  },
+  "8928-neznayomci-chastyna-tretya.html": {
+    "name": "Незнайомці: Частина третя",
+    "eng_name": "The Strangers: Chapter 3",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/241798",
+    "tortuga": "vod/123815"
+  },
+  "8927-wicked-charodiyka-chastyna-2.html": {
+    "name": "Wіcked: Чародійка Частина 2",
+    "eng_name": "Wicked: For Good",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/241178",
+    "tortuga": "vod/121352"
+  },
+  "8926-drit-mercya.html": {
+    "name": "Дріт мерця",
+    "eng_name": "Dead Man's Wire",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/241179",
+    "tortuga": null
+  },
+  "8925-marti-suprim-geniy-kombinaciy.html": {
+    "name": "Марті Супрім. Геній комбінацій",
+    "eng_name": "Marty Supreme",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/240868",
+    "tortuga": "vod/122800"
+  },
+  "8924-prymat.html": {
+    "name": "Примат",
+    "eng_name": "Primate",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/239189",
+    "tortuga": "vod/123052"
+  },
+  "8923-ya-ne-zalizna.html": {
+    "name": "Я не залізна",
+    "eng_name": "If I Had Legs I’d Kick You",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/238984",
+    "tortuga": "vod/120018"
+  },
+  "8922-kayli.html": {
+    "name": "Кайлі",
+    "eng_name": "Kylie",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6699",
+    "tortuga": null
+  },
+  "8921-vik-pryvablyvosti.html": {
+    "name": "Вік привабливості",
+    "eng_name": "Age of Attraction",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6354",
+    "tortuga": null
+  },
+  "8920-sevilskyy-hyzhak.html": {
+    "name": "Севільський хижак",
+    "eng_name": "The Predator of Seville",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6396",
+    "tortuga": null
+  },
+  "8919-portobello.html": {
+    "name": "Портобелло",
+    "eng_name": "Portobello",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6290",
+    "tortuga": "embed/2765"
+  },
+  "8918-pamyat-vbyvci.html": {
+    "name": "Пам&#039;ять вбивці",
+    "eng_name": "Memory of a Killer",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6222",
+    "tortuga": "embed/2743"
+  },
+  "8917-velyki-pomylky.html": {
+    "name": "Великі помилки",
+    "eng_name": "Big Mistakes",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6467",
+    "tortuga": "embed/2792"
+  },
+  "8916-zhinoche-peklo.html": {
+    "name": "Жіноче пекло",
+    "eng_name": "Piekło kobiet / Women's Hell",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6337",
+    "tortuga": null
+  },
+  "8844-mortal-kombat-ii.html": {
+    "name": "Мортал Комбат II",
+    "eng_name": "Mortal Kombat II",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/260008?multivoice",
+    "tortuga": "vod/126750"
+  },
+  "8915-dzhek-rayan-viyna-pryvydiv.html": {
+    "name": "Джек Раян: Війна привидів",
+    "eng_name": "Jack Ryan: Ghost War",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/259858",
+    "tortuga": "vod/126717"
+  },
+  "8914-ella-makkey.html": {
+    "name": "Елла МакКей",
+    "eng_name": "Ella McCay",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/238497",
+    "tortuga": "vod/122504"
+  },
+  "8913-proklyattya-shelbi-ouks.html": {
+    "name": "Прокляття Шелбі Оукс",
+    "eng_name": "Shelby Oaks",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/238631",
+    "tortuga": "vod/122884"
   }
 }
