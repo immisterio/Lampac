@@ -39,7 +39,7 @@ public class WafConf
     public Dictionary<string, string> headersDeny { get; set; }
 }
 
-public class WafDisabled
+public struct WafDisabled
 {
     public bool bruteForceProtection { get; set; }
 
@@ -75,6 +75,8 @@ public class WafLimitRootMap
         this.pattern = pattern;
         this.map = map;
     }
+
+    public string path { get; set; }
 
     public string pattern { get; set; }
 

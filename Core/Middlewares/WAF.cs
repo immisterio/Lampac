@@ -4,11 +4,14 @@ using Microsoft.Extensions.Primitives;
 using Shared;
 using Shared.Models.AppConf;
 using Shared.Models.Base;
-using Shared.Services.Pools;
+using Shared.Models.Events;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -31,6 +34,109 @@ public class WAF
         memoryCache = mem;
         _ = BruteForceCleanupTimer;
     }
+
+    static FrozenSet<System.Net.IPNetwork> ipsDeny = null;
+    static FrozenSet<System.Net.IPNetwork> ipsAllow = null;
+    static FrozenSet<string> whiteIps = null;
+    static FrozenSet<string> countryAllow = null, countryDeny = null;
+    static FrozenSet<long> asnAllow = null, asnDeny = null;
+
+    static WAF()
+    {
+        void UpdateFiled()
+        {
+            var waf = CoreInit.conf.WAF;
+
+            #region ipsDeny
+            if (waf.ipsDeny != null && waf.ipsDeny.Count > 0)
+            {
+                List<System.Net.IPNetwork> ips = new(waf.ipsDeny.Count);
+
+                foreach (string ip in waf.ipsDeny)
+                {
+                    if (ip.Contains("/"))
+                    {
+                        string[] parts = ip.Split('/');
+                        if (int.TryParse(parts[1], out int prefixLength))
+                            ips.Add(new System.Net.IPNetwork(IPAddress.Parse(parts[0]), prefixLength));
+                    }
+                    else
+                    {
+                        IPAddress address = IPAddress.Parse(ip);
+
+                        int prefixLength = address.AddressFamily == AddressFamily.InterNetwork
+                            ? 32   // IPv4
+                            : 128; // IPv6
+
+                        ips.Add(new System.Net.IPNetwork(address, prefixLength));
+                    }
+                }
+
+                ipsDeny = ips.ToFrozenSet();
+            }
+            else
+            {
+                ipsDeny = null;
+            }
+            #endregion
+
+            #region ipsAllow
+            if (waf.ipsAllow != null && waf.ipsAllow.Count > 0)
+            {
+                List<System.Net.IPNetwork> ips = new(waf.ipsAllow.Count);
+
+                foreach (string ip in waf.ipsAllow)
+                {
+                    if (ip.Contains("/"))
+                    {
+                        string[] parts = ip.Split('/');
+                        if (int.TryParse(parts[1], out int prefixLength))
+                            ips.Add(new System.Net.IPNetwork(IPAddress.Parse(parts[0]), prefixLength));
+                    }
+                    else
+                    {
+                        IPAddress address = IPAddress.Parse(ip);
+
+                        int prefixLength = address.AddressFamily == AddressFamily.InterNetwork
+                            ? 32   // IPv4
+                            : 128; // IPv6
+
+                        ips.Add(new System.Net.IPNetwork(address, prefixLength));
+                    }
+                }
+
+                ipsDeny = ips.ToFrozenSet();
+            }
+            else
+            {
+                ipsAllow = null;
+            }
+            #endregion
+
+            whiteIps = waf.whiteIps != null && waf.whiteIps.Count > 0
+                ? waf.whiteIps.ToFrozenSet()
+                : null;
+
+            countryAllow = waf.countryAllow != null && waf.countryAllow.Count > 0
+                ? waf.countryAllow.ToFrozenSet()
+                : null;
+
+            countryDeny = waf.countryDeny != null && waf.countryDeny.Count > 0
+                ? waf.countryDeny.ToFrozenSet()
+                : null;
+
+            asnAllow = waf.asnAllow != null && waf.asnAllow.Count > 0
+                ? waf.asnAllow.ToFrozenSet()
+                : null;
+
+            asnDeny = waf.asnDeny != null && waf.asnDeny.Count > 0
+                ? waf.asnDeny.ToFrozenSet()
+                : null;
+        }
+
+        UpdateFiled();
+        EventListener.UpdateInitFile += UpdateFiled;
+    }
     #endregion
 
     public Task Invoke(HttpContext httpContext)
@@ -43,13 +149,14 @@ public class WAF
         if (requestInfo.IsLocalRequest || requestInfo.IsAnonymousRequest)
             return _next(httpContext);
 
-        if (waf.whiteIps != null && waf.whiteIps.Contains(requestInfo.IP))
+        if (whiteIps != null && whiteIps.Contains(requestInfo.IP))
             return _next(httpContext);
 
         if (waf.bypassLocalIP && requestInfo.IsLocalIp)
             return _next(httpContext);
 
-        var disabled = waf.disabled ?? new WafDisabled();
+        IPAddress clientIPAddress = null;
+        var disabled = waf.disabled;
 
         #region BruteForce
         if (!disabled.bruteForceProtection && waf.bruteForceProtection && !requestInfo.IsLocalIp && CoreInit.conf.accsdb.enable)
@@ -70,20 +177,20 @@ public class WAF
         #endregion
 
         #region country
-        if (!disabled.country && waf.countryAllow != null)
+        if (!disabled.country && countryAllow != null)
         {
             // если мы не знаем страну или точно знаем, что она не в списке разрешенных
-            if (requestInfo.Country == null || !waf.countryAllow.Contains(requestInfo.Country))
+            if (requestInfo.Country == null || !countryAllow.Contains(requestInfo.Country))
             {
                 httpContext.Response.StatusCode = 403;
                 return Task.CompletedTask;
             }
         }
 
-        if (!disabled.country && waf.countryDeny != null)
+        if (!disabled.country && countryDeny != null)
         {
             // точно знаем страну и она есть в списке запрещенных
-            if (requestInfo.Country != null && waf.countryDeny.Contains(requestInfo.Country))
+            if (requestInfo.Country != null && countryDeny.Contains(requestInfo.Country))
             {
                 httpContext.Response.StatusCode = 403;
                 return Task.CompletedTask;
@@ -92,19 +199,19 @@ public class WAF
         #endregion
 
         #region ASN
-        if (!disabled.asn && waf.asnAllow != null)
+        if (!disabled.asn && asnAllow != null)
         {
             // если мы не знаем asn или точно знаем, что он не в списке разрешенных
-            if (requestInfo.ASN == -1 || !waf.asnAllow.Contains(requestInfo.ASN))
+            if (requestInfo.ASN == -1 || !asnAllow.Contains(requestInfo.ASN))
             {
                 httpContext.Response.StatusCode = 403;
                 return Task.CompletedTask;
             }
         }
 
-        if (!disabled.asn && waf.asnDeny != null)
+        if (!disabled.asn && asnDeny != null)
         {
-            if (waf.asnDeny.Contains(requestInfo.ASN))
+            if (asnDeny.Contains(requestInfo.ASN))
             {
                 httpContext.Response.StatusCode = 403;
                 return Task.CompletedTask;
@@ -128,52 +235,47 @@ public class WAF
         }
         #endregion
 
-        #region ips
-        if (!disabled.ips && waf.ipsDeny != null)
+        #region ipsDeny
+        if (!disabled.ips && ipsDeny != null)
         {
-            if (waf.ipsDeny.Contains(requestInfo.IP))
+            if (clientIPAddress == null)
             {
-                httpContext.Response.StatusCode = 403;
-                return Task.CompletedTask;
+                clientIPAddress = CoreInit.conf.listen.frontend == "cloudflare"
+                    ? IPAddress.Parse(requestInfo.IP)
+                    : httpContext.Connection.RemoteIpAddress;
             }
 
-            var clientIPAddress = IPAddress.Parse(requestInfo.IP);
-            foreach (string ip in waf.ipsDeny)
+            foreach (var ip in ipsDeny)
             {
-                if (ip.Contains("/"))
+                if (ip.Contains(clientIPAddress))
                 {
-                    string[] parts = ip.Split('/');
-                    if (int.TryParse(parts[1], out int prefixLength))
-                    {
-                        if (new System.Net.IPNetwork(IPAddress.Parse(parts[0]), prefixLength).Contains(clientIPAddress))
-                        {
-                            httpContext.Response.StatusCode = 403;
-                            return Task.CompletedTask;
-                        }
-                    }
+                    httpContext.Response.StatusCode = 403;
+                    return Task.CompletedTask;
                 }
             }
         }
+        #endregion
 
-        if (!disabled.ips && waf.ipsAllow != null)
+        #region ipsAllow
+        if (!disabled.ips && ipsAllow != null)
         {
+            if (clientIPAddress == null)
+            {
+                clientIPAddress = CoreInit.conf.listen.frontend == "cloudflare"
+                    ? IPAddress.Parse(requestInfo.IP)
+                    : httpContext.Connection.RemoteIpAddress;
+            }
+
             if (!waf.ipsAllow.Contains(requestInfo.IP))
             {
                 bool deny = true;
-                var clientIPAddress = IPAddress.Parse(requestInfo.IP);
-                foreach (string ip in waf.ipsAllow)
+
+                foreach (var ip in ipsAllow)
                 {
-                    if (ip.Contains("/"))
+                    if (ip.Contains(clientIPAddress))
                     {
-                        string[] parts = ip.Split('/');
-                        if (int.TryParse(parts[1], out int prefixLength))
-                        {
-                            if (new System.Net.IPNetwork(IPAddress.Parse(parts[0]), prefixLength).Contains(clientIPAddress))
-                            {
-                                deny = false;
-                                break;
-                            }
-                        }
+                        deny = false;
+                        break;
                     }
                 }
 
@@ -193,7 +295,7 @@ public class WAF
             {
                 if (httpContext.Request.Headers.TryGetValue(header.Key, out StringValues headerValue) && headerValue.Count > 0)
                 {
-                    if (Regex.IsMatch(headerValue, header.Value, RegexOptions.IgnoreCase))
+                    if (headerValue == header.Value || Regex.IsMatch(headerValue, header.Value, RegexOptions.IgnoreCase))
                     {
                         httpContext.Response.StatusCode = 403;
                         return Task.CompletedTask;
@@ -224,13 +326,17 @@ public class WAF
 
 
     #region MapLimited
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static WafLimitRootMap MapLimited(WafConf waf, string path)
     {
         if (waf.limit_map != null)
         {
             foreach (var pathLimit in waf.limit_map)
             {
-                if (Regex.IsMatch(path, pathLimit.pattern, RegexOptions.IgnoreCase))
+                if (pathLimit.path != null && pathLimit.path == path)
+                    return pathLimit;
+
+                if (pathLimit.pattern != null && Regex.IsMatch(path, pathLimit.pattern, RegexOptions.IgnoreCase))
                     return pathLimit;
             }
         }
@@ -243,19 +349,12 @@ public class WAF
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool RateLimited(HttpContext httpContext, IMemoryCache cache, string userip, WafLimitMap map, string pattern)
     {
-        var sb = StringBuilderPool.ThreadInstance;
-
-        sb.Append("WAF:RateLimited:");
-        sb.Append(userip);
-        sb.Append(":");
-        sb.Append(pattern);
-        sb.Append(":");
+        var hash = Fnv1a.Hash("WAF:RateLimited:");
+        Fnv1a.Append(ref hash, userip);
+        Fnv1a.Append(ref hash, pattern);
 
         if (map.pathId)
-        {
-            sb.Append(httpContext.Request.Path.Value);
-            sb.Append(":");
-        }
+            Fnv1a.Append(ref hash, httpContext.Request.Path.Value);
 
         if (map.queryIds != null)
         {
@@ -263,13 +362,13 @@ public class WAF
             {
                 if (httpContext.Request.Query.TryGetValue(queryId, out StringValues val) && val.Count > 0)
                 {
-                    sb.Append(val[0]);
-                    sb.Append(":");
+                    Fnv1a.Append(ref hash, val[0]);
+                    Fnv1a.Append(ref hash, ':');
                 }
             }
         }
 
-        var counter = cache.GetOrCreate(sb.ToString(), entry =>
+        var counter = cache.GetOrCreate(hash.H2, entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(map.second == 0 ? 60 : map.second);
             return new Counter();
