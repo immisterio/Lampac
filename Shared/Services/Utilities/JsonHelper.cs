@@ -15,7 +15,7 @@ public static class JsonHelper
     {
         var items = new List<T>(capacity);
 
-        await using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+        await using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             using (var gzipStream = new GZipStream(fileStream, CompressionMode.Decompress, leaveOpen: true))
             {
@@ -32,7 +32,7 @@ public static class JsonHelper
                                 {
                                     items.Add(serializer.Deserialize<T>(jsonReader));
                                 }
-                                catch (System.Exception ex)
+                                catch (Exception ex)
                                 {
                                     Log.Error(ex, "CatchId={CatchId}", "id_pz0shzjo");
                                 }
@@ -50,9 +50,6 @@ public static class JsonHelper
     #region IEnumerableReader
     public static IEnumerable<T> IEnumerableReader<T>(string filePath)
     {
-        if (!File.Exists(filePath))
-            return Enumerable.Empty<T>();
-
         return new JsonItemEnumerable<T>(filePath);
     }
 
@@ -78,7 +75,7 @@ public static class JsonHelper
 
             FileStream fileStream;
             GZipStream gzipStream;
-            StreamReader reader;
+            TextReader reader;
             JsonTextReader jsonReader;
 
             bool disposed;
@@ -102,15 +99,13 @@ public static class JsonHelper
                     gzipStream = new GZipStream(
                         fileStream,
                         CompressionMode.Decompress,
-                        leaveOpen: true);
+                        leaveOpen: true
+                    );
 
-                    reader = new StreamReader(
+                    reader = new JsonStreamReaderPool(
                         gzipStream,
                         Encoding.UTF8,
-                        false,
-                        CoreInit.conf.lowMemoryMode
-                            ? 4096
-                            : PoolInvk.bufferSize
+                        leaveOpen: true
                     );
 
                     jsonReader = new JsonTextReader(reader)
@@ -139,10 +134,7 @@ public static class JsonHelper
                             Current = serializer.Deserialize<T>(jsonReader);
                             return true;
                         }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "CatchId={CatchId}", "id_qccuip0u");
-                        }
+                        catch { }
                     }
                 }
 
@@ -188,9 +180,6 @@ public static class JsonHelper
     #region DictionaryReader
     public static IEnumerable<KeyValuePair<string, TValue>> DictionaryReader<TValue>(string filePath)
     {
-        if (!File.Exists(filePath))
-            return Enumerable.Empty<KeyValuePair<string, TValue>>();
-
         return new JsonDictionaryEnumerable<TValue>(filePath);
     }
 
@@ -215,7 +204,7 @@ public static class JsonHelper
             readonly JsonSerializer serializer = new JsonSerializer();
 
             FileStream fileStream;
-            StreamReader reader;
+            TextReader reader;
             JsonTextReader jsonReader;
 
             bool disposed;
@@ -236,13 +225,10 @@ public static class JsonHelper
                 {
                     fileStream = FileReaderPool.Rent(filePath);
 
-                    reader = new StreamReader(
+                    reader = new JsonStreamReaderPool(
                         fileStream,
                         Encoding.UTF8,
-                        false,
-                        CoreInit.conf.lowMemoryMode
-                            ? 4096
-                            : PoolInvk.bufferSize
+                        leaveOpen: true
                     );
 
                     jsonReader = new JsonTextReader(reader)
@@ -271,7 +257,7 @@ public static class JsonHelper
                 {
                     if (jsonReader.TokenType == JsonToken.PropertyName)
                     {
-                        var key = (string)jsonReader.Value;
+                        string key = (string)jsonReader.Value;
 
                         try
                         {

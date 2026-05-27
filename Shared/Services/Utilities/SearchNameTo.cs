@@ -130,7 +130,7 @@ public static class SearchNameTo
                 (c >= '0' && c <= '9') ||
                 (c >= 'a' && c <= 'z') ||
                 (c >= 'а' && c <= 'я') ||
-                c is 'Ё' or 'ё';
+                c is 'ё' or 'щ';
 
             if (!ok)
                 continue;
