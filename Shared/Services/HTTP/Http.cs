@@ -27,7 +27,7 @@ public static class Http
     {
         AllowTrailingCommas = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
-        DefaultBufferSize = PoolInvk.bufferSize
+        DefaultBufferSize = CoreInit.conf.lowMemoryMode ? 16384 : (32 * 1024)
     };
 
     static readonly JsonSerializerSettings newtonsoftIgnoreErrorsSettings = new()
@@ -443,7 +443,7 @@ public static class Http
             {
                 DefaultRequestHeaders(url, req, null, referer, headers);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
@@ -505,7 +505,7 @@ public static class Http
             {
                 DefaultRequestHeaders(url, req, null, null, headers);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                         return response;
@@ -631,7 +631,7 @@ public static class Http
             {
                 DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
@@ -827,7 +827,7 @@ public static class Http
             {
                 DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
@@ -942,7 +942,7 @@ public static class Http
                 if (removeContentType)
                     req.Content.Headers.Remove("Content-Type");
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {
@@ -1113,7 +1113,7 @@ public static class Http
             {
                 DefaultRequestHeaders(url, req, cookie, null, headers, useDefaultHeaders);
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds))))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
                 {
                     using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
                     {

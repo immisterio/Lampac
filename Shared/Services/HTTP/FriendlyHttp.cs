@@ -73,17 +73,15 @@ public static class FriendlyHttp
         {
             disposeHttpClient = true;
 
-            if (handler == null)
+            return new HttpClient(new HttpClientHandler()
             {
-                handler = new HttpClientHandler()
-                {
-                    AllowAutoRedirect = allowAutoRedirect,
-                    AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                    ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate
-                };
-            }
-
-            return new HttpClient(handler)
+                Proxy = handler?.Proxy,
+                UseProxy = handler?.Proxy != null,
+                CookieContainer = handler?.CookieContainer ?? new CookieContainer(),
+                AllowAutoRedirect = allowAutoRedirect,
+                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate
+            })
             {
                 MaxResponseContentBufferSize = maxBufferSize
             };
@@ -123,24 +121,14 @@ public static class FriendlyHttp
             }
             else
             {
-                if (handler != null)
-                {
-                    handler = new HttpClientHandler()
-                    {
-                        AllowAutoRedirect = allowAutoRedirect,
-                        AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                        ServerCertificateCustomValidationCallback = Http.AlwaysAllowCertificate
-                    };
-                }
-
                 var address = webProxy.Address;
                 var credentials = webProxy.Credentials as NetworkCredential;
 
                 var key = new ProxyClientKey(
-                    address?.Host,
-                    address?.Port ?? 0,
-                    credentials?.UserName,
-                    credentials?.Password,
+                    address.Host,
+                    address.Port,
+                    credentials?.UserName ?? string.Empty,
+                    credentials?.Password ?? string.Empty,
                     maxBufferSize,
                     handler?.AllowAutoRedirect == true
                 );

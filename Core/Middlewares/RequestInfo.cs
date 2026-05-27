@@ -3,7 +3,6 @@ using Microsoft.Extensions.Primitives;
 using Shared;
 using Shared.Models.Base;
 using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -26,13 +25,25 @@ public class RequestInfo
 
     public Task Invoke(HttpContext httpContext)
     {
-        bool IsWsRequest = httpContext.Request.Path.Value.StartsWith("/nws", StringComparison.OrdinalIgnoreCase);
-        bool IsProxyImg = httpContext.Request.Path.Value.StartsWith("/proxyimg", StringComparison.OrdinalIgnoreCase);
-        bool IsProxyRequest = httpContext.Request.Path.Value.StartsWith("/proxy/", StringComparison.OrdinalIgnoreCase)
-            || httpContext.Request.Path.Value.StartsWith("/proxy-dash/", StringComparison.OrdinalIgnoreCase);
+        string path = httpContext.Request.Path.Value;
+
+        bool IsWsRequest = path.StartsWith("/nws", StringComparison.OrdinalIgnoreCase);
+        bool IsProxyImg = path.StartsWith("/proxyimg", StringComparison.OrdinalIgnoreCase);
+        bool IsProxyRequest = path.StartsWith("/proxy/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/proxy-dash/", StringComparison.OrdinalIgnoreCase);
 
         if (CoreInit.conf.openstat.enable)
-            RequestInfoStats.Increment(IsWsRequest ? "nws" : IsProxyRequest ? "proxy" : IsProxyImg ? "img" : "request");
+        {
+            RequestInfoStats.Increment(
+                IsWsRequest
+                ? RequestStatsType.Nws
+                : IsProxyRequest
+                    ? RequestStatsType.Proxy
+                    : IsProxyImg
+                        ? RequestStatsType.Img
+                        : RequestStatsType.Request
+            );
+        }
 
         bool IsLocalRequest = false;
         string cf_country = null;
@@ -58,17 +69,18 @@ public class RequestInfo
                     clientIp = xip[0];
             }
         }
-        else if (CoreInit.conf.listen.frontend == "cloudflare")
+        else if (!IsLocalIp && CoreInit.conf.listen.frontend == "cloudflare")
         {
             #region cloudflare
             if (Program.cloudflare_ips != null && Program.cloudflare_ips.Count > 0)
             {
                 try
                 {
-                    var clientIPAddress = IPAddress.Parse(clientIp);
+                    IPAddress clientIPAddress = httpContext.Connection.RemoteIpAddress;
+
                     foreach (var cf in Program.cloudflare_ips)
                     {
-                        if (new System.Net.IPNetwork(cf.prefix, cf.prefixLength).Contains(clientIPAddress))
+                        if (cf.Contains(clientIPAddress))
                         {
                             if (httpContext.Request.Headers.TryGetValue("CF-Connecting-IP", out StringValues xip) && xip.Count > 0)
                             {
@@ -92,7 +104,7 @@ public class RequestInfo
                         }
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Serilog.Log.Error(ex, "{Class} {CatchId}", "RequestInfo", "id_1ijosbv0");
                 }
@@ -163,40 +175,34 @@ public class RequestInfo
     {
         foreach (string id in uids)
         {
-            if (httpContext.Request.Query.ContainsKey(id))
+            if (httpContext.Request.Query.TryGetValue(id, out StringValues val) && val.Count > 0)
             {
-                StringValues val = httpContext.Request.Query[id];
-                if (val.Count > 0)
+                ReadOnlySpan<char> value = val[0];
+                if (value.IsEmpty)
+                    continue;
+
+                if (!CoreInit.conf.BaseModule.ValidateIdentity)
+                    return val[0];
+
+                foreach (char ch in value)
                 {
-                    if (!CoreInit.conf.BaseModule.ValidateIdentity)
-                        return val[0];
-
-                    ReadOnlySpan<char> value = val[0];
-                    if (value.IsEmpty)
-                        continue;
-
-                    bool hasValid = true;
-                    foreach (char ch in value)
+                    if
+                    (
+                        (ch >= 'a' && ch <= 'z') ||
+                        (ch >= 'A' && ch <= 'Z') ||
+                        (ch >= '0' && ch <= '9') ||
+                        ch == '_' || ch == '+' || ch == '.' || ch == '-' || ch == '@' || ch == '='
+                    )
                     {
-                        if
-                        (
-                            (ch >= 'a' && ch <= 'z') ||
-                            (ch >= 'A' && ch <= 'Z') ||
-                            (ch >= '0' && ch <= '9') ||
-                            ch == '_' || ch == '+' || ch == '.' || ch == '-' || ch == '@' || ch == '='
-                        )
-                        {
-                            // valid character
-                        }
-                        else
-                        {
-                            hasValid = false;
-                        }
+                        // valid character
                     }
-
-                    if (hasValid)
-                        return val[0];
+                    else
+                    {
+                        return null;
+                    }
                 }
+
+                return val[0];
             }
         }
 
@@ -209,81 +215,126 @@ public class RequestInfo
 #region RequestInfoStats
 public static class RequestInfoStats
 {
-    sealed class PrefixCounters
+    const int RingSize = 64;
+
+    sealed class MinuteSlot
     {
-        public readonly ConcurrentDictionary<long, int[]> Hours = new();
+        public long Minute;
+        public int Count;
     }
 
-    static readonly ConcurrentDictionary<string, PrefixCounters> _counters = new();
-    static readonly Timer _cleanupTimer;
+    sealed class PrefixCounters
+    {
+        public readonly MinuteSlot[] Slots = new MinuteSlot[RingSize];
+
+        public PrefixCounters()
+        {
+            for (int i = 0; i < Slots.Length; i++)
+                Slots[i] = new MinuteSlot();
+        }
+    }
+
+    static readonly PrefixCounters[] _counters =
+    [
+        new PrefixCounters(),
+        new PrefixCounters(),
+        new PrefixCounters(),
+        new PrefixCounters(),
+        new PrefixCounters(),
+        new PrefixCounters()
+    ];
+
+    static readonly Timer _clockTimer;
+
+    static long _currentUnixMinute = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 60;
+    static int _currentIndex = (int)(_currentUnixMinute & (RingSize - 1));
 
     static RequestInfoStats()
     {
-        _cleanupTimer = new Timer(_ => Cleanup(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
-    }
+        int index = (int)(_currentUnixMinute & (RingSize - 1));
 
-    public static void Increment(string prefix)
-    {
-        var now = DateTime.UtcNow;
-        var prefixCounters = _counters.GetOrAdd(prefix, static _ => new PrefixCounters());
-        long hourKey = now.Ticks / TimeSpan.TicksPerHour;
-        int[] minutes = prefixCounters.Hours.GetOrAdd(hourKey, static _ => new int[60]);
-        Interlocked.Increment(ref minutes[now.Minute]);
-    }
-
-    public static (long reqMin, long reqHour) GetCounters(string prefix, DateTime now)
-    {
-        if (!_counters.TryGetValue(prefix, out PrefixCounters prefixCounters))
-            return (0, 0);
-
-        long currentHourKey = now.Ticks / TimeSpan.TicksPerHour;
-        long prevHourKey = currentHourKey - 1;
-        int prevMinute = now.Minute == 0 ? 59 : now.Minute - 1;
-
-        long requestMinute = 0;
-        if (now.Minute == 0)
+        foreach (PrefixCounters counters in _counters)
         {
-            if (prefixCounters.Hours.TryGetValue(prevHourKey, out int[] prevHourMinutes))
-                requestMinute = prevHourMinutes[59];
-        }
-        else
-        {
-            if (prefixCounters.Hours.TryGetValue(currentHourKey, out int[] currentHourMinutes))
-                requestMinute = currentHourMinutes[prevMinute];
+            MinuteSlot slot = counters.Slots[index];
+            Volatile.Write(ref slot.Count, 0);
+            Volatile.Write(ref slot.Minute, _currentUnixMinute);
         }
 
-        long requestHour = 0;
-        for (int i = 1; i <= 60; i++)
-        {
-            int minuteIndex = now.Minute - i;
-            long hourKey = currentHourKey;
+        Volatile.Write(ref _currentUnixMinute, _currentUnixMinute);
+        Volatile.Write(ref _currentIndex, index);
 
-            if (minuteIndex < 0)
+        _clockTimer = new Timer(static _ => Tick(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+    public static void Increment(RequestStatsType kind)
+    {
+        int index = Volatile.Read(ref _currentIndex);
+        Interlocked.Increment(ref _counters[(int)kind].Slots[index].Count);
+    }
+
+    static void Tick()
+    {
+        long unixMinute = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 60;
+        long oldMinute = Volatile.Read(ref _currentUnixMinute);
+
+        if (unixMinute == oldMinute)
+            return;
+
+        long from = oldMinute + 1;
+        long to = unixMinute;
+
+        if (to - from >= RingSize)
+            from = to - RingSize + 1;
+
+        for (long minute = from; minute <= to; minute++)
+        {
+            int index = (int)(minute & (RingSize - 1));
+
+            foreach (PrefixCounters counters in _counters)
             {
-                minuteIndex += 60;
-                hourKey = prevHourKey;
-            }
+                MinuteSlot slot = counters.Slots[index];
 
-            if (prefixCounters.Hours.TryGetValue(hourKey, out int[] minutes))
-                requestHour += minutes[minuteIndex];
+                Volatile.Write(ref slot.Minute, minute);
+                Volatile.Write(ref slot.Count, 0);
+            }
         }
+
+        Volatile.Write(ref _currentUnixMinute, unixMinute);
+        Volatile.Write(ref _currentIndex, (int)(unixMinute & (RingSize - 1)));
+    }
+
+    public static (long reqMin, long reqHour) GetCounters(RequestStatsType kind, DateTime now)
+    {
+        PrefixCounters counters = _counters[(int)kind];
+
+        long currentMinute = ((DateTimeOffset)now).ToUnixTimeSeconds() / 60;
+        long requestMinute = ReadMinute(counters, currentMinute - 1);
+        long requestHour = 0;
+
+        for (int i = 1; i <= 60; i++)
+            requestHour += ReadMinute(counters, currentMinute - i);
 
         return (requestMinute, requestHour);
     }
 
-    static void Cleanup()
+    static int ReadMinute(PrefixCounters counters, long minute)
     {
-        long currentHourKey = DateTime.UtcNow.Ticks / TimeSpan.TicksPerHour;
-        long prevHourKey = currentHourKey - 1;
+        MinuteSlot slot = counters.Slots[(int)(minute & (RingSize - 1))];
 
-        foreach (PrefixCounters prefixCounters in _counters.Values)
-        {
-            foreach (long hourKey in prefixCounters.Hours.Keys)
-            {
-                if (hourKey != currentHourKey && hourKey != prevHourKey)
-                    prefixCounters.Hours.TryRemove(hourKey, out _);
-            }
-        }
+        if (Volatile.Read(ref slot.Minute) != minute)
+            return 0;
+
+        return Volatile.Read(ref slot.Count);
     }
+}
+
+public enum RequestStatsType : byte
+{
+    Base = 0,
+    Nws = 1,
+    Proxy = 2,
+    Img = 3,
+    Request = 4,
+    Bot = 5
 }
 #endregion

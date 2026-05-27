@@ -116,20 +116,14 @@ public class RezkaController : BaseOnlineController<RezkaSettings>
             {
                 var content = await oninvk.Search(title, original_title, clarification, year);
 
-                if (content.IsError)
-                    return e.Fail(string.Empty, refresh_proxy: true);
-
-                if (content.IsEmpty)
-                {
-                    if (rch.enable || content.content != null)
-                        return e.Fail(content.content ?? "content");
-                }
+                if (content.IsError || content.IsEmpty)
+                    return e.Fail(content.content ?? string.Empty, refresh_proxy: true);
 
                 return e.Success(content);
             });
 
-            if (search.ErrorMsg != null)
-                return ShowError(string.IsNullOrEmpty(search.ErrorMsg) ? "поиск не дал результатов" : search.ErrorMsg);
+            if (!search.IsSuccess)
+                return ShowError(search.ErrorMsg);
 
             if (similar || string.IsNullOrEmpty(search.Value?.href))
             {

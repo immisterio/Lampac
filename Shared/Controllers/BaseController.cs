@@ -853,7 +853,11 @@ public class BaseController : Controller
                 if (rch?.enable != true)
                     proxyManager?.Refresh();
 
-                return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "null" };
+                return new CacheResult<T>()
+                {
+                    IsSuccess = false,
+                    ErrorMsg = val?.ErrorMsg ?? "null"
+                };
             }
 
             if (!val.IsSuccess || val.Value.Equals(default(T)))

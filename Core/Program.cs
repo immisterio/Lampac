@@ -13,7 +13,6 @@ using Shared.PlaywrightCore;
 using Shared.Services;
 using Shared.Services.Hybrid;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -33,7 +32,7 @@ public class Program
     static IHost _host;
     public static bool _reload { get; private set; } = true;
 
-    public static ConcurrentBag<(IPAddress prefix, int prefixLength)> cloudflare_ips = new();
+    public static IReadOnlyList<IPNetwork> cloudflare_ips = default;
 
     static Timer _usersTimer;
     #endregion
@@ -194,6 +193,8 @@ public class Program
 
                 if (ips_v6 != null)
                 {
+                    var ipns = new List<IPNetwork>();
+
                     foreach (string ip in (ips + "\n" + ips_v6).Split('\n'))
                     {
                         if (string.IsNullOrEmpty(ip) || !ip.Contains("/"))
@@ -202,13 +203,19 @@ public class Program
                         try
                         {
                             string[] ln = ip.Split('/');
-                            cloudflare_ips.Add((IPAddress.Parse(ln[0].Trim()), int.Parse(ln[1].Trim())));
+
+                            ipns.Add(new System.Net.IPNetwork(
+                                IPAddress.Parse(ln[0].Trim()),
+                                int.Parse(ln[1].Trim())
+                            ));
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
-                            Serilog.Log.Error(ex, "{Class} {CatchId}", "Program", "id_5397q95u");
+                            Log.Error(ex, "{Class} {CatchId}", "Program", "id_5397q95u");
                         }
                     }
+
+                    cloudflare_ips = ipns;
                 }
             }
 
@@ -325,18 +332,23 @@ public class Program
                             CoreInit.conf.accsdb.users.Add(user);
                         }
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
-                        Serilog.Log.Error(ex, "{Class} {CatchId}", "Program", "id_85syu64t");
+                        Log.Error(ex, "{Class} {CatchId}", "Program", "id_85syu64t");
                     }
                 }
 
                 _usersKeyUpdate = keyUpdate;
+                CoreInit.conf.accsdb.RefreshUsers(_usersKeyUpdate);
+            }
+            else
+            {
+                CoreInit.conf.accsdb.RefreshUsers(CoreInit.conf?.guid);
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "{Class} {CatchId}", "Program", "id_gvenci5l");
+            Log.Error(ex, "{Class} {CatchId}", "Program", "id_gvenci5l");
         }
         finally
         {

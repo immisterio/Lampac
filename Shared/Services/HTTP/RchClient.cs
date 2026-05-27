@@ -433,9 +433,9 @@ public class RchClient
             {
                 var send_headers = useDefaultHeaders
                     ? new Dictionary<string, string>(Http.defaultUaHeaders, StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
-                    }
+                        {
+                            ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
+                        }
                     : new();
 
                 if (headers != null)

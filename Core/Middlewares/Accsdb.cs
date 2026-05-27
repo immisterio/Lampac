@@ -14,28 +14,12 @@ using System.Threading.Tasks;
 
 namespace Core.Middlewares;
 
-partial class AccsdbRegex
-{
-    [GeneratedRegex("^/(stats|weblog|admin)/", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Authorize();
-
-    [GeneratedRegex(@"\.(js|css|ico|png|svg|jpe?g|woff|webmanifest)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex StaticAssets();
-
-    [GeneratedRegex("^/(lifeevents|externalids|sisi/(bookmark|history))", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex LockBypass();
-}
-
 public class Accsdb
 {
     static Accsdb()
     {
         Directory.CreateDirectory("logs/accsdb");
     }
-
-    static readonly Regex rexAuthorize = AccsdbRegex.Authorize();
-    static readonly Regex rexStaticAssets = AccsdbRegex.StaticAssets();
-    static readonly Regex rexLockBypass = AccsdbRegex.LockBypass();
 
     private readonly RequestDelegate _next;
     IMemoryCache memoryCache;
@@ -51,8 +35,13 @@ public class Accsdb
         var endpoint = httpContext.GetEndpoint();
         var requestInfo = httpContext.Features.Get<RequestModel>();
 
+        string path = httpContext.Request.Path.Value;
+
         #region Authorization
-        bool IsAuthorize = rexAuthorize.IsMatch(httpContext.Request.Path.Value);
+        bool IsAuthorize = path.StartsWith("/stats", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/weblog", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/admin", StringComparison.OrdinalIgnoreCase);
+
         if (IsAuthorize == false && endpoint != null)
         {
             IsAuthorize =
@@ -70,14 +59,11 @@ public class Accsdb
 
             if (httpContext.Request.Cookies.TryGetValue("accspasswd", out string passwd))
             {
-                string ipKey = $"Accsdb:auth:IP:{requestInfo.IP}";
-                if (!memoryCache.TryGetValue(ipKey, out ConcurrentDictionary<string, byte> passwds))
+                var passwds = memoryCache.GetOrCreate($"Accsdb:auth:IP:{requestInfo.IP}", entry =>
                 {
-                    passwds = new ConcurrentDictionary<string, byte>();
-                    memoryCache.Set(ipKey, passwds, DateTime.Today.AddDays(1));
-                }
-
-                passwds.TryAdd(passwd, 0);
+                    entry.AbsoluteExpiration = DateTimeOffset.Now.Date.AddDays(1);
+                    return new ConcurrentDictionary<string, byte>();
+                });
 
                 if (passwds.Count > 10)
                 {
@@ -87,6 +73,8 @@ public class Accsdb
 
                 if (passwd == CoreInit.rootPasswd)
                     return _next(httpContext);
+
+                passwds.TryAdd(passwd, 0);
             }
 
             if (authAttribute?.redirectUri != null)
@@ -111,6 +99,7 @@ public class Accsdb
             bool limitip = false;
             var user = requestInfo.user;
             var accsdb = CoreInit.conf.accsdb;
+            var now = DateTime.Now;
 
             if (user?.bypass_accsdb == true)
                 return _next(httpContext);
@@ -118,10 +107,10 @@ public class Accsdb
             if (requestInfo.IsLocalRequest || requestInfo.IsAnonymousRequest)
                 return _next(httpContext);
 
-            if (httpContext.Request.Path.Value.StartsWith("/proxy", StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWith("/proxy", StringComparison.OrdinalIgnoreCase))
                 return _next(httpContext);
 
-            if (!string.IsNullOrEmpty(accsdb.whitepattern) && Regex.IsMatch(httpContext.Request.Path.Value, accsdb.whitepattern, RegexOptions.IgnoreCase))
+            if (!string.IsNullOrEmpty(accsdb.whitepattern) && Regex.IsMatch(path, accsdb.whitepattern, RegexOptions.IgnoreCase))
             {
                 requestInfo.IsAnonymousRequest = true;
                 return _next(httpContext);
@@ -130,14 +119,14 @@ public class Accsdb
             if (requestInfo.user_uid != null && accsdb.white_uids != null && accsdb.white_uids.Contains(requestInfo.user_uid))
                 return _next(httpContext);
 
-            string uri = httpContext.Request.Path.Value + httpContext.Request.QueryString.Value;
+            string uri = path + httpContext.Request.QueryString.Value;
 
             if (IsLockHostOrUser(memoryCache, requestInfo.user_uid, requestInfo.IP, uri, out limitip)
                 || user == null
                 || user.ban
-                || DateTime.Now > user.expires)
+                || now > user.expires)
             {
-                if (rexStaticAssets.IsMatch(httpContext.Request.Path.Value))
+                if (IsStaticAsset(path))
                 {
                     httpContext.Response.StatusCode = 404;
                     httpContext.Response.ContentType = "application/octet-stream";
@@ -165,7 +154,7 @@ public class Accsdb
                     if (user.ban)
                         msg = user.ban_msg ?? "Вы заблокированы";
 
-                    else if (DateTime.Now > user.expires)
+                    else if (now > user.expires)
                     {
                         msg = accsdb.expiresMesage
                             .Replace("{account_email}", requestInfo.user_uid)
@@ -183,7 +172,7 @@ public class Accsdb
                     if (user.ban)
                         denymsg = user.ban_msg ?? "Вы заблокированы";
 
-                    else if (DateTime.Now > user.expires)
+                    else if (now > user.expires)
                     {
                         denymsg = accsdb.expiresMesage
                             .Replace("{account_email}", requestInfo.user_uid)
@@ -216,14 +205,19 @@ public class Accsdb
             return islock;
         }
 
-        if (rexLockBypass.IsMatch(uri))
+        if (uri.StartsWith("/lifeevents", StringComparison.Ordinal) ||
+            uri.StartsWith("/externalids", StringComparison.Ordinal) ||
+            uri.StartsWith("/sisi/bookmark", StringComparison.Ordinal) ||
+            uri.StartsWith("/sisi/history", StringComparison.Ordinal))
         {
             islock = false;
             return islock;
         }
 
-        if (IsLockIpHour(memoryCache, account_email, userip, out islock, out ConcurrentDictionary<string, byte> ips) |
-            IsLockReqHour(memoryCache, account_email, uri, out islock, out ConcurrentDictionary<string, byte> urls))
+        bool lockIp = IsLockIpHour(memoryCache, account_email, userip, out islock, out ConcurrentDictionary<string, byte> ips);
+        bool lockReq = IsLockReqHour(memoryCache, account_email, uri, out islock, out ConcurrentDictionary<string, byte> urls);
+
+        if (lockIp || lockReq)
         {
             setLogs("lock_hour", account_email);
             countlock_day(memoryCache, true, account_email);
@@ -331,6 +325,22 @@ public class Accsdb
             lockhour.TryAdd(DateTime.Now.Hour, 0);
 
         return lockhour.Count;
+    }
+    #endregion
+
+
+    #region IsStaticAsset
+    static bool IsStaticAsset(string s)
+    {
+        return s.EndsWith(".js", StringComparison.Ordinal)
+            || s.EndsWith(".css", StringComparison.Ordinal)
+            || s.EndsWith(".ico", StringComparison.Ordinal)
+            || s.EndsWith(".png", StringComparison.Ordinal)
+            || s.EndsWith(".svg", StringComparison.Ordinal)
+            || s.EndsWith(".jpg", StringComparison.Ordinal)
+            || s.EndsWith(".jpeg", StringComparison.Ordinal)
+            || s.EndsWith(".woff", StringComparison.Ordinal)
+            || s.EndsWith(".webmanifest", StringComparison.Ordinal);
     }
     #endregion
 }

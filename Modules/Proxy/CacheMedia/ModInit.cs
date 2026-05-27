@@ -34,21 +34,6 @@ public class ModInit : IModuleLoaded
                     return default;
             }
         };
-
-        EventListener.ProxyImgMd5key += e =>
-        {
-            switch (e.decryptLink.plugin ?? "")
-            {
-                case "PornHub":
-                case "Porntrex":
-                    {
-                        string uriKey = Regex.Replace(e.href.Split("?")[0], "^https?://[^/]+", "");
-                        return $"{e.decryptLink.plugin}:{uriKey}:{e.width}:{e.height}";
-                    }
-                default:
-                    return default;
-            }
-        };
     }
 
     public void Dispose()

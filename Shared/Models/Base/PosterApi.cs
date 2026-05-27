@@ -45,10 +45,20 @@ public static class PosterApi
     public static string Size(string uri)
     {
         if (string.IsNullOrEmpty(uri) || init == null || !init.rsize || (init.width == 0 && init.height == 0))
-            return uri?.Split(" or ")?[0];
+        {
+            if (uri != null && uri.Contains(" or "))
+                return uri.Split(" or ")[0];
+
+            return uri;
+        }
 
         if (!string.IsNullOrEmpty(init.disable_rsize) && Regex.IsMatch(uri, init.disable_rsize, RegexOptions.IgnoreCase))
-            return uri?.Split(" or ")?[0];
+        {
+            if (uri != null && uri.Contains(" or "))
+                return uri.Split(" or ")[0];
+
+            return uri;
+        }
 
         if (!string.IsNullOrEmpty(init.bypass) && Regex.IsMatch(uri, init.bypass, RegexOptions.IgnoreCase))
         {

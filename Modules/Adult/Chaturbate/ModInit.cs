@@ -40,7 +40,7 @@ public class ModInit : IModuleLoaded, IModuleSisi
 
     void updateConf()
     {
-        conf = ModuleInvoke.Init("Chaturbate", new SisiSettings("Chaturbate", "https://chaturbate.com")
+        conf = ModuleInvoke.Init("Chaturbate", new SisiSettings("Chaturbate", "https://ru.chaturbate.com")
         {
             spider = false,
             httpversion = 2,

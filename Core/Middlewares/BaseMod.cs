@@ -22,12 +22,12 @@ public class BaseMod
     public Task Invoke(HttpContext context)
     {
         if (CoreInit.conf.openstat.enable)
-            RequestInfoStats.Increment("base");
+            RequestInfoStats.Increment(RequestStatsType.Base);
 
         if (CoreInit.conf.BaseModule.BlockedBots && IsBlockedUserAgent(context.Request.Headers.UserAgent))
         {
             if (CoreInit.conf.openstat.enable)
-                RequestInfoStats.Increment("bot");
+                RequestInfoStats.Increment(RequestStatsType.Bot);
 
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return Task.CompletedTask;
@@ -50,15 +50,16 @@ public class BaseMod
         }
 
         var builder = new QueryBuilder();
-        var dict = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+        var dict = new Dictionary<string, StringValues>(context.Request.Query.Count, StringComparer.OrdinalIgnoreCase);
 
+        bool changeQuery = false;
         var sbQuery = StringBuilderPool.ThreadInstance;
 
         foreach (var q in context.Request.Query)
         {
             if (IsValidQueryName(q.Key))
             {
-                string val = ValidQueryValue(sbQuery, q.Key, q.Value);
+                string val = ValidQueryValue(sbQuery, q.Key, q.Value, ref changeQuery);
 
                 if (dict.TryAdd(q.Key, val))
                     builder.Add(q.Key, val);
@@ -70,8 +71,11 @@ public class BaseMod
             }
         }
 
-        context.Request.QueryString = builder.ToQueryString();
-        context.Request.Query = new QueryCollection(dict);
+        if (changeQuery)
+        {
+            context.Request.QueryString = builder.ToQueryString();
+            context.Request.Query = new QueryCollection(dict);
+        }
 
         return _next(context);
     }
@@ -133,13 +137,12 @@ public class BaseMod
         return true;
     }
 
-    static string ValidQueryValue(StringBuilder sb, string name, StringValues values)
+    static string ValidQueryValue(StringBuilder sb, string name, StringValues values, ref bool changeQuery)
     {
         if (values.Count == 0)
             return string.Empty;
 
         string value = values[0];
-
         if (string.IsNullOrEmpty(value))
             return string.Empty;
 
@@ -147,6 +150,8 @@ public class BaseMod
             return value;
 
         sb.Clear();
+
+        bool isSearcName = name is "search" or "title" or "original_title" or "t";
 
         foreach (char ch in value)
         {
@@ -165,7 +170,7 @@ public class BaseMod
                 continue;
             }
 
-            if (name is "search" or "title" or "original_title" or "t")
+            if (isSearcName)
             {
                 if (
                     char.IsDigit(ch) || // ← символ цифрой Unicode
@@ -178,6 +183,8 @@ public class BaseMod
                     continue;
                 }
             }
+
+            changeQuery = true;
         }
 
         return sb.ToString();
@@ -218,9 +225,13 @@ public class BaseMod
         if (userAgent.Count == 0)
             return false;
 
+        string ua = userAgent[0];
+        if (string.IsNullOrEmpty(ua))
+            return false;
+
         foreach (var pattern in BlockedUserAgentPatterns)
         {
-            if (userAgent[0].Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains(pattern, StringComparison.OrdinalIgnoreCase))
                 return true;
         }
 

@@ -22,13 +22,28 @@ public static class Extensions
 
         ReadOnlySpan<char> span = input.AsSpan().Trim();
 
-        return string.Create(span.Length, span, (dest, src) =>
+        if (span.Length < 256)
         {
-            for (int i = 0; i < src.Length; i++)
+            Span<char> buffer = stackalloc char[span.Length];
+
+            for (int i = 0; i < span.Length; i++)
+                buffer[i] = char.ToLowerInvariant(span[i]);
+
+            if (buffer.SequenceEqual(input))
+                return input;
+
+            return new string(buffer);
+        }
+        else
+        {
+            return string.Create(span.Length, span, (dest, src) =>
             {
-                dest[i] = char.ToLowerInvariant(src[i]);
-            }
-        });
+                for (int i = 0; i < src.Length; i++)
+                {
+                    dest[i] = char.ToLowerInvariant(src[i]);
+                }
+            });
+        }
     }
 
     public static T Invoke<T>(this Engine engine, string propertyName, params object[] arguments) where T : class

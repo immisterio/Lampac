@@ -41,6 +41,43 @@ public class AccsConf
     public ConcurrentBag<AccsUser> users { get; set; } = new ConcurrentBag<AccsUser>();
 
 
+    private static IReadOnlyDictionary<string, AccsUser> _searchUsers;
+    private static string _keyUpdate;
+
+    public void RefreshUsers(string keyUpdate)
+    {
+        if (keyUpdate == _keyUpdate)
+            return;
+
+        _keyUpdate = keyUpdate;
+
+        try
+        {
+            if (users == null || users.Count == 0)
+                return;
+
+            Dictionary<string, AccsUser> _users = new();
+
+            foreach (AccsUser u in users)
+            {
+                if (!string.IsNullOrEmpty(u.id))
+                    _users[u.id.ToLowerAndTrim()] = u;
+
+                if (u.ids != null)
+                {
+                    foreach (string uid in u.ids)
+                    {
+                        if (!string.IsNullOrEmpty(uid))
+                            _users[uid.ToLowerAndTrim()] = u;
+                    }
+                }
+            }
+
+            _searchUsers = _users;
+        }
+        catch { }
+    }
+
     public AccsUser findUser(HttpContext httpContext, out string uid)
     {
         if (users == null || users.Count == 0)
@@ -66,10 +103,16 @@ public class AccsConf
 
     public AccsUser findUser(StringValues uid)
     {
-        if (uid.Count == 0 || users == null || users.Count == 0)
+        if (uid.Count == 0 || _searchUsers == null || _searchUsers.Count == 0)
             return null;
 
         uid = uid[0].ToLowerAndTrim();
-        return users.FirstOrDefault(i => (i.id != null && i.id.ToLowerAndTrim() == uid) || (i.ids != null && i.ids.FirstOrDefault(id => id.ToLowerAndTrim() == uid) != null));
+        if (string.IsNullOrEmpty(uid))
+            return null;
+
+        if (_searchUsers.TryGetValue(uid, out AccsUser _user))
+            return _user;
+
+        return null;
     }
 }

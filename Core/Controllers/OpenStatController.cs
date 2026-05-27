@@ -112,12 +112,12 @@ public class OpenStatController : BaseController
 
         var now = DateTime.UtcNow;
 
-        (long req_min, long req_hour) = RequestInfoStats.GetCounters("base", now);
-        (long map_req_min, long map_req_hour) = RequestInfoStats.GetCounters("request", now);
-        (long proxy_req_min, long proxy_req_hour) = RequestInfoStats.GetCounters("proxy", now);
-        (long img_req_min, long img_req_hour) = RequestInfoStats.GetCounters("img", now);
-        (long nws_req_min, long nws_req_hour) = RequestInfoStats.GetCounters("nws", now);
-        (long bot_req_min, long bot_req_hour) = RequestInfoStats.GetCounters("bot", now);
+        (long req_min, long req_hour) = RequestInfoStats.GetCounters(RequestStatsType.Base, now);
+        (long map_req_min, long map_req_hour) = RequestInfoStats.GetCounters(RequestStatsType.Request, now);
+        (long proxy_req_min, long proxy_req_hour) = RequestInfoStats.GetCounters(RequestStatsType.Proxy, now);
+        (long img_req_min, long img_req_hour) = RequestInfoStats.GetCounters(RequestStatsType.Img, now);
+        (long nws_req_min, long nws_req_hour) = RequestInfoStats.GetCounters(RequestStatsType.Nws, now);
+        (long bot_req_min, long bot_req_hour) = RequestInfoStats.GetCounters(RequestStatsType.Bot, now);
 
         var responseStats = ResponseStatisticsTracker.GetResponseTimeStatsLastMinute();
         var nwsCounter = NativeWebSocket.GetStatsLastMinute();
