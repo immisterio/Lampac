@@ -66769,5 +66769,338 @@
     "imdb_id": null,
     "ashdi": "vod/61588",
     "tortuga": "vod/69160"
+  },
+  "8800-nadlomleni-napivlyudyna.html": {
+    "name": "Надломлені / Напівлюдина",
+    "eng_name": "Half Man",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6514",
+    "tortuga": "embed/2803"
+  },
+  "8799-mene-zvaty-agneta.html": {
+    "name": "Мене звати Аґнета",
+    "eng_name": "Je m'appelle Agneta / My Name Is Agneta",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/250926",
+    "tortuga": null
+  },
+  "8798-kryk-7.html": {
+    "name": "Крик 7",
+    "eng_name": "Scream 7",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/242896",
+    "tortuga": "vod/123916"
+  },
+  "8797-susidky-po-kimnati.html": {
+    "name": "Сусідки по кімнаті",
+    "eng_name": "Roommates",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/247865",
+    "tortuga": "vod/125732"
+  },
+  "8795-180.html": {
+    "name": "180",
+    "eng_name": "180",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/247864",
+    "tortuga": null
+  },
+  "8794-narechena.html": {
+    "name": "Наречена!",
+    "eng_name": "The Bride!",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/248047",
+    "tortuga": "vod/125183"
+  },
+  "8793-grenlandiya-2-migraciya.html": {
+    "name": "Гренландія 2: Міграція",
+    "eng_name": "Greenland 2: Migration",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/244588",
+    "tortuga": "vod/123361"
+  },
+  "8801-vidous-bey.html": {
+    "name": "Відоус-Бей",
+    "eng_name": "Widow's Bay",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6536",
+    "tortuga": "embed/2806"
+  },
+  "8802-piven.html": {
+    "name": "Півень",
+    "eng_name": "Rooster",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6346",
+    "tortuga": "embed/2772"
+  },
+  "8803-yelloustoun-marshaly.html": {
+    "name": "Єллоустоун: Маршали",
+    "eng_name": "Marshals",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6322",
+    "tortuga": "embed/2764"
+  },
+  "8804-uchytel-pid-prykryttyam.html": {
+    "name": "Учитель під прикриттям",
+    "eng_name": "Recalé / Flunked",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6553",
+    "tortuga": null
+  },
+  "8805-chy-vyhodyty-zamizh-za-vbyvcyu.html": {
+    "name": "Чи виходити заміж за вбивцю?",
+    "eng_name": "Should I Marry a Murderer?",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6552",
+    "tortuga": null
+  },
+  "8807-moya-lyuba-senyoryta.html": {
+    "name": "Моя люба сеньйорита",
+    "eng_name": "Mi querida señorita / My Dearest Señorita",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/255086",
+    "tortuga": null
+  },
+  "8806-policiya-paryzha-1910-rik.html": {
+    "name": "Поліція Парижа. 1910 рік",
+    "eng_name": "Paris Police 1910",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "serial/6551",
+    "tortuga": null
+  },
+  "8809-melaniya.html": {
+    "name": "Меланія",
+    "eng_name": "Melania",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/242456",
+    "tortuga": null
+  },
+  "8808-naprochud-kmitlyvi-stvorinnya.html": {
+    "name": "Напрочуд кмітливі створіння",
+    "eng_name": "Remarkably Bright Creatures",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/256351",
+    "tortuga": null
+  },
+  "8810-luyi-teru-useredyni-manosfery.html": {
+    "name": "Луї Теру: Усередині маносфери",
+    "eng_name": "Louis Theroux: Inside the Manosphere",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/242192",
+    "tortuga": null
+  },
+  "8811-mashyna-viyny.html": {
+    "name": "Машина війни",
+    "eng_name": "War Machine",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/241313",
+    "tortuga": "vod/123571"
+  },
+  "8812-28-rokiv-po-tomu-hram-kistok.html": {
+    "name": "28 років по тому: Храм кісток",
+    "eng_name": "28 Years Later: The Bone Temple",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/240099",
+    "tortuga": "vod/122929"
+  },
+  "8813-blef.html": {
+    "name": "Блеф",
+    "eng_name": "The Bluff",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/239511",
+    "tortuga": "vod/123150"
+  },
+  "8815-vykradennya-elizabet-smart.html": {
+    "name": "Викрадення: Елізабет Смарт",
+    "eng_name": "Kidnapped: Elizabeth Smart",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/231176",
+    "tortuga": null
+  },
+  "8814-shvedskyy-zvyazok.html": {
+    "name": "Шведський зв&#039;язок",
+    "eng_name": "Den svenska länken / The Swedish Connection",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/239496",
+    "tortuga": "vod/123102"
+  },
+  "8816-ostannya-prygoda-dyvni-dyva-5-za-kadrom.html": {
+    "name": "Остання пригода. Дивні дива 5: За кадром",
+    "eng_name": "One Last Adventure: The Making of Stranger Things 5",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/228276",
+    "tortuga": null
+  },
+  "8817-lyudy-yakyh-my-zustrichayemo-u-vidpustci.html": {
+    "name": "Люди, яких ми зустрічаємо у відпустці",
+    "eng_name": "People We Meet on Vacation",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/227616",
+    "tortuga": "vod/121445"
+  },
+  "8818-lyudyna-shcho-bizhyt.html": {
+    "name": "Людина, що біжить",
+    "eng_name": "The Running Man",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/225474",
+    "tortuga": "vod/120732"
+  },
+  "8819-nerozkazane-velyka-brytaniya-dzheymi-vardi.html": {
+    "name": "Нерозказане: Велика Британія. Джеймі Варді",
+    "eng_name": "Untold UK: Jamie Vardy",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/257337",
+    "tortuga": null
+  },
+  "8820-lyubyt-ne-lyubyt.html": {
+    "name": "Любить не любить",
+    "eng_name": "The Drama",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/257398",
+    "tortuga": "vod/126354"
+  },
+  "8821-spogady-pro-nogo.html": {
+    "name": "Спогади про нього",
+    "eng_name": "Reminders of Him",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/257208",
+    "tortuga": "vod/126362"
+  },
+  "8822-vichnist.html": {
+    "name": "Вічність",
+    "eng_name": "Eternit",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/225472",
+    "tortuga": "vod/120971"
+  },
+  "8823-pryhovannya.html": {
+    "name": "Приховання",
+    "eng_name": "Cover-Up",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/224306",
+    "tortuga": null
+  },
+  "8824-proshchavay-dzhun.html": {
+    "name": "Прощавай, Джун",
+    "eng_name": "Goodbye June",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/223912",
+    "tortuga": "vod/120754"
+  },
+  "8825-blakytnyy-misyac.html": {
+    "name": "Блакитний місяць",
+    "eng_name": "Blue Moon",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/223824",
+    "tortuga": "vod/120758"
+  },
+  "8828-vsesvitniy-potop.html": {
+    "name": "Всесвітній потоп",
+    "eng_name": "Daehongsu / The Great Flood",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/222479",
+    "tortuga": null
+  },
+  "8827-zlam-1975.html": {
+    "name": "Злам: 1975",
+    "eng_name": "Breakdown: 1975",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/222480",
+    "tortuga": null
+  },
+  "8826-usi-porozhni-kimnaty.html": {
+    "name": "Усі порожні кімнати",
+    "eng_name": "All the Empty Rooms",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/222485",
+    "tortuga": null
+  },
+  "8829-blakytna-stezhka.html": {
+    "name": "Блакитна стежка",
+    "eng_name": "O Último Azul / The Blue Trail",
+    "year": "2025",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/221010",
+    "tortuga": "vod/122164"
+  },
+  "8831-karatel-ostannye-vbyvstvo.html": {
+    "name": "Каратель: Останнє вбивство",
+    "eng_name": "The Punisher: One Last Kill",
+    "year": "2026",
+    "kp_id": null,
+    "imdb_id": null,
+    "ashdi": "vod/257842",
+    "tortuga": "vod/126412"
   }
 }
