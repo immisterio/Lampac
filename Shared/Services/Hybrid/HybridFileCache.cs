@@ -18,12 +18,14 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
 
     static Timer _clearTempDb, _cleanupTimer;
 
-    sealed record class cacheEntry(string path, DateTimeOffset ex, int capacity);
+    readonly record struct cacheEntry(string path, DateTimeOffset ex, int capacity);
     static readonly ConcurrentDictionary<string, cacheEntry> cacheFiles = new();
 
+    readonly record struct TempEntry(DateTimeOffset extend, bool IsSerialize, bool textJson, DateTimeOffset ex, object value);
     static readonly ConcurrentDictionary<string, TempEntry> tempDb = new();
 
-    public static int Stat_ContTempDb => tempDb.IsEmpty ? 0 : tempDb.Count;
+    public static int Stat_ContTempDb
+        => tempDb.IsEmpty ? 0 : tempDb.Count;
 
     static JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
     {
@@ -82,7 +84,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
 
                     cacheFiles[parts[0]] = new cacheEntry(path, ex, capacity);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     try
                     {
@@ -280,8 +282,14 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
             }
             else
             {
-                var entry = EntryAsync(key, fileCache: true, jsonType: jsonType, textJson: textJson).Result;
-                if (entry != null && entry.success)
+                var entry = ReadCacheAsync(
+                    key,
+                    fileCache: true,
+                    jsonType: jsonType,
+                    textJson: textJson
+                ).GetAwaiter().GetResult();
+
+                if (entry.succes)
                 {
                     value = entry.value;
                     return true;
@@ -536,7 +544,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
             if (!isText && !IsSerialize)
                 return false;
 
-            tempDb.TryAdd(md5key, new TempEntry(extend, IsSerialize, textJson, absoluteExpiration, value));
+            tempDb[md5key] = new TempEntry(extend, IsSerialize, textJson, absoluteExpiration, value);
             return true;
         }
         catch (Exception ex)

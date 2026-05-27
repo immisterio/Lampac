@@ -398,18 +398,18 @@ public class RchClient
         var ms = PoolInvk.msm.GetStream();
         CancellationTokenSource cts = null;
 
-        if (httpContext != null)
-        {
-            cts = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted);
-            cts.CancelAfter(TimeSpan.FromSeconds(10));
-        }
-        else
-        {
-            cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        }
-
         try
         {
+            if (httpContext != null)
+            {
+                cts = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted);
+                cts.CancelAfter(TimeSpan.FromSeconds(10));
+            }
+            else
+            {
+                cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            }
+
             var rchHub = new rchIdEntry(
                 ms,
                 new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously),
@@ -438,9 +438,9 @@ public class RchClient
             {
                 var send_headers = useDefaultHeaders
                     ? new Dictionary<string, string>(Http.defaultUaHeaders, StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
-                    }
+                        {
+                            ["accept-language"] = "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5"
+                        }
                     : new();
 
                 if (headers != null)
