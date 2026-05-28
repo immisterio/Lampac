@@ -416,7 +416,7 @@ public class OnlineApiController : BaseController
     public ActionResult WithSearch()
     {
         if (CoreInit.conf.online.with_search == null)
-            return ContentTo("[]");
+            return Content("[]", "application/json; charset=utf-8");
 
         return Json(CoreInit.conf.online.with_search);
     }
@@ -630,12 +630,19 @@ public class OnlineApiController : BaseController
     async public Task<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, int anime = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null, string nws_id = null, bool external_ids = false)
     {
         var online = new List<(string name, string url, string plugin, int index)>(50);
-        bool isanime = anime != -1 || original_language is "ja" or "zh";
+
+        string language = original_language != null && original_language.Contains('|')
+            ? original_language.Split('|')[0]
+            : original_language ?? string.Empty;
+
+        bool isanime = anime != -1 || language is "ja" or "zh";
+        if (isanime == false && original_language != null)
+            isanime = original_language.EndsWith("|ja") || original_language.EndsWith("|zh");
 
         #region fix title
         bool fix_title = false;
 
-        if (title != null && original_language != null && original_language.Split("|")[0] is "ja" or "ko" or "zh" or "cn")
+        if (title != null && language is "ja" or "ko" or "zh" or "cn")
         {
             if (long.TryParse(id, out long tmdbid) && tmdbid > 0)
             {
@@ -757,22 +764,22 @@ public class OnlineApiController : BaseController
                 return;
 
             string displayname = init.displayname ?? name ?? init.plugin;
+            string _p = (plugin ?? init.plugin ?? name).ToLowerAndTrim();
 
             if (string.IsNullOrEmpty(url))
             {
                 url = !string.IsNullOrEmpty(myurl)
                     ? url = myurl + arg_url
-                    : url = "{localhost}/lite/" + (plugin ?? (init.plugin ?? name).ToLower()) + arg_url;
+                    : url = "{localhost}/lite/" + _p + arg_url;
             }
 
-            if (original_language != null && original_language.Split("|")[0] is "ru" or "ja" or "ko" or "zh" or "cn")
+            if (language is "ru" or "ja" or "ko" or "zh" or "cn")
             {
-                string _p = (plugin ?? (init.plugin ?? name).ToLower());
                 if (_p is "filmix" or "filmixtv" or "fxapi" or "kinoukr" or "rezka" or "rhsprem" or "kinopub" or "alloha" or "fancdn" or "kinotochka" or "remux" or "kinogo" or "kinobase" or "getstv" or "leproduction") // || (_p == "kodik" && kinopoisk_id == 0 && string.IsNullOrEmpty(imdb_id))
                     url += (url.Contains("?") ? "&" : "?") + "clarification=1";
             }
 
-            online.Add(($"{displayname}{arg_title}", url, (plugin ?? init.plugin ?? name).ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
+            online.Add(($"{displayname}{arg_title}", url, _p, init.displayindex > 0 ? init.displayindex : online.Count));
         }
         #endregion
 
@@ -837,24 +844,22 @@ public class OnlineApiController : BaseController
         #region checkOnlineSearch
         if (ModInit.conf.checkOnlineSearch && !string.IsNullOrEmpty(id))
         {
-            string memkey = CrypTo.md5Builder(writer =>
-            {
-                writer.Append("checkOnlineSearch:");
-                writer.Append(id);
-                writer.Append(':');
-                writer.Append(serial);
-                writer.Append(':');
-                writer.Append(source is "tmdb" or "cub" ? string.Empty : (source ?? string.Empty));
-                writer.Append(':');
-                writer.Append(online.Count);
-                writer.Append(':');
-                writer.Append(IsKitConf ? requestInfo.user_uid : string.Empty);
-                writer.Append(':');
-            });
+            var hash = Fnv1a.Hash("checkOnlineSearch:");
+            Fnv1a.Append(ref hash, id);
+            Fnv1a.Append(ref hash, ':');
+            Fnv1a.Append(ref hash, serial);
+            Fnv1a.Append(ref hash, ':');
+            Fnv1a.Append(ref hash, source is "tmdb" or "cub" ? string.Empty : (source ?? string.Empty));
+            Fnv1a.Append(ref hash, ':');
+            Fnv1a.Append(ref hash, online.Count);
+            Fnv1a.Append(ref hash, ':');
+            Fnv1a.Append(ref hash, IsKitConf ? requestInfo.user_uid : string.Empty);
+
+            string memkey = Fnv1a.Base64Url(hash);
 
             if (!memoryCache.TryGetValue(memkey, out List<EventLinkItem> links))
             {
-                var tasks = new List<Task>();
+                var tasks = new List<Task>(online.Count);
                 links = new List<EventLinkItem>(online.Count);
                 for (int i = 0; i < online.Count; i++)
                     links.Add(default);
@@ -863,8 +868,11 @@ public class OnlineApiController : BaseController
 
                 foreach (var o in online.OrderBy(i => i.index))
                 {
-                    var tk = checkSearch(memkey, kitconf, links, tasks.Count, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, tmdb_id, title, original_title, original_language, source, year, serial, anime, life, rchtype);
-                    tasks.Add(tk);
+                    tasks.Add(checkSearch(
+                        memkey, kitconf, links, tasks.Count, o.index, o.name, o.url, o.plugin,
+                        id, imdb_id, kinopoisk_id, tmdb_id, title, original_title,
+                        original_language, source, year, serial, anime, life, rchtype
+                    ));
                 }
 
                 if (life)
@@ -876,16 +884,28 @@ public class OnlineApiController : BaseController
             if (life)
                 return Json(new { life = true, memkey });
 
-            return ContentTo($"[{string.Join(",", links.Where(i => i.code != null).OrderByDescending(i => i.work).ThenBy(i => i.index).Select(i => i.code)).Replace("{localhost}", host)}]");
+            string result = string.Join(",", links
+                .Where(i => i.code != null)
+                .OrderByDescending(i => i.work)
+                .ThenBy(i => i.index)
+                .Select(i => i.code));
+
+            return ContentTo($"[{result.Replace("{localhost}", host)}]");
         }
         #endregion
 
-        string online_result = string.Join(",", online.OrderBy(i => i.index).Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url + "\",\"balanser\":\"" + i.plugin + "\"}"));
-        return ContentTo($"[{online_result.Replace("{localhost}", host)}]");
+        string online_result = string.Join(",", online
+            .OrderBy(i => i.index)
+            .Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url.Replace("{localhost}", host) + "\",\"balanser\":\"" + i.plugin + "\"}")
+        );
+
+        return ContentTo($"[{online_result}]");
     }
     #endregion
 
     #region checkSearch
+    static readonly string[] qualityMarks = ["2160", "1080", "720", "480", "360"];
+
     async Task checkSearch(string memkey, JObject kitconf, List<EventLinkItem> links, int indexList, int index, string name, string uri, string plugin,
                            string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, string source, int year, int serial, int anime, bool life, string rchtype)
     {
@@ -910,12 +930,16 @@ public class OnlineApiController : BaseController
                     || res.Contains("\"type\":\"season\"", StringComparison.Ordinal);
 
                 string quality = string.Empty;
-                string balanser = plugin.Contains("/") ? plugin.Split("/")[1] : plugin;
+
+                string balanser = plugin;
+                int bl_slash = plugin.IndexOf('/');
+                if (bl_slash >= 0 && bl_slash + 1 < plugin.Length)
+                    balanser = plugin[(bl_slash + 1)..];
 
                 #region определение качества
                 if (work && life)
                 {
-                    foreach (string q in new string[] { "2160", "1080", "720", "480", "360" })
+                    foreach (string q in qualityMarks)
                     {
                         if (res.Contains("<!--q:", StringComparison.Ordinal))
                         {
@@ -931,7 +955,7 @@ public class OnlineApiController : BaseController
                         }
                     }
 
-                    if (quality == "2160")
+                    if (quality == "2160" || quality == "2160p")
                         quality = res.Contains("HDR", StringComparison.Ordinal) ? " - 4K HDR" : " - 4K";
 
                     if (quality == string.Empty)
@@ -964,7 +988,10 @@ public class OnlineApiController : BaseController
 
                 if (!name.Contains(" - ") && ModInit.conf.showquality && !string.IsNullOrEmpty(quality))
                 {
-                    name = Regex.Replace(name, " ~ .*$", "");
+                    int cut = name.IndexOf(" ~ ", StringComparison.Ordinal);
+                    if (cut >= 0)
+                        name = name[..cut];
+
                     name += quality;
                 }
             });
