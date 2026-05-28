@@ -6,6 +6,7 @@ using Shared.Attributes;
 using Shared.Models.CSharpGlobals;
 using Shared.Models.SISI.NextHUB;
 using Shared.PlaywrightCore;
+using Shared.Services.HTTP;
 using System.Text;
 using System.Web;
 
@@ -629,7 +630,7 @@ public class ListController : BaseSisiController<NxtSettings>
             return init.rhub == true
                 ? await rch.Get(targetHost, headers)
                 : init.priorityBrowser == "http" ? await Http.Get(targetHost, encoding: encodingResponse, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion)
-                : init.list.viewsource ? await PlaywrightBrowser.Get(init, targetHost, headers, proxy_data, cookies: init.cookies)
+                : init.list.viewsource ? await PlaywrightHttp.Get(init, targetHost, headers, proxy_data, cookies: init.cookies)
                 : await ContentAsync(init, targetHost, headers, proxy_data, search, sort, cat, model, pg);
         }
     }

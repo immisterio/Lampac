@@ -1,6 +1,6 @@
-using Shared.PlaywrightCore;
 using Shared.Services;
 using Shared.Services.HTML;
+using Shared.Services.HTTP;
 using Shared.Services.RxEnumerate;
 using System;
 using System.Collections.Generic;
@@ -26,7 +26,7 @@ public struct UaKinoInvoke
     #region Search
     public async Task<EmbedModel> Search(string story)
     {
-        string search = await PlaywrightBrowser.Get(ModInit.conf, $"{apihost}/index.php?do=search&subaction=search&search_start=0&full_search=0&story={HttpUtility.UrlEncode(story)}");
+        string search = await PlaywrightHttp.Get(ModInit.conf, $"{apihost}/index.php?do=search&subaction=search&search_start=0&full_search=0&story={HttpUtility.UrlEncode(story)}");
         if (string.IsNullOrEmpty(search))
             return null;
 
@@ -75,7 +75,7 @@ public struct UaKinoInvoke
     #region Embed
     public async Task<string> Embed(string href)
     {
-        string news = await PlaywrightBrowser.Get(ModInit.conf, $"{apihost}/{href}");
+        string news = await PlaywrightHttp.Get(ModInit.conf, $"{apihost}/{href}");
         if (string.IsNullOrEmpty(news))
             return null;
 

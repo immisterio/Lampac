@@ -6,6 +6,7 @@ using Shared.Models.Base;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
+using Shared.Services.HTTP;
 using Shared.Services.RxEnumerate;
 using Shared.Services.Utilities;
 using System;
@@ -39,7 +40,7 @@ public class KinogoController : BaseOnlineController
             {
                 string search = rch?.enable == true
                     ? await rch.Get($"{init.host}/search/{title}")
-                    : await PlaywrightBrowser.Get(init, $"{init.host}/search/{title}", proxy: proxy_data);
+                    : await PlaywrightHttp.Get(init, $"{init.host}/search/{title}", proxy: proxy_data);
 
                 var result = SearchResult(search, title, year);
 
@@ -77,7 +78,7 @@ public class KinogoController : BaseOnlineController
 
             string iframe = rch?.enable == true
                ? await rch.Get(init.cors(targetHref))
-               : await PlaywrightBrowser.Get(init, init.cors(targetHref));
+               : await PlaywrightHttp.Get(init, init.cors(targetHref));
 
             if (iframe == null)
                 return e.Fail("iframe", refresh_proxy: true);
@@ -110,7 +111,7 @@ public class KinogoController : BaseOnlineController
 
             string embedHtml = rch?.enable == true
                 ? await rch.Get(init.cors(embed.Value), embedHeaders)
-                : await PlaywrightBrowser.Get(init, init.cors(embed.Value), headers: embedHeaders, proxy_data);
+                : await PlaywrightHttp.Get(init, init.cors(embed.Value), headers: embedHeaders, proxy_data);
 
             if (embedHtml == null)
                 return e.Fail("embed");

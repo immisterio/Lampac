@@ -3,7 +3,7 @@ using Shared;
 using Shared.Attributes;
 using Shared.Models.Base;
 using Shared.Models.Templates;
-using Shared.PlaywrightCore;
+using Shared.Services.HTTP;
 using Shared.Services.Pools;
 using Shared.Services.RxEnumerate;
 using System;
@@ -242,7 +242,7 @@ public class MoonAnimeController : BaseOnlineController
         {
             (string file, string subtitle) data = (null, null);
 
-            string iframe = await PlaywrightBrowser.Get(init, vod, httpHeaders(init), proxy_data);
+            string iframe = await PlaywrightHttp.Get(init, vod, httpHeaders(init), proxy_data);
             if (string.IsNullOrEmpty(iframe))
                 return e.Fail("iframe", refresh_proxy: true);
 

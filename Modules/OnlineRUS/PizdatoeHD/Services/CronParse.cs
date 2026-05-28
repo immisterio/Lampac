@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Shared.PlaywrightCore;
 using Shared.Services;
+using Shared.Services.HTTP;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Generic;
@@ -83,20 +84,21 @@ public static class CronParse
             for (int i = 1; i <= 2416; i++)
             {
                 int page = i;
+                await ProcessPage(page);
 
-                tasks.Add(Task.Run(async () =>
-                {
-                    await semaphore.WaitAsync();
+                //tasks.Add(Task.Run(async () =>
+                //{
+                //    await semaphore.WaitAsync();
 
-                    try
-                    {
-                        await ProcessPage(page);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }));
+                //    try
+                //    {
+                //        await ProcessPage(page);
+                //    }
+                //    finally
+                //    {
+                //        semaphore.Release();
+                //    }
+                //}));
             }
 
             await Task.WhenAll(tasks);
@@ -115,7 +117,7 @@ public static class CronParse
 
         string mainHtml = proxy != null
             ? await Http.Get(pgUri, proxy: proxy, timeoutSeconds: 4)
-            : await PlaywrightBrowser.Get(ModInit.conf, pgUri, viewsource: false);
+            : await PlaywrightHttp.Get(ModInit.conf, pgUri, viewsource: false);
 
         if (mainHtml == null || !mainHtml.Contains("class=\"b-content__inline_item\""))
             return default;
@@ -137,7 +139,7 @@ public static class CronParse
 
             string news = proxy != null
                 ? await Http.Get($"{ModInit.conf.host}/{link}", proxy: proxy, timeoutSeconds: 10)
-                : await PlaywrightBrowser.Get(ModInit.conf, $"{ModInit.conf.host}/{link}", viewsource: false);
+                : await PlaywrightHttp.Get(ModInit.conf, $"{ModInit.conf.host}/{link}", viewsource: false);
 
             if (news != null)
             {
@@ -186,7 +188,7 @@ public static class CronParse
                         kp = string.IsNullOrEmpty(kp) ? null : kp
                     };
 
-                    ModInit.databaseCache.TryAdd(link, md);
+                    ModInit.databaseCache[link] = md;
                     savedb = true;
                 }
             }

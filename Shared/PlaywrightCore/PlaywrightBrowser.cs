@@ -1,5 +1,4 @@
 using Microsoft.Playwright;
-using Shared.Models.Events;
 
 namespace Shared.PlaywrightCore;
 
@@ -21,6 +20,7 @@ public class PlaywrightBrowser : IDisposable
         }
     }
 
+    #region IsCompleted / completionSource
     public bool IsCompleted
     {
         get
@@ -42,7 +42,7 @@ public class PlaywrightBrowser : IDisposable
             return firefox.completionSource;
         }
     }
-
+    #endregion
 
     public Chromium chromium = null;
 
@@ -60,6 +60,7 @@ public class PlaywrightBrowser : IDisposable
         chromium = new Chromium();
     }
 
+    #region SetFailedUrl
     public void SetFailedUrl(string url)
     {
         if (chromium != null)
@@ -71,7 +72,9 @@ public class PlaywrightBrowser : IDisposable
             firefox.failedUrl = url;
         }
     }
+    #endregion
 
+    #region NewPageAsync
     async public Task<IPage> NewPageAsync(string plugin, IReadOnlyDictionary<string, string> headers = null, (string ip, string username, string password) proxy = default, bool keepopen = true, bool imitationHuman = false, bool deferredDispose = false)
     {
         try
@@ -90,8 +93,9 @@ public class PlaywrightBrowser : IDisposable
         }
         catch { return default; }
     }
+    #endregion
 
-
+    #region SetPageResult
     public void SetPageResult(string val)
     {
         try
@@ -112,7 +116,9 @@ public class PlaywrightBrowser : IDisposable
             Log.Error(ex, "CatchId={CatchId}", "id_tjv9tao1");
         }
     }
+    #endregion
 
+    #region WaitPageResult
     public Task<string> WaitPageResult(int seconds = 10)
     {
         try
@@ -124,8 +130,9 @@ public class PlaywrightBrowser : IDisposable
         }
         catch { return default; }
     }
+    #endregion
 
-
+    #region WaitForAnySelectorAsync
     public Task WaitForAnySelectorAsync(IPage page, params string[] selectors)
     {
         var tasks = selectors.Select(selector =>
@@ -134,8 +141,9 @@ public class PlaywrightBrowser : IDisposable
 
         return Task.WhenAny(tasks);
     }
+    #endregion
 
-
+    #region ClearContinueAsync
     async public Task ClearContinueAsync(IRoute route, IPage page)
     {
         var cookies = await page.Context.CookiesAsync();
@@ -178,93 +186,13 @@ public class PlaywrightBrowser : IDisposable
 
         await route.ContinueAsync();
     }
+    #endregion
 
-
+    #region Dispose
     public void Dispose()
     {
         chromium?.Dispose();
         firefox?.Dispose();
     }
-
-
-
-
-    async public static Task<string> Get(BaseSettings init, string url, IReadOnlyList<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null, bool viewsource = true)
-    {
-        IResponse response = default;
-        string result = null;
-
-        try
-        {
-            using (var browser = new PlaywrightBrowser(init?.priorityBrowser))
-            {
-                var page = await browser.NewPageAsync(init?.plugin, headers?.ToDictionary(), proxy).ConfigureAwait(false);
-                if (page == null)
-                    return null;
-
-                if (cookies != null)
-                    await page.Context.AddCookiesAsync(cookies).ConfigureAwait(false);
-
-                if (browser.firefox != null)
-                {
-                    response = await page.GotoAsync(url, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded }).ConfigureAwait(false);
-                }
-                else
-                {
-                    response = await page.GotoAsync(viewsource ? $"view-source:{url}" : url, new PageGotoOptions()
-                    {
-                        Timeout = 10_000,
-                        WaitUntil = WaitUntilState.DOMContentLoaded
-                    }).ConfigureAwait(false);
-                }
-
-                if (response != null)
-                    result = await response.TextAsync().ConfigureAwait(false);
-            }
-
-            if (EventListener.PlaywrightHttpResponse != null)
-            {
-                await SendPlaywrightHttpResponseEvent(
-                    new EventPlaywrightHttpResponse(
-                        url: url,
-                        method: response?.Request?.Method,
-                        status: response?.Status ?? 0,
-                        requestHeaders: response?.Request?.Headers,
-                        responseHeaders: response?.Headers,
-                        result: result,
-                        error: null
-                    )
-                ).ConfigureAwait(false);
-            }
-
-            return result;
-        }
-        catch (System.Exception ex)
-        {
-            Log.Error(ex, "CatchId={CatchId}", "id_i56q6uea");
-
-            if (EventListener.PlaywrightHttpResponse != null)
-            {
-                await SendPlaywrightHttpResponseEvent(
-                    new EventPlaywrightHttpResponse(
-                        url: url,
-                        method: response?.Request?.Method,
-                        status: response?.Status ?? 0,
-                        requestHeaders: response?.Request?.Headers,
-                        responseHeaders: response?.Headers,
-                        result: result,
-                        error: ex.ToString()
-                    )
-                ).ConfigureAwait(false);
-            }
-        }
-
-        return null;
-    }
-
-    async static Task SendPlaywrightHttpResponseEvent(EventPlaywrightHttpResponse eventData)
-    {
-        foreach (Func<EventPlaywrightHttpResponse, Task> handler in EventListener.PlaywrightHttpResponse.GetInvocationList())
-            await handler.Invoke(eventData).ConfigureAwait(false);
-    }
+    #endregion
 }

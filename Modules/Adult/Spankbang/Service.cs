@@ -146,7 +146,7 @@ public static class SpankbangTo
         if (string.IsNullOrEmpty(url))
             return null;
 
-        return $"{host}/{url}";
+        return $"{host}/{HttpUtility.UrlEncode(url)}";
     }
 
     public static StreamItem StreamLinks(string route, ReadOnlySpan<char> html)

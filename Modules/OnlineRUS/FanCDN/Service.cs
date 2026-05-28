@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 using Shared.Models.Base;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
-using Shared.PlaywrightCore;
+using Shared.Services.HTTP;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Generic;
@@ -34,7 +34,7 @@ public struct FanCDNInvoke
         if (string.IsNullOrEmpty(title) || year == 0)
             return default;
 
-        string search = await PlaywrightBrowser.Get(
+        string search = await PlaywrightHttp.Get(
             init,
             $"{init.host}/engine/ajax/msearch.php?q={HttpUtility.UrlEncode(title)}",
             cookies: cookies,
@@ -85,7 +85,7 @@ public struct FanCDNInvoke
         if (string.IsNullOrEmpty(newsUrl))
             return default;
 
-        string news = await PlaywrightBrowser.Get(init,
+        string news = await PlaywrightHttp.Get(init,
             init.host + newsUrl,
             cookies: cookies
         );
@@ -104,7 +104,7 @@ public struct FanCDNInvoke
     #region Embed
     async public Task<EmbedModel> Embed(string kp, string key)
     {
-        string json = await PlaywrightBrowser.Get(init,
+        string json = await PlaywrightHttp.Get(init,
             $"{init.host}/film.php?kp={kp}&key={key}",
             cookies: cookies,
             headers: HeadersModel.Init(
