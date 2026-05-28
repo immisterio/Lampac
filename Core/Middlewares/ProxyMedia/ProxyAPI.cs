@@ -237,8 +237,13 @@ public partial class ProxyAPI
 
                     decryptLink.uri = servUri;
 
-                    if (init.showOrigUri)
-                        httpContext.Response.Headers["PX-Set-Orig"] = decryptLink.uri;
+                    httpContext.Response.Redirect(
+                        ProxyLink.Encrypt(
+                            servUri,
+                            decryptLink,
+                            prefix: [CoreInit.Host(httpContext), "/proxy/"]
+                        )
+                    );
                 }
                 #endregion
 

@@ -69,7 +69,7 @@ public class ProxyLink : IProxyLink
         {
             return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, null, sbWriter, writeHeaders);
         }
-        else if (!forceMd5 && proxy == null && userdata == null && !uri_clear.Contains(" or ", StringComparison.Ordinal))
+        else if (!forceMd5 && proxy == null && userdata == null)
         {
             return verifyip && CoreInit.conf.serverproxy.verifyip
                 ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.AddDays(1), headers, sbWriter, writeHeaders)

@@ -263,8 +263,6 @@ public class ProxyImg
                     if (width == 0 && height == 0)
                     {
                         #region bypass
-                    bypass_reset:
-
                         var client = FriendlyHttp.MessageClient(
                             "proxyimg",
                             Http.HandlerOrNull(href, proxy),
@@ -290,9 +288,15 @@ public class ProxyImg
                                     {
                                         if (url_reserve != null)
                                         {
-                                            href = url_reserve;
-                                            url_reserve = null;
-                                            goto bypass_reset;
+                                            decryptLink.uri = url_reserve;
+
+                                            httpContext.Response.Redirect(
+                                                ProxyLink.Encrypt(
+                                                    url_reserve,
+                                                    decryptLink,
+                                                    prefix: [CoreInit.Host(httpContext), "/proxyimg/"]
+                                                )
+                                            );
                                         }
 
                                         if (cacheimg)
@@ -372,8 +376,6 @@ public class ProxyImg
                         #region rsize
                         httpContext.Response.ContentType = contentType;
 
-                    rsize_reset:
-
                         using (var inArray = PoolInvk.msm.GetStream())
                         {
                             var result = await Download(inArray, href, ctsHttp.Token, decryptLink.plugin, decryptLink.headers, proxy).ConfigureAwait(false);
@@ -383,9 +385,15 @@ public class ProxyImg
                             {
                                 if (url_reserve != null)
                                 {
-                                    href = url_reserve;
-                                    url_reserve = null;
-                                    goto rsize_reset;
+                                    decryptLink.uri = url_reserve;
+
+                                    httpContext.Response.Redirect(
+                                        ProxyLink.Encrypt(
+                                            url_reserve,
+                                            decryptLink,
+                                            prefix: [CoreInit.Host(httpContext), $"/proxyimg:{width}:{height}"]
+                                        )
+                                    );
                                 }
 
                                 if (cacheimg)
