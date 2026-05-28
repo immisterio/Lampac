@@ -134,15 +134,25 @@ public static class PlaywrightHttp
                     #region OnEvent
                     cdp.Event("Fetch.requestPaused").OnEvent += async (_, ev) =>
                     {
-                        string handle = null;
+                        string handle = null, requestId = null;
 
                         try
                         {
                             JsonElement root = ev.Value;
-                            string requestId = root.GetProperty("requestId").GetString();
+                            requestId = root.GetProperty("requestId").GetString();
                             int statusCode = root.TryGetProperty("responseStatusCode", out JsonElement statusProp)
                                 ? statusProp.GetInt32()
                                 : 0;
+
+                            if (statusCode >= 300 && statusCode < 400)
+                            {
+                                await cdp.SendAsync("Fetch.continueRequest", new()
+                                {
+                                    ["requestId"] = requestId
+                                }).WaitAsync(ct).ConfigureAwait(false);
+
+                                return;
+                            }
 
                             if (statusCode < 200 || statusCode >= 300)
                             {
@@ -167,6 +177,8 @@ public static class PlaywrightHttp
 
                             try
                             {
+                                /// это не полноценный stream, у Microsoft.Playwright его нету
+                                /// мы разбиваем html на чанки по ~49кб, это позволяет GC эффективней ебать мусор в Gen0 и не складывать в долгую LOH память
                                 while (true)
                                 {
                                     ct.ThrowIfCancellationRequested();
@@ -197,8 +209,7 @@ public static class PlaywrightHttp
                                             if (string.IsNullOrEmpty(res))
                                                 break;
 
-                                            int byteCount = Encoding.UTF8.GetByteCount(res);
-                                            using (var nbuf = new BufferBytePool(byteCount))
+                                            using (var nbuf = new BufferBytePool(Encoding.UTF8.GetMaxByteCount(res.Length)))
                                             {
                                                 int bytesWritten = Encoding.UTF8.GetBytes(res, nbuf.Span);
 
@@ -241,6 +252,19 @@ public static class PlaywrightHttp
                         }
                         catch (Exception ex)
                         {
+                            if (requestId != null)
+                            {
+                                try
+                                {
+                                    await cdp.SendAsync("Fetch.failRequest", new()
+                                    {
+                                        ["requestId"] = requestId,
+                                        ["errorReason"] = "Failed"
+                                    }).WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                                }
+                                catch { }
+                            }
+
                             done.TrySetException(ex);
                         }
                     };
