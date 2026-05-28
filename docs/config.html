@@ -239,7 +239,7 @@
     <span class="hl-key">"port"</span>:               <span class="hl-val">9118</span>,         <span class="hl-comment">// порт</span>
     <span class="hl-key">"scheme"</span>:             <span class="hl-string">"http"</span>,       <span class="hl-comment">// "http" или "https"</span>
     <span class="hl-key">"version"</span>:            <span class="hl-bool">true</span>,         <span class="hl-comment">// показывать версию в ответах</span>
-    <span class="hl-key">"ResponseCancelAfter"</span>: <span class="hl-val">15</span>           <span class="hl-comment">// таймаут ответа, секунды</span>
+    <span class="hl-key">"ResponseCancelAfter"</span>: <span class="hl-val">10</span>           <span class="hl-comment">// таймаут ответа, секунды</span>
   }
 }</pre>
         </div>
@@ -281,7 +281,7 @@
               <tr>
                 <td><code>ResponseCancelAfter</code></td>
                 <td>int</td>
-                <td><code>15</code></td>
+                <td><code>10</code></td>
                 <td>Таймаут ответа в секундах</td>
               </tr>
             </tbody>
@@ -315,7 +315,8 @@
         <div class="callout callout-info"><span class="callout-icon">ℹ️</span>
           <p><strong>По умолчанию отключены</strong> (в <code>SkipModules</code> в <code>base.conf</code>): Catalog,
             DLNA, Tracks, Transcoding, WebLog, CacheMedia, ProxyLimiter, ForkPlayerXML, MsxNative, TelegramAuth,
-            TelegramAuthBot, WAF, accsdb.</p>
+            TelegramAuthBot.<br>WAF и accsdb отключены через <code>"enable": false</code> в <code>base.conf</code>, а не
+            через SkipModules.</p>
         </div>
       </div>
 

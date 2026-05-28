@@ -416,8 +416,8 @@
                 <td><span class="method method-get">GET</span></td>
                 <td><code>/{platform}</code></td>
                 <td><span class="auth-badge auth-token">Токен</span></td>
-                <td>Прямой запрос к платформе SISI (например <code>/pornhub</code>, <code>/xvideos</code>,
-                  <code>/onlyfans</code>). Список платформ — в разделе <a href="modules.html#sisi">Модули → SISI</a>.
+                <td>Прямой запрос к платформе SISI (например <code>/phub</code>, <code>/xds</code>,
+                  <code>/ptx</code>). Полный список маршрутов — в разделе <a href="modules.html#sisi">Модули → SISI</a>.
                 </td>
               </tr>
             </tbody>
@@ -462,7 +462,7 @@
               </tr>
               <tr>
                 <td><span class="method method-ws">WS</span></td>
-                <td><code>/ws/nws</code></td>
+                <td><code>/nws</code></td>
                 <td><span class="auth-badge auth-token">Токен</span></td>
                 <td>WebSocket-шина NwsEvents: трансляция событий синхронизации между вкладками и устройствами.</td>
               </tr>
@@ -512,7 +512,7 @@
                 <td><span class="method method-get">GET</span></td>
                 <td><code>/dlna/</code></td>
                 <td>DLNA</td>
-                <td>DLNA/UPnP медиасервер для локальных файлов. Только доверенная сеть.</td>
+                <td>Торрент-клиент + DLNA-стриминг торрентов. Только доверенная сеть.</td>
               </tr>
               <tr>
                 <td><span class="method method-get">GET</span></td>
@@ -539,10 +539,12 @@
                 <td>Веб-интерфейс и JSON API управления. По умолчанию отключён.</td>
               </tr>
               <tr>
-                <td><span class="method method-ws">WS</span></td>
-                <td><code>/ws/together</code></td>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/watchtogether</code></td>
                 <td>WatchTogether</td>
-                <td>WebSocket-комнаты для синхронного просмотра.</td>
+                <td>API комнат синхронного просмотра. Маршруты: <code>/watchtogether/create</code>,
+                  <code>/watchtogether/info</code>. Реального WS-эндпоинта нет — общение через NwsEvents
+                  (<code>/nws</code>).</td>
               </tr>
             </tbody>
           </table>
