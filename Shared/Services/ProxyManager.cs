@@ -81,7 +81,7 @@ public class ProxyManager
             if (IsKitConf)
             {
                 if (KitCurrentProxyIp == null)
-                    KitCurrentProxyIp = p.list.OrderBy(a => Guid.NewGuid()).First();
+                    KitCurrentProxyIp = p.list[Random.Shared.Next(p.list.Length)];
 
                 return ConfigureWebProxy(p, KitCurrentProxyIp);
             }
@@ -97,7 +97,7 @@ public class ProxyManager
                 }
                 else
                 {
-                    val.proxyip = p.list.OrderBy(a => Guid.NewGuid()).First();
+                    val.proxyip = p.list[Random.Shared.Next(p.list.Length)];
                     database.AddOrUpdate(key, val, (k, v) => val);
                 }
             }
