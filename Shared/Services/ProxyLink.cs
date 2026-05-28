@@ -67,13 +67,13 @@ public class ProxyLink : IProxyLink
 
         if (plugin == "posterapi")
         {
-            return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, null, sbWriter, writeHeaders);
+            return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, proxy, sbWriter, writeHeaders);
         }
-        else if (!forceMd5 && proxy == null && userdata == null)
+        else if (!forceMd5 && userdata == null)
         {
             return verifyip && CoreInit.conf.serverproxy.verifyip
-                ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.AddDays(1), headers, sbWriter, writeHeaders)
-                : SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, sbWriter, writeHeaders);
+                ? SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.UtcNow.AddDays(1), headers, proxy, sbWriter, writeHeaders)
+                : SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers, proxy, sbWriter, writeHeaders);
         }
         else
         {
@@ -123,7 +123,7 @@ public class ProxyLink : IProxyLink
     #endregion
 
     #region SerializePayload
-    static string SerializePayload(StringBuilder sbhash, bool isProxyImg, ReadOnlySpan<char> uri_clear, ReadOnlySpan<char> uri, string plugin, string reqip, bool verifyip, DateTime e, IReadOnlyList<HeadersModel> headers, Action<StringBuilder> sbWriter, bool writeHeaders = false)
+    static string SerializePayload(StringBuilder sbhash, bool isProxyImg, ReadOnlySpan<char> uri_clear, ReadOnlySpan<char> uri, string plugin, string reqip, bool verifyip, DateTime e, IReadOnlyList<HeadersModel> headers, WebProxy proxy, Action<StringBuilder> sbWriter, bool writeHeaders = false)
     {
         _threadBufferWriter ??= new ArrayBufferWriter<byte>(4096);
         _threadBufferWriter.ResetWrittenCount();
@@ -146,6 +146,7 @@ public class ProxyLink : IProxyLink
             if (e != default)
                 writer.WriteString("e"u8, e.ToUniversalTime());
 
+            #region headers
             if (headers != null && headers.Count > 0)
             {
                 writer.WriteNumber("hb"u8, BucketHeaders.AddOrUpdate("ProxyLink", headers));
@@ -166,6 +167,30 @@ public class ProxyLink : IProxyLink
                     writer.WriteEndObject();
                 }
             }
+            #endregion
+
+            #region proxy
+            if (proxy != null)
+            {
+                writer.WritePropertyName("wp"u8);
+                writer.WriteStartObject();
+
+                var address = proxy.Address;
+                var credentials = proxy.Credentials as NetworkCredential;
+
+                writer.WriteString("s"u8, address.Scheme);
+                writer.WriteString("h"u8, address.Host);
+                writer.WriteNumber("p"u8, address.Port);
+
+                if (!string.IsNullOrEmpty(credentials?.UserName))
+                    writer.WriteString("un"u8, credentials.UserName);
+
+                if (!string.IsNullOrEmpty(credentials?.Password))
+                    writer.WriteString("pw"u8, credentials.Password);
+
+                writer.WriteEndObject();
+            }
+            #endregion
 
             writer.WriteEndObject();
         }
@@ -421,6 +446,7 @@ public class ProxyLink : IProxyLink
         bool verifyip = false;
         DateTime e = default;
         IReadOnlyList<HeadersModel> headers = null;
+        WebProxy proxy = null;
 
         while (reader.Read())
         {
@@ -452,6 +478,8 @@ public class ProxyLink : IProxyLink
                 reader.Read();
                 e = reader.GetDateTime();
             }
+
+            #region headers
             else if (reader.ValueTextEquals("hb"u8))
             {
                 reader.Read();
@@ -493,6 +521,76 @@ public class ProxyLink : IProxyLink
                     BucketHeaders.AddOrUpdate("ProxyLink", newheaders);
                 }
             }
+            #endregion
+
+            #region WebProxy
+            else if (reader.ValueTextEquals("wp"u8))
+            {
+                reader.Read();
+
+                if (reader.TokenType != JsonTokenType.StartObject)
+                {
+                    reader.Skip();
+                    continue;
+                }
+
+                string scheme = null;
+                string host = null;
+                int port = 0;
+                string userName = null;
+                string password = null;
+
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                {
+                    if (reader.TokenType != JsonTokenType.PropertyName)
+                    {
+                        reader.Skip();
+                        continue;
+                    }
+
+                    if (reader.ValueTextEquals("s"u8))
+                    {
+                        reader.Read();
+                        scheme = reader.GetString();
+                    }
+                    else if (reader.ValueTextEquals("h"u8))
+                    {
+                        reader.Read();
+                        host = reader.GetString();
+                    }
+                    else if (reader.ValueTextEquals("p"u8))
+                    {
+                        reader.Read();
+                        port = reader.GetInt32();
+                    }
+                    else if (reader.ValueTextEquals("un"u8))
+                    {
+                        reader.Read();
+                        userName = reader.GetString();
+                    }
+                    else if (reader.ValueTextEquals("pw"u8))
+                    {
+                        reader.Read();
+                        password = reader.GetString();
+                    }
+                    else
+                    {
+                        reader.Skip();
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(scheme) && !string.IsNullOrEmpty(host) && port > 0)
+                {
+                    var webProxy = new WebProxy(new UriBuilder(scheme, host, port).Uri);
+
+                    if (!string.IsNullOrEmpty(userName))
+                        webProxy.Credentials = new NetworkCredential(userName, password ?? string.Empty);
+
+                    proxy = webProxy;
+                }
+            }
+            #endregion
+
             else
             {
                 reader.Skip();
