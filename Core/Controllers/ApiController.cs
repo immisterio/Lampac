@@ -25,9 +25,9 @@ public class ApiController : BaseController
                 return Content(versionHash, "text/plain; charset=utf-8");
 
             if (type == "name")
-                return Content("Believe", "text/plain; charset=utf-8");
+                return Content("Born Too Slow", "text/plain; charset=utf-8");
 
-            return Redirect("https://youtu.be/7f2wg1pqQDs");
+            return Redirect("https://youtu.be/H6BEkPzstJQ");
         }
 
         return StatusCode(404);
