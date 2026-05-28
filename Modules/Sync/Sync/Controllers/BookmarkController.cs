@@ -83,7 +83,7 @@ public class BookmarkController : BaseController
         if (string.IsNullOrEmpty(requestInfo.user_uid))
             return JsonFailure();
 
-        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, false, PoolInvk.bufferSize, leaveOpen: true))
+        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, false, PoolInvk.bufferSizeStreamReader, leaveOpen: true))
         {
             string body = await reader.ReadToEndAsync();
             if (string.IsNullOrWhiteSpace(body))
@@ -605,7 +605,7 @@ public class BookmarkController : BaseController
         JToken token = null;
         var payloads = new List<EventPayload>();
 
-        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, false, PoolInvk.bufferSize, leaveOpen: true))
+        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, false, PoolInvk.bufferSizeStreamReader, leaveOpen: true))
         {
             try
             {

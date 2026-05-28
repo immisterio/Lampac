@@ -303,12 +303,18 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
     #endregion
 
     #region EntryAsync
-    public async Task<HybridCacheEntry<TItem>> EntryAsync<TItem>(string key, bool fileCache = false, JsonTypeInfo<TItem> jsonType = default, bool textJson = false)
+    public ValueTask<HybridCacheEntry<TItem>> EntryAsync<TItem>(string key, JsonTypeInfo<TItem> jsonType = default, bool textJson = false)
     {
-        if (!fileCache && memoryCache.TryGetValue(key, out TItem value))
-            return new HybridCacheEntry<TItem>(true, value, false);
+        if (memoryCache.TryGetValue(key, out TItem value))
+            return ValueTask.FromResult(new HybridCacheEntry<TItem>(true, value, false));
 
-        var entry = await ReadCacheAsync(key, fileCache, jsonType, textJson);
+        return EntryReadCacheAsync(key, jsonType, textJson);
+    }
+
+    async ValueTask<HybridCacheEntry<TItem>> EntryReadCacheAsync<TItem>(string key, JsonTypeInfo<TItem> jsonType = default, bool textJson = false)
+    {
+        // fileCache: false для теста кеша в tempDb
+        var entry = await ReadCacheAsync(key, false, jsonType, textJson);
         if (entry.succes)
             return new HybridCacheEntry<TItem>(true, entry.value, entry.singleCache);
 
@@ -317,7 +323,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
     #endregion
 
     #region ReadCacheAsync
-    private async Task<(bool succes, TItem value, bool singleCache)> ReadCacheAsync<TItem>(string key, bool fileCache, JsonTypeInfo<TItem> jsonType, bool textJson = false)
+    public async Task<(bool succes, TItem value, bool singleCache)> ReadCacheAsync<TItem>(string key, bool fileCache, JsonTypeInfo<TItem> jsonType, bool textJson = false)
     {
         string md5key = CrypTo.md5(key);
 

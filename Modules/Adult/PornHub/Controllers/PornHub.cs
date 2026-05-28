@@ -51,7 +51,7 @@ public class PornHubController : BaseSisiController
                     return OnError();
             }
 
-            entryCache = await hybridCache.EntryAsync(semaphoreKey, jsonType: jsonContext.PlaylistAndPage);
+            entryCache = await hybridCache.EntryAsync(semaphoreKey, jsonContext.PlaylistAndPage);
 
             // fallback cache
             if (!entryCache.success)
@@ -62,7 +62,7 @@ public class PornHubController : BaseSisiController
                 if (!next)
                 {
                     // user cache разделенный по ip
-                    entryCache = await hybridCache.EntryAsync(userKey, jsonType: jsonContext.PlaylistAndPage);
+                    entryCache = await hybridCache.EntryAsync(userKey, jsonContext.PlaylistAndPage);
                     if (entryCache.success)
                         StatiCacheDisabled = true;
 

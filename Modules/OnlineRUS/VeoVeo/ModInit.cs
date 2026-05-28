@@ -50,7 +50,10 @@ public class ModInit : IModuleLoaded, IModuleOnline, IModuleOnlineSpider
 
         if (CoreInit.conf.lowMemoryMode == false)
         {
-            databaseCache = JsonHelper.ListReader<Movie>("data/veoveo.json", 130_000).Result;
+            databaseCache = JsonHelper.ListReader<Movie>("data/veoveo.json", 130_000)
+                .GetAwaiter()
+                .GetResult();
+
             databaseById = new Dictionary<string, Movie>();
 
             foreach (var movie in databaseCache.OrderByDescending(i => i.id))

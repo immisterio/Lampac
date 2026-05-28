@@ -50,7 +50,7 @@ public class EpornerController : BaseSisiController
                     return OnError();
             }
 
-            entryCache = await hybridCache.EntryAsync(semaphoreKey, jsonType: jsonContext.ListPlaylistItem);
+            entryCache = await hybridCache.EntryAsync(semaphoreKey, jsonContext.ListPlaylistItem);
 
             // fallback cache
             if (!entryCache.success)
@@ -61,7 +61,7 @@ public class EpornerController : BaseSisiController
                 if (!next)
                 {
                     // user cache разделенный по ip
-                    entryCache = await hybridCache.EntryAsync(userKey, jsonType: jsonContext.ListPlaylistItem);
+                    entryCache = await hybridCache.EntryAsync(userKey, jsonContext.ListPlaylistItem);
                     if (entryCache.success)
                         StatiCacheDisabled = true;
                     next = !entryCache.success;

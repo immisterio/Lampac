@@ -4,6 +4,13 @@ namespace Shared.Services.Pools;
 
 public static class PoolInvk
 {
+    /// <summary>
+    /// 16кб byte[]
+    /// 16кб * ~4 char = до 64кб char[]
+    /// ниже LOH лимита ~85кб
+    /// </summary>
+    public const int bufferSizeStreamReader = 16 * 1024;
+
     public const int msmBlockSize = 81920;
     public const int _chunk4 = 4 * 1024;
     public const int _chunk8 = 8 * 1024;

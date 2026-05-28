@@ -15,7 +15,8 @@ public readonly ref struct RowEnumerable
         _pattern = pattern;
     }
 
-    public RowEnumerator GetEnumerator() => new RowEnumerator(_html, _ranges, _pattern);
+    public RowEnumerator GetEnumerator()
+        => new RowEnumerator(_html, _ranges, _pattern);
 }
 
 public ref struct RowEnumerator

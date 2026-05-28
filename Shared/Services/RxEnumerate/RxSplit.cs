@@ -23,9 +23,11 @@ public ref struct RxSplit
         }
     }
 
-    public int Count => _ranges.Count;
+    public int Count
+        => _ranges.Count;
 
-    public RowEnumerable Rows() => new RowEnumerable(_html, _ranges, _pattern);
+    public RowEnumerable Rows()
+        => new RowEnumerable(_html, _ranges, _pattern);
 
     public RxRow this[int index]
     {

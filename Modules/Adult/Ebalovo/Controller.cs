@@ -114,19 +114,25 @@ public class EbalovoController : BaseSisiController
     }
 
 
-    async public static ValueTask<string> goHost(string host, WebProxy proxy = null)
+    public static ValueTask<string> goHost(string host, WebProxy proxy = null)
     {
         if (!Regex.IsMatch(host, "^https?://www\\."))
-            return host;
+            return ValueTask.FromResult(host);
 
         var memoryCache = HybridCache.GetMemory();
-        string backhost = "https://web.epalovo.com";
 
         string memkey = $"ebalovo:gohost:{host}";
         if (memoryCache.TryGetValue(memkey, out string _host))
-            return _host;
+            return ValueTask.FromResult(_host);
 
-        _host = await Http.GetLocation(host, timeoutSeconds: 5, proxy: proxy, allowAutoRedirect: true);
+        return goHostAsync(memoryCache, memkey, host, proxy);
+    }
+
+    async static ValueTask<string> goHostAsync(IMemoryCache memoryCache, string memkey, string host, WebProxy proxy)
+    {
+        const string backhost = "https://web.epalovo.com";
+
+        string _host = await Http.GetLocation(host, timeoutSeconds: 5, proxy: proxy, allowAutoRedirect: true);
         if (_host != null && !Regex.IsMatch(_host, "^https?://www\\."))
         {
             _host = Regex.Replace(_host, "/$", "");

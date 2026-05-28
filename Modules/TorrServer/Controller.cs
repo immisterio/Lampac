@@ -208,7 +208,7 @@ public class TorrServerController : BaseController
                     return;
                 }
 
-                using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, false, PoolInvk.bufferSize, leaveOpen: true))
+                using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, false, leaveOpen: true))
                 {
                     string requestJson = await reader.ReadToEndAsync(ctsHttp.Token).ConfigureAwait(false);
 

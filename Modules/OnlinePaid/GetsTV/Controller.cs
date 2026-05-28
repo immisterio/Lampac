@@ -314,7 +314,7 @@ public class GetsTVController : BaseOnlineController
 
 
     #region search
-    async ValueTask<(string id, SimilarTpl similar)> search(string title, string original_title, int year)
+    async Task<(string id, SimilarTpl similar)> search(string title, string original_title, int year)
     {
         if (string.IsNullOrWhiteSpace(title) || string.IsNullOrEmpty(init.token))
             return default;

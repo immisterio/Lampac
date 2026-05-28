@@ -89,7 +89,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
     {
         get
         {
-            if (_proxy_data == default && proxyManager != null)
+            if (_proxy_data.ip == default && proxyManager != null)
                 _proxy_data = proxyManager.BaseGet().data;
 
             return _proxy_data;
@@ -126,7 +126,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
 
     #region IsRequestBlocked
-    async public ValueTask<bool> IsRequestBlocked(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
+    public ValueTask<bool> IsRequestBlocked(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
     {
         if (IsLoadKit(init))
         {
@@ -138,25 +138,45 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
         requestInitialization?.Invoke();
 
-        if (requestInitializationAsync != null)
-            await requestInitializationAsync.Invoke();
-
         if (EventListener.BadInitialization != null)
         {
             var em = new EventBadInitialization(init, rch, requestInfo, host, HttpContext.Request, HttpContext);
 
-            foreach (Func<EventBadInitialization, Task<ActionResult>> handler in EventListener.BadInitialization.GetInvocationList())
+            foreach (Func<EventBadInitialization, ActionResult> handler in EventListener.BadInitialization.GetInvocationList())
             {
-                badInitMsg = await handler(em);
+                badInitMsg = handler(em);
                 if (badInitMsg != null)
-                    return true;
+                    return ValueTask.FromResult(true);
             }
         }
 
         if (NoAccessGroup(init, out string error_msg))
         {
             badInitMsg = new JsonResult(new { accsdb = true, msg = error_msg });
-            return true;
+            return ValueTask.FromResult(true);
+        }
+
+        if (requestInitializationAsync != null || EventListener.BadInitializationAsync != null || IsOverridehost(init))
+            return IsRequestBlockedAsync(rch, rch_keepalive, rch_check);
+
+        return ValueTask.FromResult(IsRequestBlockedRchOrDisable(rch, rch_check));
+    }
+
+    async public ValueTask<bool> IsRequestBlockedAsync(bool? rch = null, int? rch_keepalive = null, bool rch_check = true)
+    {
+        if (requestInitializationAsync != null)
+            await requestInitializationAsync.Invoke();
+
+        if (EventListener.BadInitializationAsync != null)
+        {
+            var em = new EventBadInitialization(init, rch, requestInfo, host, HttpContext.Request, HttpContext);
+
+            foreach (Func<EventBadInitialization, Task<ActionResult>> handler in EventListener.BadInitializationAsync.GetInvocationList())
+            {
+                badInitMsg = await handler(em);
+                if (badInitMsg != null)
+                    return true;
+            }
         }
 
         if (IsOverridehost(init))
@@ -169,6 +189,11 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             }
         }
 
+        return IsRequestBlockedRchOrDisable(rch, rch_check);
+    }
+
+    bool IsRequestBlockedRchOrDisable(bool? rch = null, bool rch_check = true)
+    {
         if (!init.enable || init.rip)
         {
             badInitMsg = OnError("disable", gbcache: false, statusCode: 403);
@@ -242,7 +267,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
                 return Content(msg, "application/json; charset=utf-8");
         }
 
-        if (gbcache == true && rch?.enable != true)
+        if (gbcache == true && _rch?.enable != true)
         {
             string ekey = ResponseCache.ErrorKey(HttpContext);
             if (ekey != null)

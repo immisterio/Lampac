@@ -81,22 +81,27 @@ public class iRemuxController : BaseOnlineController
 
 
     #region getCookie
-    async static ValueTask<string> getCookie(BaseSettings init, IMemoryCache memoryCache)
+    static ValueTask<string> getCookie(BaseSettings init, IMemoryCache memoryCache)
     {
         if (!string.IsNullOrWhiteSpace(init.cookie))
-            return init.cookie.Trim();
+            return ValueTask.FromResult(init.cookie);
 
         if (string.IsNullOrWhiteSpace(init.login) || string.IsNullOrWhiteSpace(init.passwd))
-            return null;
+            return default;
 
         string keyCookie = $"{init.host}:{init.login}:{init.passwd}";
 
         if (authCookie.TryGetValue(keyCookie, out string _cook))
-            return _cook;
+            return ValueTask.FromResult(_cook);
 
         if (memoryCache.TryGetValue($"iremux:login:{init.login}", out _))
-            return null;
+            return default;
 
+        return getCookieAsync(keyCookie, init, memoryCache);
+    }
+
+    async static ValueTask<string> getCookieAsync(string keyCookie, BaseSettings init, IMemoryCache memoryCache)
+    {
         memoryCache.Set($"iremux:login:{init.login}", 0, TimeSpan.FromMinutes(2));
 
         try

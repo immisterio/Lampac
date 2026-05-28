@@ -475,25 +475,30 @@ public class HDVBController : BaseOnlineController
 
 
     #region search
-    async ValueTask<List<Video>> search(long kinopoisk_id)
+    ValueTask<List<Video>> search(long kinopoisk_id)
     {
         string memKey = $"hdvb:view:{kinopoisk_id}";
 
-        if (!hybridCache.TryGetValue(memKey, out List<Video> root))
+        if (hybridCache.TryGetValue(memKey, out List<Video> root))
+            return ValueTask.FromResult(root);
+
+        return searchAsync(memKey, kinopoisk_id);
+    }
+
+    async ValueTask<List<Video>> searchAsync(string memKey, long kinopoisk_id)
+    {
+        var newheaders = HeadersModel.Init(Http.defaultFullHeaders);
+        var root = await httpHydra.Get<List<Video>>($"{init.cors(init.apihost)}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", safety: true, newheaders: newheaders);
+
+        if (root == null)
         {
-            var newheaders = HeadersModel.Init(Http.defaultFullHeaders);
-            root = await httpHydra.Get<List<Video>>($"{init.cors(init.apihost)}/api/videos.json?token={init.token}&id_kp={kinopoisk_id}", safety: true, newheaders: newheaders);
-
-            if (root == null)
-            {
-                proxyManager?.Refresh();
-                return null;
-            }
-
-            proxyManager?.Success();
-
-            hybridCache.Set(memKey, root, TimeSpan.FromHours(4), inmemory: false);
+            proxyManager?.Refresh();
+            return null;
         }
+
+        proxyManager?.Success();
+
+        hybridCache.Set(memKey, root, TimeSpan.FromHours(4), inmemory: false);
 
         if (root.Count == 0)
             return null;
@@ -502,9 +507,6 @@ public class HDVBController : BaseOnlineController
     }
     #endregion
 
-
     static string fixframe(string _h, string iframe)
-    {
-        return Regex.Replace(iframe, "^https?://[^/]+", _h);
-    }
+        => Regex.Replace(iframe, "^https?://[^/]+", _h);
 }

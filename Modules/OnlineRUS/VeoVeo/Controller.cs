@@ -231,14 +231,10 @@ public class VeoVeoController : BaseOnlineController
 
 
     #region search
-    async ValueTask<Movie> search(string imdb_id, long kinopoisk_id, string title, string original_title)
+    ValueTask<Movie> search(string imdb_id, long kinopoisk_id, string title, string original_title)
     {
         if (!string.IsNullOrEmpty(init.token) && (!string.IsNullOrEmpty(imdb_id) || kinopoisk_id > 0))
-        {
-            var result = await searchApi(imdb_id, kinopoisk_id);
-            if (result != null)
-                return result;
-        }
+            return searchApi(imdb_id, kinopoisk_id);
 
         string stitle = SearchNameTo.Convert(title);
         string sorigtitle = SearchNameTo.Convert(original_title);
@@ -254,10 +250,10 @@ public class VeoVeoController : BaseOnlineController
             })
             {
                 if (!string.IsNullOrEmpty(key) && ModInit.databaseById.TryGetValue(key, out var item))
-                    return item;
+                    return ValueTask.FromResult(item);
             }
 
-            return null;
+            return default;
         }
         else
         {
@@ -297,7 +293,7 @@ public class VeoVeoController : BaseOnlineController
                 return null;
             }
 
-            return goSearch(true) ?? goSearch(false);
+            return ValueTask.FromResult(goSearch(true) ?? goSearch(false));
         }
     }
     #endregion

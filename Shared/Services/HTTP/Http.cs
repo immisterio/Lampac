@@ -27,7 +27,7 @@ public static class Http
     {
         AllowTrailingCommas = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
-        DefaultBufferSize = CoreInit.conf.lowMemoryMode ? 16384 : (32 * 1024)
+        DefaultBufferSize = 16384
     };
 
     static readonly JsonSerializerSettings newtonsoftIgnoreErrorsSettings = new()
@@ -528,9 +528,66 @@ public static class Http
     #region Get<T>
     async public static Task<T> Get<T>(string url, string cookie = null, string referer = null, long MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, bool IgnoreDeserializeObject = false, WebProxy proxy = null, bool statusCodeOK = true, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, HttpClient httpClient = null, bool textJson = false)
     {
-        return (await BaseGetAsync<T>(
-            url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, httpClient, textJson
-        ).ConfigureAwait(false)).content;
+        RecyclableMemoryStream msm = null;
+
+        try
+        {
+            T result = default;
+
+            await BaseGetReaderAsync(async e =>
+            {
+                try
+                {
+                    if (textJson)
+                    {
+                        result = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(e.stream, jsonTextOptions);
+                    }
+                    else
+                    {
+                        msm = PoolInvk.msm.GetStream();
+
+                        using (var byteBuf = new BufferPool())
+                        {
+                            int bytesRead;
+                            var memBuf = byteBuf.Memory;
+
+                            while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
+                                msm.Write(memBuf.Span.Slice(0, bytesRead));
+                        }
+
+                        msm.Position = 0;
+
+                        using (var streamReader = new JsonStreamReaderPool(msm, Encoding.UTF8, leaveOpen: true))
+                        {
+                            using (var jsonReader = new JsonTextReader(streamReader)
+                            {
+                                ArrayPool = NewtonsoftPool.Array
+                            })
+                            {
+                                var serializer = IgnoreDeserializeObject
+                                    ? Newtonsoft.Json.JsonSerializer.Create(newtonsoftIgnoreErrorsSettings)
+                                    : Newtonsoft.Json.JsonSerializer.CreateDefault();
+
+                                result = serializer.Deserialize<T>(jsonReader);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (logEnable)
+                        Serilog.Log.Error(ex, "CatchId={CatchId}, Url={Url}", "id_b6mpEs7G", url);
+                }
+            },
+                url, cookie, referer, MaxResponseContentBufferSize, timeoutSeconds, headers, IgnoreDeserializeObject, proxy, statusCodeOK, httpversion, cookieContainer, useDefaultHeaders, body, httpClient
+            ).ConfigureAwait(false);
+
+            return result;
+        }
+        finally
+        {
+            msm?.Dispose();
+        }
     }
     #endregion
 
@@ -792,7 +849,92 @@ public static class Http
     #region Get
     async public static Task<string> Get(string url, Encoding encoding = default, string cookie = null, string referer = null, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, long MaxResponseContentBufferSize = 0, WebProxy proxy = null, int httpversion = 1, bool statusCodeOK = true, bool weblog = true, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, HttpContent body = null, HttpClient httpClient = null)
     {
-        return (await BaseGet(url, encoding, cookie: cookie, referer: referer, timeoutSeconds: timeoutSeconds, headers: headers, MaxResponseContentBufferSize: MaxResponseContentBufferSize, proxy: proxy, httpversion: httpversion, statusCodeOK: statusCodeOK, weblog: weblog, cookieContainer: cookieContainer, useDefaultHeaders: useDefaultHeaders, body: body, httpClient: httpClient).ConfigureAwait(false)).content;
+        var client = FriendlyHttp.MessageClient(
+            httpversion switch
+            {
+                2 => "http2",
+                3 => "http3",
+                _ => "base"
+            },
+            HandlerOrNull(url, proxy, cookieContainer),
+            out bool disposeHttpClient,
+            MaxResponseContentBufferSize,
+            httpClient
+        );
+
+        try
+        {
+            using (var req = new HttpRequestMessage(HttpMethod.Get, url)
+            {
+                Version = httpversion switch
+                {
+                    2 => HttpVersion.Version20,
+                    3 => HttpVersion.Version30,
+                    _ => HttpVersion.Version11
+                },
+                Content = body
+            })
+            {
+                DefaultRequestHeaders(url, req, cookie, referer, headers, useDefaultHeaders);
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
+                {
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                    {
+                        HttpContent content = response.Content;
+
+                        if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            return null;
+
+                        string res = null;
+
+                        if (encoding == default || encoding == Encoding.UTF8)
+                        {
+                            res = await content.ReadAsStringAsync(cts.Token);
+                        }
+                        else
+                        {
+                            await using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
+                            {
+                                using (var reader = new StreamReader(stream, encoding, false, PoolInvk.bufferSizeStreamReader, leaveOpen: true))
+                                    res = await reader.ReadToEndAsync(cts.Token).ConfigureAwait(false);
+                            }
+                        }
+
+                        if (EventListener.HttpResponse != null)
+                            await InvokeHttpResponseHandlersAsync(new EventHttpResponse(url, client, body, response, res)).ConfigureAwait(false);
+
+                        if (string.IsNullOrEmpty(res))
+                            return null;
+
+                        return res;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logEnable && ex is not TaskCanceledException)
+                Serilog.Log.Error(ex, "CatchId={CatchId}, Url={Url}", "id_bykmf41c", url);
+
+            if (EventListener.HttpResponse != null)
+            {
+                await InvokeHttpResponseHandlersAsync(new EventHttpResponse(
+                    url,
+                    null,
+                    null,
+                    internalServerErrorResponse,
+                    ex.ToString()
+                )).ConfigureAwait(false);
+            }
+
+            return null;
+        }
+        finally
+        {
+            if (disposeHttpClient)
+                client.Dispose();
+        }
     }
     #endregion
 
@@ -846,7 +988,7 @@ public static class Http
                         {
                             await using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
                             {
-                                using (var reader = new StreamReader(stream, encoding, false, PoolInvk.bufferSize, leaveOpen: true))
+                                using (var reader = new StreamReader(stream, encoding, false, PoolInvk.bufferSizeStreamReader, leaveOpen: true))
                                     res = await reader.ReadToEndAsync(cts.Token).ConfigureAwait(false);
                             }
                         }
@@ -854,7 +996,7 @@ public static class Http
                         if (EventListener.HttpResponse != null)
                             await InvokeHttpResponseHandlersAsync(new EventHttpResponse(url, client, body, response, res)).ConfigureAwait(false);
 
-                        if (string.IsNullOrWhiteSpace(res))
+                        if (string.IsNullOrEmpty(res))
                             return (null, response);
 
                         return (res, response);
@@ -890,26 +1032,113 @@ public static class Http
 
 
     #region Post
-    async public static Task<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, Encoding encoding = default, bool statusCodeOK = true, HttpClient httpClient = null)
+    public static Task<string> Post(string url, string data, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, Encoding encoding = default, bool statusCodeOK = true, HttpClient httpClient = null)
     {
-        using (var dataContent = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"))
-        {
-            return await Post(url, dataContent,
-                encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK, httpClient
-            );
-        }
+        return Post(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
+            encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK, httpClient,
+            disposeData: true
+        );
     }
 
-    async public static Task<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true, HttpClient httpClient = null)
+    async public static Task<string> Post(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true, HttpClient httpClient = null, bool disposeData = false)
     {
-        return (await BasePost(
-            url, data, encoding, cookie, MaxResponseContentBufferSize, timeoutSeconds, headers, proxy, httpversion, cookieContainer, useDefaultHeaders, removeContentType, statusCodeOK, httpClient
-        ).ConfigureAwait(false)).content;
+        var client = FriendlyHttp.MessageClient(
+            httpversion switch
+            {
+                2 => "http2",
+                3 => "http3",
+                _ => "base"
+            },
+            HandlerOrNull(url, proxy, cookieContainer),
+            out bool disposeHttpClient,
+            MaxResponseContentBufferSize,
+            httpClient
+        );
+
+        try
+        {
+            using (var req = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Version = httpversion switch
+                {
+                    2 => HttpVersion.Version20,
+                    3 => HttpVersion.Version30,
+                    _ => HttpVersion.Version11
+                },
+                Content = data
+            })
+            {
+                DefaultRequestHeaders(url, req, cookie, null, headers, useDefaultHeaders);
+
+                if (removeContentType)
+                    req.Content.Headers.Remove("Content-Type");
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(8, timeoutSeconds))))
+                {
+                    using (HttpResponseMessage response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
+                    {
+                        HttpContent content = response.Content;
+
+                        if (statusCodeOK && response.StatusCode != HttpStatusCode.OK)
+                            return null;
+
+                        string res = null;
+
+                        if (encoding == default || encoding == Encoding.UTF8)
+                        {
+                            res = await content.ReadAsStringAsync(cts.Token);
+                        }
+                        else
+                        {
+                            await using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
+                            {
+                                using (var reader = new StreamReader(stream, encoding, false, PoolInvk.bufferSizeStreamReader, leaveOpen: true))
+                                    res = await reader.ReadToEndAsync(cts.Token).ConfigureAwait(false);
+                            }
+                        }
+
+                        if (EventListener.HttpResponse != null)
+                            await InvokeHttpResponseHandlersAsync(new EventHttpResponse(url, client, data, response, res)).ConfigureAwait(false);
+
+                        if (string.IsNullOrEmpty(res))
+                            return null;
+
+                        return res;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logEnable && ex is not TaskCanceledException)
+                Serilog.Log.Error(ex, "CatchId={CatchId}, Url={Url}", "id_dr31e14q", url);
+
+            if (EventListener.HttpResponse != null)
+            {
+                await InvokeHttpResponseHandlersAsync(new EventHttpResponse(
+                    url,
+                    null,
+                    data,
+                    internalServerErrorResponse,
+                    ex.ToString()
+                )).ConfigureAwait(false);
+            }
+
+            return null;
+        }
+        finally
+        {
+            if (disposeHttpClient)
+                client.Dispose();
+
+            if (disposeData)
+                data.Dispose();
+        }
     }
     #endregion
 
     #region BasePost
-    async public static Task<(string content, HttpResponseMessage response)> BasePost(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true, HttpClient httpClient = null)
+    async public static Task<(string content, HttpResponseMessage response)> BasePost(string url, HttpContent data, Encoding encoding = default, string cookie = null, int MaxResponseContentBufferSize = 0, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, int httpversion = 1, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, bool removeContentType = false, bool statusCodeOK = true, HttpClient httpClient = null, bool disposeData = false)
     {
         var client = FriendlyHttp.MessageClient(
             httpversion switch
@@ -961,7 +1190,7 @@ public static class Http
                         {
                             await using (var stream = await content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false))
                             {
-                                using (var reader = new StreamReader(stream, encoding, false, PoolInvk.bufferSize, leaveOpen: true))
+                                using (var reader = new StreamReader(stream, encoding, false, PoolInvk.bufferSizeStreamReader, leaveOpen: true))
                                     res = await reader.ReadToEndAsync(cts.Token).ConfigureAwait(false);
                             }
                         }
@@ -969,7 +1198,7 @@ public static class Http
                         if (EventListener.HttpResponse != null)
                             await InvokeHttpResponseHandlersAsync(new EventHttpResponse(url, client, data, response, res)).ConfigureAwait(false);
 
-                        if (string.IsNullOrWhiteSpace(res))
+                        if (string.IsNullOrEmpty(res))
                             return (null, response);
 
                         return (res, response);
@@ -999,23 +1228,24 @@ public static class Http
         {
             if (disposeHttpClient)
                 client.Dispose();
+
+            if (disposeData)
+                data.Dispose();
         }
     }
     #endregion
 
 
     #region Post<T>
-    async public static Task<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true, HttpClient httpClient = null, bool textJson = false)
+    public static Task<T> Post<T>(string url, string data, string cookie = null, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true, HttpClient httpClient = null, bool textJson = false)
     {
-        using (var dataContent = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"))
-        {
-            return await Post<T>(url, dataContent,
-                cookie, timeoutSeconds, headers, encoding, proxy, IgnoreDeserializeObject, cookieContainer, useDefaultHeaders, httpversion, MaxResponseContentBufferSize, statusCodeOK, httpClient, textJson
-            );
-        }
+        return Post<T>(url, new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"),
+            cookie, timeoutSeconds, headers, encoding, proxy, IgnoreDeserializeObject, cookieContainer, useDefaultHeaders, httpversion, MaxResponseContentBufferSize, statusCodeOK, httpClient, textJson,
+            disposeData: true
+        );
     }
 
-    async public static Task<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true, HttpClient httpClient = null, bool textJson = false)
+    async public static Task<T> Post<T>(string url, HttpContent data, string cookie = null, int timeoutSeconds = 15, IReadOnlyList<HeadersModel> headers = null, Encoding encoding = default, WebProxy proxy = null, bool IgnoreDeserializeObject = false, CookieContainer cookieContainer = null, bool useDefaultHeaders = true, int httpversion = 1, int MaxResponseContentBufferSize = 0, bool statusCodeOK = true, HttpClient httpClient = null, bool textJson = false, bool disposeData = false)
     {
         RecyclableMemoryStream msm = null;
 
@@ -1023,7 +1253,7 @@ public static class Http
         {
             T result = default;
 
-            var req = await BasePostReaderAsync(async e =>
+            await BasePostReaderAsync(async e =>
             {
                 try
                 {
@@ -1078,6 +1308,9 @@ public static class Http
         finally
         {
             msm?.Dispose();
+
+            if (disposeData)
+                data.Dispose();
         }
     }
     #endregion

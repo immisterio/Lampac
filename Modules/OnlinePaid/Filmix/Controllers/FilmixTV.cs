@@ -110,7 +110,7 @@ public class FilmixTV : BaseOnlineController<FilmixSettings>
 
 
     #region [Copilot AI] EnsureAccessToken
-    async ValueTask<(bool IsSuccess, string Token, string ErrorMsg)> EnsureAccessToken()
+    async Task<(bool IsSuccess, string Token, string ErrorMsg)> EnsureAccessToken()
     {
         string hashFile = $"cache/filmixtv-{CrypTo.md5(init.user_apitv)}.hash";
         var semaphore = new SemaphorManager(hashFile, TimeSpan.FromSeconds(30));

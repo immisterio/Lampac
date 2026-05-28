@@ -24,12 +24,17 @@ public readonly ref struct RxRow
         _end = range.End.GetOffset(html.Length);
     }
 
-    public int Start => _emptyRow ? 0 : _start;
-    public int End => _emptyRow ? 0 : _end;
+    public int Start
+        => _emptyRow ? 0 : _start;
 
-    public ReadOnlySpan<char> Span => _emptyRow ? ReadOnlySpan<char>.Empty : _html.Slice(_start, _end - _start);
+    public int End
+        => _emptyRow ? 0 : _end;
 
-    public override string ToString() => _emptyRow ? string.Empty : new string(Span);
+    public ReadOnlySpan<char> Span
+        => _emptyRow ? ReadOnlySpan<char>.Empty : _html.Slice(_start, _end - _start);
+
+    public override string ToString()
+        => _emptyRow ? string.Empty : new string(Span);
 
     private bool TryGetFirstMatchSpan(string pattern, RegexOptions options, out ReadOnlySpan<char> matchSpan)
     {

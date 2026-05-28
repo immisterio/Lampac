@@ -296,6 +296,9 @@ public class BaseController : Controller
     #endregion
 
     #region HostImgProxy
+    IReadOnlyList<HeadersModel> _imgpayloadheaders;
+    Delegate[] _eventsHostImgProxy;
+
     public string HostImgProxy(BaseSettings conf, string uri, int height = 0, IReadOnlyList<HeadersModel> headers = null)
     {
         if (!CoreInit.conf.sisi.rsize || string.IsNullOrWhiteSpace(uri))
@@ -318,16 +321,16 @@ public class BaseController : Controller
                     if (conf.plugin != null)
                         writer.WriteString("p"u8, conf.plugin);
 
-                    var heads = httpHeaders(conf.host ?? conf.apihost, headers);
-                    if (heads != null && heads.Count > 0)
+                    _imgpayloadheaders ??= httpHeaders(conf.host ?? conf.apihost, headers);
+                    if (_imgpayloadheaders != null && _imgpayloadheaders.Count > 0)
                     {
                         writer.WriteNumber("hb"u8, BucketHeaders.Hash("payload", headers));
-                        writer.WriteNumber("hc"u8, heads.Count);
+                        writer.WriteNumber("hc"u8, _imgpayloadheaders.Count);
 
                         writer.WritePropertyName("h"u8);
                         writer.WriteStartObject();
 
-                        foreach (var h in heads)
+                        foreach (var h in _imgpayloadheaders)
                         {
                             if (h.name != null && h.val != null)
                                 writer.WriteString(h.name, h.val);
@@ -398,8 +401,9 @@ public class BaseController : Controller
             if (EventListener.HostImgProxy != null)
             {
                 var em = new EventHostImgProxy(requestInfo, HttpContext, uri, height, headers, conf.plugin);
+                _eventsHostImgProxy ??= EventListener.HostImgProxy.GetInvocationList();
 
-                foreach (Func<EventHostImgProxy, string> handler in EventListener.HostImgProxy.GetInvocationList())
+                foreach (Func<EventHostImgProxy, string> handler in _eventsHostImgProxy)
                 {
                     string eventUri = handler.Invoke(em);
                     if (eventUri != null)
@@ -491,6 +495,9 @@ public class BaseController : Controller
     #endregion
 
     #region HostStreamProxy
+    Delegate[] _eventsHostStreamProxy;
+    RchClientInfo _rchinfo;
+
     public string HostStreamProxy(BaseSettings conf, string uri, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null, bool force_streamproxy = false, RchClient rch = null, bool forceMd5 = false, object userdata = null)
     {
         if (!CoreInit.conf.serverproxy.enable || string.IsNullOrEmpty(uri) || conf == null)
@@ -499,8 +506,9 @@ public class BaseController : Controller
         if (EventListener.HostStreamProxy != null)
         {
             var em = new EventHostStreamProxy(conf, uri, headers, proxy, requestInfo, HttpContext);
+            _eventsHostStreamProxy ??= EventListener.HostStreamProxy.GetInvocationList();
 
-            foreach (Func<EventHostStreamProxy, string> handler in EventListener.HostStreamProxy.GetInvocationList())
+            foreach (Func<EventHostStreamProxy, string> handler in _eventsHostStreamProxy)
             {
                 string eventUri = handler.Invoke(em);
                 if (eventUri != null)
@@ -528,9 +536,9 @@ public class BaseController : Controller
         #region rchstreamproxy
         if (!streamproxy && conf.rchstreamproxy != null && rch != null)
         {
-            var rchinfo = rch.InfoConnected();
-            if (rchinfo?.rchtype != null)
-                streamproxy = conf.rchstreamproxy.Contains(rchinfo.rchtype);
+            _rchinfo ??= rch.InfoConnected();
+            if (_rchinfo?.rchtype != null)
+                streamproxy = conf.rchstreamproxy.Contains(_rchinfo.rchtype);
         }
         #endregion
 
@@ -548,7 +556,7 @@ public class BaseController : Controller
             }
 
             if (headers == null && conf.headers_stream != null && conf.headers_stream.Count > 0)
-                headers = HeadersModel.Init(conf.headers_stream);
+                headers = HeadersModel.InitOrNull(conf.headers_stream);
 
             return ProxyLink.Encrypt(
                 uri,
@@ -565,8 +573,11 @@ public class BaseController : Controller
         }
         else
         {
-            if (conf.url_reserve && !uri.Contains(" or ") && !uri.Contains("/proxy/") &&
-                !Regex.IsMatch(HttpContext.Request.QueryString.Value, "&play=true", RegexOptions.IgnoreCase))
+            var query = HttpContext.Request.QueryString.Value;
+
+            bool play = query.Contains("&play=true") || query.Contains("?play=true");
+
+            if (conf.url_reserve && !uri.Contains(" or ") && !uri.Contains("/proxy/") && !play)
             {
                 return ProxyLink.Encrypt(
                     uri, requestInfo.IP,
@@ -586,6 +597,9 @@ public class BaseController : Controller
             }
         }
     }
+
+
+    IReadOnlyList<HeadersModel> _apnlinkheaders;
 
     string apnlink(BaseSettings conf, ApnConf apn, string uri, string ip, IReadOnlyList<HeadersModel> headers)
     {
@@ -631,16 +645,16 @@ public class BaseController : Controller
                     if (conf.plugin != null)
                         writer.WriteString("p"u8, conf.plugin);
 
-                    var heads = httpHeaders(conf.host, headers);
-                    if (heads != null && heads.Count > 0)
+                    _apnlinkheaders ??= httpHeaders(conf.host, headers);
+                    if (_apnlinkheaders != null && _apnlinkheaders.Count > 0)
                     {
                         writer.WriteNumber("hb"u8, BucketHeaders.Hash("payload", headers));
-                        writer.WriteNumber("hc"u8, heads.Count);
+                        writer.WriteNumber("hc"u8, _apnlinkheaders.Count);
 
                         writer.WritePropertyName("h"u8);
                         writer.WriteStartObject();
 
-                        foreach (var h in heads)
+                        foreach (var h in _apnlinkheaders)
                         {
                             if (h.name != null && h.val != null)
                                 writer.WriteString(h.name, h.val);
@@ -709,29 +723,37 @@ public class BaseController : Controller
     #endregion
 
     #region InvokeBaseCache
-    async public ValueTask<T> InvokeBaseCache<T>(string key, TimeSpan time, RchClient rch, Func<Task<T>> onget, ProxyManager proxyManager = null, bool? memory = null, JsonTypeInfo<T> jsonType = null, bool textJson = false)
+    public ValueTask<T> InvokeBaseCache<T>(string key, TimeSpan time, RchClient rch, Func<Task<T>> onget, ProxyManager proxyManager = null, bool? memory = null, JsonTypeInfo<T> jsonType = null, bool textJson = false)
     {
-        #region cache
         if (hybridCache.ContainsKey(key, out T entryValue, out DateTimeOffset cachEx))
         {
             if (entryValue != null && !entryValue.Equals(default(T)))
             {
                 HttpContext.Response.Headers["X-Invoke-Cache"] = "HIT";
                 UpdateStatiCacheFeatures(cachEx);
-                return entryValue;
+                return ValueTask.FromResult(entryValue);
             }
             else
             {
-                var entry = await hybridCache.EntryAsync(key, jsonType: jsonType, fileCache: true, textJson: textJson);
-                if (entry != null && entry.success)
-                {
-                    HttpContext.Response.Headers["X-Invoke-Cache"] = "HIT";
-                    UpdateStatiCacheFeatures(cachEx);
-                    return entry.value;
-                }
+                return InvokeBaseCacheAsync(cachEx, true, key, time, rch, onget, proxyManager, memory, jsonType, textJson);
             }
         }
-        #endregion
+
+        return InvokeBaseCacheAsync(default, false, key, time, rch, onget, proxyManager, memory, jsonType, textJson);
+    }
+
+    async ValueTask<T> InvokeBaseCacheAsync<T>(DateTimeOffset cachEx, bool fileCache, string key, TimeSpan time, RchClient rch, Func<Task<T>> onget, ProxyManager proxyManager = null, bool? memory = null, JsonTypeInfo<T> jsonType = null, bool textJson = false)
+    {
+        if (fileCache)
+        {
+            var entry = await hybridCache.ReadCacheAsync(key, true, jsonType, textJson);
+            if (entry.succes)
+            {
+                HttpContext.Response.Headers["X-Invoke-Cache"] = "HIT";
+                UpdateStatiCacheFeatures(cachEx);
+                return entry.value;
+            }
+        }
 
         SemaphorManager semaphore = null;
 
@@ -744,7 +766,7 @@ public class BaseController : Controller
                 if (!_acquired)
                     return default;
 
-                if (hybridCache.ContainsKey(key, out entryValue, out cachEx))
+                if (hybridCache.ContainsKey(key, out T entryValue, out cachEx))
                 {
                     if (entryValue != null && !entryValue.Equals(default(T)))
                     {
@@ -782,9 +804,8 @@ public class BaseController : Controller
     #endregion
 
     #region InvokeBaseCacheResult
-    async public ValueTask<CacheResult<T>> InvokeBaseCacheResult<T>(string key, TimeSpan time, RchClient rch, ProxyManager proxyManager, Func<CacheResult<T>, Task<CacheResult<T>>> onget, bool? memory = null, JsonTypeInfo<T> jsonType = null, bool textJson = false)
+    public ValueTask<CacheResult<T>> InvokeBaseCacheResult<T>(string key, TimeSpan time, RchClient rch, ProxyManager proxyManager, Func<CacheResult<T>, Task<CacheResult<T>>> onget, bool? memory = null, JsonTypeInfo<T> jsonType = null, bool textJson = false)
     {
-        #region cache
         if (hybridCache.ContainsKey(key, out T entryValue, out DateTimeOffset cachEx))
         {
             if (entryValue != null && !entryValue.Equals(default(T)))
@@ -792,30 +813,39 @@ public class BaseController : Controller
                 HttpContext.Response.Headers["X-Invoke-Cache"] = "HIT";
                 UpdateStatiCacheFeatures(cachEx);
 
-                return new CacheResult<T>()
+                return ValueTask.FromResult(new CacheResult<T>()
                 {
                     IsSuccess = true,
                     Value = entryValue
-                };
+                });
             }
             else
             {
-                var entry = await hybridCache.EntryAsync(key, jsonType: jsonType, fileCache: true, textJson: textJson);
-                if (entry != null && entry.success)
-                {
-                    HttpContext.Response.Headers["X-Invoke-Cache"] = "HIT";
-                    UpdateStatiCacheFeatures(cachEx);
-
-                    return new CacheResult<T>()
-                    {
-                        IsSuccess = true,
-                        ISingleCache = entry.singleCache,
-                        Value = entry.value
-                    };
-                }
+                return InvokeBaseCacheResultAsync(cachEx, true, key, time, rch, proxyManager, onget, memory, jsonType, textJson);
             }
         }
-        #endregion
+
+        return InvokeBaseCacheResultAsync(default, false, key, time, rch, proxyManager, onget, memory, jsonType, textJson);
+    }
+
+    async public ValueTask<CacheResult<T>> InvokeBaseCacheResultAsync<T>(DateTimeOffset cachEx, bool fileCache, string key, TimeSpan time, RchClient rch, ProxyManager proxyManager, Func<CacheResult<T>, Task<CacheResult<T>>> onget, bool? memory = null, JsonTypeInfo<T> jsonType = null, bool textJson = false)
+    {
+        if (fileCache)
+        {
+            var entry = await hybridCache.ReadCacheAsync(key, true, jsonType, textJson);
+            if (entry.succes)
+            {
+                HttpContext.Response.Headers["X-Invoke-Cache"] = "HIT";
+                UpdateStatiCacheFeatures(cachEx);
+
+                return new CacheResult<T>()
+                {
+                    IsSuccess = true,
+                    ISingleCache = entry.singleCache,
+                    Value = entry.value
+                };
+            }
+        }
 
         SemaphorManager semaphore = null;
 
@@ -828,7 +858,7 @@ public class BaseController : Controller
                 if (!_acquired)
                     return new CacheResult<T>() { IsSuccess = false, ErrorMsg = "semaphore" };
 
-                if (hybridCache.ContainsKey(key, out entryValue, out cachEx))
+                if (hybridCache.ContainsKey(key, out T entryValue, out cachEx))
                 {
                     if (entryValue != null && !entryValue.Equals(default(T)))
                     {
@@ -874,7 +904,11 @@ public class BaseController : Controller
             hybridCache.Set(key, val.Value, time, memory);
             UpdateStatiCacheFeatures(DateTimeOffset.Now.Add(time));
 
-            return new CacheResult<T>() { IsSuccess = true, Value = val.Value };
+            return new CacheResult<T>()
+            {
+                IsSuccess = true,
+                Value = val.Value
+            };
         }
         finally
         {

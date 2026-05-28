@@ -57,7 +57,7 @@ public class ModInit : IModuleLoaded
         return Task.FromResult(true);
     }
 
-    Task<ActionResult> BadInitialization(EventBadInitialization e)
+    ActionResult BadInitialization(EventBadInitialization e)
     {
         if (Utilities.IsForkPlayer(e.httpContext))
         {
@@ -83,6 +83,6 @@ public class ModInit : IModuleLoaded
             e.init.streamproxy = true;
         }
 
-        return Task.FromResult<ActionResult>(default);
+        return default;
     }
 }

@@ -25,7 +25,9 @@ public class EventListener
 
     public static Func<EventStaticache, bool> Staticache;
 
-    public static Func<EventBadInitialization, Task<ActionResult>> BadInitialization;
+    public static Func<EventBadInitialization, ActionResult> BadInitialization;
+
+    public static Func<EventBadInitialization, Task<ActionResult>> BadInitializationAsync;
 
     public static Func<EventSisiChannels, ActionResult> SisiChannels;
 
