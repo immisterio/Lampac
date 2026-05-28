@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Lampac NextGen — самохостируемый backend-сервер для Lampa. 70+ источников контента, TorrServer, DLNA, Sync и многое другое. Построен на ASP.NET Core (.NET 10)." />
+  <meta property="og:title" content="Lampac NextGen" />
+  <meta property="og:description" content="Самохостируемый backend-сервер для Lampa. 70+ источников, .NET 10." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/logo.png" />
+  <title>Lampac NextGen</title>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --bg-card: #111827;
+      --bg-card-hover: #1a2235;
+      --border: #1e2a3a;
+      --border-hover: #3b4f6b;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent-1: #6366f1;
+      --accent-2: #8b5cf6;
+      --accent-grad: linear-gradient(135deg, #6366f1, #8b5cf6);
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --code-bg: #161b22;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+      --transition: 0.2s ease;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 58px;
+      gap: 16px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: color var(--transition), background var(--transition);
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-nav-gh {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text) !important;
+      font-weight: 600 !important;
+      padding: 6px 14px !important;
+      border-radius: var(--radius-sm) !important;
+      transition: border-color var(--transition), background var(--transition) !important;
+    }
+
+    .btn-nav-gh:hover {
+      background: var(--bg-card-hover) !important;
+      border-color: var(--border-hover) !important;
+    }
+
+    @media (max-width: 640px) {
+      .nav-links {
+        display: none;
+      }
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 96px 24px 80px;
+      text-align: center;
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-logo {
+      width: 160px;
+      height: 160px;
+      object-fit: contain;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 32px rgba(99, 102, 241, 0.45));
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+    }
+
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #6366f1;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.85);
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 7vw, 68px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.08;
+      margin-bottom: 22px;
+      background: linear-gradient(135deg, #e6edf3 30%, #a5b4fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      max-width: 600px;
+      margin: 0 auto 36px;
+      color: var(--text-muted);
+      font-size: 18px;
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--accent-grad);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+    }
+
+    /* Badges strip */
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .badges img {
+      height: 20px;
+      border-radius: 4px;
+    }
+
+    /* ─── SECTION ─── */
+    section {
+      padding: 72px 24px;
+    }
+
+    .section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #6366f1;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 14px;
+    }
+
+    .section-sub {
+      color: var(--text-muted);
+      max-width: 560px;
+      font-size: 16px;
+      margin-bottom: 48px;
+    }
+
+    /* ─── FEATURES GRID ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color var(--transition), background var(--transition), transform var(--transition);
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-hover);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ─── STATS ─── */
+    .stats-section {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0;
+    }
+
+    .stat-item {
+      padding: 32px 24px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat-item:last-child {
+      border-right: none;
+    }
+
+    .stat-num {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: var(--accent-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    @media (max-width: 640px) {
+      .stat-item {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .stat-item:last-child {
+        border-bottom: none;
+      }
+    }
+
+    /* ─── QUICK START TABS ─── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 16px 10px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color var(--transition), border-color var(--transition);
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      border-bottom-color: #6366f1;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ─── CODE BLOCK ─── */
+    .code-wrap {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .code-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color var(--transition), border-color var(--transition);
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .copy-btn:hover {
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+
+    .copy-btn.copied {
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    pre {
+      padding: 20px;
+      overflow-x: auto;
+      font-size: 13.5px;
+      line-height: 1.7;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+      color: #cdd9e5;
+      tab-size: 2;
+    }
+
+    .hl-comment {
+      color: #6e7681;
+    }
+
+    .hl-cmd {
+      color: #79c0ff;
+    }
+
+    .hl-string {
+      color: #a5d6ff;
+    }
+
+    .hl-key {
+      color: #ff7b72;
+    }
+
+    .hl-val {
+      color: #79c0ff;
+    }
+
+    /* ─── MODULES TABLE ─── */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+
+    .module-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .module-item:hover {
+      border-color: var(--border-hover);
+      background: var(--bg-card-hover);
+    }
+
+    .module-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .module-status.on {
+      background: var(--green);
+      box-shadow: 0 0 6px rgba(63, 185, 80, 0.5);
+    }
+
+    .module-status.off {
+      background: var(--text-muted);
+    }
+
+    .module-name {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .module-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ─── PROVIDERS ─── */
+    .provider-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 12px;
+      color: var(--text-muted);
+      transition: border-color var(--transition), color var(--transition);
+    }
+
+    .chip:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    /* ─── INSTALL CARDS ─── */
+    .install-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .install-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .install-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .install-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .install-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .install-card-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ─── CALLOUT ─── */
+    .callout {
+      display: flex;
+      gap: 14px;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-top: 24px;
+    }
+
+    .callout-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .callout p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .callout strong {
+      color: var(--text);
+    }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      padding: 96px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-glow {
+      position: absolute;
+      bottom: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+
+    .cta-section p {
+      color: var(--text-muted);
+      font-size: 17px;
+      margin-bottom: 36px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    .footer-copy {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ─── DIVIDER ─── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      section {
+        padding: 56px 20px;
+      }
+
+      .hero {
+        padding: 72px 20px 64px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stat-num {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="#">
+        <span class="nav-logo-icon"><img src="assets/logo.png" alt="Lampac NextGen logo" /></span>
+        Lampac NextGen
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Возможности</a></li>
+        <li><a href="#install">Установка</a></li>
+        <li><a href="#modules">Модули</a></li>
+        <li><a href="#providers">Провайдеры</a></li>
+        <li>
+          <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-glow"></div>
+    <h1>Lampac<br />Next&nbsp;Generation</h1>
+    <p class="hero-sub">
+      Самохостируемый backend-сервер для <a href="https://github.com/yumata/lampa" target="_blank" rel="noopener"
+        style="color:#a5b4fc;text-decoration:none">Lampa</a>. Собирает ссылки с 70+ источников и отдаёт их в виде
+      плагинов. Порт по умолчанию — <strong>9118</strong>.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#install">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 14.25a.75.75 0 01-.53-.22l-4.5-4.5a.75.75 0 011.06-1.06l3.22 3.22V2.75a.75.75 0 011.5 0v8.94l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5A.75.75 0 018 14.25z" />
+        </svg>
+        Быстрый старт
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        GitHub
+      </a>
+      <a class="btn btn-secondary" href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.869 4.326-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.829.941z" />
+        </svg>
+        Telegram
+      </a>
+    </div>
+    <div class="badges">
+      <img src="https://github.com/lampac-nextgen/lampac/actions/workflows/build.yml/badge.svg" alt="Build" />
+      <img src="https://img.shields.io/github/v/release/lampac-nextgen/lampac?label=version" alt="Version" />
+      <img src="https://img.shields.io/github/license/lampac-nextgen/lampac" alt="License: MIT" />
+      <img src="https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet" alt=".NET 10" />
+      <img src="https://img.shields.io/badge/ghcr.io-lampac--nextgen%2Flampac-2496ED?logo=github" alt="Docker" />
+      <img src="https://img.shields.io/github/stars/lampac-nextgen/lampac?style=flat&logo=github" alt="Stars" />
+    </div>
+  </header>
+
+  <hr class="divider" />
+
+  <!-- STATS -->
+  <section class="stats-section" style="padding:0">
+    <div class="section-inner">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-num">70+</div>
+          <div class="stat-label">Источников контента</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">12</div>
+          <div class="stat-label">Аниме-провайдеров</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">25+</div>
+          <div class="stat-label">Модулей</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">9118</div>
+          <div class="stat-label">Порт по умолчанию</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">.NET 10</div>
+          <div class="stat-label">ASP.NET Core</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-inner">
+      <div class="section-label">Возможности</div>
+      <h2 class="section-title">Всё, что нужно для стриминга</h2>
+      <p class="section-sub">Мощный self-hosted сервер с горячей перезагрузкой конфига, встроенным WAF и поддержкой
+        Playwright.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎬</div>
+          <h3>70+ источников VOD</h3>
+          <p>Провайдеры онлайн-кино — Rezka, Filmix, KinoPub, Kodik, Collaps, HDVB и десятки других. Группы: RUS, Paid,
+            UKR, GEO, ENG.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌊</div>
+          <h3>TorrServer</h3>
+          <p>Встроенный торрент-стриминг как подпроцесс. Случайный пароль за сессию. Прокси через маршрут
+            <code>/ts/</code>.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📺</div>
+          <h3>DLNA / UPnP</h3>
+          <p>Медиасервер для локальных файлов. Форматы: mp4, mkv, ts, webm, avi, flac и другие. Только в доверенной
+            сети.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔎</div>
+          <h3>JacRed</h3>
+          <p>Агрегатор торрент-индексаторов совместимый с Jackett: Rutor, Kinozal, RuTracker, NNMClub, Toloka, Bitru и
+            другие.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <h3>Транскодинг</h3>
+          <p>HLS/DASH транскодинг через FFmpeg. До 5 параллельных потоков. Таймаут 5 мин. Кеш в
+            <code>cache/transcoding/</code>.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Sync</h3>
+          <p>Кросс-девайсная синхронизация закладок и истории. SQLite. Эндпоинты <code>/storage/</code> и
+            <code>/bookmark/</code>.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏱️</div>
+          <h3>TimeCode</h3>
+          <p>Сохранение и восстановление позиции воспроизведения между устройствами. SQLite-хранилище.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>WAF + GeoIP</h3>
+          <p>Встроенный брандмауэр с геоблокировкой, rate limit, защитой от брутфорса. MaxMind GeoLite2 включён.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>Playwright</h3>
+          <p>Автоматизация Chromium/Firefox для обхода JS-защит на источниках. Поддержка пулов браузеров.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🗂️</div>
+          <h3>TmdbProxy</h3>
+          <p>Локальный кеш TMDB API. Снижает нагрузку и ускоряет ответы. Кеш в <code>cache/tmdb/</code>.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔗</div>
+          <h3>RCH — WebSocket-реле</h3>
+          <p>Позволяет клиентам за NAT подключаться через WebSocket-реле без проброса портов.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔥</div>
+          <h3>Горячий перезапуск</h3>
+          <p><code>init.conf</code> и пользовательские модули из <code>mods/</code> перезагружаются без рестарта
+            сервера.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- INSTALL -->
+  <section id="install">
+    <div class="section-inner">
+      <div class="section-label">Установка</div>
+      <h2 class="section-title">Быстрый старт</h2>
+      <p class="section-sub">Выберите удобный способ запуска: Docker, нативный Linux, Windows или сборка из исходников.
+      </p>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('docker')">🐳 Docker</button>
+        <button class="tab-btn" onclick="showTab('linux')">🐧 Linux</button>
+        <button class="tab-btn" onclick="showTab('windows')">🪟 Windows</button>
+        <button class="tab-btn" onclick="showTab('build')">🔨 Сборка</button>
+      </div>
+
+      <!-- Docker -->
+      <div class="tab-panel active" id="tab-docker">
+        <div class="code-wrap">
+          <div class="code-header">
+            <span class="code-title">bash — docker-compose</span>
+            <button class="copy-btn" onclick="copyCode(this)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <pre><span class="hl-cmd">git</span> clone https://github.com/lampac-nextgen/lampac.git
+<span class="hl-cmd">cd</span> lampac
+
+<span class="hl-comment"># Создать директории и скопировать конфиг</span>
+<span class="hl-cmd">mkdir</span> -p lampac-docker/config lampac-docker/plugins
+<span class="hl-cmd">cp</span> config/example.init.conf lampac-docker/config/init.conf
+<span class="hl-cmd">printf</span> <span class="hl-string">'%s'</span> <span class="hl-string">'ваш_пароль'</span> &gt; lampac-docker/config/passwd
+
+<span class="hl-comment"># Запустить контейнер (порт 9118)</span>
+<span class="hl-cmd">docker</span> compose up -d</pre>
+        </div>
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Минимальный
+          <code>docker-compose.yaml</code>:
+        </p>
+        <div class="code-wrap">
+          <div class="code-header">
+            <span class="code-title">docker-compose.yaml</span>
+            <button class="copy-btn" onclick="copyCode(this)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <pre><span class="hl-key">services</span>:
+  <span class="hl-key">lampac</span>:
+    <span class="hl-key">image</span>: <span class="hl-val">ghcr.io/lampac-nextgen/lampac</span>
+    <span class="hl-key">ports</span>:
+      - <span class="hl-string">"9118:9118"</span>
+    <span class="hl-key">shm_size</span>: <span class="hl-val">1024mb</span>
+    <span class="hl-key">restart</span>: <span class="hl-val">unless-stopped</span>
+    <span class="hl-key">volumes</span>:
+      - <span class="hl-string">./lampac-docker/config/passwd:/lampac/passwd</span>
+      - <span class="hl-string">./lampac-docker/config/init.conf:/lampac/init.conf</span>
+      - <span class="hl-string">./lampac-docker/plugins/lampainit.js:/lampac/plugins/override/lampainit.js</span></pre>
+        </div>
+        <div class="callout">
+          <span class="callout-icon">💡</span>
+          <p>Образ поддерживает <strong>linux/amd64</strong> и <strong>linux/arm64</strong>. Dev-инстанция на порту
+            29118 — в <code>docker-compose.dev.yaml</code>.</p>
+        </div>
+      </div>
+
+      <!-- Linux -->
+      <div class="tab-panel" id="tab-linux">
+        <div class="code-wrap">
+          <div class="code-header">
+            <span class="code-title">bash — install.sh (Debian / Ubuntu)</span>
+            <button class="copy-btn" onclick="copyCode(this)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <pre><span class="hl-comment"># Установка</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash
+
+<span class="hl-comment"># Обновление</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash -s -- --update
+
+<span class="hl-comment"># Управление сервисом</span>
+<span class="hl-cmd">systemctl</span> status lampac
+<span class="hl-cmd">systemctl</span> restart lampac
+<span class="hl-cmd">journalctl</span> -u lampac -f</pre>
+        </div>
+        <div class="callout">
+          <span class="callout-icon">ℹ️</span>
+          <p>Скрипт устанавливает <strong>.NET 10 Runtime</strong>, создаёт пользователя <code>lampac</code> и
+            регистрирует systemd-сервис. Установка по умолчанию — <code>/opt/lampac</code>.</p>
+        </div>
+      </div>
+
+      <!-- Windows -->
+      <div class="tab-panel" id="tab-windows">
+        <div class="install-grid">
+          <div class="install-card">
+            <div class="install-card-header">
+              <div class="install-card-icon"
+                style="background:rgba(0,120,212,0.15);border:1px solid rgba(0,120,212,0.3)">🪟</div>
+              <div>
+                <h3>1. Установите .NET 10 Runtime</h3>
+                <div class="install-card-sub">ASP.NET Core Runtime для Windows</div>
+              </div>
+            </div>
+            <a class="btn btn-secondary" href="https://dotnet.microsoft.com/download/dotnet/10.0" target="_blank"
+              rel="noopener" style="font-size:14px;padding:8px 16px">
+              Скачать .NET 10 →
+            </a>
+          </div>
+          <div class="install-card">
+            <div class="install-card-header">
+              <div class="install-card-icon"
+                style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.2)">📦</div>
+              <div>
+                <h3>2. Скачайте релиз</h3>
+                <div class="install-card-sub">lampac-nextgen.zip → распакуйте в C:\lampacNG</div>
+              </div>
+            </div>
+            <a class="btn btn-secondary" href="https://github.com/lampac-nextgen/lampac/releases" target="_blank"
+              rel="noopener" style="font-size:14px;padding:8px 16px">
+              Страница релизов →
+            </a>
+          </div>
+        </div>
+        <div class="code-wrap" style="margin-top:16px">
+          <div class="code-header">
+            <span class="code-title">cmd — запуск</span>
+            <button class="copy-btn" onclick="copyCode(this)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <pre><span class="hl-comment">rem Переименовать конфиг и запустить</span>
+<span class="hl-cmd">cd</span> C:\lampacNG
+<span class="hl-cmd">ren</span> example.init.conf init.conf
+<span class="hl-cmd">dotnet</span> Core.dll</pre>
+        </div>
+      </div>
+
+      <!-- Build -->
+      <div class="tab-panel" id="tab-build">
+        <div class="code-wrap">
+          <div class="code-header">
+            <span class="code-title">bash — build.sh</span>
+            <button class="copy-btn" onclick="copyCode(this)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <pre><span class="hl-comment"># Требования: .NET SDK 10.0+</span>
+./build.sh                                <span class="hl-comment"># сборка в publish/</span>
+<span class="hl-cmd">RUNTIME_ID</span>=linux-arm64 ./build.sh         <span class="hl-comment"># кросс-компиляция arm64</span>
+
+<span class="hl-comment"># Напрямую через dotnet</span>
+<span class="hl-cmd">dotnet</span> publish Core/Core.csproj -c Release -o publish
+<span class="hl-cmd">dotnet</span> build NextGen.slnx               <span class="hl-comment"># компиляция всего solution</span>
+
+<span class="hl-comment"># Запуск</span>
+<span class="hl-cmd">cd</span> publish && dotnet Core.dll</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- MODULES -->
+  <section id="modules">
+    <div class="section-inner">
+      <div class="section-label">Архитектура</div>
+      <h2 class="section-title">Модули</h2>
+      <p class="section-sub">Каждый модуль можно включить или отключить через <code>SkipModules</code> в
+        <code>init.conf</code>. Зелёный — включён по умолчанию.
+      </p>
+      <div class="modules-grid">
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">Online</div>
+            <div class="module-desc">VOD-ядро: плагин <code>/online.js</code>, агрегатор <code>/lite/*</code>.
+              Провайдеры в Modules/Online*/.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">SISI</div>
+            <div class="module-desc">18+: плагин <code>/sisi.js</code>, SQLite (история, закладки). Платформы в
+              Modules/Adult/*.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">LampaWeb</div>
+            <div class="module-desc">Хостинг Lampa UI. Авто-обновление с GitHub каждые 90 минут.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">TorrServer</div>
+            <div class="module-desc">Встроенный торрент-сервер. Случайный пароль за сессию. Прокси <code>/ts/</code>.
+            </div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">JacRed</div>
+            <div class="module-desc">Агрегатор торрент-индексаторов совместимый с Jackett.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">NextHUB</div>
+            <div class="module-desc">18+ витрина на YAML. Маршрут <code>/nexthub</code>. WAF: 5 req/s.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">TmdbProxy</div>
+            <div class="module-desc">Локальный кеш TMDB API. Снижает нагрузку и ускоряет ответы.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">CubProxy</div>
+            <div class="module-desc">HTTP/HTTPS прокси с файловым кешем (<code>cache/cub/</code>).</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">TimeCode</div>
+            <div class="module-desc">Сохранение и восстановление позиции воспроизведения. SQLite.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">Sync</div>
+            <div class="module-desc">Синхронизация закладок и истории. Эндпоинты <code>/storage/</code>,
+              <code>/bookmark/</code>.
+            </div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status on"></div>
+          <div>
+            <div class="module-name">Kit</div>
+            <div class="module-desc">Шифрование потоков (CryptoKit). Конфиг <code>kit</code> в <code>init.conf</code>.
+            </div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status off"></div>
+          <div>
+            <div class="module-name">DLNA</div>
+            <div class="module-desc">DLNA/UPnP медиасервер для локальных файлов. Только в доверенной сети.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status off"></div>
+          <div>
+            <div class="module-name">Tracks</div>
+            <div class="module-desc">Субтитры и дорожки через FFprobe. Только в доверенной сети.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status off"></div>
+          <div>
+            <div class="module-name">Transcoding</div>
+            <div class="module-desc">HLS/DASH транскодинг FFmpeg. До 5 потоков. Только в доверенной сети.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status off"></div>
+          <div>
+            <div class="module-name">Catalog</div>
+            <div class="module-desc">Браузер каталогов из YAML. Маршрут <code>/catalog/</code>. Только в доверенной
+              сети.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status off"></div>
+          <div>
+            <div class="module-name">WebLog</div>
+            <div class="module-desc">Страница <code>/weblog</code>: поток HTTP/Playwright событий через WebSocket.
+              Требует пароль.</div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status off"></div>
+          <div>
+            <div class="module-name">AdminPanel</div>
+            <div class="module-desc">Веб-админка и JSON API (<code>/adminpanel/</code>). Отключён через manifest.json.
+            </div>
+          </div>
+        </div>
+        <div class="module-item">
+          <div class="module-status off"></div>
+          <div>
+            <div class="module-name">WatchTogether</div>
+            <div class="module-desc">Синхронный просмотр через WebSocket-комнаты.</div>
+          </div>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:24px">
+        <span class="callout-icon">🧩</span>
+        <p><strong>Пользовательские модули:</strong> создайте подкаталог в <code>mods/</code> с
+          <code>manifest.json</code> и <code>.cs</code>-файлами — Roslyn скомпилирует их при запуске. При
+          <code>"dynamic": true</code> изменения применяются без перезапуска сервера.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- PROVIDERS -->
+  <section id="providers">
+    <div class="section-inner">
+      <div class="section-label">Контент</div>
+      <h2 class="section-title">Провайдеры</h2>
+      <p class="section-sub">Поддерживаются российские, украинские, англоязычные, аниме и 18+ источники.</p>
+
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text-muted)">VOD — онлайн-кино</h3>
+      <div class="provider-chips" style="margin-bottom:32px">
+        <span class="chip">Rezka</span>
+        <span class="chip">Filmix</span>
+        <span class="chip">KinoPub</span>
+        <span class="chip">Kodik</span>
+        <span class="chip">Collaps</span>
+        <span class="chip">HDVB</span>
+        <span class="chip">Alloha</span>
+        <span class="chip">CDNvideohub</span>
+        <span class="chip">FanCDN</span>
+        <span class="chip">FlixCDN</span>
+        <span class="chip">GetsTV</span>
+        <span class="chip">IptvOnline</span>
+        <span class="chip">iRemux</span>
+        <span class="chip">Kinobase</span>
+        <span class="chip">Kinogo</span>
+        <span class="chip">Kinotochka</span>
+        <span class="chip">Kinoflix</span>
+        <span class="chip">LeProduction</span>
+        <span class="chip">Mirage</span>
+        <span class="chip">Phantom</span>
+        <span class="chip">PizdatoeHD</span>
+        <span class="chip">RutubeMovie</span>
+        <span class="chip">Spectre</span>
+        <span class="chip">VeoVeo</span>
+        <span class="chip">Vibix</span>
+        <span class="chip">VideoDB</span>
+        <span class="chip">VkMovie</span>
+        <span class="chip">VoKino</span>
+        <span class="chip">Zetflix</span>
+        <span class="chip">SakhTV</span>
+        <span class="chip">PiTor</span>
+        <span class="chip">AsiaGe</span>
+        <span class="chip">Geosaitebi</span>
+        <span class="chip">RezkaPremium</span>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text-muted)">🎌 Аниме (12 источников)
+      </h3>
+      <div class="provider-chips" style="margin-bottom:32px">
+        <span class="chip">AniLiberty</span>
+        <span class="chip">AniLibria</span>
+        <span class="chip">AniMedia</span>
+        <span class="chip">AnimeGo</span>
+        <span class="chip">AnimeLib</span>
+        <span class="chip">Animebesst</span>
+        <span class="chip">Animevost</span>
+        <span class="chip">Dreamerscast</span>
+        <span class="chip">Kodik</span>
+        <span class="chip">Mikai</span>
+        <span class="chip">MoonAnime</span>
+        <span class="chip">AnimeON</span>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text-muted)">🌍 ENG / UKR / GEO</h3>
+      <div class="provider-chips">
+        <span class="chip">AshdiTV</span>
+        <span class="chip">FilmixUKR</span>
+        <span class="chip">UASerials</span>
+        <span class="chip">Geosaitebi</span>
+        <span class="chip">Kinoflix (GEO)</span>
+        <span class="chip">+ Торрент-индексаторы</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-glow"></div>
+    <div class="section-inner">
+      <h2>Готовы начать?</h2>
+      <p>Запустите Lampac NextGen за несколько минут — с Docker или нативной установкой.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com/lampac-nextgen/lampac/releases" target="_blank"
+          rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path
+              d="M8 14.25a.75.75 0 01-.53-.22l-4.5-4.5a.75.75 0 011.06-1.06l3.22 3.22V2.75a.75.75 0 011.5 0v8.94l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5A.75.75 0 018 14.25z" />
+          </svg>
+          Скачать релиз
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/lampac-nextgen/lampac/blob/main/README.md" target="_blank"
+          rel="noopener">
+          Документация →
+        </a>
+        <a class="btn btn-secondary" href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.869 4.326-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.829.941z" />
+          </svg>
+          Telegram чат
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener">Релизы</a>
+        <a href="https://github.com/lampac-nextgen/lampac/blob/main/README.md" target="_blank"
+          rel="noopener">Документация</a>
+        <a href="https://github.com/lampac-nextgen/lampac/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://deepwiki.com/lampac-nextgen/lampac" target="_blank" rel="noopener">DeepWiki</a>
+        <a href="https://github.com/lampac-nextgen/lampac/pkgs/container/lampac" target="_blank" rel="noopener">Docker
+          Image</a>
+      </div>
+      <div class="footer-copy">
+        <span>© 2024–2026 Lampac NextGen contributors</span>
+        <span>·</span>
+        <a href="https://github.com/lampac-nextgen/lampac/blob/main/LICENSE" target="_blank" rel="noopener"
+          style="color:var(--text-muted);text-decoration:none">MIT License</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Tabs
+    function showTab(id) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    // Copy code
+    function copyCode(btn) {
+      const pre = btn.closest('.code-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.classList.add('copied');
+        btn.querySelector('svg').style.display = 'none';
+        const original = btn.innerHTML;
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg> Скопировано';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = original;
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+
+</html>
