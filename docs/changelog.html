@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="История релизов Lampac NextGen — версии, дата выхода, список изменений." />
+  <meta property="og:title" content="Changelog — Lampac NextGen" />
+  <meta property="og:image" content="assets/logo.png" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <title>Changelog — Lampac NextGen</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .release-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .release-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color var(--transition);
+    }
+
+    .release-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .release-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .release-tag {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .release-tag:hover {
+      color: var(--accent-1);
+    }
+
+    .release-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 100px;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-latest {
+      background: rgba(63, 185, 80, 0.15);
+      color: #3fb950;
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+
+    .badge-prerelease {
+      background: rgba(251, 191, 36, 0.12);
+      color: #f59e0b;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .release-date {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .release-body {
+      padding: 20px 24px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-muted);
+    }
+
+    .release-body p {
+      margin-bottom: 10px;
+    }
+
+    .release-body h1,
+    .release-body h2,
+    .release-body h3 {
+      color: var(--text);
+      font-weight: 700;
+      margin: 16px 0 8px;
+      font-size: 14px;
+    }
+
+    .release-body h1 {
+      font-size: 16px;
+    }
+
+    .release-body ul,
+    .release-body ol {
+      padding-left: 20px;
+      margin-bottom: 10px;
+    }
+
+    .release-body li {
+      margin-bottom: 4px;
+    }
+
+    .release-body code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #cdd9e5;
+    }
+
+    .release-body pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .release-body pre code {
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .release-body a {
+      color: #a5b4fc;
+      text-decoration: none;
+    }
+
+    .release-body a:hover {
+      text-decoration: underline;
+    }
+
+    .release-body blockquote {
+      border-left: 3px solid var(--border-hover);
+      padding-left: 14px;
+      color: var(--text-muted);
+      margin: 10px 0;
+    }
+
+    .release-assets {
+      padding: 12px 24px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .release-assets-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .asset-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      transition: color var(--transition), border-color var(--transition);
+    }
+
+    .asset-link:hover {
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+
+    #releases-loading {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-1);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #releases-error {
+      display: none;
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .load-more-wrap {
+      text-align: center;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="index.html">
+        <span class="nav-logo-icon"><img src="assets/logo.png" alt="Lampac NextGen" /></span>
+        Lampac NextGen
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Главная</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="config.html">Конфигурация</a></li>
+        <li><a href="modules.html">Модули</a></li>
+        <li><a href="api.html">API</a></li>
+        <li><a href="changelog.html" class="active">Changelog</a></li>
+        <li>
+          <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+      <button class="nav-hamburger" id="hamburgerBtn" aria-label="Меню" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="index.html">Главная</a>
+      <a href="install.html">Установка</a>
+      <a href="config.html">Конфигурация</a>
+      <a href="modules.html">Модули</a>
+      <a href="api.html">API</a>
+      <a href="changelog.html" class="active">Changelog</a>
+      <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- PAGE HERO -->
+  <div class="page-hero">
+    <div class="page-hero-glow"></div>
+    <div class="section-inner">
+      <div class="breadcrumb">
+        <a href="index.html">Lampac NextGen</a>
+        <span class="breadcrumb-sep">/</span>
+        <span>Changelog</span>
+      </div>
+      <h1>Changelog</h1>
+      <p class="page-hero-sub">История всех релизов. Подгружается напрямую с
+        <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener"
+          style="color:#a5b4fc;text-decoration:none">GitHub Releases</a>.
+      </p>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-inner">
+
+      <!-- Loading state -->
+      <div id="releases-loading">
+        <div class="spinner"></div>
+        <p>Загружаем релизы…</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="releases-error">
+        <p style="font-size:16px;margin-bottom:16px">Не удалось загрузить релизы.</p>
+        <a class="btn btn-secondary" href="https://github.com/lampac-nextgen/lampac/releases" target="_blank"
+          rel="noopener">
+          Открыть на GitHub →
+        </a>
+      </div>
+
+      <!-- Release list -->
+      <div class="release-list" id="release-list"></div>
+
+      <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+        <button class="btn btn-secondary" id="load-more-btn" onclick="loadMore()">Загрузить ещё</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="install.html">Установка</a>
+        <a href="config.html">Конфигурация</a>
+        <a href="modules.html">Модули</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener">Все релизы</a>
+        <a href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">Telegram</a>
+      </div>
+      <div class="footer-copy">
+        <span>© 2026 Lampac NextGen contributors</span>
+        <span>·</span>
+        <a href="https://github.com/lampac-nextgen/lampac/blob/main/LICENSE" target="_blank" rel="noopener"
+          style="color:var(--text-muted);text-decoration:none">MIT License</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const REPO = 'lampac-nextgen/lampac';
+    const PER_PAGE = 10;
+    let currentPage = 1;
+    let isLatestShown = false;
+
+    // Hamburger
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMobile = document.getElementById('navMobile');
+    if (hamburgerBtn && navMobile) {
+      hamburgerBtn.addEventListener('click', () => {
+        const isOpen = navMobile.classList.toggle('open');
+        hamburgerBtn.classList.toggle('open', isOpen);
+        hamburgerBtn.setAttribute('aria-expanded', isOpen);
+      });
+    }
+
+    // Simple markdown → HTML (enough for release notes)
+    function mdToHtml(md) {
+      if (!md) return '';
+      return md
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        // headings
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        // bold / italic
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // inline code
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+        // code blocks
+        .replace(/```[\w]*\n([\s\S]*?)```/gm, '<pre><code>$1</code></pre>')
+        // blockquote
+        .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+        // unordered list items
+        .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>')
+        // links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        // line breaks
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/^(?!<[hupboli])(.+)$/gm, '<p>$1</p>');
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function renderRelease(rel, isFirst) {
+      const isLatest = isFirst && !rel.prerelease && !isLatestShown;
+      if (isLatest) isLatestShown = true;
+
+      const badge = rel.prerelease
+        ? '<span class="release-badge badge-prerelease">Pre-release</span>'
+        : isLatest ? '<span class="release-badge badge-latest">Latest</span>' : '';
+
+      const body = rel.body ? '<div class="release-body">' + mdToHtml(rel.body) + '</div>' : '';
+
+      const assets = rel.assets && rel.assets.length > 0
+        ? `<div class="release-assets">
+            <span class="release-assets-label">Assets</span>
+            ${rel.assets.map(a =>
+          `<a class="asset-link" href="${a.browser_download_url}" target="_blank" rel="noopener">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 14.25a.75.75 0 01-.53-.22l-4.5-4.5a.75.75 0 011.06-1.06l3.22 3.22V2.75a.75.75 0 011.5 0v8.94l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5A.75.75 0 018 14.25z"/>
+                </svg>
+                ${a.name}
+              </a>`
+        ).join('')}
+          </div>` : '';
+
+      return `
+        <div class="release-card">
+          <div class="release-header">
+            <a class="release-tag" href="${rel.html_url}" target="_blank" rel="noopener">${rel.tag_name}</a>
+            ${badge}
+            <span class="release-date">${formatDate(rel.published_at)}</span>
+          </div>
+          ${body}
+          ${assets}
+        </div>`;
+    }
+
+    async function fetchReleases(page) {
+      const res = await fetch(
+        `https://api.github.com/repos/${REPO}/releases?per_page=${PER_PAGE}&page=${page}`,
+        { headers: { Accept: 'application/vnd.github+json' } }
+      );
+      if (!res.ok) throw new Error(res.status);
+      return res.json();
+    }
+
+    async function loadMore() {
+      const btn = document.getElementById('load-more-btn');
+      btn.textContent = 'Загружаем…';
+      btn.disabled = true;
+      try {
+        const releases = await fetchReleases(++currentPage);
+        const list = document.getElementById('release-list');
+        releases.forEach(rel => {
+          list.insertAdjacentHTML('beforeend', renderRelease(rel, false));
+        });
+        if (releases.length < PER_PAGE) {
+          document.getElementById('load-more-wrap').style.display = 'none';
+        } else {
+          btn.textContent = 'Загрузить ещё';
+          btn.disabled = false;
+        }
+      } catch {
+        btn.textContent = 'Ошибка. Повторить';
+        btn.disabled = false;
+      }
+    }
+
+    (async () => {
+      try {
+        const releases = await fetchReleases(1);
+        document.getElementById('releases-loading').style.display = 'none';
+        const list = document.getElementById('release-list');
+        releases.forEach((rel, i) => {
+          list.insertAdjacentHTML('beforeend', renderRelease(rel, i === 0));
+        });
+        if (releases.length === PER_PAGE) {
+          document.getElementById('load-more-wrap').style.display = 'block';
+        }
+      } catch {
+        document.getElementById('releases-loading').style.display = 'none';
+        document.getElementById('releases-error').style.display = 'block';
+      }
+    })();
+  </script>
+</body>
+
+</html>

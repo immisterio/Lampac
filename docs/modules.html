@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Модули и провайдеры Lampac NextGen: Online, SISI, TorrServer, DLNA, JacRed, Transcoding и 70+ источников контента." />
+  <meta property="og:title" content="Модули и провайдеры — Lampac NextGen" />
+  <meta property="og:image" content="assets/logo.png" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <title>Модули и провайдеры — Lampac NextGen</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .provider-group {
+      margin-bottom: 40px;
+    }
+
+    .provider-group-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .provider-count {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 100px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .filter-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+      color: var(--text);
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .module-section {
+      margin-bottom: 48px;
+    }
+
+    .warning-box {
+      background: rgba(248, 81, 73, 0.08);
+      border: 1px solid rgba(248, 81, 73, 0.25);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .warning-box p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .sisi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 8px;
+    }
+
+    .sisi-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sisi-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .sisi-routes {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+
+    /* ── provider sub-label (within a provider-group) ── */
+    .provider-sub-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      margin: 18px 0 10px;
+    }
+
+    .provider-sub-label:first-of-type {
+      margin-top: 0;
+    }
+
+    /* ── chip-sisi: name + route card ── */
+    .chips-sisi {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip-sisi {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 130px;
+      transition: border-color var(--transition);
+    }
+
+    .chip-sisi:hover {
+      border-color: var(--border-hover);
+    }
+
+    .chip-sisi-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chip-sisi code {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .custom-module-steps {
+      counter-reset: step;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cms {
+      display: flex;
+      gap: 14px;
+    }
+
+    .cms-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      font-size: 12px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+
+    .cms-body {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .cms-body strong {
+      color: var(--text);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="index.html">
+        <span class="nav-logo-icon"><img src="assets/logo.png" alt="Lampac NextGen" /></span>
+        Lampac NextGen
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Главная</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="config.html">Конфигурация</a></li>
+        <li><a href="modules.html" class="active">Модули</a></li>
+        <li><a href="api.html">API</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
+        <li>
+          <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+      <button class="nav-hamburger" id="hamburgerBtn" aria-label="Меню" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="index.html">Главная</a>
+      <a href="install.html">Установка</a>
+      <a href="config.html">Конфигурация</a>
+      <a href="modules.html" class="active">Модули</a>
+      <a href="api.html">API</a>
+      <a href="changelog.html">Changelog</a>
+      <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+  <div class="page-hero">
+    <div class="page-hero-glow"></div>
+    <div class="section-inner">
+      <div class="breadcrumb">
+        <a href="index.html">Lampac NextGen</a>
+        <span class="breadcrumb-sep">/</span>
+        <span>Модули</span>
+      </div>
+      <h1>Модули и провайдеры</h1>
+      <p class="page-hero-sub">Все встроенные модули, их статус по умолчанию и 70+ провайдеров контента: VOD, аниме,
+        ENG, UKR, GEO и 18+.</p>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <section>
+    <div class="section-inner">
+
+      <div class="toc">
+        <div class="toc-title">На этой странице</div>
+        <ul>
+          <li><a href="#modules-list">Все модули</a></li>
+          <li><a href="#custom">Пользовательские модули</a></li>
+          <li><a href="#providers">Провайдеры VOD (RUS/Paid)</a></li>
+          <li><a href="#anime">Аниме (12 источников)</a></li>
+          <li><a href="#eng">Англоязычный контент (10)</a></li>
+          <li><a href="#ukr">Украинские CDN (8)</a></li>
+          <li><a href="#geo">Грузинские CDN (3)</a></li>
+          <li><a href="#sisi">SISI — контент 18+ (15 платформ)</a></li>
+        </ul>
+      </div>
+
+      <!-- ── MODULES LIST ── -->
+      <div id="modules-list" class="module-section">
+        <div class="section-label">Встроенные модули</div>
+        <h2 class="section-title">Все модули</h2>
+        <p class="section-sub">Зелёная точка — включён по умолчанию. Серая — отключён в <code>base.conf</code> или через
+          <code>manifest.json</code>. Управляется через <code>SkipModules</code> в <code>init.conf</code>.
+        </p>
+
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterModules('all', this)">Все</button>
+          <button class="filter-btn" onclick="filterModules('on', this)">Включены по умолчанию</button>
+          <button class="filter-btn" onclick="filterModules('off', this)">Отключены по умолчанию</button>
+        </div>
+
+        <div class="module-list">
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">Online</div>
+            <div class="module-row-desc">VOD-ядро: плагин <code>/online.js</code>, агрегатор <code>/lite/*</code>,
+              маппинг ID. Провайдеры в <code>Modules/Online*/</code>. WAF: 10 req/s.</div><span
+              class="module-row-tag">Core</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">SISI</div>
+            <div class="module-row-desc">18+-ядро: плагин <code>/sisi.js</code>, SQLite (история, закладки). Платформы в
+              <code>Modules/Adult/*</code>.
+            </div><span class="module-row-tag">Core</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/LampaWeb"
+                target="_blank" rel="noopener">LampaWeb</a></div>
+            <div class="module-row-desc">Хостинг Lampa UI. Авто-обновление с GitHub каждые 90 минут. Кеш в
+              <code>wwwroot/lampa-main/</code>.
+            </div><span class="module-row-tag">UI</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/TorrServer"
+                target="_blank" rel="noopener">TorrServer</a></div>
+            <div class="module-row-desc">Управление процессом TorrServer, прокси <code>/ts/</code>. Случайный пароль за
+              сессию.</div><span class="module-row-tag">Торренты</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/JacRed"
+                target="_blank" rel="noopener">JacRed</a></div>
+            <div class="module-row-desc">Jackett-совместимый агрегатор торрент-индексаторов: Rutor, Kinozal, Rutracker,
+              NNMClub, Toloka, Bitru, Lostfilm, Megapeer, Selezen, TorrentBy, AniLibria, Anifilm, AnimeLayer,
+              BigFanGroup.</div><span class="module-row-tag">Торренты</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/NextHUB"
+                target="_blank" rel="noopener">NextHUB</a></div>
+            <div class="module-row-desc">18+ витрина на YAML-описаниях из <code>Modules/NextHUB/sites/</code>. Маршрут
+              <code>/nexthub</code>. WAF: 5 req/s.
+            </div><span class="module-row-tag">18+</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">TmdbProxy</div>
+            <div class="module-row-desc">Локальный кеш TMDB API. Снижает нагрузку и ускоряет ответы. Кеш в
+              <code>cache/tmdb/</code>.
+            </div><span class="module-row-tag">API</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">CubProxy</div>
+            <div class="module-row-desc">HTTP/HTTPS прокси с файловым кешем (<code>cache/cub/</code>).</div><span
+              class="module-row-tag">Прокси</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">TimeCode</div>
+            <div class="module-row-desc">Сохранение и восстановление позиции воспроизведения. SQLite-хранилище.</div>
+            <span class="module-row-tag">Sync</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/Kit"
+                target="_blank" rel="noopener">Kit</a></div>
+            <div class="module-row-desc">AES-GCM шифрование потоков (CryptoKit). Сессионный ключ в cookie
+              <code>aesgcmkey</code>. Обрабатывает привязки платных провайдеров (<code>/bind/*</code>). Хранилище
+              <code>database/kit/</code>.
+            </div><span class="module-row-tag">Безопасность</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">Sync</div>
+            <div class="module-row-desc">Кросс-девайсная синхронизация закладок и истории. Эндпоинты
+              <code>/storage/</code>, <code>/bookmark/</code>. SQLite.
+            </div><span class="module-row-tag">Sync</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">SyncEvents</div>
+            <div class="module-row-desc">Трансляция событий синхронизации через WebSocket (NwsEvents).</div><span
+              class="module-row-tag">Sync</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">Storage</div>
+            <div class="module-row-desc">Хранилище данных для Sync и NWS (<code>onlyreg</code>).</div><span
+              class="module-row-tag">Sync</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-on"></div>
+            <div class="module-row-name">PidTor</div>
+            <div class="module-row-desc">Источник PidTor: стриминг через торрент. Маршрут <code>/lite/pidtor</code>.
+            </div><span class="module-row-tag">VOD</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/DLNA"
+                target="_blank" rel="noopener">DLNA</a></div>
+            <div class="module-row-desc">Торрент-клиент + DLNA стриминг: каталог раздач, управление загрузками
+              (старт/пауза/приоритет), стриминг по <code>mediaPattern</code>. Настройка в секции <code>DLNA</code> в
+              <code>init.conf</code>. <strong style="color:var(--red)">Только доверенная сеть.</strong>
+            </div><span class="module-row-tag">Медиасервер</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/Tracks"
+                target="_blank" rel="noopener">Tracks</a></div>
+            <div class="module-row-desc">Субтитры и звуковые дорожки через FFprobe. База в
+              <code>database/tracks/</code>. <strong style="color:var(--red)">Только доверенная сеть.</strong>
+            </div>
+            <span class="module-row-tag">Медиа</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a
+                href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/Transcoding" target="_blank"
+                rel="noopener">Transcoding</a></div>
+            <div class="module-row-desc">HLS/DASH транскодинг через FFmpeg. До 5 параллельных потоков, таймаут 5 мин.
+              <strong style="color:var(--red)">Только доверенная сеть.</strong>
+            </div><span class="module-row-tag">Медиа</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/Catalog"
+                target="_blank" rel="noopener">Catalog</a></div>
+            <div class="module-row-desc">Браузер каталогов сайтов из YAML-файлов. Маршрут <code>/catalog/</code>.
+              <strong style="color:var(--red)">Только доверенная сеть.</strong>
+            </div><span class="module-row-tag">Каталог</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/WebLog"
+                target="_blank" rel="noopener">WebLog</a></div>
+            <div class="module-row-desc">Страница <code>/weblog</code>: поток HTTP и Playwright-событий через WebSocket.
+              Требует пароль root. <strong style="color:var(--red)">Не включать публично.</strong></div><span
+              class="module-row-tag">Отладка</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name">LogUserRequest-Lite</div>
+            <div class="module-row-desc">Сбор и хранение HTTP-запросов пользователей. Веб-интерфейс
+              <code>/lite/logrequest</code>. Хранение логов до 90 дней (настраивается). Пароль в
+              <code>database/LogUserRequest/passlogreg</code>.
+            </div><span class="module-row-tag">Отладка</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name">CacheMedia</div>
+            <div class="module-row-desc">Кеширование потоков SISI (события <code>ProxyApiCacheStream</code> для
+              отдельных платформ).</div><span class="module-row-tag">18+</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name">ProxyLimiter</div>
+            <div class="module-row-desc">Лимиты параллельных запросов к медиапрокси для SISI. Конфиг
+              <code>ProxyLimiter</code>.
+            </div><span class="module-row-tag">18+</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a
+                href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/WatchTogether" target="_blank"
+                rel="noopener">WatchTogether</a></div>
+            <div class="module-row-desc">Синхронный просмотр через WebSocket-комнаты.</div><span
+              class="module-row-tag">Соц.</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/AdminPanel"
+                target="_blank" rel="noopener">AdminPanel</a></div>
+            <div class="module-row-desc">Веб-админка и JSON API (<code>/adminpanel/</code>). По умолчанию отключён через
+              <code>manifest.json</code>.
+            </div><span class="module-row-tag">Управление</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a
+                href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/ExternalBind" target="_blank"
+                rel="noopener">ExternalBind</a></div>
+            <div class="module-row-desc">Принудительно устанавливает <code>IsLocalIp = true</code> для bind-эндпоинтов
+              платных провайдеров (Filmix Pro, KinoPub, GetsTV). Необходим при работе через обратный прокси или внешний
+              IP. Отключён в <code>manifest.json</code>.</div><span class="module-row-tag">API</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name"><a
+                href="https://github.com/lampac-nextgen/lampac/tree/main/Modules/ForkPlayerXML" target="_blank"
+                rel="noopener">ForkPlayerXML</a></div>
+            <div class="module-row-desc">ForkPlayer: JSON/XML-плейлисты <code>/fxml</code>, редирект <code>/</code> для
+              клиента ForkPlayer.</div><span class="module-row-tag">Плеер</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name">MsxNative</div>
+            <div class="module-row-desc">MSX/MS X: адаптация SISI и поддержка <code>accsdb</code> для MSX-плеера.</div>
+            <span class="module-row-tag">Плеер</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name">TelegramAuth</div>
+            <div class="module-row-desc">HTTP API <code>/tg/auth/…</code>, интеграция с <code>accsdb</code>. Авторизация
+              через Telegram.</div><span class="module-row-tag">Auth</span>
+          </div>
+          <div class="module-row">
+            <div class="dot dot-off"></div>
+            <div class="module-row-name">TelegramAuthBot</div>
+            <div class="module-row-desc">Telegram-бот для привязки устройств (long polling). Зависит от TelegramAuth.
+            </div><span class="module-row-tag">Auth</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- CUSTOM MODULES -->
+      <div id="custom" class="module-section">
+        <div class="section-label">Расширяемость</div>
+        <h2 class="section-title">Пользовательские модули</h2>
+        <p class="section-sub">Roslyn компилирует <code>.cs</code>-файлы при запуске. При <code>"dynamic": true</code> —
+          горячая пересборка при изменении.</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">📁</div>
+            <h3>Структура</h3>
+            <p>Создайте подкаталог в <code>mods/</code> с <code>manifest.json</code> и <code>.cs</code>-файлами. Сервер
+              скомпилирует их при старте.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">⚡</div>
+            <h3>Горячая перезагрузка</h3>
+            <p>При <code>"dynamic": true</code> в <code>manifest.json</code> изменения <code>.cs</code>-файлов
+              применяются без перезапуска сервера.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔌</div>
+            <h3>Интерфейсы</h3>
+            <p>Реализуйте <code>IModuleConfigure</code> для регистрации в DI и <code>IModuleLoaded</code> для вызова
+              после старта приложения.</p>
+          </div>
+        </div>
+
+        <div class="code-wrap" style="margin-top:20px">
+          <div class="code-header"><span class="code-title">mods/MyModule/manifest.json</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"name"</span>:        <span class="hl-string">"MyModule"</span>,
+  <span class="hl-key">"description"</span>: <span class="hl-string">"Описание модуля"</span>,
+  <span class="hl-key">"version"</span>:     <span class="hl-string">"1.0"</span>,
+  <span class="hl-key">"enable"</span>:      <span class="hl-bool">true</span>,
+  <span class="hl-key">"dynamic"</span>:     <span class="hl-bool">true</span>
+}</pre>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- PROVIDERS -->
+      <div id="providers" class="module-section">
+        <div class="section-label">Провайдеры</div>
+        <h2 class="section-title">Провайдеры контента</h2>
+        <p class="section-sub">Каждый провайдер настраивается в <code>init.conf</code>. Группы: OnlinePaid, OnlineRUS,
+          OnlineAnime, OnlineENG, OnlineUKR, OnlineGEO.</p>
+
+        <!-- VOD PAID -->
+        <div class="provider-group">
+          <div class="provider-group-title">
+            💳 OnlinePaid — требуют аккаунт или API-токен
+            <span class="provider-count">12</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Провайдер</th>
+                  <th>Маршрут</th>
+                  <th>Примечание</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Rezka</td>
+                  <td><code>/lite/rezka</code></td>
+                  <td>Зеркало настраивается через <code>host</code></td>
+                </tr>
+                <tr>
+                  <td>Filmix</td>
+                  <td><code>/lite/filmix</code></td>
+                  <td>Требует логин / пароль</td>
+                </tr>
+                <tr>
+                  <td>FilmixPartner</td>
+                  <td><code>/lite/fxapi</code></td>
+                  <td>Требует токен партнёра</td>
+                </tr>
+                <tr>
+                  <td>FilmixTV</td>
+                  <td><code>/lite/filmixtv</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>KinoPub</td>
+                  <td><code>/lite/kinopub</code></td>
+                  <td>Требует API-токен</td>
+                </tr>
+                <tr>
+                  <td>KinoPubPro</td>
+                  <td><code>/lite/kinopubpro</code></td>
+                  <td>Расширенный вариант KinoPub</td>
+                </tr>
+                <tr>
+                  <td>Alloha</td>
+                  <td><code>/lite/alloha</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>GetsTV</td>
+                  <td><code>/lite/getstv</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>IptvOnline</td>
+                  <td><code>/lite/iptvonline</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>iRemux</td>
+                  <td><code>/lite/remux</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>SakhTV</td>
+                  <td><code>/lite/sakhtv</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>VoKino</td>
+                  <td><code>/lite/vokino</code></td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VOD RUS -->
+        <div class="provider-group">
+          <div class="provider-group-title">
+            🆓 OnlineRUS — открытые CDN
+            <span class="provider-count">21</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Провайдер</th>
+                  <th>Маршрут</th>
+                  <th>Примечание</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Collaps</td>
+                  <td><code>/lite/collaps</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>CDNvideohub</td>
+                  <td><code>/lite/cdnvideohub</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>FanCDN</td>
+                  <td><code>/lite/fancdn</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>FlixCDN</td>
+                  <td><code>/lite/flixcdn</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>HDVB</td>
+                  <td><code>/lite/hdvb</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Kinobase</td>
+                  <td><code>/lite/kinobase</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Kinogo</td>
+                  <td><code>/lite/kinogo</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Kinotochka</td>
+                  <td><code>/lite/kinotochka</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>LeProduction</td>
+                  <td><code>/lite/leproduction</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Mirage</td>
+                  <td><code>/lite/mirage</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Phantom</td>
+                  <td><code>/lite/phantom</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>PizdatoeHD</td>
+                  <td><code>/lite/pizdatoehd</code></td>
+                  <td>Офлайн БД <code>data/PizdatoeDb.json</code></td>
+                </tr>
+                <tr>
+                  <td>RutubeMovie</td>
+                  <td><code>/lite/rutubemovie</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Spectre</td>
+                  <td><code>/lite/spectre</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>VeoVeo</td>
+                  <td><code>/lite/veoveo</code></td>
+                  <td>Офлайн БД <code>data/veoveo.json</code></td>
+                </tr>
+                <tr>
+                  <td>Vibix</td>
+                  <td><code>/lite/vibix</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>VideoDB</td>
+                  <td><code>/lite/videodb</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Videoseed</td>
+                  <td><code>/lite/videoseed</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>VkMovie</td>
+                  <td><code>/lite/vkmovie</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Zetflix</td>
+                  <td><code>/lite/zetflix</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>ZetflixDB</td>
+                  <td><code>/lite/zetflixdb</code></td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ANIME -->
+        <div id="anime" class="provider-group">
+          <div class="provider-group-title">
+            🎌 OnlineAnime — аниме
+            <span class="provider-count">12</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Провайдер</th>
+                  <th>Маршрут</th>
+                  <th>Примечание</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>AniLiberty</td>
+                  <td><code>/lite/aniliberty</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>AniLibria</td>
+                  <td><code>/lite/anilibria</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>AniMedia</td>
+                  <td><code>/lite/animedia</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>AnimeGo</td>
+                  <td><code>/lite/animego</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>AnimeLib</td>
+                  <td><code>/lite/animelib</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>AnimeON</td>
+                  <td><code>/lite/animeon</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Animebesst</td>
+                  <td><code>/lite/animebesst</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Animevost</td>
+                  <td><code>/lite/animevost</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Dreamerscast</td>
+                  <td><code>/lite/dreamerscast</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Kodik</td>
+                  <td><code>/lite/kodik</code></td>
+                  <td>Требует токен доступа</td>
+                </tr>
+                <tr>
+                  <td>Mikai</td>
+                  <td><code>/lite/mikai</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>MoonAnime</td>
+                  <td><code>/lite/moonanime</code></td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ENG -->
+        <div id="eng" class="provider-group">
+          <div class="provider-group-title">
+            🌍 OnlineENG — англоязычный контент
+            <span class="provider-count">10</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Провайдер</th>
+                  <th>Маршрут</th>
+                  <th>Примечание</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>AutoEmbed</td>
+                  <td><code>/lite/autoembed</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>HydraFlix</td>
+                  <td><code>/lite/hydraflix</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>MovPI</td>
+                  <td><code>/lite/movpi</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>PlayEmbed</td>
+                  <td><code>/lite/playembed</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>RgShows</td>
+                  <td><code>/lite/rgshows</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>SmashyStream</td>
+                  <td><code>/lite/smashystream</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>TwoEmbed</td>
+                  <td><code>/lite/twoembed</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>VidLink</td>
+                  <td><code>/lite/vidlink</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>VidSrc</td>
+                  <td><code>/lite/vidsrc</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Videasy</td>
+                  <td><code>/lite/videasy</code></td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- UKR -->
+        <div id="ukr" class="provider-group">
+          <div class="provider-group-title">
+            🇺🇦 OnlineUKR — украинские CDN
+            <span class="provider-count">8</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Провайдер</th>
+                  <th>Маршрут</th>
+                  <th>Примечание</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ashdi</td>
+                  <td><code>/lite/ashdi</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>BamBoo</td>
+                  <td><code>/lite/bamboo</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Eneyida</td>
+                  <td><code>/lite/eneyida</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>HdvbUA</td>
+                  <td><code>/lite/hdvbua</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>KinoUkr</td>
+                  <td><code>/lite/kinoukr</code></td>
+                  <td>Офлайн БД <code>data/kinoukr.json</code></td>
+                </tr>
+                <tr>
+                  <td>Tortuga</td>
+                  <td><code>/lite/tortuga</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>UAFilm</td>
+                  <td><code>/lite/uafilm</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>UaKino</td>
+                  <td><code>/lite/uakino</code></td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- GEO -->
+        <div id="geo" class="provider-group">
+          <div class="provider-group-title">
+            🇬🇪 OnlineGEO — грузинские CDN
+            <span class="provider-count">3</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Провайдер</th>
+                  <th>Маршрут</th>
+                  <th>Примечание</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>AsiaGe</td>
+                  <td><code>/lite/asiage</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Geosaitebi</td>
+                  <td><code>/lite/geosaitebi</code></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Kinoflix</td>
+                  <td><code>/lite/kinoflix</code></td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SISI 18+ -->
+        <div id="sisi" class="provider-group">
+          <div class="provider-group-title">
+            🔞 SISI — контент 18+
+            <span class="provider-count">15 платформ</span>
+          </div>
+          <div class="warning-box">
+            <span style="font-size:18px;flex-shrink:0">⚠️</span>
+            <p>Контент предназначен только для совершеннолетних. Модуль SISI включён по умолчанию. Можно отключить
+              добавив <code>SISI</code> в <code>SkipModules</code>.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Провайдер</th>
+                  <th>Маршруты</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>BongaCams</td>
+                  <td><code>/bgs</code></td>
+                </tr>
+                <tr>
+                  <td>Chaturbate</td>
+                  <td><code>/chu</code></td>
+                </tr>
+                <tr>
+                  <td>Ebalovo</td>
+                  <td><code>/elo</code></td>
+                </tr>
+                <tr>
+                  <td>Eporner</td>
+                  <td><code>/epr</code></td>
+                </tr>
+                <tr>
+                  <td>HQporner</td>
+                  <td><code>/hqr</code></td>
+                </tr>
+                <tr>
+                  <td>PornHub</td>
+                  <td><code>/phub</code> · <code>/phubgay</code> · <code>/phubsml</code></td>
+                </tr>
+                <tr>
+                  <td>PornHubPremium</td>
+                  <td><code>/phubprem</code></td>
+                </tr>
+                <tr>
+                  <td>Porntrex</td>
+                  <td><code>/ptx</code></td>
+                </tr>
+                <tr>
+                  <td>Runetki</td>
+                  <td><code>/runetki</code></td>
+                </tr>
+                <tr>
+                  <td>Spankbang</td>
+                  <td><code>/sbg</code></td>
+                </tr>
+                <tr>
+                  <td>Tizam</td>
+                  <td><code>/tizam</code></td>
+                </tr>
+                <tr>
+                  <td>Xhamster</td>
+                  <td><code>/xmr</code> · <code>/xmrgay</code> · <code>/xmrsml</code></td>
+                </tr>
+                <tr>
+                  <td>Xnxx</td>
+                  <td><code>/xnx</code></td>
+                </tr>
+                <tr>
+                  <td>Xvideos</td>
+                  <td><code>/xds</code> · <code>/xdsgay</code> · <code>/xdssml</code></td>
+                </tr>
+                <tr>
+                  <td>XvideosRED</td>
+                  <td><code>/xdsred</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="index.html">Главная</a>
+        <a href="install.html">Установка</a>
+        <a href="config.html">Конфигурация</a>
+        <a href="modules.html">Модули</a>
+        <a href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener">Релизы</a>
+        <a href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">Telegram</a>
+      </div>
+      <div>© 2024–2026 Lampac NextGen contributors · <a
+          href="https://github.com/lampac-nextgen/lampac/blob/main/LICENSE" target="_blank" rel="noopener"
+          style="color:var(--text-muted)">MIT License</a></div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCode(btn) {
+      const text = btn.closest('.code-wrap').querySelector('pre').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg> Скопировано';
+        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
+      });
+    }
+    // Module filter bar
+    function filterModules(filter, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.module-row').forEach(row => {
+        if (filter === 'all') row.style.display = '';
+        else if (filter === 'on') row.style.display = row.querySelector('.dot-on') ? '' : 'none';
+        else if (filter === 'off') row.style.display = row.querySelector('.dot-off') ? '' : 'none';
+      });
+    }
+
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMobile = document.getElementById('navMobile');
+    if (hamburgerBtn && navMobile) {
+      hamburgerBtn.addEventListener('click', () => {
+        const isOpen = navMobile.classList.toggle('open');
+        hamburgerBtn.classList.toggle('open', isOpen);
+        hamburgerBtn.setAttribute('aria-expanded', isOpen);
+      });
+    }
+  </script>
+</body>
+
+</html>

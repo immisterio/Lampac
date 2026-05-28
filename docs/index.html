@@ -10,6 +10,7 @@
   <meta property="og:description" content="Самохостируемый backend-сервер для Lampa. 70+ источников, .NET 10." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="assets/logo.png" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
   <title>Lampac NextGen</title>
   <style>
     :root {
@@ -123,6 +124,11 @@
       background: rgba(255, 255, 255, 0.06);
     }
 
+    .nav-links a.active {
+      color: var(--text);
+      background: rgba(99, 102, 241, 0.12);
+    }
+
     .btn-nav-gh {
       display: flex;
       align-items: center;
@@ -147,7 +153,89 @@
       }
     }
 
-    /* ─── HERO ─── */
+    /* ── HAMBURGER ── */
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: auto;
+    }
+
+    .nav-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .nav-hamburger.open span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .nav-hamburger.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .nav-hamburger.open span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .nav-mobile {
+      display: none;
+      flex-direction: column;
+      padding: 12px 16px 16px;
+      background: rgba(10, 12, 16, 0.98);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+    }
+
+    .nav-mobile.open {
+      display: flex;
+    }
+
+    .nav-mobile a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 15px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      transition: color var(--transition), background var(--transition);
+    }
+
+    .nav-mobile a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-mobile a.active {
+      color: var(--text);
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    .nav-mobile .btn-nav-gh {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .nav-hamburger {
+        display: flex;
+      }
+    }
+
     .hero {
       position: relative;
       overflow: hidden;
@@ -787,15 +875,17 @@
   <!-- NAV -->
   <nav>
     <div class="nav-inner">
-      <a class="nav-logo" href="#">
+      <a class="nav-logo" href="index.html">
         <span class="nav-logo-icon"><img src="assets/logo.png" alt="Lampac NextGen logo" /></span>
         Lampac NextGen
       </a>
       <ul class="nav-links">
-        <li><a href="#features">Возможности</a></li>
-        <li><a href="#install">Установка</a></li>
-        <li><a href="#modules">Модули</a></li>
-        <li><a href="#providers">Провайдеры</a></li>
+        <li><a href="index.html" class="active">Главная</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="config.html">Конфигурация</a></li>
+        <li><a href="modules.html">Модули</a></li>
+        <li><a href="api.html">API</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
         <li>
           <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -806,6 +896,24 @@
           </a>
         </li>
       </ul>
+      <button class="nav-hamburger" id="hamburgerBtn" aria-label="Меню" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="index.html" class="active">Главная</a>
+      <a href="install.html">Установка</a>
+      <a href="config.html">Конфигурация</a>
+      <a href="modules.html">Модули</a>
+      <a href="api.html">API</a>
+      <a href="changelog.html">Changelog</a>
+      <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        GitHub
+      </a>
     </div>
   </nav>
 
@@ -819,7 +927,7 @@
       плагинов. Порт по умолчанию — <strong>9118</strong>.
     </p>
     <div class="hero-actions">
-      <a class="btn btn-primary" href="#install">
+      <a class="btn btn-primary" href="install.html">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <path
             d="M8 14.25a.75.75 0 01-.53-.22l-4.5-4.5a.75.75 0 011.06-1.06l3.22 3.22V2.75a.75.75 0 011.5 0v8.94l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5A.75.75 0 018 14.25z" />
@@ -906,7 +1014,7 @@
         </div>
         <div class="feature-card">
           <div class="feature-icon">📺</div>
-          <h3>DLNA / UPnP</h3>
+          <h3>DLNA </h3>
           <p>Медиасервер для локальных файлов. Форматы: mp4, mkv, ts, webm, avi, flac и другие. Только в доверенной
             сети.</p>
         </div>
@@ -1408,8 +1516,7 @@
           </svg>
           Скачать релиз
         </a>
-        <a class="btn btn-secondary" href="https://github.com/lampac-nextgen/lampac/blob/main/README.md" target="_blank"
-          rel="noopener">
+        <a class="btn btn-secondary" href="install.html">
           Документация →
         </a>
         <a class="btn btn-secondary" href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">
@@ -1427,10 +1534,13 @@
   <footer>
     <div class="footer-inner">
       <div class="footer-links">
+        <a href="install.html">Установка</a>
+        <a href="config.html">Конфигурация</a>
+        <a href="modules.html">Модули</a>
+        <a href="api.html">API</a>
+        <a href="changelog.html">Changelog</a>
         <a href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">GitHub</a>
         <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener">Релизы</a>
-        <a href="https://github.com/lampac-nextgen/lampac/blob/main/README.md" target="_blank"
-          rel="noopener">Документация</a>
         <a href="https://github.com/lampac-nextgen/lampac/issues" target="_blank" rel="noopener">Issues</a>
         <a href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">Telegram</a>
         <a href="https://deepwiki.com/lampac-nextgen/lampac" target="_blank" rel="noopener">DeepWiki</a>
@@ -1438,7 +1548,7 @@
           Image</a>
       </div>
       <div class="footer-copy">
-        <span>© 2024–2026 Lampac NextGen contributors</span>
+        <span>© 2026 Lampac NextGen contributors</span>
         <span>·</span>
         <a href="https://github.com/lampac-nextgen/lampac/blob/main/LICENSE" target="_blank" rel="noopener"
           style="color:var(--text-muted);text-decoration:none">MIT License</a>
@@ -1467,6 +1577,17 @@
           btn.classList.remove('copied');
           btn.innerHTML = original;
         }, 2000);
+      });
+    }
+
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMobile = document.getElementById('navMobile');
+    if (hamburgerBtn && navMobile) {
+      hamburgerBtn.addEventListener('click', () => {
+        const isOpen = navMobile.classList.toggle('open');
+        hamburgerBtn.classList.toggle('open', isOpen);
+        hamburgerBtn.setAttribute('aria-expanded', isOpen);
       });
     }
   </script>

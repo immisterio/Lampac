@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Конфигурация Lampac NextGen: init.conf, WAF, аутентификация, провайдеры, Playwright, GC и другие параметры." />
+  <meta property="og:title" content="Конфигурация — Lampac NextGen" />
+  <meta property="og:image" content="assets/logo.png" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <title>Конфигурация — Lampac NextGen</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .param-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color var(--transition);
+    }
+
+    .param-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .param-card-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .param-card-icon {
+      font-size: 20px;
+    }
+
+    .param-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .param-card-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .badge-default {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 100px;
+      margin-left: 6px;
+      vertical-align: middle;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+    }
+
+    .config-section {
+      margin-bottom: 48px;
+    }
+
+    .inline-code-row {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .param-name {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px;
+      color: #a5b4fc;
+      font-weight: 600;
+    }
+
+    .param-type {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .param-default {
+      font-size: 12px;
+      color: var(--green);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="index.html">
+        <span class="nav-logo-icon"><img src="assets/logo.png" alt="Lampac NextGen" /></span>
+        Lampac NextGen
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Главная</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="config.html" class="active">Конфигурация</a></li>
+        <li><a href="modules.html">Модули</a></li>
+        <li><a href="api.html">API</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
+        <li>
+          <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+      <button class="nav-hamburger" id="hamburgerBtn" aria-label="Меню" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="index.html">Главная</a>
+      <a href="install.html">Установка</a>
+      <a href="config.html" class="active">Конфигурация</a>
+      <a href="modules.html">Модули</a>
+      <a href="api.html">API</a>
+      <a href="changelog.html">Changelog</a>
+      <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+  <div class="page-hero">
+    <div class="page-hero-glow"></div>
+    <div class="section-inner">
+      <div class="breadcrumb">
+        <a href="index.html">Lampac NextGen</a>
+        <span class="breadcrumb-sep">/</span>
+        <span>Конфигурация</span>
+      </div>
+      <h1>Конфигурация</h1>
+      <p class="page-hero-sub">Все параметры <code>init.conf</code> / <code>init.yaml</code>: сеть, модули, WAF,
+        аутентификация, провайдеры и управление памятью.</p>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <section>
+    <div class="section-inner">
+
+      <div class="toc">
+        <div class="toc-title">На этой странице</div>
+        <ul>
+          <li><a href="#overview">Обзор</a></li>
+          <li><a href="#listen">Сеть и порт (listen)</a></li>
+          <li><a href="#modules-cfg">Управление модулями</a></li>
+          <li><a href="#cache">Кеш</a></li>
+          <li><a href="#waf">WAF и безопасность</a></li>
+          <li><a href="#accsdb">Аутентификация (accsdb)</a></li>
+          <li><a href="#lowmem">Режим низкой памяти</a></li>
+          <li><a href="#playwright">Playwright</a></li>
+          <li><a href="#rch">RCH — WebSocket-реле</a></li>
+          <li><a href="#gc">Управление памятью GC</a></li>
+          <li><a href="#providers-cfg">Конфигурация провайдеров</a></li>
+          <li><a href="#lampa-plugins">Плагины Lampa UI</a></li>
+        </ul>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div id="overview" class="config-section">
+        <h2 class="section-title">Обзор</h2>
+        <div class="param-grid">
+          <div class="param-card">
+            <div class="param-card-head"><span class="param-card-icon">📄</span>
+              <div>
+                <h3>Формат</h3>
+                <div class="param-card-sub">JSON или YAML</div>
+              </div>
+            </div>
+            <p style="font-size:14px;color:var(--text-muted)">Конфиг хранится в <code>init.conf</code> (JSON) или
+              <code>init.yaml</code> (YAML) рядом с <code>Core.dll</code>. Оба формата поддерживаются одновременно.
+            </p>
+          </div>
+          <div class="param-card">
+            <div class="param-card-head"><span class="param-card-icon">🔥</span>
+              <div>
+                <h3>Горячая перезагрузка</h3>
+                <div class="param-card-sub">без перезапуска</div>
+              </div>
+            </div>
+            <p style="font-size:14px;color:var(--text-muted)">Watcher проверяет файл каждую секунду. При изменении —
+              применяет сразу. Резервные копии сохраняются в <code>database/backup/init/</code>.</p>
+          </div>
+          <div class="param-card">
+            <div class="param-card-head"><span class="param-card-icon">📋</span>
+              <div>
+                <h3>Примеры</h3>
+                <div class="param-card-sub">config/</div>
+              </div>
+            </div>
+            <p style="font-size:14px;color:var(--text-muted)">Готовые шаблоны: <code>config/example.init.conf</code> и
+              <code>config/example.init.yaml</code>. Дефолтные значения — в <code>config/base.conf</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- LISTEN -->
+      <div id="listen" class="config-section">
+        <div class="section-label">Сеть</div>
+        <h2 class="section-title">listen</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf — listen</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"listen"</span>: {
+    <span class="hl-key">"ip"</span>:                 <span class="hl-string">"0.0.0.0"</span>,   <span class="hl-comment">// интерфейс прослушивания</span>
+    <span class="hl-key">"port"</span>:               <span class="hl-val">9118</span>,         <span class="hl-comment">// порт</span>
+    <span class="hl-key">"scheme"</span>:             <span class="hl-string">"http"</span>,       <span class="hl-comment">// "http" или "https"</span>
+    <span class="hl-key">"version"</span>:            <span class="hl-bool">true</span>,         <span class="hl-comment">// показывать версию в ответах</span>
+    <span class="hl-key">"ResponseCancelAfter"</span>: <span class="hl-val">15</span>           <span class="hl-comment">// таймаут ответа, секунды</span>
+  }
+}</pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Параметр</th>
+                <th>Тип</th>
+                <th>По умолчанию</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ip</code></td>
+                <td>string</td>
+                <td><code>"0.0.0.0"</code></td>
+                <td>IP-интерфейс для прослушивания</td>
+              </tr>
+              <tr>
+                <td><code>port</code></td>
+                <td>int</td>
+                <td><code>9118</code></td>
+                <td>TCP-порт сервера</td>
+              </tr>
+              <tr>
+                <td><code>scheme</code></td>
+                <td>string</td>
+                <td><code>"http"</code></td>
+                <td>Протокол: <code>http</code> или <code>https</code></td>
+              </tr>
+              <tr>
+                <td><code>version</code></td>
+                <td>bool</td>
+                <td><code>true</code></td>
+                <td>Добавлять заголовок с версией</td>
+              </tr>
+              <tr>
+                <td><code>ResponseCancelAfter</code></td>
+                <td>int</td>
+                <td><code>15</code></td>
+                <td>Таймаут ответа в секундах</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- MODULES CFG -->
+      <div id="modules-cfg" class="config-section">
+        <div class="section-label">Модули</div>
+        <h2 class="section-title">BaseModule</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf — BaseModule</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"BaseModule"</span>: {
+    <span class="hl-key">"SkipModules"</span>:      [],          <span class="hl-comment">// имена модулей для полного отключения</span>
+    <span class="hl-key">"LoadModules"</span>:      [<span class="hl-string">".*"</span>],      <span class="hl-comment">// whitelist: имя, группа (OnlineUKR), regex (LME.*)</span>
+    <span class="hl-key">"ValidateRequest"</span>:  <span class="hl-bool">true</span>,        <span class="hl-comment">// валидация входящих запросов</span>
+    <span class="hl-key">"BlockedBots"</span>:      <span class="hl-bool">true</span>         <span class="hl-comment">// блокировка ботов по User-Agent</span>
+  }
+}</pre>
+        </div>
+        <div class="callout callout-info"><span class="callout-icon">ℹ️</span>
+          <p><strong>По умолчанию отключены</strong> (в <code>SkipModules</code> в <code>base.conf</code>): Catalog,
+            DLNA, Tracks, Transcoding, WebLog, CacheMedia, ProxyLimiter, ForkPlayerXML, MsxNative, TelegramAuth,
+            TelegramAuthBot, WAF, accsdb.</p>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- CACHE -->
+      <div id="cache" class="config-section">
+        <div class="section-label">Кеш</div>
+        <h2 class="section-title">cache</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"cache"</span>: {
+    <span class="hl-key">"extend"</span>: <span class="hl-val">180</span>   <span class="hl-comment">// продление TTL на N минут при обращении</span>
+  }
+}</pre>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- WAF -->
+      <div id="waf" class="config-section">
+        <div class="section-label">Безопасность</div>
+        <h2 class="section-title">WAF</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf — WAF</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"WAF"</span>: {
+    <span class="hl-key">"enable"</span>:               <span class="hl-bool">true</span>,
+    <span class="hl-key">"countryAllow"</span>:         [<span class="hl-string">"RU"</span>, <span class="hl-string">"UA"</span>, <span class="hl-string">"BY"</span>],  <span class="hl-comment">// геоблокировка ([] = все страны)</span>
+    <span class="hl-key">"whiteIps"</span>:             [<span class="hl-string">"192.168.1.0/24"</span>],  <span class="hl-comment">// белый список IP/CIDR</span>
+    <span class="hl-key">"bruteForceProtection"</span>: <span class="hl-bool">true</span>,
+    <span class="hl-key">"limit_map"</span>: {
+      <span class="hl-key">"/lite/"</span>:         <span class="hl-val">10</span>,   <span class="hl-comment">// max req/s на prefix</span>
+      <span class="hl-key">"/externalids"</span>:   <span class="hl-val">10</span>
+    }
+  }
+}</pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Параметр</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>enable</code></td>
+                <td>Включить WAF. По умолчанию <code>false</code> (<code>base.conf</code>)</td>
+              </tr>
+              <tr>
+                <td><code>countryAllow</code></td>
+                <td>Разрешённые страны (ISO 3166-1 alpha-2). Пустой массив — без ограничений</td>
+              </tr>
+              <tr>
+                <td><code>whiteIps</code></td>
+                <td>IP-адреса и CIDR-блоки, всегда пропускаемые (в обход countryAllow и rate limit)</td>
+              </tr>
+              <tr>
+                <td><code>bruteForceProtection</code></td>
+                <td>Автобан при множественных ошибках аутентификации</td>
+              </tr>
+              <tr>
+                <td><code>limit_map</code></td>
+                <td>Rate-limit по prefix URL: ключ — prefix, значение — max запросов в секунду</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout-info"><span class="callout-icon">🛡️</span>
+          <p>GeoIP работает через встроенные базы <strong>MaxMind GeoLite2</strong>
+            (<code>data/GeoLite2-Country.mmdb</code>, <code>GeoLite2-ASN.mmdb</code>). Базы обновляются вместе с
+            релизом.</p>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- ACCSDB -->
+      <div id="accsdb" class="config-section">
+        <div class="section-label">Аутентификация</div>
+        <h2 class="section-title">accsdb</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf — accsdb</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"accsdb"</span>: {
+    <span class="hl-key">"enable"</span>:   <span class="hl-bool">true</span>,
+
+    <span class="hl-comment">// Краткий формат: id:дата_истечения через запятую</span>
+    <span class="hl-key">"accounts"</span>: <span class="hl-string">"user1:2026-12-31,user2:2027-06-01"</span>,
+
+    <span class="hl-comment">// Или подробный формат</span>
+    <span class="hl-key">"users"</span>: [
+      { <span class="hl-key">"id"</span>: <span class="hl-string">"user1"</span>, <span class="hl-key">"expires"</span>: <span class="hl-string">"2026-12-31"</span> },
+      { <span class="hl-key">"id"</span>: <span class="hl-string">"user2"</span>, <span class="hl-key">"expires"</span>: <span class="hl-string">"2027-06-01"</span> }
+    ]
+  }
+}</pre>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- LOW MEMORY -->
+      <div id="lowmem" class="config-section">
+        <div class="section-label">Оптимизация</div>
+        <h2 class="section-title">lowMemoryMode</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{ <span class="hl-key">"lowMemoryMode"</span>: <span class="hl-bool">true</span> }</pre>
+        </div>
+        <div class="card-grid" style="margin-top:16px">
+          <div class="card">
+            <h3>Что делает</h3>
+            <ul>
+              <li>Уменьшает пулы буферов и аллокации JSON/строк</li>
+              <li>GeoIP базы через memory-mapped файл вместо загрузки в RAM</li>
+              <li>Не поднимает агрессивный минимум ThreadPool</li>
+              <li>NetVips без оперативного кеша для прокси изображений</li>
+              <li>При простое чаще уплотняет кучу (в т.ч. LOH)</li>
+              <li>Часть модулей отключает второстепенные кеши</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Эффект</h3>
+            <p style="margin-bottom:12px">Типичный выигрыш: <strong style="color:var(--green)">~−140 МБ RSS</strong> по
+              сравнению с режимом по умолчанию.</p>
+            <h3>Компромисс</h3>
+            <p>При очень высокой параллельной нагрузке возможно незначительное снижение пиковой пропускной способности.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- PLAYWRIGHT -->
+      <div id="playwright" class="config-section">
+        <div class="section-label">Автоматизация браузера</div>
+        <h2 class="section-title">Playwright</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"chromium"</span>: {
+    <span class="hl-key">"enable"</span>:  <span class="hl-bool">false</span>,
+    <span class="hl-key">"count"</span>:   <span class="hl-val">1</span>,      <span class="hl-comment">// количество экземпляров в пуле</span>
+    <span class="hl-key">"restart"</span>: <span class="hl-val">3600</span>   <span class="hl-comment">// перезапуск каждые N секунд</span>
+  },
+  <span class="hl-key">"firefox"</span>: {
+    <span class="hl-key">"enable"</span>: <span class="hl-bool">false</span>,
+    <span class="hl-key">"count"</span>:  <span class="hl-val">1</span>
+  }
+}</pre>
+        </div>
+        <div class="callout callout-warn"><span class="callout-icon">⚠️</span>
+          <p>Playwright требует установленного Chromium/Firefox. В Docker-образе зависимости включены. Для нативной
+            установки — дополнительная команда <code>playwright install chromium</code>.</p>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- RCH -->
+      <div id="rch" class="config-section">
+        <div class="section-label">WebSocket-реле</div>
+        <h2 class="section-title">RCH</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"rch"</span>: {
+    <span class="hl-key">"enable"</span>:            <span class="hl-bool">false</span>,
+    <span class="hl-key">"requiredConnected"</span>: <span class="hl-val">1</span>   <span class="hl-comment">// мин. подключений для активации</span>
+  }
+}</pre>
+        </div>
+        <p style="font-size:14px;color:var(--text-muted)">Remote Client Hub — WebSocket-реле для клиентов за NAT.
+          Позволяет подключаться без проброса портов. Эндпоинт: <code>ws://.../ws</code>.</p>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- GC -->
+      <div id="gc" class="config-section">
+        <div class="section-label">Управление памятью</div>
+        <h2 class="section-title">GC</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"GC"</span>: {
+    <span class="hl-key">"Concurrent"</span>:      <span class="hl-bool">true</span>,  <span class="hl-comment">// параллельная сборка мусора</span>
+    <span class="hl-key">"ConserveMemory"</span>:  <span class="hl-val">0</span>,     <span class="hl-comment">// агрессивность экономии памяти 0–9</span>
+    <span class="hl-key">"HighMemoryPercent"</span>: <span class="hl-val">90</span>,  <span class="hl-comment">// порог "высокой памяти" для принуд. сборки</span>
+    <span class="hl-key">"RetainVM"</span>:        <span class="hl-bool">false</span>  <span class="hl-comment">// сохранять VM при возврате памяти ОС</span>
+  }
+}</pre>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- PROVIDERS CFG -->
+      <div id="providers-cfg" class="config-section">
+        <div class="section-label">Провайдеры</div>
+        <h2 class="section-title">Конфигурация провайдеров</h2>
+        <p class="section-sub">Каждый провайдер настраивается в собственном разделе <code>init.conf</code>. Набор
+          параметров зависит от провайдера.</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf — примеры провайдеров</span><button
+              class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16"
+                fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-comment">// Провайдеры с публичным доступом</span>
+  <span class="hl-key">"Rezka"</span>:   { <span class="hl-key">"enable"</span>: <span class="hl-bool">true</span>, <span class="hl-key">"host"</span>: <span class="hl-string">"https://rezka.ag"</span>, <span class="hl-key">"priority"</span>: <span class="hl-val">1</span> },
+  <span class="hl-key">"Collaps"</span>: { <span class="hl-key">"enable"</span>: <span class="hl-bool">true</span>, <span class="hl-key">"host"</span>: <span class="hl-string">"https://api.collaps.net"</span> },
+  <span class="hl-key">"HDVB"</span>:    { <span class="hl-key">"enable"</span>: <span class="hl-bool">true</span>, <span class="hl-key">"host"</span>: <span class="hl-string">"https://apivideo.site"</span> },
+
+  <span class="hl-comment">// Провайдеры с токеном</span>
+  <span class="hl-key">"Filmix"</span>:  { <span class="hl-key">"enable"</span>: <span class="hl-bool">true</span>, <span class="hl-key">"host"</span>: <span class="hl-string">"https://filmix.biz"</span>, <span class="hl-key">"token"</span>: <span class="hl-string">"TOKEN"</span>, <span class="hl-key">"priority"</span>: <span class="hl-val">2</span> },
+  <span class="hl-key">"KinoPub"</span>: { <span class="hl-key">"enable"</span>: <span class="hl-bool">true</span>, <span class="hl-key">"token"</span>: <span class="hl-string">"TOKEN"</span> },
+  <span class="hl-key">"Kodik"</span>:   { <span class="hl-key">"enable"</span>: <span class="hl-bool">true</span>, <span class="hl-key">"token"</span>: <span class="hl-string">"TOKEN"</span> }
+}</pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Параметр</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>enable</code></td>
+                <td>Включить/выключить провайдер</td>
+              </tr>
+              <tr>
+                <td><code>host</code></td>
+                <td>URL хоста (для провайдеров с настраиваемым зеркалом)</td>
+              </tr>
+              <tr>
+                <td><code>token</code></td>
+                <td>API-токен или ключ партнёра</td>
+              </tr>
+              <tr>
+                <td><code>priority</code></td>
+                <td>Порядок в списке источников (меньше = выше)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin-bottom:40px" />
+
+      <!-- LAMPA PLUGINS -->
+      <div id="lampa-plugins" class="config-section">
+        <div class="section-label">Lampa UI</div>
+        <h2 class="section-title">Плагины Lampa UI</h2>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">init.conf — LampaWeb + online + sisi</span><button
+              class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16"
+                fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>{
+  <span class="hl-key">"online"</span>: {
+    <span class="hl-key">"name"</span>:               <span class="hl-string">"Lampac NextGen"</span>,
+    <span class="hl-key">"version"</span>:            <span class="hl-bool">true</span>,
+    <span class="hl-key">"btn_priority_forced"</span>: <span class="hl-bool">true</span>
+  },
+
+  <span class="hl-key">"sisi"</span>: {
+    <span class="hl-key">"lgbt"</span>:    <span class="hl-bool">false</span>,
+    <span class="hl-key">"NextHUB"</span>: <span class="hl-bool">true</span>,
+    <span class="hl-key">"history"</span>: { <span class="hl-key">"enable"</span>: <span class="hl-bool">false</span> }
+  },
+
+  <span class="hl-key">"openstat"</span>: { <span class="hl-key">"enable"</span>: <span class="hl-bool">false</span> },  <span class="hl-comment">// /stats/* эндпоинты</span>
+
+  <span class="hl-key">"LampaWeb"</span>: {
+    <span class="hl-key">"initPlugins"</span>: {
+      <span class="hl-key">"online"</span>:       <span class="hl-bool">true</span>,
+      <span class="hl-key">"sisi"</span>:         <span class="hl-bool">true</span>,
+      <span class="hl-key">"torrserver"</span>:   <span class="hl-bool">true</span>,
+      <span class="hl-key">"timecode"</span>:     <span class="hl-bool">true</span>,
+      <span class="hl-key">"jacred"</span>:       <span class="hl-bool">true</span>,
+      <span class="hl-key">"tmdbProxy"</span>:    <span class="hl-bool">true</span>,
+      <span class="hl-key">"cubProxy"</span>:     <span class="hl-bool">true</span>,
+      <span class="hl-key">"pirate_store"</span>: <span class="hl-bool">true</span>
+    }
+  }
+}</pre>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="index.html">Главная</a>
+        <a href="install.html">Установка</a>
+        <a href="config.html">Конфигурация</a>
+        <a href="modules.html">Модули</a>
+        <a href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener">Релизы</a>
+        <a href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">Telegram</a>
+      </div>
+      <div>© 2024–2026 Lampac NextGen contributors · <a
+          href="https://github.com/lampac-nextgen/lampac/blob/main/LICENSE" target="_blank" rel="noopener"
+          style="color:var(--text-muted)">MIT License</a></div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCode(btn) {
+      const text = btn.closest('.code-wrap').querySelector('pre').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg> Скопировано';
+        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
+      });
+    }
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMobile = document.getElementById('navMobile');
+    if (hamburgerBtn && navMobile) {
+      hamburgerBtn.addEventListener('click', () => {
+        const isOpen = navMobile.classList.toggle('open');
+        hamburgerBtn.classList.toggle('open', isOpen);
+        hamburgerBtn.setAttribute('aria-expanded', isOpen);
+      });
+    }
+  </script>
+</body>
+
+</html>

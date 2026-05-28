@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Справочник API Lampac NextGen: все эндпоинты Core, Online, SISI, Stats, Sync и модулей." />
+  <meta property="og:title" content="API Reference — Lampac NextGen" />
+  <meta property="og:image" content="assets/logo.png" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <title>API Reference — Lampac NextGen</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .api-table td:first-child {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .method {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.4px;
+      vertical-align: middle;
+    }
+
+    .method-get {
+      background: rgba(63, 185, 80, 0.15);
+      color: #3fb950;
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+
+    .method-ws {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .auth-badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .auth-open {
+      background: rgba(63, 185, 80, 0.1);
+      color: #3fb950;
+    }
+
+    .auth-token {
+      background: rgba(251, 191, 36, 0.1);
+      color: #f59e0b;
+    }
+
+    .auth-root {
+      background: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="index.html">
+        <span class="nav-logo-icon"><img src="assets/logo.png" alt="Lampac NextGen" /></span>
+        Lampac NextGen
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Главная</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="config.html">Конфигурация</a></li>
+        <li><a href="modules.html">Модули</a></li>
+        <li><a href="api.html" class="active">API</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
+        <li>
+          <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+      <button class="nav-hamburger" id="hamburgerBtn" aria-label="Меню" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="index.html">Главная</a>
+      <a href="install.html">Установка</a>
+      <a href="config.html">Конфигурация</a>
+      <a href="modules.html">Модули</a>
+      <a href="api.html" class="active">API</a>
+      <a href="changelog.html">Changelog</a>
+      <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- PAGE HERO -->
+  <div class="page-hero">
+    <div class="page-hero-glow"></div>
+    <div class="section-inner">
+      <div class="breadcrumb">
+        <a href="index.html">Lampac NextGen</a>
+        <span class="breadcrumb-sep">/</span>
+        <span>API Reference</span>
+      </div>
+      <h1>API Reference</h1>
+      <p class="page-hero-sub">Все HTTP-эндпоинты Lampac NextGen. База URL — <code>http://&lt;host&gt;:9118</code>.
+        Токен
+        передаётся параметром <code>?token=</code> или через аутентификацию в <code>init.conf</code>.</p>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-inner">
+
+      <!-- TOC -->
+      <div class="toc">
+        <div class="toc-title">На этой странице</div>
+        <ul>
+          <li><a href="#legend">Легенда</a></li>
+          <li><a href="#core">Core — системные</a></li>
+          <li><a href="#stats">Stats — мониторинг</a></li>
+          <li><a href="#online">Online — VOD</a></li>
+          <li><a href="#sisi">SISI — 18+</a></li>
+          <li><a href="#sync">Sync — синхронизация</a></li>
+          <li><a href="#modules">Модули</a></li>
+        </ul>
+      </div>
+
+      <!-- ── LEGEND ── -->
+      <div id="legend" class="param-block">
+        <h2 class="section-title">Легенда</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="method method-get">GET</span> <span
+              style="font-size:14px;color:var(--text-muted)">HTTP GET запрос</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="method method-ws">WS</span> <span
+              style="font-size:14px;color:var(--text-muted)">WebSocket соединение</span></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="auth-badge auth-open">Публичный</span> <span
+              style="font-size:14px;color:var(--text-muted)">Аутентификация не требуется</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="auth-badge auth-token">Токен</span> <span
+              style="font-size:14px;color:var(--text-muted)">Требует <code>?token=</code> или <code>accsdb</code></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="auth-badge auth-root">Root</span> <span
+              style="font-size:14px;color:var(--text-muted)">Требует пароль root из <code>init.conf</code></span></div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── CORE ── -->
+      <div id="core" class="param-block">
+        <h2 class="section-title">Core — системные</h2>
+        <p class="section-sub">Базовые служебные эндпоинты, доступные без установки дополнительных модулей.</p>
+        <div class="table-wrap">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Маршрут</th>
+                <th>Авт.</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/version</code></td>
+                <td><span class="auth-badge auth-open">Публичный</span></td>
+                <td>Версия сборки. Параметр <code>?type=</code> — текстовый или JSON формат.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/api/geo</code></td>
+                <td><span class="auth-badge auth-open">Публичный</span></td>
+                <td>GeoIP-данные по IP. Параметры: <code>?ip=</code>, <code>?select=country|asn</code>. Использует
+                  MaxMind GeoLite2.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/api/myip</code></td>
+                <td><span class="auth-badge auth-open">Публичный</span></td>
+                <td>Возвращает IP-адрес клиента в виде простого текста.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/api/headers</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Все HTTP-заголовки входящего запроса в JSON. Удобно для отладки.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/api/chromium/ping</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Состояние пула Playwright Chromium. Возвращает <code>ok</code> или ошибку.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/api/chromium/iframe</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Рендер <code>&lt;iframe&gt;</code> через Playwright. Параметр <code>?src=</code> — URL для рендера.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/nws-client-es5.js</code></td>
+                <td><span class="auth-badge auth-open">Публичный</span></td>
+                <td>Клиентская библиотека NWS (NwsEvents) для WebSocket-шины. Алиас: <code>/js/nws-client-es5.js</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── STATS ── -->
+      <div id="stats" class="param-block">
+        <h2 class="section-title">Stats — мониторинг</h2>
+        <p class="section-sub">Эндпоинты статистики и диагностики. Требуют пароль <code>root</code> из
+          <code>init.conf</code>.
+        </p>
+        <div class="callout callout-warn"><span class="callout-icon">⚠️</span>
+          <p>Все маршруты <code>/stats/*</code> доступны только с корректным параметром
+            <code>?root=&lt;пароль&gt;</code>
+            (задаётся в <code>init.conf</code> → <code>passwd.root</code>).
+          </p>
+        </div>
+        <div class="table-wrap">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Маршрут</th>
+                <th>Авт.</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/stats</code></td>
+                <td><span class="auth-badge auth-root">Root</span></td>
+                <td>Общая статистика: память, апtime, количество запросов, активных соединений.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/stats/gc</code></td>
+                <td><span class="auth-badge auth-root">Root</span></td>
+                <td>Статистика сборщика мусора .NET (GC): поколения, паузы, размер кучи.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/stats/browser/context</code></td>
+                <td><span class="auth-badge auth-root">Root</span></td>
+                <td>Активные браузерные контексты Playwright (Chromium / Firefox), страницы.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/stats/request</code></td>
+                <td><span class="auth-badge auth-root">Root</span></td>
+                <td>История входящих запросов: маршрут, IP, время, статус.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/stats/tempdb</code></td>
+                <td><span class="auth-badge auth-root">Root</span></td>
+                <td>Содержимое временной in-memory БД (кеш результатов провайдеров).</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/stats/threadpool</code></td>
+                <td><span class="auth-badge auth-root">Root</span></td>
+                <td>Состояние пула потоков .NET ThreadPool.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── ONLINE ── -->
+      <div id="online" class="param-block">
+        <h2 class="section-title">Online — VOD</h2>
+        <p class="section-sub">Модуль агрегации VOD-источников. Отдаёт плагин Lampa и прокси к провайдерам
+          (<code>/lite/*</code>).</p>
+        <div class="table-wrap">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Маршрут</th>
+                <th>Авт.</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/online.js</code></td>
+                <td><span class="auth-badge auth-open">Публичный</span></td>
+                <td>Плагин Online для Lampa UI. Алиас: <code>/online/js/{token}</code>.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/externalids</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Маппинг ID между TMDB / IMDb / Кинопоиск. Параметры: <code>?id=</code>, <code>?imdb_id=</code>,
+                  <code>?kinopoisk_id=</code>, <code>?serial=</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/lite/events</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Главный агрегирующий эндпоинт. Запрашивает все провайдеры параллельно. Параметры:
+                  <code>title</code>, <code>imdb_id</code>, <code>kinopoisk_id</code>, <code>tmdb_id</code>,
+                  <code>year</code>, <code>serial</code>, <code>source</code> и др.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/lite/{provider}</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Прямой запрос к конкретному провайдеру (например <code>/lite/rezka</code>,
+                  <code>/lite/filmix</code>, <code>/lite/kinopub</code>). Параметры совпадают с
+                  <code>/lite/events</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/lite/spider</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Поиск по названию через Spider-движок. Алиас: <code>/lite/spider/anime</code>. Параметр
+                  <code>?title=</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/lite/withsearch</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Флаг использования поиска для провайдеров, поддерживающих <code>withsearch</code>.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/lifeevents</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Событийная (polling) версия <code>/lite/events</code>. Параметры: <code>memkey</code>,
+                  <code>id</code> и ID фильма.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── SISI ── -->
+      <div id="sisi" class="param-block">
+        <h2 class="section-title">SISI — 18+</h2>
+        <p class="section-sub">Модуль взрослого контента. Плагин <code>/sisi.js</code> подключается в Lampa UI.</p>
+        <div class="table-wrap">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Маршрут</th>
+                <th>Авт.</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/sisi.js</code></td>
+                <td><span class="auth-badge auth-open">Публичный</span></td>
+                <td>Плагин SISI для Lampa UI. Алиас: <code>/sisi/js/{token}</code>.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/startpage.js</code></td>
+                <td><span class="auth-badge auth-open">Публичный</span></td>
+                <td>Стартовая страница SISI с категориями платформ.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/sisi</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Агрегатор SISI. Параметры: <code>rchtype</code>, <code>account_email</code>, <code>uid</code>,
+                  <code>token</code>, <code>spder</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/{platform}</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Прямой запрос к платформе SISI (например <code>/pornhub</code>, <code>/xvideos</code>,
+                  <code>/onlyfans</code>). Список платформ — в разделе <a href="modules.html#sisi">Модули → SISI</a>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── SYNC ── -->
+      <div id="sync" class="param-block">
+        <h2 class="section-title">Sync — синхронизация</h2>
+        <p class="section-sub">Модуль хранения и синхронизации данных Lampa между устройствами.</p>
+        <div class="table-wrap">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Маршрут</th>
+                <th>Авт.</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/storage/</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Хранилище Sync: чтение и запись данных профиля (история, настройки). SQLite-бэкенд.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/bookmark/</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Закладки: получение и обновление списка избранного.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/timecode/</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>Позиция воспроизведения (TimeCode): сохранение и восстановление прогресса просмотра.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-ws">WS</span></td>
+                <td><code>/ws/nws</code></td>
+                <td><span class="auth-badge auth-token">Токен</span></td>
+                <td>WebSocket-шина NwsEvents: трансляция событий синхронизации между вкладками и устройствами.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── MODULES ── -->
+      <div id="modules" class="param-block">
+        <h2 class="section-title">Модули</h2>
+        <p class="section-sub">Эндпоинты опциональных модулей. Модуль должен быть включён в
+          <code>init.conf</code>.
+        </p>
+        <div class="table-wrap">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Маршрут</th>
+                <th>Модуль</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/ts/</code></td>
+                <td>TorrServer</td>
+                <td>Прокси к TorrServer API. Случайный пароль за сессию. Документация — сайт TorrServer.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/tmdb/</code></td>
+                <td>TmdbProxy</td>
+                <td>Прокси к TMDB API с файловым кешем в <code>cache/tmdb/</code>.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/nexthub</code></td>
+                <td>NextHUB</td>
+                <td>Витрина 18+ контента на YAML-описаниях. WAF: 5 req/s.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/dlna/</code></td>
+                <td>DLNA</td>
+                <td>DLNA/UPnP медиасервер для локальных файлов. Только доверенная сеть.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/catalog/</code></td>
+                <td>Catalog</td>
+                <td>Браузер каталогов из YAML-файлов. Только доверенная сеть.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/fxml</code></td>
+                <td>ForkPlayerXML</td>
+                <td>JSON/XML плейлисты для ForkPlayer. Редирект <code>/</code> для клиента ForkPlayer.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/weblog</code></td>
+                <td>WebLog</td>
+                <td>Поток HTTP и Playwright-событий через WebSocket. Требует пароль root.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-get">GET</span></td>
+                <td><code>/adminpanel/</code></td>
+                <td>AdminPanel</td>
+                <td>Веб-интерфейс и JSON API управления. По умолчанию отключён.</td>
+              </tr>
+              <tr>
+                <td><span class="method method-ws">WS</span></td>
+                <td><code>/ws/together</code></td>
+                <td>WatchTogether</td>
+                <td>WebSocket-комнаты для синхронного просмотра.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-info"><span class="callout-icon">💡</span>
+          <p>Полный список модулей, их настройка и зависимости — на странице <a href="modules.html">Модули и
+              провайдеры</a>.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="install.html">Установка</a>
+        <a href="config.html">Конфигурация</a>
+        <a href="modules.html">Модули</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener">Релизы</a>
+        <a href="https://github.com/lampac-nextgen/lampac/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">Telegram</a>
+      </div>
+      <div class="footer-copy">
+        <span>© 2026 Lampac NextGen contributors</span>
+        <span>·</span>
+        <a href="https://github.com/lampac-nextgen/lampac/blob/main/LICENSE" target="_blank" rel="noopener"
+          style="color:var(--text-muted);text-decoration:none">MIT License</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMobile = document.getElementById('navMobile');
+    if (hamburgerBtn && navMobile) {
+      hamburgerBtn.addEventListener('click', () => {
+        const isOpen = navMobile.classList.toggle('open');
+        hamburgerBtn.classList.toggle('open', isOpen);
+        hamburgerBtn.setAttribute('aria-expanded', isOpen);
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Установка Lampac NextGen: Docker, Linux (systemd), Windows, ручная сборка, обновление и удаление." />
+  <meta property="og:title" content="Установка — Lampac NextGen" />
+  <meta property="og:image" content="assets/logo.png" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <title>Установка — Lampac NextGen</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .env-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .env-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .env-name {
+      font-size: 13px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      color: #a5b4fc;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .env-default {
+      font-size: 12px;
+      color: var(--green);
+      margin-bottom: 4px;
+    }
+
+    .env-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      counter-reset: step;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step:last-child {
+      border-bottom: none;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--accent-grad);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      display: grid;
+      place-items: center;
+    }
+
+    .step-body {
+      flex: 1;
+    }
+
+    .step-body h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .step-body p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .protect-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 100px;
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.25);
+      color: var(--green);
+      margin-left: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="index.html">
+        <span class="nav-logo-icon"><img src="assets/logo.png" alt="Lampac NextGen" /></span>
+        Lampac NextGen
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Главная</a></li>
+        <li><a href="install.html" class="active">Установка</a></li>
+        <li><a href="config.html">Конфигурация</a></li>
+        <li><a href="modules.html">Модули</a></li>
+        <li><a href="api.html">API</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
+        <li>
+          <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+      <button class="nav-hamburger" id="hamburgerBtn" aria-label="Меню" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="index.html">Главная</a>
+      <a href="install.html" class="active">Установка</a>
+      <a href="config.html">Конфигурация</a>
+      <a href="modules.html">Модули</a>
+      <a href="api.html">API</a>
+      <a href="changelog.html">Changelog</a>
+      <a class="btn-nav-gh" href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- PAGE HERO -->
+  <div class="page-hero">
+    <div class="page-hero-glow"></div>
+    <div class="section-inner">
+      <div class="breadcrumb">
+        <a href="index.html">Lampac NextGen</a>
+        <span class="breadcrumb-sep">/</span>
+        <span>Установка</span>
+      </div>
+      <h1>Установка</h1>
+      <p class="page-hero-sub">Docker, нативный Linux, Windows и ручная сборка. Обновление, управление и удаление.</p>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- CONTENT -->
+  <section>
+    <div class="section-inner">
+      <div class="toc">
+        <div class="toc-title">На этой странице</div>
+        <ul>
+          <li><a href="#docker">Docker</a></li>
+          <li><a href="#linux">Нативная установка — Linux</a></li>
+          <li><a href="#windows">Нативная установка — Windows</a></li>
+          <li><a href="#build">Ручная сборка</a></li>
+          <li><a href="#env">Переменные окружения</a></li>
+          <li><a href="#update">Обновление и управление</a></li>
+          <li><a href="#protected">Что сохраняется при обновлении</a></li>
+          <li><a href="#helm">Kubernetes / Helm</a></li>
+        </ul>
+      </div>
+
+      <!-- ── DOCKER ── -->
+      <div id="docker" class="param-block">
+        <div class="section-label">Способ 1</div>
+        <h2 class="section-title">Docker</h2>
+        <p class="section-sub">Рекомендуемый способ. Образ для <code>linux/amd64</code> и <code>linux/arm64</code>. Порт
+          по умолчанию — <strong>9118</strong>.</p>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('dc-prod', this)">Production</button>
+          <button class="tab-btn" onclick="showTab('dc-minimal', this)">Минимальный</button>
+          <button class="tab-btn" onclick="showTab('dc-dev', this)">Dev (29118)</button>
+        </div>
+
+        <div id="tab-dc-prod" class="tab-panel active">
+          <div class="code-wrap">
+            <div class="code-header"><span class="code-title">bash</span><button class="copy-btn"
+                onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <path
+                    d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                  <path
+                    d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+                </svg> Копировать</button></div>
+            <pre><span class="hl-cmd">git</span> clone https://github.com/lampac-nextgen/lampac.git
+<span class="hl-cmd">cd</span> lampac
+
+<span class="hl-cmd">mkdir</span> -p lampac-docker/config lampac-docker/plugins
+<span class="hl-cmd">cp</span> config/example.init.conf lampac-docker/config/init.conf
+<span class="hl-cmd">printf</span> <span class="hl-string">'%s'</span> <span class="hl-string">'ваш_пароль_root'</span> &gt; lampac-docker/config/passwd
+
+<span class="hl-comment"># Раскомментируйте блок volumes в docker-compose.yaml</span>
+<span class="hl-cmd">docker</span> compose up -d</pre>
+          </div>
+          <div class="callout callout-info"><span class="callout-icon">💡</span>
+            <p>По умолчанию тома закомментированы — контейнер стартует с <code>init.conf</code> и <code>passwd</code> из
+              образа. Рабочая директория в контейнере — <code>/lampac</code>.</p>
+          </div>
+        </div>
+
+        <div id="tab-dc-minimal" class="tab-panel">
+          <div class="code-wrap">
+            <div class="code-header"><span class="code-title">docker-compose.yaml</span><button class="copy-btn"
+                onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <path
+                    d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                  <path
+                    d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+                </svg> Копировать</button></div>
+            <pre><span class="hl-key">services</span>:
+  <span class="hl-key">lampac</span>:
+    <span class="hl-key">image</span>: <span class="hl-val">ghcr.io/lampac-nextgen/lampac</span>
+    <span class="hl-key">ports</span>:
+      - <span class="hl-string">"9118:9118"</span>
+    <span class="hl-key">shm_size</span>: <span class="hl-val">1024mb</span>
+    <span class="hl-key">restart</span>: <span class="hl-val">unless-stopped</span>
+    <span class="hl-key">volumes</span>:
+      - <span class="hl-string">./lampac-docker/config/passwd:/lampac/passwd</span>
+      - <span class="hl-string">./lampac-docker/config/init.conf:/lampac/init.conf</span>
+      - <span class="hl-string">./lampac-docker/plugins/lampainit.js:/lampac/plugins/override/lampainit.js</span>
+      - <span class="hl-string">./lampac-docker/cache:/lampac/cache</span>
+      - <span class="hl-string">./lampac-docker/database:/lampac/database</span></pre>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Хост</th>
+                  <th>Контейнер</th>
+                  <th>Назначение</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>./lampac-docker/config/passwd</code></td>
+                  <td><code>/lampac/passwd</code></td>
+                  <td>Пароль root</td>
+                </tr>
+                <tr>
+                  <td><code>./lampac-docker/config/init.conf</code></td>
+                  <td><code>/lampac/init.conf</code></td>
+                  <td>Конфигурация</td>
+                </tr>
+                <tr>
+                  <td><code>./lampac-docker/plugins/lampainit.js</code></td>
+                  <td><code>/lampac/plugins/override/lampainit.js</code></td>
+                  <td>Переопределение плагина</td>
+                </tr>
+                <tr>
+                  <td><code>./lampac-docker/cache</code></td>
+                  <td><code>/lampac/cache</code></td>
+                  <td>Кеш</td>
+                </tr>
+                <tr>
+                  <td><code>./lampac-docker/database</code></td>
+                  <td><code>/lampac/database</code></td>
+                  <td>БД (Sync, TimeCode, SISI)</td>
+                </tr>
+                <tr>
+                  <td><code>./lampac-docker/mods/&lt;Name&gt;</code></td>
+                  <td><code>/lampac/mods/&lt;Name&gt;</code></td>
+                  <td>Пользовательские модули</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tab-dc-dev" class="tab-panel">
+          <div class="callout callout-info"><span class="callout-icon">ℹ️</span>
+            <p><code>docker-compose.dev.yaml</code> — отдельная инстанция на порту <strong>29118</strong>. Тома включены
+              по умолчанию. Оба файла используют <code>container_name: lampac</code> — одновременный запуск без правки
+              невозможен.</p>
+          </div>
+          <div class="code-wrap">
+            <div class="code-header"><span class="code-title">bash</span><button class="copy-btn"
+                onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <path
+                    d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                  <path
+                    d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+                </svg> Копировать</button></div>
+            <pre><span class="hl-cmd">mkdir</span> -p lampac-docker/config lampac-docker/plugins
+<span class="hl-cmd">cp</span> config/example.init.conf lampac-docker/config/development.init.conf
+<span class="hl-comment"># В development.init.conf: "listen".port = 29118</span>
+<span class="hl-cmd">printf</span> <span class="hl-string">'%s'</span> <span class="hl-string">'ваш_пароль'</span> &gt; lampac-docker/config/passwd
+<span class="hl-cmd">cp</span> Modules/LampaWeb/plugins/lampainit.js lampac-docker/plugins/lampainit.js
+
+<span class="hl-cmd">docker</span> compose -f docker-compose.dev.yaml up -d</pre>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── LINUX ── -->
+      <div id="linux" class="param-block">
+        <div class="section-label">Способ 2</div>
+        <h2 class="section-title">Linux (Debian / Ubuntu)</h2>
+        <p class="section-sub">Скрипт устанавливает .NET 10 Runtime, создаёт пользователя <code>lampac</code> и
+          регистрирует systemd-сервис. Поддерживаются amd64 и arm64.</p>
+
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">bash — установка / обновление / удаление</span><button
+              class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16"
+                fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre><span class="hl-comment"># Установка</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash
+
+<span class="hl-comment"># Обновление</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash -s -- --update
+
+<span class="hl-comment"># Проверка обновления без изменений</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash -s -- --update --dry-run
+
+<span class="hl-comment"># Пред-релиз (pre-release)</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash -s -- --pre-release
+
+<span class="hl-comment"># Подробный лог для диагностики</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash -s -- --verbose
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash -s -- --update --verbose
+
+<span class="hl-comment"># Удаление</span>
+<span class="hl-cmd">curl</span> -fsSL https://raw.githubusercontent.com/lampac-nextgen/lampac/main/install.sh | sudo bash -s -- --remove</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">bash — управление сервисом</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre><span class="hl-cmd">systemctl</span> status lampac     <span class="hl-comment"># статус</span>
+<span class="hl-cmd">systemctl</span> restart lampac    <span class="hl-comment"># перезапуск</span>
+<span class="hl-cmd">systemctl</span> stop lampac       <span class="hl-comment"># остановить</span>
+<span class="hl-cmd">systemctl</span> enable lampac     <span class="hl-comment"># автозапуск</span>
+<span class="hl-cmd">journalctl</span> -u lampac -f     <span class="hl-comment"># лог в реальном времени</span></pre>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── WINDOWS ── -->
+      <div id="windows" class="param-block">
+        <div class="section-label">Способ 3</div>
+        <h2 class="section-title">Windows</h2>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Установите .NET 10 ASP.NET Core Runtime</h3>
+              <p>Скачайте и установите <strong>ASP.NET Core Runtime 10.0</strong> для Windows с официального сайта.</p>
+              <a class="btn btn-secondary" href="https://dotnet.microsoft.com/download/dotnet/10.0" target="_blank"
+                rel="noopener" style="font-size:13px;padding:7px 14px">Скачать .NET 10 →</a>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Скачайте и распакуйте релиз</h3>
+              <p>Скачайте <code>lampac-nextgen.zip</code> со страницы релизов и распакуйте, например, в
+                <code>C:\lampacNG</code>.
+              </p>
+              <a class="btn btn-secondary" href="https://github.com/lampac-nextgen/lampac/releases" target="_blank"
+                rel="noopener" style="font-size:13px;padding:7px 14px">Страница релизов →</a>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Настройте конфигурацию</h3>
+              <p>Переименуйте <code>example.init.conf</code> в <code>init.conf</code> и отредактируйте под свои нужды.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h3>Запустите сервер</h3>
+              <div class="code-wrap">
+                <div class="code-header"><span class="code-title">cmd / PowerShell</span><button class="copy-btn"
+                    onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                      <path
+                        d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                      <path
+                        d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+                    </svg> Копировать</button></div>
+                <pre><span class="hl-cmd">cd</span> C:\lampacNG
+<span class="hl-cmd">dotnet</span> Core.dll</pre>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h3>Фоновый сервис через NSSM (опционально)</h3>
+              <p>Скачайте <a href="https://nssm.cc/download" target="_blank" rel="noopener"
+                  style="color:#a5b4fc">NSSM</a>, распакуйте в <code>C:\nssm</code>.</p>
+              <div class="code-wrap">
+                <div class="code-header"><span class="code-title">cmd — от имени Администратора</span><button
+                    class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16"
+                      fill="currentColor">
+                      <path
+                        d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                      <path
+                        d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+                    </svg> Копировать</button></div>
+                <pre><span class="hl-comment">rem Создание сервиса</span>
+<span class="hl-cmd">C:\nssm\win64\nssm.exe</span> install Lampac "C:\Program Files\dotnet\dotnet.exe" "C:\lampacNG\Core.dll"
+<span class="hl-cmd">C:\nssm\win64\nssm.exe</span> set Lampac AppDirectory "C:\lampacNG"
+<span class="hl-cmd">C:\nssm\win64\nssm.exe</span> set Lampac Start SERVICE_AUTO_START
+<span class="hl-cmd">C:\nssm\win64\nssm.exe</span> start Lampac
+
+<span class="hl-comment">rem Удаление сервиса</span>
+<span class="hl-cmd">C:\nssm\win64\nssm.exe</span> stop Lampac
+<span class="hl-cmd">C:\nssm\win64\nssm.exe</span> remove Lampac</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── BUILD ── -->
+      <div id="build" class="param-block">
+        <div class="section-label">Способ 4</div>
+        <h2 class="section-title">Ручная сборка</h2>
+        <p class="section-sub">Требуется .NET SDK 10.0+. Собирает все проекты solution и помещает результат в
+          <code>publish/</code>.
+        </p>
+
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">bash — build.sh</span><button class="copy-btn"
+              onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg> Копировать</button></div>
+          <pre>./build.sh                                    <span class="hl-comment"># сборка → publish/</span>
+<span class="hl-cmd">RUNTIME_ID</span>=linux-arm64 ./build.sh             <span class="hl-comment"># кросс-компиляция arm64</span>
+
+<span class="hl-comment"># Напрямую через dotnet</span>
+<span class="hl-cmd">dotnet</span> publish Core/Core.csproj -c Release -o publish
+<span class="hl-cmd">dotnet</span> build NextGen.slnx                    <span class="hl-comment"># компиляция всего solution</span>
+
+<span class="hl-comment"># Запуск</span>
+<span class="hl-cmd">cd</span> publish &amp;&amp; dotnet Core.dll</pre>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Флаг build.sh</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>--clean</code></td>
+                <td>Удалить <code>bin/</code> и <code>obj/</code> из всех проектов перед сборкой</td>
+              </tr>
+              <tr>
+                <td><code>--format</code></td>
+                <td>Форматирование кода (<code>dotnet format</code>)</td>
+              </tr>
+              <tr>
+                <td><code>-o /path</code></td>
+                <td>Кастомная директория вывода вместо <code>publish/</code></td>
+              </tr>
+              <tr>
+                <td><code>-c Debug</code></td>
+                <td>Debug-конфигурация (по умолчанию Release)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── ENV VARS ── -->
+      <div id="env" class="param-block">
+        <h2 class="section-title">Переменные окружения</h2>
+        <p class="section-sub">Применяются к <code>install.sh</code> при нативной Linux-установке.</p>
+        <div class="env-grid">
+          <div class="env-item">
+            <div class="env-name">LAMPAC_INSTALL_ROOT</div>
+            <div class="env-default">По умолчанию: /opt/lampac</div>
+            <div class="env-desc">Директория установки</div>
+          </div>
+          <div class="env-item">
+            <div class="env-name">LAMPAC_USER</div>
+            <div class="env-default">По умолчанию: lampac</div>
+            <div class="env-desc">Системный пользователь</div>
+          </div>
+          <div class="env-item">
+            <div class="env-name">LAMPAC_UID</div>
+            <div class="env-default">По умолчанию: 1000</div>
+            <div class="env-desc">UID (если занят — выбирается свободный)</div>
+          </div>
+          <div class="env-item">
+            <div class="env-name">LAMPAC_GID</div>
+            <div class="env-default">По умолчанию: 1000</div>
+            <div class="env-desc">GID (если занят — выбирается свободный)</div>
+          </div>
+          <div class="env-item">
+            <div class="env-name">LAMPAC_PORT</div>
+            <div class="env-default">По умолчанию: 9118</div>
+            <div class="env-desc">Порт (для подсказки после установки)</div>
+          </div>
+          <div class="env-item">
+            <div class="env-name">LAMPAC_GITHUB_REPO</div>
+            <div class="env-default">По умолчанию: lampac-nextgen/lampac</div>
+            <div class="env-desc">GitHub-репозиторий релизов</div>
+          </div>
+          <div class="env-item">
+            <div class="env-name">LAMPAC_DOTNET_ROOT</div>
+            <div class="env-default">По умолчанию: /usr/share/dotnet</div>
+            <div class="env-desc">Путь установки .NET</div>
+          </div>
+          <div class="env-item">
+            <div class="env-name">LAMPAC_DOTNET_CHANNEL</div>
+            <div class="env-default">По умолчанию: 10.0</div>
+            <div class="env-desc">Версия .NET runtime</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── PROTECTED ── -->
+      <div id="protected" class="param-block">
+        <h2 class="section-title">Что сохраняется при обновлении</h2>
+        <p class="section-sub"><code>--update</code> использует <code>rsync --delete</code>, но следующие пути защищены:
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Путь</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>init.conf</code>, <code>init.yaml</code></td>
+                <td>Конфигурация</td>
+              </tr>
+              <tr>
+                <td><code>mods/</code></td>
+                <td>Пользовательские модули</td>
+              </tr>
+              <tr>
+                <td><code>data/kinoukr.json</code>, <code>data/PizdatoeDb.json</code></td>
+                <td>Локальные БД</td>
+              </tr>
+              <tr>
+                <td><code>*.db</code>, <code>*.db-shm</code>, <code>*.db-wal</code></td>
+                <td>SQLite (Sync, SISI, TimeCode)</td>
+              </tr>
+              <tr>
+                <td><code>logs/</code>, <code>cache/</code></td>
+                <td>Логи и кеш</td>
+              </tr>
+              <tr>
+                <td><code>TorrServer</code>, <code>torrserver/</code>, <code>data/ts/</code></td>
+                <td>TorrServer и его данные</td>
+              </tr>
+              <tr>
+                <td><code>users.json</code>, <code>passwd</code>, <code>current.conf</code>, <code>database/</code></td>
+                <td>Пользовательские данные</td>
+              </tr>
+              <tr>
+                <td><code>wwwroot/*.js</code></td>
+                <td>Пользовательские JS (темы, кнопки)</td>
+              </tr>
+              <tr>
+                <td><code>plugins/override/</code></td>
+                <td>Переопределения плагинов</td>
+              </tr>
+              <tr>
+                <td><code>excludes.conf</code></td>
+                <td>Дополнительные исключения rsync</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout-info"><span class="callout-icon">💡</span>
+          <p>Создайте <code>excludes.conf</code> рядом с <code>Core.dll</code> для защиты своих файлов. Одно исключение
+            на строку, <code>#</code> — комментарий, поддерживаются glob-паттерны.</p>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin: 40px 0" />
+
+      <!-- ── KUBERNETES / HELM ── -->
+      <div id="helm" class="param-block">
+        <div class="section-label">Способ 5</div>
+        <h2 class="section-title">Kubernetes / Helm</h2>
+        <p class="section-sub">Репозиторий содержит готовый Helm-чарт (<code>charts/lampac/</code>) для развёртывания на
+          Kubernetes.
+          Образ <code>ghcr.io/lampac-nextgen/lampac</code>, поддерживает <code>linux/amd64</code> и
+          <code>linux/arm64</code>.
+        </p>
+
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Быстрая установка</h3>
+        <div class="code-wrap">
+          <div class="code-header">
+            <span class="code-title">bash</span>
+            <button class="copy-btn" onclick="copyCode(this)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <pre>helm upgrade --install lampac ./charts/lampac \
+  -n lampac --create-namespace</pre>
+        </div>
+
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Конфиг через хост-директорию</h3>
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:12px">Lampac читает
+          <code>/lampac/init.conf</code> и <code>/lampac/passwd</code>.
+          Чтобы монтировать их с узла кластера:
+        </p>
+        <div class="code-wrap">
+          <div class="code-header">
+            <span class="code-title">values.yaml</span>
+            <button class="copy-btn" onclick="copyCode(this)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" />
+                <path
+                  d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <pre>config:
+  fromHost:
+    enabled: true
+    hostPath: /path/on/node/containing/init.conf
+  mountPasswd: true   # монтировать passwd рядом с init.conf</pre>
+        </div>
+
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Обзор параметров (values)</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ключ</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>service.port</code> / <code>service.targetPort</code></td>
+                <td>Порт Service кластера и порт контейнера (должен совпадать с <code>listen.port</code> в
+                  <code>init.conf</code>)
+                </td>
+              </tr>
+              <tr>
+                <td><code>config.fromHost</code></td>
+                <td>Монтировать <code>init.conf</code> (+ <code>passwd</code>) с узла через <code>subPath</code></td>
+              </tr>
+              <tr>
+                <td><code>persistence.cache</code> / <code>persistence.database</code></td>
+                <td>PVC для <code>/lampac/cache</code> и <code>/lampac/database</code></td>
+              </tr>
+              <tr>
+                <td><code>readinessProbe</code> / <code>startupProbe</code></td>
+                <td>По умолчанию TCP-проверка; можно заменить на <code>httpGet: /version</code></td>
+              </tr>
+              <tr>
+                <td><code>httpRoute</code></td>
+                <td>Gateway API HTTPRoute (см. <code>helm/lampac-values.yaml</code> в репозитории)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout-info"><span class="callout-icon">📖</span>
+          <p>Полный чарт и примеры значений:
+            <a href="https://github.com/lampac-nextgen/lampac/tree/main/charts/lampac" target="_blank"
+              rel="noopener"><code>charts/lampac/</code> на GitHub</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="index.html">Главная</a>
+        <a href="install.html">Установка</a>
+        <a href="config.html">Конфигурация</a>
+        <a href="modules.html">Модули</a>
+        <a href="https://github.com/lampac-nextgen/lampac" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/lampac-nextgen/lampac/releases" target="_blank" rel="noopener">Релизы</a>
+        <a href="https://t.me/LampacTalks/13998" target="_blank" rel="noopener">Telegram</a>
+      </div>
+      <div>© 2024–2026 Lampac NextGen contributors · <a
+          href="https://github.com/lampac-nextgen/lampac/blob/main/LICENSE" target="_blank" rel="noopener"
+          style="color:var(--text-muted)">MIT License</a></div>
+    </div>
+  </footer>
+
+  <script>
+    function showTab(id, btn) {
+      const wrap = btn.closest('.param-block') || btn.closest('section');
+      wrap.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      wrap.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      btn.classList.add('active');
+    }
+    function copyCode(btn) {
+      const text = btn.closest('.code-wrap').querySelector('pre').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg> Скопировано';
+        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
+      });
+    }
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMobile = document.getElementById('navMobile');
+    if (hamburgerBtn && navMobile) {
+      hamburgerBtn.addEventListener('click', () => {
+        const isOpen = navMobile.classList.toggle('open');
+        hamburgerBtn.classList.toggle('open', isOpen);
+        hamburgerBtn.setAttribute('aria-expanded', isOpen);
+      });
+    }
+  </script>
+</body>
+
+</html>
