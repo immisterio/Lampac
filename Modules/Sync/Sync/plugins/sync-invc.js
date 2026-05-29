@@ -1,7 +1,3 @@
-// //////////////
-// Переименуйте файл sync-invc.js в sync-invc.my.js
-// //////////////
-
 
 var sync_invc = {
   import_keys: [''] // 'myfavorite', 'profiles'
