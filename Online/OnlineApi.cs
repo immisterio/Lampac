@@ -15,11 +15,13 @@ using Shared.Services.Pools;
 using Shared.Services.RxEnumerate;
 using Shared.Services.Utilities;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -540,7 +542,11 @@ public class OnlineApiController : BaseController
     public ActionResult LifeEvents(string memkey, long id, string imdb_id, long kinopoisk_id, int serial)
     {
         if (!memoryCache.TryGetValue(memkey, out List<EventLinkItem> links) || links == null)
-            return Content("{\"ready\":false,\"tasks\":0,\"online\":[]}", "application/json; charset=utf-8");
+        {
+            Response.ContentType = "application/json; charset=utf-8";
+            Response.BodyWriter.Write("{\"ready\":false,\"tasks\":0,\"online\":[]}"u8);
+            return _emptyResult;
+        }
 
         var onlineItems = new List<EventLinkItem>(links.Count);
 
@@ -551,7 +557,11 @@ public class OnlineApiController : BaseController
         }
 
         if (onlineItems.Count == 0)
-            return Content("{\"ready\":false,\"tasks\":0,\"online\":[]}", "application/json; charset=utf-8");
+        {
+            Response.ContentType = "application/json; charset=utf-8";
+            Response.BodyWriter.Write("{\"ready\":false,\"tasks\":0,\"online\":[]}"u8);
+            return _emptyResult;
+        }
 
         onlineItems.Sort(static (a, b) =>
         {
@@ -559,64 +569,73 @@ public class OnlineApiController : BaseController
             return byWork != 0 ? byWork : a.index.CompareTo(b.index);
         });
 
-        var sb = StringBuilderPool.ThreadInstance;
-
         bool show = false;
         bool ready = onlineItems.Count == links.Count;
 
-        sb.Append("{\"ready\":").Append(onlineItems.Count == links.Count ? "true" : "false")
-          .Append(",\"tasks\":").Append(links.Count)
-          .Append(",\"online\":[");
-
-        #region render online
-        for (int i = 0; i < onlineItems.Count; i++)
+        using (var writer = new BufferWriterPool<byte>(BufferWriterPoolType.Tiny))
         {
-            if (i > 0)
-                sb.Append(',');
+            using (var json = new Utf8JsonWriter(writer))
+            {
+                json.WriteStartObject();
 
-            string code = onlineItems[i].code;
+                json.WriteBoolean("ready", onlineItems.Count == links.Count);
+                json.WriteNumber("tasks", links.Count);
 
-            if (!show && code.Contains("\"show\":true", StringComparison.Ordinal))
-                show = true;
+                json.WritePropertyName("online");
+                json.WriteStartArray();
 
-            if (code.Contains("{localhost}", StringComparison.Ordinal))
-                sb.Append(code.Replace("{localhost}", host, StringComparison.Ordinal));
-            else
-                sb.Append(code);
+                for (int i = 0; i < onlineItems.Count; i++)
+                {
+                    string code = onlineItems[i].code;
+
+                    if (!show && code.Contains("\"show\":true", StringComparison.Ordinal))
+                        show = true;
+
+                    if (code.Contains("{localhost}", StringComparison.Ordinal))
+                        code = code.Replace("{localhost}", host, StringComparison.Ordinal);
+
+                    json.WriteRawValue(code, skipInputValidation: false);
+                }
+
+                json.WriteEndArray();
+
+                json.WriteEndObject();
+            }
+
+            #region ошибка
+            if (ready && !show)
+            {
+                string kind = serial == 1 ? "сериала" : "фильма";
+
+                if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id <= 0)
+                {
+                    return Json(new
+                    {
+                        accsdb = true,
+                        ready = true,
+                        online = Array.Empty<string>(),
+                        msg = $"Добавьте \"IMDB ID\" {kind} на https://themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids"
+                    });
+                }
+                else
+                {
+                    return Json(new
+                    {
+                        accsdb = true,
+                        ready = true,
+                        online = Array.Empty<string>(),
+                        msg = $"Не удалось найти онлайн для {kind}"
+                    });
+                }
+            }
+            #endregion
+
+            Response.ContentType = "application/json; charset=utf-8";
+            Response.BodyWriter.Write(writer.WrittenSpan);
+
+            return _emptyResult;
         }
 
-        sb.Append("]}");
-        #endregion
-
-        #region ошибка
-        if (ready && !show)
-        {
-            string kind = serial == 1 ? "сериала" : "фильма";
-
-            if (string.IsNullOrEmpty(imdb_id) && kinopoisk_id <= 0)
-            {
-                return Json(new
-                {
-                    accsdb = true,
-                    ready = true,
-                    online = Array.Empty<string>(),
-                    msg = $"Добавьте \"IMDB ID\" {kind} на https://themoviedb.org/{(serial == 1 ? "tv" : "movie")}/{id}/edit?active_nav_item=external_ids"
-                });
-            }
-            else
-            {
-                return Json(new
-                {
-                    accsdb = true,
-                    ready = true,
-                    online = Array.Empty<string>(),
-                    msg = $"Не удалось найти онлайн для {kind}"
-                });
-            }
-        }
-        #endregion
-
-        return Content(sb.ToString(), "application/json; charset=utf-8");
     }
     #endregion
 
@@ -841,9 +860,9 @@ public class OnlineApiController : BaseController
         }
         #endregion
 
-        #region checkOnlineSearch
         if (ModInit.conf.checkOnlineSearch && !string.IsNullOrEmpty(id))
         {
+            #region checkOnlineSearch
             var hash = Fnv1a.Hash("checkOnlineSearch:");
             Fnv1a.Append(ref hash, id);
             Fnv1a.Append(ref hash, ':');
@@ -891,15 +910,37 @@ public class OnlineApiController : BaseController
                 .Select(i => i.code));
 
             return ContentTo($"[{result.Replace("{localhost}", host)}]");
+            #endregion
         }
-        #endregion
+        else
+        {
+            Response.ContentType = "application/json; charset=utf-8";
 
-        string online_result = string.Join(",", online
-            .OrderBy(i => i.index)
-            .Select(i => "{\"name\":\"" + i.name + "\",\"url\":\"" + i.url.Replace("{localhost}", host) + "\",\"balanser\":\"" + i.plugin + "\"}")
-        );
+            using (var json = new Utf8JsonWriter(new ChunkBufferWriter<byte>(Response.BodyWriter)))
+            {
+                json.WriteStartArray();
 
-        return ContentTo($"[{online_result}]");
+                foreach (var item in online.OrderBy(i => i.index))
+                {
+                    json.WriteStartObject();
+
+                    json.WriteString("name", item.name);
+
+                    string url = item.url.Contains("{localhost}", StringComparison.Ordinal)
+                        ? item.url.Replace("{localhost}", host, StringComparison.Ordinal)
+                        : item.url;
+
+                    json.WriteString("url", url);
+                    json.WriteString("balanser", item.plugin);
+
+                    json.WriteEndObject();
+                }
+
+                json.WriteEndArray();
+            }
+
+            return _emptyResult;
+        }
     }
     #endregion
 
