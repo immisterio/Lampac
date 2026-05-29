@@ -107,51 +107,54 @@ public static class PornHubTo
 
         if (related)
         {
-            videoCategory = HtmlSpan.Node(html, "*", "id", "relatedVideosListing", HtmlSpanTargetType.Exact);
-            if (videoCategory.IsEmpty)
-                videoCategory = HtmlSpan.Node(html, "*", "id", "relatedVideos", HtmlSpanTargetType.Exact);
+            // список "Связанные", "Рекомендуется" в самом видео
+            videoCategory = Rx.Slice(html, "relatedVideosListing", "loadMoreRelatedVideosCenter");
         }
         else if (html.Contains("id=\"videoCategory\"", StringComparison.Ordinal))
         {
+            // навигация по категориям https://rt.pornhub.com/video?c=1
             videoCategory = HtmlSpan.Node(html, "*", "id", "videoCategory", HtmlSpanTargetType.Exact);
+            if (videoCategory.IsEmpty)
+                videoCategory = Rx.Slice(html, "id=\"videoCategory\"", "class=\"reset\"");
         }
         else if (html.Contains("videoList clearfix browseVideo-tabSplit", StringComparison.Ordinal))
         {
-            var ids = Rx.Split("videoList clearfix browseVideo-tabSplit", html);
-            if (ids.Count > 1)
-            {
-                videoCategory = ids[1].Span;
-
-                if (videoCategory.Contains("<h2>Languages</h2>", StringComparison.Ordinal))
-                    videoCategory = Rx.Split("<h2>Languages</h2>", videoCategory)[0].Span;
-
-                if (videoCategory.Contains("pageHeader", StringComparison.Ordinal))
-                    videoCategory = Rx.Split("pageHeader", videoCategory)[0].Span;
-            }
+            // мобильный интерфейс (нужен для rhub)
+            videoCategory = Rx.Slice(html, "videoList clearfix browseVideo-tabSplit", "pageHeader");
         }
         else if (html.Contains("id=\"profileContent\"", StringComparison.Ordinal))
         {
+            // видео лысого https://rt.pornhub.com/pornstar/johnny-sins/videos/upload
             videoCategory = Rx.Slice(html, "id=\"profileContent\"", "</section>");
         }
         else
         {
-            videoCategory = HtmlSpan.Node(html, "*", "id", "videoSearchResult", HtmlSpanTargetType.Exact);
+            // поиск ясен хер
+            if (html.Contains("id=\"videoSearchResult\"", StringComparison.Ordinal))
+            {
+                videoCategory = HtmlSpan.Node(html, "*", "id", "videoSearchResult", HtmlSpanTargetType.Exact);
+                if (videoCategory.IsEmpty)
+                    videoCategory = Rx.Slice(html, "id=\"videoSearchResult\"", "class=\"reset\"");
+            }
+            else
+            {
+                // всякая хуйня на smart-tv при включённом rhub
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "mostRecentVideosSection", HtmlSpanTargetType.Exact);
 
-            if (videoCategory.IsEmpty)
-                videoCategory = HtmlSpan.Node(html, "*", "id", "mostRecentVideosSection", HtmlSpanTargetType.Exact);
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "moreData", HtmlSpanTargetType.Exact);
 
-            if (videoCategory.IsEmpty)
-                videoCategory = HtmlSpan.Node(html, "*", "id", "moreData", HtmlSpanTargetType.Exact);
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "content-tv-container", HtmlSpanTargetType.Exact);
 
-            if (videoCategory.IsEmpty)
-                videoCategory = HtmlSpan.Node(html, "*", "id", "content-tv-container", HtmlSpanTargetType.Exact);
-
-            if (videoCategory.IsEmpty)
-                videoCategory = HtmlSpan.Node(html, "*", "id", "lazyVids", HtmlSpanTargetType.Exact);
+                if (videoCategory.IsEmpty)
+                    videoCategory = HtmlSpan.Node(html, "*", "id", "lazyVids", HtmlSpanTargetType.Exact);
+            }
         }
 
         if (videoCategory.IsEmpty)
-            return null;
+            videoCategory = html;
 
         ModelItem model = null;
 
