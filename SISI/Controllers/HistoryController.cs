@@ -34,58 +34,59 @@ public class HistoryController : BaseController
 
             total_pages = Math.Max(0, await historysQuery.CountAsync() / pageSize) + 1;
 
-            var items = historysQuery
+            var items = await historysQuery
                 .OrderByDescending(i => i.created)
                 .Skip((pg * pageSize) - pageSize)
-                .Take(pageSize);
+                .Take(pageSize)
+                .Select(i => new { i.json })
+                .ToListAsync();
 
-            if (items.Any())
+            #region getvideLink
+            string getvideLink(PlaylistItem pl)
             {
-                #region getvideLink
-                string getvideLink(PlaylistItem pl)
+                if (pl.bookmark.site is "phub" or "phubprem")
+                    return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
+
+                if (pl.bookmark.href?.Contains("_-:-_") == true)
+                    return $"{host}/{pl.bookmark.site}/vidosik?uri={EncryptQuery(pl.bookmark.href)}";
+
+                return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
+            }
+            #endregion
+
+            foreach (var item in items)
+            {
+                if (string.IsNullOrEmpty(item.json))
+                    continue;
+
+                try
                 {
-                    if (pl.bookmark.site is "phub" or "phubprem")
-                        return $"{host}/{pl.bookmark.site}/vidosik?vkey={HttpUtility.UrlEncode(pl.bookmark.href)}";
-
-                    if (pl.bookmark.href?.Contains("_-:-_") == true)
-                        return $"{host}/{pl.bookmark.site}/vidosik?uri={EncryptQuery(pl.bookmark.href)}";
-
-                    return $"{host}/{pl.bookmark.site}/vidosik?uri={HttpUtility.UrlEncode(pl.bookmark.href)}";
-                }
-                #endregion
-
-                foreach (var item in items)
-                {
-                    if (string.IsNullOrEmpty(item.json))
+                    var pl = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
+                    if (pl?.bookmark == null)
                         continue;
 
-                    try
+                    historys.Add(new PlaylistItem()
                     {
-                        var pl = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
-                        if (pl != null)
-                        {
-                            historys.Add(new PlaylistItem()
-                            {
-                                name = pl.name,
-                                video = getvideLink(pl),
-                                picture = pl.bookmark.image != null
-                                    ? pl.bookmark.image.StartsWith("bookmarks/") ? $"{host}/{pl.bookmark.image}" : HostImgProxy(new BaseSettings() { plugin = pl.bookmark.site }, pl.bookmark.image)
-                                    : null,
-                                time = pl.time,
-                                json = pl.json,
-                                related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
-                                quality = pl.quality,
-                                preview = pl.preview,
-                                model = pl.model,
-                                bookmark = pl.bookmark,
-                                history_uid = pl.history_uid
-                            });
-                        }
-                    }
-                    catch (System.Exception ex)
-                    {
-                        Log.Error(ex, "CatchId={CatchId}", "id_5ztrqzhr");
-                    }
+                        name = pl.name,
+                        video = getvideLink(pl),
+                        picture = pl.bookmark.image != null
+                            ? pl.bookmark.image.StartsWith("bookmarks/")
+                                ? $"{host}/{pl.bookmark.image}"
+                                : HostImgProxy(new BaseSettings() { plugin = pl.bookmark.site }, pl.bookmark.image)
+                            : null,
+                        time = pl.time,
+                        json = pl.json,
+                        related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
+                        quality = pl.quality,
+                        preview = pl.preview,
+                        model = pl.model,
+                        bookmark = pl.bookmark,
+                        history_uid = pl.history_uid
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "CatchId={CatchId}", "id_5ztrqzhr");
                 }
             }
         }

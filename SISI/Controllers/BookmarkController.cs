@@ -42,8 +42,6 @@ public class BookmarkController : BaseController
                 .AsNoTracking()
                 .Where(i => i.user == md5user);
 
-            total_pages = Math.Max(0, await bookmarksQuery.CountAsync() / pageSize) + 1;
-
             #region Модель
             var menu_models = new MenuItem()
             {
@@ -68,52 +66,54 @@ public class BookmarkController : BaseController
                 menu.Add(menu_models);
             #endregion
 
-            var items = bookmarksQuery
-                .OrderByDescending(i => i.created)
-                .Skip((pg * pageSize) - pageSize)
-                .Take(pageSize);
-
             if (!string.IsNullOrEmpty(search))
-                items = items.Where(i => i.name != null && i.name.Contains(search));
+                bookmarksQuery = bookmarksQuery.Where(i => i.name != null && i.name.Contains(search));
 
             if (!string.IsNullOrEmpty(model))
-                items = items.Where(i => i.model == model);
+                bookmarksQuery = bookmarksQuery.Where(i => i.model == model);
 
-            if (items.Any())
+            total_pages = Math.Max(0, await bookmarksQuery.CountAsync() / pageSize) + 1;
+
+            var items = await bookmarksQuery.OrderByDescending(i => i.created)
+                .Skip((pg * pageSize) - pageSize)
+                .Take(pageSize)
+                .Select(i => new { i.json })
+                .ToListAsync();
+
+            foreach (var item in items)
             {
-                foreach (var item in items)
+                if (string.IsNullOrEmpty(item.json))
+                    continue;
+
+                try
                 {
-                    if (string.IsNullOrEmpty(item.json))
+                    var pl = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
+                    if (pl?.bookmark == null)
                         continue;
 
-                    try
+                    bookmarks.Add(new PlaylistItem()
                     {
-                        var pl = JsonConvert.DeserializeObject<PlaylistItem>(item.json);
-                        if (pl != null)
-                        {
-                            bookmarks.Add(new PlaylistItem()
-                            {
-                                name = pl.name,
-                                video = getvideLink(pl),
-                                picture = pl.bookmark.image != null
-                                    ? pl.bookmark.image.StartsWith("bookmarks/") ? $"{host}/{pl.bookmark.image}" : HostImgProxy(new BaseSettings() { plugin = pl.bookmark.site }, pl.bookmark.image)
-                                    : null,
-                                time = pl.time,
-                                json = pl.json,
-                                related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
-                                quality = pl.quality,
-                                preview = pl.preview != null && pl.preview.StartsWith("bookmarks/")
-                                    ? $"{host}/{pl.preview}"
-                                    : null,
-                                model = pl.model,
-                                bookmark = new Bookmark() { uid = pl.bookmark.uid }
-                            });
-                        }
-                    }
-                    catch (System.Exception ex)
-                    {
-                        Log.Error(ex, "CatchId={CatchId}", "id_gw4vznko");
-                    }
+                        name = pl.name,
+                        video = getvideLink(pl),
+                        picture = pl.bookmark.image != null
+                            ? pl.bookmark.image.StartsWith("bookmarks/")
+                                ? $"{host}/{pl.bookmark.image}"
+                                : HostImgProxy(new BaseSettings() { plugin = pl.bookmark.site }, pl.bookmark.image)
+                            : null,
+                        time = pl.time,
+                        json = pl.json,
+                        related = pl.related || Regex.IsMatch(pl.bookmark.site, "^(elo|epr|fph|phub|sbg|xmr|xnx|xds)"),
+                        quality = pl.quality,
+                        preview = pl.preview != null && pl.preview.StartsWith("bookmarks/")
+                            ? $"{host}/{pl.preview}"
+                            : null,
+                        model = pl.model,
+                        bookmark = new Bookmark() { uid = pl.bookmark.uid }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "CatchId={CatchId}", "id_gw4vznko");
                 }
             }
         }

@@ -69,9 +69,9 @@ public class SisiApiController : BaseController
         bulder = bulder
             .Replace("{invc-rch}", FileCache.ReadAllText("plugins/invc-rch.js", "invc-rch.js", false))
             .Replace("{invc-rch_nws}", FileCache.ReadAllText("plugins/invc-rch_nws.js", "invc-rch_nws.js", false))
-            .Replace("{push_all}", init.push_all.ToString().ToLower())
+            .Replace("{push_all}", init.push_all ? "true" : "false")
             .Replace("{localhost}", host)
-            .Replace("{historySave}", ModInit.conf.history.enable.ToString().ToLower());
+            .Replace("{historySave}", ModInit.conf.history.enable ? "true" : "false");
 
         if (init.forced_checkRchtype)
             bulder = bulder.Replace("window.rchtype", "Defined.rchtype");
@@ -155,7 +155,7 @@ public class SisiApiController : BaseController
                 if (stream_deny != null && stream_deny.Contains(rchtype))
                     return;
 
-                if (init.rhub && !init.rhub_fallback && !init.corseu && string.IsNullOrWhiteSpace(init.webcorshost))
+                if (init.rhub && !init.rhub_fallback && !init.corseu && string.IsNullOrEmpty(init.webcorshost))
                 {
                     if (init.rhub_geo_disable != null &&
                         requestInfo.Country != null &&
@@ -189,10 +189,8 @@ public class SisiApiController : BaseController
                     url = init.overridehosts[Random.Shared.Next(0, init.overridehosts.Length)];
             }
 
-            string displayname = init.displayname ?? name;
-
             if (string.IsNullOrEmpty(url))
-                url = $"{host}/{plugin ?? name.ToLower()}";
+                url = $"{host}/{plugin ?? name.ToLowerAndTrim()}";
 
             if (displayindex == -1)
             {
