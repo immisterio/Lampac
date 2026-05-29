@@ -191,7 +191,7 @@ public class TorrServerController : BaseController
     async public Task TorAPI(AccsUser user = null)
     {
         string pathRequest = Regex.Replace(HttpContext.Request.Path.Value, "^/ts", "");
-        string servUri = $"http://{CoreInit.conf.listen.localhost}:{ModInit.conf.tsport}{pathRequest + HttpContext.Request.QueryString.Value}";
+        string servUri = $"http://{CoreInit.conf.listen.localhost}:{ModInit.conf.tsport}{Regex.Replace(pathRequest, "[^a-zA-Z0-9\\./]", "") + HttpContext.Request.QueryString.Value}";
 
         using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
         {
