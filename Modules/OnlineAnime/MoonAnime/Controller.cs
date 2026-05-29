@@ -240,18 +240,22 @@ public class MoonAnimeController : BaseOnlineController
     rhubFallback:
         var cache = await InvokeCacheResult<(string file, string subtitle)>($"moonanime:vod:{vod}", 30, async e =>
         {
+            string js = null;
             (string file, string subtitle) data = (null, null);
 
-            string iframe = await PlaywrightHttp.Get(init, vod, httpHeaders(init), proxy_data);
-            if (string.IsNullOrEmpty(iframe))
-                return e.Fail("iframe", refresh_proxy: true);
+            await PlaywrightHttp.GetSpan(init.plugin, vod, html =>
+            {
+                js = Decode(Rx.Slice(html, "=atob(\"", "\");"));
+            }, httpHeaders(init), proxy_data);
 
-            string js = Decode(Rx.Slice(iframe, "=atob(\"", "\");"));
             if (js == null)
-                return e.Fail("js decode");
+                return e.Fail("js decode", refresh_proxy: true);
 
-            data.file = _0xd(Regex.Match(js, "file:([\t ]+)?_0xd\\(\"([^\"]+)\"\\)").Groups[2].Value);
-            if (string.IsNullOrEmpty(data.file))
+            string key = Regex.Match(js, "var k=\"([^\"]+)\"").Groups[1].Value;
+            string file = Regex.Match(js, "file:([\t ]+)?_0xd\\(\"([^\"]+)\"\\)").Groups[2].Value;
+
+            data.file = _0xd(file, key);
+            if (string.IsNullOrEmpty(data.file) || !data.file.StartsWith("http"))
                 return e.Fail("file");
 
             return e.Success(data);
@@ -308,16 +312,25 @@ public class MoonAnimeController : BaseOnlineController
                     return null;
 
                 const int KeySize = 32;
+                const int HeaderSize = 1 + KeySize;
 
-                if (bytesWritten < KeySize)
+                if (bytesWritten < HeaderSize)
                     return null;
 
                 Span<byte> data = nbuf.Span.Slice(0, bytesWritten);
-                ReadOnlySpan<byte> key = data.Slice(0, KeySize);
-                Span<byte> payload = data.Slice(KeySize, bytesWritten - KeySize);
+
+                byte state = data[0];
+                ReadOnlySpan<byte> key = data.Slice(1, KeySize);
+                Span<byte> payload = data.Slice(HeaderSize, bytesWritten - HeaderSize);
 
                 for (int i = 0; i < payload.Length; i++)
-                    payload[i] = (byte)(payload[i] ^ key[i % KeySize]);
+                {
+                    byte encrypted = payload[i];
+                    byte keyByte = key[i % KeySize];
+
+                    payload[i] = (byte)(encrypted ^ keyByte ^ state);
+                    state = (byte)((encrypted + keyByte) & 0xFF);
+                }
 
                 return Encoding.UTF8.GetString(payload);
             }
@@ -328,22 +341,22 @@ public class MoonAnimeController : BaseOnlineController
         }
     }
 
-    public static string _0xd(string e)
+    public static string _0xd(string file, string key)
     {
         try
         {
-            ReadOnlySpan<byte> key = "mAnK"u8;
-            int capacity = Encoding.UTF8.GetMaxByteCount(e.Length);
+            ReadOnlySpan<byte> keyByte = Encoding.UTF8.GetBytes(key);
+            int capacity = Encoding.UTF8.GetMaxByteCount(file.Length);
 
             using (var nbuf = new BufferBytePool(capacity))
             {
-                if (!Convert.TryFromBase64Chars(e, nbuf.Span, out int bytesWritten))
+                if (!Convert.TryFromBase64Chars(file, nbuf.Span, out int bytesWritten))
                     return null;
 
                 Span<byte> data = nbuf.Span.Slice(0, bytesWritten);
 
                 for (int i = 0; i < data.Length; i++)
-                    data[i] = (byte)(data[i] ^ key[i % key.Length]);
+                    data[i] = (byte)(data[i] ^ keyByte[i % keyByte.Length]);
 
                 return Encoding.UTF8.GetString(data);
             }
