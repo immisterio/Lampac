@@ -117,7 +117,7 @@ public static class CronParse
 
         string mainHtml = proxy != null
             ? await Http.Get(pgUri, proxy: proxy, timeoutSeconds: 4)
-            : await PlaywrightHttp.Get(ModInit.conf, pgUri, viewsource: false);
+            : await PlaywrightHttp.Get(ModInit.conf, pgUri);
 
         if (mainHtml == null || !mainHtml.Contains("class=\"b-content__inline_item\""))
             return default;
@@ -139,7 +139,7 @@ public static class CronParse
 
             string news = proxy != null
                 ? await Http.Get($"{ModInit.conf.host}/{link}", proxy: proxy, timeoutSeconds: 10)
-                : await PlaywrightHttp.Get(ModInit.conf, $"{ModInit.conf.host}/{link}", viewsource: false);
+                : await PlaywrightHttp.Get(ModInit.conf, $"{ModInit.conf.host}/{link}");
 
             if (news != null)
             {

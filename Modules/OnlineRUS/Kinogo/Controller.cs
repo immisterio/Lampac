@@ -38,11 +38,22 @@ public class KinogoController : BaseOnlineController
         reset_search:
             var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", TimeSpan.FromHours(4), async e =>
             {
-                string search = rch?.enable == true
-                    ? await rch.Get($"{init.host}/search/{title}")
-                    : await PlaywrightHttp.Get(init, $"{init.host}/search/{title}", proxy: proxy_data);
+                SearchModel result = null;
 
-                var result = SearchResult(search, title, year);
+                if (rch?.enable == true)
+                {
+                    await rch.GetSpan($"{init.host}/search/{title}", html =>
+                    {
+                        result = SearchResult(html, title, year);
+                    });
+                }
+                else
+                {
+                    await PlaywrightHttp.GetSpan(init.plugin, $"{init.host}/search/{title}", html =>
+                    {
+                        result = SearchResult(html, title, year);
+                    }, proxy: proxy_data);
+                }
 
                 if (result == null)
                     return e.Fail("search-result", refresh_proxy: true);
@@ -73,21 +84,28 @@ public class KinogoController : BaseOnlineController
 
         var embed = await InvokeCacheResult<string>($"kinogo:{href}", TimeSpan.FromHours(4), async e =>
         {
-            string embedUrl = null;
+            string iframeUri = null;
             string targetHref = $"{init.host}/{href}";
+            
+            if (rch?.enable == true)
+            {
+                await rch.GetSpan(init.cors(targetHref), html =>
+                {
+                    iframeUri = Rx.Match(html, "<iframe [^>]+data-src=\"([^\"]+)\"");
+                });
+            }
+            else
+            {
+                await PlaywrightHttp.GetSpan(init.plugin, init.cors(targetHref), html =>
+                {
+                    iframeUri = Rx.Match(html, "<iframe [^>]+data-src=\"([^\"]+)\"");
+                });
+            }
 
-            string iframe = rch?.enable == true
-               ? await rch.Get(init.cors(targetHref))
-               : await PlaywrightHttp.Get(init, init.cors(targetHref));
-
-            if (iframe == null)
-                return e.Fail("iframe", refresh_proxy: true);
-
-            string iframeUri = Regex.Match(iframe, "<iframe [^>]+data-src=\"([^\"]+)\"").Groups[1].Value;
-            if (string.IsNullOrEmpty(iframeUri))
+            if (iframeUri == null)
                 return e.Fail("iframeUri", refresh_proxy: true);
 
-            embedUrl = iframeUri.StartsWith("//") ? $"https:{iframeUri}" : iframeUri;
+            string embedUrl = iframeUri.StartsWith("//") ? $"https:{iframeUri}" : iframeUri;
 
             if (string.IsNullOrEmpty(embedUrl))
                 return e.Fail("embedUrl", refresh_proxy: true);
@@ -107,18 +125,26 @@ public class KinogoController : BaseOnlineController
 
         var cache = await InvokeCacheResult<List<PlaylistItem>>(ipkey($"kinogo:{embed.Value}"), 20, async e =>
         {
+            string fileEncode = null;
             var embedHeaders = httpHeaders(init, HeadersModel.Init("referer", $"{init.host}/{href}"));
 
-            string embedHtml = rch?.enable == true
-                ? await rch.Get(init.cors(embed.Value), embedHeaders)
-                : await PlaywrightHttp.Get(init, init.cors(embed.Value), headers: embedHeaders, proxy_data);
+            if (rch?.enable == true)
+            {
+                await rch.GetSpan(init.cors(embed.Value), html =>
+                {
+                    fileEncode = Rx.Match(html, "\"file\":\"([^\"]+)\"");
+                }, embedHeaders);
+            }
+            else
+            {
+                await PlaywrightHttp.GetSpan(init.plugin, init.cors(embed.Value), html =>
+                {
+                    fileEncode = Rx.Match(html, "\"file\":\"([^\"]+)\"");
+                }, headers: embedHeaders, proxy_data);
+            }
 
-            if (embedHtml == null)
-                return e.Fail("embed");
-
-            string fileEncode = Regex.Match(embedHtml, "\"file\":\"([^\"]+)\"").Groups[1].Value;
             if (string.IsNullOrEmpty(fileEncode))
-                return e.Fail("fileEncode");
+                return e.Fail("fileEncode", refresh_proxy: true);
 
             string playlistJson = await DecodeFile(init, fileEncode);
             if (string.IsNullOrEmpty(playlistJson))

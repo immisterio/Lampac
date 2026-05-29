@@ -18,7 +18,7 @@ public static class PlaywrightHttp
     #endregion
 
     #region Get
-    async public static Task<string> Get(BaseSettings init, string url, IReadOnlyList<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null, bool viewsource = true)
+    async public static Task<string> Get(BaseSettings init, string url, IReadOnlyList<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null)
     {
         IResponse response = default;
         string result = null;
@@ -43,10 +43,10 @@ public static class PlaywrightHttp
                 }
                 else
                 {
-                    response = await page.GotoAsync(viewsource ? $"view-source:{url}" : url, new PageGotoOptions()
+                    response = await page.GotoAsync($"view-source:{url}", new PageGotoOptions()
                     {
                         Timeout = 10_000,
-                        WaitUntil = WaitUntilState.DOMContentLoaded
+                        WaitUntil = WaitUntilState.Commit
                     }).ConfigureAwait(false);
                 }
 
@@ -94,8 +94,30 @@ public static class PlaywrightHttp
     #endregion
 
     #region GetSpan
-    static readonly List<Dictionary<string, object>> _responseHeaders = new();
+    async public static Task GetSpan(string plugin, string url, Action<ReadOnlySpan<char>> spanAction, IReadOnlyList<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null)
+    {
+        const int timeout = 10_000;
 
+        using (var msm = PoolInvk.msm.GetStream())
+        {
+            bool success = await GetReaderAsync(plugin, url, msm.Write, headers, proxy, cookies, timeout);
+            if (success)
+            {
+                msm.Position = 0;
+
+                OwnerTo.Span(msm, Encoding.UTF8, span =>
+                {
+                    if (span.IsEmpty)
+                        return;
+
+                    spanAction.Invoke(span);
+                });
+            }
+        }
+    }
+    #endregion
+
+    #region GetReaderAsync
     static readonly Dictionary<string, object> _fetchPatterns = new Dictionary<string, object>()
     {
         ["patterns"] = new[]
@@ -108,77 +130,79 @@ public static class PlaywrightHttp
         }
     };
 
-    async public static Task GetSpan(string plugin, string url, Action<ReadOnlySpan<char>> spanAction, IReadOnlyList<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null)
+    async public static Task<bool> GetReaderAsync(string plugin, string url, Action<ReadOnlySpan<byte>> chunk, IReadOnlyList<HeadersModel> headers = null, (string ip, string username, string password) proxy = default, List<Cookie> cookies = null, int timeout = 10_000)
     {
         const int rawSize = 32 * 1024;
-        const int timeout = 10_000;
+        const int bufferByteSize = rawSize * 4;
 
         using (var browser = new PlaywrightBrowser())
         {
             var page = await browser.NewPageAsync(plugin, headers?.ToDictionary(), proxy).ConfigureAwait(false);
             if (page == null)
-                return;
+                return false;
 
             if (cookies != null)
                 await page.Context.AddCookiesAsync(cookies).ConfigureAwait(false);
 
-            using (var msm = PoolInvk.msm.GetStream())
+            using (var cts = new CancellationTokenSource(timeout))
             {
-                var cdp = await page.Context.NewCDPSessionAsync(page).ConfigureAwait(false);
+                var ct = cts.Token;
+                var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                using (var cts = new CancellationTokenSource(timeout))
+                var cdp = await page.Context.NewCDPSessionAsync(page)
+                    .WaitAsync(ct)
+                    .ConfigureAwait(false);
+
+                #region OnEvent
+                cdp.Event("Fetch.requestPaused").OnEvent += async (_, ev) =>
                 {
-                    var ct = cts.Token;
-                    var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    string handle = null, requestId = null;
 
-                    #region OnEvent
-                    cdp.Event("Fetch.requestPaused").OnEvent += async (_, ev) =>
+                    try
                     {
-                        string handle = null, requestId = null;
+                        JsonElement root = ev.Value;
+                        requestId = root.GetProperty("requestId").GetString();
+                        int statusCode = root.TryGetProperty("responseStatusCode", out JsonElement statusProp)
+                            ? statusProp.GetInt32()
+                            : 0;
 
-                        try
+                        if (statusCode >= 300 && statusCode < 400)
                         {
-                            JsonElement root = ev.Value;
-                            requestId = root.GetProperty("requestId").GetString();
-                            int statusCode = root.TryGetProperty("responseStatusCode", out JsonElement statusProp)
-                                ? statusProp.GetInt32()
-                                : 0;
-
-                            if (statusCode >= 300 && statusCode < 400)
-                            {
-                                await cdp.SendAsync("Fetch.continueRequest", new()
-                                {
-                                    ["requestId"] = requestId
-                                }).WaitAsync(ct).ConfigureAwait(false);
-
-                                return;
-                            }
-
-                            if (statusCode < 200 || statusCode >= 300)
-                            {
-                                await cdp.SendAsync("Fetch.failRequest", new()
-                                {
-                                    ["requestId"] = requestId,
-                                    ["errorReason"] = "Aborted"
-                                }).WaitAsync(ct).ConfigureAwait(false);
-
-                                done.TrySetResult(false);
-                                return;
-                            }
-
-                            var streamResult = await cdp.SendAsync("Fetch.takeResponseBodyAsStream", new()
+                            await cdp.SendAsync("Fetch.continueRequest", new()
                             {
                                 ["requestId"] = requestId
                             }).WaitAsync(ct).ConfigureAwait(false);
 
-                            handle = streamResult.Value
-                                .GetProperty("stream")
-                                .GetString();
+                            return;
+                        }
 
-                            try
+                        if (statusCode < 200 || statusCode >= 300)
+                        {
+                            await cdp.SendAsync("Fetch.failRequest", new()
+                            {
+                                ["requestId"] = requestId,
+                                ["errorReason"] = "Aborted"
+                            }).WaitAsync(ct).ConfigureAwait(false);
+
+                            done.TrySetResult(false);
+                            return;
+                        }
+
+                        var streamResult = await cdp.SendAsync("Fetch.takeResponseBodyAsStream", new()
+                        {
+                            ["requestId"] = requestId
+                        }).WaitAsync(ct).ConfigureAwait(false);
+
+                        handle = streamResult.Value
+                            .GetProperty("stream")
+                            .GetString();
+
+                        try
+                        {
+                            using (var nbuf = new BufferBytePool(bufferByteSize))
                             {
                                 /// это не полноценный stream, у Microsoft.Playwright его нету
-                                /// мы разбиваем html на чанки по ~49кб, это позволяет GC эффективней ебать мусор в Gen0 и не складывать в долгую LOH память
+                                /// мы разбиваем ответ на чанки по ~71кб (с учетом json), это позволяет GC эффективней ебать мусор в Gen0 и не складывать в долгую LOH память
                                 while (true)
                                 {
                                     ct.ThrowIfCancellationRequested();
@@ -200,7 +224,7 @@ public static class PlaywrightHttp
                                                 break;
 
                                             if (bytes.Length > 0)
-                                                msm.Write(bytes);
+                                                chunk.Invoke(bytes);
                                         }
                                         else
                                         {
@@ -209,13 +233,10 @@ public static class PlaywrightHttp
                                             if (string.IsNullOrEmpty(res))
                                                 break;
 
-                                            using (var nbuf = new BufferBytePool(Encoding.UTF8.GetMaxByteCount(res.Length)))
-                                            {
-                                                int bytesWritten = Encoding.UTF8.GetBytes(res, nbuf.Span);
+                                            int bytesWritten = Encoding.UTF8.GetBytes(res, nbuf.Span);
 
-                                                if (bytesWritten > 0)
-                                                    msm.Write(nbuf.Span.Slice(0, bytesWritten));
-                                            }
+                                            if (bytesWritten > 0)
+                                                chunk.Invoke(nbuf.Span.Slice(0, bytesWritten));
                                         }
                                     }
 
@@ -223,122 +244,113 @@ public static class PlaywrightHttp
                                         break;
                                 }
                             }
-                            finally
-                            {
-                                if (handle != null)
-                                {
-                                    try
-                                    {
-                                        await cdp.SendAsync("IO.close", new()
-                                        {
-                                            ["handle"] = handle
-                                        }).WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                                    }
-                                    catch { }
-                                }
-                            }
-
-                            ct.ThrowIfCancellationRequested();
-
-                            await cdp.SendAsync("Fetch.fulfillRequest", new()
-                            {
-                                ["requestId"] = requestId,
-                                ["responseCode"] = statusCode,
-                                ["responseHeaders"] = _responseHeaders,
-                                ["body"] = "b2s="
-                            }).WaitAsync(ct).ConfigureAwait(false);
-
-                            done.TrySetResult(true);
                         }
-                        catch (Exception ex)
+                        finally
                         {
-                            if (requestId != null)
+                            if (handle != null)
                             {
                                 try
                                 {
-                                    await cdp.SendAsync("Fetch.failRequest", new()
+                                    await cdp.SendAsync("IO.close", new()
                                     {
-                                        ["requestId"] = requestId,
-                                        ["errorReason"] = "Failed"
+                                        ["handle"] = handle
                                     }).WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
                                 }
                                 catch { }
                             }
-
-                            done.TrySetException(ex);
                         }
-                    };
-                    #endregion
+
+                        await cdp.SendAsync("Fetch.failRequest", new()
+                        {
+                            ["requestId"] = requestId,
+                            ["errorReason"] = "Aborted"
+                        }).WaitAsync(ct).ConfigureAwait(false);
+
+                        done.TrySetResult(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (requestId != null)
+                        {
+                            try
+                            {
+                                await cdp.SendAsync("Fetch.failRequest", new()
+                                {
+                                    ["requestId"] = requestId,
+                                    ["errorReason"] = "Failed"
+                                }).WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                            }
+                            catch { }
+                        }
+
+                        done.TrySetException(ex);
+                    }
+                };
+                #endregion
+
+                try
+                {
+                    await cdp.SendAsync("Fetch.enable", _fetchPatterns)
+                        .WaitAsync(ct)
+                        .ConfigureAwait(false);
+
+                    var gotoTask = page.GotoAsync(url, new PageGotoOptions
+                    {
+                        Timeout = timeout,
+                        WaitUntil = WaitUntilState.Commit
+                    });
+
+                    var timeoutTask = Task.Delay(Timeout.InfiniteTimeSpan, ct);
+
+                    var completedTask = await Task.WhenAny(
+                        done.Task,
+                        timeoutTask
+                    ).ConfigureAwait(false);
+
+                    if (completedTask != done.Task)
+                        return false;
+
+                    bool ok = await done.Task.ConfigureAwait(false);
+
+                    if (!ok)
+                        return false;
 
                     try
                     {
-                        await cdp.SendAsync("Fetch.enable", _fetchPatterns)
-                            .WaitAsync(ct)
+                        await gotoTask.WaitAsync(ct).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return false;
+                    }
+                    catch
+                    {
+                        // тело всё равно уже получено
+                    }
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+                finally
+                {
+                    try
+                    {
+                        await cdp.SendAsync("Fetch.disable")
+                            .WaitAsync(TimeSpan.FromSeconds(1))
                             .ConfigureAwait(false);
-
-                        var gotoTask = page.GotoAsync(url, new PageGotoOptions
-                        {
-                            Timeout = timeout,
-                            WaitUntil = WaitUntilState.Commit
-                        });
-
-                        var timeoutTask = Task.Delay(Timeout.InfiniteTimeSpan, ct);
-
-                        var completedTask = await Task.WhenAny(
-                            done.Task,
-                            timeoutTask
-                        ).ConfigureAwait(false);
-
-                        if (completedTask != done.Task)
-                            return;
-
-                        bool ok = await done.Task.ConfigureAwait(false);
-
-                        if (!ok)
-                            return;
-
-                        try
-                        {
-                            await gotoTask.WaitAsync(ct).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            return;
-                        }
-                        catch
-                        {
-                            // тело всё равно уже получено
-                        }
-
-                        msm.Position = 0;
-
-                        OwnerTo.Span(msm, Encoding.UTF8, span =>
-                        {
-                            if (span.IsEmpty)
-                                return;
-
-                            spanAction.Invoke(span);
-                        });
                     }
                     catch { }
-                    finally
-                    {
-                        try
-                        {
-                            await cdp.SendAsync("Fetch.disable")
-                                .WaitAsync(TimeSpan.FromSeconds(1))
-                                .ConfigureAwait(false);
-                        }
-                        catch { }
 
-                        try
-                        {
-                            await cdp.DetachAsync()
-                                .WaitAsync(TimeSpan.FromSeconds(1))
-                                .ConfigureAwait(false);
-                        }
-                        catch { }
+                    try
+                    {
+                        await cdp.DetachAsync()
+                            .WaitAsync(TimeSpan.FromSeconds(1))
+                            .ConfigureAwait(false);
                     }
+                    catch { }
                 }
             }
         }

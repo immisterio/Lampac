@@ -6,6 +6,7 @@ using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
 using Shared.Services;
+using Shared.Services.HTTP;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -57,8 +58,10 @@ public class VideoDBController : BaseOnlineController
             }
             else
             {
-                ReadOnlySpan<char> html = await black_magic(href);
-                embed = oninvk.Embed(html);
+                await PlaywrightHttp.GetSpan(init.plugin, href, html =>
+                {
+                    embed = oninvk.Embed(html);
+                }, init.headersList, proxy_data);
             }
 
             if (embed == null)
@@ -218,73 +221,6 @@ public class VideoDBController : BaseOnlineController
                 : httpHeaders(init.host, init.headers_stream),
             httpContext: HttpContext
         ));
-    }
-    #endregion
-
-    #region black_magic
-    async Task<string> black_magic(string iframe_uri)
-    {
-        try
-        {
-            using (var browser = new PlaywrightBrowser(init.priorityBrowser))
-            {
-                var page = await browser.NewPageAsync(init.plugin, init.headers, proxy: proxy_data, imitationHuman: init.imitationHuman).ConfigureAwait(false);
-                if (page == null)
-                    return null;
-
-                browser.SetFailedUrl(iframe_uri);
-
-                await page.RouteAsync("**/*", async route =>
-                {
-                    try
-                    {
-                        if (route.Request.Url.StartsWith(init.host))
-                        {
-                            await route.FulfillAsync(new RouteFulfillOptions
-                            {
-                                Body = PlaywrightBase.IframeHtml(iframe_uri)
-                            });
-                        }
-                        else if (route.Request.Url == iframe_uri)
-                        {
-                            string html = null;
-                            await route.ContinueAsync();
-
-                            var response = await page.WaitForResponseAsync(route.Request.Url);
-                            if (response != null)
-                                html = await response.TextAsync();
-
-                            browser.SetPageResult(html);
-                            return;
-                        }
-                        else
-                        {
-                            if (!init.imitationHuman || route.Request.Url.EndsWith(".m3u8") || route.Request.Url.Contains("/cdn-cgi/challenge-platform/"))
-                            {
-                                PlaywrightBase.ConsoleLog(() => $"Playwright: Abort {route.Request.Url}");
-                                await route.AbortAsync();
-                            }
-                            else
-                            {
-                                if (await PlaywrightBase.AbortOrCache(page, route))
-                                    return;
-
-                                await route.ContinueAsync();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "CatchId={CatchId}", "id_o4wf3qjk");
-                    }
-                });
-
-                PlaywrightBase.GotoAsync(page, init.host);
-
-                return await browser.WaitPageResult().ConfigureAwait(false);
-            }
-        }
-        catch { return null; }
     }
     #endregion
 }
