@@ -86,7 +86,7 @@ public class KinogoController : BaseOnlineController
         {
             string iframeUri = null;
             string targetHref = $"{init.host}/{href}";
-            
+
             if (rch?.enable == true)
             {
                 await rch.GetSpan(init.cors(targetHref), html =>
