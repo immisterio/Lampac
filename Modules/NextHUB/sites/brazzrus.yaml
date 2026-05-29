@@ -64,6 +64,5 @@ view:
   patternAbort: \.(mp4|m3u|ts|mpd)
   waitForSelector: "[id^='oframeplayer-']"
   NetworkIdle: true
-  nodeFile:
-    node: //video
-    attribute: src
+  regexMatch:
+    pattern: '<source src="([^\"]+)"'

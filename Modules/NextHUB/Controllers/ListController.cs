@@ -442,7 +442,7 @@ public class ListController : BaseSisiController<NxtSettings>
                     pl.video = ProxyLink.Encrypt(
                         pl.video,
                         requestInfo.IP,
-                        HeadersModel.Init(init.headers_stream),
+                        init.headersList,
                         prefix: [host, "/proxy/"]
                     );
                 }

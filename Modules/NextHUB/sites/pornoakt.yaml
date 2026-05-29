@@ -59,6 +59,5 @@ contentParse:
 view:
   related: true
   viewsource: true
-  nodeFile:
-    node: //li[@data-type='m4v']
-    attribute: data-url
+  regexMatch:
+    pattern: 'data-url="([^\"]+)"'

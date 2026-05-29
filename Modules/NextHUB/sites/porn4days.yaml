@@ -77,12 +77,8 @@ contentParse:
 
 view:
   viewsource: true
-  iframe:
-    pattern: '"embedUrl": +"([^"]+)"' 
-  nodeFile:
-    node: //source[@type='video/mp4']
-    attribute: src
-
+  regexMatch:
+    pattern: '"contentUrl": ?"([^\"]+)"'
 
 # 04.02.2026
 #  bindingToIP: true

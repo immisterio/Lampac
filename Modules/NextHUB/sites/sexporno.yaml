@@ -29,6 +29,5 @@ view:
   viewsource: true
   iframe:
     pattern: '<ifram[^>]+ src="([^"]+)"'
-  nodeFile:
-    node: //source[@type='video/mp4']
-    attribute: src
+  regexMatch:
+    pattern: '<source src="([^\"]+)"'

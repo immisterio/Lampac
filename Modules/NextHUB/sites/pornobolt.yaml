@@ -70,6 +70,5 @@ contentParse:
 view:
   related: true
   viewsource: true
-  nodeFile:
-    node: //meta[@property='ya:ovs:content_url']
-    attribute: content
+  regexMatch:
+    pattern: 'property="ya:ovs:content_url" content="([^\"]+)"'

@@ -36,9 +36,8 @@ view:
   related: true
   bindingToIP: true
   viewsource: true
-  nodeFile:
-    node: //source
-    attribute: src
+  regexMatch:
+    pattern: '<source src="([^\"]+)"'
     
 #view:
 #  related: true

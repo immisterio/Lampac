@@ -96,6 +96,5 @@ contentParse:
 view:
   related: true
   viewsource: true
-  nodeFile:
-    node: //source
-    attribute: src
+  regexMatch:
+    pattern: '<source src="([^\"]+)"'

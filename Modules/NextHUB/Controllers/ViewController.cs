@@ -16,7 +16,8 @@ public class ViewController : BaseSisiController<NxtSettings>
 
     public ViewController() : base(default) { }
 
-    [HttpGet, Staticache(manually: true)]
+    [HttpGet]
+    [Staticache(manually: true)]
     [Route("nexthub/vidosik")]
     async public Task<ActionResult> Index(string uri, bool related)
     {
@@ -501,7 +502,6 @@ public class ViewController : BaseSisiController<NxtSettings>
 
         resetGotoAsync:
             string html = await httpHydra.Get(url);
-
             if (string.IsNullOrEmpty(html))
                 return default;
 

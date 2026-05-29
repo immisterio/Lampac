@@ -63,7 +63,9 @@ public static class Root
         {
             try
             {
-                var deserializer = new DeserializerBuilder().Build();
+                var deserializer = new DeserializerBuilder()
+                    .WithTypeMapping<IReadOnlyDictionary<string, string>, Dictionary<string, string>>()
+                    .Build();
 
                 // Чтение основного YAML-файла
                 string yaml = File.ReadAllText($"{ModInit.modpath}/sites/{plugin}.yaml");
