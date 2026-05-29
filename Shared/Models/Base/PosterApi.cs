@@ -64,7 +64,8 @@ public static class PosterApi
         {
             return ProxyLink.Encrypt(
                 uri,
-                "posterapi",
+                null,
+                plugin: "posterapi",
                 IsProxyImg: true,
                 prefix: [init.host, "/proxyimg/"]
             );
@@ -73,9 +74,10 @@ public static class PosterApi
         {
             return ProxyLink.Encrypt(
                 uri,
-                "posterapi",
+                null,
+                plugin: "posterapi",
                 IsProxyImg: true,
-                prefix: [init.host, "proxyimg", $":{init.width}:{init.height}/"]
+                prefix: [init.host, "/proxyimg", $":{init.width}:{init.height}/"]
             );
         }
     }
