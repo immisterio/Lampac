@@ -1,12 +1,15 @@
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
+using Microsoft.IO;
 using Microsoft.Playwright;
 using Shared.Attributes;
 using Shared.Models.CSharpGlobals;
 using Shared.Models.SISI.NextHUB;
 using Shared.PlaywrightCore;
 using Shared.Services.HTTP;
+using Shared.Services.Pools;
+using System.Net.Http;
 using System.Text;
 using System.Web;
 
@@ -55,9 +58,14 @@ public class ListController : BaseSisiController<NxtSettings>
                 contentParse = init.model.contentParse;
             #endregion
 
-            string html = await HttpRequest(plugin, pg, search, sort, cat, model);
+            List<PlaylistItem> playlists = null;
 
-            var playlists = goPlaylist(requestInfo, host, contentParse, init, html, plugin);
+            using (var msm = PoolInvk.msm.GetStream())
+            {
+                string html = await HttpRequest(plugin, pg, search, sort, cat, model, msm);
+
+                playlists = goPlaylist(requestInfo, host, contentParse, init, html, msm, plugin);
+            }
 
             if (playlists == null || playlists.Count == 0)
                 return e.Fail("playlists", refresh_proxy: string.IsNullOrEmpty(search));
@@ -184,16 +192,32 @@ public class ListController : BaseSisiController<NxtSettings>
 
 
     #region goPlaylist
-    public static List<PlaylistItem> goPlaylist(RequestModel requestInfo, string host, ContentParseSettings parse, NxtSettings init, string html, string plugin)
+    public static List<PlaylistItem> goPlaylist(RequestModel requestInfo, string host, ContentParseSettings parse, NxtSettings init, string html, RecyclableMemoryStream msm, string plugin)
     {
-        if (parse == null || string.IsNullOrEmpty(html))
+        if (parse == null)
             return null;
 
-        if (init.debug)
-            Console.WriteLine(html);
-
+        #region HtmlDocument
         var doc = new HtmlDocument();
-        doc.LoadHtml(html);
+
+        if (msm != null && msm.Length > 0)
+        {
+            doc.Load(msm);
+
+            if (init.debug)
+                Console.WriteLine(Encoding.UTF8.GetString(msm.ToArray()));
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(html))
+                return null;
+
+            if (init.debug)
+                Console.WriteLine(html);
+
+            doc.LoadHtml(html);
+        }
+        #endregion
 
         string eval = parse.eval;
         if (!string.IsNullOrEmpty(eval) && eval.EndsWith(".ncs"))
@@ -527,9 +551,7 @@ public class ListController : BaseSisiController<NxtSettings>
     #endregion
 
     #region HttpRequest
-    async Task<string> HttpRequest(
-        string plugin, int pg, string search, string sort, string cat, string model
-    )
+    async Task<string> HttpRequest(string plugin, int pg, string search, string sort, string cat, string model, RecyclableMemoryStream msm)
     {
         string data = !string.IsNullOrEmpty(search) ? (init.search?.data ?? init.list.data) : init.list.data;
 
@@ -613,6 +635,7 @@ public class ListController : BaseSisiController<NxtSettings>
 
         if (!string.IsNullOrEmpty(data))
         {
+            #region POST
             if (!string.IsNullOrEmpty(search))
             {
                 string _s = encodingRequest != default ? HttpUtility.UrlEncode(search, encodingRequest) : HttpUtility.UrlEncode(search);
@@ -621,17 +644,75 @@ public class ListController : BaseSisiController<NxtSettings>
 
             data = data.Replace("{page}", pg.ToString());
 
-            return init.rhub == true
-                ? await rch.Post(targetHost, data, headers)
-                : await Http.Post(targetHost, data, encoding: encodingResponse, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
+            if (init.rhub == true)
+            {
+                await rch.SendHub(targetHost, data, headers, true, msAction: result => { result.CopyTo(msm); });
+                return null;
+            }
+            else
+            {
+                using (var dataContent = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded"))
+                {
+                    await Http.BasePostReaderAsync(async e =>
+                    {
+                        using (var byteBuf = new BufferPool())
+                        {
+                            int bytesRead;
+                            var memBuf = byteBuf.Memory;
+
+                            while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
+                                msm.Write(memBuf.Span.Slice(0, bytesRead));
+                        }
+
+                        msm.Position = 0;
+
+                    }, targetHost, dataContent, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
+                }
+
+                return null;
+            }
+            #endregion
         }
         else
         {
-            return init.rhub == true
-                ? await rch.Get(targetHost, headers)
-                : init.priorityBrowser == "http" ? await Http.Get(targetHost, encoding: encodingResponse, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion)
-                : init.list.viewsource ? await PlaywrightHttp.Get(init, targetHost, headers, proxy_data, cookies: init.cookies)
-                : await ContentAsync(init, targetHost, headers, proxy_data, search, sort, cat, model, pg);
+            #region GET
+            if (init.rhub == true)
+            {
+                await rch.SendHub(targetHost, null, headers, true, msAction: result => { result.CopyTo(msm); });
+                return null;
+            }
+            else if (init.priorityBrowser == "http")
+            {
+                if (encodingResponse != default)
+                    return await Http.Get(targetHost, encoding: encodingResponse, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
+
+                await Http.BaseGetReaderAsync(async e =>
+                {
+                    using (var byteBuf = new BufferPool())
+                    {
+                        int bytesRead;
+                        var memBuf = byteBuf.Memory;
+
+                        while ((bytesRead = await e.stream.ReadAsync(memBuf, e.ct).ConfigureAwait(false)) > 0)
+                            msm.Write(memBuf.Span.Slice(0, bytesRead));
+                    }
+
+                    msm.Position = 0;
+
+                }, targetHost, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
+
+                return null;
+            }
+            else if (init.list.viewsource)
+            {
+                await PlaywrightHttp.GetReaderAsync(init.plugin, targetHost, msm.Write, headers, proxy_data, init.cookies);
+                return null;
+            }
+            else
+            {
+                return await ContentAsync(init, targetHost, headers, proxy_data, search, sort, cat, model, pg);
+            }
+            #endregion
         }
     }
     #endregion

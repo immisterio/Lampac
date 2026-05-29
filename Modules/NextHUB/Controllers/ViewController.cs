@@ -456,11 +456,11 @@ public class ViewController : BaseSisiController<NxtSettings>
                     if (init.view.NetworkIdle)
                     {
                         string contetnt = await page.ContentAsync().ConfigureAwait(false);
-                        cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, contetnt, plugin);
+                        cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, contetnt, null, plugin);
                     }
                     else
                     {
-                        cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, plugin);
+                        cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, null, plugin);
                     }
                 }
                 #endregion
@@ -574,7 +574,7 @@ public class ViewController : BaseSisiController<NxtSettings>
             }
 
             if (init.view.related && cache.recomends == null)
-                cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, plugin);
+                cache.recomends = ListController.goPlaylist(requestInfo, host, init.view.relatedParse ?? init.contentParse, init, html, null, plugin);
 
             proxyManager?.Success();
 
