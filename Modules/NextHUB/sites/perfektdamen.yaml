@@ -1,5 +1,7 @@
 enable: true
 displayindex: 404
+rch_access: apk,cors
+stream_access: apk,cors
 streamproxy: true
 displayname: PerfektDamen
 host: https://www.perfektdamen.co

@@ -1091,9 +1091,6 @@ public class BaseController : Controller
     #region accsArgs
     public string accsArgs(string uri)
     {
-        if (!CoreInit.conf.accsdb.enable)
-            return uri;
-
         StatiCacheDisabled = true;
         return AccsDbInvk.Args(uri, HttpContext);
     }

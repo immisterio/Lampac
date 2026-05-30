@@ -42,6 +42,8 @@ public class ModInit : IModuleLoaded, IModuleOnline
         conf = ModuleInvoke.Init("UAFilm", new OnlinesSettings("UAFilm", "https://uafilm.me")
         {
             displayindex = 830,
+            rch_access = "apk,cors",
+            stream_access = "apk,cors",
             streamproxy = true,
             headers = HeadersModel.Init(Http.defaultFullHeaders,
                 ("referer", "https://uafilm.me/")

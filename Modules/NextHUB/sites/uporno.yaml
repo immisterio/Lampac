@@ -2,6 +2,7 @@ enable: true
 displayindex: 410
 displayname: uPorno
 rch_access: apk
+stream_access: apk
 streamproxy: true
 host: https://www.uporno.xxx
 priorityBrowser: http
