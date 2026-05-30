@@ -54,13 +54,14 @@ public partial class SubtitleJsonContext : JsonSerializerContext
 {
 }
 
-public sealed class SubtitleDto
+public class SubtitleDto
 {
     public string method => "link";
     public string url { get; }
     public string label { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public SubtitleDto(string url, string label)
     {
         this.url = url;

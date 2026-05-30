@@ -157,7 +157,7 @@ public partial class StreamQualityJsonContext : JsonSerializerContext
 {
 }
 
-public sealed class StreamQualityDto
+public class StreamQualityDto
 {
     public string link { get; }
     public string quality { get; }

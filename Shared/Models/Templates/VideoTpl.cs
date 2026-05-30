@@ -59,7 +59,7 @@ public partial class VideoJsonContext : JsonSerializerContext
 {
 }
 
-public sealed class VideoDto
+public class VideoDto
 {
     public string title { get; }
     public string method { get; }
@@ -73,6 +73,7 @@ public sealed class VideoDto
     public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public VideoDto(
         string title,
         string method,

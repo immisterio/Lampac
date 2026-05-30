@@ -149,7 +149,7 @@ public partial class SimilarJsonContext : JsonSerializerContext
 {
 }
 
-public sealed class SimilarDto
+public class SimilarDto
 {
     public string method => "link";
     public string url { get; }
@@ -160,6 +160,7 @@ public sealed class SimilarDto
     public string img { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public SimilarDto(
         string url,
         short year,
@@ -177,12 +178,13 @@ public sealed class SimilarDto
     }
 }
 
-public sealed class SimilarResponseDto
+public class SimilarResponseDto
 {
     public string type => "similar";
     public IReadOnlyList<SimilarDto> data { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public SimilarResponseDto(IReadOnlyList<SimilarDto> data)
     {
         this.data = data;

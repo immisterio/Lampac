@@ -250,7 +250,7 @@ public partial class MovieJsonContext : JsonSerializerContext
 {
 }
 
-public sealed class MovieDto
+public class MovieDto
 {
     public string method { get; }
     public string url { get; }
@@ -270,6 +270,7 @@ public sealed class MovieDto
     public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public MovieDto(
         string method,
         string url,
@@ -307,13 +308,14 @@ public sealed class MovieDto
     }
 }
 
-public sealed class MovieResponseDto
+public class MovieResponseDto
 {
     public string type => "movie";
     public IReadOnlyList<VoiceDto> voice { get; }
     public MovieDto[] data { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public MovieResponseDto(IReadOnlyList<VoiceDto> voice, MovieDto[] data)
     {
         this.voice = voice;

@@ -232,7 +232,7 @@ public partial class EpisodeJsonContext : JsonSerializerContext
 {
 }
 
-public sealed class EpisodeDto
+public class EpisodeDto
 {
     public string method { get; }
     public string url { get; }
@@ -251,6 +251,7 @@ public sealed class EpisodeDto
     public Dictionary<string, IReadOnlyList<SegmentDto>> segments { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public EpisodeDto(
         string method,
         string url,
@@ -286,13 +287,14 @@ public sealed class EpisodeDto
     }
 }
 
-public sealed class EpisodeResponseDto
+public class EpisodeResponseDto
 {
     public string type => "episode";
     public IReadOnlyList<VoiceDto> voice { get; }
     public IReadOnlyList<EpisodeDto> data { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public EpisodeResponseDto(IReadOnlyList<VoiceDto> voice, IReadOnlyList<EpisodeDto> data)
     {
         this.voice = voice;

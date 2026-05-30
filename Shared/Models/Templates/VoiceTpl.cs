@@ -79,7 +79,7 @@ public class VoiceTpl
 }
 
 
-public sealed class VoiceDto
+public class VoiceDto
 {
     public string method => "link";
     public string url { get; }
@@ -87,6 +87,7 @@ public sealed class VoiceDto
     public string name { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public VoiceDto(string url, bool active, string name)
     {
         this.url = url;

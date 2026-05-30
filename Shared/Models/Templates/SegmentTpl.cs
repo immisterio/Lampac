@@ -42,12 +42,13 @@ public class SegmentTpl
     }
 }
 
-public sealed class SegmentDto
+public class SegmentDto
 {
     public int start { get; }
     public int end { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public SegmentDto(int start, int end)
     {
         this.start = start;

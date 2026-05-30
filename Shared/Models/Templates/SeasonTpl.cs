@@ -202,7 +202,7 @@ public partial class SeasonJsonContext : JsonSerializerContext
 {
 }
 
-public sealed class SeasonDto
+public class SeasonDto
 {
     public string method => "link";
     public int id { get; }
@@ -210,6 +210,7 @@ public sealed class SeasonDto
     public string name { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public SeasonDto(string url, string name, int id)
     {
         this.id = id;
@@ -218,7 +219,7 @@ public sealed class SeasonDto
     }
 }
 
-public sealed class SeasonResponseDto
+public class SeasonResponseDto
 {
     public string type => "season";
     public string maxquality { get; }
@@ -226,6 +227,7 @@ public sealed class SeasonResponseDto
     public IReadOnlyList<SeasonDto> data { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     public SeasonResponseDto(string maxquality, IReadOnlyList<VoiceDto> voice, IReadOnlyList<SeasonDto> data)
     {
         this.maxquality = maxquality;
