@@ -14,6 +14,8 @@ public static class OwnerTo
             if (encoding == null || msm == null || msm.Length == 0)
                 return;
 
+            msm.Position = 0;
+
             // ASCII: 1 byte -> 1 char
             // UTF-8: 2 byte -> 1 char
             // msm.Length всегда выше или равен charCount
@@ -34,6 +36,11 @@ public static class OwnerTo
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "{Class} {CatchId}", "OwnerTo", "id_1hrr99su");
+        }
+        finally
+        {
+            if (msm != null)
+                msm.Position = 0;
         }
     }
 

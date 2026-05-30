@@ -237,7 +237,7 @@ public class ProxyManager
                 {
                     list = new List<string>();
 
-                    string txt = Http.Get(p.url, timeoutSeconds: 5).Result;
+                    string txt = Http.Get(p.url, timeoutSeconds: 5).GetAwaiter().GetResult();
                     if (txt != null)
                     {
                         foreach (string line in txt.Split("\n"))

@@ -206,6 +206,8 @@ public class ListController : BaseSisiController<NxtSettings>
 
             if (init.debug)
                 Console.WriteLine(Encoding.UTF8.GetString(msm.ToArray()));
+
+            msm.Position = 0;
         }
         else
         {
@@ -219,6 +221,7 @@ public class ListController : BaseSisiController<NxtSettings>
         }
         #endregion
 
+        #region eval
         string eval = parse.eval;
         if (!string.IsNullOrEmpty(eval) && eval.EndsWith(".ncs"))
             eval = FileCache.ReadAllText($"{ModInit.modpath}/sites/{eval}");
@@ -228,8 +231,22 @@ public class ListController : BaseSisiController<NxtSettings>
             if (string.IsNullOrEmpty(eval))
                 return null;
 
-            return CSharpEval.Execute<List<PlaylistItem>>(eval, new NxtPlaylist(init, plugin, host, html, doc, new List<PlaylistItem>()), Root.playlistOptions);
+            if (msm != null && msm.Length > 0)
+            {
+                List<PlaylistItem> pl = null;
+                OwnerTo.Span(msm, Encoding.UTF8, span =>
+                {
+                    pl = CSharpEval.Execute<List<PlaylistItem>>(eval, new NxtPlaylist(init, plugin, host, span.ToString(), doc, new List<PlaylistItem>()), Root.playlistOptions);
+                });
+
+                return pl;
+            }
+            else
+            {
+                return CSharpEval.Execute<List<PlaylistItem>>(eval, new NxtPlaylist(init, plugin, host, html, doc, new List<PlaylistItem>()), Root.playlistOptions);
+            }
         }
+        #endregion
 
         var nodes = doc.DocumentNode.SelectNodes(parse.nodes);
         if (nodes == null || nodes.Count == 0)
@@ -434,8 +451,22 @@ public class ListController : BaseSisiController<NxtSettings>
                     }
                 };
 
+                #region eval
                 if (eval != null)
-                    pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(init, plugin, host, html, nodes, pl, row), Root.playlistOptions);
+                {
+                    if (msm != null && msm.Length > 0)
+                    {
+                        OwnerTo.Span(msm, Encoding.UTF8, span =>
+                        {
+                            pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(init, plugin, host, span.ToString(), nodes, pl, row), Root.playlistOptions);
+                        });
+                    }
+                    else
+                    {
+                        pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(init, plugin, host, html, nodes, pl, row), Root.playlistOptions);
+                    }
+                }
+                #endregion
 
                 if (pl.json == false && (init.streamproxy || (init.geostreamproxy != null && requestInfo.Country != null && init.geostreamproxy.Contains(requestInfo.Country))))
                 {
@@ -647,6 +678,7 @@ public class ListController : BaseSisiController<NxtSettings>
             if (init.rhub == true)
             {
                 await rch.SendHub(targetHost, data, headers, true, msAction: result => { result.CopyTo(msm); });
+                msm.Position = 0;
                 return null;
             }
             else
@@ -664,11 +696,10 @@ public class ListController : BaseSisiController<NxtSettings>
                                 msm.Write(memBuf.Span.Slice(0, bytesRead));
                         }
 
-                        msm.Position = 0;
-
                     }, targetHost, dataContent, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
                 }
 
+                msm.Position = 0;
                 return null;
             }
             #endregion
@@ -679,6 +710,7 @@ public class ListController : BaseSisiController<NxtSettings>
             if (init.rhub == true)
             {
                 await rch.SendHub(targetHost, null, headers, true, msAction: result => { result.CopyTo(msm); });
+                msm.Position = 0;
                 return null;
             }
             else if (init.priorityBrowser == "http")
@@ -697,15 +729,15 @@ public class ListController : BaseSisiController<NxtSettings>
                             msm.Write(memBuf.Span.Slice(0, bytesRead));
                     }
 
-                    msm.Position = 0;
-
                 }, targetHost, headers: headers, proxy: proxy, timeoutSeconds: init.timeout, httpversion: init.httpversion);
 
+                msm.Position = 0;
                 return null;
             }
             else if (init.list.viewsource)
             {
                 await PlaywrightHttp.GetReaderAsync(init.plugin, targetHost, msm.Write, headers, proxy_data, init.cookies);
+                msm.Position = 0;
                 return null;
             }
             else

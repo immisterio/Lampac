@@ -39,6 +39,6 @@ contentParse:
 view:
   related: true
   viewsource: true
-  eval: |
-    {include:kt_player.eval}
-    return decode();
+  regexMatch:
+    matches: ["video_alt_url", "video_url"]
+    pattern: "{value}:[\t ]+'([^']+)'"
