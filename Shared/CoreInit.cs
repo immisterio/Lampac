@@ -351,8 +351,8 @@ public class CoreInit
 
     public HybridCacheConf cache = new HybridCacheConf()
     {
-        type = "fdb", // mem|fdb
-        extend = 600, // 10m
+        type = "fdb",     // mem|fdb
+        extend = 60 * 45, // 45m
         memExtend = true
     };
 

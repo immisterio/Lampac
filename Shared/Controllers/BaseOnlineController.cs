@@ -150,12 +150,6 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             }
         }
 
-        if (NoAccessGroup(init, out string error_msg))
-        {
-            badInitMsg = new JsonResult(new { accsdb = true, msg = error_msg });
-            return ValueTask.FromResult(true);
-        }
-
         if (requestInitializationAsync != null || EventListener.BadInitializationAsync != null || IsOverridehost(init))
             return IsRequestBlockedAsync(rch, rch_keepalive, rch_check);
 
@@ -197,6 +191,18 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
         if (!init.enable || init.rip)
         {
             badInitMsg = OnError("disable", gbcache: false, statusCode: 403);
+            return true;
+        }
+
+        if (NoAccessGroup(init, out string error_msg))
+        {
+            badInitMsg = new JsonResult(new { accsdb = true, msg = error_msg });
+            return true;
+        }
+
+        if (init.workinghours != null && !init.workinghours.Contains(DateTime.UtcNow.Hour))
+        {
+            badInitMsg = new JsonResult(new { accsdb = true, msg = "Временно недоступен, попробуйте через несколько часов" });
             return true;
         }
 

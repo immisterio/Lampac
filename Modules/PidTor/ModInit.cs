@@ -28,6 +28,7 @@ public class ModInit : IModuleLoaded, IModuleOnline
                 plugin = "PidTor",
                 enable = conf.enable,
                 enabled = conf.enable,
+                workinghours = conf.workinghours,
                 displayname = conf.displayname,
                 displayindex = conf.displayindex,
                 group = conf.group,

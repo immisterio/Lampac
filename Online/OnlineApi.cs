@@ -448,6 +448,9 @@ public class OnlineApiController : BaseController
             if (init == null || !init.spider || !init.enable || init.rip)
                 return;
 
+            if (init.workinghours != null && !init.workinghours.Contains(DateTime.UtcNow.Hour))
+                return;
+
             if (init.geo_hide != null)
             {
                 if (requestInfo.Country != null && init.geo_hide.Contains(requestInfo.Country))
@@ -723,6 +726,9 @@ public class OnlineApiController : BaseController
         void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, string myurl = null)
         {
             var init = loadKit(_init, kitconf);
+
+            if (init.workinghours != null && !init.workinghours.Contains(DateTime.UtcNow.Hour))
+                return;
 
             if (rchtype != null)
             {
