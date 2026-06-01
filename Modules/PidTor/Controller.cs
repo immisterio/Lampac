@@ -491,6 +491,27 @@ public class PiTor : BaseOnlineController
         #region auth_stream
         async Task<ActionResult> auth_stream(string host, string login, string passwd, bool aes, string uhost = null, Dictionary<string, string> addheaders = null)
         {
+            if (aes)
+            {
+                string top = await Http.Get($"{uhost ?? host}/top", timeoutSeconds: 2);
+                if (top != null && top.Contains("mem: ") && top.Contains("cpu: "))
+                {
+                    string mem = Regex.Match(top, "mem: ([0-9]+)").Groups[1].Value;
+                    string cpu = Regex.Match(top, "cpu: ([0-9]+)").Groups[1].Value;
+                    if (short.TryParse(mem, out short _mem) && short.TryParse(cpu, out short _cpu))
+                    {
+                        if (_mem > 95 || _cpu > 90)
+                        {
+                            string overloaded = $"{ModInit.modpath}/overloaded.mp4";
+                            if (System.IO.File.Exists(overloaded))
+                                return File(System.IO.File.OpenRead(overloaded), "video/mp4", true);
+
+                            return StatusCode(503, $"{uhost ?? host} перегружен");
+                        }
+                    }
+                }
+            }
+
             login = login
                 .Replace("{user_uid}", requestInfo.user_uid ?? string.Empty)
                 .Replace("{user_ip}", requestInfo.IP);
