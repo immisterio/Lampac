@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
 using Microsoft.Win32.SafeHandles;
 using Shared.Attributes;
 using Shared.Models.AppConf;
+using Shared.Models.Base;
 using Shared.Services;
-using Shared.Services.Pools;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -30,165 +29,147 @@ public class StaticacheWriter
         var stc = httpContext.Features.Get<StaticacheFeature>();
         if (stc == null)
         {
-            await _next(httpContext).ConfigureAwait(false);
-            return;
-        }
-
-        using (RecyclableMemoryStream msm = PoolInvk.msm.GetStream())
-        {
-            httpContext.Features.Set(msm);
-            httpContext.Response.Headers["X-StatiCache-Status"] = "MISS";
-
-            await _next(httpContext);
-
-            bool isRedirect = httpContext.Response.StatusCode == StatusCodes.Status301MovedPermanently ||
-                httpContext.Response.StatusCode == StatusCodes.Status302Found ||
-                httpContext.Response.StatusCode == StatusCodes.Status307TemporaryRedirect ||
-                httpContext.Response.StatusCode == StatusCodes.Status308PermanentRedirect;
-
-            if (msm.Length > 0 && !isRedirect)
+            using (var msm = new LazyMsm())
             {
-                var cacheEntry = httpContext.Features.Get<StatiCacheEntry>();
+                httpContext.Features.Set(msm);
+                await _next(httpContext);
 
-                #region Дожимаем httpContext
-                var ex = cacheEntry?.ex ?? DateTimeOffset.Now.AddMinutes(stc.cacheMinutes);
-
-                if (httpContext.Response.StatusCode != 200)
-                    ex = DateTimeOffset.Now.AddMinutes(1);
-
-                int contentLength = (int)(httpContext.Response?.ContentLength ?? 0);
-                if (contentLength > 0 && contentLength != msm.Length)
-                    ex = DateTimeOffset.Now.AddMinutes(1);
-
-                string ext = "bin";
-                bool isMedia = false;
-                string contentType = httpContext.Response.ContentType;
-
-                if (contentType != null)
+                if (!msm.IsEmpty)
                 {
-                    if (contentType.StartsWith("text/html"))
-                        ext = "html";
-                    else if (contentType.StartsWith("application/json"))
-                        ext = "json";
-                    else if (contentType.StartsWith("application/javascript"))
-                        ext = "js";
-                    else if (contentType.StartsWith("text/css"))
-                        ext = "css";
-                    else if (contentType.StartsWith("image/svg+xml"))
-                        ext = "svg";
-                    else if (contentType.StartsWith("image/png"))
-                    {
-                        ext = "png";
-                        isMedia = true;
-                    }
-                    else if (contentType.StartsWith("image/jpeg"))
-                    {
-                        ext = "jpg";
-                        isMedia = true;
-                    }
-                    else if (contentType.StartsWith("image/webp"))
-                    {
-                        ext = "webp";
-                        isMedia = true;
-                    }
+                    msm.Stream.Position = 0;
+                    await msm.Stream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
                 }
+            }
+        }
+        else
+        {
+            using (var msm = new LazyMsm())
+            {
+                httpContext.Features.Set(msm);
+                httpContext.Response.Headers["X-StatiCache-Status"] = "MISS";
 
-                if (isMedia && contentLength == 0)
+                await _next(httpContext);
+
+                bool isRedirect = httpContext.Response.StatusCode == StatusCodes.Status301MovedPermanently ||
+                    httpContext.Response.StatusCode == StatusCodes.Status302Found ||
+                    httpContext.Response.StatusCode == StatusCodes.Status307TemporaryRedirect ||
+                    httpContext.Response.StatusCode == StatusCodes.Status308PermanentRedirect;
+
+                if (!isRedirect && !msm.IsEmpty)
                 {
-                    contentLength = (int)msm.Length;
-                    httpContext.Response.ContentLength = contentLength;
-                }
+                    var cacheEntry = httpContext.Features.Get<StatiCacheEntry>();
 
-                if (contentLength > 0)
-                    httpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
-                #endregion
+                    #region Дожимаем httpContext
+                    var ex = cacheEntry?.ex ?? DateTimeOffset.Now.AddMinutes(stc.cacheMinutes);
 
-                #region Сбрасываем поток клиенту
-                msm.Position = 0;
+                    if (httpContext.Response.StatusCode != 200)
+                        ex = DateTimeOffset.Now.AddMinutes(1);
 
-                if (contentLength > 0)
-                {
-                    /// один overhead "write && flush" при наличии content-length
-                    await msm.CopyToAsync(httpContext.Response.Body);
-                }
-                else
-                {
-                    /// При отсутствии content-length данные уйдут в два overhead "write > flush"
-                    /// Такая хуйня нас не устраивает, поэтому дрочим BodyWriter сами
+                    int contentLength = (int)(httpContext.Response?.ContentLength ?? 0);
+                    if (contentLength > 0 && contentLength != msm.Stream.Length)
+                        ex = DateTimeOffset.Now.AddMinutes(1);
 
-                    int chunkSize = PoolInvk.ChunkSizeBodyWriter((int)msm.Length);
-                    var bodyWriter = httpContext.Response.BodyWriter;
+                    string ext = "bin";
+                    bool isMedia = false;
+                    string contentType = httpContext.Response.ContentType;
 
-                    do
+                    if (contentType != null)
                     {
-                        Span<byte> destination = bodyWriter.GetSpan(chunkSize);
-
-                        int bytesRead = msm.Read(destination);
-                        if (bytesRead == 0)
-                            break;
-
-                        bodyWriter.Advance(bytesRead);
+                        if (contentType.StartsWith("text/html"))
+                            ext = "html";
+                        else if (contentType.StartsWith("application/json"))
+                            ext = "json";
+                        else if (contentType.StartsWith("application/javascript"))
+                            ext = "js";
+                        else if (contentType.StartsWith("text/css"))
+                            ext = "css";
+                        else if (contentType.StartsWith("image/svg+xml"))
+                            ext = "svg";
+                        else if (contentType.StartsWith("image/png"))
+                        {
+                            ext = "png";
+                            isMedia = true;
+                        }
+                        else if (contentType.StartsWith("image/jpeg"))
+                        {
+                            ext = "jpg";
+                            isMedia = true;
+                        }
+                        else if (contentType.StartsWith("image/webp"))
+                        {
+                            ext = "webp";
+                            isMedia = true;
+                        }
                     }
-                    while (msm.Position < msm.Length);
 
-                    /// write && flush в один overhead
-                    await httpContext.Response.CompleteAsync();
-                }
-                #endregion
+                    if (isMedia && contentLength == 0)
+                    {
+                        contentLength = (int)msm.Stream.Length;
+                        httpContext.Response.ContentLength = contentLength;
+                    }
 
-                #region Сохраняем на диск
-                if ((cacheEntry != null && cacheEntry.saveCache == false) || DateTimeOffset.Now > ex)
-                    return;
+                    if (contentLength > 0)
+                        httpContext.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400,immutable";
+                    #endregion
 
-                string cachekey = stc.cachekey;
-                var sm = new SemaphorManager(cachekey, TimeSpan.FromSeconds(5));
+                    // Сбрасываем поток клиенту
+                    msm.Stream.Position = 0;
+                    await msm.Stream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
 
-                try
-                {
-                    bool _acquired = await sm.WaitAsync();
-                    if (!_acquired)
+                    #region Сохраняем на диск
+                    if ((cacheEntry != null && cacheEntry.saveCache == false) || DateTimeOffset.Now > ex)
                         return;
 
-                    long exTicks = ex.ToUnixTimeMilliseconds();
-                    string cachefile = Staticache.GetFilePath(cachekey, exTicks, contentLength, ext);
+                    string cachekey = stc.cachekey;
+                    var sm = new SemaphorManager(cachekey, TimeSpan.FromSeconds(5));
 
-                    using (SafeFileHandle handle = File.OpenHandle(cachefile,
-                        FileMode.Create, FileAccess.Write, FileShare.None,
-                        FileOptions.Asynchronous | FileOptions.SequentialScan,
-                        preallocationSize: msm.Length
-                    ))
+                    try
                     {
-                        ReadOnlySequence<byte> sequence = msm.GetReadOnlySequence();
+                        bool _acquired = await sm.WaitAsync();
+                        if (!_acquired)
+                            return;
 
-                        if (sequence.IsSingleSegment)
-                        {
-                            await RandomAccess.WriteAsync(handle, sequence.First, fileOffset: 0);
-                        }
-                        else
-                        {
-                            List<ReadOnlyMemory<byte>> buffers = new();
+                        long exTicks = ex.ToUnixTimeMilliseconds();
+                        string cachefile = Staticache.GetFilePath(cachekey, exTicks, contentLength, ext);
 
-                            foreach (ReadOnlyMemory<byte> segment in sequence)
+                        using (SafeFileHandle handle = File.OpenHandle(cachefile,
+                            FileMode.Create, FileAccess.Write, FileShare.None,
+                            FileOptions.Asynchronous | FileOptions.SequentialScan,
+                            preallocationSize: msm.Stream.Length
+                        ))
+                        {
+                            ReadOnlySequence<byte> sequence = msm.Stream.GetReadOnlySequence();
+
+                            if (sequence.IsSingleSegment)
                             {
-                                if (!segment.IsEmpty)
-                                    buffers.Add(segment);
+                                await RandomAccess.WriteAsync(handle, sequence.First, fileOffset: 0);
                             }
+                            else
+                            {
+                                List<ReadOnlyMemory<byte>> buffers = new();
 
-                            await RandomAccess.WriteAsync(handle, buffers, fileOffset: 0);
+                                foreach (ReadOnlyMemory<byte> segment in sequence)
+                                {
+                                    if (!segment.IsEmpty)
+                                        buffers.Add(segment);
+                                }
+
+                                await RandomAccess.WriteAsync(handle, buffers, fileOffset: 0);
+                            }
                         }
-                    }
 
-                    Staticache.cacheFiles[cachekey] = new StaticacheCacheModel(exTicks, ext, (short)httpContext.Response.StatusCode, contentLength);
+                        Staticache.cacheFiles[cachekey] = new StaticacheCacheModel(exTicks, ext, (short)httpContext.Response.StatusCode, contentLength);
+                    }
+                    catch (Exception exception)
+                    {
+                        Serilog.Log.Error(exception, "CatchId={CatchId}", "id_23a31ad1");
+                    }
+                    finally
+                    {
+                        sm.Release();
+                    }
+                    #endregion
                 }
-                catch (Exception exception)
-                {
-                    Serilog.Log.Error(exception, "CatchId={CatchId}", "id_23a31ad1");
-                }
-                finally
-                {
-                    sm.Release();
-                }
-                #endregion
             }
         }
     }

@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
+using Shared.Attributes;
 using Shared.Models;
 using Shared.Models.Events;
 using Shared.Models.SISI;
 using Shared.Models.SISI.Base;
 using Shared.Models.SISI.OnResult;
 using Shared.Services;
-using System.Buffers;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -338,13 +338,11 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
             }
         }
 
-        IBufferWriter<byte> utf8Writer = StaticacheOrBodyWriter();
-
         Response.ContentType = "application/json; charset=utf-8";
         Response.Headers.CacheControl = "no-cache";
 
         using (var writer = new Utf8JsonWriter(
-            utf8Writer,
+            msmWriter,
             jsonWriterOptions
         ))
         {
@@ -494,6 +492,9 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
             writer.WriteEndObject();
         }
 
+        if (StatiCacheDisabled)
+            HttpContext.Features.Set(new StatiCacheEntry(default, false));
+
         return _emptyResult;
     }
     #endregion
@@ -541,10 +542,8 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
         Response.ContentType = "application/json; charset=utf-8";
         Response.Headers.CacheControl = "no-cache";
 
-        IBufferWriter<byte> utf8Writer = StaticacheOrBodyWriter();
-
         using (var writer = new Utf8JsonWriter(
-             utf8Writer,
+             msmWriter,
              jsonWriterOptions
          ))
         {
@@ -620,6 +619,9 @@ public class BaseSisiController<T> : BaseController where T : BaseSettings, IClo
 
             writer.WriteEndObject();
         }
+
+        if (StatiCacheDisabled)
+            HttpContext.Features.Set(new StatiCacheEntry(default, false));
 
         return _emptyResult;
     }

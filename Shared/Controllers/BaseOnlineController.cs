@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
+using Shared.Attributes;
 using Shared.Models;
 using Shared.Models.Events;
 using Shared.Models.Online.Settings;
 using Shared.Models.Templates;
 using Shared.Services;
-using System.Buffers;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -347,8 +347,6 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             ? tpl.ToBuilderJson()
             : tpl.ToBuilderHtml();
 
-        IBufferWriter<byte> bodyWriter = StaticacheOrBodyWriter();
-
         try
         {
             foreach (var chunk in sb.GetChunks())
@@ -357,8 +355,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
                 while (!chars.IsEmpty)
                 {
-                    int maxBytes = Encoding.UTF8.GetMaxByteCount(chars.Length);
-                    Span<byte> span = bodyWriter.GetSpan(maxBytes);
+                    Span<byte> span = msmWriter.GetSpan(PoolInvk.msmBlockSize);
 
                     encoder.Convert(
                         chars,
@@ -370,7 +367,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
 
                     if (bytesUsed > 0)
                     {
-                        bodyWriter.Advance(bytesUsed);
+                        msmWriter.Advance(bytesUsed);
                         chars = chars.Slice(charsUsed);
                     }
 
@@ -388,7 +385,7 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
         }
 
         /// границы чанков/суррогаты
-        Span<byte> tail = bodyWriter.GetSpan(128);
+        Span<byte> tail = msmWriter.GetSpan(128);
 
         encoder.Convert(
             ReadOnlySpan<char>.Empty,
@@ -399,7 +396,10 @@ public class BaseOnlineController<T> : BaseController where T : BaseSettings, IC
             out bool _);
 
         if (_bytesUsed > 0)
-            bodyWriter.Advance(_bytesUsed);
+            msmWriter.Advance(_bytesUsed);
+
+        if (StatiCacheDisabled)
+            HttpContext.Features.Set(new StatiCacheEntry(default, false));
 
         return _emptyResult;
     }
