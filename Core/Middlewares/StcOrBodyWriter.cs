@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
 using Microsoft.Win32.SafeHandles;
@@ -178,6 +179,11 @@ public class StcOrBodyWriter
 
         if (contentLength > 0 || CoreInit.conf.lowMemoryMode)
         {
+            // конец запроса, headers записан, буферизация тут лишняя
+            httpContext.Features
+                .Get<IHttpResponseBodyFeature>()?
+                .DisableBuffering();
+
             /// один overhead "write && flush" при наличии content-length
             return msm.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
         }
