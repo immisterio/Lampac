@@ -13,16 +13,14 @@ using System.Threading.Tasks;
 
 namespace Core.Middlewares;
 
-public class StaticacheWriter
+public class StcOrBodyWriter
 {
-    #region static
     private readonly RequestDelegate _next;
 
-    public StaticacheWriter(RequestDelegate next)
+    public StcOrBodyWriter(RequestDelegate next)
     {
         _next = next;
     }
-    #endregion
 
     async public Task InvokeAsync(HttpContext httpContext)
     {
@@ -37,7 +35,7 @@ public class StaticacheWriter
                 if (!msm.IsEmpty)
                 {
                     msm.Stream.Position = 0;
-                    await msm.Stream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
+                    await msm.Stream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
                 }
             }
         }
