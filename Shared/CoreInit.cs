@@ -430,7 +430,8 @@ public class CoreInit
         enable = true,
         Headless = true,
         Args = ["--disable-blink-features=AutomationControlled"], // , "--window-position=-2000,100"
-        context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 }
+        context = new KeepopenContext() { keepopen = true, keepalive = 20, min = 0, max = 4 },
+        //NODE_OPTIONS = "--max-old-space-size=128 --max-semi-space-size=4"
     };
 
     public PuppeteerConf firefox = new PuppeteerConf()
