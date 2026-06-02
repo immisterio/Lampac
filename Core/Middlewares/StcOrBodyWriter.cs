@@ -175,7 +175,7 @@ public class StcOrBodyWriter
     public Task FlushAsync(RecyclableMemoryStream msm, HttpContext httpContext)
     {
         msm.Position = 0;
-        int contentLength = (int)(httpContext.Response?.ContentLength ?? 0);
+        long contentLength = httpContext.Response?.ContentLength ?? 0;
 
         if (contentLength > 0 || CoreInit.conf.lowMemoryMode)
         {
@@ -190,11 +190,11 @@ public class StcOrBodyWriter
         else
         {
             /// что-бы не было два overhead "write > flush", пишем через BodyWriter
-            int chunkSize = PoolInvk.ChunkSizeBodyWriter((int)msm.Length);
             var bodyWriter = httpContext.Response.BodyWriter;
 
             do
             {
+                int chunkSize = PoolInvk.ChunkSizeBodyWriter((int)(msm.Length - msm.Position));
                 Span<byte> destination = bodyWriter.GetSpan(chunkSize);
 
                 int bytesRead = msm.Read(destination);
