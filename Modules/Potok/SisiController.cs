@@ -16,7 +16,7 @@ public class SisiController : BaseController
         string manifest = @"{
   ""id"": ""the-blue-oyster"",
   ""name"": ""The Blue Oyster"",
-  ""version"": ""1.0.0"",
+  ""version"": ""1.0.2"",
   ""description"": """",
   ""author"": ""lampac"",
   ""entrypoint"": ""index.js"",

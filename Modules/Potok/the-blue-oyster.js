@@ -18,6 +18,7 @@ const SOURCES_URL = '{localhost}/sisi';
 let API_URL = '';
 let channels = [];
 let menuItems = [];
+let selectedMenuIndexes = {};
 let mediaPlayerPlayback = null;
 let mediaPlayerPlaybackPending = false;
 
@@ -117,6 +118,8 @@ function buildPageLayout() {
                                 state.endReached = false;
 
                                 menuItems = [];
+                                selectedMenuIndexes = {};
+
                                 mediaPlayerPlayback = null;
                                 mediaPlayerPlaybackPending = false;
 
@@ -206,19 +209,25 @@ function buildPageLayout() {
 function buildMenuSelects() {
     return menuItems
         .filter((menuItem) => menuItem.playlist_url === 'submenu')
-        .map((menuItem, index) => {
-            const submenuOptions = menuItem.submenu.map((item) => {
+        .map((menuItem, menuIndex) => {
+            const submenuOptions = menuItem.submenu.map((item, submenuIndex) => {
                 return {
-                    value: item.playlist_url,
+                    value: String(submenuIndex),
                     label: item.title
                 };
             });
 
-            return Select(`menu-select-${index}`)
+            const selectedIndex = selectedMenuIndexes[menuIndex] || 0;
+
+            return Select(`menu-select-${menuIndex}`)
                 .options(submenuOptions)
-                .value(submenuOptions[0].value)
+                .value(String(selectedIndex))
                 .onChange((value) => {
-                    API_URL = value;
+                    const submenuIndex = Number(value);
+                    const selectedItem = menuItem.submenu[submenuIndex];
+
+                    selectedMenuIndexes[menuIndex] = submenuIndex;
+                    API_URL = selectedItem.playlist_url;
 
                     state.items = [];
                     state.page = 1;
