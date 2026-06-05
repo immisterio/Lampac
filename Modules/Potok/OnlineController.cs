@@ -16,6 +16,10 @@ public class OnlineController : BaseController
         string plugin = FileCache.ReadAllText($"{ModInit.modpath}/the-naked-gun/{file}", $"naked-gun_{file}", saveCache: false)
             .Replace("{localhost}", host);
 
-        return ContentTo(plugin);
+        string type = file.EndsWith(".json")
+            ? "application/json; charset=utf-8"
+            : "application/javascript; charset=utf-8";
+
+        return ContentTo(plugin, type);
     }
 }

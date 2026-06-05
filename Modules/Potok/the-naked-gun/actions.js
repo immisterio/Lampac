@@ -241,7 +241,8 @@ async function loadTmdbSeason() {
     const seasonNumber = getSelectedSeasonNumber();
     const tmdbId = getTmdbId();
 
-    const response = await fetch(`https://api.potok.rip/api/media/tmdb/tv/${tmdbId}/season/${seasonNumber}`);
+    const gatewayURL = PotokSDK.config.gatewayURL;
+    const response = await fetch(`${gatewayURL}/api/media/tmdb/tv/${tmdbId}/season/${seasonNumber}`);
 
     const data = await response.json();
 

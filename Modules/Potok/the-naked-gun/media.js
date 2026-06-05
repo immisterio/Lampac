@@ -26,8 +26,9 @@ export function mediaFromMediaActionProps(props) {
 export async function mediaFromWatchQuery(query) {
     const typePath = query.type === 'tv' ? 'tv' : 'movie';
 
-    const detailRes = await PotokSDK.http.get(`https://api.potok.rip/api/media/detail/${typePath}/${query.tmdbId}`);
-    const idsRes = await PotokSDK.http.get(`https://api.potok.rip/api/media/detail/${typePath}/${query.tmdbId}/external_ids`);
+    const gatewayURL = PotokSDK.config.gatewayURL;
+    const detailRes = await PotokSDK.http.get(`${detailRes}/api/media/detail/${typePath}/${query.tmdbId}`);
+    const idsRes = await PotokSDK.http.get(`${detailRes}/api/media/detail/${typePath}/${query.tmdbId}/external_ids`);
 
     const detail = parseResponseData(detailRes);
     const ids = parseResponseData(idsRes);
