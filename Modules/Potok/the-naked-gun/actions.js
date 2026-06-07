@@ -37,7 +37,6 @@ export async function openMedia(media) {
             await selectSource(sources[0].url);
         }
     } catch (error) {
-        console.error('[The Naked Gun] openMedia failed:', error);
 
         patchState({
             error: getErrorMessage(error),
@@ -106,7 +105,6 @@ export async function selectSource(sourceUrl) {
 
         throw new Error(`Unsupported source response type: ${json.type}`);
     } catch (error) {
-        console.error('[The Naked Gun] selectSource failed:', error);
 
         patchState({
             error: getErrorMessage(error),
@@ -149,7 +147,6 @@ export async function selectSeason(seasonUrl) {
             voiceValue: activeVoice?.url || ''
         });
     } catch (error) {
-        console.error('[The Naked Gun] selectSeason failed:', error);
 
         patchState({
             error: getErrorMessage(error),
@@ -189,7 +186,6 @@ export async function selectVoice(voiceUrl) {
             voiceValue: activeVoice?.url || voiceUrl
         });
     } catch (error) {
-        console.error('[The Naked Gun] selectVoice failed:', error);
 
         patchState({
             error: error instanceof Error ? error.message : String(error || 'Unknown error'),

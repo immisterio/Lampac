@@ -8,7 +8,8 @@ const {
     EpisodeCard,
     MediaPlayer,
     LoadingSpinner,
-    Select
+    Select,
+    Spacer
 } = PotokSDK.ui.components;
 
 
@@ -21,6 +22,8 @@ let menuItems = [];
 let selectedMenuIndexes = {};
 let mediaPlayerPlayback = null;
 let mediaPlayerPlaybackPending = false;
+
+await PotokSDK.storage.local.setItem('disableHttpProxy', true);
 
 const state = PotokSDK.createState({
     loading: true,
@@ -44,7 +47,7 @@ PotokSDK.registerSlotContribution({
 
 PotokSDK.registerSlotContribution({
     id: `${PLUGIN_ID}-sidebar`,
-    slotName: 'sidebar-menu',
+    slotName: 'sidebar-menu-home',
     render() {
         return {
             label: 'The Blue Oyster',
@@ -201,9 +204,26 @@ function buildPageLayout() {
 
     return VStack()
         .id('catalog-page')
-        .spacing(12)
-        .padding(20)
-        .children(pageChildren);
+        .spacing(0)
+        .children([
+            Spacer().height(10),
+
+            HStack()
+                .width('100%')
+                .spacing(0)
+                .children([
+                    Spacer().width(15),
+
+                    VStack()
+                        .width('100%')
+                        .spacing(16)
+                        .children(pageChildren),
+
+                    Spacer().width(15)
+                ]),
+
+            Spacer().height(10)
+        ]);
 }
 
 

@@ -17,7 +17,8 @@ const {
     Button,
     Divider,
     LoadingSpinner,
-    EpisodeCard
+    EpisodeCard,
+    Spacer
 } = PotokSDK.ui.components;
 
 function buildSourceSelect() {
@@ -165,7 +166,24 @@ export function buildPage() {
     }
 
     return VStack()
-        .spacing(16)
-        .padding(20)
-        .children(children);
+        .spacing(0)
+        .children([
+            Spacer().height(10),
+
+            HStack()
+                .width('100%')
+                .spacing(0)
+                .children([
+                    Spacer().width(20),
+
+                    VStack()
+                        .width('100%')
+                        .spacing(16)
+                        .children(children),
+
+                    Spacer().width(20)
+                ]),
+
+            Spacer().height(15)
+        ]);
 }
