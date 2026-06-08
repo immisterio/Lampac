@@ -49,7 +49,7 @@ public class CubProxyController : BaseController
     {
         using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
         {
-            ctsHttp.CancelAfter(TimeSpan.FromSeconds(10));
+            ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
 
             var init = ModInit.conf;
 
@@ -68,7 +68,7 @@ public class CubProxyController : BaseController
                 {
                     using (var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8, false, leaveOpen: true))
                     {
-                        string form = await reader.ReadToEndAsync();
+                        string form = await reader.ReadToEndAsync(ctsHttp.Token);
                         await HttpContext.Response.WriteAsync(form.Split('=')[1], ctsHttp.Token);
                         return;
                     }
@@ -183,7 +183,7 @@ public class CubProxyController : BaseController
 
         using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
         {
-            ctsHttp.CancelAfter(TimeSpan.FromSeconds(10));
+            ctsHttp.CancelAfter(TimeSpan.FromSeconds(15));
 
             #region geo
             if (subdomain.Equals("geo"))
@@ -283,7 +283,7 @@ public class CubProxyController : BaseController
                     },
                     url: requri,
                     headers: headers,
-                    timeoutSeconds: 10,
+                    timeoutSeconds: 15,
                     proxy: proxy,
                     statusCodeOK: false
                 ).ConfigureAwait(false);
