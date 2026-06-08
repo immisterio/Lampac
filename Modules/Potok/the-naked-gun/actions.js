@@ -204,7 +204,12 @@ export function closePopup() {
     patchState({ popupOpen: false });
 }
 
-export function playMovieFile(file) {
+export async function playMovieFile(file) {
+    if (!file.stream && file.method === 'call') {
+        const response = await fetch(file.url);
+        file = await response.json();
+    }
+
     PotokSDK.ui.playVideo({
         streamUrl: file.stream || file.url,
         streamType: file.url.includes('.m3u8')
@@ -217,7 +222,12 @@ export function playMovieFile(file) {
     });
 }
 
-export function playEpisodeFile(file) {
+export async function playEpisodeFile(file) {
+    if (!file.stream && file.method === 'call') {
+        const response = await fetch(file.url);
+        file = await response.json();
+    }
+
     PotokSDK.ui.playVideo({
         streamUrl: file.stream ||file.url,
         streamType: file.url.includes('.m3u8')
@@ -263,7 +273,7 @@ function getTmdbId() {
 
 function getSelectedSeasonNumber() {
     const selected = state.seasons.find((item) => item.url === state.seasonValue);
-    return Number(selected?.season || selected?.s || 1);
+    return Number(selected?.id || selected?.s || 1);
 }
 
 function getErrorMessage(error) {

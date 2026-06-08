@@ -204,26 +204,8 @@ function buildPageLayout() {
 
     return VStack()
         .id('catalog-page')
-        .spacing(0)
-        .children([
-            Spacer().height(10),
-
-            HStack()
-                .width('100%')
-                .spacing(0)
-                .children([
-                    Spacer().width(15),
-
-                    VStack()
-                        .width('100%')
-                        .spacing(16)
-                        .children(pageChildren),
-
-                    Spacer().width(15)
-                ]),
-
-            Spacer().height(10)
-        ]);
+        .spacing(12)
+        .children(pageChildren);
 }
 
 

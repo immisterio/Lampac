@@ -61,7 +61,7 @@ function buildMovieFiles() {
 function buildEpisodeFiles() {
     return Grid()
         .minWidth('375px')
-        .gap('35px')
+        .gap('30px')
         .children(
             state.episodeFiles.map((file, index) =>
                 buildEpisodeCard(file, index)
@@ -166,24 +166,6 @@ export function buildPage() {
     }
 
     return VStack()
-        .spacing(0)
-        .children([
-            Spacer().height(10),
-
-            HStack()
-                .width('100%')
-                .spacing(0)
-                .children([
-                    Spacer().width(20),
-
-                    VStack()
-                        .width('100%')
-                        .spacing(16)
-                        .children(children),
-
-                    Spacer().width(20)
-                ]),
-
-            Spacer().height(15)
-        ]);
+        .spacing(15)
+        .children(children);
 }
