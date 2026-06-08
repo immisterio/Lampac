@@ -196,25 +196,19 @@ export async function selectVoice(voiceUrl) {
     }
 }
 
-export function openPopup() {
-    patchState({ popupOpen: true });
-}
-
-export function closePopup() {
-    patchState({ popupOpen: false });
-}
-
 export async function playMovieFile(file) {
+    var streamUrl = file.stream || file.url;
     if (!file.stream && file.method === 'call') {
         const response = await fetch(file.url);
-        file = await response.json();
+        var call = await response.json();
+        streamUrl = call.url;
     }
 
     PotokSDK.ui.playVideo({
-        streamUrl: file.stream || file.url,
-        streamType: file.url.includes('.m3u8')
+        streamUrl: streamUrl,
+        streamType: streamUrl.includes('.m3u8')
             ? 'm3u8'
-            : file.url.includes('.mpd')
+            : streamUrl.includes('.mpd')
                 ? 'dash'
                 : 'mp4',
         title: file.title,
@@ -223,16 +217,18 @@ export async function playMovieFile(file) {
 }
 
 export async function playEpisodeFile(file) {
+    var streamUrl = file.stream || file.url;
     if (!file.stream && file.method === 'call') {
         const response = await fetch(file.url);
-        file = await response.json();
+        var call = await response.json();
+        streamUrl = call.url;
     }
 
     PotokSDK.ui.playVideo({
-        streamUrl: file.stream ||file.url,
-        streamType: file.url.includes('.m3u8')
+        streamUrl: streamUrl,
+        streamType: streamUrl.includes('.m3u8')
             ? 'm3u8'
-            : file.url.includes('.mpd')
+            : streamUrl.includes('.mpd')
                 ? 'dash'
                 : 'mp4',
         title: file.title,
