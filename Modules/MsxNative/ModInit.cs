@@ -32,8 +32,8 @@ public class ModInit : IModuleLoaded
 
     bool Middleware(bool first, EventMiddleware e)
     {
-        if (first && 
-            CoreInit.conf.accsdb.enable && 
+        if (first &&
+            CoreInit.conf.accsdb.enable &&
             Utilities.IsMsxPlayer(e.httpContext) &&
             e.httpContext.Request.Path.Value == "/sisi")
         {
