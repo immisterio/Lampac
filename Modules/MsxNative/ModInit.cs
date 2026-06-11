@@ -4,7 +4,6 @@ using Shared.Models.Base;
 using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Module.Interfaces;
-using System.Threading.Tasks;
 
 namespace MsxNative;
 
@@ -31,10 +30,10 @@ public class ModInit : IModuleLoaded
     }
 
 
-    async Task<bool> Middleware(bool first, EventMiddleware e)
+    bool Middleware(bool first, EventMiddleware e)
     {
-        if (first &&
-            CoreInit.conf.accsdb.enable &&
+        if (first && 
+            CoreInit.conf.accsdb.enable && 
             Utilities.IsMsxPlayer(e.httpContext) &&
             e.httpContext.Request.Path.Value == "/sisi")
         {
