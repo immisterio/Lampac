@@ -57,13 +57,13 @@ public class Mp4BoxReader
         _pending.SetLength(0);
     }
 
-    public bool Push(Gst.Buffer buffer, int size)
+    public void Push(Gst.Buffer buffer, int size)
     {
         int position = (int)_pending.Length;
         _pending.SetLength(position + size);
 
         if (!_pending.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
-            return false;
+            throw new InvalidOperationException("MemoryStream buffer is not accessible.");
 
         Span<byte> dst = segment.Array.AsSpan(
             segment.Offset + position,
@@ -75,7 +75,7 @@ public class Mp4BoxReader
         {
             // откатываем Length назад, ничего не записали
             _pending.SetLength(position);
-            return false;
+            return;
         }
 
         // на всякий случай, если Extract скопировал меньше.
@@ -98,7 +98,7 @@ public class Mp4BoxReader
                 // ждем ftyp/moov/free и похожие init-box'ы
                 // mdat до init это провал
                 if (type == BoxMdat)
-                    return false;
+                    throw new InvalidOperationException("Bad init");
 
                 _init.Write(box);
                 continue;
@@ -139,7 +139,6 @@ public class Mp4BoxReader
         }
 
         CompactPending(); // ужасный метод для hot path, но я куст и пока будет так
-        return true;
     }
 
     static uint GetMoofTrackId(ReadOnlySpan<byte> moof)

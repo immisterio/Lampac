@@ -3,10 +3,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IO;
 using Shared;
 using Shared.Attributes;
 using Shared.Services;
 using Shared.Services.Pools;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -32,25 +37,86 @@ public class GStreamerController : BaseController
     }
     #endregion
 
-    #region start.m3u8
-    [HttpGet("/gst/start.m3u8")]
-    public async Task<ActionResult> Start(string link, string uid)
+
+    #region add
+    [HttpGet("/gst/add")]
+    public async Task<ActionResult> Add(string link, string uid, string token)
     {
         if (!ModInit.conf.enable)
             return StatusCode(403);
 
-        var gstask = await GService.GetOrAdd(link, uid);
+        var gstask = await GService.GetOrAdd(link, uid ?? token);
         if (gstask == null)
             return StatusCode(502);
 
-        return Redirect($"/gst/{gstask.id}/master.m3u8");
+        return Json(new
+        {
+            id = gstask.id.ToString(),
+            gstask.user_uid,
+            hls = $"{host}/gst/{gstask.id}/master.m3u8",
+            gstask.probe
+        });
+    }
+    #endregion
+
+    #region remove
+    [AllowAnonymous]
+    [HttpGet("/gst/remove")]
+    public async Task<ActionResult> Remove(ulong id)
+    {
+        if (!ModInit.conf.enable)
+            return StatusCode(403);
+
+        var gstask = GService.Get(id);
+        if (gstask != null)
+        {
+            await gstask.semaphore.WaitAsync(TimeSpan.FromSeconds(10));
+
+            if (GService.TryRemove(id))
+                return Json(new { success = true });
+
+            gstask.semaphore.Release();
+        }
+
+        return StatusCode(404);
+    }
+    #endregion
+
+    #region Heartbeat
+    [AllowAnonymous]
+    [HttpGet("/gst/{id}/heartbeat")]
+    public ActionResult Heartbeat(ulong id)
+    {
+        if (!ModInit.conf.enable)
+            return StatusCode(403);
+
+        if (GService.Get(id) != null)
+            return Ok();
+
+        return StatusCode(404);
+    }
+    #endregion
+
+
+    #region start.m3u8
+    [HttpGet("/gst/start.m3u8")]
+    public async Task<ActionResult> Start(string link, string uid, string token, int audio)
+    {
+        if (!ModInit.conf.enable)
+            return StatusCode(403);
+
+        var gstask = await GService.GetOrAdd(link, uid ?? token, audio);
+        if (gstask == null)
+            return StatusCode(502);
+
+        return LocalRedirect($"/gst/{gstask.id}/master.m3u8");
     }
     #endregion
 
     #region master.m3u8
     [AllowAnonymous]
     [HttpGet("/gst/{id}/master.m3u8")]
-    public ActionResult MasterPlaylist(ulong id)
+    public ActionResult MasterPlaylist(ulong id, int audio)
     {
         SetHeadersNoCache();
 
@@ -71,13 +137,20 @@ public class GStreamerController : BaseController
             playlist.AppendLine("#EXTM3U");
             playlist.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
             playlist.AppendLine("#EXT-X-VERSION:7");
-            playlist.AppendLine("#EXT-X-TARGETDURATION:6");
+            playlist.Append("#EXT-X-TARGETDURATION:")
+                    .Append(GStask.segmentSeconds)
+                    .Append('\n');
             playlist.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
-            playlist.AppendLine("#EXT-X-MAP:URI=\"init.mp4\"");
+            playlist.Append("#EXT-X-MAP:URI=\"init.mp4?audio=")
+                    .Append(audio)
+                    .AppendLine("\"");
 
             for (int i = 0; i < count; i++)
             {
-                playlist.AppendLine("#EXTINF:6.00,");
+                playlist
+                    .Append("#EXTINF:")
+                    .Append(GStask.segmentSeconds)
+                    .AppendLine(".00,");
 
                 playlist
                     .Append("seg/")
@@ -102,23 +175,13 @@ public class GStreamerController : BaseController
     #region init.mp4
     [AllowAnonymous]
     [HttpGet("/gst/{id}/init.mp4")]
-    public async Task VideoInit(ulong id)
+    public async Task<ActionResult> VideoInit(ulong id, int audio)
     {
         SetHeadersNoCache();
 
-        if (Request.Headers.ContainsKey("Range"))
-        {
-            Response.StatusCode = StatusCodes.Status416RangeNotSatisfiable;
-            Response.Headers.AcceptRanges = "none";
-            return;
-        }
-
         var gstask = GService.Get(id);
         if (gstask == null)
-        {
-            HttpContext.Response.StatusCode = 404;
-            return;
-        }
+            return NotFound();
 
         if (gstask.initMp4 == null)
         {
@@ -127,25 +190,19 @@ public class GStreamerController : BaseController
             try
             {
                 if (gstask.initMp4 == null)
-                    gstask.GetSegment(-1, HttpContext.RequestAborted);
+                    gstask.GetSegment(-1, HttpContext.RequestAborted, audio);
             }
             finally
             {
-                gstask.semaphore.Release();
+                gstask.semaphore?.Release();
             }
         }
 
         if (gstask.initMp4 == null)
-        {
-            HttpContext.Response.StatusCode = 502;
-            return;
-        }
+            return StatusCode(502);
 
-        Response.ContentType = "video/mp4";
-        Response.Headers.AcceptRanges = "none";
         Response.Headers.ContentLength = gstask.initMp4.Length;
-
-        await Response.Body.WriteAsync(gstask.initMp4, 0, gstask.initMp4.Length, HttpContext.RequestAborted);
+        return File(gstask.initMp4, "video/mp4", true);
     }
     #endregion
 
@@ -159,7 +216,13 @@ public class GStreamerController : BaseController
         var gstask = GService.Get(id);
         if (gstask == null)
         {
-            HttpContext.Response.StatusCode = 404;
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        if (gstask.initMp4 == null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
             return;
         }
 
@@ -179,7 +242,7 @@ public class GStreamerController : BaseController
                     bool seekok = gstask.Seek(index * GStask.segmentSeconds);
                     if (!seekok)
                     {
-                        HttpContext.Response.StatusCode = 502;
+                        HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
                         return;
                     }
                 }
@@ -190,22 +253,143 @@ public class GStreamerController : BaseController
             Segment seg = gstask.GetSegment(index, HttpContext.RequestAborted);
             if (seg.audio == null || seg.video == null)
             {
-                HttpContext.Response.StatusCode = 502;
+                HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
                 return;
             }
 
             HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
-            Response.ContentType = "video/mp4";
-            Response.Headers.AcceptRanges = "none";
-            Response.Headers.ContentLength = seg.video.Length + seg.audio.Length;
+            seg.video.Position = 0;
+            seg.audio.Position = 0;
 
-            await seg.video.CopyToAsync(Response.Body, HttpContext.RequestAborted);
-            await seg.audio.CopyToAsync(Response.Body, HttpContext.RequestAborted);
+            long totalLength = seg.video.Length + seg.audio.Length;
+
+            Response.ContentType = "video/mp4";
+            Response.Headers.AcceptRanges = "bytes";
+
+            var range = Request.GetTypedHeaders()?.Range;
+
+            if (range != null && range.Ranges.Count == 1)
+            {
+                var item = range.Ranges.First();
+
+                long start;
+                long end;
+
+                if (item.From.HasValue)
+                {
+                    start = item.From.Value;
+                    end = item.To ?? totalLength - 1;
+                }
+                else
+                {
+                    long suffixLength = item.To ?? 0;
+
+                    if (suffixLength <= 0)
+                    {
+                        Response.StatusCode = 416;
+                        Response.Headers.ContentRange = $"bytes */{totalLength}";
+                        return;
+                    }
+
+                    suffixLength = Math.Min(suffixLength, totalLength);
+
+                    start = totalLength - suffixLength;
+                    end = totalLength - 1;
+                }
+
+                if (start >= totalLength || end < start)
+                {
+                    Response.StatusCode = 416;
+                    Response.Headers.ContentRange = $"bytes */{totalLength}";
+                    return;
+                }
+
+                end = Math.Min(end, totalLength - 1);
+
+                Response.StatusCode = 206;
+                Response.Headers.ContentRange = $"bytes {start}-{end}/{totalLength}";
+
+                Response.ContentLength = end - start + 1;
+
+                await CopyRange(
+                    seg.video,
+                    seg.audio,
+                    Response.Body,
+                    start,
+                    Response.ContentLength.Value,
+                    HttpContext.RequestAborted
+                );
+            }
+            else
+            {
+                Response.ContentLength = totalLength;
+                await seg.video.CopyToAsync(Response.Body, HttpContext.RequestAborted);
+                await seg.audio.CopyToAsync(Response.Body, HttpContext.RequestAborted);
+            }
         }
         finally
         {
-            gstask.semaphore.Release();
+            gstask.semaphore?.Release();
+        }
+    }
+    #endregion
+
+
+    #region Helpers
+    static async Task CopyRange(RecyclableMemoryStream video, RecyclableMemoryStream audio, Stream body, long offset, long count, CancellationToken cancellationToken)
+    {
+        using (var nbuf = new BufferPool())
+        {
+            if (offset < video.Length)
+            {
+                video.Position = offset;
+
+                long videoCount = Math.Min(
+                    count,
+                    video.Length - offset
+                );
+
+                while (videoCount > 0)
+                {
+                    int read = video.Read(nbuf.Span);
+                    if (read == 0)
+                        break;
+
+                    await body.WriteAsync(
+                        nbuf.Memory.Slice(0, read),
+                        cancellationToken
+                    );
+
+                    videoCount -= read;
+                    count -= read;
+                }
+
+                offset = 0;
+            }
+            else
+            {
+                offset -= video.Length;
+            }
+
+            if (count <= 0)
+                return;
+
+            audio.Position = offset;
+
+            while (count > 0)
+            {
+                int read = audio.Read(nbuf.Span);
+                if (read == 0)
+                    break;
+
+                await body.WriteAsync(
+                    nbuf.Memory.Slice(0, read),
+                    cancellationToken
+                );
+
+                count -= read;
+            }
         }
     }
     #endregion

@@ -5,4 +5,6 @@ namespace GStreamer;
 public class ModuleConf : ModuleBaseConf
 {
     public bool enable { get; set; }
+
+    public string PATH { get; set; }
 }

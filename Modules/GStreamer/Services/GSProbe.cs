@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -97,7 +98,9 @@ public static class GSProbe
 
             process.StartInfo = new ProcessStartInfo
             {
-                FileName = "gst-discoverer-1.0.exe",
+                FileName = OperatingSystem.IsWindows()
+                    ? Path.Combine(ModInit.conf.PATH, "bin", "gst-discoverer-1.0.exe")
+                    : "gst-discoverer-1.0",
 
                 UseShellExecute = false,
                 RedirectStandardOutput = true,

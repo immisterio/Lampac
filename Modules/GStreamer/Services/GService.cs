@@ -1,5 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using GStreamer.Models;
+using Newtonsoft.Json;
 using Shared.Services;
+using Shared.Services.Hybrid;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Concurrent;
@@ -20,15 +22,16 @@ public static class GService
         TimeSpan.FromMinutes(1)
     );
 
-    public static async Task<GStask> GetOrAdd(string sourceUrl, string uid)
+    public static async Task<GStask> GetOrAdd(string sourceUrl, string uid, int audio = 0)
     {
         if (string.IsNullOrEmpty(sourceUrl) || string.IsNullOrEmpty(uid))
             return null;
 
         var hash = Fnv1a.Hash(sourceUrl);
         Fnv1a.Append(ref hash, uid);
+        Fnv1a.Append(ref hash, audio);
 
-        if (tasks.TryGetValue(hash.H1, out var task))
+        if (tasks.TryGetValue(hash.H1, out var task) && !task.IsDead)
         {
             task.UpdateLastActive();
             return task;
@@ -41,27 +44,50 @@ public static class GService
             throw new ArgumentException("Invalid URL", nameof(sourceUrl));
         }
 
-        string location = await Http.GetLocation(sourceUrl);
-        if (location != null)
-            sourceUrl = location;
-
-        var probe = await GSProbe.Get(sourceUrl);
-        //Console.WriteLine(JsonConvert.SerializeObject(probe, Formatting.Indented));
-        if (probe == null)
+        sourceUrl = await Http.GetLocation(sourceUrl, timeoutSeconds: 45);
+        if (sourceUrl == null)
             return null;
+
+        var hybridCache = HybridCache.Get();
+
+        string probeKey = $"ProbeInfo:{sourceUrl}";
+        if (!hybridCache.TryGetValue(probeKey, out ProbeInfo probe))
+        {
+            probe = await GSProbe.Get(sourceUrl);
+            //Console.WriteLine(JsonConvert.SerializeObject(probe, Formatting.Indented));
+            if (probe == null)
+                return null;
+
+            hybridCache.Set(probeKey, probe, TimeSpan.FromDays(10));
+        }
 
         if (!probe.IsH264 && !probe.IsH265 && !probe.IsAV1 && !probe.IsVP9)
             return null;
 
-        task = new GStask(probe, sourceUrl, hash.H1);
-        tasks[hash.H1] = task;
+        task = new GStask(probe, sourceUrl, hash.H1, uid, audio);
 
-        return task;
+        if (tasks.TryAdd(hash.H1, task))
+        {
+            foreach (var tk in tasks)
+            {
+                if (tk.Value.user_uid == uid && tk.Key != hash.H1)
+                {
+                    if (tasks.TryRemove(tk.Key, out var removed))
+                        removed.Dispose();
+                }
+            }
+
+            return task;
+        }
+        else
+        {
+            return tasks[hash.H1];
+        }
     }
 
     public static GStask Get(ulong id)
     {
-        if (tasks.TryGetValue(id, out var task))
+        if (tasks.TryGetValue(id, out var task) && !task.IsDead)
         {
             task.UpdateLastActive();
             return task;
@@ -88,18 +114,18 @@ public static class GService
 
         try
         {
-            var minActiveTime = DateTime.UtcNow - TimeSpan.FromMinutes(5);
+            var inactiveBefore = DateTime.UtcNow - TimeSpan.FromMinutes(5);
 
             foreach (var item in tasks)
             {
                 var id = item.Key;
                 var task = item.Value;
 
-                if (task.lastActive > minActiveTime)
-                    continue;
-
-                if (tasks.TryRemove(id, out var removed))
-                    removed.Dispose();
+                if (inactiveBefore > task.lastActive || item.Value.IsDead)
+                {
+                    if (tasks.TryRemove(id, out var removed))
+                        removed.Dispose();
+                }
             }
         }
         catch { }

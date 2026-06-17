@@ -18,7 +18,6 @@ public class ModInit : IModuleLoaded
 
     public void Loaded(InitspaceModel initspace)
     {
-        InitGst();
         modpath = initspace.path;
 
         updateConf();
@@ -26,6 +25,8 @@ public class ModInit : IModuleLoaded
 
         foreach (var m in conf.limit_map)
             CoreInit.conf.WAF.limit_map.Insert(0, m);
+
+        InitGst();
     }
 
     public void Dispose()
@@ -38,6 +39,7 @@ public class ModInit : IModuleLoaded
     {
         conf = ModuleInvoke.Init("gst", new ModuleConf()
         {
+            PATH = @"C:\Program Files\gstreamer\1.0\mingw_x86_64",
             limit_map = new List<WafLimitRootMap>()
             {
                 new("^/gst/", new WafLimitMap { limit = 50, second = 1 })
@@ -46,10 +48,9 @@ public class ModInit : IModuleLoaded
     }
 
 
-
     static void InitGst()
     {
-        SetupGStreamerWindows();
+        SetupGStreamer();
 
         Gst.Module.Initialize();
         GstApp.Module.Initialize();
@@ -58,56 +59,40 @@ public class ModInit : IModuleLoaded
         Gst.Functions.Init(ref gstArgs);
     }
 
-
-    static void SetupGStreamerWindows()
+    static void SetupGStreamer()
     {
-        if (!OperatingSystem.IsWindows())
-            return;
-
-        var gstRoot = @"C:\Program Files\gstreamer\1.0\mingw_x86_64";
-        var gstBin = Path.Combine(gstRoot, "bin");
-        var gstPlugins = Path.Combine(
-            gstRoot,
-            "lib",
-            "gstreamer-1.0"
-        );
-
-        if (!Directory.Exists(gstBin))
-            throw new DirectoryNotFoundException(gstBin);
-
-        var oldPath =
-            Environment.GetEnvironmentVariable("PATH")
-            ?? string.Empty;
-
-        if (!oldPath.Contains(gstBin, StringComparison.OrdinalIgnoreCase))
-        {
-            Environment.SetEnvironmentVariable(
-                "PATH",
-                gstBin + Path.PathSeparator + oldPath,
-                EnvironmentVariableTarget.Process
-            );
-        }
-
-        Environment.SetEnvironmentVariable(
-            "GST_PLUGIN_PATH",
-            gstPlugins,
-            EnvironmentVariableTarget.Process
-        );
-
         Environment.SetEnvironmentVariable(
             "GST_REGISTRY",
             Path.Combine(
                 AppContext.BaseDirectory,
+                "cache",
                 "gstreamer-registry.bin"
             ),
             EnvironmentVariableTarget.Process
         );
 
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var gstBin = Path.Combine(conf.PATH, "bin");
+        if (!Directory.Exists(gstBin))
+            return;
+
+        var currentPath = Environment.GetEnvironmentVariable("PATH");
+
         Environment.SetEnvironmentVariable(
-            "GST_DEBUG",
-            "souphttpsrc:6,matroskademux:5,h264parse:4," +
-            "hlssink3:4,splitmuxsink:4,mpegtsmux:4,*:2",
+            "PATH",
+            string.IsNullOrEmpty(currentPath)
+                ? gstBin
+                : $"{gstBin}{Path.PathSeparator}{currentPath}",
             EnvironmentVariableTarget.Process
         );
+
+        //Environment.SetEnvironmentVariable(
+        //    "GST_DEBUG",
+        //    "souphttpsrc:6,matroskademux:5,h264parse:4," +
+        //    "hlssink3:4,splitmuxsink:4,mpegtsmux:4,*:2",
+        //    EnvironmentVariableTarget.Process
+        //);
     }
 }
