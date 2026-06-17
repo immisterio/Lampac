@@ -39,7 +39,11 @@ public class ModInit : IModuleLoaded
     {
         conf = ModuleInvoke.Init("gst", new ModuleConf()
         {
+            segment_seconds = 6,
+            aac_bitrate = 256000,
+            video_bitrate = 5000,
             PATH = @"C:\Program Files\gstreamer\1.0\mingw_x86_64",
+            inactiveMinutes = 5,
             limit_map = new List<WafLimitRootMap>()
             {
                 new("^/gst/", new WafLimitMap { limit = 50, second = 1 })

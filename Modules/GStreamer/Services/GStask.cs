@@ -11,8 +11,6 @@ namespace GStreamer.Services;
 public class GStask
 {
     #region GStask
-    public const int segmentSeconds = 6;
-
     public System.DateTime lastActive { get; private set; } = System.DateTime.UtcNow;
 
     public SemaphoreSlim semaphore { get; private set; } = new(1, 1);
@@ -26,6 +24,7 @@ public class GStask
     public readonly string user_uid;
     public readonly ProbeInfo probe;
     public readonly string sourceUrl;
+    public readonly ModuleConf conf;
 
     public byte[] initMp4 { get; private set; }
 
@@ -42,12 +41,13 @@ public class GStask
     CancellationTokenSource busWatchCts;
     System.Threading.Tasks.Task busWatchTask;
 
-    public GStask(ProbeInfo probe, string sourceUrl, ulong id, string user_uid, int audio)
+    public GStask(ProbeInfo probe, ModuleConf conf, string sourceUrl, ulong id, string user_uid, int audio)
     {
         this.id = id;
         this.probe = probe;
         this.user_uid = user_uid;
         this.sourceUrl = sourceUrl;
+        this.conf = conf;
 
         if (probe.Tracks.FirstOrDefault(i => i.Type == "audio" && i.Index == audio) != null)
             audioIndex = audio;
@@ -94,68 +94,119 @@ public class GStask
         matroskademux name=d
         """);
 
+        #region d.video
+        int segmentSeconds = Math.Max(1, conf.segment_seconds);
+
+        //double frameRate = probe.FrameRate > 0
+        //    ? probe.FrameRate
+        //    : 25;
+
+        double frameRate = 25;
+
+        int keyIntMax = Math.Max(
+            1,
+            (int)Math.Round(frameRate * segmentSeconds)
+        );
+
         if (probe.IsH264)
         {
-            sb.AppendLine($$"""
-            d.video_0 !
-            queue
-                max-size-buffers=0
-                max-size-bytes={{maxQueueBytes}}
-                max-size-time={{queueNs}}
-                leaky=0 !
-            h264parse config-interval=-1 !
-            h264timestamper !
-            video/x-h264,stream-format=avc,alignment=au !
-            mux.video_0
-            """);
+            #region H264
+            if (conf.transcodeH264)
+            {
+                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+            }
+            else
+            {
+                sb.AppendLine($$"""
+                d.video_0 !
+                queue
+                    max-size-buffers=0
+                    max-size-bytes={{maxQueueBytes}}
+                    max-size-time={{queueNs}}
+                    leaky=0 !
+                h264parse config-interval=-1 !
+                h264timestamper !
+                video/x-h264,stream-format=avc,alignment=au !
+                mux.video_0
+                """);
+            }
+            #endregion
         }
         else if (probe.IsH265)
         {
-            sb.AppendLine($$"""
-            d.video_0 !
-            queue
-                max-size-buffers=0
-                max-size-bytes={{maxQueueBytes}}
-                max-size-time={{queueNs}}
-                leaky=0 !
-            h265parse config-interval=-1 !
-            h265timestamper !
-            video/x-h265,stream-format=hvc1,alignment=au !
-            mux.video_0
-            """);
+            #region H265
+            if (conf.transcodeH265)
+            {
+                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+            }
+            else
+            {
+                sb.AppendLine($$"""
+                d.video_0 !
+                queue
+                    max-size-buffers=0
+                    max-size-bytes={{maxQueueBytes}}
+                    max-size-time={{queueNs}}
+                    leaky=0 !
+                h265parse config-interval=-1 !
+                h265timestamper !
+                video/x-h265,stream-format=hvc1,alignment=au !
+                mux.video_0
+                """);
+            }
+            #endregion
         }
         else if (probe.IsAV1)
         {
-            sb.AppendLine($$"""
-            d.video_0 !
-            queue
-                max-size-buffers=0
-                max-size-bytes={{maxQueueBytes}}
-                max-size-time={{queueNs}}
-                leaky=0 !
-            av1parse !
-            video/x-av1,stream-format=obu-stream,alignment=tu !
-            mux.video_0
-            """);
+            #region AV1
+            if (conf.transcodeAV1)
+            {
+                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+            }
+            else
+            {
+                sb.AppendLine($$"""
+                d.video_0 !
+                queue
+                    max-size-buffers=0
+                    max-size-bytes={{maxQueueBytes}}
+                    max-size-time={{queueNs}}
+                    leaky=0 !
+                av1parse !
+                video/x-av1,stream-format=obu-stream,alignment=tu !
+                mux.video_0
+                """);
+            }
+            #endregion
         }
         else if (probe.IsVP9)
         {
-            sb.AppendLine($$"""
-            d.video_0 !
-            queue
-                max-size-buffers=0
-                max-size-bytes={{maxQueueBytes}}
-                max-size-time={{queueNs}}
-                leaky=0 !
-            vp9parse !
-            video/x-vp9,alignment=frame !
-            mux.video_0
-            """);
+            #region VP9
+            if (conf.transcodeVP9)
+            {
+                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+            }
+            else
+            {
+                sb.AppendLine($$"""
+                d.video_0 !
+                queue
+                    max-size-buffers=0
+                    max-size-bytes={{maxQueueBytes}}
+                    max-size-time={{queueNs}}
+                    leaky=0 !
+                vp9parse !
+                video/x-vp9,alignment=frame !
+                mux.video_0
+                """);
+            }
+            #endregion
         }
         else
         {
             throw new NotSupportedException("Unsupported video codec");
         }
+        #endregion
 
         sb.AppendLine($$"""
         d.audio_{{audioIndex}} !
@@ -168,7 +219,7 @@ public class GStask
         audioconvert !
         audioresample !
         audio/x-raw,rate=48000,channels=2 !
-        avenc_aac bitrate=256000 !
+        avenc_aac bitrate={{conf.aac_bitrate}} !
         aacparse !
         audio/mpeg,mpegversion=4,stream-format=raw,rate=48000,channels=2 !
         mux.audio_0
@@ -177,7 +228,7 @@ public class GStask
         sb.AppendLine($$"""
         mp4mux
             name=mux
-            fragment-duration={{segmentSeconds * 1000}}
+            fragment-duration={{conf.segment_seconds * 1000}}
             streamable=true !
         appsink
             name=out
@@ -191,6 +242,33 @@ public class GStask
         """);
 
         return sb.ToString();
+    }
+
+    void TranscodeToH264(StringBuilder sb, int maxQueueBytes, long queueNs, int keyIntMax)
+    {
+        sb.AppendLine($$"""
+        d.video_0 !
+        queue
+            max-size-buffers=0
+            max-size-bytes={{maxQueueBytes}}
+            max-size-time={{queueNs}}
+            leaky=0 !
+        decodebin !
+        videoconvert !
+        video/x-raw,format=I420 !
+        x264enc
+            tune=zerolatency
+            speed-preset=veryfast
+            bitrate={{conf.video_bitrate}}
+            key-int-max={{keyIntMax}}
+            bframes=0
+            byte-stream=false !
+        video/x-h264,profile=main,stream-format=avc,alignment=au !
+        h264parse config-interval=-1 !
+        h264timestamper !
+        video/x-h264,profile=main,stream-format=avc,alignment=au !
+        mux.video_0
+        """);
     }
     #endregion
 

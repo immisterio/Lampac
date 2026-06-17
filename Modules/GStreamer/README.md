@@ -59,3 +59,10 @@ C:\Program Files\gstreamer\1.0\mingw_x86_64
 ```
 
 Если mingw установлен в другое место, укажите каталог в настройке `PATH` модуля.
+
+
+## macOS
+
+Скачайте и установите 1.28.3 runtime installer:
+
+https://gstreamer.freedesktop.org/download/#macos

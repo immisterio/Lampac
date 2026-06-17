@@ -1,5 +1,4 @@
 ﻿using GStreamer.Models;
-using Newtonsoft.Json;
 using Shared.Services;
 using Shared.Services.Hybrid;
 using Shared.Services.Utilities;
@@ -64,7 +63,11 @@ public static class GService
         if (!probe.IsH264 && !probe.IsH265 && !probe.IsAV1 && !probe.IsVP9)
             return null;
 
-        task = new GStask(probe, sourceUrl, hash.H1, uid, audio);
+        var conf = ModInit.conf;
+        if (ModInit.conf.conf_uids != null && ModInit.conf.conf_uids.TryGetValue(uid, out var uidconf))
+            conf = uidconf;
+
+        task = new GStask(probe, conf, sourceUrl, hash.H1, uid, audio);
 
         if (tasks.TryAdd(hash.H1, task))
         {
@@ -114,7 +117,7 @@ public static class GService
 
         try
         {
-            var inactiveBefore = DateTime.UtcNow - TimeSpan.FromMinutes(5);
+            var inactiveBefore = DateTime.UtcNow - TimeSpan.FromMinutes(ModInit.conf.inactiveMinutes);
 
             foreach (var item in tasks)
             {

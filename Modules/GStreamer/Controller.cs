@@ -45,7 +45,11 @@ public class GStreamerController : BaseController
         if (!ModInit.conf.enable)
             return StatusCode(403);
 
-        var gstask = await GService.GetOrAdd(link, uid ?? token);
+        string user_id = uid ?? token;
+        if (ModInit.conf.allowed_uids != null && !ModInit.conf.allowed_uids.Contains(user_id))
+            return StatusCode(401);
+
+        var gstask = await GService.GetOrAdd(link, user_id);
         if (gstask == null)
             return StatusCode(502);
 
@@ -105,7 +109,11 @@ public class GStreamerController : BaseController
         if (!ModInit.conf.enable)
             return StatusCode(403);
 
-        var gstask = await GService.GetOrAdd(link, uid ?? token, audio);
+        string user_id = uid ?? token;
+        if (ModInit.conf.allowed_uids != null && !ModInit.conf.allowed_uids.Contains(user_id))
+            return StatusCode(401);
+
+        var gstask = await GService.GetOrAdd(link, user_id, audio);
         if (gstask == null)
             return StatusCode(502);
 
@@ -128,7 +136,8 @@ public class GStreamerController : BaseController
         if (0 >= duration)
             duration = 200 * 60; // 200 min
 
-        int count = duration / GStask.segmentSeconds;
+        int segmentSeconds = gstask.conf.segment_seconds;
+        int count = duration / segmentSeconds;
 
         var playlist = StringBuilderPool.Rent();
 
@@ -138,7 +147,7 @@ public class GStreamerController : BaseController
             playlist.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
             playlist.AppendLine("#EXT-X-VERSION:7");
             playlist.Append("#EXT-X-TARGETDURATION:")
-                    .Append(GStask.segmentSeconds)
+                    .Append(segmentSeconds)
                     .Append('\n');
             playlist.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
             playlist.Append("#EXT-X-MAP:URI=\"init.mp4?audio=")
@@ -149,7 +158,7 @@ public class GStreamerController : BaseController
             {
                 playlist
                     .Append("#EXTINF:")
-                    .Append(GStask.segmentSeconds)
+                    .Append(segmentSeconds)
                     .AppendLine(".00,");
 
                 playlist
@@ -239,7 +248,7 @@ public class GStreamerController : BaseController
                 if (index != gstask.lastSentSegment + 1)
                 {
                     gstask.lastSentSegment = index;
-                    bool seekok = gstask.Seek(index * GStask.segmentSeconds);
+                    bool seekok = gstask.Seek(index * gstask.conf.segment_seconds);
                     if (!seekok)
                     {
                         HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
