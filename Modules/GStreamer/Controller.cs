@@ -29,8 +29,23 @@ public class GStreamerController : BaseController
         if (!ModInit.conf.enable)
             return Content(string.Empty, "application/javascript; charset=utf-8");
 
-        var plugin = FileCache.ReadAllText($"{ModInit.modpath}/plugin.js", "gst.js")
+        var plugin = FileCache.ReadAllText($"{ModInit.modpath}/plugins/gst.js", "gst.js")
             .Replace("{localhost}", CoreInit.Host(HttpContext))
+            .Replace("{token}", HttpUtility.UrlEncode(token));
+
+        return ContentTo(plugin, "application/javascript; charset=utf-8");
+    }
+    #endregion
+
+    #region tracks.js
+    [HttpGet, AllowAnonymous]
+    [Staticache(10, always: true, setHeadersNoCache: true)]
+    [Route("gst/tracks.js")]
+    [Route("gst/tracks/js/{token}")]
+    public ActionResult Tracks(string token)
+    {
+        string plugin = FileCache.ReadAllText($"{ModInit.modpath}/plugins/tracks.js", "gstracks.js")
+            .Replace("{localhost}", host)
             .Replace("{token}", HttpUtility.UrlEncode(token));
 
         return ContentTo(plugin, "application/javascript; charset=utf-8");
@@ -239,6 +254,7 @@ public class GStreamerController : BaseController
 
         try
         {
+            #region Seek
             if (gstask.lastSentSegment == -1)
             {
                 gstask.lastSentSegment = index;
@@ -247,17 +263,35 @@ public class GStreamerController : BaseController
             {
                 if (index != gstask.lastSentSegment + 1)
                 {
-                    gstask.lastSentSegment = index;
-                    bool seekok = gstask.Seek(index * gstask.conf.segment_seconds);
-                    if (!seekok)
+                    int diff = index - gstask.lastSentSegment;
+
+                    int cutoff = gstask.conf.tempfs
+                        ? gstask.conf.pipeline_videoQueue * (gstask.conf.tempfs_ring + 2)
+                        : gstask.conf.pipeline_videoQueue;
+
+                    if (diff > 0 && Math.Max(60, cutoff) >= (diff * gstask.conf.segment_seconds))
                     {
-                        HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
-                        return;
+                        for (int i = 0; i < diff; i++)
+                        {
+                            gstask.GetSegment(index, HttpContext.RequestAborted);
+                            gstask.lastSentSegment++;
+                        }
+                    }
+                    else
+                    {
+                        gstask.lastSentSegment = index;
+                        bool seekok = gstask.Seek(index * gstask.conf.segment_seconds);
+                        if (!seekok)
+                        {
+                            HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
+                            return;
+                        }
                     }
                 }
 
                 gstask.lastSentSegment = index;
             }
+            #endregion
 
             Segment seg = gstask.GetSegment(index, HttpContext.RequestAborted);
             if (seg.audio == null || seg.video == null)

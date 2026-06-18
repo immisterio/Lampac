@@ -25,7 +25,10 @@ namespace GStreamer.Services;
       "Width": 1920,
       "Height": 800,
       "Channels": null,
-      "Rate": null
+      "Rate": null,
+      "FrameRateNum": 24000,
+      "FrameRateDen": 1001,
+      "FrameRate": 23.976023976023978
     },
     {
       "Index": 0,
@@ -37,7 +40,10 @@ namespace GStreamer.Services;
       "Width": null,
       "Height": null,
       "Channels": null,
-      "Rate": 48000
+      "Rate": 48000,
+      "FrameRateNum": null,
+      "FrameRateDen": null,
+      "FrameRate": null
     },
     {
       "Index": 1,
@@ -49,7 +55,10 @@ namespace GStreamer.Services;
       "Width": null,
       "Height": null,
       "Channels": null,
-      "Rate": 48000
+      "Rate": 48000,
+      "FrameRateNum": null,
+      "FrameRateDen": null,
+      "FrameRate": null
     }
   ],
   "Video": {
@@ -62,11 +71,17 @@ namespace GStreamer.Services;
     "Width": 1920,
     "Height": 800,
     "Channels": null,
-    "Rate": null
+    "Rate": null,
+    "FrameRateNum": 24000,
+    "FrameRateDen": 1001,
+    "FrameRate": 23.976023976023978
   },
   "VideoCapsName": "video/x-h264",
   "IsH264": true,
-  "IsH265": false
+  "IsH265": false,
+  "IsAV1": false,
+  "IsVP9": false,
+  "IsVP8": false
 }
 */
 
@@ -323,6 +338,12 @@ public static class GSProbe
 
             return;
         }
+
+        if (line.StartsWith("Frame rate:", StringComparison.OrdinalIgnoreCase))
+        {
+            ParseFrameRate(track, ValueAfterColon(line));
+            return;
+        }
     }
 
     static long ParseDurationNs(string text)
@@ -436,5 +457,44 @@ public static class GSProbe
             return null;
 
         return line[(p + 1)..].Trim();
+    }
+
+    static void ParseFrameRate(TrackInfo track, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        string[] parts = value.Split(
+            '/',
+            2,
+            StringSplitOptions.TrimEntries
+        );
+
+        if (!int.TryParse(
+                parts[0],
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int numerator))
+        {
+            return;
+        }
+
+        int denominator = 1;
+
+        if (parts.Length == 2 &&
+            !int.TryParse(
+                parts[1],
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out denominator))
+        {
+            return;
+        }
+
+        if (numerator <= 0 || denominator <= 0)
+            return;
+
+        track.FrameRateNum = numerator;
+        track.FrameRateDen = denominator;
     }
 }

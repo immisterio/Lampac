@@ -16,8 +16,6 @@ http://IP:9118/gst.js
 
 ## Linux (Debian/Ubuntu)
 
-Требуется **GStreamer 1.28 или новее**.
-
 ```bash
 apt-get update
 
@@ -38,6 +36,14 @@ apt-get install -y --no-install-recommends \
 ```bash
 gst-inspect-1.0 --version
 gst-discoverer-1.0 --version
+```
+
+Если версия ниже 1.28, укажите ее в настройках: 
+
+```json
+"gst": {
+  "gst_version": 1.26
+}
 ```
 
 ## Windows

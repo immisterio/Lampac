@@ -20,6 +20,18 @@ public class ModInit : IModuleLoaded
     {
         modpath = initspace.path;
 
+        string cachePath = Path.Combine("cache", "gstranscoding");
+        Directory.CreateDirectory(cachePath);
+
+        foreach (string file in Directory.GetFiles(cachePath))
+        {
+            try
+            {
+                File.Delete(file);
+            }
+            catch { }
+        }
+
         updateConf();
         EventListener.UpdateInitFile += updateConf;
 
@@ -39,10 +51,17 @@ public class ModInit : IModuleLoaded
     {
         conf = ModuleInvoke.Init("gst", new ModuleConf()
         {
-            segment_seconds = 6,
-            aac_bitrate = 256000,
+            tempfs = true,        // файловый буфер http потока
+            tempfs_ring = 1,      // количество буферных блоков videoQueue
+            segment_seconds = 6,  // 6s
+            aac_bitrate = 256,    // 256 кбит/с
             video_bitrate = 5000,
+            pipeline_timeSeconds = 20, // 20s
+            pipeline_audioQueue = 4,   // 4Mb
+            pipeline_videoQueue = 32,  // 32Mb
+            pipeline_sinkQueue = 64,   // 64mb
             PATH = @"C:\Program Files\gstreamer\1.0\mingw_x86_64",
+            gst_version = 1.28,
             inactiveMinutes = 5,
             limit_map = new List<WafLimitRootMap>()
             {

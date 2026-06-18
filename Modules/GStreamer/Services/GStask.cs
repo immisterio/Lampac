@@ -2,6 +2,7 @@
 using GStreamer.Models;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -71,11 +72,44 @@ public class GStask
     {
         var sb = new StringBuilder();
 
-        long queueNs = 20 * 1_000_000_000L; // 20s
+        long queueNs = conf.pipeline_timeSeconds * 1_000_000_000L;
+        int audioQueueBytes = conf.pipeline_audioQueue * 1024 * 1024;
+        int maxQueueBytes = conf.pipeline_videoQueue * 1024 * 1024;
+        int sinkQueueBytes = conf.pipeline_sinkQueue * 1024 * 1024;
 
-        const int audioQueueBytes = 4 * 1024 * 1024;
-        const int maxQueueBytes = 32 * 1024 * 1024;
-        const int sinkQueueBytes = 64 * 1024 * 1024;
+        double version = ModInit.conf.gst_version;
+
+        #region souphttpsrc
+        string httpqueue = $$"""
+        queue2
+            use-buffering=false
+            max-size-buffers=0
+            max-size-bytes={{maxQueueBytes}}
+            max-size-time={{queueNs}} !
+        """;
+
+        if (conf.tempfs)
+        {
+            long ringBytes = maxQueueBytes * (conf.tempfs_ring + 2);
+            ringBytes += 5 * 1024 * 1024; // на смещения и всякую мелочь
+
+            string tempTemplate = Path.Combine(
+                "cache",
+                "gstranscoding",
+                $"{id}-XXXXXX"
+            ).Replace('\\', '/');
+
+            httpqueue = $$"""
+            queue2
+                use-buffering=false
+                temp-template="{{tempTemplate}}"
+                temp-remove=true
+                ring-buffer-max-size={{ringBytes}}
+                max-size-buffers=0
+                max-size-bytes={{maxQueueBytes}}
+                max-size-time=0 !
+            """;
+        }
 
         sb.AppendLine($$"""
         souphttpsrc
@@ -83,37 +117,19 @@ public class GStask
             is-live=false
             keep-alive=true
             timeout=60
-            retries=5
-            retry-backoff-factor=0.5
-            retry-backoff-max=10 !
-        queue2
-            use-buffering=false
-            max-size-buffers=0
-            max-size-bytes={{maxQueueBytes}}
-            max-size-time={{queueNs}} !
+            retries=5 {{(version >= 1.26 ? "retry-backoff-factor=0.5 retry-backoff-max=10" : string.Empty)}} !
+        {{httpqueue}}
         matroskademux name=d
         """);
+        #endregion
 
         #region d.video
-        int segmentSeconds = Math.Max(1, conf.segment_seconds);
-
-        //double frameRate = probe.FrameRate > 0
-        //    ? probe.FrameRate
-        //    : 25;
-
-        double frameRate = 25;
-
-        int keyIntMax = Math.Max(
-            1,
-            (int)Math.Round(frameRate * segmentSeconds)
-        );
-
         if (probe.IsH264)
         {
             #region H264
             if (conf.transcodeH264)
             {
-                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+                TranscodeToH264(sb, maxQueueBytes, queueNs);
             }
             else
             {
@@ -137,7 +153,7 @@ public class GStask
             #region H265
             if (conf.transcodeH265)
             {
-                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+                TranscodeToH264(sb, maxQueueBytes, queueNs);
             }
             else
             {
@@ -161,7 +177,7 @@ public class GStask
             #region AV1
             if (conf.transcodeAV1)
             {
-                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+                TranscodeToH264(sb, maxQueueBytes, queueNs);
             }
             else
             {
@@ -184,7 +200,7 @@ public class GStask
             #region VP9
             if (conf.transcodeVP9)
             {
-                TranscodeToH264(sb, maxQueueBytes, queueNs, keyIntMax);
+                TranscodeToH264(sb, maxQueueBytes, queueNs);
             }
             else
             {
@@ -219,7 +235,7 @@ public class GStask
         audioconvert !
         audioresample !
         audio/x-raw,rate=48000,channels=2 !
-        avenc_aac bitrate={{conf.aac_bitrate}} !
+        avenc_aac bitrate={{conf.aac_bitrate * 100}} !
         aacparse !
         audio/mpeg,mpegversion=4,stream-format=raw,rate=48000,channels=2 !
         mux.audio_0
@@ -237,15 +253,28 @@ public class GStask
             max-buffers=0
             max-bytes={{sinkQueueBytes}}
             max-time={{queueNs}}
-            leaky-type=none
+            {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
             wait-on-eos=false
         """);
 
         return sb.ToString();
     }
 
-    void TranscodeToH264(StringBuilder sb, int maxQueueBytes, long queueNs, int keyIntMax)
+    void TranscodeToH264(StringBuilder sb, int maxQueueBytes, long queueNs)
     {
+        int segmentSeconds = Math.Max(1, conf.segment_seconds);
+        int frameRateNum = probe.Video?.FrameRateNum ?? 0;
+        int frameRateDen = probe.Video?.FrameRateDen ?? 0;
+
+        int keyIntMax = frameRateNum > 0 && frameRateDen > 0
+            ? Math.Max(
+                1,
+                (int)Math.Round(
+                    (double)frameRateNum * segmentSeconds / frameRateDen
+                )
+            )
+            : 25 * segmentSeconds;
+
         sb.AppendLine($$"""
         d.video_0 !
         queue
@@ -289,18 +318,31 @@ public class GStask
 
     void StopBusWatch()
     {
-        if (busWatchCts == null)
+        var cts = busWatchCts;
+        var task = busWatchTask;
+
+        busWatchCts = null;
+        busWatchTask = null;
+
+        if (cts == null)
             return;
 
-        busWatchCts.Cancel();
-        busWatchTask = null;
+        cts.Cancel();
+
+        try
+        {
+            task?.Wait();
+        }
+        catch { }
+
+        cts.Dispose();
     }
 
     void BusWatch(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
-            using (var msg = bus.TimedPop(50_000_000UL))
+            using (var msg = bus.TimedPop(100_000_000UL))
             {
                 if (msg == null)
                     continue;
@@ -426,9 +468,7 @@ public class GStask
         if (IsDead)
             return default;
 
-        if (index != -1 && readySegment.index == index)
-            return readySegment.seg;
-
+        #region start Playing
         if (!statePlaying)
         {
             statePlaying = true;
@@ -439,12 +479,36 @@ public class GStask
             string pipelineArgs = CreatePipelineArgs(probe);
             pipeline = (Pipeline)Gst.Functions.ParseLaunch(pipelineArgs);
             bus = pipeline.GetBus();
-            StartBusWatch();
 
             bin = pipeline;
             sink = (GstApp.AppSink)bin.GetByName("out");
-            pipeline.SetState(State.Playing);
+            var ret = pipeline.SetState(State.Playing);
+            if (ret == StateChangeReturn.Failure)
+            {
+                IsDead = true;
+                Dispose();
+                return default;
+            }
+
+            if (ret == StateChangeReturn.Async)
+            {
+                using (var msg = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error))
+                {
+                    if (BusReader.GetType(msg) == BusReader.Error)
+                    {
+                        IsDead = true;
+                        Dispose();
+                        return default;
+                    }
+                }
+            }
+
+            StartBusWatch();
         }
+        #endregion
+
+        if (index != -1 && readySegment.index == index && readySegment.complete)
+            return readySegment.seg;
 
         mp4Reader.ResetSegment();
         readySegment = (-1, false, default);

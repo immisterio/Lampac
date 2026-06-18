@@ -19,7 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="plugin.js">
+    <None Update="plugins\gst.js">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </None>
+    <None Update="plugins\tracks.js">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
   </ItemGroup>

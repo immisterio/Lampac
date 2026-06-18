@@ -119,7 +119,7 @@
                     e.data.hls_type = 'hlsjs';
                     e.data.hls_manifest_timeout = 20000;
 
-                    if (!items.length) {
+                    if (!items.length || items.length == 1) {
                         e.data.url = json.hls;
                         Lampa.Player.play(e.data);
                         taskId = json.id;
@@ -192,6 +192,8 @@
 
     if (!window.lampac_transcoding_plugin) {
         window.lampac_transcoding_plugin = true;
+        Lampa.Utils.putScriptAsync(["{localhost}/gst/tracks.js"]);
+
         Lampa.Player.listener.follow('create', handlePlayerStart);
         Lampa.Player.listener.follow('destroy', handlePlayerDestroy);
         Lampa.PlayerVideo.listener.follow('pause', handleVideoPause);
