@@ -507,7 +507,7 @@ public class GStask
         }
         #endregion
 
-        if (index != -1 && readySegment.index == index && readySegment.complete)
+        if (readySegment.index == index && readySegment.complete)
             return readySegment.seg;
 
         mp4Reader.ResetSegment();
@@ -538,7 +538,7 @@ public class GStask
 
                     if (readySegment.complete)
                     {
-                        readySegment.index = index;
+                        readySegment.index = index > 0 ? index : 0;
                         return readySegment.seg;
                     }
                 }
