@@ -235,7 +235,7 @@ public class GStask
         audioconvert !
         audioresample !
         audio/x-raw,rate=48000,channels=2 !
-        avenc_aac bitrate={{conf.aac_bitrate * 100}} !
+        avenc_aac bitrate={{conf.aac_bitrate * 1000}} !
         aacparse !
         audio/mpeg,mpegversion=4,stream-format=raw,rate=48000,channels=2 !
         mux.audio_0
@@ -342,7 +342,7 @@ public class GStask
     {
         while (!ct.IsCancellationRequested)
         {
-            using (var msg = bus.TimedPop(100_000_000UL))
+            using (var msg = bus.TimedPop(50_000_000UL))
             {
                 if (msg == null)
                     continue;
