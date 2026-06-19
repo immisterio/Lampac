@@ -342,7 +342,7 @@ public class GStask
         try
         {
             if (task != null && System.Threading.Tasks.Task.CurrentId != task.Id)
-                task.Wait();
+                task.Wait(TimeSpan.FromMilliseconds(100));
         }
         catch { }
 
@@ -385,7 +385,7 @@ public class GStask
 
                         if (Volatile.Read(ref positionSeconds) >= eosThreshold)
                         {
-                            // выход в пределах допустимого отступления от конца файла
+                            // выход в пределах допустимого отступления от конца
                             IsEos = true;
                             return;
                         }

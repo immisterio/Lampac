@@ -24,11 +24,15 @@ public class Mp4BoxReader
     RecyclableMemoryStream _videoPart;
 
     bool _initDone;
+
+    // Track ID из последнего moof: следующий mdat принадлежит этому треку
     uint _lastMoofTrackId;
 
+    // Timescale треков из moov/trak/mdia/mdhd
     uint _videoTimescale;
     uint _audioTimescale;
 
+    // Локальное начало сегмента и смещение timeline после seek
     double _segmentStartSeconds = -1;
     double _tfdtOffsetSeconds;
 
@@ -53,6 +57,9 @@ public class Mp4BoxReader
         _onSegment = onSegment;
     }
 
+    /// <summary>
+    /// Освобождает предыдущие части и начинает собирать новый сегмент
+    /// </summary>
     public void ResetSegment()
     {
         if (_videoPart != null)
@@ -69,6 +76,9 @@ public class Mp4BoxReader
         _segmentStartSeconds = -1;
     }
 
+    /// <summary>
+    /// Сбрасывает парсер после seek и задаёт смещение новой timeline
+    /// </summary>
     public void SeekReset(double seconds = 0)
     {
         _initDone = false;
@@ -90,8 +100,12 @@ public class Mp4BoxReader
         _pending.Position = 0;
     }
 
+    /// <summary>
+    /// Разбирает полные MP4 box и собирает audio/video сегмент
+    /// </summary>
     public void Push(Gst.Buffer buffer, int size)
     {
+        // Дописываем новые байты в конец незавершённого потока
         int position = (int)_pending.Length;
         _pending.SetLength(position + size);
 
@@ -107,29 +121,32 @@ public class Mp4BoxReader
 
         if (copied == 0)
         {
-            // откатываем Length назад, ничего не записали
+            // Ничего не скопировано — возвращаем прежнюю длину
             _pending.SetLength(position);
             return;
         }
 
-        // на всякий случай, если Extract скопировал меньше
+        // Учитываем частичное копирование Gst.Buffer
         if ((int)copied != size)
             _pending.SetLength(position + (int)copied);
 
         _pending.Position = 0;
 
+        // Разбираем только полностью полученные MP4 box
         while (TryReadBox(
             _pending,
             out uint type,
             out Span<byte> box
         ))
         {
+            // Первый styp/moof завершает накопление init-сегмента
             if (!_initDone && (type == BoxStyp || type == BoxMoof))
             {
                 _initDone = true;
 
                 byte[] init = _init.ToArray();
 
+                // Timescale нужен для перевода tfdt в секунды
                 _videoTimescale = GetTrackTimescale(
                     init,
                     VideoTrackId
@@ -145,8 +162,7 @@ public class Mp4BoxReader
 
             if (!_initDone)
             {
-                // ждем ftyp/moov/free и похожие init-box'ы
-                // mdat до init это провал
+                // До первого media fragment собираем ftyp/moov/free и другие init-box
                 if (type == BoxMdat)
                     throw new InvalidOperationException("Bad init");
 
@@ -156,6 +172,7 @@ public class Mp4BoxReader
 
             if (type == BoxMoof)
             {
+                // Из traf читаем track_ID и decode time текущего fragment
                 _lastMoofTrackId = GetMoofTrackId(
                     box,
                     out ulong? decodeTime
@@ -171,10 +188,7 @@ public class Mp4BoxReader
                 {
                     timescale = _videoTimescale;
 
-                    /*
-                     * Сохраняем локальный video tfdt до смещения.
-                     * GStask затем добавляет positionSeekSeconds.
-                     */
+                    // Сохраняем локальное начало video fragment до изменения tfdt
                     if (_videoTimescale > 0 && decodeTime.HasValue)
                     {
                         _segmentStartSeconds =
@@ -182,6 +196,7 @@ public class Mp4BoxReader
                     }
                 }
 
+                // После seek добавляем абсолютное смещение к tfdt обоих треков
                 if (_tfdtOffsetSeconds > 0 && timescale > 0)
                 {
                     ShiftTfdt(
@@ -205,11 +220,13 @@ public class Mp4BoxReader
 
             if (type == BoxMdat)
             {
+                // mdat относится к track_ID из предыдущего moof
                 if (_lastMoofTrackId == AudioTrackId)
                     _audioPart.Write(box);
                 else if (_lastMoofTrackId == VideoTrackId)
                     _videoPart.Write(box);
 
+                // Сегмент готов после получения обеих частей
                 if (_audioPart.Length > 0 && _videoPart.Length > 0)
                 {
                     _videoPart.Position = 0;
@@ -227,12 +244,16 @@ public class Mp4BoxReader
                 continue;
             }
 
-            // styp, sidx и прочие box'ы игнорируем
+            // styp, sidx и остальные служебные box здесь не нужны
         }
 
+        // Сохраняем неполный box для следующего Push
         CompactPending(); // ужасный метод для hot path, но я куст и пока будет так
     }
 
+    /// <summary>
+    /// Переводит смещение из секунд в units трека и ищет tfdt внутри moof
+    /// </summary>
     static bool ShiftTfdt(
         Span<byte> moof,
         uint timescale,
@@ -253,6 +274,7 @@ public class Mp4BoxReader
 
         ulong offset = (ulong)Math.Round(offsetValue);
 
+        // Пропускаем заголовок moof и ищем вложенный traf
         int pos = 8;
         int end = moof.Length;
 
@@ -288,6 +310,9 @@ public class Mp4BoxReader
         return false;
     }
 
+    /// <summary>
+    /// Находит tfdt внутри traf и увеличивает baseMediaDecodeTime
+    /// </summary>
     static bool ShiftTrafTfdt(
         Span<byte> data,
         int start,
@@ -320,6 +345,7 @@ public class Mp4BoxReader
 
                 byte version = data[pos + 8];
 
+                // tfdt version 1 хранит 64-битное значение
                 if (version == 1)
                 {
                     if (size < 20)
@@ -340,6 +366,7 @@ public class Mp4BoxReader
                     return true;
                 }
 
+                // tfdt version 0 хранит 32-битное значение
                 if (version == 0)
                 {
                     uint value = BinaryPrimitives.ReadUInt32BigEndian(
@@ -368,6 +395,9 @@ public class Mp4BoxReader
         return false;
     }
 
+    /// <summary>
+    /// Ищет traf внутри moof и возвращает track_ID вместе с его tfdt
+    /// </summary>
     static uint GetMoofTrackId(
         ReadOnlySpan<byte> moof,
         out ulong? decodeTime
@@ -416,6 +446,9 @@ public class Mp4BoxReader
         return 0;
     }
 
+    /// <summary>
+    /// Читает track_ID из tfhd и decode time из tfdt одного traf
+    /// </summary>
     static uint GetTrafTrackId(
         ReadOnlySpan<byte> data,
         int start,
@@ -446,6 +479,7 @@ public class Mp4BoxReader
 
             if (type == BoxTfhd && size >= 16)
             {
+                // tfhd: size + type + version/flags + track_ID
                 trackId = BinaryPrimitives.ReadUInt32BigEndian(
                     data.Slice(pos + 12, 4)
                 );
@@ -477,6 +511,9 @@ public class Mp4BoxReader
         return trackId;
     }
 
+    /// <summary>
+    /// Находит нужный trak по track_ID и возвращает его mdhd timescale
+    /// </summary>
     static uint GetTrackTimescale(
         ReadOnlySpan<byte> init,
         uint requiredTrackId
@@ -484,6 +521,7 @@ public class Mp4BoxReader
     {
         int pos = 0;
 
+        // Верхний уровень init: ищем moov
         while (TryReadBox(
             init,
             ref pos,
@@ -496,6 +534,7 @@ public class Mp4BoxReader
 
             int moovPos = 8;
 
+            // Внутри moov перебираем trak
             while (TryReadBox(
                 box,
                 ref moovPos,
@@ -511,6 +550,7 @@ public class Mp4BoxReader
 
                 int trakPos = 8;
 
+                // tkhd содержит ID, mdia/mdhd — timescale этого же трека
                 while (TryReadBox(
                     child,
                     ref trakPos,
@@ -520,6 +560,7 @@ public class Mp4BoxReader
                 {
                     if (trakType == BoxTkhd)
                     {
+                        // Положение track_ID зависит от версии full box
                         int offset =
                             trakBox.Length > 8 && trakBox[8] == 1
                                 ? 28
@@ -546,6 +587,9 @@ public class Mp4BoxReader
         return 0;
     }
 
+    /// <summary>
+    /// Ищет mdhd внутри mdia и читает timescale трека
+    /// </summary>
     static uint GetMdiaTimescale(ReadOnlySpan<byte> mdia)
     {
         int pos = 8;
@@ -560,6 +604,7 @@ public class Mp4BoxReader
             if (type != BoxMdhd)
                 continue;
 
+            // Положение timescale зависит от версии mdhd
             int offset =
                 box.Length > 8 && box[8] == 1
                     ? 28
@@ -576,6 +621,9 @@ public class Mp4BoxReader
         return 0;
     }
 
+    /// <summary>
+    /// Читает один MP4 box из span и передвигает position только при успехе
+    /// </summary>
     static bool TryReadBox(
         ReadOnlySpan<byte> data,
         ref int position,
@@ -601,6 +649,7 @@ public class Mp4BoxReader
 
         int headerSize = 8;
 
+        // size == 1 означает расширенный 64-битный размер
         if (size == 1)
         {
             if (start + 16 > data.Length)
@@ -612,6 +661,7 @@ public class Mp4BoxReader
 
             headerSize = 16;
         }
+        // size == 0 означает box до конца переданного span
         else if (size == 0)
         {
             size = (ulong)(data.Length - start);
@@ -631,6 +681,9 @@ public class Mp4BoxReader
         return true;
     }
 
+    /// <summary>
+    /// Читает один полный MP4 box из накопительного MemoryStream
+    /// </summary>
     static bool TryReadBox(
         MemoryStream ms,
         out uint type,
@@ -657,6 +710,7 @@ public class Mp4BoxReader
         ulong size = BinaryPrimitives.ReadUInt32BigEndian(buffer[..4]);
         type = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4, 4));
 
+        // Потоковый box неизвестного размера здесь разобрать нельзя
         if (size == 0)
             return false;
 
@@ -677,6 +731,7 @@ public class Mp4BoxReader
         if (size < (ulong)headerSize)
             return false;
 
+        // Неполный box остаётся в _pending до следующего Push
         if ((ulong)available < size)
             return false;
 
@@ -686,6 +741,9 @@ public class Mp4BoxReader
         return true;
     }
 
+    /// <summary>
+    /// Удаляет разобранные байты и переносит неполный box в начало буфера
+    /// </summary>
     void CompactPending()
     {
         int pos = (int)_pending.Position;
@@ -717,6 +775,7 @@ public class Mp4BoxReader
         _pending.SetLength(rest);
         _pending.Position = 0;
     }
+
 
     public void Dispose()
     {
