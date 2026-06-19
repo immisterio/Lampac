@@ -260,7 +260,7 @@ public class GStask
             name=out
             emit-signals=false
             sync=false
-            max-buffers=0
+            max-buffers={{(conf.tempfs ? 1 : 0)}}
             max-bytes={{sinkQueueBytes}}
             max-time={{queueNs}}
             {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}

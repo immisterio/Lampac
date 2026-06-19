@@ -162,10 +162,10 @@ public class Mp4BoxReader
 
             if (!_initDone)
             {
-                // До первого media fragment собираем ftyp/moov/free и другие init-box
-                if (type == BoxMdat)
+                if (type == BoxMdat) // mdat до _initDone это провал
                     throw new InvalidOperationException("Bad init");
 
+                // До первого media fragment собираем ftyp/moov/free и другие init-box
                 _init.Write(box);
                 continue;
             }
