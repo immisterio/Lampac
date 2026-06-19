@@ -30,6 +30,9 @@ public class ModuleConf : ModuleBaseConf
     public int tempfs_ring { get; set; } = 1;
 
 
+    /// <summary>
+    /// 256 кбит/с
+    /// </summary>
     public int aac_bitrate { get; set; } = 256;
 
     public int segment_seconds { get; set; } = 6;
@@ -42,7 +45,10 @@ public class ModuleConf : ModuleBaseConf
 
     public bool transcodeVP9 { get; set; }
 
-    public int video_bitrate { get; set; } = 8000;
+    /// <summary>
+    /// 10 Мбит/c
+    /// </summary>
+    public int video_bitrate { get; set; } = 10_000;
 
 
     public int pipeline_timeSeconds { get; set; } = 20;

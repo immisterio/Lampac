@@ -429,7 +429,7 @@ public class GStask
 
             bool ok = pipeline.SeekSimple(
                 Format.Time,
-                SeekFlags.Flush | SeekFlags.KeyUnit | SeekFlags.SnapBefore,
+                SeekFlags.Flush | SeekFlags.KeyUnit | SeekFlags.SnapAfter,
                 (long)Math.Round(seconds * 1_000_000_000d)
             );
 
@@ -452,10 +452,6 @@ public class GStask
             }
         }
 
-        mp4Reader.ResetSegment();
-        mp4Reader.SeekReset();
-        readySegment = (-1, false, default);
-
         ret = pipeline.SetState(State.Playing);
         if (ret == StateChangeReturn.Failure)
         {
@@ -476,6 +472,10 @@ public class GStask
                 }
             }
         }
+
+        mp4Reader.ResetSegment();
+        mp4Reader.SeekReset(seconds);
+        readySegment = (-1, false, default);
 
         IsFrozen = false;
         positionSeekSeconds = seconds;
