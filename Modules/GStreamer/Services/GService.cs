@@ -117,17 +117,21 @@ public static class GService
 
         try
         {
-            var inactiveBefore = DateTime.UtcNow - TimeSpan.FromMinutes(ModInit.conf.inactiveMinutes);
+            var now = DateTime.UtcNow;
 
             foreach (var item in tasks)
             {
                 var id = item.Key;
                 var task = item.Value;
 
-                if (inactiveBefore > task.lastActive || item.Value.IsDead)
+                if (now > task.lastActive.AddMinutes(60) || item.Value.IsDead)
                 {
                     if (tasks.TryRemove(id, out var removed))
                         removed.Dispose();
+                }
+                else if (!item.Value.IsFrozen && now > task.lastActive.AddMinutes(ModInit.conf.inactiveMinutes))
+                {
+                    item.Value.Frozen();
                 }
             }
         }

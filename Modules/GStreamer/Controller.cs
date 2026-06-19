@@ -271,8 +271,11 @@ public class GStreamerController : BaseController
 
                     if (diff > 0 && Math.Max(60, cutoff) >= (diff * gstask.conf.segment_seconds))
                     {
-                        for (int i = 0; i < diff; i++)
+                        for (int i = 0; i < diff - 1; i++)
                         {
+                            if (HttpContext.RequestAborted.IsCancellationRequested)
+                                return;
+
                             gstask.GetSegment(index, HttpContext.RequestAborted);
                             gstask.lastSentSegment++;
                         }
