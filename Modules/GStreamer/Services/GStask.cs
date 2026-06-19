@@ -20,6 +20,8 @@ public class GStask
 
     public bool IsFrozen { get; private set; }
 
+    public bool IsEos { get; private set; }
+
     public int lastSentSegment = -1;
     int audioIndex;
 
@@ -339,7 +341,8 @@ public class GStask
 
         try
         {
-            task?.Wait();
+            if (task != null && System.Threading.Tasks.Task.CurrentId != task.Id)
+                task.Wait();
         }
         catch { }
 
@@ -359,11 +362,39 @@ public class GStask
 
                     uint type = BusReader.GetType(msg);
 
-                    if (type == BusReader.Error || type == BusReader.Eos)
+                    if (type == BusReader.Error)
                     {
                         IsDead = true;
                         Dispose();
                         return;
+                    }
+                    else if (type == BusReader.Eos)
+                    {
+                        double duration = probe.DurationSeconds;
+                        if (duration <= 0)
+                        {
+                            // длительность неизвестна — EOS нельзя признать ошибочным
+                            IsEos = true;
+                            return;
+                        }
+
+                        double eosThreshold = duration -
+                            conf.pipeline_timeSeconds -
+                            conf.segment_seconds -
+                            120; // 120s
+
+                        if (Volatile.Read(ref positionSeconds) >= eosThreshold)
+                        {
+                            // выход в пределах допустимого отступления от конца файла
+                            IsEos = true;
+                            return;
+                        }
+                        else
+                        {
+                            IsDead = true;
+                            Dispose();
+                            return;
+                        }
                     }
                 }
             }
@@ -478,6 +509,7 @@ public class GStask
         readySegment = (-1, false, default);
 
         IsFrozen = false;
+        IsEos = false;
         positionSeekSeconds = seconds;
         StartBusWatch();
         return true;
@@ -529,7 +561,7 @@ public class GStask
         }
         else if (IsFrozen)
         {
-            if (!Seek(positionSeconds + conf.segment_seconds))
+            if (!Seek(positionSeconds))
             {
                 IsDead = true;
                 Dispose();
@@ -559,7 +591,12 @@ public class GStask
                 {
                     var buffer = sample?.GetBuffer();
                     if (buffer == null)
+                    {
+                        if (IsEos) // очередь appsink полностью вычитана
+                            return default;
+
                         continue;
+                    }
 
                     nuint? size = buffer.GetSize();
                     if (size == null || 0 >= size)
