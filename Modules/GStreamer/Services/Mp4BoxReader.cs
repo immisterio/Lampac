@@ -18,7 +18,24 @@ public class Mp4BoxReader
     readonly Action<Segment> _onSegment;
 
     MemoryStream _init = new();
-    MemoryStream _pending = new MemoryStream(128 * 1024);
+
+    // moof держим целиком: внутри него нужны tfhd/tfdt
+    MemoryStream _moof = new(16 * 1024);
+
+    // Остаток Gst.Buffer после уже готового сегмента
+    MemoryStream _deferred = new(64 * 1024);
+
+    // Переиспользуемый буфер извлечения данных из Gst.Buffer
+    readonly byte[] _readBuffer = new byte[64 * 1024];
+
+    // Заголовок обычного box занимает 8 байт, extended-size box — 16 байт
+    readonly byte[] _boxHeader = new byte[16];
+    int _boxHeaderLength;
+    int _boxHeaderRequired = 8;
+
+    uint _currentBoxType;
+    ulong _currentBoxRemaining;
+    BoxTarget _currentTarget;
 
     RecyclableMemoryStream _audioPart;
     RecyclableMemoryStream _videoPart;
@@ -51,6 +68,15 @@ public class Mp4BoxReader
     const uint BoxTfhd = ((uint)'t' << 24) | ((uint)'f' << 16) | ((uint)'h' << 8) | 'd';
     const uint BoxTfdt = ((uint)'t' << 24) | ((uint)'f' << 16) | ((uint)'d' << 8) | 't';
 
+    enum BoxTarget
+    {
+        None,
+        Init,
+        Moof,
+        Audio,
+        Video
+    }
+
     public Mp4BoxReader(Action<byte[]> onInit, Action<Segment> onSegment)
     {
         _onInit = onInit;
@@ -62,6 +88,11 @@ public class Mp4BoxReader
     /// </summary>
     public void ResetSegment()
     {
+        // Если предыдущий запрос прервался посреди mdat, его начало уже было
+        // записано в старый stream. Остаток этого mdat нужно отбросить
+        if (_currentBoxType == BoxMdat && _currentBoxRemaining > 0)
+            _currentTarget = BoxTarget.None;
+
         if (_videoPart != null)
             _videoPart.Dispose();
 
@@ -86,6 +117,7 @@ public class Mp4BoxReader
         _videoTimescale = 0;
         _audioTimescale = 0;
 
+        _lastMoofTrackId = 0;
         _segmentStartSeconds = -1;
 
         _tfdtOffsetSeconds =
@@ -96,159 +128,479 @@ public class Mp4BoxReader
         _init.SetLength(0);
         _init.Position = 0;
 
-        _pending.SetLength(0);
-        _pending.Position = 0;
+        _moof.SetLength(0);
+        _moof.Position = 0;
+
+        _deferred.SetLength(0);
+        _deferred.Position = 0;
+
+        ResetBoxState();
     }
 
     /// <summary>
-    /// Разбирает полные MP4 box и собирает audio/video сегмент
+    /// Потоково разбирает MP4 box:
+    /// init и mdat пишет сразу, целиком накапливает только moof
     /// </summary>
     public void Push(Gst.Buffer buffer, int size)
     {
-        // Дописываем новые байты в конец незавершённого потока
-        int position = (int)_pending.Length;
-        _pending.SetLength(position + size);
-
-        if (!_pending.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
-            throw new InvalidOperationException("MemoryStream buffer is not accessible.");
-
-        Span<byte> dst = segment.Array.AsSpan(
-            segment.Offset + position,
-            size
-        );
-
-        nuint copied = buffer.Extract(0, dst);
-
-        if (copied == 0)
+        // Сначала дорабатываем редкий остаток предыдущего Gst.Buffer
+        if (_deferred.Length > 0)
         {
-            // Ничего не скопировано — возвращаем прежнюю длину
-            _pending.SetLength(position);
-            return;
+            if (!_deferred.TryGetBuffer(out ArraySegment<byte> deferredSegment) || deferredSegment.Array == null)
+                throw new InvalidOperationException("Deferred buffer is not accessible.");
+
+            ReadOnlySpan<byte> deferredData = deferredSegment.Array.AsSpan(
+                deferredSegment.Offset,
+                (int)_deferred.Length
+            );
+
+            int consumed = ProcessBytes(
+                deferredData,
+                out bool segmentCompleted
+            );
+
+            if (segmentCompleted)
+            {
+                KeepDeferredRemainder(deferredData, consumed);
+                AppendGstBufferToDeferred(buffer, 0, size);
+                return;
+            }
+
+            _deferred.SetLength(0);
+            _deferred.Position = 0;
         }
 
-        // Учитываем частичное копирование Gst.Buffer
-        if ((int)copied != size)
-            _pending.SetLength(position + (int)copied);
+        int sourceOffset = 0;
 
-        _pending.Position = 0;
-
-        // Разбираем только полностью полученные MP4 box
-        while (TryReadBox(
-            _pending,
-            out uint type,
-            out Span<byte> box
-        ))
+        while (sourceOffset < size)
         {
-            // Первый styp/moof завершает накопление init-сегмента
-            if (!_initDone && (type == BoxStyp || type == BoxMoof))
+            int requested = Math.Min(
+                _readBuffer.Length,
+                size - sourceOffset
+            );
+
+            nuint copiedValue = buffer.Extract(
+                (nuint)sourceOffset,
+                _readBuffer.AsSpan(0, requested)
+            );
+
+            int copied = (int)copiedValue;
+
+            if (copied <= 0)
+                return;
+
+            int consumed = ProcessBytes(
+                _readBuffer.AsSpan(0, copied),
+                out bool segmentCompleted
+            );
+
+            sourceOffset += copied;
+
+            if (segmentCompleted)
             {
-                _initDone = true;
-
-                byte[] init = _init.ToArray();
-
-                // Timescale нужен для перевода tfdt в секунды
-                _videoTimescale = GetTrackTimescale(
-                    init,
-                    VideoTrackId
-                );
-
-                _audioTimescale = GetTrackTimescale(
-                    init,
-                    AudioTrackId
-                );
-
-                _onInit(init);
-            }
-
-            if (!_initDone)
-            {
-                if (type == BoxMdat) // mdat до _initDone это провал
-                    throw new InvalidOperationException("Bad init");
-
-                // До первого media fragment собираем ftyp/moov/free и другие init-box
-                _init.Write(box);
-                continue;
-            }
-
-            if (type == BoxMoof)
-            {
-                // Из traf читаем track_ID и decode time текущего fragment
-                _lastMoofTrackId = GetMoofTrackId(
-                    box,
-                    out ulong? decodeTime
-                );
-
-                uint timescale = 0;
-
-                if (_lastMoofTrackId == AudioTrackId)
+                // Сохраняем только байты ПОСЛЕ готового сегмента
+                if (consumed < copied)
                 {
-                    timescale = _audioTimescale;
-                }
-                else if (_lastMoofTrackId == VideoTrackId)
-                {
-                    timescale = _videoTimescale;
-
-                    // Сохраняем локальное начало video fragment до изменения tfdt
-                    if (_videoTimescale > 0 && decodeTime.HasValue)
-                    {
-                        _segmentStartSeconds =
-                            (double)decodeTime.Value / _videoTimescale;
-                    }
-                }
-
-                // После seek добавляем абсолютное смещение к tfdt обоих треков
-                if (_tfdtOffsetSeconds > 0 && timescale > 0)
-                {
-                    ShiftTfdt(
-                        box,
-                        timescale,
-                        _tfdtOffsetSeconds
+                    _deferred.Write(
+                        _readBuffer.AsSpan(
+                            consumed,
+                            copied - consumed
+                        )
                     );
                 }
 
-                if (_lastMoofTrackId == AudioTrackId)
+                if (sourceOffset < size)
                 {
-                    _audioPart.Write(box);
+                    AppendGstBufferToDeferred(
+                        buffer,
+                        sourceOffset,
+                        size - sourceOffset
+                    );
                 }
-                else if (_lastMoofTrackId == VideoTrackId)
+
+                _deferred.Position = 0;
+                return;
+            }
+
+        }
+    }
+
+    /// <summary>
+    /// Разбирает переданный кусок и возвращает число использованных байт
+    /// </summary>
+    int ProcessBytes(
+        ReadOnlySpan<byte> data,
+        out bool segmentCompleted
+    )
+    {
+        segmentCompleted = false;
+        int position = 0;
+
+        while (position < data.Length)
+        {
+            // Сначала набираем 8 или 16 байт заголовка текущего box
+            if (_boxHeaderLength < _boxHeaderRequired)
+            {
+                int copy = Math.Min(
+                    _boxHeaderRequired - _boxHeaderLength,
+                    data.Length - position
+                );
+
+                data.Slice(position, copy).CopyTo(
+                    _boxHeader.AsSpan(_boxHeaderLength, copy)
+                );
+
+                _boxHeaderLength += copy;
+                position += copy;
+
+                if (_boxHeaderLength < _boxHeaderRequired)
+                    break;
+
+                if (_boxHeaderRequired == 8)
                 {
-                    _videoPart.Write(box);
+                    uint size32 = BinaryPrimitives.ReadUInt32BigEndian(
+                        _boxHeader.AsSpan(0, 4)
+                    );
+
+                    _currentBoxType = BinaryPrimitives.ReadUInt32BigEndian(
+                        _boxHeader.AsSpan(4, 4)
+                    );
+
+                    if (size32 == 1)
+                    {
+                        _boxHeaderRequired = 16;
+                        continue;
+                    }
+
+                    if (size32 == 0)
+                    {
+                        throw new NotSupportedException(
+                            "MP4 box with size=0 cannot be parsed before end of stream."
+                        );
+                    }
+
+                    BeginBox(size32, 8);
+                }
+                else
+                {
+                    ulong size64 = BinaryPrimitives.ReadUInt64BigEndian(
+                        _boxHeader.AsSpan(8, 8)
+                    );
+
+                    BeginBox(size64, 16);
+                }
+
+                if (_currentBoxRemaining == 0)
+                {
+                    bool completed = CompleteBox();
+                    ResetBoxState();
+
+                    if (completed)
+                    {
+                        segmentCompleted = true;
+                        break;
+                    }
                 }
 
                 continue;
             }
 
-            if (type == BoxMdat)
+            int bodySize = (int)Math.Min(
+                (ulong)(data.Length - position),
+                _currentBoxRemaining
+            );
+
+            if (bodySize <= 0)
+                break;
+
+            WriteCurrentBoxData(
+                data.Slice(position, bodySize)
+            );
+
+            position += bodySize;
+            _currentBoxRemaining -= (ulong)bodySize;
+
+            if (_currentBoxRemaining == 0)
             {
-                // mdat относится к track_ID из предыдущего moof
-                if (_lastMoofTrackId == AudioTrackId)
-                    _audioPart.Write(box);
-                else if (_lastMoofTrackId == VideoTrackId)
-                    _videoPart.Write(box);
+                bool completed = CompleteBox();
+                ResetBoxState();
 
-                // Сегмент готов после получения обеих частей
-                if (_audioPart.Length > 0 && _videoPart.Length > 0)
+                if (completed)
                 {
-                    _videoPart.Position = 0;
-                    _audioPart.Position = 0;
-
-                    _onSegment(new Segment(
-                        _audioPart,
-                        _videoPart,
-                        _segmentStartSeconds
-                    ));
-
+                    segmentCompleted = true;
                     break;
                 }
-
-                continue;
             }
-
-            // styp, sidx и остальные служебные box здесь не нужны
         }
 
-        // Сохраняем неполный box для следующего Push
-        CompactPending(); // ужасный метод для hot path, но я куст и пока будет так
+        return position;
+    }
+
+    /// <summary>
+    /// Проверяет размер, завершает init при первом styp/moof
+    /// и выбирает поток назначения текущего box
+    /// </summary>
+    void BeginBox(ulong size, int headerSize)
+    {
+        if (size < (ulong)headerSize)
+            throw new InvalidDataException("Invalid MP4 box size.");
+
+        if (_currentBoxType == BoxMoof && size > int.MaxValue)
+            throw new InvalidDataException("moof is too large.");
+
+        _currentBoxRemaining = size - (ulong)headerSize;
+        _currentTarget = BoxTarget.None;
+
+        // Первый media box завершает init. Сам styp/moof в init не входит
+        if (!_initDone && (_currentBoxType == BoxStyp || _currentBoxType == BoxMoof))
+            CompleteInit();
+
+        if (!_initDone)
+        {
+            if (_currentBoxType == BoxMdat) // mdat до _initDone это провал
+                throw new InvalidOperationException("Bad init");
+
+            _currentTarget = BoxTarget.Init;
+        }
+        else if (_currentBoxType == BoxMoof)
+        {
+            _moof.SetLength(0);
+            _moof.Position = 0;
+            _currentTarget = BoxTarget.Moof;
+        }
+        else if (_currentBoxType == BoxMdat)
+        {
+            if (_lastMoofTrackId == AudioTrackId)
+                _currentTarget = BoxTarget.Audio;
+            else if (_lastMoofTrackId == VideoTrackId)
+                _currentTarget = BoxTarget.Video;
+        }
+
+        // Заголовок является частью box и тоже сразу идёт в нужный поток
+        WriteCurrentBoxData(
+            _boxHeader.AsSpan(0, headerSize)
+        );
+    }
+
+    /// <summary>
+    /// Пишет кусок текущего box непосредственно в его поток назначения
+    /// </summary>
+    void WriteCurrentBoxData(ReadOnlySpan<byte> data)
+    {
+        if (data.Length == 0)
+            return;
+
+        switch (_currentTarget)
+        {
+            case BoxTarget.Init:
+                _init.Write(data);
+                break;
+
+            case BoxTarget.Moof:
+                _moof.Write(data);
+                break;
+
+            case BoxTarget.Audio:
+                _audioPart.Write(data);
+                break;
+
+            case BoxTarget.Video:
+                _videoPart.Write(data);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Завершает текущий box. Возвращает true, когда готов весь Segment
+    /// </summary>
+    bool CompleteBox()
+    {
+        if (_currentBoxType == BoxMoof)
+        {
+            CompleteMoof();
+            return false;
+        }
+
+        if (_currentBoxType != BoxMdat)
+            return false;
+
+        if (_audioPart.Length <= 0 || _videoPart.Length <= 0)
+            return false;
+
+        _videoPart.Position = 0;
+        _audioPart.Position = 0;
+
+        _onSegment(new Segment(
+            _audioPart,
+            _videoPart,
+            _segmentStartSeconds
+        ));
+
+        return true;
+    }
+
+    /// <summary>
+    /// Разбирает полностью накопленный moof, изменяет tfdt
+    /// и только после определения track_ID пишет его в audio/video
+    /// </summary>
+    void CompleteMoof()
+    {
+        if (!_moof.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
+            throw new InvalidOperationException("moof buffer is not accessible.");
+
+        Span<byte> box = segment.Array.AsSpan(
+            segment.Offset,
+            (int)_moof.Length
+        );
+
+        _lastMoofTrackId = GetMoofTrackId(
+            box,
+            out ulong? decodeTime
+        );
+
+        uint timescale = 0;
+
+        if (_lastMoofTrackId == AudioTrackId)
+        {
+            timescale = _audioTimescale;
+        }
+        else if (_lastMoofTrackId == VideoTrackId)
+        {
+            timescale = _videoTimescale;
+
+            // Сохраняем локальное начало video fragment до изменения tfdt
+            if (_videoTimescale > 0 && decodeTime.HasValue)
+            {
+                _segmentStartSeconds =
+                    (double)decodeTime.Value / _videoTimescale;
+            }
+        }
+
+        // После seek добавляем абсолютное смещение к tfdt обоих треков
+        if (_tfdtOffsetSeconds > 0 && timescale > 0)
+        {
+            ShiftTfdt(
+                box,
+                timescale,
+                _tfdtOffsetSeconds
+            );
+        }
+
+        if (_lastMoofTrackId == AudioTrackId)
+        {
+            _audioPart.Write(box);
+        }
+        else if (_lastMoofTrackId == VideoTrackId)
+        {
+            _videoPart.Write(box);
+        }
+
+        _moof.SetLength(0);
+        _moof.Position = 0;
+    }
+
+    /// <summary>
+    /// Завершает init и читает timescale обоих треков
+    /// </summary>
+    void CompleteInit()
+    {
+        _initDone = true;
+
+        byte[] init = _init.ToArray();
+
+        _videoTimescale = GetTrackTimescale(
+            init,
+            VideoTrackId
+        );
+
+        _audioTimescale = GetTrackTimescale(
+            init,
+            AudioTrackId
+        );
+
+        _onInit(init);
+    }
+
+    /// <summary>
+    /// Сбрасывает состояние заголовка для следующего top-level box
+    /// </summary>
+    void ResetBoxState()
+    {
+        _boxHeaderLength = 0;
+        _boxHeaderRequired = 8;
+
+        _currentBoxType = 0;
+        _currentBoxRemaining = 0;
+        _currentTarget = BoxTarget.None;
+    }
+
+    /// <summary>
+    /// Оставляет в _deferred только неиспользованный хвост
+    /// Вызывается лишь на границе уже готового сегмента
+    /// </summary>
+    void KeepDeferredRemainder(
+        ReadOnlySpan<byte> data,
+        int consumed
+    )
+    {
+        int rest = data.Length - consumed;
+
+        if (rest <= 0)
+        {
+            _deferred.SetLength(0);
+            _deferred.Position = 0;
+            return;
+        }
+
+        if (!_deferred.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
+            throw new InvalidOperationException("Deferred buffer is not accessible.");
+
+        System.Buffer.BlockCopy(
+            segment.Array,
+            segment.Offset + consumed,
+            segment.Array,
+            segment.Offset,
+            rest
+        );
+
+        _deferred.SetLength(rest);
+        _deferred.Position = rest;
+    }
+
+    /// <summary>
+    /// Добавляет оставшуюся часть Gst.Buffer в редкий deferred-хвост
+    /// </summary>
+    void AppendGstBufferToDeferred(
+        Gst.Buffer buffer,
+        int offset,
+        int count
+    )
+    {
+        while (count > 0)
+        {
+            int requested = Math.Min(
+                _readBuffer.Length,
+                count
+            );
+
+            nuint copiedValue = buffer.Extract(
+                (nuint)offset,
+                _readBuffer.AsSpan(0, requested)
+            );
+
+            int copied = (int)copiedValue;
+
+            if (copied <= 0)
+                return;
+
+            _deferred.Write(
+                _readBuffer.AsSpan(0, copied)
+            );
+
+            offset += copied;
+            count -= copied;
+
+        }
     }
 
     /// <summary>
@@ -623,6 +975,7 @@ public class Mp4BoxReader
 
     /// <summary>
     /// Читает один MP4 box из span и передвигает position только при успехе
+    /// Используется только для уже готового init/moov
     /// </summary>
     static bool TryReadBox(
         ReadOnlySpan<byte> data,
@@ -681,102 +1034,6 @@ public class Mp4BoxReader
         return true;
     }
 
-    /// <summary>
-    /// Читает один полный MP4 box из накопительного MemoryStream
-    /// </summary>
-    static bool TryReadBox(
-        MemoryStream ms,
-        out uint type,
-        out Span<byte> box
-    )
-    {
-        type = 0;
-        box = default;
-
-        long start = ms.Position;
-        long available = ms.Length - start;
-
-        if (available < 8)
-            return false;
-
-        if (!ms.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
-            throw new InvalidOperationException("MemoryStream buffer is not accessible.");
-
-        Span<byte> buffer = segment.Array.AsSpan(
-            segment.Offset + (int)start,
-            (int)available
-        );
-
-        ulong size = BinaryPrimitives.ReadUInt32BigEndian(buffer[..4]);
-        type = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4, 4));
-
-        // Потоковый box неизвестного размера здесь разобрать нельзя
-        if (size == 0)
-            return false;
-
-        int headerSize = 8;
-
-        if (size == 1)
-        {
-            if (available < 16)
-                return false;
-
-            size = BinaryPrimitives.ReadUInt64BigEndian(
-                buffer.Slice(8, 8)
-            );
-
-            headerSize = 16;
-        }
-
-        if (size < (ulong)headerSize)
-            return false;
-
-        // Неполный box остаётся в _pending до следующего Push
-        if ((ulong)available < size)
-            return false;
-
-        box = buffer[..(int)size];
-        ms.Position = start + (long)size;
-
-        return true;
-    }
-
-    /// <summary>
-    /// Удаляет разобранные байты и переносит неполный box в начало буфера
-    /// </summary>
-    void CompactPending()
-    {
-        int pos = (int)_pending.Position;
-        int len = (int)_pending.Length;
-        int rest = len - pos;
-
-        if (rest <= 0)
-        {
-            _pending.SetLength(0);
-            _pending.Position = 0;
-            return;
-        }
-
-        // если ничего не прочитали, компактить нечего
-        if (pos == 0)
-            return;
-
-        if (!_pending.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
-            throw new InvalidOperationException("MemoryStream buffer is not accessible.");
-
-        Buffer.BlockCopy(
-            segment.Array,
-            segment.Offset + pos,
-            segment.Array,
-            segment.Offset,
-            rest
-        );
-
-        _pending.SetLength(rest);
-        _pending.Position = 0;
-    }
-
-
     public void Dispose()
     {
         _audioPart?.Dispose();
@@ -785,8 +1042,11 @@ public class Mp4BoxReader
         _videoPart?.Dispose();
         _videoPart = null;
 
-        _pending?.Dispose();
-        _pending = null;
+        _deferred?.Dispose();
+        _deferred = null;
+
+        _moof?.Dispose();
+        _moof = null;
 
         _init?.Dispose();
         _init = null;

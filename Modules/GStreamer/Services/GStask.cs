@@ -115,8 +115,8 @@ public class GStask
                 temp-template="{{tempTemplate}}"
                 temp-remove=true
                 ring-buffer-max-size={{ringBytes}}
-                max-size-buffers=0
                 max-size-bytes={{maxQueueBytes}}
+                max-size-buffers=0
                 max-size-time=0 !
             """;
         }
@@ -261,8 +261,8 @@ public class GStask
             emit-signals=false
             sync=false
             max-buffers={{(conf.tempfs ? 1 : 0)}}
-            max-bytes={{sinkQueueBytes}}
-            max-time={{queueNs}}
+            max-bytes={{(conf.tempfs ? 0 : sinkQueueBytes)}}
+            max-time={{(conf.tempfs ? 0 : queueNs)}}
             {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
             wait-on-eos=false
         """);
@@ -589,25 +589,27 @@ public class GStask
                 // 100 ms
                 using (var sample = sink.TryPullSample(100_000_000UL))
                 {
-                    var buffer = sample?.GetBuffer();
-                    if (buffer == null)
+                    using (var buffer = sample?.GetBuffer())
                     {
-                        if (IsEos) // очередь appsink полностью вычитана
-                            return default;
+                        if (buffer == null)
+                        {
+                            if (IsEos) // очередь appsink полностью вычитана
+                                return default;
 
-                        continue;
-                    }
+                            continue;
+                        }
 
-                    nuint? size = buffer.GetSize();
-                    if (size == null || 0 >= size)
-                        continue;
+                        nuint? size = buffer.GetSize();
+                        if (size == null || 0 >= size)
+                            continue;
 
-                    mp4Reader.Push(buffer, (int)size);
+                        mp4Reader.Push(buffer, (int)size);
 
-                    if (readySegment.complete)
-                    {
-                        readySegment.index = index > 0 ? index : 0;
-                        return readySegment.seg;
+                        if (readySegment.complete)
+                        {
+                            readySegment.index = index > 0 ? index : 0;
+                            return readySegment.seg;
+                        }
                     }
                 }
             }

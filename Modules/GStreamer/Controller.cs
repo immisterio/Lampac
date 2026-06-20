@@ -8,6 +8,7 @@ using Shared;
 using Shared.Attributes;
 using Shared.Services;
 using Shared.Services.Pools;
+using Shared.Services.Utilities;
 using System;
 using System.IO;
 using System.Linq;
@@ -55,7 +56,7 @@ public class GStreamerController : BaseController
 
     #region add
     [HttpGet("/gst/add")]
-    public async Task<ActionResult> Add(string link, string uid, string token)
+    public async Task<ActionResult> Add(string link, string linkencode, string uid, string token)
     {
         if (!ModInit.conf.enable)
             return StatusCode(403);
@@ -64,7 +65,7 @@ public class GStreamerController : BaseController
         if (ModInit.conf.allowed_uids != null && !ModInit.conf.allowed_uids.Contains(user_id))
             return StatusCode(401);
 
-        var gstask = await GService.GetOrAdd(link, user_id);
+        var gstask = await GService.GetOrAdd(link ?? CrypTo.DecodeBase64(linkencode), user_id);
         if (gstask == null)
             return StatusCode(502);
 
@@ -119,7 +120,7 @@ public class GStreamerController : BaseController
 
     #region start.m3u8
     [HttpGet("/gst/start.m3u8")]
-    public async Task<ActionResult> Start(string link, string uid, string token, int audio)
+    public async Task<ActionResult> Start(string link, string linkencode, string uid, string token, int audio)
     {
         if (!ModInit.conf.enable)
             return StatusCode(403);
@@ -128,11 +129,11 @@ public class GStreamerController : BaseController
         if (ModInit.conf.allowed_uids != null && !ModInit.conf.allowed_uids.Contains(user_id))
             return StatusCode(401);
 
-        var gstask = await GService.GetOrAdd(link, user_id, audio);
+        var gstask = await GService.GetOrAdd(link ?? CrypTo.DecodeBase64(linkencode), user_id, audio);
         if (gstask == null)
             return StatusCode(502);
 
-        return LocalRedirect($"/gst/{gstask.id}/master.m3u8");
+        return LocalRedirect($"/gst/{gstask.id}/master.m3u8?audio={audio}");
     }
     #endregion
 
