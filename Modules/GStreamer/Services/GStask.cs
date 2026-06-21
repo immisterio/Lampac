@@ -70,7 +70,7 @@ public class GStask
                readySegment.seg = seg;
                readySegment.complete = true;
 
-               if (seg.startSeconds > 0)
+               if (seg.startSeconds >= 0)
                    positionSeconds = seg.startSeconds + positionSeekSeconds;
            }
         );
@@ -101,7 +101,7 @@ public class GStask
         if (conf.tempfs)
         {
             long ringBytes = maxQueueBytes * (conf.tempfs_ring + 2);
-            ringBytes += 5 * 1024 * 1024; // на смещения и всякую мелочь
+            ringBytes += 1024 * 1024; // на смещения и всякую мелочь
 
             string tempTemplate = Path.Combine(
                 "cache",
@@ -510,6 +510,7 @@ public class GStask
 
         IsFrozen = false;
         IsEos = false;
+        positionSeconds = seconds;
         positionSeekSeconds = seconds;
         StartBusWatch();
         return true;
@@ -578,6 +579,13 @@ public class GStask
 
         try
         {
+            // В _deferred уже может лежать полный следующий Segment
+            if (mp4Reader.TryProcessDeferred() && readySegment.complete)
+            {
+                readySegment.index = index;
+                return readySegment.seg;
+            }
+
             long start = Stopwatch.GetTimestamp();
             var timeout = TimeSpan.FromSeconds(10);
 
@@ -599,8 +607,8 @@ public class GStask
                             continue;
                         }
 
-                        nuint? size = buffer.GetSize();
-                        if (size == null || 0 >= size)
+                        nuint size = buffer.GetSize(); 
+                        if (size == 0)
                             continue;
 
                         mp4Reader.Push(buffer, (int)size);
@@ -616,8 +624,9 @@ public class GStask
 
             return default;
         }
-        catch
+        catch (Exception ex)
         {
+            Serilog.Log.Error(ex, "CatchId={CatchId}", "id_qv6la4ny");
             IsDead = true;
             Dispose();
             return default;

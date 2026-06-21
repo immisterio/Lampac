@@ -1,6 +1,6 @@
 # Транскодинг видео и аудио
 
-Включите модуль в `init.conf`/`init.conf.yml`:
+Включите модуль в `init.conf`/`init.yaml`:
 
 ```json
 "gst": {

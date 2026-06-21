@@ -66,15 +66,20 @@ public class GStreamerController : BaseController
             return StatusCode(401);
 
         var gstask = await GService.GetOrAdd(link ?? CrypTo.DecodeBase64(linkencode), user_id);
-        if (gstask == null)
-            return StatusCode(502);
+        if (gstask.task == null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
+            return Content(gstask.error);
+        }
+
+        var task = gstask.task;
 
         return Json(new
         {
-            id = gstask.id.ToString(),
-            gstask.user_uid,
-            hls = $"{host}/gst/{gstask.id}/master.m3u8",
-            gstask.probe
+            id = task.id.ToString(),
+            task.user_uid,
+            hls = $"{host}/gst/{task.id}/master.m3u8",
+            task.probe
         });
     }
     #endregion
@@ -130,10 +135,13 @@ public class GStreamerController : BaseController
             return StatusCode(401);
 
         var gstask = await GService.GetOrAdd(link ?? CrypTo.DecodeBase64(linkencode), user_id, audio);
-        if (gstask == null)
-            return StatusCode(502);
+        if (gstask.task == null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
+            return Content(gstask.error);
+        }
 
-        return LocalRedirect($"/gst/{gstask.id}/master.m3u8?audio={audio}");
+        return LocalRedirect($"/gst/{gstask.task.id}/master.m3u8?audio={audio}");
     }
     #endregion
 
@@ -277,8 +285,8 @@ public class GStreamerController : BaseController
                             if (HttpContext.RequestAborted.IsCancellationRequested)
                                 return;
 
-                            gstask.GetSegment(index, HttpContext.RequestAborted);
                             gstask.lastSentSegment++;
+                            gstask.GetSegment(gstask.lastSentSegment, HttpContext.RequestAborted);
                         }
                     }
                     else

@@ -42,6 +42,9 @@ public class Mp4BoxReader
 
     bool _initDone;
 
+    // Полный moov был получен и записан в _init
+    bool _moovCompleted;
+
     // Track ID из последнего moof: следующий mdat принадлежит этому треку
     uint _lastMoofTrackId;
 
@@ -88,8 +91,8 @@ public class Mp4BoxReader
     /// </summary>
     public void ResetSegment()
     {
-        // Если предыдущий запрос прервался посреди mdat, его начало уже было
-        // записано в старый stream. Остаток этого mdat нужно отбросить
+        // Если предыдущий запрос прервался посреди mdat, его начало уже было записано в старый stream
+        // Остаток этого mdat нужно отбросить
         if (_currentBoxType == BoxMdat && _currentBoxRemaining > 0)
             _currentTarget = BoxTarget.None;
 
@@ -113,6 +116,7 @@ public class Mp4BoxReader
     public void SeekReset(double seconds = 0)
     {
         _initDone = false;
+        _moovCompleted = false;
 
         _videoTimescale = 0;
         _audioTimescale = 0;
@@ -143,31 +147,18 @@ public class Mp4BoxReader
     /// </summary>
     public void Push(Gst.Buffer buffer, int size)
     {
-        // Сначала дорабатываем редкий остаток предыдущего Gst.Buffer
-        if (_deferred.Length > 0)
+        // На случай прямого вызова Push без предварительного TryProcessDeferred сохраняем прежнее безопасное поведение
+        if (TryProcessDeferred())
         {
-            if (!_deferred.TryGetBuffer(out ArraySegment<byte> deferredSegment) || deferredSegment.Array == null)
-                throw new InvalidOperationException("Deferred buffer is not accessible.");
-
-            ReadOnlySpan<byte> deferredData = deferredSegment.Array.AsSpan(
-                deferredSegment.Offset,
-                (int)_deferred.Length
+            // Deferred уже сформировал Segment, поэтому весь новый Gst.Buffer относится к следующим сегментам
+            AppendGstBufferToDeferred(
+                buffer,
+                0,
+                size
             );
 
-            int consumed = ProcessBytes(
-                deferredData,
-                out bool segmentCompleted
-            );
-
-            if (segmentCompleted)
-            {
-                KeepDeferredRemainder(deferredData, consumed);
-                AppendGstBufferToDeferred(buffer, 0, size);
-                return;
-            }
-
-            _deferred.SetLength(0);
             _deferred.Position = 0;
+            return;
         }
 
         int sourceOffset = 0;
@@ -374,6 +365,13 @@ public class Mp4BoxReader
                 _currentTarget = BoxTarget.Audio;
             else if (_lastMoofTrackId == VideoTrackId)
                 _currentTarget = BoxTarget.Video;
+            else
+            {
+                throw new InvalidDataException(
+                    $"MP4 mdat does not follow a supported moof. " +
+                    $"Current track_ID={_lastMoofTrackId}."
+                );
+            }
         }
 
         // Заголовок является частью box и тоже сразу идёт в нужный поток
@@ -415,6 +413,15 @@ public class Mp4BoxReader
     /// </summary>
     bool CompleteBox()
     {
+        if (_currentBoxType == BoxMoov)
+        {
+            if (_initDone)
+                throw new InvalidDataException("Unexpected moov after MP4 initialization.");
+
+            _moovCompleted = true;
+            return false;
+        }
+
         if (_currentBoxType == BoxMoof)
         {
             CompleteMoof();
@@ -423,6 +430,9 @@ public class Mp4BoxReader
 
         if (_currentBoxType != BoxMdat)
             return false;
+
+        // Не позволяем следующему mdat унаследовать старый track_ID
+        _lastMoofTrackId = 0;
 
         if (_audioPart.Length <= 0 || _videoPart.Length <= 0)
             return false;
@@ -439,9 +449,42 @@ public class Mp4BoxReader
         return true;
     }
 
+    void CompleteInit()
+    {
+        if (!_moovCompleted)
+            throw new InvalidDataException("MP4 initialization is incomplete: moov box was not found.");
+
+        if (_init.Length <= 0)
+            throw new InvalidDataException("MP4 initialization is empty.");
+
+        byte[] init = _init.ToArray();
+
+        uint videoTimescale = GetTrackTimescale(
+            init,
+            VideoTrackId
+        );
+
+        uint audioTimescale = GetTrackTimescale(
+            init,
+            AudioTrackId
+        );
+
+        if (videoTimescale == 0)
+            throw new InvalidDataException($"Video track {VideoTrackId} or its mdhd timescale was not found in moov.");
+
+        if (audioTimescale == 0)
+            throw new InvalidDataException($"Audio track {AudioTrackId} or its mdhd timescale was not found in moov.");
+
+        _videoTimescale = videoTimescale;
+        _audioTimescale = audioTimescale;
+        _initDone = true;
+
+        _onInit(init);
+    }
+
     /// <summary>
-    /// Разбирает полностью накопленный moof, изменяет tfdt
-    /// и только после определения track_ID пишет его в audio/video
+    /// Разбирает полностью накопленный moof:
+    /// изменяет tfdt и только после определения track_ID пишет его в audio/video
     /// </summary>
     void CompleteMoof()
     {
@@ -453,10 +496,24 @@ public class Mp4BoxReader
             (int)_moof.Length
         );
 
-        _lastMoofTrackId = GetMoofTrackId(
+
+        uint trackId = GetMoofTrackId(
             box,
             out ulong? decodeTime
         );
+
+        if (trackId == 0)
+            throw new InvalidDataException("MP4 moof does not contain a readable tfhd track_ID.");
+
+        if (trackId != VideoTrackId && trackId != AudioTrackId)
+        {
+            throw new InvalidDataException(
+                $"Unsupported MP4 track_ID {trackId}. " +
+                $"Expected video={VideoTrackId} or audio={AudioTrackId}."
+            );
+        }
+
+        _lastMoofTrackId = trackId;
 
         uint timescale = 0;
 
@@ -497,28 +554,7 @@ public class Mp4BoxReader
 
         _moof.SetLength(0);
         _moof.Position = 0;
-    }
 
-    /// <summary>
-    /// Завершает init и читает timescale обоих треков
-    /// </summary>
-    void CompleteInit()
-    {
-        _initDone = true;
-
-        byte[] init = _init.ToArray();
-
-        _videoTimescale = GetTrackTimescale(
-            init,
-            VideoTrackId
-        );
-
-        _audioTimescale = GetTrackTimescale(
-            init,
-            AudioTrackId
-        );
-
-        _onInit(init);
     }
 
     /// <summary>
@@ -626,37 +662,60 @@ public class Mp4BoxReader
 
         ulong offset = (ulong)Math.Round(offsetValue);
 
-        // Пропускаем заголовок moof и ищем вложенный traf
-        int pos = 8;
-        int end = moof.Length;
+        int rootPosition = 0;
 
-        while (pos + 8 <= end)
+        if (!TryReadBox(
+            moof,
+            ref rootPosition,
+            out uint rootType,
+            out int moofHeaderSize,
+            out ReadOnlySpan<byte> moofBox
+        ))
         {
-            uint size = BinaryPrimitives.ReadUInt32BigEndian(
-                moof.Slice(pos, 4)
-            );
+            return false;
+        }
 
-            uint type = BinaryPrimitives.ReadUInt32BigEndian(
-                moof.Slice(pos + 4, 4)
-            );
+        // _moof должен содержать ровно один полный moof
+        if (rootType != BoxMoof ||
+            rootPosition != moof.Length)
+        {
+            return false;
+        }
 
-            if (size == 1 || size == 0)
-                return false;
+        ReadOnlySpan<byte> children = moofBox.Slice(
+            moofHeaderSize
+        );
 
-            if (size < 8 || pos + size > end)
-                return false;
+        int position = 0;
 
-            if (type == BoxTraf)
+        while (position < children.Length)
+        {
+            int childStart = position;
+
+            if (!TryReadBox(
+                children,
+                ref position,
+                out uint childType,
+                out int childHeaderSize,
+                out ReadOnlySpan<byte> child
+            ))
             {
-                return ShiftTrafTfdt(
-                    moof,
-                    pos + 8,
-                    pos + (int)size,
-                    offset
-                );
+                return false;
             }
 
-            pos += (int)size;
+            if (childType != BoxTraf)
+                continue;
+
+            // Смещения переводим обратно относительно начала moof
+            int trafStart = moofHeaderSize + childStart;
+            int trafEnd = trafStart + child.Length;
+
+            return ShiftTrafTfdt(
+                moof,
+                trafStart + childHeaderSize,
+                trafEnd,
+                offset
+            );
         }
 
         return false;
@@ -672,76 +731,92 @@ public class Mp4BoxReader
         ulong offset
     )
     {
-        int pos = start;
-
-        while (pos + 8 <= end)
+        if (start < 0 ||
+            end < start ||
+            end > data.Length)
         {
-            uint size = BinaryPrimitives.ReadUInt32BigEndian(
-                data.Slice(pos, 4)
-            );
+            return false;
+        }
 
-            uint type = BinaryPrimitives.ReadUInt32BigEndian(
-                data.Slice(pos + 4, 4)
-            );
+        ReadOnlySpan<byte> traf = data.Slice(
+            start,
+            end - start
+        );
 
-            if (size == 1 || size == 0)
-                return false;
+        int position = 0;
 
-            if (size < 8 || pos + size > end)
-                return false;
+        while (position < traf.Length)
+        {
+            int childStart = position;
 
-            if (type == BoxTfdt)
+            if (!TryReadBox(
+                traf,
+                ref position,
+                out uint type,
+                out int headerSize,
+                out ReadOnlySpan<byte> box
+            ))
             {
-                if (size < 16)
-                    return false;
-
-                byte version = data[pos + 8];
-
-                // tfdt version 1 хранит 64-битное значение
-                if (version == 1)
-                {
-                    if (size < 20)
-                        return false;
-
-                    ulong value = BinaryPrimitives.ReadUInt64BigEndian(
-                        data.Slice(pos + 12, 8)
-                    );
-
-                    if (ulong.MaxValue - value < offset)
-                        return false;
-
-                    BinaryPrimitives.WriteUInt64BigEndian(
-                        data.Slice(pos + 12, 8),
-                        value + offset
-                    );
-
-                    return true;
-                }
-
-                // tfdt version 0 хранит 32-битное значение
-                if (version == 0)
-                {
-                    uint value = BinaryPrimitives.ReadUInt32BigEndian(
-                        data.Slice(pos + 12, 4)
-                    );
-
-                    ulong result = value + offset;
-
-                    if (result > uint.MaxValue)
-                        return false;
-
-                    BinaryPrimitives.WriteUInt32BigEndian(
-                        data.Slice(pos + 12, 4),
-                        (uint)result
-                    );
-
-                    return true;
-                }
-
                 return false;
             }
 
-            pos += (int)size;
+            if (type != BoxTfdt)
+                continue;
+
+            // FullBox:
+            // header + version/flags(4) + baseMediaDecodeTime
+            if (box.Length < headerSize + 8)
+                return false;
+
+            int fullBoxOffset =
+                start +
+                childStart +
+                headerSize;
+
+            byte version = data[fullBoxOffset];
+
+            int valueOffset = fullBoxOffset + 4;
+
+            if (version == 1)
+            {
+                if (box.Length < headerSize + 12)
+                    return false;
+
+                ulong value = BinaryPrimitives.ReadUInt64BigEndian(
+                    data.Slice(valueOffset, 8)
+                );
+
+                if (ulong.MaxValue - value < offset)
+                    return false;
+
+                BinaryPrimitives.WriteUInt64BigEndian(
+                    data.Slice(valueOffset, 8),
+                    value + offset
+                );
+
+                return true;
+            }
+
+            if (version == 0)
+            {
+                uint value = BinaryPrimitives.ReadUInt32BigEndian(
+                    data.Slice(valueOffset, 4)
+                );
+
+                ulong result = value + offset;
+
+                if (result > uint.MaxValue)
+                    return false;
+
+                BinaryPrimitives.WriteUInt32BigEndian(
+                    data.Slice(valueOffset, 4),
+                    (uint)result
+                );
+
+                return true;
+            }
+
+            return false;
         }
 
         return false;
@@ -757,42 +832,61 @@ public class Mp4BoxReader
     {
         decodeTime = null;
 
-        if (moof.Length < 8)
-            return 0;
+        int rootPosition = 0;
 
-        int pos = 8;
-        int end = moof.Length;
-
-        while (pos + 8 <= end)
+        if (!TryReadBox(
+            moof,
+            ref rootPosition,
+            out uint rootType,
+            out int moofHeaderSize,
+            out ReadOnlySpan<byte> moofBox
+        ))
         {
-            uint size = BinaryPrimitives.ReadUInt32BigEndian(
-                moof.Slice(pos, 4)
-            );
+            return 0;
+        }
 
-            uint type = BinaryPrimitives.ReadUInt32BigEndian(
-                moof.Slice(pos + 4, 4)
-            );
+        if (rootType != BoxMoof ||
+            rootPosition != moof.Length)
+        {
+            return 0;
+        }
 
-            if (size == 1 || size == 0)
-                return 0;
+        ReadOnlySpan<byte> children = moofBox.Slice(
+            moofHeaderSize
+        );
 
-            if (size < 8 || pos + size > end)
-                return 0;
+        int position = 0;
 
-            if (type == BoxTraf)
+        while (position < children.Length)
+        {
+            int childStart = position;
+
+            if (!TryReadBox(
+                children,
+                ref position,
+                out uint childType,
+                out int childHeaderSize,
+                out ReadOnlySpan<byte> child
+            ))
             {
-                uint trackId = GetTrafTrackId(
-                    moof,
-                    pos + 8,
-                    pos + (int)size,
-                    out decodeTime
-                );
-
-                if (trackId != 0)
-                    return trackId;
+                return 0;
             }
 
-            pos += (int)size;
+            if (childType != BoxTraf)
+                continue;
+
+            int trafStart = moofHeaderSize + childStart;
+            int trafEnd = trafStart + child.Length;
+
+            uint trackId = GetTrafTrackId(
+                moof,
+                trafStart + childHeaderSize,
+                trafEnd,
+                out decodeTime
+            );
+
+            if (trackId != 0)
+                return trackId;
         }
 
         return 0;
@@ -810,54 +904,76 @@ public class Mp4BoxReader
     {
         decodeTime = null;
 
-        uint trackId = 0;
-        int pos = start;
-
-        while (pos + 8 <= end)
+        if (start < 0 ||
+            end < start ||
+            end > data.Length)
         {
-            uint size = BinaryPrimitives.ReadUInt32BigEndian(
-                data.Slice(pos, 4)
-            );
+            return 0;
+        }
 
-            uint type = BinaryPrimitives.ReadUInt32BigEndian(
-                data.Slice(pos + 4, 4)
-            );
+        uint trackId = 0;
 
-            if (size == 1 || size == 0)
-                return 0;
+        ReadOnlySpan<byte> traf = data.Slice(
+            start,
+            end - start
+        );
 
-            if (size < 8 || pos + size > end)
-                return 0;
+        int position = 0;
 
-            if (type == BoxTfhd && size >= 16)
+        while (position < traf.Length)
+        {
+            if (!TryReadBox(
+                traf,
+                ref position,
+                out uint type,
+                out int headerSize,
+                out ReadOnlySpan<byte> box
+            ))
             {
-                // tfhd: size + type + version/flags + track_ID
+                return 0;
+            }
+
+            if (type == BoxTfhd)
+            {
+                // FullBox:
+                // header + version/flags(4) + track_ID(4)
+                if (box.Length < headerSize + 8)
+                    return 0;
+
                 trackId = BinaryPrimitives.ReadUInt32BigEndian(
-                    data.Slice(pos + 12, 4)
+                    box.Slice(headerSize + 4, 4)
                 );
             }
-            else if (type == BoxTfdt && size >= 16)
+            else if (type == BoxTfdt)
             {
-                byte version = data[pos + 8];
+                if (box.Length < headerSize + 8)
+                    return 0;
+
+                byte version = box[headerSize];
+
+                // После version/flags
+                int valueOffset = headerSize + 4;
 
                 if (version == 1)
                 {
-                    if (size >= 20)
-                    {
-                        decodeTime = BinaryPrimitives.ReadUInt64BigEndian(
-                            data.Slice(pos + 12, 8)
-                        );
-                    }
+                    if (box.Length < headerSize + 12)
+                        return 0;
+
+                    decodeTime = BinaryPrimitives.ReadUInt64BigEndian(
+                        box.Slice(valueOffset, 8)
+                    );
                 }
                 else if (version == 0)
                 {
                     decodeTime = BinaryPrimitives.ReadUInt32BigEndian(
-                        data.Slice(pos + 12, 4)
+                        box.Slice(valueOffset, 4)
                     );
                 }
+                else
+                {
+                    return 0;
+                }
             }
-
-            pos += (int)size;
         }
 
         return trackId;
@@ -871,26 +987,26 @@ public class Mp4BoxReader
         uint requiredTrackId
     )
     {
-        int pos = 0;
+        int position = 0;
 
-        // Верхний уровень init: ищем moov
         while (TryReadBox(
             init,
-            ref pos,
+            ref position,
             out uint type,
+            out int boxHeaderSize,
             out ReadOnlySpan<byte> box
         ))
         {
             if (type != BoxMoov)
                 continue;
 
-            int moovPos = 8;
+            int moovPosition = boxHeaderSize;
 
-            // Внутри moov перебираем trak
             while (TryReadBox(
                 box,
-                ref moovPos,
+                ref moovPosition,
                 out uint childType,
+                out int childHeaderSize,
                 out ReadOnlySpan<byte> child
             ))
             {
@@ -900,34 +1016,54 @@ public class Mp4BoxReader
                 uint trackId = 0;
                 uint timescale = 0;
 
-                int trakPos = 8;
+                int trakPosition = childHeaderSize;
 
-                // tkhd содержит ID, mdia/mdhd — timescale этого же трека
                 while (TryReadBox(
                     child,
-                    ref trakPos,
+                    ref trakPosition,
                     out uint trakType,
+                    out int trakBoxHeaderSize,
                     out ReadOnlySpan<byte> trakBox
                 ))
                 {
                     if (trakType == BoxTkhd)
                     {
-                        // Положение track_ID зависит от версии full box
-                        int offset =
-                            trakBox.Length > 8 && trakBox[8] == 1
-                                ? 28
-                                : 20;
+                        if (trakBox.Length <= trakBoxHeaderSize)
+                            continue;
 
-                        if (trakBox.Length >= offset + 4)
+                        byte version = trakBox[trakBoxHeaderSize];
+
+                        int trackIdOffset;
+
+                        if (version == 1)
+                        {
+                            // version/flags(4) +
+                            // creation(8) + modification(8)
+                            trackIdOffset = trakBoxHeaderSize + 20;
+                        }
+                        else if (version == 0)
+                        {
+                            // version/flags(4) +
+                            // creation(4) + modification(4)
+                            trackIdOffset = trakBoxHeaderSize + 12;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+
+                        if (trakBox.Length >= trackIdOffset + 4)
                         {
                             trackId = BinaryPrimitives.ReadUInt32BigEndian(
-                                trakBox.Slice(offset, 4)
+                                trakBox.Slice(trackIdOffset, 4)
                             );
                         }
                     }
                     else if (trakType == BoxMdia)
                     {
-                        timescale = GetMdiaTimescale(trakBox);
+                        timescale = GetMdiaTimescale(
+                            trakBox
+                        );
                     }
                 }
 
@@ -944,55 +1080,98 @@ public class Mp4BoxReader
     /// </summary>
     static uint GetMdiaTimescale(ReadOnlySpan<byte> mdia)
     {
-        int pos = 8;
+        int rootPosition = 0;
+
+        if (!TryReadBox(
+            mdia,
+            ref rootPosition,
+            out uint rootType,
+            out int mdiaHeaderSize,
+            out ReadOnlySpan<byte> mdiaBox
+        ))
+        {
+            return 0;
+        }
+
+        if (rootType != BoxMdia ||
+            rootPosition != mdia.Length)
+        {
+            return 0;
+        }
+
+        int position = mdiaHeaderSize;
 
         while (TryReadBox(
-            mdia,
-            ref pos,
+            mdiaBox,
+            ref position,
             out uint type,
+            out int headerSize,
             out ReadOnlySpan<byte> box
         ))
         {
             if (type != BoxMdhd)
                 continue;
 
-            // Положение timescale зависит от версии mdhd
-            int offset =
-                box.Length > 8 && box[8] == 1
-                    ? 28
-                    : 20;
+            if (box.Length <= headerSize)
+                return 0;
 
-            if (box.Length >= offset + 4)
+            byte version = box[headerSize];
+
+            int timescaleOffset;
+
+            if (version == 1)
             {
-                return BinaryPrimitives.ReadUInt32BigEndian(
-                    box.Slice(offset, 4)
-                );
+                // version/flags(4) +
+                // creation(8) + modification(8)
+                timescaleOffset = headerSize + 20;
             }
+            else if (version == 0)
+            {
+                // version/flags(4) +
+                // creation(4) + modification(4)
+                timescaleOffset = headerSize + 12;
+            }
+            else
+            {
+                return 0;
+            }
+
+            if (box.Length < timescaleOffset + 4)
+                return 0;
+
+            return BinaryPrimitives.ReadUInt32BigEndian(
+                box.Slice(timescaleOffset, 4)
+            );
         }
 
         return 0;
     }
 
     /// <summary>
-    /// Читает один MP4 box из span и передвигает position только при успехе
-    /// Используется только для уже готового init/moov
+    /// Читает один MP4 box и возвращает фактический размер заголовка:
+    /// 8 байт для обычного box, 16 байт для extended-size box
     /// </summary>
     static bool TryReadBox(
         ReadOnlySpan<byte> data,
         ref int position,
         out uint type,
+        out int headerSize,
         out ReadOnlySpan<byte> box
     )
     {
         type = 0;
+        headerSize = 0;
         box = default;
 
         int start = position;
 
-        if (start < 0 || start + 8 > data.Length)
+        if ((uint)start > (uint)data.Length ||
+            data.Length - start < 8)
+        {
             return false;
+        }
 
-        ulong size = BinaryPrimitives.ReadUInt32BigEndian(
+        uint size32 = BinaryPrimitives.ReadUInt32BigEndian(
             data.Slice(start, 4)
         );
 
@@ -1000,12 +1179,13 @@ public class Mp4BoxReader
             data.Slice(start + 4, 4)
         );
 
-        int headerSize = 8;
+        ulong size = size32;
+        headerSize = 8;
 
-        // size == 1 означает расширенный 64-битный размер
-        if (size == 1)
+        // extended-size box
+        if (size32 == 1)
         {
-            if (start + 16 > data.Length)
+            if (data.Length - start < 16)
                 return false;
 
             size = BinaryPrimitives.ReadUInt64BigEndian(
@@ -1014,24 +1194,97 @@ public class Mp4BoxReader
 
             headerSize = 16;
         }
-        // size == 0 означает box до конца переданного span
-        else if (size == 0)
+        // Внутри уже готового parent span размер до конца parent известен
+        else if (size32 == 0)
         {
             size = (ulong)(data.Length - start);
         }
 
-        if (size < (ulong)headerSize || size > int.MaxValue)
+        if (size < (ulong)headerSize ||
+            size > int.MaxValue ||
+            size > (ulong)(data.Length - start))
+        {
             return false;
+        }
 
         int boxSize = (int)size;
-
-        if (boxSize > data.Length - start)
-            return false;
 
         box = data.Slice(start, boxSize);
         position = start + boxSize;
 
         return true;
+    }
+
+    /// <summary>
+    /// Возвращает true, если deferred сформировал полный Segment
+    /// Возвращает false, если deferred пуст или для завершения Segment требуется следующий Gst.Buffer
+    ///
+    /// Исключение означает повреждённый поток либо нарушение внутреннего состояния парсера, продолжать разбор небезопасно
+    /// </summary>
+    public bool TryProcessDeferred()
+    {
+        if (_deferred.Length <= 0)
+            return false;
+
+        int length = (int)_deferred.Length;
+
+        ReadOnlySpan<byte> data;
+
+        // Для созданного нами MemoryStream этот путь должен работать всегда
+        // ToArray оставляем как безопасный fallback, чтобы отсутствие открытого внутреннего массива не убивало задачу
+        byte[] copy = null;
+
+        if (_deferred.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array != null)
+        {
+            data = segment.Array.AsSpan(
+                segment.Offset,
+                length
+            );
+        }
+        else
+        {
+            copy = _deferred.ToArray();
+            data = copy;
+        }
+
+        int consumed = ProcessBytes(
+            data,
+            out bool segmentCompleted
+        );
+
+        if (segmentCompleted)
+        {
+            KeepDeferredRemainder(
+                data,
+                consumed
+            );
+
+            return true;
+        }
+
+        /*
+         * Обычный сценарий нехватки данных:
+         * ProcessBytes поглотил весь deferred, а частичный box сохранил в _boxHeader, _moof, _audioPart, _videoPart либо в состоянии mdat.
+         *
+         * Теперь можно читать следующий Gst.Buffer.
+         */
+        if (consumed == length)
+        {
+            _deferred.SetLength(0);
+            _deferred.Position = 0;
+
+            return false;
+        }
+
+        /*
+         * ProcessBytes без готового Segment обязан поглощать весь span.
+         * Если он остановился раньше, часть входных данных останется необработанной, но состояние парсера уже изменено. 
+         * Продолжение с новым Gst.Buffer нарушит порядок байтов.
+         */
+        throw new InvalidOperationException(
+            $"MP4 parser consumed only {consumed} of " +
+            $"{length} deferred bytes without completing a segment."
+        );
     }
 
     public void Dispose()
