@@ -254,11 +254,8 @@ public sealed class Mp4BoxReader : IDisposable
         }
     }
 
-    public bool TryProcessDeferred()
+    bool TryProcessDeferred()
     {
-        if (TryBuildSegment())
-            return true;
-
         if (_deferred.Length == 0)
             return false;
 

@@ -86,7 +86,6 @@ public class GStask
         long queueNs = conf.pipeline_timeSeconds * 1_000_000_000L;
         int audioQueueBytes = conf.pipeline_audioQueue * 1024 * 1024;
         int maxQueueBytes = conf.pipeline_videoQueue * 1024 * 1024;
-        int sinkQueueBytes = conf.pipeline_sinkQueue * 1024 * 1024;
 
         double version = ModInit.conf.gst_version;
 
@@ -105,7 +104,7 @@ public class GStask
 
         if (conf.tempfs)
         {
-            long ringBytes = sinkQueueBytes * (conf.tempfs_ring + 2);
+            long ringBytes = maxQueueBytes * (conf.tempfs_ring + 2);
             ringBytes += 1024 * 1024; // на смещения и всякую мелочь
 
             string tempTemplate = Path.Combine(
@@ -120,7 +119,7 @@ public class GStask
                 temp-template="{{tempTemplate}}"
                 temp-remove=true
                 ring-buffer-max-size={{ringBytes}}
-                max-size-bytes={{sinkQueueBytes}}
+                max-size-bytes={{maxQueueBytes}}
                 max-size-buffers=0
                 max-size-time=0 !
             """;
@@ -588,13 +587,6 @@ public class GStask
 
         try
         {
-            // В _deferred уже может лежать полный следующий Segment
-            if (mp4Reader.TryProcessDeferred() && readySegment.complete)
-            {
-                readySegment.index = index;
-                return readySegment.seg;
-            }
-
             long start = Stopwatch.GetTimestamp();
             var timeout = TimeSpan.FromSeconds(10);
 

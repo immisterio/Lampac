@@ -275,8 +275,8 @@ public class GStreamerController : BaseController
                     int diff = index - gstask.lastSentSegment;
 
                     int cutoff = gstask.conf.tempfs
-                        ? gstask.conf.pipeline_sinkQueue * (gstask.conf.tempfs_ring + 2)
-                        : gstask.conf.pipeline_sinkQueue;
+                        ? gstask.conf.pipeline_videoQueue * (gstask.conf.tempfs_ring + 2)
+                        : gstask.conf.pipeline_videoQueue;
 
                     if (diff > 0 && Math.Max(60, cutoff) >= (diff * gstask.conf.segment_seconds))
                     {
