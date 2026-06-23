@@ -51,11 +51,16 @@ public class ModuleConf : ModuleBaseConf
     public int video_bitrate { get; set; } = 10_000;
 
 
-    public int pipeline_timeSeconds { get; set; } = 20;
+    /// <summary>
+    /// Мбит/c
+    /// </summary>
+    public int pipeline_downloadRate { get; set; }
 
-    public int pipeline_audioQueue { get; set; } = 4;
+    public int pipeline_timeSeconds { get; set; } = 18;
 
-    public int pipeline_videoQueue { get; set; } = 32;
+    public int pipeline_audioQueue { get; set; } = 3;
 
-    public int pipeline_sinkQueue { get; set; } = 64;
+    public int pipeline_videoQueue { get; set; } = 24;
+
+    public int pipeline_sinkQueue { get; set; } = 32;
 }

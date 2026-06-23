@@ -72,7 +72,8 @@ public class GStask
 
                if (seg.startSeconds >= 0)
                    positionSeconds = seg.startSeconds + positionSeekSeconds;
-           }
+           },
+           segmentSeconds: conf.segment_seconds
         );
     }
     #endregion
@@ -90,6 +91,10 @@ public class GStask
         double version = ModInit.conf.gst_version;
 
         #region souphttpsrc
+        string downloadLimit = conf.pipeline_downloadRate > 0
+            ? $"identity datarate={conf.pipeline_downloadRate * 1_000_000 / 8} sync=true silent=true !"
+            : string.Empty;
+
         string httpqueue = $$"""
         queue2
             use-buffering=false
@@ -100,7 +105,7 @@ public class GStask
 
         if (conf.tempfs)
         {
-            long ringBytes = maxQueueBytes * (conf.tempfs_ring + 2);
+            long ringBytes = sinkQueueBytes * (conf.tempfs_ring + 2);
             ringBytes += 1024 * 1024; // на смещения и всякую мелочь
 
             string tempTemplate = Path.Combine(
@@ -115,7 +120,7 @@ public class GStask
                 temp-template="{{tempTemplate}}"
                 temp-remove=true
                 ring-buffer-max-size={{ringBytes}}
-                max-size-bytes={{maxQueueBytes}}
+                max-size-bytes={{sinkQueueBytes}}
                 max-size-buffers=0
                 max-size-time=0 !
             """;
@@ -128,6 +133,7 @@ public class GStask
             keep-alive=true
             timeout=60
             retries=5 {{(version >= 1.26 ? "retry-backoff-factor=0.5 retry-backoff-max=10" : string.Empty)}} !
+        {{downloadLimit}}
         {{httpqueue}}
         matroskademux name=d
         """);
@@ -245,7 +251,11 @@ public class GStask
         audioconvert !
         audioresample !
         audio/x-raw,rate=48000,channels=2 !
-        avenc_aac bitrate={{conf.aac_bitrate * 1000}} !
+        audiorate
+            skip-to-first=true
+            tolerance=40000000 !
+        avenc_aac 
+            bitrate={{conf.aac_bitrate * 1000}} !
         aacparse !
         audio/mpeg,mpegversion=4,stream-format=raw,rate=48000,channels=2 !
         mux.audio_0
@@ -254,15 +264,14 @@ public class GStask
         sb.AppendLine($$"""
         mp4mux
             name=mux
+            fragment-mode=dash-or-mss
             fragment-duration={{conf.segment_seconds * 1000}}
             streamable=true !
         appsink
             name=out
             emit-signals=false
             sync=false
-            max-buffers={{(conf.tempfs ? 1 : 0)}}
-            max-bytes={{(conf.tempfs ? 0 : sinkQueueBytes)}}
-            max-time={{(conf.tempfs ? 0 : queueNs)}}
+            max-buffers=1
             {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
             wait-on-eos=false
         """);

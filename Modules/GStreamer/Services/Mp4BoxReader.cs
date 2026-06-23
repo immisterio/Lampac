@@ -2,161 +2,220 @@
 using Shared.Services.Pools;
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 
 namespace GStreamer;
 
 public readonly record struct Segment(
-    RecyclableMemoryStream audio,
-    RecyclableMemoryStream video,
+    RecyclableMemoryStream data,
     double startSeconds
 );
 
-public class Mp4BoxReader
+/// <summary>
+/// Собирает отдельные однодорожечные fragments mp4mux в один HLS fMP4 segment:
+///
+///     [styp/emsg/free]
+///     moof
+///         mfhd
+///         traf video (один или несколько trun)
+///         traf audio (один или несколько trun)
+///     mdat
+///         video payload
+///         audio payload
+/// </summary>
+public sealed class Mp4BoxReader : IDisposable
 {
+    const double AudioBoundaryToleranceSeconds = 0.100;
+
+    const uint BoxStyp = 0x73747970;
+    const uint BoxSidx = 0x73696478;
+    const uint BoxEmsg = 0x656D7367;
+    const uint BoxFree = 0x66726565;
+    const uint BoxPrft = 0x70726674;
+    const uint BoxMoov = 0x6D6F6F76;
+    const uint BoxMoof = 0x6D6F6F66;
+    const uint BoxMdat = 0x6D646174;
+    const uint BoxMfhd = 0x6D666864;
+    const uint BoxTraf = 0x74726166;
+    const uint BoxTfhd = 0x74666864;
+    const uint BoxTfdt = 0x74666474;
+    const uint BoxTrun = 0x7472756E;
+    const uint BoxTrak = 0x7472616B;
+    const uint BoxTkhd = 0x746B6864;
+    const uint BoxMdia = 0x6D646961;
+    const uint BoxMdhd = 0x6D646864;
+    const uint BoxHdlr = 0x68646C72;
+    const uint BoxMvex = 0x6D766578;
+    const uint BoxTrex = 0x74726578;
+
+    const uint HandlerVideo = 0x76696465; // vide
+    const uint HandlerAudio = 0x736F756E; // soun
+
+    const uint TfhdBaseDataOffsetPresent = 0x000001;
+    const uint TfhdSampleDescriptionIndexPresent = 0x000002;
+    const uint TfhdDefaultSampleDurationPresent = 0x000008;
+    const uint TfhdDefaultSampleSizePresent = 0x000010;
+    const uint TfhdDefaultSampleFlagsPresent = 0x000020;
+    const uint TfhdDefaultBaseIsMoof = 0x020000;
+
+    const uint TrunDataOffsetPresent = 0x000001;
+    const uint TrunFirstSampleFlagsPresent = 0x000004;
+    const uint TrunSampleDurationPresent = 0x000100;
+    const uint TrunSampleSizePresent = 0x000200;
+    const uint TrunSampleFlagsPresent = 0x000400;
+    const uint TrunCompositionOffsetPresent = 0x000800;
+
     readonly Action<byte[]> _onInit;
     readonly Action<Segment> _onSegment;
+    readonly double _segmentSeconds;
 
-    MemoryStream _init = new();
+    readonly MemoryStream _init = new();
+    readonly MemoryStream _sourceMoof = new(16 * 1024);
+    readonly MemoryStream _sourceStyp = new(128);
+    readonly MemoryStream _deferred = new(64 * 1024);
 
-    // moof держим целиком: внутри него нужны tfhd/tfdt
-    MemoryStream _moof = new(16 * 1024);
+    readonly List<Fragment> _video = new();
+    readonly List<Fragment> _audio = new();
 
-    // Остаток Gst.Buffer после уже готового сегмента
-    MemoryStream _deferred = new(64 * 1024);
-
-    // Переиспользуемый буфер извлечения данных из Gst.Buffer
     readonly byte[] _readBuffer = new byte[64 * 1024];
-
-    // Заголовок обычного box занимает 8 байт, extended-size box — 16 байт
     readonly byte[] _boxHeader = new byte[16];
-    int _boxHeaderLength;
-    int _boxHeaderRequired = 8;
 
-    uint _currentBoxType;
-    ulong _currentBoxRemaining;
-    BoxTarget _currentTarget;
+    RecyclableMemoryStream _sourcePayload;
+    RecyclableMemoryStream _prefix;
+    RecyclableMemoryStream _segment;
 
-    RecyclableMemoryStream _audioPart;
-    RecyclableMemoryStream _videoPart;
+    Fragment _pending;
+    byte[] _styp;
+
+    int _headerLength;
+    int _headerRequired = 8;
+    uint _boxType;
+    ulong _boxRemaining;
+    Target _target;
 
     bool _initDone;
+    bool _moovDone;
+    long _sourcePayloadFromMoof;
 
-    // Полный moov был получен и записан в _init
-    bool _moovCompleted;
+    TrackInfo _videoTrack;
+    TrackInfo _audioTrack;
 
-    // Track ID из последнего moof: следующий mdat принадлежит этому треку
-    uint _lastMoofTrackId;
-
-    // Timescale треков из moov/trak/mdia/mdhd
-    uint _videoTimescale;
-    uint _audioTimescale;
-
-    // Локальное начало сегмента и смещение timeline после seek
-    double _segmentStartSeconds = -1;
     double _tfdtOffsetSeconds;
+    uint _sequence = 1;
 
-    const uint VideoTrackId = 1;
-    const uint AudioTrackId = 2;
-
-    const uint BoxStyp = ((uint)'s' << 24) | ((uint)'t' << 16) | ((uint)'y' << 8) | 'p';
-    const uint BoxMoov = ((uint)'m' << 24) | ((uint)'o' << 16) | ((uint)'o' << 8) | 'v';
-    const uint BoxMoof = ((uint)'m' << 24) | ((uint)'o' << 16) | ((uint)'o' << 8) | 'f';
-    const uint BoxMdat = ((uint)'m' << 24) | ((uint)'d' << 16) | ((uint)'a' << 8) | 't';
-    const uint BoxTrak = ((uint)'t' << 24) | ((uint)'r' << 16) | ((uint)'a' << 8) | 'k';
-    const uint BoxTkhd = ((uint)'t' << 24) | ((uint)'k' << 16) | ((uint)'h' << 8) | 'd';
-    const uint BoxMdia = ((uint)'m' << 24) | ((uint)'d' << 16) | ((uint)'i' << 8) | 'a';
-    const uint BoxMdhd = ((uint)'m' << 24) | ((uint)'d' << 16) | ((uint)'h' << 8) | 'd';
-    const uint BoxTraf = ((uint)'t' << 24) | ((uint)'r' << 16) | ((uint)'a' << 8) | 'f';
-    const uint BoxTfhd = ((uint)'t' << 24) | ((uint)'f' << 16) | ((uint)'h' << 8) | 'd';
-    const uint BoxTfdt = ((uint)'t' << 24) | ((uint)'f' << 16) | ((uint)'d' << 8) | 't';
-
-    enum BoxTarget
+    enum Target
     {
         None,
         Init,
         Moof,
-        Audio,
-        Video
+        Payload,
+        Styp,
+        Prefix
     }
 
-    public Mp4BoxReader(Action<byte[]> onInit, Action<Segment> onSegment)
+    readonly record struct Trex(uint Duration, uint Size, uint Flags);
+
+    readonly record struct TrackInfo(
+        uint Id,
+        uint Timescale,
+        Trex Trex
+    );
+
+    readonly record struct TrexEntry(uint TrackId, Trex Value);
+
+    sealed class Run
     {
-        _onInit = onInit;
-        _onSegment = onSegment;
+        public byte[] Box;
+        public int DataOffsetField;
+        public int? SourceDataOffset;
+        public ulong Duration;
+        public ulong DataSize;
+        public long PayloadOffset;
+        public long OutputOffset;
+        public bool StartsWithSync;
     }
 
-    /// <summary>
-    /// Освобождает предыдущие части и начинает собирать новый сегмент
-    /// </summary>
+    sealed class Fragment : IDisposable
+    {
+        public uint TrackId;
+        public uint Timescale;
+        public ulong DecodeTime;
+        public ulong Duration;
+        public bool StartsWithSync;
+        public byte[] Tfhd;
+        public readonly List<Run> Runs = new();
+        public RecyclableMemoryStream Payload;
+
+        public ulong EndTime => checked(DecodeTime + Duration);
+
+        public void Dispose()
+        {
+            Payload?.Dispose();
+            Payload = null;
+        }
+    }
+
+    public Mp4BoxReader(
+        Action<byte[]> onInit,
+        Action<Segment> onSegment,
+        double segmentSeconds
+    )
+    {
+        _onInit = onInit ?? throw new ArgumentNullException(nameof(onInit));
+        _onSegment = onSegment ?? throw new ArgumentNullException(nameof(onSegment));
+
+        if (!double.IsFinite(segmentSeconds) || segmentSeconds <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(segmentSeconds),
+                segmentSeconds,
+                "Segment duration must be greater than zero."
+            );
+        }
+
+        _segmentSeconds = segmentSeconds;
+    }
+
     public void ResetSegment()
     {
-        // Если предыдущий запрос прервался посреди mdat, его начало уже было записано в старый stream
-        // Остаток этого mdat нужно отбросить
-        if (_currentBoxType == BoxMdat && _currentBoxRemaining > 0)
-            _currentTarget = BoxTarget.None;
-
-        if (_videoPart != null)
-            _videoPart.Dispose();
-
-        _videoPart = PoolInvk.msm.GetStream();
-
-        if (_audioPart != null)
-            _audioPart.Dispose();
-
-        _audioPart = PoolInvk.msm.GetStream();
-
-        _lastMoofTrackId = 0;
-        _segmentStartSeconds = -1;
+        _segment?.Dispose();
+        _segment = null;
     }
 
-    /// <summary>
-    /// Сбрасывает парсер после seek и задаёт смещение новой timeline
-    /// </summary>
     public void SeekReset(double seconds = 0)
     {
         _initDone = false;
-        _moovCompleted = false;
+        _moovDone = false;
+        _videoTrack = default;
+        _audioTrack = default;
+        _tfdtOffsetSeconds = double.IsFinite(seconds) && seconds > 0 ? seconds : 0;
+        _sequence = 1;
+        _styp = null;
 
-        _videoTimescale = 0;
-        _audioTimescale = 0;
+        Reset(_init);
+        Reset(_sourceMoof);
+        Reset(_sourceStyp);
+        Reset(_deferred);
 
-        _lastMoofTrackId = 0;
-        _segmentStartSeconds = -1;
-
-        _tfdtOffsetSeconds =
-            double.IsFinite(seconds) && seconds > 0
-                ? seconds
-                : 0;
-
-        _init.SetLength(0);
-        _init.Position = 0;
-
-        _moof.SetLength(0);
-        _moof.Position = 0;
-
-        _deferred.SetLength(0);
-        _deferred.Position = 0;
-
-        ResetBoxState();
+        ClearSource();
+        ClearFragments(_video);
+        ClearFragments(_audio);
+        ResetPrefix();
+        ResetBox();
+        ResetSegment();
     }
 
-    /// <summary>
-    /// Потоково разбирает MP4 box:
-    /// init и mdat пишет сразу, целиком накапливает только moof
-    /// </summary>
     public void Push(Gst.Buffer buffer, int size)
     {
-        // На случай прямого вызова Push без предварительного TryProcessDeferred сохраняем прежнее безопасное поведение
-        if (TryProcessDeferred())
-        {
-            // Deferred уже сформировал Segment, поэтому весь новый Gst.Buffer относится к следующим сегментам
-            AppendGstBufferToDeferred(
-                buffer,
-                0,
-                size
-            );
+        ArgumentNullException.ThrowIfNull(buffer);
 
+        if (size <= 0)
+            return;
+
+        if (TryBuildSegment() || TryProcessDeferred())
+        {
+            AppendGstBuffer(buffer, 0, size, _deferred);
             _deferred.Position = 0;
             return;
         }
@@ -165,128 +224,136 @@ public class Mp4BoxReader
 
         while (sourceOffset < size)
         {
-            int requested = Math.Min(
-                _readBuffer.Length,
-                size - sourceOffset
-            );
-
-            nuint copiedValue = buffer.Extract(
+            int requested = Math.Min(_readBuffer.Length, size - sourceOffset);
+            int copied = (int)buffer.Extract(
                 (nuint)sourceOffset,
                 _readBuffer.AsSpan(0, requested)
             );
 
-            int copied = (int)copiedValue;
-
             if (copied <= 0)
                 return;
 
-            int consumed = ProcessBytes(
+            int consumed = Process(
                 _readBuffer.AsSpan(0, copied),
-                out bool segmentCompleted
+                out bool completed
             );
 
             sourceOffset += copied;
 
-            if (segmentCompleted)
-            {
-                // Сохраняем только байты ПОСЛЕ готового сегмента
-                if (consumed < copied)
-                {
-                    _deferred.Write(
-                        _readBuffer.AsSpan(
-                            consumed,
-                            copied - consumed
-                        )
-                    );
-                }
+            if (!completed)
+                continue;
 
-                if (sourceOffset < size)
-                {
-                    AppendGstBufferToDeferred(
-                        buffer,
-                        sourceOffset,
-                        size - sourceOffset
-                    );
-                }
+            if (consumed < copied)
+                _deferred.Write(_readBuffer.AsSpan(consumed, copied - consumed));
 
-                _deferred.Position = 0;
-                return;
-            }
+            if (sourceOffset < size)
+                AppendGstBuffer(buffer, sourceOffset, size - sourceOffset, _deferred);
 
+            _deferred.Position = 0;
+            return;
         }
     }
 
-    /// <summary>
-    /// Разбирает переданный кусок и возвращает число использованных байт
-    /// </summary>
-    int ProcessBytes(
-        ReadOnlySpan<byte> data,
-        out bool segmentCompleted
-    )
+    public bool TryProcessDeferred()
+    {
+        if (TryBuildSegment())
+            return true;
+
+        if (_deferred.Length == 0)
+            return false;
+
+        int length = checked((int)_deferred.Length);
+        ReadOnlySpan<byte> data;
+        byte[] copy = null;
+
+        if (_deferred.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array != null)
+        {
+            data = segment.Array.AsSpan(segment.Offset, length);
+        }
+        else
+        {
+            copy = _deferred.ToArray();
+            data = copy;
+        }
+
+        int consumed = Process(data, out bool completed);
+
+        if (completed)
+        {
+            KeepDeferred(data, consumed);
+            return true;
+        }
+
+        if (consumed != length)
+        {
+            throw new InvalidOperationException(
+                $"MP4 parser consumed {consumed} of {length} deferred bytes."
+            );
+        }
+
+        Reset(_deferred);
+        return false;
+    }
+
+    int Process(ReadOnlySpan<byte> data, out bool segmentCompleted)
     {
         segmentCompleted = false;
         int position = 0;
 
         while (position < data.Length)
         {
-            // Сначала набираем 8 или 16 байт заголовка текущего box
-            if (_boxHeaderLength < _boxHeaderRequired)
+            if (_headerLength < _headerRequired)
             {
-                int copy = Math.Min(
-                    _boxHeaderRequired - _boxHeaderLength,
+                int count = Math.Min(
+                    _headerRequired - _headerLength,
                     data.Length - position
                 );
 
-                data.Slice(position, copy).CopyTo(
-                    _boxHeader.AsSpan(_boxHeaderLength, copy)
+                data.Slice(position, count).CopyTo(
+                    _boxHeader.AsSpan(_headerLength, count)
                 );
 
-                _boxHeaderLength += copy;
-                position += copy;
+                _headerLength += count;
+                position += count;
 
-                if (_boxHeaderLength < _boxHeaderRequired)
+                if (_headerLength < _headerRequired)
                     break;
 
-                if (_boxHeaderRequired == 8)
+                if (_headerRequired == 8)
                 {
                     uint size32 = BinaryPrimitives.ReadUInt32BigEndian(
                         _boxHeader.AsSpan(0, 4)
                     );
 
-                    _currentBoxType = BinaryPrimitives.ReadUInt32BigEndian(
+                    _boxType = BinaryPrimitives.ReadUInt32BigEndian(
                         _boxHeader.AsSpan(4, 4)
                     );
 
                     if (size32 == 1)
                     {
-                        _boxHeaderRequired = 16;
+                        _headerRequired = 16;
                         continue;
                     }
 
                     if (size32 == 0)
-                    {
-                        throw new NotSupportedException(
-                            "MP4 box with size=0 cannot be parsed before end of stream."
-                        );
-                    }
+                        throw new NotSupportedException("Top-level box size=0 is not supported.");
 
                     BeginBox(size32, 8);
                 }
                 else
                 {
-                    ulong size64 = BinaryPrimitives.ReadUInt64BigEndian(
-                        _boxHeader.AsSpan(8, 8)
+                    BeginBox(
+                        BinaryPrimitives.ReadUInt64BigEndian(_boxHeader.AsSpan(8, 8)),
+                        16
                     );
-
-                    BeginBox(size64, 16);
                 }
 
-                if (_currentBoxRemaining == 0)
+                if (_boxRemaining == 0)
                 {
-                    bool completed = CompleteBox();
-                    ResetBoxState();
+                    bool ready = CompleteBox();
+                    ResetBox();
 
-                    if (completed)
+                    if (ready)
                     {
                         segmentCompleted = true;
                         break;
@@ -296,861 +363,1357 @@ public class Mp4BoxReader
                 continue;
             }
 
-            int bodySize = (int)Math.Min(
+            int countBody = (int)Math.Min(
                 (ulong)(data.Length - position),
-                _currentBoxRemaining
+                _boxRemaining
             );
 
-            if (bodySize <= 0)
+            if (countBody <= 0)
                 break;
 
-            WriteCurrentBoxData(
-                data.Slice(position, bodySize)
-            );
+            Write(data.Slice(position, countBody));
+            position += countBody;
+            _boxRemaining -= (ulong)countBody;
 
-            position += bodySize;
-            _currentBoxRemaining -= (ulong)bodySize;
+            if (_boxRemaining != 0)
+                continue;
 
-            if (_currentBoxRemaining == 0)
+            bool completed = CompleteBox();
+            ResetBox();
+
+            if (completed)
             {
-                bool completed = CompleteBox();
-                ResetBoxState();
-
-                if (completed)
-                {
-                    segmentCompleted = true;
-                    break;
-                }
+                segmentCompleted = true;
+                break;
             }
         }
 
         return position;
     }
 
-    /// <summary>
-    /// Проверяет размер, завершает init при первом styp/moof
-    /// и выбирает поток назначения текущего box
-    /// </summary>
     void BeginBox(ulong size, int headerSize)
     {
         if (size < (ulong)headerSize)
             throw new InvalidDataException("Invalid MP4 box size.");
 
-        if (_currentBoxType == BoxMoof && size > int.MaxValue)
-            throw new InvalidDataException("moof is too large.");
+        if ((_boxType == BoxMoof || _boxType == BoxMdat) && size > int.MaxValue)
+            throw new InvalidDataException("moof/mdat is too large.");
 
-        _currentBoxRemaining = size - (ulong)headerSize;
-        _currentTarget = BoxTarget.None;
+        _boxRemaining = size - (ulong)headerSize;
+        _target = Target.None;
 
-        // Первый media box завершает init. Сам styp/moof в init не входит
-        if (!_initDone && (_currentBoxType == BoxStyp || _currentBoxType == BoxMoof))
+        // mp4mux writes init first and starts media with styp or moof.
+        if (!_initDone && (_boxType == BoxStyp || _boxType == BoxMoof))
             CompleteInit();
 
         if (!_initDone)
         {
-            if (_currentBoxType == BoxMdat) // mdat до _initDone это провал
-                throw new InvalidOperationException("Bad init");
+            if (_boxType == BoxMdat)
+                throw new InvalidDataException("mdat appeared before init was completed.");
 
-            _currentTarget = BoxTarget.Init;
+            _target = Target.Init;
+            Write(_boxHeader.AsSpan(0, headerSize));
+            return;
         }
-        else if (_currentBoxType == BoxMoof)
+
+        switch (_boxType)
         {
-            _moof.SetLength(0);
-            _moof.Position = 0;
-            _currentTarget = BoxTarget.Moof;
-        }
-        else if (_currentBoxType == BoxMdat)
-        {
-            if (_lastMoofTrackId == AudioTrackId)
-                _currentTarget = BoxTarget.Audio;
-            else if (_lastMoofTrackId == VideoTrackId)
-                _currentTarget = BoxTarget.Video;
-            else
-            {
-                throw new InvalidDataException(
-                    $"MP4 mdat does not follow a supported moof. " +
-                    $"Current track_ID={_lastMoofTrackId}."
+            case BoxMoof:
+                if (_pending != null)
+                    throw new InvalidDataException("A new moof appeared before the previous mdat.");
+
+                Reset(_sourceMoof);
+                _sourcePayloadFromMoof = 0;
+                _target = Target.Moof;
+                Write(_boxHeader.AsSpan(0, headerSize));
+                return;
+
+            case BoxMdat:
+                if (_pending == null)
+                    throw new InvalidDataException("mdat does not follow a supported moof.");
+
+                _sourcePayload?.Dispose();
+                _sourcePayload = PoolInvk.msm.GetStream();
+                _sourcePayloadFromMoof = checked(
+                    _sourcePayloadFromMoof + headerSize
                 );
-            }
-        }
+                _target = Target.Payload;
+                return;
 
-        // Заголовок является частью box и тоже сразу идёт в нужный поток
-        WriteCurrentBoxData(
-            _boxHeader.AsSpan(0, headerSize)
-        );
+            case BoxSidx:
+                // Source sidx offsets become invalid after fragment merging.
+                if (_pending != null)
+                    _sourcePayloadFromMoof = checked(
+                        _sourcePayloadFromMoof + (long)size
+                    );
+                return;
+
+            case BoxStyp:
+                if (_pending != null)
+                {
+                    throw new InvalidDataException(
+                        "styp cannot appear between moof and mdat."
+                    );
+                }
+
+                Reset(_sourceStyp);
+                _target = Target.Styp;
+                Write(_boxHeader.AsSpan(0, headerSize));
+                return;
+
+            case BoxEmsg:
+            case BoxFree:
+            case BoxPrft:
+                if (_pending != null)
+                {
+                    _sourcePayloadFromMoof = checked(
+                        _sourcePayloadFromMoof + (long)size
+                    );
+                }
+
+                EnsurePrefix();
+                _target = Target.Prefix;
+                Write(_boxHeader.AsSpan(0, headerSize));
+                return;
+
+            default:
+                throw new InvalidDataException(
+                    $"Unsupported top-level MP4 box after init: {FourCC(_boxType)}."
+                );
+        }
     }
 
-    /// <summary>
-    /// Пишет кусок текущего box непосредственно в его поток назначения
-    /// </summary>
-    void WriteCurrentBoxData(ReadOnlySpan<byte> data)
+    void Write(ReadOnlySpan<byte> data)
     {
-        if (data.Length == 0)
+        if (data.IsEmpty)
             return;
 
-        switch (_currentTarget)
+        switch (_target)
         {
-            case BoxTarget.Init:
+            case Target.Init:
                 _init.Write(data);
                 break;
-
-            case BoxTarget.Moof:
-                _moof.Write(data);
+            case Target.Moof:
+                _sourceMoof.Write(data);
                 break;
-
-            case BoxTarget.Audio:
-                _audioPart.Write(data);
+            case Target.Payload:
+                _sourcePayload.Write(data);
                 break;
-
-            case BoxTarget.Video:
-                _videoPart.Write(data);
+            case Target.Styp:
+                _sourceStyp.Write(data);
+                break;
+            case Target.Prefix:
+                _prefix.Write(data);
                 break;
         }
     }
 
-    /// <summary>
-    /// Завершает текущий box. Возвращает true, когда готов весь Segment
-    /// </summary>
     bool CompleteBox()
     {
-        if (_currentBoxType == BoxMoov)
+        switch (_boxType)
         {
-            if (_initDone)
-                throw new InvalidDataException("Unexpected moov after MP4 initialization.");
+            case BoxStyp:
+                if (_styp == null && _sourceStyp.Length > 0)
+                    _styp = _sourceStyp.ToArray();
 
-            _moovCompleted = true;
-            return false;
+                Reset(_sourceStyp);
+                return false;
+
+            case BoxMoov:
+                if (_initDone)
+                    throw new InvalidDataException("Unexpected moov after init.");
+
+                _moovDone = true;
+                return false;
+
+            case BoxMoof:
+                CompleteMoof();
+                return false;
+
+            case BoxMdat:
+                CompleteMdat();
+                return TryBuildSegment();
+
+            default:
+                return false;
         }
-
-        if (_currentBoxType == BoxMoof)
-        {
-            CompleteMoof();
-            return false;
-        }
-
-        if (_currentBoxType != BoxMdat)
-            return false;
-
-        // Не позволяем следующему mdat унаследовать старый track_ID
-        _lastMoofTrackId = 0;
-
-        if (_audioPart.Length <= 0 || _videoPart.Length <= 0)
-            return false;
-
-        _videoPart.Position = 0;
-        _audioPart.Position = 0;
-
-        _onSegment(new Segment(
-            _audioPart,
-            _videoPart,
-            _segmentStartSeconds
-        ));
-
-        return true;
     }
 
     void CompleteInit()
     {
-        if (!_moovCompleted)
-            throw new InvalidDataException("MP4 initialization is incomplete: moov box was not found.");
-
-        if (_init.Length <= 0)
-            throw new InvalidDataException("MP4 initialization is empty.");
+        if (!_moovDone || _init.Length == 0)
+            throw new InvalidDataException("Incomplete MP4 initialization.");
 
         byte[] init = _init.ToArray();
 
-        uint videoTimescale = GetTrackTimescale(
+        if (!TryParseInit(
             init,
-            VideoTrackId
-        );
+            out _videoTrack,
+            out _audioTrack,
+            out string error
+        ))
+        {
+            throw new InvalidDataException(
+                $"Unable to parse MP4 initialization: {error}"
+            );
+        }
 
-        uint audioTimescale = GetTrackTimescale(
-            init,
-            AudioTrackId
-        );
-
-        if (videoTimescale == 0)
-            throw new InvalidDataException($"Video track {VideoTrackId} or its mdhd timescale was not found in moov.");
-
-        if (audioTimescale == 0)
-            throw new InvalidDataException($"Audio track {AudioTrackId} or its mdhd timescale was not found in moov.");
-
-        _videoTimescale = videoTimescale;
-        _audioTimescale = audioTimescale;
         _initDone = true;
-
         _onInit(init);
     }
 
-    /// <summary>
-    /// Разбирает полностью накопленный moof:
-    /// изменяет tfdt и только после определения track_ID пишет его в audio/video
-    /// </summary>
     void CompleteMoof()
     {
-        if (!_moof.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
-            throw new InvalidOperationException("moof buffer is not accessible.");
+        ReadOnlySpan<byte> moof = GetSpan(_sourceMoof);
 
-        Span<byte> box = segment.Array.AsSpan(
-            segment.Offset,
-            (int)_moof.Length
+        if (!TryParseMoof(
+            moof,
+            _videoTrack,
+            _audioTrack,
+            out Fragment fragment,
+            out string error
+        ))
+        {
+            throw new InvalidDataException($"Unable to parse source moof: {error}");
+        }
+
+        _pending = fragment;
+        _sourcePayloadFromMoof = _sourceMoof.Length;
+    }
+
+    void CompleteMdat()
+    {
+        if (_pending == null || _sourcePayload == null)
+            throw new InvalidDataException("Completed mdat has no source moof.");
+
+        AttachPayload(
+            _pending,
+            _sourcePayload,
+            _sourcePayloadFromMoof
         );
 
+        _sourcePayload = null; // ownership moved to fragment
 
-        uint trackId = GetMoofTrackId(
-            box,
-            out ulong? decodeTime
-        );
+        if (_pending.TrackId == _videoTrack.Id)
+            _video.Add(_pending);
+        else if (_pending.TrackId == _audioTrack.Id)
+            _audio.Add(_pending);
+        else
+            throw new InvalidDataException($"Unsupported track_ID={_pending.TrackId}.");
 
-        if (trackId == 0)
-            throw new InvalidDataException("MP4 moof does not contain a readable tfhd track_ID.");
+        _pending = null;
+        _sourcePayloadFromMoof = 0;
+        Reset(_sourceMoof);
+    }
 
-        if (trackId != VideoTrackId && trackId != AudioTrackId)
+    static void AttachPayload(
+        Fragment fragment,
+        RecyclableMemoryStream payload,
+        long payloadFromMoof
+    )
+    {
+        long expected = 0;
+
+        foreach (Run run in fragment.Runs)
+        {
+            long offset = run.SourceDataOffset.HasValue
+                ? checked((long)run.SourceDataOffset.Value - payloadFromMoof)
+                : expected;
+
+            if (offset != expected)
+            {
+                throw new InvalidDataException(
+                    $"Non-contiguous source mdat: expected={expected}, actual={offset}."
+                );
+            }
+
+            if (run.DataSize > long.MaxValue)
+                throw new InvalidDataException("trun payload is too large.");
+
+            run.PayloadOffset = offset;
+            expected = checked(offset + (long)run.DataSize);
+        }
+
+        if (expected != payload.Length)
         {
             throw new InvalidDataException(
-                $"Unsupported MP4 track_ID {trackId}. " +
-                $"Expected video={VideoTrackId} or audio={AudioTrackId}."
+                $"Source mdat size mismatch: trun={expected}, mdat={payload.Length}."
             );
         }
 
-        _lastMoofTrackId = trackId;
+        payload.Position = 0;
+        fragment.Payload = payload;
+    }
 
-        uint timescale = 0;
+    bool TryBuildSegment()
+    {
+        int videoCount = SelectVideoCount();
+        if (videoCount == 0)
+            return false;
 
-        if (_lastMoofTrackId == AudioTrackId)
+        ulong videoEnd = _video[videoCount - 1].EndTime;
+        int audioCount = SelectAudioCount(videoEnd);
+
+        if (audioCount == 0)
+            return false;
+
+        BuildSegment(videoCount, audioCount);
+        return true;
+    }
+
+    int SelectVideoCount()
+    {
+        if (_video.Count == 0)
+            return 0;
+
+        if (!_video[0].StartsWithSync)
         {
-            timescale = _audioTimescale;
-        }
-        else if (_lastMoofTrackId == VideoTrackId)
-        {
-            timescale = _videoTimescale;
-
-            // Сохраняем локальное начало video fragment до изменения tfdt
-            if (_videoTimescale > 0 && decodeTime.HasValue)
-            {
-                _segmentStartSeconds =
-                    (double)decodeTime.Value / _videoTimescale;
-            }
-        }
-
-        // После seek добавляем абсолютное смещение к tfdt обоих треков
-        if (_tfdtOffsetSeconds > 0 && timescale > 0)
-        {
-            ShiftTfdt(
-                box,
-                timescale,
-                _tfdtOffsetSeconds
+            throw new InvalidDataException(
+                $"Video segment starts with a non-sync sample at " +
+                $"{(double)_video[0].DecodeTime / _videoTrack.Timescale:F6}s."
             );
         }
 
-        if (_lastMoofTrackId == AudioTrackId)
+        ulong target = ToUnits(_segmentSeconds, _videoTrack.Timescale);
+        ulong duration = 0;
+
+        // Нужен один fragment look-ahead: следующий segment должен начинаться с sync sample
+        for (int i = 0; i + 1 < _video.Count; i++)
         {
-            _audioPart.Write(box);
-        }
-        else if (_lastMoofTrackId == VideoTrackId)
-        {
-            _videoPart.Write(box);
+            duration = checked(duration + _video[i].Duration);
+
+            if (duration >= target && _video[i + 1].StartsWithSync)
+                return i + 1;
         }
 
-        _moof.SetLength(0);
-        _moof.Position = 0;
-
+        return 0;
     }
 
-    /// <summary>
-    /// Сбрасывает состояние заголовка для следующего top-level box
-    /// </summary>
-    void ResetBoxState()
+    int SelectAudioCount(ulong videoEnd)
     {
-        _boxHeaderLength = 0;
-        _boxHeaderRequired = 8;
+        if (_audio.Count == 0)
+            return 0;
 
-        _currentBoxType = 0;
-        _currentBoxRemaining = 0;
-        _currentTarget = BoxTarget.None;
-    }
-
-    /// <summary>
-    /// Оставляет в _deferred только неиспользованный хвост
-    /// Вызывается лишь на границе уже готового сегмента
-    /// </summary>
-    void KeepDeferredRemainder(
-        ReadOnlySpan<byte> data,
-        int consumed
-    )
-    {
-        int rest = data.Length - consumed;
-
-        if (rest <= 0)
-        {
-            _deferred.SetLength(0);
-            _deferred.Position = 0;
-            return;
-        }
-
-        if (!_deferred.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
-            throw new InvalidOperationException("Deferred buffer is not accessible.");
-
-        System.Buffer.BlockCopy(
-            segment.Array,
-            segment.Offset + consumed,
-            segment.Array,
-            segment.Offset,
-            rest
+        ulong tolerance = ToUnits(
+            AudioBoundaryToleranceSeconds,
+            _audioTrack.Timescale
         );
 
-        _deferred.SetLength(rest);
-        _deferred.Position = rest;
+        for (int i = 0; i < _audio.Count; i++)
+        {
+            ulong audioEnd = _audio[i].EndTime;
+            ulong withTolerance = ulong.MaxValue - audioEnd < tolerance
+                ? ulong.MaxValue
+                : audioEnd + tolerance;
+
+            if ((UInt128)withTolerance * _videoTrack.Timescale >=
+                (UInt128)videoEnd * _audioTrack.Timescale)
+            {
+                return i + 1;
+            }
+        }
+
+        return 0;
     }
 
-    /// <summary>
-    /// Добавляет оставшуюся часть Gst.Buffer в редкий deferred-хвост
-    /// </summary>
-    void AppendGstBufferToDeferred(
-        Gst.Buffer buffer,
-        int offset,
-        int count
-    )
+    void BuildSegment(int videoCount, int audioCount)
     {
-        while (count > 0)
+        ValidateTrack(_video, videoCount);
+        ValidateTrack(_audio, audioCount);
+
+        long payloadLength = 0;
+        AssignOffsets(_video, videoCount, ref payloadLength);
+        AssignOffsets(_audio, audioCount, ref payloadLength);
+
+        long videoTrafSize = GetTrafSize(_video, videoCount);
+        long audioTrafSize = GetTrafSize(_audio, audioCount);
+        long moofSize64 = checked(8L + 16L + videoTrafSize + audioTrafSize);
+
+        if (moofSize64 > uint.MaxValue)
+            throw new InvalidDataException("Combined moof is too large.");
+
+        uint moofSize = (uint)moofSize64;
+        int mdatHeaderSize = checked((ulong)payloadLength + 8UL) <= uint.MaxValue ? 8 : 16;
+
+        ResetSegment();
+        _segment = PoolInvk.msm.GetStream();
+
+        if (_styp != null)
+            _segment.Write(_styp);
+
+        Append(_prefix, _segment);
+
+        WriteHeader(_segment, moofSize, BoxMoof);
+        WriteMfhd(_segment, _sequence++);
+        WriteTraf(_segment, _video, videoCount, moofSize, mdatHeaderSize);
+        WriteTraf(_segment, _audio, audioCount, moofSize, mdatHeaderSize);
+        WriteMdatHeader(_segment, checked((ulong)payloadLength), mdatHeaderSize);
+        AppendPayloads(_video, videoCount, _segment);
+        AppendPayloads(_audio, audioCount, _segment);
+
+        double startSeconds =
+            (double)_video[0].DecodeTime /
+            _video[0].Timescale;
+
+        _segment.Position = 0;
+        _onSegment(new Segment(_segment, startSeconds));
+
+        Remove(_video, videoCount);
+        Remove(_audio, audioCount);
+        ResetPrefix();
+    }
+
+    static void ValidateTrack(List<Fragment> fragments, int count)
+    {
+        Fragment first = fragments[0];
+        ulong expected = first.EndTime;
+
+        for (int i = 1; i < count; i++)
         {
-            int requested = Math.Min(
-                _readBuffer.Length,
-                count
-            );
+            Fragment current = fragments[i];
 
-            nuint copiedValue = buffer.Extract(
-                (nuint)offset,
-                _readBuffer.AsSpan(0, requested)
-            );
+            if (current.TrackId != first.TrackId ||
+                current.Timescale != first.Timescale ||
+                current.DecodeTime != expected ||
+                !current.Tfhd.AsSpan().SequenceEqual(first.Tfhd))
+            {
+                throw new InvalidDataException(
+                    $"Track {first.TrackId} fragments cannot be merged into one traf."
+                );
+            }
 
-            int copied = (int)copiedValue;
-
-            if (copied <= 0)
-                return;
-
-            _deferred.Write(
-                _readBuffer.AsSpan(0, copied)
-            );
-
-            offset += copied;
-            count -= copied;
-
+            expected = current.EndTime;
         }
     }
 
-    /// <summary>
-    /// Переводит смещение из секунд в units трека и ищет tfdt внутри moof
-    /// </summary>
-    static bool ShiftTfdt(
-        Span<byte> moof,
-        uint timescale,
-        double offsetSeconds
+    static void AssignOffsets(
+        List<Fragment> fragments,
+        int count,
+        ref long outputOffset
     )
     {
-        if (moof.Length < 8 || timescale == 0 || offsetSeconds <= 0)
-            return false;
-
-        double offsetValue = offsetSeconds * timescale;
-
-        if (!double.IsFinite(offsetValue) ||
-            offsetValue <= 0 ||
-            offsetValue > ulong.MaxValue)
+        for (int i = 0; i < count; i++)
         {
-            return false;
+            Fragment fragment = fragments[i];
+            long baseOffset = outputOffset;
+
+            foreach (Run run in fragment.Runs)
+                run.OutputOffset = checked(baseOffset + run.PayloadOffset);
+
+            outputOffset = checked(outputOffset + fragment.Payload.Length);
+        }
+    }
+
+    static long GetTrafSize(List<Fragment> fragments, int count)
+    {
+        long size = 8L + fragments[0].Tfhd.Length + 20L;
+
+        for (int i = 0; i < count; i++)
+        {
+            foreach (Run run in fragments[i].Runs)
+                size = checked(size + run.Box.Length);
         }
 
-        ulong offset = (ulong)Math.Round(offsetValue);
+        return size;
+    }
 
-        int rootPosition = 0;
+    void WriteTraf(
+        Stream output,
+        List<Fragment> fragments,
+        int count,
+        uint moofSize,
+        int mdatHeaderSize
+    )
+    {
+        long size64 = GetTrafSize(fragments, count);
 
-        if (!TryReadBox(
-            moof,
-            ref rootPosition,
-            out uint rootType,
-            out int moofHeaderSize,
-            out ReadOnlySpan<byte> moofBox
-        ))
-        {
-            return false;
-        }
+        if (size64 > uint.MaxValue)
+            throw new InvalidDataException("Combined traf is too large.");
 
-        // _moof должен содержать ровно один полный moof
-        if (rootType != BoxMoof ||
-            rootPosition != moof.Length)
-        {
-            return false;
-        }
+        Fragment first = fragments[0];
 
-        ReadOnlySpan<byte> children = moofBox.Slice(
-            moofHeaderSize
+        WriteHeader(output, (uint)size64, BoxTraf);
+        output.Write(first.Tfhd);
+        WriteTfdt(
+            output,
+            AddTfdtOffset(first.DecodeTime, first.Timescale, _tfdtOffsetSeconds)
         );
 
-        int position = 0;
-
-        while (position < children.Length)
+        for (int i = 0; i < count; i++)
         {
-            int childStart = position;
-
-            if (!TryReadBox(
-                children,
-                ref position,
-                out uint childType,
-                out int childHeaderSize,
-                out ReadOnlySpan<byte> child
-            ))
+            foreach (Run run in fragments[i].Runs)
             {
-                return false;
+                long dataOffset = checked(
+                    (long)moofSize +
+                    mdatHeaderSize +
+                    run.OutputOffset
+                );
+
+                if (dataOffset < int.MinValue || dataOffset > int.MaxValue)
+                    throw new InvalidDataException("trun.data_offset exceeds Int32.");
+
+                WritePatchedTrun(output, run, (int)dataOffset);
             }
-
-            if (childType != BoxTraf)
-                continue;
-
-            // Смещения переводим обратно относительно начала moof
-            int trafStart = moofHeaderSize + childStart;
-            int trafEnd = trafStart + child.Length;
-
-            return ShiftTrafTfdt(
-                moof,
-                trafStart + childHeaderSize,
-                trafEnd,
-                offset
-            );
         }
-
-        return false;
     }
 
-    /// <summary>
-    /// Находит tfdt внутри traf и увеличивает baseMediaDecodeTime
-    /// </summary>
-    static bool ShiftTrafTfdt(
-        Span<byte> data,
-        int start,
-        int end,
-        ulong offset
-    )
+    static void WritePatchedTrun(Stream output, Run run, int dataOffset)
     {
-        if (start < 0 ||
-            end < start ||
-            end > data.Length)
-        {
-            return false;
-        }
+        ReadOnlySpan<byte> box = run.Box;
+        int field = run.DataOffsetField;
 
-        ReadOnlySpan<byte> traf = data.Slice(
-            start,
-            end - start
-        );
+        output.Write(box.Slice(0, field));
 
-        int position = 0;
+        Span<byte> value = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(value, dataOffset);
+        output.Write(value);
 
-        while (position < traf.Length)
-        {
-            int childStart = position;
-
-            if (!TryReadBox(
-                traf,
-                ref position,
-                out uint type,
-                out int headerSize,
-                out ReadOnlySpan<byte> box
-            ))
-            {
-                return false;
-            }
-
-            if (type != BoxTfdt)
-                continue;
-
-            // FullBox:
-            // header + version/flags(4) + baseMediaDecodeTime
-            if (box.Length < headerSize + 8)
-                return false;
-
-            int fullBoxOffset =
-                start +
-                childStart +
-                headerSize;
-
-            byte version = data[fullBoxOffset];
-
-            int valueOffset = fullBoxOffset + 4;
-
-            if (version == 1)
-            {
-                if (box.Length < headerSize + 12)
-                    return false;
-
-                ulong value = BinaryPrimitives.ReadUInt64BigEndian(
-                    data.Slice(valueOffset, 8)
-                );
-
-                if (ulong.MaxValue - value < offset)
-                    return false;
-
-                BinaryPrimitives.WriteUInt64BigEndian(
-                    data.Slice(valueOffset, 8),
-                    value + offset
-                );
-
-                return true;
-            }
-
-            if (version == 0)
-            {
-                uint value = BinaryPrimitives.ReadUInt32BigEndian(
-                    data.Slice(valueOffset, 4)
-                );
-
-                ulong result = value + offset;
-
-                if (result > uint.MaxValue)
-                    return false;
-
-                BinaryPrimitives.WriteUInt32BigEndian(
-                    data.Slice(valueOffset, 4),
-                    (uint)result
-                );
-
-                return true;
-            }
-
-            return false;
-        }
-
-        return false;
+        output.Write(box.Slice(field + 4));
     }
 
-    /// <summary>
-    /// Ищет traf внутри moof и возвращает track_ID вместе с его tfdt
-    /// </summary>
-    static uint GetMoofTrackId(
+    static bool TryParseMoof(
         ReadOnlySpan<byte> moof,
-        out ulong? decodeTime
+        TrackInfo videoTrack,
+        TrackInfo audioTrack,
+        out Fragment fragment,
+        out string error
     )
     {
-        decodeTime = null;
+        fragment = null;
+        error = null;
 
-        int rootPosition = 0;
+        int root = 0;
 
         if (!TryReadBox(
             moof,
-            ref rootPosition,
+            ref root,
             out uint rootType,
-            out int moofHeaderSize,
+            out int moofHeader,
             out ReadOnlySpan<byte> moofBox
-        ))
+        ) || rootType != BoxMoof || root != moof.Length)
         {
-            return 0;
+            error = "buffer does not contain exactly one moof";
+            return false;
         }
 
-        if (rootType != BoxMoof ||
-            rootPosition != moof.Length)
-        {
-            return 0;
-        }
-
-        ReadOnlySpan<byte> children = moofBox.Slice(
-            moofHeaderSize
-        );
-
-        int position = 0;
-
-        while (position < children.Length)
-        {
-            int childStart = position;
-
-            if (!TryReadBox(
-                children,
-                ref position,
-                out uint childType,
-                out int childHeaderSize,
-                out ReadOnlySpan<byte> child
-            ))
-            {
-                return 0;
-            }
-
-            if (childType != BoxTraf)
-                continue;
-
-            int trafStart = moofHeaderSize + childStart;
-            int trafEnd = trafStart + child.Length;
-
-            uint trackId = GetTrafTrackId(
-                moof,
-                trafStart + childHeaderSize,
-                trafEnd,
-                out decodeTime
-            );
-
-            if (trackId != 0)
-                return trackId;
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Читает track_ID из tfhd и decode time из tfdt одного traf
-    /// </summary>
-    static uint GetTrafTrackId(
-        ReadOnlySpan<byte> data,
-        int start,
-        int end,
-        out ulong? decodeTime
-    )
-    {
-        decodeTime = null;
-
-        if (start < 0 ||
-            end < start ||
-            end > data.Length)
-        {
-            return 0;
-        }
-
-        uint trackId = 0;
-
-        ReadOnlySpan<byte> traf = data.Slice(
-            start,
-            end - start
-        );
-
-        int position = 0;
-
-        while (position < traf.Length)
-        {
-            if (!TryReadBox(
-                traf,
-                ref position,
-                out uint type,
-                out int headerSize,
-                out ReadOnlySpan<byte> box
-            ))
-            {
-                return 0;
-            }
-
-            if (type == BoxTfhd)
-            {
-                // FullBox:
-                // header + version/flags(4) + track_ID(4)
-                if (box.Length < headerSize + 8)
-                    return 0;
-
-                trackId = BinaryPrimitives.ReadUInt32BigEndian(
-                    box.Slice(headerSize + 4, 4)
-                );
-            }
-            else if (type == BoxTfdt)
-            {
-                if (box.Length < headerSize + 8)
-                    return 0;
-
-                byte version = box[headerSize];
-
-                // После version/flags
-                int valueOffset = headerSize + 4;
-
-                if (version == 1)
-                {
-                    if (box.Length < headerSize + 12)
-                        return 0;
-
-                    decodeTime = BinaryPrimitives.ReadUInt64BigEndian(
-                        box.Slice(valueOffset, 8)
-                    );
-                }
-                else if (version == 0)
-                {
-                    decodeTime = BinaryPrimitives.ReadUInt32BigEndian(
-                        box.Slice(valueOffset, 4)
-                    );
-                }
-                else
-                {
-                    return 0;
-                }
-            }
-        }
-
-        return trackId;
-    }
-
-    /// <summary>
-    /// Находит нужный trak по track_ID и возвращает его mdhd timescale
-    /// </summary>
-    static uint GetTrackTimescale(
-        ReadOnlySpan<byte> init,
-        uint requiredTrackId
-    )
-    {
-        int position = 0;
+        int position = moofHeader;
+        int trafCount = 0;
 
         while (TryReadBox(
-            init,
-            ref position,
-            out uint type,
-            out int boxHeaderSize,
-            out ReadOnlySpan<byte> box
-        ))
-        {
-            if (type != BoxMoov)
-                continue;
-
-            int moovPosition = boxHeaderSize;
-
-            while (TryReadBox(
-                box,
-                ref moovPosition,
-                out uint childType,
-                out int childHeaderSize,
-                out ReadOnlySpan<byte> child
-            ))
-            {
-                if (childType != BoxTrak)
-                    continue;
-
-                uint trackId = 0;
-                uint timescale = 0;
-
-                int trakPosition = childHeaderSize;
-
-                while (TryReadBox(
-                    child,
-                    ref trakPosition,
-                    out uint trakType,
-                    out int trakBoxHeaderSize,
-                    out ReadOnlySpan<byte> trakBox
-                ))
-                {
-                    if (trakType == BoxTkhd)
-                    {
-                        if (trakBox.Length <= trakBoxHeaderSize)
-                            continue;
-
-                        byte version = trakBox[trakBoxHeaderSize];
-
-                        int trackIdOffset;
-
-                        if (version == 1)
-                        {
-                            // version/flags(4) +
-                            // creation(8) + modification(8)
-                            trackIdOffset = trakBoxHeaderSize + 20;
-                        }
-                        else if (version == 0)
-                        {
-                            // version/flags(4) +
-                            // creation(4) + modification(4)
-                            trackIdOffset = trakBoxHeaderSize + 12;
-                        }
-                        else
-                        {
-                            continue;
-                        }
-
-                        if (trakBox.Length >= trackIdOffset + 4)
-                        {
-                            trackId = BinaryPrimitives.ReadUInt32BigEndian(
-                                trakBox.Slice(trackIdOffset, 4)
-                            );
-                        }
-                    }
-                    else if (trakType == BoxMdia)
-                    {
-                        timescale = GetMdiaTimescale(
-                            trakBox
-                        );
-                    }
-                }
-
-                if (trackId == requiredTrackId)
-                    return timescale;
-            }
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Ищет mdhd внутри mdia и читает timescale трека
-    /// </summary>
-    static uint GetMdiaTimescale(ReadOnlySpan<byte> mdia)
-    {
-        int rootPosition = 0;
-
-        if (!TryReadBox(
-            mdia,
-            ref rootPosition,
-            out uint rootType,
-            out int mdiaHeaderSize,
-            out ReadOnlySpan<byte> mdiaBox
-        ))
-        {
-            return 0;
-        }
-
-        if (rootType != BoxMdia ||
-            rootPosition != mdia.Length)
-        {
-            return 0;
-        }
-
-        int position = mdiaHeaderSize;
-
-        while (TryReadBox(
-            mdiaBox,
+            moofBox,
             ref position,
             out uint type,
             out int headerSize,
             out ReadOnlySpan<byte> box
         ))
         {
-            if (type != BoxMdhd)
+            if (type != BoxTraf)
                 continue;
 
-            if (box.Length <= headerSize)
-                return 0;
+            trafCount++;
 
-            byte version = box[headerSize];
-
-            int timescaleOffset;
-
-            if (version == 1)
+            if (trafCount > 1)
             {
-                // version/flags(4) +
-                // creation(8) + modification(8)
-                timescaleOffset = headerSize + 20;
-            }
-            else if (version == 0)
-            {
-                // version/flags(4) +
-                // creation(4) + modification(4)
-                timescaleOffset = headerSize + 12;
-            }
-            else
-            {
-                return 0;
+                error = "source moof must contain one traf";
+                return false;
             }
 
-            if (box.Length < timescaleOffset + 4)
-                return 0;
-
-            return BinaryPrimitives.ReadUInt32BigEndian(
-                box.Slice(timescaleOffset, 4)
-            );
+            if (!TryParseTraf(
+                box,
+                headerSize,
+                videoTrack,
+                audioTrack,
+                out fragment,
+                out error
+            ))
+            {
+                return false;
+            }
         }
 
-        return 0;
+        if (fragment == null)
+        {
+            error = "traf was not found";
+            return false;
+        }
+
+        return true;
     }
 
-    /// <summary>
-    /// Читает один MP4 box и возвращает фактический размер заголовка:
-    /// 8 байт для обычного box, 16 байт для extended-size box
-    /// </summary>
+    static bool TryParseTraf(
+        ReadOnlySpan<byte> traf,
+        int trafHeader,
+        TrackInfo videoTrack,
+        TrackInfo audioTrack,
+        out Fragment fragment,
+        out string error
+    )
+    {
+        fragment = null;
+        error = null;
+
+        uint trackId = 0;
+        uint defaultDuration = 0;
+        uint defaultSize = 0;
+        uint defaultFlags = 0;
+        bool hasDefaultFlags = false;
+        byte[] tfhd = null;
+        ulong decodeTime = 0;
+        bool hasTfdt = false;
+
+        int position = trafHeader;
+
+        while (TryReadBox(
+            traf,
+            ref position,
+            out uint type,
+            out int headerSize,
+            out ReadOnlySpan<byte> box
+        ))
+        {
+            switch (type)
+            {
+                case BoxTfhd:
+                    if (tfhd != null ||
+                        !TryNormalizeTfhd(
+                            box,
+                            headerSize,
+                            out trackId,
+                            out defaultDuration,
+                            out defaultSize,
+                            out defaultFlags,
+                            out hasDefaultFlags,
+                            out tfhd,
+                            out error
+                        ))
+                    {
+                        error ??= "invalid or duplicate tfhd";
+                        return false;
+                    }
+                    break;
+
+                case BoxTfdt:
+                    if (hasTfdt || !TryReadTfdt(box, headerSize, out decodeTime))
+                    {
+                        error = "invalid or duplicate tfdt";
+                        return false;
+                    }
+
+                    hasTfdt = true;
+                    break;
+
+                case BoxTrun:
+                    // Разбирается вторым проходом после tfhd/trex defaults.
+                    break;
+
+                default:
+                    error = $"unsupported box {FourCC(type)} inside traf";
+                    return false;
+            }
+        }
+
+        if (tfhd == null || !hasTfdt)
+        {
+            error = "tfhd/tfdt was not found";
+            return false;
+        }
+
+        uint timescale;
+        Trex trex;
+
+        if (trackId == videoTrack.Id)
+        {
+            timescale = videoTrack.Timescale;
+            trex = videoTrack.Trex;
+        }
+        else if (trackId == audioTrack.Id)
+        {
+            timescale = audioTrack.Timescale;
+            trex = audioTrack.Trex;
+        }
+        else
+        {
+            error = $"unsupported track_ID={trackId}";
+            return false;
+        }
+
+        if (timescale == 0)
+        {
+            error = $"timescale is zero for track_ID={trackId}";
+            return false;
+        }
+
+        if (defaultDuration == 0)
+            defaultDuration = trex.Duration;
+
+        if (defaultSize == 0)
+            defaultSize = trex.Size;
+
+        if (!hasDefaultFlags)
+            defaultFlags = trex.Flags;
+
+        var result = new Fragment
+        {
+            TrackId = trackId,
+            Timescale = timescale,
+            DecodeTime = decodeTime,
+            Tfhd = tfhd
+        };
+
+        ulong duration = 0;
+        position = trafHeader;
+
+        while (TryReadBox(
+            traf,
+            ref position,
+            out uint type,
+            out int headerSize,
+            out ReadOnlySpan<byte> box
+        ))
+        {
+            if (type != BoxTrun)
+                continue;
+
+            if (!TryNormalizeTrun(
+                box,
+                headerSize,
+                defaultDuration,
+                defaultSize,
+                defaultFlags,
+                out Run run,
+                out error
+            ))
+            {
+                result.Dispose();
+                return false;
+            }
+
+            duration = checked(duration + run.Duration);
+            result.Runs.Add(run);
+        }
+
+        if (result.Runs.Count == 0 || duration == 0)
+        {
+            error = "trun/duration was not found";
+            return false;
+        }
+
+        result.Duration = duration;
+        result.StartsWithSync = result.Runs[0].StartsWithSync;
+        fragment = result;
+        return true;
+    }
+
+    static bool TryNormalizeTfhd(
+        ReadOnlySpan<byte> box,
+        int headerSize,
+        out uint trackId,
+        out uint defaultDuration,
+        out uint defaultSize,
+        out uint defaultFlags,
+        out bool hasDefaultFlags,
+        out byte[] normalized,
+        out string error
+    )
+    {
+        trackId = 0;
+        defaultDuration = 0;
+        defaultSize = 0;
+        defaultFlags = 0;
+        hasDefaultFlags = false;
+        normalized = null;
+        error = null;
+
+        if (box.Length < headerSize + 8)
+        {
+            error = "tfhd is too small";
+            return false;
+        }
+
+        uint versionFlags = BinaryPrimitives.ReadUInt32BigEndian(
+            box.Slice(headerSize, 4)
+        );
+
+        byte version = (byte)(versionFlags >> 24);
+        uint flags = versionFlags & 0x00FF_FFFF;
+
+        if ((flags & TfhdBaseDataOffsetPresent) != 0)
+        {
+            error = "tfhd.base-data-offset-present is not supported";
+            return false;
+        }
+
+        trackId = BinaryPrimitives.ReadUInt32BigEndian(
+            box.Slice(headerSize + 4, 4)
+        );
+
+        int optionalStart = headerSize + 8;
+        int cursor = optionalStart;
+
+        if ((flags & TfhdSampleDescriptionIndexPresent) != 0 &&
+            !Skip(box, ref cursor, 4))
+        {
+            error = "invalid tfhd sample_description_index";
+            return false;
+        }
+
+        if ((flags & TfhdDefaultSampleDurationPresent) != 0 &&
+            !ReadUInt32(box, ref cursor, out defaultDuration))
+        {
+            error = "invalid tfhd default_sample_duration";
+            return false;
+        }
+
+        if ((flags & TfhdDefaultSampleSizePresent) != 0 &&
+            !ReadUInt32(box, ref cursor, out defaultSize))
+        {
+            error = "invalid tfhd default_sample_size";
+            return false;
+        }
+
+        hasDefaultFlags =
+            (flags & TfhdDefaultSampleFlagsPresent) != 0;
+
+        if (hasDefaultFlags &&
+            !ReadUInt32(box, ref cursor, out defaultFlags))
+        {
+            error = "invalid tfhd default_sample_flags";
+            return false;
+        }
+
+        if (cursor != box.Length || trackId == 0)
+        {
+            error = "invalid tfhd body";
+            return false;
+        }
+
+        int optionalLength = cursor - optionalStart;
+        int size = 16 + optionalLength;
+        normalized = new byte[size];
+
+        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(0, 4), (uint)size);
+        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(4, 4), BoxTfhd);
+        BinaryPrimitives.WriteUInt32BigEndian(
+            normalized.AsSpan(8, 4),
+            ((uint)version << 24) |
+            (flags & ~TfhdBaseDataOffsetPresent) |
+            TfhdDefaultBaseIsMoof
+        );
+        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(12, 4), trackId);
+        box.Slice(optionalStart, optionalLength).CopyTo(normalized.AsSpan(16));
+        return true;
+    }
+
+    static bool TryNormalizeTrun(
+        ReadOnlySpan<byte> box,
+        int headerSize,
+        uint defaultDuration,
+        uint defaultSize,
+        uint defaultFlags,
+        out Run run,
+        out string error
+    )
+    {
+        run = null;
+        error = null;
+
+        if (box.Length < headerSize + 8)
+        {
+            error = "trun is too small";
+            return false;
+        }
+
+        uint versionFlags = BinaryPrimitives.ReadUInt32BigEndian(
+            box.Slice(headerSize, 4)
+        );
+
+        byte version = (byte)(versionFlags >> 24);
+        uint flags = versionFlags & 0x00FF_FFFF;
+        uint sampleCount = BinaryPrimitives.ReadUInt32BigEndian(
+            box.Slice(headerSize + 4, 4)
+        );
+
+        int cursor = headerSize + 8;
+        int? sourceDataOffset = null;
+
+        if ((flags & TrunDataOffsetPresent) != 0)
+        {
+            if (box.Length - cursor < 4)
+            {
+                error = "invalid trun data_offset";
+                return false;
+            }
+
+            sourceDataOffset = BinaryPrimitives.ReadInt32BigEndian(
+                box.Slice(cursor, 4)
+            );
+            cursor += 4;
+        }
+
+        bool hasFirstSampleFlags =
+            (flags & TrunFirstSampleFlagsPresent) != 0;
+
+        uint firstSampleFlags = defaultFlags;
+
+        if (hasFirstSampleFlags &&
+            !ReadUInt32(box, ref cursor, out firstSampleFlags))
+        {
+            error = "invalid trun first_sample_flags";
+            return false;
+        }
+
+        bool hasDuration = (flags & TrunSampleDurationPresent) != 0;
+        bool hasSize = (flags & TrunSampleSizePresent) != 0;
+
+        if (!hasDuration && defaultDuration == 0)
+        {
+            error = "sample duration is absent";
+            return false;
+        }
+
+        if (!hasSize && defaultSize == 0)
+        {
+            error = "sample size is absent";
+            return false;
+        }
+
+        ulong duration = 0;
+        ulong dataSize = 0;
+
+        for (uint i = 0; i < sampleCount; i++)
+        {
+            uint sampleDuration = defaultDuration;
+            uint sampleSize = defaultSize;
+
+            if (hasDuration && !ReadUInt32(box, ref cursor, out sampleDuration))
+            {
+                error = "invalid trun sample_duration";
+                return false;
+            }
+
+            if (hasSize && !ReadUInt32(box, ref cursor, out sampleSize))
+            {
+                error = "invalid trun sample_size";
+                return false;
+            }
+
+            duration = checked(duration + sampleDuration);
+            dataSize = checked(dataSize + sampleSize);
+
+            if ((flags & TrunSampleFlagsPresent) != 0)
+            {
+                if (!ReadUInt32(box, ref cursor, out uint sampleFlags))
+                {
+                    error = "invalid trun sample_flags";
+                    return false;
+                }
+
+                if (i == 0 && !hasFirstSampleFlags)
+                    firstSampleFlags = sampleFlags;
+            }
+
+            if ((flags & TrunCompositionOffsetPresent) != 0 &&
+                !Skip(box, ref cursor, 4))
+            {
+                error = "invalid trun composition_time_offset";
+                return false;
+            }
+        }
+
+        if (cursor != box.Length || sampleCount == 0 || duration == 0 || dataSize == 0)
+        {
+            error = "invalid trun body";
+            return false;
+        }
+
+        bool hadOffset = (flags & TrunDataOffsetPresent) != 0;
+        int bodyLength = box.Length - headerSize;
+        int normalizedSize = 8 + bodyLength + (hadOffset ? 0 : 4);
+        byte[] normalized = new byte[normalizedSize];
+
+        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(0, 4), (uint)normalizedSize);
+        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(4, 4), BoxTrun);
+        BinaryPrimitives.WriteUInt32BigEndian(
+            normalized.AsSpan(8, 4),
+            ((uint)version << 24) | flags | TrunDataOffsetPresent
+        );
+        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(12, 4), sampleCount);
+
+        if (hadOffset)
+        {
+            box.Slice(headerSize + 8).CopyTo(normalized.AsSpan(16));
+        }
+        else
+        {
+            BinaryPrimitives.WriteInt32BigEndian(normalized.AsSpan(16, 4), 0);
+            box.Slice(headerSize + 8).CopyTo(normalized.AsSpan(20));
+        }
+
+        run = new Run
+        {
+            Box = normalized,
+            DataOffsetField = 16,
+            SourceDataOffset = sourceDataOffset,
+            Duration = duration,
+            DataSize = dataSize,
+            StartsWithSync = IsSyncSample(firstSampleFlags)
+        };
+
+        return true;
+    }
+
+    static bool IsSyncSample(uint flags)
+    {
+        const uint NonSync = 0x00010000;
+        uint dependsOn = (flags >> 24) & 0x03;
+
+        return (flags & NonSync) == 0 && dependsOn != 1;
+    }
+
+    static bool TryReadTfdt(
+        ReadOnlySpan<byte> box,
+        int headerSize,
+        out ulong decodeTime
+    )
+    {
+        decodeTime = 0;
+
+        if (box.Length < headerSize + 8)
+            return false;
+
+        byte version = box[headerSize];
+        int offset = headerSize + 4;
+
+        if (version == 1)
+        {
+            if (box.Length < offset + 8)
+                return false;
+
+            decodeTime = BinaryPrimitives.ReadUInt64BigEndian(box.Slice(offset, 8));
+            return true;
+        }
+
+        if (version == 0)
+        {
+            if (box.Length < offset + 4)
+                return false;
+
+            decodeTime = BinaryPrimitives.ReadUInt32BigEndian(box.Slice(offset, 4));
+            return true;
+        }
+
+        return false;
+    }
+
+    static bool TryParseInit(
+        ReadOnlySpan<byte> init,
+        out TrackInfo video,
+        out TrackInfo audio,
+        out string error
+    )
+    {
+        video = default;
+        audio = default;
+        error = null;
+
+        if (!FindBox(
+            init,
+            BoxMoov,
+            out ReadOnlySpan<byte> moov,
+            out int moovHeader
+        ))
+        {
+            error = "moov was not found";
+            return false;
+        }
+
+        uint videoId = 0;
+        uint videoTimescale = 0;
+        uint audioId = 0;
+        uint audioTimescale = 0;
+        var trex = new List<TrexEntry>(2);
+
+        int position = moovHeader;
+
+        while (TryReadBox(
+            moov,
+            ref position,
+            out uint type,
+            out int header,
+            out ReadOnlySpan<byte> box
+        ))
+        {
+            if (type == BoxTrak)
+            {
+                if (!TryReadTrack(
+                    box,
+                    header,
+                    out uint trackId,
+                    out uint timescale,
+                    out uint handler
+                ))
+                {
+                    error = "invalid trak/tkhd/mdia/mdhd/hdlr";
+                    return false;
+                }
+
+                if (handler == HandlerVideo)
+                {
+                    if (videoId != 0)
+                    {
+                        error = "multiple video tracks in mp4mux output";
+                        return false;
+                    }
+
+                    videoId = trackId;
+                    videoTimescale = timescale;
+                }
+                else if (handler == HandlerAudio)
+                {
+                    if (audioId != 0)
+                    {
+                        error = "multiple audio tracks in mp4mux output";
+                        return false;
+                    }
+
+                    audioId = trackId;
+                    audioTimescale = timescale;
+                }
+
+                continue;
+            }
+
+            if (type != BoxMvex)
+                continue;
+
+            int mvexPosition = header;
+
+            while (TryReadBox(
+                box,
+                ref mvexPosition,
+                out uint childType,
+                out int childHeader,
+                out ReadOnlySpan<byte> child
+            ))
+            {
+                if (childType != BoxTrex)
+                    continue;
+
+                if (!TryReadTrex(
+                    child,
+                    childHeader,
+                    out TrexEntry entry
+                ))
+                {
+                    error = "invalid trex";
+                    return false;
+                }
+
+                trex.Add(entry);
+            }
+        }
+
+        if (videoId == 0 || videoTimescale == 0)
+        {
+            error = "video track was not found through hdlr=vide";
+            return false;
+        }
+
+        if (audioId == 0 || audioTimescale == 0)
+        {
+            error = "audio track was not found through hdlr=soun";
+            return false;
+        }
+
+        video = new TrackInfo(
+            videoId,
+            videoTimescale,
+            FindTrex(trex, videoId)
+        );
+
+        audio = new TrackInfo(
+            audioId,
+            audioTimescale,
+            FindTrex(trex, audioId)
+        );
+
+        return true;
+    }
+
+    static bool TryReadTrack(
+        ReadOnlySpan<byte> trak,
+        int trakHeader,
+        out uint trackId,
+        out uint timescale,
+        out uint handler
+    )
+    {
+        trackId = 0;
+        timescale = 0;
+        handler = 0;
+
+        int position = trakHeader;
+
+        while (TryReadBox(
+            trak,
+            ref position,
+            out uint type,
+            out int header,
+            out ReadOnlySpan<byte> box
+        ))
+        {
+            if (type == BoxTkhd)
+            {
+                trackId = ReadTkhdTrackId(box, header);
+                continue;
+            }
+
+            if (type != BoxMdia)
+                continue;
+
+            int mdiaPosition = header;
+
+            while (TryReadBox(
+                box,
+                ref mdiaPosition,
+                out uint mdiaType,
+                out int mdiaHeader,
+                out ReadOnlySpan<byte> child
+            ))
+            {
+                if (mdiaType == BoxMdhd)
+                    timescale = ReadMdhdTimescale(child, mdiaHeader);
+                else if (mdiaType == BoxHdlr)
+                    handler = ReadHandlerType(child, mdiaHeader);
+            }
+        }
+
+        return true;
+    }
+
+    static uint ReadTkhdTrackId(ReadOnlySpan<byte> box, int header)
+    {
+        if (box.Length <= header)
+            return 0;
+
+        int offset = box[header] switch
+        {
+            1 => header + 20,
+            0 => header + 12,
+            _ => -1
+        };
+
+        return offset >= 0 && box.Length >= offset + 4
+            ? BinaryPrimitives.ReadUInt32BigEndian(box.Slice(offset, 4))
+            : 0;
+    }
+
+    static uint ReadMdhdTimescale(ReadOnlySpan<byte> box, int header)
+    {
+        if (box.Length <= header)
+            return 0;
+
+        int offset = box[header] switch
+        {
+            1 => header + 20,
+            0 => header + 12,
+            _ => -1
+        };
+
+        return offset >= 0 && box.Length >= offset + 4
+            ? BinaryPrimitives.ReadUInt32BigEndian(box.Slice(offset, 4))
+            : 0;
+    }
+
+    static uint ReadHandlerType(ReadOnlySpan<byte> box, int header)
+    {
+        // FullBox(4) + pre_defined(4) + handler_type(4)
+        int offset = header + 8;
+
+        return box.Length >= offset + 4
+            ? BinaryPrimitives.ReadUInt32BigEndian(box.Slice(offset, 4))
+            : 0;
+    }
+
+    static bool TryReadTrex(
+        ReadOnlySpan<byte> box,
+        int header,
+        out TrexEntry entry
+    )
+    {
+        entry = default;
+
+        // FullBox(4), track_ID, description index, duration, size, flags.
+        if (box.Length < header + 24)
+            return false;
+
+        uint trackId = BinaryPrimitives.ReadUInt32BigEndian(
+            box.Slice(header + 4, 4)
+        );
+
+        if (trackId == 0)
+            return false;
+
+        entry = new TrexEntry(
+            trackId,
+            new Trex(
+                BinaryPrimitives.ReadUInt32BigEndian(box.Slice(header + 12, 4)),
+                BinaryPrimitives.ReadUInt32BigEndian(box.Slice(header + 16, 4)),
+                BinaryPrimitives.ReadUInt32BigEndian(box.Slice(header + 20, 4))
+            )
+        );
+
+        return true;
+    }
+
+    static Trex FindTrex(List<TrexEntry> entries, uint trackId)
+    {
+        foreach (TrexEntry entry in entries)
+        {
+            if (entry.TrackId == trackId)
+                return entry.Value;
+        }
+
+        return default;
+    }
+
+    static bool FindBox(
+        ReadOnlySpan<byte> data,
+        uint requiredType,
+        out ReadOnlySpan<byte> result,
+        out int headerSize
+    )
+    {
+        result = default;
+        headerSize = 0;
+        int position = 0;
+
+        while (position < data.Length)
+        {
+            int start = position;
+
+            if (!TryReadBox(
+                data,
+                ref position,
+                out uint type,
+                out int header,
+                out _
+            ))
+            {
+                return false;
+            }
+
+            if (type != requiredType)
+                continue;
+
+            result = data.Slice(start, position - start);
+            headerSize = header;
+            return true;
+        }
+
+        return false;
+    }
+
     static bool TryReadBox(
         ReadOnlySpan<byte> data,
         ref int position,
@@ -1165,36 +1728,23 @@ public class Mp4BoxReader
 
         int start = position;
 
-        if ((uint)start > (uint)data.Length ||
-            data.Length - start < 8)
-        {
+        if ((uint)start > (uint)data.Length || data.Length - start < 8)
             return false;
-        }
 
-        uint size32 = BinaryPrimitives.ReadUInt32BigEndian(
-            data.Slice(start, 4)
-        );
-
-        type = BinaryPrimitives.ReadUInt32BigEndian(
-            data.Slice(start + 4, 4)
-        );
+        uint size32 = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(start, 4));
+        type = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(start + 4, 4));
 
         ulong size = size32;
         headerSize = 8;
 
-        // extended-size box
         if (size32 == 1)
         {
             if (data.Length - start < 16)
                 return false;
 
-            size = BinaryPrimitives.ReadUInt64BigEndian(
-                data.Slice(start + 8, 8)
-            );
-
+            size = BinaryPrimitives.ReadUInt64BigEndian(data.Slice(start + 8, 8));
             headerSize = 16;
         }
-        // Внутри уже готового parent span размер до конца parent известен
         else if (size32 == 0)
         {
             size = (ulong)(data.Length - start);
@@ -1207,101 +1757,259 @@ public class Mp4BoxReader
             return false;
         }
 
-        int boxSize = (int)size;
-
-        box = data.Slice(start, boxSize);
-        position = start + boxSize;
-
+        int length = (int)size;
+        box = data.Slice(start, length);
+        position = start + length;
         return true;
     }
 
-    /// <summary>
-    /// Возвращает true, если deferred сформировал полный Segment
-    /// Возвращает false, если deferred пуст или для завершения Segment требуется следующий Gst.Buffer
-    ///
-    /// Исключение означает повреждённый поток либо нарушение внутреннего состояния парсера, продолжать разбор небезопасно
-    /// </summary>
-    public bool TryProcessDeferred()
+    static bool ReadUInt32(
+        ReadOnlySpan<byte> data,
+        ref int position,
+        out uint value
+    )
     {
-        if (_deferred.Length <= 0)
+        value = 0;
+
+        if (position < 0 || data.Length - position < 4)
             return false;
 
-        int length = (int)_deferred.Length;
+        value = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(position, 4));
+        position += 4;
+        return true;
+    }
 
-        ReadOnlySpan<byte> data;
-
-        // Для созданного нами MemoryStream этот путь должен работать всегда
-        // ToArray оставляем как безопасный fallback, чтобы отсутствие открытого внутреннего массива не убивало задачу
-        byte[] copy = null;
-
-        if (_deferred.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array != null)
-        {
-            data = segment.Array.AsSpan(
-                segment.Offset,
-                length
-            );
-        }
-        else
-        {
-            copy = _deferred.ToArray();
-            data = copy;
-        }
-
-        int consumed = ProcessBytes(
-            data,
-            out bool segmentCompleted
-        );
-
-        if (segmentCompleted)
-        {
-            KeepDeferredRemainder(
-                data,
-                consumed
-            );
-
-            return true;
-        }
-
-        /*
-         * Обычный сценарий нехватки данных:
-         * ProcessBytes поглотил весь deferred, а частичный box сохранил в _boxHeader, _moof, _audioPart, _videoPart либо в состоянии mdat.
-         *
-         * Теперь можно читать следующий Gst.Buffer.
-         */
-        if (consumed == length)
-        {
-            _deferred.SetLength(0);
-            _deferred.Position = 0;
-
+    static bool Skip(ReadOnlySpan<byte> data, ref int position, int count)
+    {
+        if (count < 0 || position < 0 || data.Length - position < count)
             return false;
+
+        position += count;
+        return true;
+    }
+
+    static ulong ToUnits(double seconds, uint timescale)
+    {
+        double value = seconds * timescale;
+
+        if (!double.IsFinite(value) || value < 0 || value > ulong.MaxValue)
+            throw new InvalidDataException("Invalid timeline value.");
+
+        return (ulong)Math.Ceiling(value);
+    }
+
+    static ulong AddTfdtOffset(ulong value, uint timescale, double seconds)
+    {
+        if (seconds <= 0)
+            return value;
+
+        double units = seconds * timescale;
+
+        if (!double.IsFinite(units) || units < 0 || units > ulong.MaxValue)
+            throw new InvalidDataException("Invalid tfdt offset.");
+
+        return checked(value + (ulong)Math.Round(units));
+    }
+
+    static void WriteTfdt(Stream output, ulong decodeTime)
+    {
+        Span<byte> box = stackalloc byte[20];
+        BinaryPrimitives.WriteUInt32BigEndian(box.Slice(0, 4), 20);
+        BinaryPrimitives.WriteUInt32BigEndian(box.Slice(4, 4), BoxTfdt);
+        BinaryPrimitives.WriteUInt32BigEndian(box.Slice(8, 4), 0x01000000);
+        BinaryPrimitives.WriteUInt64BigEndian(box.Slice(12, 8), decodeTime);
+        output.Write(box);
+    }
+
+    static void WriteMfhd(Stream output, uint sequence)
+    {
+        Span<byte> box = stackalloc byte[16];
+        BinaryPrimitives.WriteUInt32BigEndian(box.Slice(0, 4), 16);
+        BinaryPrimitives.WriteUInt32BigEndian(box.Slice(4, 4), BoxMfhd);
+        BinaryPrimitives.WriteUInt32BigEndian(box.Slice(8, 4), 0);
+        BinaryPrimitives.WriteUInt32BigEndian(box.Slice(12, 4), sequence);
+        output.Write(box);
+    }
+
+    static void WriteHeader(Stream output, uint size, uint type)
+    {
+        Span<byte> header = stackalloc byte[8];
+        BinaryPrimitives.WriteUInt32BigEndian(header.Slice(0, 4), size);
+        BinaryPrimitives.WriteUInt32BigEndian(header.Slice(4, 4), type);
+        output.Write(header);
+    }
+
+    static void WriteMdatHeader(Stream output, ulong payloadLength, int headerSize)
+    {
+        if (headerSize == 8)
+        {
+            WriteHeader(output, checked((uint)(payloadLength + 8UL)), BoxMdat);
+            return;
         }
 
-        /*
-         * ProcessBytes без готового Segment обязан поглощать весь span.
-         * Если он остановился раньше, часть входных данных останется необработанной, но состояние парсера уже изменено. 
-         * Продолжение с новым Gst.Buffer нарушит порядок байтов.
-         */
-        throw new InvalidOperationException(
-            $"MP4 parser consumed only {consumed} of " +
-            $"{length} deferred bytes without completing a segment."
+        Span<byte> header = stackalloc byte[16];
+        BinaryPrimitives.WriteUInt32BigEndian(header.Slice(0, 4), 1);
+        BinaryPrimitives.WriteUInt32BigEndian(header.Slice(4, 4), BoxMdat);
+        BinaryPrimitives.WriteUInt64BigEndian(header.Slice(8, 8), payloadLength + 16UL);
+        output.Write(header);
+    }
+
+    static void AppendPayloads(
+        List<Fragment> fragments,
+        int count,
+        Stream output
+    )
+    {
+        for (int i = 0; i < count; i++)
+            Append(fragments[i].Payload, output);
+    }
+
+    static void Append(Stream source, Stream destination)
+    {
+        if (source == null || source.Length == 0)
+            return;
+
+        long position = source.Position;
+        source.Position = 0;
+        source.CopyTo(destination);
+        source.Position = position;
+    }
+
+    static void Remove(List<Fragment> fragments, int count)
+    {
+        for (int i = 0; i < count; i++)
+            fragments[i].Dispose();
+
+        fragments.RemoveRange(0, count);
+    }
+
+    static void ClearFragments(List<Fragment> fragments)
+    {
+        foreach (Fragment fragment in fragments)
+            fragment.Dispose();
+
+        fragments.Clear();
+    }
+
+    static ReadOnlySpan<byte> GetSpan(MemoryStream stream)
+    {
+        if (!stream.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null)
+            throw new InvalidOperationException("MemoryStream buffer is not accessible.");
+
+        return segment.Array.AsSpan(segment.Offset, checked((int)stream.Length));
+    }
+
+    static void Reset(MemoryStream stream)
+    {
+        stream.SetLength(0);
+        stream.Position = 0;
+    }
+
+    void EnsurePrefix()
+    {
+        _prefix ??= PoolInvk.msm.GetStream();
+    }
+
+    void ResetPrefix()
+    {
+        _prefix?.Dispose();
+        _prefix = null;
+    }
+
+    void ClearSource()
+    {
+        _pending?.Dispose();
+        _pending = null;
+
+        _sourcePayload?.Dispose();
+        _sourcePayload = null;
+
+        _sourcePayloadFromMoof = 0;
+        Reset(_sourceMoof);
+    }
+
+    void ResetBox()
+    {
+        _headerLength = 0;
+        _headerRequired = 8;
+        _boxType = 0;
+        _boxRemaining = 0;
+        _target = Target.None;
+    }
+
+    void KeepDeferred(ReadOnlySpan<byte> data, int consumed)
+    {
+        int count = data.Length - consumed;
+
+        if (count <= 0)
+        {
+            Reset(_deferred);
+            return;
+        }
+
+        if (!_deferred.TryGetBuffer(out ArraySegment<byte> segment) ||
+            segment.Array == null)
+        {
+            throw new InvalidOperationException("Deferred buffer is not accessible.");
+        }
+
+        Buffer.BlockCopy(
+            segment.Array,
+            segment.Offset + consumed,
+            segment.Array,
+            segment.Offset,
+            count
         );
+
+        _deferred.SetLength(count);
+        _deferred.Position = count;
+    }
+
+    void AppendGstBuffer(
+        Gst.Buffer buffer,
+        int offset,
+        int count,
+        Stream destination
+    )
+    {
+        while (count > 0)
+        {
+            int requested = Math.Min(_readBuffer.Length, count);
+            int copied = (int)buffer.Extract(
+                (nuint)offset,
+                _readBuffer.AsSpan(0, requested)
+            );
+
+            if (copied <= 0)
+                return;
+
+            destination.Write(_readBuffer.AsSpan(0, copied));
+            offset += copied;
+            count -= copied;
+        }
+    }
+
+    static string FourCC(uint type)
+    {
+        Span<char> value = stackalloc char[4];
+        value[0] = (char)(type >> 24);
+        value[1] = (char)(type >> 16);
+        value[2] = (char)(type >> 8);
+        value[3] = (char)type;
+        return new string(value);
     }
 
     public void Dispose()
     {
-        _audioPart?.Dispose();
-        _audioPart = null;
+        ResetSegment();
+        ResetPrefix();
+        ClearSource();
+        ClearFragments(_video);
+        ClearFragments(_audio);
 
-        _videoPart?.Dispose();
-        _videoPart = null;
-
-        _deferred?.Dispose();
-        _deferred = null;
-
-        _moof?.Dispose();
-        _moof = null;
-
-        _init?.Dispose();
-        _init = null;
+        _deferred.Dispose();
+        _sourceMoof.Dispose();
+        _sourceStyp.Dispose();
+        _init.Dispose();
     }
 }
