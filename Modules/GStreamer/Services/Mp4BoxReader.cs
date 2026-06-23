@@ -295,6 +295,26 @@ public sealed class Mp4BoxReader : IDisposable
         return false;
     }
 
+    public bool TryBuildEndOfStreamRemainder()
+    {
+        int videoCount = _video.Count;
+        int audioCount = _audio.Count;
+
+        if (videoCount == 0 && audioCount == 0)
+            return false;
+
+        if (videoCount > 0 && !_video[0].StartsWithSync)
+            return false;
+
+        BuildSegment(
+            videoCount,
+            audioCount,
+            allowSingleTrack: true
+        );
+
+        return true;
+    }
+
     int Process(ReadOnlySpan<byte> data, out bool segmentCompleted)
     {
         segmentCompleted = false;
@@ -716,24 +736,63 @@ public sealed class Mp4BoxReader : IDisposable
         return 0;
     }
 
-    void BuildSegment(int videoCount, int audioCount)
+    void BuildSegment(int videoCount, int audioCount, bool allowSingleTrack = false)
     {
-        ValidateTrack(_video, videoCount);
-        ValidateTrack(_audio, audioCount);
+        bool hasVideo = videoCount > 0;
+        bool hasAudio = audioCount > 0;
+
+        if (!hasVideo && !hasAudio)
+        {
+            throw new InvalidOperationException(
+                "Segment contains no fragments."
+            );
+        }
+
+        if (!allowSingleTrack && (!hasVideo || !hasAudio))
+        {
+            throw new InvalidOperationException(
+                "Regular segment must contain video and audio."
+            );
+        }
+
+        if (hasVideo)
+            ValidateTrack(_video, videoCount);
+
+        if (hasAudio)
+            ValidateTrack(_audio, audioCount);
 
         long payloadLength = 0;
-        AssignOffsets(_video, videoCount, ref payloadLength);
-        AssignOffsets(_audio, audioCount, ref payloadLength);
 
-        long videoTrafSize = GetTrafSize(_video, videoCount);
-        long audioTrafSize = GetTrafSize(_audio, audioCount);
-        long moofSize64 = checked(8L + 16L + videoTrafSize + audioTrafSize);
+        if (hasVideo)
+            AssignOffsets(_video, videoCount, ref payloadLength);
+
+        if (hasAudio)
+            AssignOffsets(_audio, audioCount, ref payloadLength);
+
+        long videoTrafSize = hasVideo
+            ? GetTrafSize(_video, videoCount)
+            : 0;
+
+        long audioTrafSize = hasAudio
+            ? GetTrafSize(_audio, audioCount)
+            : 0;
+
+        long moofSize64 = checked(
+            8L +
+            16L +
+            videoTrafSize +
+            audioTrafSize
+        );
 
         if (moofSize64 > uint.MaxValue)
             throw new InvalidDataException("Combined moof is too large.");
 
         uint moofSize = (uint)moofSize64;
-        int mdatHeaderSize = checked((ulong)payloadLength + 8UL) <= uint.MaxValue ? 8 : 16;
+
+        int mdatHeaderSize =
+            checked((ulong)payloadLength + 8UL) <= uint.MaxValue
+                ? 8
+                : 16;
 
         ResetSegment();
         _segment = PoolInvk.msm.GetStream();
@@ -745,21 +804,64 @@ public sealed class Mp4BoxReader : IDisposable
 
         WriteHeader(_segment, moofSize, BoxMoof);
         WriteMfhd(_segment, _sequence++);
-        WriteTraf(_segment, _video, videoCount, moofSize, mdatHeaderSize);
-        WriteTraf(_segment, _audio, audioCount, moofSize, mdatHeaderSize);
-        WriteMdatHeader(_segment, checked((ulong)payloadLength), mdatHeaderSize);
-        AppendPayloads(_video, videoCount, _segment);
-        AppendPayloads(_audio, audioCount, _segment);
+
+        if (hasVideo)
+        {
+            WriteTraf(
+                _segment,
+                _video,
+                videoCount,
+                moofSize,
+                mdatHeaderSize
+            );
+        }
+
+        if (hasAudio)
+        {
+            WriteTraf(
+                _segment,
+                _audio,
+                audioCount,
+                moofSize,
+                mdatHeaderSize
+            );
+        }
+
+        WriteMdatHeader(
+            _segment,
+            checked((ulong)payloadLength),
+            mdatHeaderSize
+        );
+
+        if (hasVideo)
+            AppendPayloads(_video, videoCount, _segment);
+
+        if (hasAudio)
+            AppendPayloads(_audio, audioCount, _segment);
+
+        Fragment first = hasVideo
+            ? _video[0]
+            : _audio[0];
 
         double startSeconds =
-            (double)_video[0].DecodeTime /
-            _video[0].Timescale;
+            (double)first.DecodeTime /
+            first.Timescale;
 
         _segment.Position = 0;
-        _onSegment(new Segment(_segment, startSeconds));
 
-        Remove(_video, videoCount);
-        Remove(_audio, audioCount);
+        _onSegment(
+            new Segment(
+                _segment,
+                startSeconds
+            )
+        );
+
+        if (hasVideo)
+            Remove(_video, videoCount);
+
+        if (hasAudio)
+            Remove(_audio, audioCount);
+
         ResetPrefix();
     }
 

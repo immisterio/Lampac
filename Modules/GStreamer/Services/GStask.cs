@@ -611,6 +611,14 @@ public class GStask
                                     return readySegment.seg;
                                 }
 
+                                // Последний fragment может быть неполным:
+                                // только moof, только часть mdat либо fragment одной дорожки
+                                if (mp4Reader.TryBuildEndOfStreamRemainder() && readySegment.complete)
+                                {
+                                    readySegment.index = index;
+                                    return readySegment.seg;
+                                }
+
                                 // очередь appsink полностью вычитана
                                 return default;
                             }
