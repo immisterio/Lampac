@@ -602,8 +602,18 @@ public class GStask
                     {
                         if (buffer == null)
                         {
-                            if (IsEos) // очередь appsink полностью вычитана
+                            if (IsEos)
+                            {
+                                // В _deferred может лежать полный Segment
+                                if (mp4Reader.TryProcessDeferred() && readySegment.complete)
+                                {
+                                    readySegment.index = index;
+                                    return readySegment.seg;
+                                }
+
+                                // очередь appsink полностью вычитана
                                 return default;
+                            }
 
                             continue;
                         }

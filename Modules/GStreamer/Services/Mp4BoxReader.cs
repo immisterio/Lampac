@@ -213,7 +213,7 @@ public sealed class Mp4BoxReader : IDisposable
         if (size <= 0)
             return;
 
-        if (TryBuildSegment() || TryProcessDeferred())
+        if (TryProcessDeferred())
         {
             AppendGstBuffer(buffer, 0, size, _deferred);
             _deferred.Position = 0;
@@ -254,8 +254,11 @@ public sealed class Mp4BoxReader : IDisposable
         }
     }
 
-    bool TryProcessDeferred()
+    public bool TryProcessDeferred()
     {
+        if (TryBuildSegment())
+            return true;
+
         if (_deferred.Length == 0)
             return false;
 
