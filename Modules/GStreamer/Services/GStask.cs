@@ -1,5 +1,6 @@
 ﻿using Gst;
 using GStreamer.Models;
+using Shared.Services.Pools;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -81,7 +82,7 @@ public class GStask
     #region CreatePipelineArgs
     string CreatePipelineArgs(ProbeInfo probe)
     {
-        var sb = new StringBuilder();
+        var sb = StringBuilderPool.ThreadInstance;
 
         long queueNs = conf.pipeline_timeSeconds * 1_000_000_000L;
         int audioQueueBytes = conf.pipeline_audioQueue * 1024 * 1024;
@@ -155,7 +156,7 @@ public class GStask
                     max-size-bytes={{maxQueueBytes}}
                     max-size-time={{queueNs}}
                     leaky=0 !
-                h264parse config-interval=-1 !
+                h264parse config-interval=0 !
                 h264timestamper !
                 video/x-h264,stream-format=avc,alignment=au !
                 mux.video_0
@@ -179,7 +180,7 @@ public class GStask
                     max-size-bytes={{maxQueueBytes}}
                     max-size-time={{queueNs}}
                     leaky=0 !
-                h265parse config-interval=-1 !
+                h265parse config-interval=0 !
                 h265timestamper !
                 video/x-h265,stream-format=hvc1,alignment=au !
                 mux.video_0
@@ -247,16 +248,25 @@ public class GStask
             max-size-time={{queueNs}}
             leaky=0 !
         decodebin !
-        audioconvert !
-        audioresample !
-        audio/x-raw,rate=48000,channels=2 !
-        audiorate
-            skip-to-first=true
-            tolerance=40000000 !
-        avenc_aac 
+        audioconvert
+            dithering=none
+            noise-shaping=none !
+        audioresample
+            quality=2
+            sinc-filter-mode=full !
+        audio/x-raw,
+            format=F32LE,
+            layout=interleaved,
+            rate=48000,
+            channels=2 !
+        avenc_aac
             bitrate={{conf.aac_bitrate * 1000}} !
         aacparse !
-        audio/mpeg,mpegversion=4,stream-format=raw,rate=48000,channels=2 !
+        audio/mpeg,
+            mpegversion=4,
+            stream-format=raw,
+            rate=48000,
+            channels=2 !
         mux.audio_0
         """);
 
@@ -311,7 +321,7 @@ public class GStask
             bframes=0
             byte-stream=false !
         video/x-h264,profile=main,stream-format=avc,alignment=au !
-        h264parse config-interval=-1 !
+        h264parse config-interval=0 !
         h264timestamper !
         video/x-h264,profile=main,stream-format=avc,alignment=au !
         mux.video_0

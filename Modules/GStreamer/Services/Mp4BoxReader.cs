@@ -26,8 +26,6 @@ public readonly record struct Segment(
 /// </summary>
 public sealed class Mp4BoxReader : IDisposable
 {
-    const double AudioBoundaryToleranceSeconds = 0.100;
-
     const uint BoxStyp = 0x73747970;
     const uint BoxSidx = 0x73696478;
     const uint BoxEmsg = 0x656D7367;
@@ -114,7 +112,12 @@ public sealed class Mp4BoxReader : IDisposable
         Prefix
     }
 
-    readonly record struct Trex(uint Duration, uint Size, uint Flags);
+    readonly record struct Trex(
+        uint DescriptionIndex,
+        uint Duration,
+        uint Size,
+        uint Flags
+    );
 
     readonly record struct TrackInfo(
         uint Id,
@@ -124,22 +127,33 @@ public sealed class Mp4BoxReader : IDisposable
 
     readonly record struct TrexEntry(uint TrackId, Trex Value);
 
+    readonly record struct Sample(
+        uint Duration,
+        uint Size,
+        uint Flags,
+        uint CompositionOffset
+    );
+
     sealed class Run
     {
-        public byte[] Box;
-        public int DataOffsetField;
+        public byte Version;
+        public bool HasCompositionOffset;
         public int? SourceDataOffset;
         public ulong Duration;
         public ulong DataSize;
         public long PayloadOffset;
         public long OutputOffset;
         public bool StartsWithSync;
+        public readonly List<Sample> Samples = new();
+
+        public int SampleCount => Samples.Count;
     }
 
     sealed class Fragment : IDisposable
     {
         public uint TrackId;
         public uint Timescale;
+        public uint SampleDescriptionIndex;
         public ulong DecodeTime;
         public ulong Duration;
         public bool StartsWithSync;
@@ -148,6 +162,19 @@ public sealed class Mp4BoxReader : IDisposable
         public RecyclableMemoryStream Payload;
 
         public ulong EndTime => checked(DecodeTime + Duration);
+
+        public int SampleCount
+        {
+            get
+            {
+                int count = 0;
+
+                foreach (Run run in Runs)
+                    count = checked(count + run.SampleCount);
+
+                return count;
+            }
+        }
 
         public void Dispose()
         {
@@ -306,11 +333,27 @@ public sealed class Mp4BoxReader : IDisposable
         if (videoCount > 0 && !_video[0].StartsWithSync)
             return false;
 
+        // Для финального AV-хвоста также стараемся не уносить audio далеко за videoEnd.
+        // Если после split остаётся audio-only tail, он очищается после выдачи последнего
+        // video segment и не превращается в отдельный HLS segment без видео.
+        bool finalVideoSegment = videoCount > 0;
+
+        if (videoCount > 0 && audioCount > 0)
+        {
+            ulong videoEnd = _video[videoCount - 1].EndTime;
+
+            if (TryPrepareAudioForVideoEnd(videoEnd, out int selectedAudioCount))
+                audioCount = selectedAudioCount;
+        }
+
         BuildSegment(
             videoCount,
             audioCount,
             allowSingleTrack: true
         );
+
+        if (finalVideoSegment && _video.Count == 0 && _audio.Count > 0)
+            ClearFragments(_audio);
 
         return true;
     }
@@ -672,9 +715,8 @@ public sealed class Mp4BoxReader : IDisposable
             return false;
 
         ulong videoEnd = _video[videoCount - 1].EndTime;
-        int audioCount = SelectAudioCount(videoEnd);
 
-        if (audioCount == 0)
+        if (!TryPrepareAudioForVideoEnd(videoEnd, out int audioCount))
             return false;
 
         BuildSegment(videoCount, audioCount);
@@ -697,7 +739,7 @@ public sealed class Mp4BoxReader : IDisposable
         ulong target = ToUnits(_segmentSeconds, _videoTrack.Timescale);
         ulong duration = 0;
 
-        // Нужен один fragment look-ahead: следующий segment должен начинаться с sync sample
+        // Нужен один fragment look-ahead: следующий segment должен начинаться с sync sample.
         for (int i = 0; i + 1 < _video.Count; i++)
         {
             duration = checked(duration + _video[i].Duration);
@@ -709,31 +751,276 @@ public sealed class Mp4BoxReader : IDisposable
         return 0;
     }
 
-    int SelectAudioCount(ulong videoEnd)
+    bool TryPrepareAudioForVideoEnd(ulong videoEnd, out int audioCount)
     {
-        if (_audio.Count == 0)
-            return 0;
+        audioCount = 0;
 
-        ulong tolerance = ToUnits(
-            AudioBoundaryToleranceSeconds,
+        if (_audio.Count == 0)
+            return false;
+
+        ulong targetAudioEnd = ConvertTimeCeiling(
+            videoEnd,
+            _videoTrack.Timescale,
             _audioTrack.Timescale
         );
 
         for (int i = 0; i < _audio.Count; i++)
         {
-            ulong audioEnd = _audio[i].EndTime;
-            ulong withTolerance = ulong.MaxValue - audioEnd < tolerance
-                ? ulong.MaxValue
-                : audioEnd + tolerance;
+            Fragment fragment = _audio[i];
 
-            if ((UInt128)withTolerance * _videoTrack.Timescale >=
-                (UInt128)videoEnd * _audioTrack.Timescale)
+            if (fragment.EndTime < targetAudioEnd)
             {
-                return i + 1;
+                audioCount = i + 1;
+                continue;
+            }
+
+            int samplesToKeep = CountSamplesCovering(fragment, targetAudioEnd);
+
+            if (samplesToKeep <= 0)
+            {
+                audioCount = i;
+                return audioCount > 0;
+            }
+
+            int totalSamples = fragment.SampleCount;
+
+            if (samplesToKeep >= totalSamples)
+            {
+                audioCount = i + 1;
+                return true;
+            }
+
+            SplitFragment(_audio, i, samplesToKeep);
+            audioCount = i + 1;
+            return true;
+        }
+
+        return false;
+    }
+
+    static int CountSamplesCovering(Fragment fragment, ulong targetDecodeTime)
+    {
+        if (targetDecodeTime <= fragment.DecodeTime)
+            return 0;
+
+        ulong cursor = fragment.DecodeTime;
+        int count = 0;
+
+        foreach (Run run in fragment.Runs)
+        {
+            foreach (Sample sample in run.Samples)
+            {
+                cursor = checked(cursor + sample.Duration);
+                count++;
+
+                if (cursor >= targetDecodeTime)
+                    return count;
             }
         }
 
-        return 0;
+        return count;
+    }
+
+    static void SplitFragment(List<Fragment> fragments, int index, int firstSampleCount)
+    {
+        Fragment source = fragments[index];
+        int totalSamples = source.SampleCount;
+
+        if (firstSampleCount <= 0 || firstSampleCount >= totalSamples)
+            return;
+
+        Fragment head = null;
+        Fragment tail = null;
+
+        try
+        {
+            head = SliceFragment(source, 0, firstSampleCount);
+            tail = SliceFragment(source, firstSampleCount, totalSamples - firstSampleCount);
+        }
+        catch
+        {
+            head?.Dispose();
+            tail?.Dispose();
+            throw;
+        }
+
+        source.Dispose();
+        fragments[index] = head;
+        fragments.Insert(index + 1, tail);
+    }
+
+    static Fragment SliceFragment(Fragment source, int startSample, int sampleCount)
+    {
+        if (sampleCount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(sampleCount));
+
+        ulong decodeTime = GetDecodeTimeForSample(source, startSample);
+
+        var result = new Fragment
+        {
+            TrackId = source.TrackId,
+            Timescale = source.Timescale,
+            SampleDescriptionIndex = source.SampleDescriptionIndex,
+            DecodeTime = decodeTime,
+            Tfhd = source.Tfhd,
+            Payload = PoolInvk.msm.GetStream()
+        };
+
+        try
+        {
+            int endSample = checked(startSample + sampleCount);
+            int globalSample = 0;
+
+            foreach (Run run in source.Runs)
+            {
+                int runStart = globalSample;
+                int runEnd = checked(runStart + run.SampleCount);
+
+                int sliceStart = Math.Max(startSample, runStart);
+                int sliceEnd = Math.Min(endSample, runEnd);
+
+                if (sliceStart < sliceEnd)
+                {
+                    int localStart = sliceStart - runStart;
+                    int localCount = sliceEnd - sliceStart;
+                    ulong sourceOffsetInRun = SumSampleSizes(run.Samples, 0, localStart);
+                    ulong payloadLength = SumSampleSizes(run.Samples, localStart, localCount);
+
+                    if (sourceOffsetInRun > long.MaxValue || payloadLength > long.MaxValue)
+                        throw new InvalidDataException("Audio split payload is too large.");
+
+                    long sourceOffset = checked(
+                        run.PayloadOffset + (long)sourceOffsetInRun
+                    );
+
+                    long outputOffset = result.Payload.Length;
+                    Run slicedRun = CloneRunSlice(run, localStart, localCount, outputOffset);
+
+                    CopyPayloadRange(
+                        source.Payload,
+                        sourceOffset,
+                        payloadLength,
+                        result.Payload
+                    );
+
+                    result.Duration = checked(result.Duration + slicedRun.Duration);
+                    result.Runs.Add(slicedRun);
+                }
+
+                globalSample = runEnd;
+            }
+
+            if (result.Runs.Count == 0 || result.Duration == 0 || result.Payload.Length == 0)
+                throw new InvalidDataException("Audio split produced an empty fragment.");
+
+            result.StartsWithSync = result.Runs[0].StartsWithSync;
+            result.Payload.Position = 0;
+            return result;
+        }
+        catch
+        {
+            result.Dispose();
+            throw;
+        }
+    }
+
+    static ulong GetDecodeTimeForSample(Fragment fragment, int sampleIndex)
+    {
+        if (sampleIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(sampleIndex));
+
+        ulong decodeTime = fragment.DecodeTime;
+        int remaining = sampleIndex;
+
+        foreach (Run run in fragment.Runs)
+        {
+            foreach (Sample sample in run.Samples)
+            {
+                if (remaining == 0)
+                    return decodeTime;
+
+                decodeTime = checked(decodeTime + sample.Duration);
+                remaining--;
+            }
+        }
+
+        if (remaining == 0)
+            return decodeTime;
+
+        throw new ArgumentOutOfRangeException(nameof(sampleIndex));
+    }
+
+    static Run CloneRunSlice(Run source, int startSample, int sampleCount, long payloadOffset)
+    {
+        var result = new Run
+        {
+            Version = source.Version,
+            HasCompositionOffset = source.HasCompositionOffset,
+            PayloadOffset = payloadOffset
+        };
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            Sample sample = source.Samples[startSample + i];
+            result.Samples.Add(sample);
+            result.Duration = checked(result.Duration + sample.Duration);
+            result.DataSize = checked(result.DataSize + sample.Size);
+        }
+
+        if (result.Samples.Count == 0 || result.Duration == 0 || result.DataSize == 0)
+            throw new InvalidDataException("Empty trun slice.");
+
+        result.StartsWithSync = IsSyncSample(result.Samples[0].Flags);
+        return result;
+    }
+
+    static ulong SumSampleSizes(List<Sample> samples, int start, int count)
+    {
+        ulong size = 0;
+
+        for (int i = 0; i < count; i++)
+            size = checked(size + samples[start + i].Size);
+
+        return size;
+    }
+
+    static void CopyPayloadRange(
+        Stream source,
+        long offset,
+        ulong length,
+        Stream destination
+    )
+    {
+        if (length == 0)
+            return;
+
+        if (length > long.MaxValue)
+            throw new InvalidDataException("Payload range is too large.");
+
+        long oldPosition = source.Position;
+        byte[] buffer = new byte[64 * 1024];
+        ulong remaining = length;
+
+        try
+        {
+            source.Position = offset;
+
+            while (remaining > 0)
+            {
+                int requested = (int)Math.Min((ulong)buffer.Length, remaining);
+                int read = source.Read(buffer.AsSpan(0, requested));
+
+                if (read <= 0)
+                    throw new EndOfStreamException("Unexpected end of fragment payload.");
+
+                destination.Write(buffer.AsSpan(0, read));
+                remaining -= (uint)read;
+            }
+        }
+        finally
+        {
+            source.Position = oldPosition;
+        }
     }
 
     void BuildSegment(int videoCount, int audioCount, bool allowSingleTrack = false)
@@ -876,8 +1163,8 @@ public sealed class Mp4BoxReader : IDisposable
 
             if (current.TrackId != first.TrackId ||
                 current.Timescale != first.Timescale ||
-                current.DecodeTime != expected ||
-                !current.Tfhd.AsSpan().SequenceEqual(first.Tfhd))
+                current.SampleDescriptionIndex != first.SampleDescriptionIndex ||
+                current.DecodeTime != expected)
             {
                 throw new InvalidDataException(
                     $"Track {first.TrackId} fragments cannot be merged into one traf."
@@ -913,10 +1200,16 @@ public sealed class Mp4BoxReader : IDisposable
         for (int i = 0; i < count; i++)
         {
             foreach (Run run in fragments[i].Runs)
-                size = checked(size + run.Box.Length);
+                size = checked(size + GetTrunSize(run));
         }
 
         return size;
+    }
+
+    static long GetTrunSize(Run run)
+    {
+        int fieldsPerSample = run.HasCompositionOffset ? 4 : 3;
+        return checked(20L + (long)run.SampleCount * fieldsPerSample * 4L);
     }
 
     void WriteTraf(
@@ -954,23 +1247,66 @@ public sealed class Mp4BoxReader : IDisposable
                 if (dataOffset < int.MinValue || dataOffset > int.MaxValue)
                     throw new InvalidDataException("trun.data_offset exceeds Int32.");
 
-                WritePatchedTrun(output, run, (int)dataOffset);
+                WriteTrun(output, run, (int)dataOffset);
             }
         }
     }
 
-    static void WritePatchedTrun(Stream output, Run run, int dataOffset)
+    static void WriteTrun(Stream output, Run run, int dataOffset)
     {
-        ReadOnlySpan<byte> box = run.Box;
-        int field = run.DataOffsetField;
+        if (run.SampleCount == 0 || run.SampleCount > uint.MaxValue)
+            throw new InvalidDataException("Invalid trun sample count.");
 
-        output.Write(box.Slice(0, field));
+        long size64 = GetTrunSize(run);
 
-        Span<byte> value = stackalloc byte[4];
-        BinaryPrimitives.WriteInt32BigEndian(value, dataOffset);
-        output.Write(value);
+        if (size64 > uint.MaxValue)
+            throw new InvalidDataException("trun is too large.");
 
-        output.Write(box.Slice(field + 4));
+        uint flags =
+            TrunDataOffsetPresent |
+            TrunSampleDurationPresent |
+            TrunSampleSizePresent |
+            TrunSampleFlagsPresent;
+
+        if (run.HasCompositionOffset)
+            flags |= TrunCompositionOffsetPresent;
+
+        byte version = run.HasCompositionOffset
+            ? run.Version
+            : (byte)0;
+
+        WriteHeader(output, (uint)size64, BoxTrun);
+
+        Span<byte> header = stackalloc byte[12];
+        BinaryPrimitives.WriteUInt32BigEndian(
+            header.Slice(0, 4),
+            ((uint)version << 24) | flags
+        );
+        BinaryPrimitives.WriteUInt32BigEndian(header.Slice(4, 4), (uint)run.SampleCount);
+        BinaryPrimitives.WriteInt32BigEndian(header.Slice(8, 4), dataOffset);
+        output.Write(header);
+
+        Span<byte> sampleBytes = stackalloc byte[16];
+
+        foreach (Sample sample in run.Samples)
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(sampleBytes.Slice(0, 4), sample.Duration);
+            BinaryPrimitives.WriteUInt32BigEndian(sampleBytes.Slice(4, 4), sample.Size);
+            BinaryPrimitives.WriteUInt32BigEndian(sampleBytes.Slice(8, 4), sample.Flags);
+
+            if (run.HasCompositionOffset)
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(
+                    sampleBytes.Slice(12, 4),
+                    sample.CompositionOffset
+                );
+                output.Write(sampleBytes);
+            }
+            else
+            {
+                output.Write(sampleBytes.Slice(0, 12));
+            }
+        }
     }
 
     static bool TryParseMoof(
@@ -1055,12 +1391,14 @@ public sealed class Mp4BoxReader : IDisposable
         error = null;
 
         uint trackId = 0;
+        uint sampleDescriptionIndex = 0;
+        bool hasSampleDescriptionIndex = false;
         uint defaultDuration = 0;
         uint defaultSize = 0;
         uint defaultFlags = 0;
         bool hasDefaultFlags = false;
-        byte[] tfhd = null;
         ulong decodeTime = 0;
+        bool hasTfhd = false;
         bool hasTfdt = false;
 
         int position = trafHeader;
@@ -1076,22 +1414,25 @@ public sealed class Mp4BoxReader : IDisposable
             switch (type)
             {
                 case BoxTfhd:
-                    if (tfhd != null ||
-                        !TryNormalizeTfhd(
+                    if (hasTfhd ||
+                        !TryReadTfhd(
                             box,
                             headerSize,
                             out trackId,
+                            out sampleDescriptionIndex,
+                            out hasSampleDescriptionIndex,
                             out defaultDuration,
                             out defaultSize,
                             out defaultFlags,
                             out hasDefaultFlags,
-                            out tfhd,
                             out error
                         ))
                     {
                         error ??= "invalid or duplicate tfhd";
                         return false;
                     }
+
+                    hasTfhd = true;
                     break;
 
                 case BoxTfdt:
@@ -1114,7 +1455,7 @@ public sealed class Mp4BoxReader : IDisposable
             }
         }
 
-        if (tfhd == null || !hasTfdt)
+        if (!hasTfhd || !hasTfdt)
         {
             error = "tfhd/tfdt was not found";
             return false;
@@ -1145,6 +1486,10 @@ public sealed class Mp4BoxReader : IDisposable
             return false;
         }
 
+        uint effectiveSampleDescriptionIndex = hasSampleDescriptionIndex
+            ? sampleDescriptionIndex
+            : trex.DescriptionIndex;
+
         if (defaultDuration == 0)
             defaultDuration = trex.Duration;
 
@@ -1154,10 +1499,18 @@ public sealed class Mp4BoxReader : IDisposable
         if (!hasDefaultFlags)
             defaultFlags = trex.Flags;
 
+        byte[] tfhd = BuildCanonicalTfhd(
+            trackId,
+            hasSampleDescriptionIndex && sampleDescriptionIndex != trex.DescriptionIndex
+                ? sampleDescriptionIndex
+                : 0
+        );
+
         var result = new Fragment
         {
             TrackId = trackId,
             Timescale = timescale,
+            SampleDescriptionIndex = effectiveSampleDescriptionIndex,
             DecodeTime = decodeTime,
             Tfhd = tfhd
         };
@@ -1206,24 +1559,26 @@ public sealed class Mp4BoxReader : IDisposable
         return true;
     }
 
-    static bool TryNormalizeTfhd(
+    static bool TryReadTfhd(
         ReadOnlySpan<byte> box,
         int headerSize,
         out uint trackId,
+        out uint sampleDescriptionIndex,
+        out bool hasSampleDescriptionIndex,
         out uint defaultDuration,
         out uint defaultSize,
         out uint defaultFlags,
         out bool hasDefaultFlags,
-        out byte[] normalized,
         out string error
     )
     {
         trackId = 0;
+        sampleDescriptionIndex = 0;
+        hasSampleDescriptionIndex = false;
         defaultDuration = 0;
         defaultSize = 0;
         defaultFlags = 0;
         hasDefaultFlags = false;
-        normalized = null;
         error = null;
 
         if (box.Length < headerSize + 8)
@@ -1236,7 +1591,6 @@ public sealed class Mp4BoxReader : IDisposable
             box.Slice(headerSize, 4)
         );
 
-        byte version = (byte)(versionFlags >> 24);
         uint flags = versionFlags & 0x00FF_FFFF;
 
         if ((flags & TfhdBaseDataOffsetPresent) != 0)
@@ -1249,11 +1603,13 @@ public sealed class Mp4BoxReader : IDisposable
             box.Slice(headerSize + 4, 4)
         );
 
-        int optionalStart = headerSize + 8;
-        int cursor = optionalStart;
+        int cursor = headerSize + 8;
 
-        if ((flags & TfhdSampleDescriptionIndexPresent) != 0 &&
-            !Skip(box, ref cursor, 4))
+        hasSampleDescriptionIndex =
+            (flags & TfhdSampleDescriptionIndexPresent) != 0;
+
+        if (hasSampleDescriptionIndex &&
+            !ReadUInt32(box, ref cursor, out sampleDescriptionIndex))
         {
             error = "invalid tfhd sample_description_index";
             return false;
@@ -1289,21 +1645,29 @@ public sealed class Mp4BoxReader : IDisposable
             return false;
         }
 
-        int optionalLength = cursor - optionalStart;
-        int size = 16 + optionalLength;
-        normalized = new byte[size];
-
-        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(0, 4), (uint)size);
-        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(4, 4), BoxTfhd);
-        BinaryPrimitives.WriteUInt32BigEndian(
-            normalized.AsSpan(8, 4),
-            ((uint)version << 24) |
-            (flags & ~TfhdBaseDataOffsetPresent) |
-            TfhdDefaultBaseIsMoof
-        );
-        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(12, 4), trackId);
-        box.Slice(optionalStart, optionalLength).CopyTo(normalized.AsSpan(16));
         return true;
+    }
+
+    static byte[] BuildCanonicalTfhd(uint trackId, uint sampleDescriptionIndexOverride)
+    {
+        bool hasSampleDescriptionIndex = sampleDescriptionIndexOverride != 0;
+        int size = hasSampleDescriptionIndex ? 20 : 16;
+        byte[] tfhd = new byte[size];
+
+        uint flags = TfhdDefaultBaseIsMoof;
+
+        if (hasSampleDescriptionIndex)
+            flags |= TfhdSampleDescriptionIndexPresent;
+
+        BinaryPrimitives.WriteUInt32BigEndian(tfhd.AsSpan(0, 4), (uint)size);
+        BinaryPrimitives.WriteUInt32BigEndian(tfhd.AsSpan(4, 4), BoxTfhd);
+        BinaryPrimitives.WriteUInt32BigEndian(tfhd.AsSpan(8, 4), flags);
+        BinaryPrimitives.WriteUInt32BigEndian(tfhd.AsSpan(12, 4), trackId);
+
+        if (hasSampleDescriptionIndex)
+            BinaryPrimitives.WriteUInt32BigEndian(tfhd.AsSpan(16, 4), sampleDescriptionIndexOverride);
+
+        return tfhd;
     }
 
     static bool TryNormalizeTrun(
@@ -1334,6 +1698,12 @@ public sealed class Mp4BoxReader : IDisposable
         uint sampleCount = BinaryPrimitives.ReadUInt32BigEndian(
             box.Slice(headerSize + 4, 4)
         );
+
+        if (version > 1)
+        {
+            error = "unsupported trun version";
+            return false;
+        }
 
         int cursor = headerSize + 8;
         int? sourceDataOffset = null;
@@ -1366,6 +1736,8 @@ public sealed class Mp4BoxReader : IDisposable
 
         bool hasDuration = (flags & TrunSampleDurationPresent) != 0;
         bool hasSize = (flags & TrunSampleSizePresent) != 0;
+        bool hasSampleFlags = (flags & TrunSampleFlagsPresent) != 0;
+        bool hasCompositionOffset = (flags & TrunCompositionOffsetPresent) != 0;
 
         if (!hasDuration && defaultDuration == 0)
         {
@@ -1379,13 +1751,19 @@ public sealed class Mp4BoxReader : IDisposable
             return false;
         }
 
-        ulong duration = 0;
-        ulong dataSize = 0;
+        var result = new Run
+        {
+            Version = version,
+            HasCompositionOffset = hasCompositionOffset,
+            SourceDataOffset = sourceDataOffset
+        };
 
         for (uint i = 0; i < sampleCount; i++)
         {
             uint sampleDuration = defaultDuration;
             uint sampleSize = defaultSize;
+            uint sampleFlags = defaultFlags;
+            uint compositionOffset = 0;
 
             if (hasDuration && !ReadUInt32(box, ref cursor, out sampleDuration))
             {
@@ -1399,68 +1777,47 @@ public sealed class Mp4BoxReader : IDisposable
                 return false;
             }
 
-            duration = checked(duration + sampleDuration);
-            dataSize = checked(dataSize + sampleSize);
-
-            if ((flags & TrunSampleFlagsPresent) != 0)
+            if (hasSampleFlags)
             {
-                if (!ReadUInt32(box, ref cursor, out uint sampleFlags))
+                if (!ReadUInt32(box, ref cursor, out sampleFlags))
                 {
                     error = "invalid trun sample_flags";
                     return false;
                 }
-
-                if (i == 0 && !hasFirstSampleFlags)
-                    firstSampleFlags = sampleFlags;
+            }
+            else if (i == 0 && hasFirstSampleFlags)
+            {
+                sampleFlags = firstSampleFlags;
             }
 
-            if ((flags & TrunCompositionOffsetPresent) != 0 &&
-                !Skip(box, ref cursor, 4))
+            if (hasCompositionOffset &&
+                !ReadUInt32(box, ref cursor, out compositionOffset))
             {
                 error = "invalid trun composition_time_offset";
                 return false;
             }
+
+            result.Samples.Add(
+                new Sample(
+                    sampleDuration,
+                    sampleSize,
+                    sampleFlags,
+                    compositionOffset
+                )
+            );
+
+            result.Duration = checked(result.Duration + sampleDuration);
+            result.DataSize = checked(result.DataSize + sampleSize);
         }
 
-        if (cursor != box.Length || sampleCount == 0 || duration == 0 || dataSize == 0)
+        if (cursor != box.Length || sampleCount == 0 || result.Duration == 0 || result.DataSize == 0)
         {
             error = "invalid trun body";
             return false;
         }
 
-        bool hadOffset = (flags & TrunDataOffsetPresent) != 0;
-        int bodyLength = box.Length - headerSize;
-        int normalizedSize = 8 + bodyLength + (hadOffset ? 0 : 4);
-        byte[] normalized = new byte[normalizedSize];
-
-        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(0, 4), (uint)normalizedSize);
-        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(4, 4), BoxTrun);
-        BinaryPrimitives.WriteUInt32BigEndian(
-            normalized.AsSpan(8, 4),
-            ((uint)version << 24) | flags | TrunDataOffsetPresent
-        );
-        BinaryPrimitives.WriteUInt32BigEndian(normalized.AsSpan(12, 4), sampleCount);
-
-        if (hadOffset)
-        {
-            box.Slice(headerSize + 8).CopyTo(normalized.AsSpan(16));
-        }
-        else
-        {
-            BinaryPrimitives.WriteInt32BigEndian(normalized.AsSpan(16, 4), 0);
-            box.Slice(headerSize + 8).CopyTo(normalized.AsSpan(20));
-        }
-
-        run = new Run
-        {
-            Box = normalized,
-            DataOffsetField = 16,
-            SourceDataOffset = sourceDataOffset,
-            Duration = duration,
-            DataSize = dataSize,
-            StartsWithSync = IsSyncSample(firstSampleFlags)
-        };
-
+        result.StartsWithSync = IsSyncSample(result.Samples[0].Flags);
+        run = result;
         return true;
     }
 
@@ -1759,6 +2116,7 @@ public sealed class Mp4BoxReader : IDisposable
         entry = new TrexEntry(
             trackId,
             new Trex(
+                BinaryPrimitives.ReadUInt32BigEndian(box.Slice(header + 8, 4)),
                 BinaryPrimitives.ReadUInt32BigEndian(box.Slice(header + 12, 4)),
                 BinaryPrimitives.ReadUInt32BigEndian(box.Slice(header + 16, 4)),
                 BinaryPrimitives.ReadUInt32BigEndian(box.Slice(header + 20, 4))
@@ -1881,15 +2239,6 @@ public sealed class Mp4BoxReader : IDisposable
         return true;
     }
 
-    static bool Skip(ReadOnlySpan<byte> data, ref int position, int count)
-    {
-        if (count < 0 || position < 0 || data.Length - position < count)
-            return false;
-
-        position += count;
-        return true;
-    }
-
     static ulong ToUnits(double seconds, uint timescale)
     {
         double value = seconds * timescale;
@@ -1898,6 +2247,24 @@ public sealed class Mp4BoxReader : IDisposable
             throw new InvalidDataException("Invalid timeline value.");
 
         return (ulong)Math.Ceiling(value);
+    }
+
+    static ulong ConvertTimeCeiling(
+        ulong value,
+        uint fromTimescale,
+        uint toTimescale
+    )
+    {
+        if (fromTimescale == 0 || toTimescale == 0)
+            throw new InvalidDataException("Invalid timescale.");
+
+        UInt128 numerator = (UInt128)value * toTimescale;
+        UInt128 result = (numerator + fromTimescale - 1) / fromTimescale;
+
+        if (result > ulong.MaxValue)
+            throw new InvalidDataException("Timeline value is too large.");
+
+        return (ulong)result;
     }
 
     static ulong AddTfdtOffset(ulong value, uint timescale, double seconds)

@@ -223,7 +223,10 @@ public class GStreamerController : BaseController
             try
             {
                 if (gstask.initMp4 == null)
+                {
                     gstask.GetSegment(-1, HttpContext.RequestAborted, audio);
+                    gstask.lastSentSegment = 0;
+                }
             }
             finally
             {

@@ -60,6 +60,9 @@ public static class GService
             hybridCache.Set(probeKey, probe, TimeSpan.FromDays(10));
         }
 
+        if (!probe.IsMatroskaOrWebM)
+            return (null, $"not matroska/webm: {probe.ContainerCapsName ?? probe.ContainerName ?? "unknown"}");
+
         if (!probe.IsH264 && !probe.IsH265 && !probe.IsAV1 && !probe.IsVP9)
             return (null, "not mp4");
 
