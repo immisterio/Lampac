@@ -101,7 +101,11 @@ public class ModInit : IModuleLoaded
 
         var gstBin = Path.Combine(conf.PATH, "bin");
         if (!Directory.Exists(gstBin))
-            return;
+        {
+            gstBin = Path.Combine(modpath, "gst-libs", "win-x86_64", "bin");
+            if (!Directory.Exists(gstBin))
+                return;
+        }
 
         var currentPath = Environment.GetEnvironmentVariable("PATH");
 
