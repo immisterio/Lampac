@@ -25,6 +25,7 @@ public class GStask
 
     public int lastSentSegment = -1;
     int audioIndex;
+    long? contentLength;
 
     double positionSeconds = 0;
     double positionSeekSeconds = 0;
@@ -50,13 +51,14 @@ public class GStask
     CancellationTokenSource busWatchCts;
     System.Threading.Tasks.Task busWatchTask;
 
-    public GStask(ProbeInfo probe, ModuleConf conf, string sourceUrl, ulong id, string user_uid, int audio)
+    public GStask(ProbeInfo probe, ModuleConf conf, string sourceUrl, ulong id, string user_uid, int audio, long? contentLength)
     {
         this.id = id;
         this.probe = probe;
         this.user_uid = user_uid;
         this.sourceUrl = sourceUrl;
         this.conf = conf;
+        this.contentLength = contentLength;
 
         if (probe.Tracks.FirstOrDefault(i => i.Type == "audio" && i.Index == audio) != null)
             audioIndex = audio;
@@ -99,14 +101,23 @@ public class GStask
         queue2
             use-buffering=false
             max-size-buffers=0
-            max-size-bytes={{maxQueueBytes}}
+            max-size-bytes={{16 * 1024 * 1024}}
             max-size-time={{queueNs}} !
         """;
 
         if (conf.tempfs)
         {
-            long ringBytes = maxQueueBytes * (conf.tempfs_ring + 2);
-            ringBytes += 1024 * 1024; // на смещения и всякую мелочь
+            const int targetSeconds = 30;
+            int maxBytes = 32 * 1024 * 1024;
+
+            if (contentLength.HasValue && contentLength.Value > 0 && probe.DurationSeconds > 0)
+            {
+                maxBytes = (int)Math.Ceiling(
+                    (double)contentLength.Value / probe.DurationSeconds * targetSeconds
+                );
+            }
+
+            long ringBytes = (long)maxBytes * (conf.tempfs_ring + 3);
 
             string tempTemplate = Path.Combine(
                 "cache",
@@ -119,8 +130,8 @@ public class GStask
                 use-buffering=false
                 temp-template="{{tempTemplate}}"
                 temp-remove=true
-                ring-buffer-max-size={{ringBytes}}
-                max-size-bytes={{maxQueueBytes}}
+                ring-buffer-max-size={{ringBytes + (1024 * 1024)}}
+                max-size-bytes={{maxBytes}}
                 max-size-buffers=0
                 max-size-time=0 !
             """;

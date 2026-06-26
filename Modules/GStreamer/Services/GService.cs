@@ -43,9 +43,30 @@ public static class GService
             return (null, "Uri");
         }
 
-        sourceUrl = await Http.GetLocation(sourceUrl, timeoutSeconds: 45);
+        var httpHeaders = await Http.ResponseHeaders(sourceUrl, timeoutSeconds: 45);
+        if (httpHeaders == null)
+            return (null, "ResponseHeaders");
+
+        #region sourceUrl
+        {
+            string location = (int)httpHeaders.StatusCode == 301 || (int)httpHeaders.StatusCode == 302 || (int)httpHeaders.StatusCode == 307
+                ? httpHeaders.Headers.Location?.ToString()
+                : httpHeaders.RequestMessage.RequestUri?.ToString();
+
+            if (string.IsNullOrEmpty(location))
+                return (null, "location");
+
+            location = System.Web.HttpUtility.UrlDecode(location);
+
+            if (Uri.TryCreate(location, UriKind.Absolute, out var _u))
+                sourceUrl = _u.AbsoluteUri;
+
+            sourceUrl = location;
+        }
+
         if (sourceUrl == null)
-            return (null, "location");
+            return (null, "sourceUrl");
+        #endregion
 
         var hybridCache = HybridCache.Get();
 
@@ -85,7 +106,7 @@ public static class GService
             }
         }
 
-        task = new GStask(probe, conf, sourceUrl, hash.H1, uid, audio);
+        task = new GStask(probe, conf, sourceUrl, hash.H1, uid, audio, httpHeaders.Content.Headers.ContentLength);
         tasks[hash.H1] = task;
 
         return (task, null);
