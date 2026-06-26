@@ -465,9 +465,9 @@ public class GStask
             if (ret == StateChangeReturn.Async)
             {
                 // ждём завершение команды в pipeline
-                using (var msg = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error))
+                using (var msg = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error | MessageType.Eos))
                 {
-                    if (BusReader.GetType(msg) == BusReader.Error)
+                    if (BusReader.GetType(msg) == BusReader.Error || BusReader.GetType(msg) == BusReader.Eos)
                     {
                         IsDead = true;
                         Dispose();
@@ -490,9 +490,9 @@ public class GStask
             }
 
             // После flushing seek тоже лучше дождаться ASYNC_DONE.
-            using (var flushing = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error))
+            using (var flushing = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error | MessageType.Eos))
             {
-                if (BusReader.GetType(flushing) == BusReader.Error)
+                if (BusReader.GetType(flushing) == BusReader.Error || BusReader.GetType(flushing) == BusReader.Eos)
                 {
                     IsDead = true;
                     Dispose();
@@ -511,9 +511,9 @@ public class GStask
 
         if (ret == StateChangeReturn.Async)
         {
-            using (var msg = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error))
+            using (var msg = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error | MessageType.Eos))
             {
-                if (BusReader.GetType(msg) == BusReader.Error)
+                if (BusReader.GetType(msg) == BusReader.Error || BusReader.GetType(msg) == BusReader.Eos)
                 {
                     IsDead = true;
                     Dispose();
@@ -565,9 +565,9 @@ public class GStask
 
             if (ret == StateChangeReturn.Async)
             {
-                using (var msg = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error))
+                using (var msg = bus.TimedPopFiltered(5_000_000_000UL, MessageType.AsyncDone | MessageType.Error | MessageType.Eos))
                 {
-                    if (BusReader.GetType(msg) == BusReader.Error)
+                    if (BusReader.GetType(msg) == BusReader.Error || BusReader.GetType(msg) == BusReader.Eos)
                     {
                         IsDead = true;
                         Dispose();
