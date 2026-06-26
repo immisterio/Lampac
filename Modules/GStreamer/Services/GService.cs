@@ -60,6 +60,9 @@ public static class GService
             hybridCache.Set(probeKey, probe, TimeSpan.FromDays(10));
         }
 
+        if (!probe.Tracks.Exists(i => i.Type == "audio"))
+            return (null, "audio track not found");
+
         if (!probe.IsMatroskaOrWebM)
             return (null, $"not matroska/webm: {probe.ContainerCapsName ?? probe.ContainerName ?? "unknown"}");
 
@@ -70,25 +73,22 @@ public static class GService
         if (ModInit.conf.conf_uids != null && ModInit.conf.conf_uids.TryGetValue(uid, out var uidconf))
             conf = uidconf;
 
-        task = new GStask(probe, conf, sourceUrl, hash.H1, uid, audio);
-
-        if (tasks.TryAdd(hash.H1, task))
-        {
-            foreach (var tk in tasks)
-            {
-                if (tk.Value.user_uid == uid && tk.Key != hash.H1)
-                {
-                    if (tasks.TryRemove(tk.Key, out var removed))
-                        removed.Dispose();
-                }
-            }
-
+        if (tasks.TryGetValue(hash.H1, out task) && !task.IsDead)
             return (task, null);
-        }
-        else
+
+        foreach (var tk in tasks)
         {
-            return (tasks[hash.H1], null);
+            if (tk.Value.user_uid == uid && tk.Key != hash.H1)
+            {
+                if (tasks.TryRemove(tk.Key, out var removed))
+                    removed.Dispose();
+            }
         }
+
+        task = new GStask(probe, conf, sourceUrl, hash.H1, uid, audio);
+        tasks[hash.H1] = task;
+
+        return (task, null);
     }
 
     public static GStask Get(ulong id)
