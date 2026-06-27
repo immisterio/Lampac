@@ -29,6 +29,12 @@ public class ModuleConf : ModuleBaseConf
     /// </summary>
     public int tempfs_ring { get; set; }
 
+    /// <summary>
+    /// buffers
+    /// bytes
+    /// </summary>
+    public string appsink_mode { get; set; } = "bytes";
+
 
     /// <summary>
     /// 256 кбит/с
@@ -58,7 +64,9 @@ public class ModuleConf : ModuleBaseConf
 
     public int pipeline_timeSeconds { get; set; } = 18;
 
-    public int pipeline_audioQueue { get; set; } = 2;
+    public int pipeline_audioQueue { get; set; } = 8;
 
-    public int pipeline_videoQueue { get; set; } = 24;
+    public int pipeline_videoQueue { get; set; } = 36;
+
+    public int pipeline_appsink { get; set; } = 48;
 }

@@ -59,7 +59,7 @@ public class ModInit : IModuleLoaded
     {
         conf = ModuleInvoke.Init("gst", new ModuleConf()
         {
-            gst_version = OperatingSystem.IsWindows() ? 1.28 : 1.26,
+            gst_version = OperatingSystem.IsWindows() ? 1.28 : 1.22,
             PATH = @"C:\Program Files\gstreamer\1.0\mingw_x86_64",
             inactiveMinutes = 10,
             limit_map = new List<WafLimitRootMap>()

@@ -101,7 +101,7 @@ public class GStask
         queue2
             use-buffering=false
             max-size-buffers=0
-            max-size-bytes={{16 * 1024 * 1024}}
+            max-size-bytes={{8 * 1024 * 1024}}
             max-size-time={{queueNs}} !
         """;
 
@@ -251,6 +251,7 @@ public class GStask
         }
         #endregion
 
+        #region d.audio
         sb.AppendLine($$"""
         d.audio_{{audioIndex}} !
         queue
@@ -280,6 +281,7 @@ public class GStask
             channels=2 !
         mux.audio_0
         """);
+        #endregion
 
         sb.AppendLine($$"""
         mp4mux
@@ -287,14 +289,33 @@ public class GStask
             fragment-mode=dash-or-mss
             fragment-duration={{conf.segment_seconds * 1000}}
             streamable=true !
-        appsink
-            name=out
-            emit-signals=false
-            sync=false
-            max-buffers=1
-            {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
-            wait-on-eos=false
         """);
+
+        if (conf.appsink_mode == "bytes" && version >= 1.24)
+        {
+            sb.AppendLine($$"""
+            appsink
+                name=out
+                emit-signals=false
+                sync=false
+                max-buffers=0
+                max-bytes={{conf.pipeline_appsink * 1024 * 1024}}
+                {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
+                wait-on-eos=false
+            """);
+        }
+        else
+        {
+            sb.AppendLine($$"""
+            appsink
+                name=out
+                emit-signals=false
+                sync=false
+                max-buffers=1
+                {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
+                wait-on-eos=false
+            """);
+        }
 
         return sb.ToString();
     }
