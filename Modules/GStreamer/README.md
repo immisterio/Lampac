@@ -61,10 +61,7 @@ http://IP:9118/gst.js
   "transcodeAV1": true,
   "transcodeVP9": true,
 
-  "pipeline_timeSeconds": 20,
-  "pipeline_audioQueue": 4,
-  "pipeline_videoQueue": 32,
-  "pipeline_sinkQueue": 64
+  "pipeline_timeSeconds": 20
 }
 ```
 
@@ -91,10 +88,7 @@ http://IP:9118/gst.js
   "transcodeH265": true,
   "transcodeAV1": true,
   "transcodeVP9": true,
-  "pipeline_timeSeconds": 20,
-  "pipeline_audioQueue": 4,
-  "pipeline_videoQueue": 32,
-  "pipeline_sinkQueue": 64,
+  "pipeline_timeSeconds": 20
 
   "conf_uids": {
     "mobile-uid": {
@@ -107,10 +101,7 @@ http://IP:9118/gst.js
       "transcodeH265": true,
       "transcodeAV1": true,
       "transcodeVP9": true,
-      "pipeline_timeSeconds": 20,
-      "pipeline_audioQueue": 4,
-      "pipeline_videoQueue": 32,
-      "pipeline_sinkQueue": 64
+      "pipeline_timeSeconds": 20
     }
   }
 }
