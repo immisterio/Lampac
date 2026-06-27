@@ -142,7 +142,11 @@ gst-discoverer-1.0 --version
 }
 ```
 
-## Windows
+## Windows portable (MinGW)
+
+Уже включена в модуль и не требует установки MinGW
+
+## Или Windows installer (MinGW)
 
 Скачайте и установите:
 
