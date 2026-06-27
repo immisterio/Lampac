@@ -293,13 +293,15 @@ public class GStask
 
         if (conf.appsink_mode == "bytes" && version >= 1.24)
         {
+            int appsinkBytes = (int)((conf.pipeline_videoQueue + conf.pipeline_audioQueue) * 1.1);
+
             sb.AppendLine($$"""
             appsink
                 name=out
                 emit-signals=false
                 sync=false
                 max-buffers=0
-                max-bytes={{conf.pipeline_appsink * 1024 * 1024}}
+                max-bytes={{appsinkBytes * 1024 * 1024}}
                 {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
                 wait-on-eos=false
             """);

@@ -67,6 +67,4 @@ public class ModuleConf : ModuleBaseConf
     public int pipeline_audioQueue { get; set; } = 8;
 
     public int pipeline_videoQueue { get; set; } = 36;
-
-    public int pipeline_appsink { get; set; } = 48;
 }
