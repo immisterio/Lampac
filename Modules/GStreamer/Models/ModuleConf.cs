@@ -56,5 +56,5 @@ public class ModuleConf : ModuleBaseConf
     /// </summary>
     public int pipeline_downloadRate { get; set; }
 
-    public int pipeline_timeSeconds { get; set; } = 18;
+    public int pipeline_appsinkBuffers { get; set; } = 1000;
 }

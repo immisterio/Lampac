@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace GStreamer.Services;
@@ -85,8 +84,6 @@ public class GStask
     string CreatePipelineArgs(ProbeInfo probe)
     {
         var sb = StringBuilderPool.ThreadInstance;
-
-        long queueNs = conf.pipeline_timeSeconds * 1_000_000_000L;
         double version = ModInit.conf.gst_version;
 
         #region AppendTranscodeToH264
@@ -199,7 +196,7 @@ public class GStask
             use-buffering=false
             max-size-buffers=0
             max-size-bytes=0
-            max-size-time={{queueNs}}
+            max-size-time={{(conf.segment_seconds * 2) * 1_000_000_000L}}
         """);
 
         #region d.video
@@ -298,33 +295,54 @@ public class GStask
         #endregion
 
         #region d.audio
+        var selectedAudio = probe.Tracks.FirstOrDefault(i =>
+            i.Type == "audio" &&
+            i.Index == audioIndex
+        );
+
         sb.AppendLine($$"""
         d.audio_{{audioIndex}} !
         mq.sink_1
-
-        mq.src_1 !
-        decodebin !
-        audioconvert
-            dithering=none
-            noise-shaping=none !
-        audioresample
-            quality=2
-            sinc-filter-mode=full !
-        audio/x-raw,
-            format=F32LE,
-            layout=interleaved,
-            rate=48000,
-            channels=2 !
-        avenc_aac
-            bitrate={{conf.aac_bitrate * 1000}} !
-        aacparse !
-        audio/mpeg,
-            mpegversion=4,
-            stream-format=raw,
-            rate=48000,
-            channels=2 !
-        mux.audio_0
         """);
+
+        if (selectedAudio?.IsAAC == true)
+        {
+            sb.AppendLine("""
+            mq.src_1 !
+            aacparse !
+            audio/mpeg,
+                mpegversion=4,
+                stream-format=raw !
+            mux.audio_0
+            """);
+        }
+        else
+        {
+            sb.AppendLine($$"""
+            mq.src_1 !
+            decodebin !
+            audioconvert
+                dithering=none
+                noise-shaping=none !
+            audioresample
+                quality=2
+                sinc-filter-mode=full !
+            audio/x-raw,
+                format=F32LE,
+                layout=interleaved,
+                rate=48000,
+                channels=2 !
+            avenc_aac
+                bitrate={{conf.aac_bitrate * 1000}} !
+            aacparse !
+            audio/mpeg,
+                mpegversion=4,
+                stream-format=raw,
+                rate=48000,
+                channels=2 !
+            mux.audio_0
+            """);
+        }
         #endregion
 
         sb.AppendLine($$"""
@@ -333,14 +351,33 @@ public class GStask
             fragment-mode=dash-or-mss
             fragment-duration={{conf.segment_seconds * 1000}}
             streamable=true !
-        appsink
-            name=out
-            emit-signals=false
-            sync=false
-            max-buffers=1
-            {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
-            wait-on-eos=false
         """);
+
+        if (version >= 1.24 && conf.pipeline_appsinkBuffers > 1)
+        {
+            sb.AppendLine($$"""
+            appsink
+                name=out
+                emit-signals=false
+                sync=false
+                max-buffers={{conf.pipeline_appsinkBuffers}}
+                max-bytes={{136L * 1024 * 1024}}
+                {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
+                wait-on-eos=false
+            """);
+        }
+        else
+        {
+            sb.AppendLine($$"""
+            appsink
+                name=out
+                emit-signals=false
+                sync=false
+                max-buffers={{(conf.pipeline_appsinkBuffers > 1 ? conf.pipeline_appsinkBuffers : 1)}}
+                {{(version >= 1.28 ? "leaky-type=none" : "drop=false")}}
+                wait-on-eos=false
+            """);
+        }
 
         return sb.ToString();
     }
@@ -414,7 +451,6 @@ public class GStask
                         }
 
                         double eosThreshold = duration -
-                            conf.pipeline_timeSeconds -
                             conf.segment_seconds -
                             120; // 120s
 
