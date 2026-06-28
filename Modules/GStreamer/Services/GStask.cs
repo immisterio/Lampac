@@ -194,9 +194,7 @@ public class GStask
         multiqueue
             name=mq
             use-buffering=false
-            max-size-buffers=0
-            max-size-bytes=0
-            max-size-time={{(conf.segment_seconds * 2) * 1_000_000_000L}}
+            max-size-buffers=5
         """);
 
         #region d.video
