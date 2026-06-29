@@ -1,7 +1,6 @@
 (function () {
   'use strict';
 
-  var LOG_TAG = 'Lampac';
   var LAMPAC_VERSION = '1.8.0';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
@@ -104,7 +103,7 @@
         },
         function () {
           balansers_with_search = [];
-        },
+        }
       );
     }
 
@@ -116,7 +115,7 @@
 
     function clarificationSearchAdd(value) {
       var id = Lampa.Utils.hash(
-        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title,
+        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
       var all = Lampa.Storage.get('clarification_search', '{}');
 
@@ -127,7 +126,7 @@
 
     function clarificationSearchDelete() {
       var id = Lampa.Utils.hash(
-        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title,
+        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
       var all = Lampa.Storage.get('clarification_search', '{}');
 
@@ -138,7 +137,7 @@
 
     function clarificationSearchGet() {
       var id = Lampa.Utils.hash(
-        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title,
+        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
       var all = Lampa.Storage.get('clarification_search', '{}');
 
@@ -232,7 +231,7 @@
           {
             dataType: 'text',
             headers: addHeaders()
-          },
+          }
         );
       }
       this.externalids()
@@ -285,7 +284,7 @@
             false,
             {
               headers: addHeaders()
-            },
+            }
           );
         } else resolve();
       });
@@ -324,7 +323,7 @@
       }
 
       query.push(
-        'title=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name),
+        'title=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name)
       );
       query.push('original_title=' + encodeURIComponent(object.movie.original_title || object.movie.original_name));
       query.push('serial=' + (object.movie.name ? 1 : 0));
@@ -339,7 +338,7 @@
           ? window.rch_nws[hostkey].type
           : window.rch && window.rch[hostkey]
             ? window.rch[hostkey].type
-            : '') || ''),
+            : '') || '')
       );
       if (Lampa.Storage.get('account_email', ''))
         query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
@@ -399,7 +398,7 @@
               resolve(
                 json.online.filter(function (c) {
                   return c.show;
-                }),
+                })
               );
             } else if (any) {
               reject();
@@ -432,7 +431,7 @@
                     selected: e == balanser,
                     ghost: !sources[e].show
                   };
-                }),
+                })
               );
               filter.chosen('sort', [sources[balanser] ? sources[balanser].name : balanser]);
               gou(json);
@@ -458,7 +457,7 @@
             false,
             {
               headers: addHeaders()
-            },
+            }
           );
         };
         fin();
@@ -482,7 +481,7 @@
                 .render()
                 .find('.filter--sort')
                 .append(
-                  '<span class="lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>',
+                  '<span class="lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>'
                 );
               _this4.lifeSource().then(_this4.startSource).then(resolve)['catch'](reject);
             } else {
@@ -493,7 +492,7 @@
           false,
           {
             headers: addHeaders()
-          },
+          }
         );
       });
     };
@@ -513,7 +512,7 @@
         {
           source: filter_sources
         },
-        this.getChoice(),
+        this.getChoice()
       );
       this.find();
     };
@@ -609,7 +608,7 @@
           false,
           {
             headers: addHeaders()
-          },
+          }
         );
       }
     };
@@ -704,7 +703,7 @@
                               function () {
                                 cell.url = '';
                                 call();
-                              },
+                              }
                             );
                           };
                         }
@@ -734,7 +733,7 @@
                 }
               } else Lampa.Noty.show(Lampa.Lang.translate('lampac_nolink'));
             },
-            true,
+            true
           );
         },
         onContextMenu: function onContextMenu(item, html, data, call) {
@@ -746,7 +745,7 @@
                 quality: item.qualitys
               });
             },
-            true,
+            true
           );
         }
       });
@@ -759,7 +758,7 @@
             return b.title;
           })
         },
-        this.getChoice(),
+        this.getChoice()
       );
     };
     this.loadSubtitles = function (link) {
@@ -773,7 +772,7 @@
         false,
         {
           headers: addHeaders()
-        },
+        }
       );
     };
     // ── parse response ──
@@ -931,7 +930,7 @@
             return b.title;
           })
         },
-        this.getChoice(),
+        this.getChoice()
       );
       Lampa.Controller.enable('content');
     };
@@ -1036,7 +1035,7 @@
             selected: e == balanser,
             ghost: !sources[e].show
           };
-        }),
+        })
       );
       this.selected(filter_items);
     };
@@ -1075,13 +1074,13 @@
           },
           function () {
             call(episodes);
-          },
+          }
         );
       } else call(episodes);
     };
     this.watched = function (set) {
       var file_id = Lampa.Utils.hash(
-        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title,
+        object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
       var watched = Lampa.Storage.cache('online_watched_last', 5000, {});
       if (set) {
@@ -1152,7 +1151,7 @@
           var hash_timeline = Lampa.Utils.hash(
             element.season
               ? [element.season, element.season > 10 ? ':' : '', element.episode, object.movie.original_title].join('')
-              : object.movie.original_title,
+              : object.movie.original_title
           );
           var hash_behold = Lampa.Utils.hash(
             element.season
@@ -1163,7 +1162,7 @@
                 object.movie.original_title,
                 element.voice_name
               ].join('')
-              : object.movie.original_title + element.voice_name,
+              : object.movie.original_title + element.voice_name
           );
           var data = {
             hash_timeline: hash_timeline,
@@ -1185,8 +1184,8 @@
                   {
                     rate: parseFloat(episode.vote_average + '').toFixed(1)
                   },
-                  true,
-                ),
+                  true
+                )
               );
             if (episode.air_date && fully) info.push(Lampa.Utils.parseTime(episode.air_date).full);
           } else if (object.movie.release_date && fully) {
@@ -1213,7 +1212,7 @@
             image.append(
               '<div class="online-prestige__episode-number">' +
               formatEpisodeNumber(element.episode || index + 1) +
-              '</div>',
+              '</div>'
             );
             loader.remove();
           } else if (!serial && object.movie.backdrop_path == 'undefined') loader.remove();
@@ -1229,7 +1228,7 @@
                 image.append(
                   '<div class="online-prestige__episode-number">' +
                   formatEpisodeNumber(element.episode || index + 1) +
-                  '</div>',
+                  '</div>'
                 );
             };
             img.src = Lampa.TMDB.image('t/p/w300' + (episode ? episode.still_path : object.movie.backdrop_path));
@@ -1252,7 +1251,7 @@
                 html
                   .find('.online-prestige__img')
                   .append(
-                    '<div class="online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>',
+                    '<div class="online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>'
                   );
               }
             }
@@ -1268,7 +1267,7 @@
             _this8.watched({
               balanser: balanser,
               balanser_name: Lampa.Utils.capitalizeFirstLetter(
-                sources[balanser] ? sources[balanser].name.split(' ')[0] : balanser,
+                sources[balanser] ? sources[balanser].name.split(' ')[0] : balanser
               ),
               voice_id: choice.voice_id,
               voice_name: voice_name_text,
@@ -1332,8 +1331,8 @@
                   {
                     rate: parseFloat(episode.vote_average + '').toFixed(1)
                   },
-                  true,
-                ),
+                  true
+                )
               );
             if (episode.air_date) info.push(Lampa.Utils.parseTime(episode.air_date).full);
             var air = new Date((episode.air_date + '').replace(/-/g, '/'));
@@ -1360,9 +1359,9 @@
               .append(
                 Lampa.Timeline.render(
                   Lampa.Timeline.view(
-                    Lampa.Utils.hash([season, episode.episode_number, object.movie.original_title].join('')),
-                  ),
-                ),
+                    Lampa.Utils.hash([season, episode.episode_number, object.movie.original_title].join(''))
+                  )
+                )
               );
             var img = html.find('img')[0];
             if (episode.still_path) {
@@ -1375,7 +1374,7 @@
                 image.append(
                   '<div class="online-prestige__episode-number">' +
                   formatEpisodeNumber(episode.episode_number) +
-                  '</div>',
+                  '</div>'
                 );
               };
               img.src = Lampa.TMDB.image('t/p/w300' + episode.still_path);
@@ -1385,7 +1384,7 @@
               image.append(
                 '<div class="online-prestige__episode-number">' +
                 formatEpisodeNumber(episode.episode_number) +
-                '</div>',
+                '</div>'
               );
             }
             html.on('hover:focus', function (e) {
@@ -1516,7 +1515,7 @@
                           },
                           function () {
                             Lampa.Noty.show(Lampa.Lang.translate('copy_error'));
-                          },
+                          }
                         );
                       }
                     });
@@ -1528,7 +1527,7 @@
                       },
                       function () {
                         Lampa.Noty.show(Lampa.Lang.translate('copy_error'));
-                      },
+                      }
                     );
                   }
                 }
@@ -1545,7 +1544,7 @@
                     },
                     function () {
                       Lampa.Noty.show(Lampa.Lang.translate('lampac_voice_error'));
-                    },
+                    }
                   );
                 }
               }
@@ -1578,7 +1577,10 @@
         .text(
           er && er.accsdb
             ? er.msg
-            : Lampa.Lang.translate('lampac_does_not_answer_text').replace('{balanser}', balanser[balanser].name),
+            : Lampa.Lang.translate('lampac_does_not_answer_text').replace(
+                '{balanser}',
+                sources[balanser] ? sources[balanser].name : balanser
+              )
         );
       scroll.clear();
       scroll.append(html);
@@ -1676,6 +1678,7 @@
     function suspendActivity() {
       stopBalanserTimer();
       clearTimeout(life_wait_timer);
+      clearTimeout(number_of_requests_timer);
       network.clear();
     }
 
@@ -1690,6 +1693,7 @@
       this.clearImages();
       files.destroy();
       scroll.destroy();
+      if (filter && typeof filter.destroy === 'function') filter.destroy();
     };
   }
 
@@ -1717,6 +1721,7 @@
                     item.title = Lampa.Utils.capitalizeFirstLetter(item.title);
                     item.release_date = item.year || '0000';
                     item.balanser = spiderUri;
+                    item.source = 'lampac';
                     if (item.img !== undefined) {
                       if (item.img.charAt(0) === '/') item.img = Defined.localhost + item.img.substring(1);
                       if (item.img.indexOf('/proxyimg') !== -1) item.img = account(item.img);
@@ -1725,10 +1730,15 @@
                     return item;
                   });
 
-                  rows.push({
-                    title: name,
-                    results: cards
-                  });
+                  rows.push(
+                    Lampa.Utils.addSource(
+                      {
+                        title: name,
+                        results: cards
+                      },
+                      'lampac'
+                    )
+                  );
                 }
               });
 
@@ -1747,7 +1757,7 @@
                 false,
                 {
                   headers: addHeaders()
-                },
+                }
               );
             });
           } else {
@@ -1771,7 +1781,7 @@
                   false,
                   {
                     headers: addHeaders()
-                  },
+                  }
                 );
               });
             } else {
@@ -1784,7 +1794,7 @@
           false,
           {
             headers: addHeaders()
-          },
+          }
         );
       },
       onCancel: function () {
@@ -1792,10 +1802,7 @@
       },
       params: {
         lazy: true,
-        align_left: true,
-        card_events: {
-          onMenu: function () { }
-        }
+        align_left: true
       },
       onMore: function (params, close) {
         close();
