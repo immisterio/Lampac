@@ -112,6 +112,9 @@ RUN apt-get update \
     libnspr4 \
     libpng-dev \
     libwebp-dev \
+    xvfb \
+    && mkdir -p /tmp/.X11-unix \
+    && chmod 1777 /tmp/.X11-unix \
     && case "$TARGETARCH" in \
     arm64) CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_arm64.deb" ;; \
     amd64) CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" ;; \

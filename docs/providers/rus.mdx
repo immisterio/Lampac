@@ -1,8 +1,8 @@
 ---
 title: "Российские VOD-провайдеры (OnlineRUS)"
 sidebarTitle: "OnlineRUS"
-description: "22 российских CDN группы OnlineRUS: Collaps, Mirage, HDVB, Gencit и другие."
-keywords: ["OnlineRUS", "Collaps", "Mirage", "HDVB", "Gencit"]
+description: "22 российских CDN группы OnlineRUS: Collaps, FlixCDN, Mirage, HDVB, Gencit и другие."
+keywords: ["OnlineRUS", "FlixCDN", "Collaps", "Mirage", "HDVB", "Gencit"]
 ---
 
 Группа `OnlineRUS` загружается с модулем Online. Отключите всю группу через `SkipModules: ["OnlineRUS"]`.
@@ -12,7 +12,7 @@ keywords: ["OnlineRUS", "Collaps", "Mirage", "HDVB", "Gencit"]
 | `CDNvideohub` | CDN |
 | `Collaps` | Обычный и DASH |
 | `FanCDN` | fanserial |
-| `FlixCDN` | Фильмы и сериалы |
+| `FlixCDN` | Фильмы и сериалы; выключен по умолчанию |
 | `Gencit` | `/lite/gencit` |
 | `HDVB` | Балансер |
 | `Kinobase` | Релизы |
@@ -29,5 +29,26 @@ keywords: ["OnlineRUS", "Collaps", "Mirage", "HDVB", "Gencit"]
 | `VideoDB` / `Videoseed` | `/lite/videodb`, `/lite/videoseed` |
 | `VkMovie` | ВКонтакте |
 | `Zetflix` / `ZetflixDB` | Два варианта |
+
+## FlixCDN
+
+FlixCDN получает ссылки через официальный плеер в отдельном headed Chromium. Значение глобального параметра `chromium.Headless` не меняется. Браузер запускается только при отсутствии результата в кеше и закрывается после пяти минут простоя.
+
+Включите Chromium и сам источник в `init.conf`:
+
+```json
+{
+  "chromium": {
+    "enable": true
+  },
+  "FlixCDN": {
+    "enable": true
+  }
+}
+```
+
+<Info>
+  Официальный Docker-образ содержит Chromium и Xvfb. При запуске Lampac без Docker установите Chromium и `/usr/bin/Xvfb` самостоятельно.
+</Info>
 
 Обзор всех групп: [провайдеры](/providers/overview). Платные источники: [OnlinePaid](/providers/paid).

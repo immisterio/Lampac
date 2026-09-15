@@ -34,13 +34,14 @@ public class ModInit : IModuleLoaded, IModuleOnline
     {
         EventListener.UpdateInitFile -= updateConf;
         EventListener.OnlineApiQuality -= onlineApiQuality;
+        FlixCdnBrowserResolver.Dispose();
     }
 
     void updateConf()
     {
         conf = ModuleInvoke.Init("FlixCDN", new OnlinesSettings("FlixCDN", "https://tarantino.factorios.live", "https://api0.flixcdn.biz/api", streamproxy: true)
         {
-            enable = true,
+            enable = false,
             displayindex = 525,
             stream_access = "apk,cors,web",
             headers_stream = HeadersModel.Init(

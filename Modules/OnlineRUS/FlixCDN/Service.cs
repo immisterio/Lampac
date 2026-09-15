@@ -3,8 +3,6 @@ using Shared.Models.Templates;
 using Shared.Services;
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -42,6 +40,12 @@ public struct FlixCDNInvoke
             return null;
 
         string html = await httpHydra.Get(BuildPlayerUrl(kinopoisk_id), safety: true);
+        return ParsePlayer(html);
+    }
+
+
+    static PlayerPayload ParsePlayer(string html)
+    {
         if (string.IsNullOrWhiteSpace(html))
             return null;
 
@@ -68,69 +72,6 @@ public struct FlixCDNInvoke
             return null;
         }
     }
-
-
-    async public Task<string> GetPlayerFile(long kinopoisk_id, int id, int translation, short season = 0, short episode = 0)
-    {
-        if (kinopoisk_id <= 0 || id <= 0 || translation <= 0)
-            return null;
-
-        string showUrl = BuildPlayerUrl(kinopoisk_id);
-
-        try
-        {
-            using var handler = new HttpClientHandler
-            {
-                AllowAutoRedirect = true,
-                UseCookies = true
-            };
-            using var client = new HttpClient(handler);
-            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36");
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "*/*");
-
-            using (var warmRequest = new HttpRequestMessage(HttpMethod.Get, showUrl))
-            {
-                warmRequest.Headers.Referrer = new Uri(init.host + "/");
-                using var warmResponse = await client.SendAsync(warmRequest);
-                if (!warmResponse.IsSuccessStatusCode)
-                    return null;
-
-                await warmResponse.Content.ReadAsStringAsync();
-                showUrl = warmResponse.RequestMessage?.RequestUri?.ToString() ?? showUrl;
-            }
-
-            string json = JsonSerializer.Serialize(new
-            {
-                id,
-                translation,
-                season_number = season > 0 ? (short?)season : null,
-                episode_number = episode > 0 ? (short?)episode : null,
-                force_cdn = string.Empty,
-                turnstile_token = string.Empty
-            });
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, init.host + "/api/player/files");
-            request.Headers.Referrer = new Uri(showUrl);
-            request.Headers.TryAddWithoutValidation("Origin", init.host);
-            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            using var response = await client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            string body = await response.Content.ReadAsStringAsync();
-            if (string.IsNullOrWhiteSpace(body))
-                return null;
-
-            var root = JsonSerializer.Deserialize<PlayerFiles>(body, jsonOptions);
-            return root?.file;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
 
     public StreamQualityTpl GetStreamQualityTpl(string file)
     {
