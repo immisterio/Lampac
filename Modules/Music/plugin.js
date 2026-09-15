@@ -6077,6 +6077,11 @@
 
         MUSIC_IOS_FULL_PLAYER_OPEN = true;
         player.addClass('lm-ios-full-player--visible');
+        var root = player.get(0);
+        if (root) {
+            root.scrollTop = 0;
+            root.scrollLeft = 0;
+        }
         player.attr('data-scroll-current', 'true');
         $('body').addClass('lm-ios-full-player-open');
         bumpMusicHeatMetric('fullPlayerOpen');
@@ -6094,6 +6099,50 @@
             });
             Lampa.Controller.toggle('lampac_music_full_player');
         }
+    }
+
+    function scrollStandaloneIosElement(element, block, smooth) {
+        if (!element || typeof element.getBoundingClientRect !== 'function') return;
+
+        var root = $(element).closest('.lm-ios-full-player').get(0);
+        if (!root) return;
+
+        // overflow:hidden is still programmatically scrollable in WebKit. Keep the
+        // fullscreen root fixed and move only one of the lists owned by the player.
+        root.scrollTop = 0;
+        root.scrollLeft = 0;
+
+        var scroller = $(element).closest('.lm-ios-full-player__queue-list, .lm-ios-full-player__sheet-body').get(0);
+        if (!scroller || !root.contains(scroller)) return;
+
+        var maxScrollTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+        if (!maxScrollTop) return;
+
+        var elementBox = element.getBoundingClientRect();
+        var scrollerBox = scroller.getBoundingClientRect();
+        var target = scroller.scrollTop;
+
+        if (block === 'center') {
+            target += elementBox.top - scrollerBox.top - (scroller.clientHeight - elementBox.height) / 2;
+        } else if (elementBox.top < scrollerBox.top) {
+            target += elementBox.top - scrollerBox.top;
+        } else if (elementBox.bottom > scrollerBox.bottom) {
+            target += elementBox.bottom - scrollerBox.bottom;
+        } else {
+            return;
+        }
+
+        target = Math.max(0, Math.min(maxScrollTop, Math.round(target)));
+        if (target === scroller.scrollTop) return;
+
+        if (smooth && typeof scroller.scrollTo === 'function') {
+            try {
+                scroller.scrollTo({ top: target, behavior: 'smooth' });
+                return;
+            } catch (e) {}
+        }
+
+        scroller.scrollTop = target;
     }
 
     function closeStandaloneIosFullPlayer() {
@@ -7191,12 +7240,8 @@
             return;
         }
 
-        if (element && typeof element.scrollIntoView === 'function') {
-            try {
-                element.scrollIntoView({ block: 'center', behavior: force ? 'auto' : 'smooth' });
-            } catch (e) {
-                element.scrollIntoView();
-            }
+        if (element) {
+            scrollStandaloneIosElement(element, 'center', !force);
             bumpMusicHeatMetric('fullPlayerLyricsScroll');
         }
 
@@ -7423,8 +7468,8 @@
             player.data(inSheet ? 'sheetFocus' : 'mainFocus', this);
             if ($(this).hasClass('lm-ios-full-player__lyrics-line'))
                 player.attr('data-lyrics-manual', String(Date.now()));
-            if (inSheet && typeof this.scrollIntoView === 'function')
-                this.scrollIntoView({ block: 'nearest' });
+            if (inSheet)
+                scrollStandaloneIosElement(this, 'nearest', false);
         });
 
         controls.filter('.lm-ios-full-player__seek').on('keydown', function (event) {
@@ -7636,13 +7681,8 @@
 
             player.removeAttr('data-scroll-current');
 
-            if (scroller && current) {
-                try {
-                    current.scrollIntoView({ block: 'center' });
-                } catch (e) {
-                    scroller.scrollTop = Math.max(0, current.offsetTop - (scroller.clientHeight / 2) + (current.clientHeight / 2));
-                }
-            }
+            if (scroller && current)
+                scrollStandaloneIosElement(current, 'center', false);
         }
 
         bumpMusicHeatDuration('fullPlayerQueueUpdate', heatStartedAt);
