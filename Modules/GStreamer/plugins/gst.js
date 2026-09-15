@@ -93,11 +93,23 @@
 
         if (data.playlist) {
             data.playlist.forEach(function (p) {
-                playlist.push({
-                    title: p.title,
-                    url_orig: p.url,
-                    url: account('{localhost}/gst/start.m3u8?linkencode=' + encodeURIComponent(Lampa.Base64.encode(p.url))) + '&audio=' + audioIndex
-                })
+                // Копируем все поля элемента (season, episode, id и т.д.):
+                // Lampa определяет позицию в плейлисте по url, а затем по episode/season,
+                // без этих полей позиция всегда сбрасывается на первый элемент
+                var item = Object.assign({}, p);
+                item.url_orig = p.url;
+                // У ссылки на файл торрента TorrServer-хвост &preload / &stat / &m3u
+                // (настройка torrserver_preload). Ядро Lampa подменяет его на &play
+                // только при первом воспроизведении (toPlayUrl), а в linkencode
+                // этого подменения нет - проб сервера по &preload падает (502).
+                var src = (p.url + '').replace(/&(preload|stat|m3u)/g, '&play');
+                item.url = account('{localhost}/gst/start.m3u8?linkencode=' + encodeURIComponent(Lampa.Base64.encode(src))) + '&audio=' + (audioIndex || 0);
+                // Холодный старт start.m3u8 (проба + пайплайн) может занимать больше,
+                // чем дефолтный таймаут манифеста hls.js (10 c) — увеличиваем,
+                // чтобы «Далее» на холодный эпизод не роняло manifestLoadError
+                item.hls_type = 'hlsjs';
+                item.hls_manifest_timeout = 90000;
+                playlist.push(item)
             })
         }
 
