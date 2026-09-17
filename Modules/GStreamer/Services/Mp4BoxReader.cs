@@ -1313,7 +1313,9 @@ public sealed class Mp4BoxReader : IDisposable
             return true;
         }
 
-        return false;
+        // Дорожка аудио может закончиться до конца видео (обычно в самом конце файла).
+        // Берём то, что есть: сегмент выпускается с доступной аудиодорожкой.
+        return audioCount > 0;
     }
 
     static int CountSamplesCovering(Fragment fragment, ulong targetDecodeTime)
