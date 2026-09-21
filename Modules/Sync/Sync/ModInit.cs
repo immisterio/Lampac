@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Shared;
 using Shared.Models.AppConf;
 using Shared.Models.Events;
@@ -36,11 +36,16 @@ public class ModInit : IModuleLoaded, IModuleConfigure
         Directory.CreateDirectory("database/storage/temp");
 
         SqlContext.Initialization(baseconf.app.ApplicationServices);
+
+        // 2 = строка на карточку, надгробия, курсор updated_at, dump/changelog/sync.
+        // 1 был одним JSON-блобом на пользователя и нативным клиентом не поддерживается.
+        ModuleCapabilities.Set("bookmarks", 2);
     }
 
     public void Dispose()
     {
         EventListener.UpdateInitFile -= updateConf;
+        ModuleCapabilities.Remove("bookmarks");
         NwsEvents.Stop();
     }
 
