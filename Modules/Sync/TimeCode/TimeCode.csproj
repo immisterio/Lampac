@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared.csproj" />
+    <ProjectReference Include="..\SyncEvents\SyncEvents.csproj" />
   </ItemGroup>
 
   <ItemGroup>
