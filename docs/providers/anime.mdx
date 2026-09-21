@@ -1,17 +1,18 @@
 ---
-title: "Аниме-провайдеры Lampac: 13 источников"
+title: "Аниме-провайдеры Lampac: 14 источников"
 sidebarTitle: "Аниме"
-description: "Lampac NextGen поддерживает 13 аниме-источников: AiLiberty, AniLiberty, AniLibria, AniMedia, AnimeGo, AnimeLib, Kodik и другие."
-keywords: ["OnlineAnime", "аниме провайдеры", "AniLibria", "Kodik", "AnimeGo"]
+description: "Lampac NextGen поддерживает 14 аниме-источников: AiLiberty, AniDub, AniLiberty, AniLibria, AniMedia, AnimeGo, AnimeLib, Kodik и другие."
+keywords: ["OnlineAnime", "аниме провайдеры", "AniDub", "AniLibria", "Kodik", "AnimeGo"]
 ---
 
-Lampac NextGen агрегирует аниме-контент из 13 источников и отдает его в приложение Lampa через плагин `/online.js`. Аниме-провайдеры объединены в группу `OnlineAnime` и загружаются вместе с VOD-ядром. Вы можете включать или отключать всю группу целиком, а также настраивать каждый провайдер отдельно.
+Lampac NextGen агрегирует аниме-контент из 14 источников и отдает его в приложение Lampa через плагин `/online.js`. Аниме-провайдеры объединены в группу `OnlineAnime` и загружаются вместе с VOD-ядром. Вы можете включать или отключать всю группу целиком, а также настраивать каждый провайдер отдельно.
 
 ## Список аниме-провайдеров
 
 | Провайдер | Сервис | Примечания |
 | --- | --- | --- |
 | `AiLiberty` | AI Liberty | Отдельный модуль и маршрут |
+| `AniDub` | AniDub | `/lite/anidub`, фильмы и сериалы; `streamproxy` выключен, `httptimeout` 6 |
 | `AniLiberty` | AniLiberty | Русскоязычный аниме-сайт |
 | `AniLibria` | AniLibria | Популярный русскоязычный дубляж |
 | `AniMedia` | AniMedia | Аниме с русской озвучкой |
@@ -27,6 +28,10 @@ Lampac NextGen агрегирует аниме-контент из 13 источ
 
 <Note>
   `Kodik` — универсальный провайдер, который работает не только с аниме, но и с обычными фильмами и сериалами. Если вы используете Kodik для VOD, он автоматически покрывает и аниме-контент.
+</Note>
+
+<Note>
+  У `AniDub` нет каталога: карточки приходят из поиска. Номер сезона читается из названия тайтла. Master-плейлист подписан User-Agent клиента, поэтому `streamproxy` выключен.
 </Note>
 
 ## Включение и отключение аниме-группы

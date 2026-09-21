@@ -17,8 +17,14 @@ Starter `example.init.conf` исключает `TimeCode`.
 | --- | --- | --- |
 | `GET` | `/timecode.js` | Plugin |
 | `GET` | `/timecode/js/{token}` | Plugin с токеном |
-| `GET` | `/timecode/all` | Все позиции |
-| `GET` | `/timecode/add` | Записать |
+| `GET` | `/timecode/all` | Все позиции (веб-Lampa) |
+| `POST` | `/timecode/add` | Записать (веб-Lampa) |
+| `GET` | `/timecode/dump` | Полная выгрузка для нативного клиента |
+| `GET` | `/timecode/changelog?since=&limit=` | Дельты; `limit` не больше `20000` |
+| `GET` | `/timecode/areas` | Области данных пользователя по профилям |
+| `POST` | `/timecode/set` | Запись для нативного клиента |
+
+`POST /timecode/set` принимает одну запись, массив или объект `{ rows }`. Чтобы удалить запись, передайте её с `deleted: true`.
 
 ## Конфигурация
 

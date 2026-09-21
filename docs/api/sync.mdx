@@ -9,14 +9,18 @@ keywords: ["Sync API", "bookmark", "storage", "timecode"]
 | --- | --- | --- |
 | Sync | `GET` | `/sync.js`, `/invc-ws.js` |
 | Sync | `GET`, `POST` | `/bookmark/list`, `/bookmark/set`, `/bookmark/add`, `/bookmark/remove` |
+| Sync | `GET` | `/bookmark/dump`, `/bookmark/changelog?since=&limit=` |
+| Sync | `POST` | `/bookmark/sync` |
 | Storage | `GET`, `POST` | `/storage/get`, `/storage/set`, `/storage/temp/{key}` |
 | Storage | `GET` | `/backup.js` |
 | TimeCode | `GET` | `/timecode.js`, `/timecode/all` |
 | TimeCode | `POST` | `/timecode/add` |
-| TimeCode | `GET` | `/timecode/dump`, `/timecode/changelog?since=&limit=` |
+| TimeCode | `GET` | `/timecode/dump`, `/timecode/changelog?since=&limit=`, `/timecode/areas` |
 | TimeCode | `POST` | `/timecode/set` |
 
-`/timecode/all` и `/timecode/add` сохраняют совместимость с веб-клиентом Lampa. Для нативных клиентов используйте `/timecode/dump` для первичной загрузки, затем `/timecode/changelog` для дельт. Параметр `limit` ограничен значением `20000`.
+`/bookmark/list`, `/bookmark/set`, `/bookmark/add` и `/bookmark/remove` сохраняют совместимость с веб-клиентом Lampa. Нативные клиенты читают `/bookmark/dump`, затем `/bookmark/changelog`. `POST /bookmark/sync` принимает одну карточку, массив или объект `{ rows }`. Пустые категории удаляют карточку.
+
+`/timecode/all` и `/timecode/add` сохраняют совместимость с веб-клиентом Lampa. Для нативных клиентов используйте `/timecode/dump` для первичной загрузки, затем `/timecode/changelog` для дельт. Параметр `limit` ограничен значением `20000`. `GET /timecode/areas` возвращает области данных пользователя по профилям.
 
 `POST /timecode/set` принимает одну запись, массив записей или объект `{ rows }`. Чтобы удалить запись, передайте её с `deleted: true`.
 

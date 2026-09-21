@@ -24,6 +24,8 @@ Lampac NextGen синхронизирует закладки, историю п�
 
 В `config/base.conf` эти модули разрешены, но starter-файл `config/example.init.conf` исключает `Sync` и `TimeCode`. `SyncEvents` и `Storage` загружаются, если не ограничены отдельно.
 
+Нативные клиенты сначала читают `/bookmark/dump` и `/timecode/dump`, затем `/changelog`. Веб-плагин Lampa остаётся на `/bookmark/list`, `/bookmark/set`, `/timecode/all` и `/timecode/add`.
+
 <Warning>
   Если вы включите Sync, но оставите TimeCode в `SkipModules`, закладки будут синхронизироваться, а позиции воспроизведения — нет.
 </Warning>

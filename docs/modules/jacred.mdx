@@ -79,6 +79,8 @@ JacRed регистрирует общий search API и отдельные ко
 
 `JacRed.typesearch` принимает режимы `webapi`, `red` или `jackett`. Поле `merge: "jackett"` объединяет основной результат с локальными Jackett-адаптерами.
 
+Режим `webapi` ходит на `JacRed.webApiHost`. Если удалённый JacRed требует ключ, задайте `JacRed.webApiKey` — он уходит как query `apikey`. Без ключа удалённый инстанс отвечает 401. `JacRed.apikey` — ключ этого инстанса, его клиенты передают в локальный API.
+
 ## Интеграция с Lampa
 
 JacRed инициализируется через `LampaWeb.initPlugins.jacred`. Этот флаг меняет `{jachost}` во встроенном Lampa init script; отдельного server route `/jacred` или `/jacred.js` модуль не регистрирует.
