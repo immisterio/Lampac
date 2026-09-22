@@ -1,0 +1,63 @@
+---
+- name: Require Debian or Ubuntu on amd64 or arm64
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution in ["Debian", "Ubuntu"]
+      - ansible_architecture in ["x86_64", "aarch64"]
+    fail_msg: >-
+      Supported targets are Debian or Ubuntu, amd64 or arm64
+      (got {{ ansible_distribution }} {{ ansible_architecture }}).
+
+- name: Require lampac_state present or absent
+  ansible.builtin.assert:
+    that:
+      - lampac_state in ["present", "absent"]
+    fail_msg: "lampac_state must be present or absent."
+
+- name: Reject a pinned tag combined with pre-release
+  ansible.builtin.fail:
+    msg: "lampac_version and lampac_prerelease are mutually exclusive."
+  when:
+    - lampac_state == "present"
+    - lampac_prerelease | bool
+    - lampac_version != "latest"
+
+- name: Reject init.conf and init.yaml together
+  ansible.builtin.fail:
+    msg: "Set lampac_init_conf or lampac_init_yaml, not both. Lampac loads whichever file is newer."
+  when:
+    - lampac_state == "present"
+    - lampac_init_conf | length > 0
+    - lampac_init_yaml | length > 0
+
+- name: Remove Lampac
+  ansible.builtin.import_tasks: remove.yml
+  when: lampac_state == "absent"
+
+- name: Install OS packages and Chrome
+  ansible.builtin.import_tasks: packages.yml
+  when: lampac_state == "present"
+
+- name: Install the ASP.NET Core runtime
+  ansible.builtin.import_tasks: dotnet.yml
+  when: lampac_state == "present"
+
+- name: Create the service account
+  ansible.builtin.import_tasks: user.yml
+  when: lampac_state == "present"
+
+- name: Write optional Lampac config
+  ansible.builtin.import_tasks: config.yml
+  when: lampac_state == "present"
+
+- name: Resolve the release
+  ansible.builtin.import_tasks: release.yml
+  when: lampac_state == "present"
+
+- name: Sync the release
+  ansible.builtin.import_tasks: sync.yml
+  when: lampac_state == "present"
+
+- name: Install the systemd unit
+  ansible.builtin.import_tasks: service.yml
+  when: lampac_state == "present"

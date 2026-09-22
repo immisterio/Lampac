@@ -1,0 +1,34 @@
+---
+- name: Read the group database
+  ansible.builtin.getent:
+    database: group
+
+- name: Read the user database
+  ansible.builtin.getent:
+    database: passwd
+
+- name: Create the service group
+  ansible.builtin.group:
+    name: "{{ lampac_user }}"
+    system: true
+    gid: "{{ omit if (lampac_gid | string) in (ansible_facts.getent_group.values() | map('join', ':') | map('regex_replace', '^[^:]*:([^:]*).*$', '\\1') | list) else lampac_gid }}"
+  when: lampac_user not in ansible_facts.getent_group
+
+- name: Create the service user
+  ansible.builtin.user:
+    name: "{{ lampac_user }}"
+    system: true
+    group: "{{ lampac_user }}"
+    home: "{{ lampac_install_root }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    uid: "{{ omit if (lampac_uid | string) in (ansible_facts.getent_passwd.values() | map('join', ':') | map('regex_replace', '^[^:]*:([^:]*).*$', '\\1') | list) else lampac_uid }}"
+  when: lampac_user not in ansible_facts.getent_passwd
+
+- name: Ensure the install directory exists
+  ansible.builtin.file:
+    path: "{{ lampac_install_root }}"
+    state: directory
+    owner: "{{ lampac_user }}"
+    group: "{{ lampac_user }}"
+    mode: "0755"
