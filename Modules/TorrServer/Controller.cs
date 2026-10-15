@@ -255,6 +255,41 @@ public class TorrServerController : BaseController
                 return;
             }
             #endregion
+
+            #region gst-playlist
+            if (HttpContext.Request.Method == "GET"
+                && absPath.StartsWith("/gst/", StringComparison.OrdinalIgnoreCase)
+                && absPath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))
+            {
+                using (var ctsGst = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted))
+                {
+                    ctsGst.CancelAfter(TimeSpan.FromSeconds(30));
+
+                    try
+                    {
+                        var gstResponse = await httpClient.GetAsync(servUri, ctsGst.Token).ConfigureAwait(false);
+
+                        if (gstResponse.IsSuccessStatusCode)
+                        {
+                            string body = await gstResponse.Content.ReadAsStringAsync(ctsGst.Token).ConfigureAwait(false);
+                            gstResponse.Content = new StringContent(
+                                (body ?? string.Empty).Replace("/gst/", "/ts/gst/"),
+                                Encoding.UTF8,
+                                "application/vnd.apple.mpegurl"
+                            );
+                        }
+
+                        await CopyProxyHttpResponse(HttpContext, gstResponse).ConfigureAwait(false);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Serilog.Log.Error(ex, "{Class} {CatchId}", "TorrServerController", "id_gst_playlist");
+                        HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
+                    }
+                }
+                return;
+            }
+            #endregion
         }
 
         var request = CreateProxyHttpRequest(HttpContext, new Uri(servUri));
