@@ -64,12 +64,12 @@ public class AnimeLibController : BaseOnlineController
                     return data;
                 }
 
-                var result = await goSearch(original_title);
+                var result = (await goSearch(title) ?? Array.Empty<DataSearch>())
+                    .Concat(await goSearch(original_title) ?? Array.Empty<DataSearch>())
+                    .DistinctBy(anime => anime.slug_url)
+                    .ToArray();
 
-                if (result == null || result.Length == 0)
-                    result = await goSearch(title);
-
-                if (result == null || result.Length == 0)
+                if (result.Length == 0)
                     return e.Fail(string.Empty, refresh_proxy: true);
 
                 string stitle = SearchNameTo.Convert(title);
