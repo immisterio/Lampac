@@ -80,6 +80,7 @@ public class Startup
         #region IHttpClientFactory - proxy
         services.AddHttpClient("proxy").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
+            ConnectCallback = SafeHttpUrl.ConnectAsync,
             AllowAutoRedirect = false,
             AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
@@ -102,6 +103,7 @@ public class Startup
         #region IHttpClientFactory - proxyimg
         services.AddHttpClient("proxyimg").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
+            ConnectCallback = SafeHttpUrl.ConnectAsync,
             AllowAutoRedirect = true,
             AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
@@ -117,6 +119,7 @@ public class Startup
         })
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
+            ConnectCallback = SafeHttpUrl.ConnectAsync,
             AllowAutoRedirect = true,
             AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
@@ -140,6 +143,18 @@ public class Startup
 
         services.AddHttpClient("baseNoRedirect").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
+            AllowAutoRedirect = false,
+            AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },
+            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            UseCookies = false
+        });
+
+        // для Http.DownloadFile: адрес берётся из запроса клиента, файл сохраняется на диск
+        services.AddHttpClient("safeNoRedirect").ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            ConnectCallback = SafeHttpUrl.ConnectAsync,
             AllowAutoRedirect = false,
             AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.GZip | DecompressionMethods.Deflate,
             SslOptions = { RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true },

@@ -525,7 +525,7 @@ public class ProxyImg
     async Task<(bool success, string contentType)> Download(LazyMsm ms, string url, CancellationToken cancellationToken, string plugin, IReadOnlyList<HeadersModel> headers = null, WebProxy proxy = null)
     {
         var client = FriendlyHttp.MessageClient(
-            "base",
+            "proxyimg",
             Http.HandlerOrNull(url, proxy),
             out bool disposeHttpClient,
             findNoRedirectClient: false

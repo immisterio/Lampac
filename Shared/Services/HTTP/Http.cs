@@ -1474,7 +1474,7 @@ public static class Http
             handler.AllowAutoRedirect = false;
 
         var client = FriendlyHttp.MessageClient(
-            "base",
+            "safeNoRedirect",
             handler,
             out bool disposeHttpClient,
             allowAutoRedirect: false

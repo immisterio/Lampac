@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Shared.Services.Utilities;
 
@@ -46,6 +48,37 @@ public static class SafeHttpUrl
         }
 
         return !IPAddress.TryParse(hostname, out IPAddress address) || !IsPrivateAddress(address);
+    }
+
+    /// <summary>
+    /// ConnectCallback для SocketsHttpHandler. IsSafe видит только текст url: имя, которое резолвится
+    /// в 127.0.0.1 или 10.x, и редирект на такой адрес он не ловит. Здесь проверяется адрес,
+    /// с которым реально устанавливается соединение.
+    /// </summary>
+    public static async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
+    {
+        Exception last = null;
+
+        foreach (IPAddress address in await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken).ConfigureAwait(false))
+        {
+            if (IsPrivateAddress(address))
+                continue;
+
+            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+
+            try
+            {
+                await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken).ConfigureAwait(false);
+                return new NetworkStream(socket, ownsSocket: true);
+            }
+            catch (Exception ex)
+            {
+                socket.Dispose();
+                last = ex;
+            }
+        }
+
+        throw last ?? new HttpRequestException($"address of {context.DnsEndPoint.Host} is not allowed");
     }
 
     static bool IsPrivateAddress(IPAddress address)
